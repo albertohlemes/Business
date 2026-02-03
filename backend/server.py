@@ -555,6 +555,23 @@ async def login(credentials: UserLogin):
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 
+@api_router.delete("/companies/{company_id}")
+async def delete_company(company_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem excluir empresas")
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Verificar se tem documentos vinculados
+    docs_count = await db.xml_documents.count_documents({"company_id": company_id})
+    if docs_count > 0:
+        raise HTTPException(status_code=400, detail=f"Não é possível excluir. Empresa possui {docs_count} documento(s) vinculado(s)")
+    
+    await db.companies.delete_one({"id": company_id})
+    return {"message": "Empresa excluída com sucesso"}
+
 @api_router.post("/companies", response_model=Company)
 async def create_company(company_data: CompanyCreate, current_user: User = Depends(get_current_user)):
     if current_user.role != UserRole.ADMIN:
