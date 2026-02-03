@@ -154,6 +154,47 @@ class ExceptionCreate(BaseModel):
     motivo: str
     aplicado_em_lote: bool = False
 
+class LearnedRule(BaseModel):
+    """Regras aprendidas pela IA baseadas em correções do usuário"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    company_id: str
+    produto_descricao: str
+    produto_codigo: Optional[str] = None
+    ncm: Optional[str] = None
+    categoria_correta: str  # revenda, insumo, despesa, combustivel
+    cfop_correto: str
+    motivo: str
+    aprendido_de: str  # user_correction ou ai_suggestion
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ReclassificationRequest(BaseModel):
+    """Request para reclassificar produtos com IA"""
+    company_id: str
+    competencia: str
+    product_ids: List[str] = []  # Se vazio, reclassifica todos
+    instrucao_usuario: str  # Comando do usuário para a IA
+    aplicar_em_lote: bool = True
+
+class TaxValidationRequest(BaseModel):
+    """Request para validar impostos com IA"""
+    company_id: str
+    competencia: str
+    document_ids: List[str] = []
+    validar_pis: bool = True
+    validar_cofins: bool = True
+    validar_icms: bool = True
+
+class TaxValidationResult(BaseModel):
+    """Resultado da validação de impostos"""
+    produto_codigo: str
+    produto_descricao: str
+    ncm: str
+    inconsistencias: List[Dict[str, Any]] = []
+    base_legal: List[str] = []
+    sugestao_correcao: Optional[str] = None
+
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
