@@ -74,7 +74,7 @@ const UploadXML = ({ user, onLogout }) => {
 
   const FileItem = ({ file, index }) => (
     <div key={index} className="flex items-center gap-2 text-sm bg-white p-2 rounded">
-      <FileText className="w-4 h-4 text-blue-600" />
+      <FileText className="w-4 h-4 text-red-600" />
       <span className="text-gray-700 flex-1">{file.name}</span>
       <span className="text-gray-500">{(file.size / 1024).toFixed(1)} KB</span>
     </div>
@@ -117,7 +117,7 @@ const UploadXML = ({ user, onLogout }) => {
                     value="entrada"
                     checked={tipo === 'entrada'}
                     onChange={(e) => setTipo(e.target.value)}
-                    className="w-4 h-4 text-blue-600"
+                    className="w-4 h-4 text-red-600"
                   />
                   <span className="text-gray-700">Entrada</span>
                 </label>
@@ -128,7 +128,7 @@ const UploadXML = ({ user, onLogout }) => {
                     value="saida"
                     checked={tipo === 'saida'}
                     onChange={(e) => setTipo(e.target.value)}
-                    className="w-4 h-4 text-blue-600"
+                    className="w-4 h-4 text-red-600"
                   />
                   <span className="text-gray-700">Saída</span>
                 </label>
@@ -137,7 +137,7 @@ const UploadXML = ({ user, onLogout }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Arquivos XML *</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-red-500 transition-colors">
                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <input
                   id="file-input"
@@ -149,7 +149,7 @@ const UploadXML = ({ user, onLogout }) => {
                   className="hidden"
                 />
                 <label htmlFor="file-input" className="cursor-pointer">
-                  <span className="text-blue-600 hover:text-blue-700 font-semibold">Clique para selecionar</span>
+                  <span className="text-red-600 hover:text-red-700 font-semibold">Clique para selecionar</span>
                   <span className="text-gray-600"> ou arraste os arquivos aqui</span>
                 </label>
                 <p className="text-sm text-gray-500 mt-2">Aceita múltiplos arquivos .xml</p>
@@ -171,7 +171,7 @@ const UploadXML = ({ user, onLogout }) => {
               data-testid="upload-files-button"
               onClick={handleUpload}
               disabled={uploading || !selectedCompany || files.length === 0}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+              className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
             >
               {uploading ? 'Enviando...' : 'Enviar ' + files.length + ' arquivo(s)'}
             </button>

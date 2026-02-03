@@ -71,7 +71,7 @@ const Dashboard = ({ user, onLogout }) => {
 
         {loading ? (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
           </div>
         ) : (
           <>
@@ -81,7 +81,7 @@ const Dashboard = ({ user, onLogout }) => {
                 icon={Building2}
                 title="Empresas"
                 value={stats.companies}
-                color="bg-blue-600"
+                color="bg-red-600"
                 link="/companies"
               />
               <StatCard
@@ -114,9 +114,9 @@ const Dashboard = ({ user, onLogout }) => {
                 <Link
                   data-testid="quick-action-upload"
                   to="/upload"
-                  className="flex items-center gap-3 p-4 border-2 border-blue-200 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition-all"
+                  className="flex items-center gap-3 p-4 border-2 border-red-200 rounded-lg hover:border-red-600 hover:bg-red-50 transition-all"
                 >
-                  <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
                     <FileText className="w-5 h-5 text-white" />
                   </div>
                   <div>

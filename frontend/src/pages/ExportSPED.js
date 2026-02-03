@@ -141,26 +141,26 @@ const ExportSPED = ({ user, onLogout }) => {
 
             {/* Company Info */}
             {selectedCompanyData && (
-              <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-                <h3 className="font-semibold text-blue-900 mb-4">Informações da Empresa</h3>
+              <div className="bg-red-50 rounded-lg p-6 border border-red-200">
+                <h3 className="font-semibold text-red-900 mb-4">Informações da Empresa</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-blue-700 font-medium">Razão Social</p>
-                    <p className="text-blue-900">{selectedCompanyData.razao_social}</p>
+                    <p className="text-red-700 font-medium">Razão Social</p>
+                    <p className="text-red-900">{selectedCompanyData.razao_social}</p>
                   </div>
                   <div>
-                    <p className="text-blue-700 font-medium">CNPJ</p>
-                    <p className="text-blue-900">{selectedCompanyData.cnpj}</p>
+                    <p className="text-red-700 font-medium">CNPJ</p>
+                    <p className="text-red-900">{selectedCompanyData.cnpj}</p>
                   </div>
                   {selectedCompanyData.inscricao_estadual && (
                     <div>
-                      <p className="text-blue-700 font-medium">Inscrição Estadual</p>
-                      <p className="text-blue-900">{selectedCompanyData.inscricao_estadual}</p>
+                      <p className="text-red-700 font-medium">Inscrição Estadual</p>
+                      <p className="text-red-900">{selectedCompanyData.inscricao_estadual}</p>
                     </div>
                   )}
                   <div>
-                    <p className="text-blue-700 font-medium">Documentos</p>
-                    <p className="text-blue-900 font-semibold">{documentsCount} XMLs</p>
+                    <p className="text-red-700 font-medium">Documentos</p>
+                    <p className="text-red-900 font-semibold">{documentsCount} XMLs</p>
                   </div>
                 </div>
               </div>
@@ -169,7 +169,7 @@ const ExportSPED = ({ user, onLogout }) => {
             {/* Export Info */}
             <div className="bg-gray-50 rounded-lg p-6">
               <div className="flex items-start gap-3">
-                <FileText className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <FileText className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900 mb-2">Sobre o SPED Fiscal</h3>
                   <p className="text-sm text-gray-600 mb-3">
@@ -194,7 +194,7 @@ const ExportSPED = ({ user, onLogout }) => {
               data-testid="export-sped-button"
               onClick={handleExport}
               disabled={loading || !selectedCompany || !periodo || periodo.length !== 6}
-              className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-3 text-lg"
+              className="w-full bg-red-600 text-white py-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-3 text-lg"
             >
               {loading ? (
                 <>

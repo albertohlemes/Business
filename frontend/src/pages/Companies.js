@@ -92,7 +92,7 @@ const Companies = ({ user, onLogout }) => {
             <button
               data-testid="add-company-button"
               onClick={() => setShowForm(!showForm)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 shadow-lg"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 shadow-lg"
             >
               <Plus className="w-5 h-5" />
               Nova Empresa
@@ -178,7 +178,7 @@ const Companies = ({ user, onLogout }) => {
                 <button
                   data-testid="save-company-button"
                   type="submit"
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+                  className="px-6 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700"
                 >
                   Salvar
                 </button>
@@ -210,7 +210,7 @@ const Companies = ({ user, onLogout }) => {
         {/* Companies List */}
         {loading ? (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
           </div>
         ) : filteredCompanies.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-xl">
@@ -226,8 +226,8 @@ const Companies = ({ user, onLogout }) => {
                 className="bg-white rounded-xl p-6 shadow-md border border-gray-100 card-hover"
               >
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Building2 className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                    <Building2 className="w-6 h-6 text-red-600" />
                   </div>
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2 text-lg">{company.razao_social}</h3>

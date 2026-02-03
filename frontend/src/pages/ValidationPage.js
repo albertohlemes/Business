@@ -113,7 +113,7 @@ const ValidationPage = ({ user, onLogout }) => {
         key={doc.id}
         data-testid={'select-document-' + doc.id}
         onClick={() => selectDocument(doc.id)}
-        className={'w-full px-6 py-4 text-left hover:bg-gray-50 transition-colors ' + (selectedDoc?.id === doc.id ? 'bg-blue-50 border-l-4 border-blue-600' : '')}
+        className={'w-full px-6 py-4 text-left hover:bg-gray-50 transition-colors ' + (selectedDoc?.id === doc.id ? 'bg-red-50 border-l-4 border-red-600' : '')}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -165,7 +165,7 @@ const ValidationPage = ({ user, onLogout }) => {
                 </span>
               )}
               {exception && (
-                <span className="text-sm text-blue-600 font-medium">
+                <span className="text-sm text-red-600 font-medium">
                   Exceção aplicada: {exception.cfop_corrigido}
                 </span>
               )}
@@ -179,7 +179,7 @@ const ValidationPage = ({ user, onLogout }) => {
                 setNewCfop('');
                 setMotivo('');
               }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 flex items-center gap-2"
+              className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 flex items-center gap-2"
             >
               <Edit2 className="w-4 h-4" />
               Corrigir
@@ -236,8 +236,8 @@ const ValidationPage = ({ user, onLogout }) => {
         )}
 
         {exception && (
-          <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-sm text-blue-900">
+          <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
+            <p className="text-sm text-red-900">
               <span className="font-semibold">Exceção:</span> {exception.motivo}
             </p>
           </div>
@@ -263,7 +263,7 @@ const ValidationPage = ({ user, onLogout }) => {
               <div className="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
                 {loading ? (
                   <div className="p-6 text-center">
-                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
                   </div>
                 ) : documents.length === 0 ? (
                   <div className="p-6 text-center text-gray-500 text-sm">Nenhum documento encontrado</div>

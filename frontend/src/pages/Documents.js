@@ -79,7 +79,7 @@ const Documents = ({ user, onLogout }) => {
           <Link
             data-testid="go-to-upload-button"
             to="/upload"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 shadow-lg"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 shadow-lg"
           >
             <FileText className="w-5 h-5" />
             Novo Upload
@@ -142,7 +142,7 @@ const Documents = ({ user, onLogout }) => {
         {/* Documents List */}
         {loading ? (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
           </div>
         ) : filteredDocuments.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-xl">
@@ -172,7 +172,7 @@ const Documents = ({ user, onLogout }) => {
                       <td className="px-6 py-4 text-sm text-gray-600">{getCompanyName(doc.company_id)}</td>
                       <td className="px-6 py-4 text-sm">
                         <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                          doc.tipo === 'entrada' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                          doc.tipo === 'entrada' ? 'bg-red-100 text-red-800' : 'bg-purple-100 text-purple-800'
                         }`}>
                           {doc.tipo === 'entrada' ? 'Entrada' : 'Saída'}
                         </span>
@@ -188,7 +188,7 @@ const Documents = ({ user, onLogout }) => {
                       <td className="px-6 py-4">
                         <Link
                           to={`/validation?doc=${doc.id}`}
-                          className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1"
+                          className="text-red-600 hover:text-red-800 font-medium text-sm flex items-center gap-1"
                         >
                           <Eye className="w-4 h-4" />
                           Ver
