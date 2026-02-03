@@ -13,7 +13,6 @@ const Layout = ({ user, onLogout, children }) => {
     { name: 'Upload XML', href: '/upload', icon: Upload, testId: 'nav-upload' },
     { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
     { name: 'Validação', href: '/validation', icon: CheckCircle, testId: 'nav-validation' },
-    { name: 'Relatórios', href: '/reports', icon: Download, testId: 'nav-reports' },
     { name: 'Exportar SPED', href: '/export', icon: Download, testId: 'nav-export' },
   ];
 
