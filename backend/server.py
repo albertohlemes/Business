@@ -661,13 +661,19 @@ async def initialize_cfop_rules(current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Apenas administradores podem executar esta ação")
     
     default_rules = [
+        {"cfop": "1101", "descricao": "Compra para industrialização", "tipo_operacao": "entrada", "categoria": "industrializacao"},
         {"cfop": "1102", "descricao": "Compra para comercialização", "tipo_operacao": "entrada", "categoria": "revenda"},
         {"cfop": "1403", "descricao": "Compra para comercialização em operação com mercadoria sujeita ao regime de substituição tributária", "tipo_operacao": "entrada", "categoria": "revenda_st"},
         {"cfop": "1152", "descricao": "Transferência para comercialização", "tipo_operacao": "entrada", "categoria": "transferencia"},
         {"cfop": "1556", "descricao": "Compra de material para uso ou consumo", "tipo_operacao": "entrada", "categoria": "despesa"},
+        {"cfop": "2101", "descricao": "Compra para industrialização de mercadoria recebida do exterior", "tipo_operacao": "entrada", "categoria": "industrializacao"},
+        {"cfop": "2102", "descricao": "Compra para comercialização de mercadoria recebida do exterior", "tipo_operacao": "entrada", "categoria": "revenda"},
+        {"cfop": "5101", "descricao": "Venda de produção do estabelecimento", "tipo_operacao": "saida", "categoria": "producao"},
         {"cfop": "5102", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros", "tipo_operacao": "saida", "categoria": "revenda"},
-        {"cfop": "5405", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros em operação com mercadoria sujeita ao regime de substituição tributária", "tipo_operacao": "saida", "categoria": "revenda_st"},
+        {"cfop": "5403", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros em operação com mercadoria sujeita ao regime de substituição tributária", "tipo_operacao": "saida", "categoria": "revenda_st"},
         {"cfop": "5152", "descricao": "Transferência de mercadoria adquirida ou recebida de terceiros", "tipo_operacao": "saida", "categoria": "transferencia"},
+        {"cfop": "6101", "descricao": "Venda de produção do estabelecimento para o exterior", "tipo_operacao": "saida", "categoria": "producao"},
+        {"cfop": "6102", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros para o exterior", "tipo_operacao": "saida", "categoria": "revenda"},
     ]
     
     inserted = 0
