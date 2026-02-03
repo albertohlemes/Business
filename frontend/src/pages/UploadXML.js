@@ -79,36 +79,36 @@ const UploadXML = ({ user, onLogout }) => {
   };
 
   const FileItem = ({ file, index }) => (
-    <div key={index} className=\"flex items-center gap-2 text-sm bg-white p-2 rounded\">
-      <FileText className=\"w-4 h-4 text-red-600\" />
-      <span className=\"text-gray-700 flex-1\">{file.name}</span>
-      <span className=\"text-gray-500\">{(file.size / 1024).toFixed(1)} KB</span>
+    <div key={index} className="flex items-center gap-2 text-sm bg-white p-2 rounded">
+      <FileText className="w-4 h-4 text-red-600" />
+      <span className="text-gray-700 flex-1">{file.name}</span>
+      <span className="text-gray-500">{(file.size / 1024).toFixed(1)} KB</span>
     </div>
   );
 
   return (
     <Layout user={user} onLogout={onLogout}>
-      <div data-testid=\"upload-xml-page\" className=\"space-y-6 max-w-5xl mx-auto\">
-        <div className=\"bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl p-6 shadow-lg\">
-          <div className=\"flex items-center gap-3 mb-2\">
-            <Sparkles className=\"w-8 h-8\" />
-            <h1 className=\"text-3xl font-bold\">Upload com Análise Inteligente</h1>
+      <div data-testid="upload-xml-page" className="space-y-6 max-w-5xl mx-auto">
+        <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl p-6 shadow-lg">
+          <div className="flex items-center gap-3 mb-2">
+            <Sparkles className="w-8 h-8" />
+            <h1 className="text-3xl font-bold">Upload com Análise Inteligente</h1>
           </div>
-          <p className=\"text-red-100\">A CONVERSÃO DE CFOP ACONTECE AUTOMATICAMENTE ao fazer o upload! Veja o relatório detalhado após enviar.</p>
+          <p className="text-red-100">A CONVERSÃO DE CFOP ACONTECE AUTOMATICAMENTE ao fazer o upload! Veja o relatório detalhado após enviar.</p>
         </div>
 
-        <div className=\"bg-white rounded-xl p-6 shadow-md border border-gray-100\">
-          <div className=\"space-y-4\">
-            <div className=\"grid grid-cols-1 md:grid-cols-2 gap-4\">
+        <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className=\"block text-sm font-medium text-gray-700 mb-2\">Empresa *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Empresa *</label>
                 <select
-                  data-testid=\"select-company-dropdown\"
+                  data-testid="select-company-dropdown"
                   value={selectedCompany}
                   onChange={(e) => setSelectedCompany(e.target.value)}
-                  className=\"w-full px-4 py-3 border border-gray-300 rounded-lg\"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg"
                 >
-                  <option value=\"\">Selecione uma empresa</option>
+                  <option value="">Selecione uma empresa</option>
                   {companies.map((company) => (
                     <option key={company.id} value={company.id}>
                       {company.razao_social} ({company.cnpj})
@@ -118,76 +118,76 @@ const UploadXML = ({ user, onLogout }) => {
               </div>
 
               <div>
-                <label className=\"block text-sm font-medium text-gray-700 mb-2\">Competência (Mês/Ano) *</label>
-                <div className=\"relative\">
-                  <Calendar className=\"absolute left-3 top-3 w-5 h-5 text-gray-400\" />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Competência (Mês/Ano) *</label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                   <input
-                    data-testid=\"competencia-input\"
-                    type=\"text\"
+                    data-testid="competencia-input"
+                    type="text"
                     value={competencia}
                     onChange={(e) => setCompetencia(e.target.value)}
-                    className=\"w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg\"
-                    placeholder=\"01/2024\"
-                    maxLength=\"7\"
+                    className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg"
+                    placeholder="01/2024"
+                    maxLength="7"
                   />
                 </div>
-                <p className=\"text-xs text-gray-500 mt-1\">Formato: MM/AAAA (Ex: 01/2024)</p>
+                <p className="text-xs text-gray-500 mt-1">Formato: MM/AAAA (Ex: 01/2024)</p>
               </div>
             </div>
 
             <div>
-              <label className=\"block text-sm font-medium text-gray-700 mb-2\">Tipo de Operação *</label>
-              <div className=\"flex gap-4\">
-                <label className=\"flex items-center gap-2 cursor-pointer\">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Operação *</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
-                    data-testid=\"tipo-entrada-radio\"
-                    type=\"radio\"
-                    value=\"entrada\"
+                    data-testid="tipo-entrada-radio"
+                    type="radio"
+                    value="entrada"
                     checked={tipo === 'entrada'}
                     onChange={(e) => setTipo(e.target.value)}
-                    className=\"w-4 h-4 text-red-600\"
+                    className="w-4 h-4 text-red-600"
                   />
-                  <span className=\"text-gray-700\">Entrada</span>
+                  <span className="text-gray-700">Entrada</span>
                 </label>
-                <label className=\"flex items-center gap-2 cursor-pointer\">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
-                    data-testid=\"tipo-saida-radio\"
-                    type=\"radio\"
-                    value=\"saida\"
+                    data-testid="tipo-saida-radio"
+                    type="radio"
+                    value="saida"
                     checked={tipo === 'saida'}
                     onChange={(e) => setTipo(e.target.value)}
-                    className=\"w-4 h-4 text-red-600\"
+                    className="w-4 h-4 text-red-600"
                   />
-                  <span className=\"text-gray-700\">Saída</span>
+                  <span className="text-gray-700">Saída</span>
                 </label>
               </div>
             </div>
 
             <div>
-              <label className=\"block text-sm font-medium text-gray-700 mb-2\">Arquivos XML *</label>
-              <div className=\"border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-red-500 transition-colors\">
-                <Upload className=\"w-12 h-12 text-gray-400 mx-auto mb-4\" />
+              <label className="block text-sm font-medium text-gray-700 mb-2">Arquivos XML *</label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-red-500 transition-colors">
+                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <input
-                  id=\"file-input\"
-                  data-testid=\"xml-file-input\"
-                  type=\"file\"
+                  id="file-input"
+                  data-testid="xml-file-input"
+                  type="file"
                   multiple
-                  accept=\".xml\"
+                  accept=".xml"
                   onChange={handleFileChange}
-                  className=\"hidden\"
+                  className="hidden"
                 />
-                <label htmlFor=\"file-input\" className=\"cursor-pointer\">
-                  <span className=\"text-red-600 hover:text-red-700 font-semibold\">Clique para selecionar</span>
-                  <span className=\"text-gray-600\"> ou arraste os arquivos aqui</span>
+                <label htmlFor="file-input" className="cursor-pointer">
+                  <span className="text-red-600 hover:text-red-700 font-semibold">Clique para selecionar</span>
+                  <span className="text-gray-600"> ou arraste os arquivos aqui</span>
                 </label>
-                <p className=\"text-sm text-gray-500 mt-2\">Aceita múltiplos arquivos .xml</p>
+                <p className="text-sm text-gray-500 mt-2">Aceita múltiplos arquivos .xml</p>
               </div>
             </div>
 
             {files.length > 0 && (
-              <div className=\"bg-gray-50 rounded-lg p-4\">
-                <h3 className=\"font-semibold text-gray-900 mb-3\">Arquivos Selecionados ({files.length})</h3>
-                <div className=\"space-y-2 max-h-40 overflow-y-auto\">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-900 mb-3">Arquivos Selecionados ({files.length})</h3>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
                   {files.map((file, index) => (
                     <FileItem key={index} file={file} index={index} />
                   ))}
@@ -196,19 +196,19 @@ const UploadXML = ({ user, onLogout }) => {
             )}
 
             <button
-              data-testid=\"upload-files-button\"
+              data-testid="upload-files-button"
               onClick={handleUpload}
               disabled={uploading || !selectedCompany || !competencia || files.length === 0}
-              className=\"w-full bg-red-600 text-white py-4 rounded-lg font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-lg flex items-center justify-center gap-2\"
+              className="w-full bg-red-600 text-white py-4 rounded-lg font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-lg flex items-center justify-center gap-2"
             >
               {uploading ? (
                 <>
-                  <div className=\"animate-spin rounded-full h-5 w-5 border-b-2 border-white\"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                   Processando e Convertendo CFOPs...
                 </>
               ) : (
                 <>
-                  <Sparkles className=\"w-6 h-6\" />
+                  <Sparkles className="w-6 h-6" />
                   Enviar e Analisar {files.length} arquivo(s)
                 </>
               )}
@@ -217,22 +217,22 @@ const UploadXML = ({ user, onLogout }) => {
         </div>
 
         {results && (
-          <div className=\"bg-white rounded-xl p-6 shadow-md border border-gray-100\">
-            <h2 className=\"text-xl font-bold text-gray-900 mb-4\">Resultado do Upload</h2>
+          <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Resultado do Upload</h2>
             
             {results.success.length > 0 && (
-              <div className=\"mb-4\">
-                <div className=\"flex items-center gap-2 mb-3\">
-                  <Check className=\"w-5 h-5 text-green-600\" />
-                  <h3 className=\"font-semibold text-green-900\">Arquivos Processados ({results.success.length})</h3>
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Check className="w-5 h-5 text-green-600" />
+                  <h3 className="font-semibold text-green-900">Arquivos Processados ({results.success.length})</h3>
                 </div>
-                <div className=\"space-y-2\">
+                <div className="space-y-2">
                   {results.success.map((item, index) => (
-                    <div key={index} className=\"bg-green-50 p-3 rounded-lg border border-green-200\">
-                      <p className=\"text-sm font-medium text-green-900\">{item.filename}</p>
-                      <p className=\"text-xs text-green-700\">Chave: {item.chave}</p>
+                    <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
+                      <p className="text-sm font-medium text-green-900">{item.filename}</p>
+                      <p className="text-xs text-green-700">Chave: {item.chave}</p>
                       {item.conversoes > 0 && (
-                        <p className=\"text-xs text-green-700 font-bold\">✓ {item.conversoes} CFOP(s) CONVERTIDO(S) AUTOMATICAMENTE</p>
+                        <p className="text-xs text-green-700 font-bold">✓ {item.conversoes} CFOP(s) CONVERTIDO(S) AUTOMATICAMENTE</p>
                       )}
                     </div>
                   ))}
@@ -241,16 +241,16 @@ const UploadXML = ({ user, onLogout }) => {
             )}
 
             {results.duplicadas && results.duplicadas.length > 0 && (
-              <div className=\"mb-4\">
-                <div className=\"flex items-center gap-2 mb-3\">
-                  <AlertCircle className=\"w-5 h-5 text-yellow-600\" />
-                  <h3 className=\"font-semibold text-yellow-900\">Notas Duplicadas - Já Importadas ({results.duplicadas.length})</h3>
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle className="w-5 h-5 text-yellow-600" />
+                  <h3 className="font-semibold text-yellow-900">Notas Duplicadas - Já Importadas ({results.duplicadas.length})</h3>
                 </div>
-                <div className=\"space-y-2\">
+                <div className="space-y-2">
                   {results.duplicadas.map((item, index) => (
-                    <div key={index} className=\"bg-yellow-50 p-3 rounded-lg border border-yellow-200\">
-                      <p className=\"text-sm font-medium text-yellow-900\">{item.filename} - NF-e {item.numero_nfe}</p>
-                      <p className=\"text-xs text-yellow-700\">Esta nota já foi importada nesta competência</p>
+                    <div key={index} className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                      <p className="text-sm font-medium text-yellow-900">{item.filename} - NF-e {item.numero_nfe}</p>
+                      <p className="text-xs text-yellow-700">Esta nota já foi importada nesta competência</p>
                     </div>
                   ))}
                 </div>
@@ -258,33 +258,33 @@ const UploadXML = ({ user, onLogout }) => {
             )}
 
             {results.relatorio_conversoes && results.relatorio_conversoes.length > 0 && (
-              <div className=\"mb-4\">
-                <div className=\"bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg p-4 mb-3\">
-                  <h3 className=\"font-bold text-xl mb-1 flex items-center gap-2\">
-                    <Sparkles className=\"w-6 h-6\" />
+              <div className="mb-4">
+                <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg p-4 mb-3">
+                  <h3 className="font-bold text-xl mb-1 flex items-center gap-2">
+                    <Sparkles className="w-6 h-6" />
                     RELATÓRIO DE CONVERSÕES AUTOMÁTICAS
                   </h3>
-                  <p className=\"text-purple-100\">Total: {results.total_conversoes} produtos analisados e convertidos pela IA</p>
+                  <p className="text-purple-100">Total: {results.total_conversoes} produtos analisados e convertidos pela IA</p>
                 </div>
-                <div className=\"space-y-3 max-h-96 overflow-y-auto\">
+                <div className="space-y-3 max-h-96 overflow-y-auto">
                   {results.relatorio_conversoes.map((arquivo, idx) => (
-                    <div key={idx} className=\"bg-purple-50 p-4 rounded-lg border-2 border-purple-300\">
-                      <p className=\"font-bold text-purple-900 mb-3\">📄 NF-e {arquivo.nfe} - {arquivo.arquivo}</p>
-                      <div className=\"space-y-3\">
+                    <div key={idx} className="bg-purple-50 p-4 rounded-lg border-2 border-purple-300">
+                      <p className="font-bold text-purple-900 mb-3">📄 NF-e {arquivo.nfe} - {arquivo.arquivo}</p>
+                      <div className="space-y-3">
                         {arquivo.conversoes.map((conv, i) => (
-                          <div key={i} className=\"bg-white p-3 rounded-lg border border-purple-200\">
-                            <p className=\"font-semibold text-gray-900 mb-2\">{conv.produto}</p>
-                            <div className=\"flex items-center gap-3 flex-wrap\">
-                              <div className=\"flex items-center gap-2\">
-                                <span className=\"text-xs text-gray-600\">Original:</span>
-                                <span className=\"px-3 py-1 bg-orange-100 text-orange-800 rounded font-mono font-bold\">
+                          <div key={i} className="bg-white p-3 rounded-lg border border-purple-200">
+                            <p className="font-semibold text-gray-900 mb-2">{conv.produto}</p>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-600">Original:</span>
+                                <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded font-mono font-bold">
                                   {conv.cfop_original}
                                 </span>
                               </div>
-                              <span className=\"text-xl text-gray-400\">→</span>
-                              <div className=\"flex items-center gap-2\">
-                                <span className=\"text-xs text-gray-600\">Convertido:</span>
-                                <span className=\"px-3 py-1 bg-green-100 text-green-800 rounded font-mono font-bold\">
+                              <span className="text-xl text-gray-400">→</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-600">Convertido:</span>
+                                <span className="px-3 py-1 bg-green-100 text-green-800 rounded font-mono font-bold">
                                   {conv.cfop_convertido}
                                 </span>
                               </div>
@@ -296,7 +296,7 @@ const UploadXML = ({ user, onLogout }) => {
                                 {conv.categoria.toUpperCase()}
                               </span>
                             </div>
-                            <p className=\"text-xs text-gray-600 mt-2 font-medium\">Critério: {conv.motivo}</p>
+                            <p className="text-xs text-gray-600 mt-2 font-medium">Critério: {conv.motivo}</p>
                           </div>
                         ))}
                       </div>
@@ -308,15 +308,15 @@ const UploadXML = ({ user, onLogout }) => {
 
             {results.errors.length > 0 && (
               <div>
-                <div className=\"flex items-center gap-2 mb-3\">
-                  <AlertCircle className=\"w-5 h-5 text-red-600\" />
-                  <h3 className=\"font-semibold text-red-900\">Erros ({results.errors.length})</h3>
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                  <h3 className="font-semibold text-red-900">Erros ({results.errors.length})</h3>
                 </div>
-                <div className=\"space-y-2\">
+                <div className="space-y-2">
                   {results.errors.map((item, index) => (
-                    <div key={index} className=\"bg-red-50 p-3 rounded-lg border border-red-200\">
-                      <p className=\"text-sm font-medium text-red-900\">{item.filename}</p>
-                      <p className=\"text-xs text-red-700\">{item.error}</p>
+                    <div key={index} className="bg-red-50 p-3 rounded-lg border border-red-200">
+                      <p className="text-sm font-medium text-red-900">{item.filename}</p>
+                      <p className="text-xs text-red-700">{item.error}</p>
                     </div>
                   ))}
                 </div>
