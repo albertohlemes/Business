@@ -60,7 +60,7 @@ const Reports = ({ user, onLogout }) => {
     let rows = '';
 
     if (reportType === 'product') {
-      headers = 'Código,Descrição,NCM,Quantidade,Valor Total,Crédito ICMS,Crédito PIS,Crédito COFINS,Documentos\\n';
+      headers = 'Código,Descrição,NCM,Quantidade,Valor Total,Crédito ICMS,Crédito PIS,Crédito COFINS,Documentos' + String.fromCharCode(10);
       rows = reportData.map(item => 
         item.codigo + ',' +
         '\"' + item.descricao + '\",' +
@@ -71,9 +71,9 @@ const Reports = ({ user, onLogout }) => {
         item.credito_pis.toFixed(2) + ',' +
         item.credito_cofins.toFixed(2) + ',' +
         item.documentos
-      ).join('\\n');
+      ).join(String.fromCharCode(10));
     } else {
-      headers = 'NCM,Qtd Produtos,Quantidade,Valor Total,Crédito ICMS,Crédito PIS,Crédito COFINS,Documentos\\n';
+      headers = 'NCM,Qtd Produtos,Quantidade,Valor Total,Crédito ICMS,Crédito PIS,Crédito COFINS,Documentos' + String.fromCharCode(10);
       rows = reportData.map(item =>
         item.ncm + ',' +
         item.quantidade_produtos + ',' +
@@ -83,7 +83,7 @@ const Reports = ({ user, onLogout }) => {
         item.credito_pis.toFixed(2) + ',' +
         item.credito_cofins.toFixed(2) + ',' +
         item.documentos
-      ).join('\\n');
+      ).join(String.fromCharCode(10));
     }
 
     const csv = headers + rows;
