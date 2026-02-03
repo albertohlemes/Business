@@ -660,6 +660,9 @@ async def initialize_cfop_rules(current_user: User = Depends(get_current_user)):
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Apenas administradores podem executar esta ação")
     
+    # Clear existing rules first to avoid schema conflicts
+    await db.cfop_rules.delete_many({})
+    
     default_rules = [
         {"cfop": "1101", "descricao": "Compra para industrialização", "tipo_operacao": "entrada", "categoria": "industrializacao"},
         {"cfop": "1102", "descricao": "Compra para comercialização", "tipo_operacao": "entrada", "categoria": "revenda"},
@@ -678,13 +681,11 @@ async def initialize_cfop_rules(current_user: User = Depends(get_current_user)):
     
     inserted = 0
     for rule_data in default_rules:
-        existing = await db.cfop_rules.find_one({"cfop": rule_data['cfop']}, {"_id": 0})
-        if not existing:
-            rule = CFOPRule(**rule_data)
-            doc = rule.model_dump()
-            doc['created_at'] = doc['created_at'].isoformat()
-            await db.cfop_rules.insert_one(doc)
-            inserted += 1
+        rule = CFOPRule(**rule_data)
+        doc = rule.model_dump()
+        doc['created_at'] = doc['created_at'].isoformat()
+        await db.cfop_rules.insert_one(doc)
+        inserted += 1
     
     return {"message": f"{inserted} regras CFOP criadas com sucesso"}
 
