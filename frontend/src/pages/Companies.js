@@ -66,31 +66,38 @@ const Companies = ({ user, onLogout }) => {
   };
 
   const buscarCNPJ = async () => {
-    if (!formData.cnpj || formData.cnpj.length < 14) {
-      alert('Digite um CNPJ válido');
+    const cnpjLimpo = formData.cnpj.replace(/\D/g, '');
+    
+    if (!cnpjLimpo || cnpjLimpo.length !== 14) {
+      alert('Digite um CNPJ válido com 14 dígitos');
       return;
     }
 
     setLoadingCNPJ(true);
     try {
-      const response = await axios.get(API + '/cnpj/' + formData.cnpj);
+      console.log('Buscando CNPJ:', cnpjLimpo);
+      const response = await axios.get(API + '/cnpj/' + cnpjLimpo);
       const data = response.data;
+      
+      console.log('Dados recebidos:', data);
       
       setFormData({
         ...formData,
-        razao_social: data.razao_social,
+        cnpj: formData.cnpj,
+        razao_social: data.razao_social || '',
         nome_fantasia: data.nome_fantasia || '',
         cep: data.cep || '',
         endereco: data.logradouro || '',
         cidade: data.municipio || '',
         uf: data.uf || 'SP',
-        cnae_principal: data.cnae_principal,
-        cnae_principal_descricao: data.cnae_principal_descricao
+        cnae_principal: data.cnae_principal || '',
+        cnae_principal_descricao: data.cnae_principal_descricao || ''
       });
       
-      alert('Dados da Receita Federal carregados com sucesso!');
+      alert('✓ Dados da Receita Federal carregados com sucesso!');
     } catch (err) {
-      alert(err.response?.data?.detail || 'Erro ao consultar CNPJ');
+      console.error('Erro ao buscar CNPJ:', err);
+      alert(err.response?.data?.detail || 'Erro ao consultar CNPJ na Receita Federal. Verifique se o CNPJ está correto.');
     } finally {
       setLoadingCNPJ(false);
     }
