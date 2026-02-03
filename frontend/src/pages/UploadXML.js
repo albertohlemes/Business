@@ -174,7 +174,7 @@ const UploadXML = ({ user, onLogout }) => {
               disabled={uploading || !selectedCompany || files.length === 0}
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
             >
-              {uploading ? 'Enviando...' : `Enviar ${files.length} arquivo(s)`}
+              {uploading ? 'Enviando...' : 'Enviar ' + files.length + ' arquivo(s)'}
             </button>
           </div>
         </div>
