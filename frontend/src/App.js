@@ -7,7 +7,6 @@ import UploadXML from './pages/UploadXML';
 import Documents from './pages/Documents';
 import ValidationPage from './pages/ValidationPage';
 import ExportSPED from './pages/ExportSPED';
-import Reports from './pages/Reports';
 import './App.css';
 
 function App() {
