@@ -76,6 +76,10 @@ function App() {
             path="/export"
             element={user ? <ExportSPED user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
           />
+          <Route
+            path="/reports"
+            element={user ? <Reports user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+          />
         </Routes>
       </BrowserRouter>
     </div>
