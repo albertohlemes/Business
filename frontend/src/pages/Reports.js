@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { FileBarChart, Download, TrendingUp, Package, Boxes } from 'lucide-react';
+import { FileBarChart, Download, TrendingUp, Package, Boxes, Calendar } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL + '/api';
@@ -9,12 +9,18 @@ const API = BACKEND_URL + '/api';
 const Reports = ({ user, onLogout }) => {
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState('');
+  const [competencia, setCompetencia] = useState('');
+  const [availableCompetencias, setAvailableCompetencias] = useState([]);
   const [reportType, setReportType] = useState('product');
   const [reportData, setReportData] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchCompanies();
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    setCompetencia(month + '/' + year);
   }, []);
 
   const fetchCompanies = async () => {
@@ -26,9 +32,34 @@ const Reports = ({ user, onLogout }) => {
       setCompanies(response.data);
       if (response.data.length > 0) {
         setSelectedCompany(response.data[0].id);
+        fetchCompetencias(response.data[0].id);
       }
     } catch (err) {
       console.error('Erro ao carregar empresas:', err);
+    }
+  };
+
+  const fetchCompetencias = async (companyId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(API + '/xml/documents?company_id=' + companyId, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      const competencias = [...new Set(response.data.map(d => d.competencia))].filter(Boolean).sort();
+      setAvailableCompetencias(competencias);
+      if (competencias.length > 0 && !competencias.includes(competencia)) {
+        setCompetencia(competencias[0]);
+      }
+    } catch (err) {
+      console.error('Erro:', err);
+    }
+  };
+
+  const handleCompanyChange = (companyId) => {
+    setSelectedCompany(companyId);
+    setReportData([]);
+    if (companyId) {
+      fetchCompetencias(companyId);
     }
   };
 
@@ -42,7 +73,8 @@ const Reports = ({ user, onLogout }) => {
     try {
       const token = localStorage.getItem('token');
       const endpoint = reportType === 'product' ? 'by-product' : 'by-ncm';
-      const response = await axios.get(API + '/reports/' + endpoint + '/' + selectedCompany, {
+      const params = competencia ? '?competencia=' + competencia : '';
+      const response = await axios.get(API + '/reports/' + endpoint + '/' + selectedCompany + params, {
         headers: { Authorization: 'Bearer ' + token }
       });
       setReportData(response.data);
@@ -80,7 +112,7 @@ const Reports = ({ user, onLogout }) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'relatorio_' + reportType + '_' + new Date().toISOString().slice(0,10) + '.csv';
+    link.download = 'relatorio_' + reportType + '_' + competencia.replace('/', '-') + '.csv';
     link.click();
   };
 
@@ -96,17 +128,17 @@ const Reports = ({ user, onLogout }) => {
       <div data-testid="reports-page" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Relatórios Gerenciais</h1>
-          <p className="text-gray-600">Análise detalhada de produtos e NCMs para conferência fiscal</p>
+          <p className="text-gray-600">Análise detalhada de produtos e NCMs por competência para conferência fiscal</p>
         </div>
 
         <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Empresa</label>
               <select
                 data-testid="report-company-select"
                 value={selectedCompany}
-                onChange={(e) => setSelectedCompany(e.target.value)}
+                onChange={(e) => handleCompanyChange(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg"
               >
                 <option value="">Selecione</option>
@@ -116,6 +148,34 @@ const Reports = ({ user, onLogout }) => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Competência</label>
+              {availableCompetencias.length > 0 ? (
+                <select
+                  data-testid="report-competencia-select"
+                  value={competencia}
+                  onChange={(e) => setCompetencia(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                >
+                  <option value="">Todas</option>
+                  {availableCompetencias.map((comp) => (
+                    <option key={comp} value={comp}>{comp}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={competencia}
+                    onChange={(e) => setCompetencia(e.target.value)}
+                    className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg"
+                    placeholder="MM/AAAA"
+                  />
+                </div>
+              )}
             </div>
 
             <div>
@@ -152,7 +212,7 @@ const Reports = ({ user, onLogout }) => {
                 className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 flex items-center gap-2"
               >
                 <Download className="w-4 h-4" />
-                Exportar CSV
+                Exportar CSV - {competencia || 'Todas'}
               </button>
             </div>
           )}
@@ -163,7 +223,7 @@ const Reports = ({ user, onLogout }) => {
             <div className="bg-red-50 rounded-xl p-6 border border-red-200">
               <h3 className="font-bold text-red-900 mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
-                Totalizadores - Conferência Fiscal
+                Totalizadores - Conferência Fiscal {competencia && '(' + competencia + ')'}
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
@@ -196,9 +256,9 @@ const Reports = ({ user, onLogout }) => {
             <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
               <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center gap-2">
                 {reportType === 'product' ? (
-                  <><Package className="w-5 h-5 text-red-600" /><h3 className="font-bold text-gray-900">Relatório por Produto</h3></>
+                  <><Package className="w-5 h-5 text-red-600" /><h3 className="font-bold text-gray-900">Relatório por Produto {competencia && '- ' + competencia}</h3></>
                 ) : (
-                  <><Boxes className="w-5 h-5 text-red-600" /><h3 className="font-bold text-gray-900">Relatório por NCM</h3></>
+                  <><Boxes className="w-5 h-5 text-red-600" /><h3 className="font-bold text-gray-900">Relatório por NCM {competencia && '- ' + competencia}</h3></>
                 )}
               </div>
               <div className="overflow-x-auto">
