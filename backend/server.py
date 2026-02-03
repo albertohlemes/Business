@@ -618,13 +618,17 @@ async def upload_xml_batch(
             
             parsed_data = parse_xml_nfe(xml_str)
             
+            # APLICAR ANÁLISE INTELIGENTE E CONVERTER CFOP AUTOMATICAMENTE
             for product in parsed_data['produtos']:
                 suggestion = await suggest_cfop_intelligent(
                     product, company_id, tipo, product.get('cfop', '')
                 )
                 if suggestion['cfop_sugerido']:
                     product['cfop_sugerido'] = suggestion['cfop_sugerido']
+                    product['cfop_original'] = product.get('cfop', '')
                     product['categoria_classificada'] = suggestion['categoria']
+                    # APLICAR AUTOMATICAMENTE O CFOP SUGERIDO
+                    product['cfop'] = suggestion['cfop_sugerido']
             
             xml_doc = XMLDocument(
                 company_id=company_id,
