@@ -106,7 +106,7 @@ const Reports = ({ user, onLogout }) => {
 
   return (
     <Layout user={user} onLogout={onLogout}>
-      <div data-testid=\"reports-page\" className=\"space-y-6\">
+      <div data-testid="reports-page" className="space-y-6">
         <div>
           <h1 className=\"text-3xl font-bold text-gray-900 mb-2\">Relatórios Gerenciais</h1>
           <p className=\"text-gray-600\">Análise detalhada de produtos e NCMs para conferência fiscal</p>
