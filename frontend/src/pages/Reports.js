@@ -108,19 +108,19 @@ const Reports = ({ user, onLogout }) => {
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="reports-page" className="space-y-6">
         <div>
-          <h1 className=\"text-3xl font-bold text-gray-900 mb-2\">Relatórios Gerenciais</h1>
-          <p className=\"text-gray-600\">Análise detalhada de produtos e NCMs para conferência fiscal</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2\">Relatórios Gerenciais</h1>
+          <p className="text-gray-600">Análise detalhada de produtos e NCMs para conferência fiscal</p>
         </div>
 
-        <div className=\"bg-white rounded-xl p-6 shadow-md border border-gray-100\">
-          <div className=\"grid grid-cols-1 md:grid-cols-3 gap-4 mb-4\">
+        <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100\">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4\">
             <div>
-              <label className=\"block text-sm font-medium text-gray-700 mb-2\">Empresa</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2\">Empresa</label>
               <select
                 data-testid=\"report-company-select\"
                 value={selectedCompany}
                 onChange={(e) => setSelectedCompany(e.target.value)}
-                className=\"w-full px-4 py-3 border border-gray-300 rounded-lg\"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg\"
               >
                 <option value=\"\">Selecione</option>
                 {companies.map((company) => (
@@ -132,24 +132,24 @@ const Reports = ({ user, onLogout }) => {
             </div>
 
             <div>
-              <label className=\"block text-sm font-medium text-gray-700 mb-2\">Tipo de Relatório</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2\">Tipo de Relatório</label>
               <select
                 data-testid=\"report-type-select\"
                 value={reportType}
                 onChange={(e) => setReportType(e.target.value)}
-                className=\"w-full px-4 py-3 border border-gray-300 rounded-lg\"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg\"
               >
                 <option value=\"product\">Por Produto</option>
                 <option value=\"ncm\">Por NCM</option>
               </select>
             </div>
 
-            <div className=\"flex items-end\">
+            <div className="flex items-end\">
               <button
                 data-testid=\"generate-report-button\"
                 onClick={generateReport}
                 disabled={loading || !selectedCompany}
-                className=\"w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2\"
+                className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2\"
               >
                 <FileBarChart className=\"w-5 h-5\" />
                 {loading ? 'Gerando...' : 'Gerar Relatório'}
@@ -158,7 +158,7 @@ const Reports = ({ user, onLogout }) => {
           </div>
 
           {reportData.length > 0 && (
-            <div className=\"flex justify-end mb-4\">
+            <div className="flex justify-end mb-4\">
               <button
                 data-testid=\"export-csv-button\"
                 onClick={exportToCSV}
@@ -178,7 +178,7 @@ const Reports = ({ user, onLogout }) => {
                 <TrendingUp className=\"w-5 h-5\" />
                 Totalizadores
               </h3>
-              <div className=\"grid grid-cols-2 md:grid-cols-4 gap-4\">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4\">
                 <div>
                   <p className=\"text-sm text-red-700\">Valor Total</p>
                   <p className=\"text-2xl font-bold text-red-900\">
@@ -206,9 +206,9 @@ const Reports = ({ user, onLogout }) => {
               </div>
             </div>
 
-            <div className=\"bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden\">
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden\">
               <div className=\"overflow-x-auto\">
-                <table className=\"w-full\">
+                <table className="w-full\">
                   <thead className=\"bg-gray-50 border-b border-gray-200\">
                     <tr>
                       {reportType === 'product' ? (
@@ -288,7 +288,7 @@ const Reports = ({ user, onLogout }) => {
         {!loading && reportData.length === 0 && selectedCompany && (
           <div className=\"text-center py-12 bg-white rounded-xl\">
             <FileBarChart className=\"w-16 h-16 text-gray-300 mx-auto mb-4\" />
-            <p className=\"text-gray-600\">Clique em \"Gerar Relatório\" para visualizar os dados</p>
+            <p className="text-gray-600">Clique em \"Gerar Relatório\" para visualizar os dados</p>
           </div>
         )}
       </div>
