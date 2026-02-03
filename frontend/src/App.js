@@ -81,6 +81,10 @@ function App() {
             path="/reports"
             element={user ? <Reports user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
           />
+          <Route
+            path="/reclassification"
+            element={user ? <ReclassificationAI user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+          />
         </Routes>
       </BrowserRouter>
     </div>
