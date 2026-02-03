@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { Upload, FileText, Check, X, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Check, AlertCircle } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = BACKEND_URL + '/api';
 
 const UploadXML = ({ user, onLogout }) => {
   const [companies, setCompanies] = useState([]);
@@ -21,8 +21,8 @@ const UploadXML = ({ user, onLogout }) => {
   const fetchCompanies = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API}/companies`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get(API + '/companies', {
+        headers: { Authorization: 'Bearer ' + token }
       });
       setCompanies(response.data);
       if (response.data.length > 0) {
@@ -56,9 +56,9 @@ const UploadXML = ({ user, onLogout }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${API}/xml/upload`, formData, {
+      const response = await axios.post(API + '/xml/upload', formData, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': 'Bearer ' + token,
           'Content-Type': 'multipart/form-data'
         }
       });
@@ -72,6 +72,14 @@ const UploadXML = ({ user, onLogout }) => {
     }
   };
 
+  const FileItem = ({ file, index }) => (
+    <div key={index} className="flex items-center gap-2 text-sm bg-white p-2 rounded">
+      <FileText className="w-4 h-4 text-blue-600" />
+      <span className="text-gray-700 flex-1">{file.name}</span>
+      <span className="text-gray-500">{(file.size / 1024).toFixed(1)} KB</span>
+    </div>
+  );
+
   return (
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="upload-xml-page" className="space-y-6 max-w-4xl mx-auto">
@@ -82,7 +90,6 @@ const UploadXML = ({ user, onLogout }) => {
 
         <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
           <div className="space-y-4">
-            {/* Company Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Empresa *</label>
               <select
@@ -100,7 +107,6 @@ const UploadXML = ({ user, onLogout }) => {
               </select>
             </div>
 
-            {/* Type Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Operação *</label>
               <div className="flex gap-4">
@@ -129,7 +135,6 @@ const UploadXML = ({ user, onLogout }) => {
               </div>
             </div>
 
-            {/* File Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Arquivos XML *</label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors">
@@ -151,23 +156,17 @@ const UploadXML = ({ user, onLogout }) => {
               </div>
             </div>
 
-            {/* Selected Files */}
             {files.length > 0 && (
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="font-semibold text-gray-900 mb-3">Arquivos Selecionados ({files.length})</h3>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
                   {files.map((file, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm bg-white p-2 rounded">
-                      <FileText className="w-4 h-4 text-blue-600" />
-                      <span className="text-gray-700 flex-1">{file.name}</span>
-                      <span className="text-gray-500">{(file.size / 1024).toFixed(1)} KB</span>
-                    </div>
+                    <FileItem key={index} file={file} index={index} />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Upload Button */}
             <button
               data-testid="upload-files-button"
               onClick={handleUpload}
@@ -179,7 +178,6 @@ const UploadXML = ({ user, onLogout }) => {
           </div>
         </div>
 
-        {/* Results */}
         {results && (
           <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Resultado do Upload</h2>
