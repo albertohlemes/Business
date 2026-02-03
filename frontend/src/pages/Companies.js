@@ -25,10 +25,12 @@ const Companies = ({ user, onLogout }) => {
     cnae_principal_descricao: '',
     atividade_principal: '',
     produtos_comercializados: [],
-    insumos_producao: []
+    insumos_producao: [],
+    produtos_despesa: []
   });
   const [produtoInput, setProdutoInput] = useState('');
   const [insumoInput, setInsumoInput] = useState('');
+  const [despesaInput, setDespesaInput] = useState('');
 
   useEffect(() => {
     fetchCompanies();
