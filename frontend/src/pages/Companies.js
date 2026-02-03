@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { Building2, Plus, Search, Edit } from 'lucide-react';
+import { Building2, Plus, Search, RefreshCw } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = BACKEND_URL + '/api';
 
 const Companies = ({ user, onLogout }) => {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loadingCNPJ, setLoadingCNPJ] = useState(false);
   const [formData, setFormData] = useState({
     cnpj: '',
     razao_social: '',
@@ -19,8 +20,15 @@ const Companies = ({ user, onLogout }) => {
     endereco: '',
     cidade: '',
     uf: 'SP',
-    cep: ''
+    cep: '',
+    cnae_principal: '',
+    cnae_principal_descricao: '',
+    atividade_principal: '',
+    produtos_comercializados: [],
+    insumos_producao: []
   });
+  const [produtoInput, setProdutoInput] = useState('');
+  const [insumoInput, setInsumoInput] = useState('');
 
   useEffect(() => {
     fetchCompanies();
@@ -29,8 +37,8 @@ const Companies = ({ user, onLogout }) => {
   const fetchCompanies = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API}/companies`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get(API + '/companies', {
+        headers: { Authorization: 'Bearer ' + token }
       });
       setCompanies(response.data);
     } catch (err) {
@@ -40,12 +48,43 @@ const Companies = ({ user, onLogout }) => {
     }
   };
 
+  const buscarCNPJ = async () => {
+    if (!formData.cnpj || formData.cnpj.length < 14) {
+      alert('Digite um CNPJ válido');
+      return;
+    }
+
+    setLoadingCNPJ(true);
+    try {
+      const response = await axios.get(API + '/cnpj/' + formData.cnpj);
+      const data = response.data;
+      
+      setFormData({
+        ...formData,
+        razao_social: data.razao_social,
+        nome_fantasia: data.nome_fantasia || '',
+        cep: data.cep || '',
+        endereco: data.logradouro || '',
+        cidade: data.municipio || '',
+        uf: data.uf || 'SP',
+        cnae_principal: data.cnae_principal,
+        cnae_principal_descricao: data.cnae_principal_descricao
+      });
+      
+      alert('Dados da Receita Federal carregados com sucesso!');
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erro ao consultar CNPJ');
+    } finally {
+      setLoadingCNPJ(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`${API}/companies`, formData, {
-        headers: { Authorization: `Bearer ${token}` }
+      await axios.post(API + '/companies', formData, {
+        headers: { Authorization: 'Bearer ' + token }
       });
       setShowForm(false);
       setFormData({
@@ -56,7 +95,12 @@ const Companies = ({ user, onLogout }) => {
         endereco: '',
         cidade: '',
         uf: 'SP',
-        cep: ''
+        cep: '',
+        cnae_principal: '',
+        cnae_principal_descricao: '',
+        atividade_principal: '',
+        produtos_comercializados: [],
+        insumos_producao: []
       });
       fetchCompanies();
       alert('Empresa cadastrada com sucesso!');
@@ -73,6 +117,36 @@ const Companies = ({ user, onLogout }) => {
       .replace(/(\d{3})(\d)/, '$1/$2')
       .replace(/(\d{4})(\d)/, '$1-$2')
       .substring(0, 18);
+  };
+
+  const adicionarProduto = () => {
+    if (produtoInput.trim()) {
+      setFormData({
+        ...formData,
+        produtos_comercializados: [...formData.produtos_comercializados, produtoInput.trim()]
+      });
+      setProdutoInput('');
+    }
+  };
+
+  const removerProduto = (index) => {
+    const novosprodutos = formData.produtos_comercializados.filter((_, i) => i !== index);
+    setFormData({ ...formData, produtos_comercializados: novosProducts });
+  };
+
+  const adicionarInsumo = () => {
+    if (insumoInput.trim()) {
+      setFormData({
+        ...formData,
+        insumos_producao: [...formData.insumos_producao, insumoInput.trim()]
+      });
+      setInsumoInput('');
+    }
+  };
+
+  const removerInsumo = (index) => {
+    const novosInsumos = formData.insumos_producao.filter((_, i) => i !== index);
+    setFormData({ ...formData, insumos_producao: novosInsumos });
   };
 
   const filteredCompanies = companies.filter(company =>
@@ -100,87 +174,178 @@ const Companies = ({ user, onLogout }) => {
           )}
         </div>
 
-        {/* Add Company Form */}
         {showForm && (
           <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Cadastrar Nova Empresa</h2>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">CNPJ *</label>
+                  <input
+                    data-testid="company-cnpj-input"
+                    type="text"
+                    value={formData.cnpj}
+                    onChange={(e) => setFormData({ ...formData, cnpj: formatCNPJ(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    required
+                    placeholder="00.000.000/0000-00"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={buscarCNPJ}
+                    disabled={loadingCNPJ}
+                    className="w-full bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className={loadingCNPJ ? 'w-4 h-4 animate-spin' : 'w-4 h-4'} />
+                    {loadingCNPJ ? 'Consultando...' : 'Buscar na Receita'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Razão Social *</label>
+                  <input
+                    data-testid="company-razao-input"
+                    type="text"
+                    value={formData.razao_social}
+                    onChange={(e) => setFormData({ ...formData, razao_social: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nome Fantasia</label>
+                  <input
+                    type="text"
+                    value={formData.nome_fantasia}
+                    onChange={(e) => setFormData({ ...formData, nome_fantasia: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">CNAE Principal</label>
+                  <input
+                    type="text"
+                    value={formData.cnae_principal}
+                    onChange={(e) => setFormData({ ...formData, cnae_principal: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    placeholder="0000-0/00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Descrição CNAE</label>
+                  <input
+                    type="text"
+                    value={formData.cnae_principal_descricao}
+                    onChange={(e) => setFormData({ ...formData, cnae_principal_descricao: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">CNPJ *</label>
-                <input
-                  data-testid="company-cnpj-input"
-                  type="text"
-                  value={formData.cnpj}
-                  onChange={(e) => setFormData({ ...formData, cnpj: formatCNPJ(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  required
-                  placeholder="00.000.000/0000-00"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Produtos Comercializados (para classificação REVENDA)</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={produtoInput}
+                    onChange={(e) => setProdutoInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), adicionarProduto())}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Ex: Calçados, Roupas, Eletrônicos..."
+                  />
+                  <button
+                    type="button"
+                    onClick={adicionarProduto}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.produtos_comercializados.map((produto, index) => (
+                    <span key={index} className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm flex items-center gap-2">
+                      {produto}
+                      <button type="button" onClick={() => removerProduto(index)} className="hover:text-red-600">×</button>
+                    </span>
+                  ))}
+                </div>
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Razão Social *</label>
-                <input
-                  data-testid="company-razao-input"
-                  type="text"
-                  value={formData.razao_social}
-                  onChange={(e) => setFormData({ ...formData, razao_social: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  required
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Insumos de Produção (para classificação INSUMO)</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={insumoInput}
+                    onChange={(e) => setInsumoInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), adicionarInsumo())}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Ex: Matéria-prima, Embalagens, Componentes..."
+                  />
+                  <button
+                    type="button"
+                    onClick={adicionarInsumo}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.insumos_producao.map((insumo, index) => (
+                    <span key={index} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm flex items-center gap-2">
+                      {insumo}
+                      <button type="button" onClick={() => removerInsumo(index)} className="hover:text-green-600">×</button>
+                    </span>
+                  ))}
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Nome Fantasia</label>
-                <input
-                  type="text"
-                  value={formData.nome_fantasia}
-                  onChange={(e) => setFormData({ ...formData, nome_fantasia: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Inscrição Estadual</label>
+                  <input
+                    type="text"
+                    value={formData.inscricao_estadual}
+                    onChange={(e) => setFormData({ ...formData, inscricao_estadual: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Cidade/UF</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={formData.cidade}
+                      onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="Cidade"
+                    />
+                    <input
+                      type="text"
+                      value={formData.uf}
+                      onChange={(e) => setFormData({ ...formData, uf: e.target.value.toUpperCase() })}
+                      className="w-20 px-4 py-2 border border-gray-300 rounded-lg"
+                      maxLength="2"
+                      placeholder="UF"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Inscrição Estadual</label>
-                <input
-                  type="text"
-                  value={formData.inscricao_estadual}
-                  onChange={(e) => setFormData({ ...formData, inscricao_estadual: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Cidade</label>
-                <input
-                  type="text"
-                  value={formData.cidade}
-                  onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">UF</label>
-                <input
-                  type="text"
-                  value={formData.uf}
-                  onChange={(e) => setFormData({ ...formData, uf: e.target.value.toUpperCase() })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  maxLength="2"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Endereço</label>
-                <input
-                  type="text"
-                  value={formData.endereco}
-                  onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-              <div className="md:col-span-2 flex gap-3">
+
+              <div className="flex gap-3">
                 <button
                   data-testid="save-company-button"
                   type="submit"
                   className="px-6 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700"
                 >
-                  Salvar
+                  Salvar Empresa
                 </button>
                 <button
                   type="button"
@@ -194,7 +359,6 @@ const Companies = ({ user, onLogout }) => {
           </div>
         )}
 
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
           <input
@@ -207,7 +371,6 @@ const Companies = ({ user, onLogout }) => {
           />
         </div>
 
-        {/* Companies List */}
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
@@ -222,7 +385,7 @@ const Companies = ({ user, onLogout }) => {
             {filteredCompanies.map((company) => (
               <div
                 key={company.id}
-                data-testid={`company-card-${company.id}`}
+                data-testid={'company-card-' + company.id}
                 className="bg-white rounded-xl p-6 shadow-md border border-gray-100 card-hover"
               >
                 <div className="flex items-start justify-between mb-4">
@@ -238,9 +401,9 @@ const Companies = ({ user, onLogout }) => {
                   <p className="text-gray-600">
                     <span className="font-medium">CNPJ:</span> {company.cnpj}
                   </p>
-                  {company.inscricao_estadual && (
+                  {company.cnae_principal && (
                     <p className="text-gray-600">
-                      <span className="font-medium">IE:</span> {company.inscricao_estadual}
+                      <span className="font-medium">CNAE:</span> {company.cnae_principal}
                     </p>
                   )}
                   {company.cidade && (
