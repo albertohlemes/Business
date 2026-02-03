@@ -627,6 +627,7 @@ async def upload_xml_batch(
     
     results = []
     errors = []
+    conversion_report = []
     
     for file in files:
         try:
@@ -634,18 +635,33 @@ async def upload_xml_batch(
             xml_str = content.decode('utf-8')
             
             parsed_data = parse_xml_nfe(xml_str)
+            file_conversions = []
             
             # APLICAR ANÁLISE INTELIGENTE E CONVERTER CFOP AUTOMATICAMENTE
             for product in parsed_data['produtos']:
                 suggestion = await suggest_cfop_intelligent(
                     product, company_id, tipo, product.get('cfop', '')
                 )
+                
+                cfop_original = product.get('cfop', '')
+                
                 if suggestion['cfop_sugerido']:
                     product['cfop_sugerido'] = suggestion['cfop_sugerido']
-                    product['cfop_original'] = product.get('cfop', '')
+                    product['cfop_original'] = cfop_original
                     product['categoria_classificada'] = suggestion['categoria']
+                    
                     # APLICAR AUTOMATICAMENTE O CFOP SUGERIDO
                     product['cfop'] = suggestion['cfop_sugerido']
+                    
+                    # Registrar conversão
+                    file_conversions.append({
+                        'produto': product.get('descricao', ''),
+                        'codigo': product.get('codigo', ''),
+                        'cfop_original': cfop_original,
+                        'cfop_convertido': suggestion['cfop_sugerido'],
+                        'categoria': suggestion['categoria'],
+                        'motivo': f"Classificado como {suggestion['categoria'].upper()}"
+                    })
             
             xml_doc = XMLDocument(
                 company_id=company_id,
@@ -659,11 +675,30 @@ async def upload_xml_batch(
             doc['uploaded_at'] = doc['uploaded_at'].isoformat()
             
             await db.xml_documents.insert_one(doc)
-            results.append({"filename": file.filename, "status": "success", "chave": parsed_data['chave_nfe']})
+            
+            results.append({
+                "filename": file.filename,
+                "status": "success",
+                "chave": parsed_data['chave_nfe'],
+                "conversoes": len(file_conversions)
+            })
+            
+            if file_conversions:
+                conversion_report.append({
+                    "arquivo": file.filename,
+                    "nfe": parsed_data['numero_nfe'],
+                    "conversoes": file_conversions
+                })
+            
         except Exception as e:
             errors.append({"filename": file.filename, "error": str(e)})
     
-    return {"success": results, "errors": errors}
+    return {
+        "success": results,
+        "errors": errors,
+        "relatorio_conversoes": conversion_report,
+        "total_conversoes": sum(len(r['conversoes']) for r in conversion_report)
+    }
 
 @api_router.get("/xml/documents")
 async def list_documents(
