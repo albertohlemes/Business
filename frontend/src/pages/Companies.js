@@ -417,6 +417,15 @@ const Companies = ({ user, onLogout }) => {
                   <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
                     <Building2 className="w-6 h-6 text-red-600" />
                   </div>
+                  {user.role === 'admin' && (
+                    <button
+                      onClick={() => handleDelete(company.id, company.razao_social)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Excluir empresa"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2 text-lg">{company.razao_social}</h3>
                 {company.nome_fantasia && (
