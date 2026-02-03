@@ -156,7 +156,7 @@ const Login = ({ onLogin }) => {
                 setIsRegister(!isRegister);
                 setError('');
               }}
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+              className="text-red-600 hover:text-red-700 text-sm font-medium"
             >
               {isRegister ? 'Já tem conta? Faça login' : 'Não tem conta? Cadastre-se'}
             </button>
