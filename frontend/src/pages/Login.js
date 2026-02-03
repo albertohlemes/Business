@@ -143,7 +143,7 @@ const Login = ({ onLogin }) => {
               data-testid="login-submit-button"
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+              className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
             >
               {loading ? 'Processando...' : (isRegister ? 'Criar Conta' : 'Entrar')}
             </button>
