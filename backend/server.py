@@ -504,18 +504,18 @@ async def buscar_dados_cnpj(cnpj: str):
             
             endereco = f"{data.get('logradouro', '')} {data.get('numero', '')}".strip()
             
-            return CNPJData(
-                cnpj=cnpj,
-                razao_social=data.get('razao_social', ''),
-                nome_fantasia=data.get('nome_fantasia'),
-                cnae_principal=data.get('cnae_fiscal', ''),
-                cnae_principal_descricao=data.get('cnae_fiscal_descricao', ''),
-                cep=data.get('cep', ''),
-                logradouro=endereco,
-                numero=data.get('numero', ''),
-                municipio=data.get('municipio', ''),
-                uf=data.get('uf', '')
-            )
+            return {
+                "cnpj": cnpj,
+                "razao_social": data.get('razao_social', ''),
+                "nome_fantasia": data.get('nome_fantasia', ''),
+                "cnae_principal": str(data.get('cnae_fiscal', '')),
+                "cnae_principal_descricao": data.get('cnae_fiscal_descricao', ''),
+                "cep": data.get('cep', '').replace('.', '').replace('-', ''),
+                "logradouro": endereco,
+                "numero": data.get('numero', ''),
+                "municipio": data.get('municipio', ''),
+                "uf": data.get('uf', '')
+            }
         else:
             raise HTTPException(status_code=404, detail="CNPJ não encontrado na Receita Federal")
     except requests.exceptions.RequestException as e:
