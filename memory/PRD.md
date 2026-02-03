@@ -40,6 +40,25 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - Classificação aplicada (REVENDA, INSUMO, DESPESA)
 - Critério/motivo da conversão
 
+### ✅ **NOVO: Reclassificação com IA** (03/02/2026)
+- **Nova página dedicada**: `/reclassification`
+- **Visualização por NF-e**: Lista notas fiscais com produtos expandíveis
+- **Visualização por Produtos**: Agrupa produtos por código com contagem de ocorrências
+- **Numeração sequencial**: IDs únicos para notas e produtos dentro da competência
+- **Comando para IA**: Campo de texto para instruir a IA (Ex: "Reclassifique produtos de limpeza como DESPESA")
+- **Edição manual**: Permite corrigir CFOP e categoria de produtos individualmente
+- **Sistema de aprendizado**: Todas as correções (manuais ou por IA) são memorizadas
+- **Regras aprendidas**: Visualização das regras que a IA aprendeu para a empresa
+- **Validação de PIS/COFINS/ICMS**: IA analisa impostos e retorna inconsistências com base legal
+
+### ✅ **NOVO: Exportação SPED por Competência** (03/02/2026)
+- Seletor de competências disponíveis baseado nos documentos importados
+- Exporta apenas documentos da competência selecionada
+
+### ✅ **NOVO: Relatórios por Competência** (03/02/2026)
+- Filtro de competência nos relatórios gerenciais
+- Exportação CSV com nome incluindo a competência
+
 ### ✅ Páginas Adicionais
 - Documentos Fiscais - listagem de XMLs importados
 - Validação de CFOPs
@@ -51,6 +70,7 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 ### Backend (FastAPI)
 - `/app/backend/server.py` - API monolítica
 - MongoDB para persistência
+- **Integração com IA**: OpenAI GPT-4o via Emergent LLM Key
 - Endpoints principais:
   - `POST /api/auth/login` - autenticação
   - `POST /api/auth/register` - registro
@@ -62,6 +82,13 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
   - `GET /api/reports/by-product/{company_id}` - relatório por produto
   - `GET /api/reports/by-ncm/{company_id}` - relatório por NCM
   - `GET /api/sped/export/{company_id}` - exportação SPED
+  - **NOVOS:**
+  - `GET /api/reclassification/documents/{company_id}` - docs para reclassificação
+  - `GET /api/reclassification/products/{company_id}` - produtos agrupados
+  - `POST /api/ai/reclassify` - reclassificação com IA
+  - `POST /api/ai/validate-taxes` - validação PIS/COFINS/ICMS
+  - `POST /api/manual-reclassify` - reclassificação manual
+  - `GET /api/learned-rules/{company_id}` - regras aprendidas
 
 ### Frontend (React)
 - `/app/frontend/src/pages/`
@@ -69,12 +96,14 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
   - Companies.js - gestão de empresas
   - UploadXML.js - upload e análise
   - Documents.js - listagem de documentos
+  - **ReclassificationAI.js** - reclassificação com IA (NOVA)
   - Validation.js - validação CFOPs
-  - Reports.js - relatórios gerenciais
-  - ExportSPED.js - exportação SPED
+  - Reports.js - relatórios gerenciais (com filtro competência)
+  - ExportSPED.js - exportação SPED (com seletor competência)
 
 ### Integrações
 - Brasil API (`https://brasilapi.com.br/api/cnpj/v1/{cnpj}`) - dados de empresas
+- **OpenAI GPT-4o** via Emergent LLM Key - reclassificação e validação fiscal
 
 ## Status dos Issues (03/02/2026)
 
@@ -86,17 +115,20 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 | Seletor de competência | ✅ IMPLEMENTADO | Formato MM/AAAA |
 | Validação duplicados | ✅ IMPLEMENTADO | Por chave NFe + competência |
 | Relatório conversão CFOP | ✅ IMPLEMENTADO | Exibido após upload |
+| Reclassificação com IA | ✅ IMPLEMENTADO | Nova página funcional |
+| Validação PIS/COFINS/ICMS | ✅ IMPLEMENTADO | Com base legal |
+| Exportação por competência | ✅ IMPLEMENTADO | SPED e Relatórios |
 
 ## Próximas Tarefas (Backlog)
 
 ### P1 - Alta Prioridade
+- [ ] Adicionar logo da Business Contabilidade (aguardando envio pelo usuário)
 - [ ] Seletor global de empresa/competência no Layout
-- [ ] Melhorar página de Relatórios Gerenciais
 
 ### P2 - Média Prioridade
 - [ ] Dashboard com métricas fiscais
 - [ ] Histórico de alterações de CFOP para auditoria
-- [ ] Finalizar exportação SPED Fiscal (testar formato)
+- [ ] Testar exportação SPED com dados reais de produção
 
 ### P3 - Baixa Prioridade
 - [ ] Refatorar backend em módulos separados
