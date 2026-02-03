@@ -1032,6 +1032,523 @@ async def initialize_cfop_rules(current_user: User = Depends(get_current_user)):
     
     return {"message": f"{inserted} regras CFOP criadas com sucesso"}
 
+# ============== NOVOS ENDPOINTS PARA IA E RECLASSIFICAÇÃO ==============
+
+async def get_ai_chat(session_id: str, system_message: str):
+    """Cria uma instância do chat com IA"""
+    api_key = os.environ.get('EMERGENT_LLM_KEY')
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Chave de IA não configurada")
+    
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=session_id,
+        system_message=system_message
+    ).with_model("openai", "gpt-4o")
+    
+    return chat
+
+@api_router.get("/reclassification/documents/{company_id}")
+async def get_documents_for_reclassification(
+    company_id: str,
+    competencia: str,
+    tipo: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Lista documentos para reclassificação com contagem sequencial"""
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    query = {"company_id": company_id, "competencia": competencia}
+    if tipo:
+        query['tipo'] = tipo
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    # Adicionar contagem sequencial
+    for idx, doc in enumerate(documents, 1):
+        doc['numero_sequencial'] = idx
+        if isinstance(doc['uploaded_at'], str):
+            doc['uploaded_at'] = datetime.fromisoformat(doc['uploaded_at'])
+        
+        # Adicionar contagem sequencial aos produtos
+        for prod_idx, prod in enumerate(doc.get('produtos', []), 1):
+            prod['numero_sequencial'] = prod_idx
+            prod['id_unico'] = f"{doc['id']}_{prod.get('codigo', prod_idx)}"
+    
+    return {
+        "total_documentos": len(documents),
+        "documentos": documents
+    }
+
+@api_router.get("/reclassification/products/{company_id}")
+async def get_products_grouped(
+    company_id: str,
+    competencia: str,
+    tipo: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Lista produtos agrupados por código para reclassificação em lote"""
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    query = {"company_id": company_id, "competencia": competencia}
+    if tipo:
+        query['tipo'] = tipo
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    # Agrupar produtos por código
+    produtos_agrupados = defaultdict(lambda: {
+        'codigo': '',
+        'descricao': '',
+        'ncm': '',
+        'cfop_atual': '',
+        'categoria_atual': '',
+        'quantidade_total': 0,
+        'valor_total': 0,
+        'ocorrencias': 0,
+        'documentos': [],
+        'produtos_ids': []
+    })
+    
+    for doc in documents:
+        for prod in doc.get('produtos', []):
+            codigo = prod.get('codigo', 'SEM_CODIGO')
+            grupo = produtos_agrupados[codigo]
+            grupo['codigo'] = codigo
+            grupo['descricao'] = prod.get('descricao', '')
+            grupo['ncm'] = prod.get('ncm', '')
+            grupo['cfop_atual'] = prod.get('cfop', '')
+            grupo['categoria_atual'] = prod.get('categoria_classificada', 'não classificado')
+            grupo['quantidade_total'] += prod.get('quantidade', 0)
+            grupo['valor_total'] += prod.get('valor_total', 0)
+            grupo['ocorrencias'] += 1
+            grupo['documentos'].append({
+                'doc_id': doc['id'],
+                'numero_nfe': doc['numero_nfe'],
+                'data_emissao': doc['data_emissao']
+            })
+            grupo['produtos_ids'].append(f"{doc['id']}_{codigo}")
+    
+    # Converter para lista e adicionar número sequencial
+    produtos_lista = []
+    for idx, (codigo, dados) in enumerate(sorted(produtos_agrupados.items()), 1):
+        dados['numero_sequencial'] = idx
+        produtos_lista.append(dados)
+    
+    return {
+        "total_produtos": len(produtos_lista),
+        "produtos": produtos_lista
+    }
+
+@api_router.get("/learned-rules/{company_id}")
+async def get_learned_rules(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Lista regras aprendidas pela IA para uma empresa"""
+    rules = await db.learned_rules.find({"company_id": company_id}, {"_id": 0}).to_list(1000)
+    return rules
+
+@api_router.post("/ai/reclassify")
+async def ai_reclassify_products(
+    request: ReclassificationRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Reclassifica produtos usando IA baseado em instrução do usuário"""
+    company = await db.companies.find_one({"id": request.company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar regras aprendidas
+    learned_rules = await db.learned_rules.find({"company_id": request.company_id}, {"_id": 0}).to_list(1000)
+    
+    # Buscar documentos da competência
+    query = {"company_id": request.company_id, "competencia": request.competencia}
+    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(10000)
+    
+    if not documents:
+        raise HTTPException(status_code=404, detail="Nenhum documento encontrado para esta competência")
+    
+    # Preparar dados para a IA
+    produtos_para_analise = []
+    for doc in documents:
+        for prod in doc.get('produtos', []):
+            prod_id = f"{doc['id']}_{prod.get('codigo', '')}"
+            if not request.product_ids or prod_id in request.product_ids:
+                produtos_para_analise.append({
+                    'doc_id': doc['id'],
+                    'produto_id': prod_id,
+                    'codigo': prod.get('codigo', ''),
+                    'descricao': prod.get('descricao', ''),
+                    'ncm': prod.get('ncm', ''),
+                    'cfop_atual': prod.get('cfop', ''),
+                    'categoria_atual': prod.get('categoria_classificada', ''),
+                    'cst': prod.get('cst', ''),
+                    'valor_total': prod.get('valor_total', 0)
+                })
+    
+    # Criar prompt para IA
+    system_message = """Você é um especialista em classificação fiscal brasileira.
+Sua tarefa é analisar produtos e reclassificar seus CFOPs e categorias baseado nas instruções do usuário.
+
+Regras de CFOP:
+- Prefixo 1: Operações internas (dentro do estado)
+- Prefixo 2: Operações interestaduais
+- 1101/2101: Compra para industrialização (INSUMO)
+- 1102/2102: Compra para comercialização (REVENDA)
+- 1401/2401: Compra para industrialização com ST (INSUMO_ST)
+- 1403/2403: Compra para comercialização com ST (REVENDA_ST)
+- 1407/2407: Compra para uso/consumo com ST (DESPESA_ST)
+- 1556/2556: Compra para uso/consumo (DESPESA)
+- 1653/2653: Compra de combustível (COMBUSTIVEL)
+
+Categorias válidas: revenda, insumo, despesa, combustivel, revenda_st, insumo_st, despesa_st
+
+Responda APENAS com um JSON válido no formato:
+{
+    "reclassificacoes": [
+        {
+            "produto_id": "id do produto",
+            "cfop_novo": "novo cfop",
+            "categoria_nova": "nova categoria",
+            "motivo": "explicação breve"
+        }
+    ],
+    "regras_aprendidas": [
+        {
+            "descricao_produto": "padrão de descrição",
+            "categoria": "categoria a aplicar",
+            "cfop": "cfop a aplicar",
+            "motivo": "regra para memorizar"
+        }
+    ]
+}"""
+    
+    # Contexto com regras aprendidas
+    regras_contexto = ""
+    if learned_rules:
+        regras_contexto = "\n\nRegras já aprendidas para esta empresa:\n"
+        for rule in learned_rules[:20]:
+            regras_contexto += f"- Produtos como '{rule.get('produto_descricao', '')}' devem ser classificados como {rule.get('categoria_correta', '')} (CFOP {rule.get('cfop_correto', '')})\n"
+    
+    user_prompt = f"""Empresa: {company.get('razao_social', '')}
+CNAE: {company.get('cnae_principal', '')} - {company.get('cnae_principal_descricao', '')}
+Produtos comercializados: {', '.join(company.get('produtos_comercializados', []))}
+Insumos de produção: {', '.join(company.get('insumos_producao', []))}
+Produtos de despesa: {', '.join(company.get('produtos_despesa', []))}
+{regras_contexto}
+
+INSTRUÇÃO DO USUÁRIO: {request.instrucao_usuario}
+
+Produtos para análise:
+{json.dumps(produtos_para_analise[:50], ensure_ascii=False, indent=2)}
+
+Analise os produtos e aplique a instrução do usuário. Retorne o JSON com as reclassificações."""
+    
+    try:
+        chat = await get_ai_chat(
+            session_id=f"reclassify_{request.company_id}_{datetime.now().timestamp()}",
+            system_message=system_message
+        )
+        
+        response = await chat.send_message(UserMessage(text=user_prompt))
+        
+        # Extrair JSON da resposta
+        response_text = response.strip()
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+        
+        result = json.loads(response_text)
+        
+        # Aplicar reclassificações se solicitado
+        reclassificacoes_aplicadas = []
+        if request.aplicar_em_lote and result.get('reclassificacoes'):
+            for reclass in result['reclassificacoes']:
+                prod_id = reclass.get('produto_id', '')
+                if '_' in prod_id:
+                    doc_id = prod_id.rsplit('_', 1)[0]
+                    
+                    # Atualizar produto no documento
+                    doc = await db.xml_documents.find_one({"id": doc_id}, {"_id": 0})
+                    if doc:
+                        produtos_atualizados = []
+                        for prod in doc.get('produtos', []):
+                            current_prod_id = f"{doc_id}_{prod.get('codigo', '')}"
+                            if current_prod_id == prod_id:
+                                prod['cfop'] = reclass.get('cfop_novo', prod.get('cfop', ''))
+                                prod['categoria_classificada'] = reclass.get('categoria_nova', '')
+                                prod['reclassificado_por_ia'] = True
+                                prod['motivo_reclassificacao'] = reclass.get('motivo', '')
+                            produtos_atualizados.append(prod)
+                        
+                        await db.xml_documents.update_one(
+                            {"id": doc_id},
+                            {"$set": {"produtos": produtos_atualizados}}
+                        )
+                        reclassificacoes_aplicadas.append(reclass)
+        
+        # Salvar regras aprendidas
+        regras_salvas = []
+        if result.get('regras_aprendidas'):
+            for regra in result['regras_aprendidas']:
+                learned_rule = LearnedRule(
+                    company_id=request.company_id,
+                    produto_descricao=regra.get('descricao_produto', ''),
+                    categoria_correta=regra.get('categoria', ''),
+                    cfop_correto=regra.get('cfop', ''),
+                    motivo=regra.get('motivo', ''),
+                    aprendido_de='ai_suggestion',
+                    created_by=current_user.id
+                )
+                doc = learned_rule.model_dump()
+                doc['created_at'] = doc['created_at'].isoformat()
+                await db.learned_rules.insert_one(doc)
+                regras_salvas.append(regra)
+        
+        return {
+            "success": True,
+            "reclassificacoes": result.get('reclassificacoes', []),
+            "reclassificacoes_aplicadas": len(reclassificacoes_aplicadas),
+            "regras_aprendidas": regras_salvas,
+            "mensagem": f"Processados {len(produtos_para_analise)} produtos. {len(reclassificacoes_aplicadas)} reclassificações aplicadas. {len(regras_salvas)} novas regras aprendidas."
+        }
+        
+    except json.JSONDecodeError as e:
+        return {
+            "success": False,
+            "error": f"Erro ao processar resposta da IA: {str(e)}",
+            "resposta_raw": response_text if 'response_text' in dir() else ""
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na análise com IA: {str(e)}")
+
+@api_router.post("/ai/validate-taxes")
+async def ai_validate_taxes(
+    request: TaxValidationRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Valida PIS, COFINS e ICMS com base legal usando IA"""
+    company = await db.companies.find_one({"id": request.company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    query = {"company_id": request.company_id, "competencia": request.competencia}
+    if request.document_ids:
+        query['id'] = {"$in": request.document_ids}
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    if not documents:
+        raise HTTPException(status_code=404, detail="Nenhum documento encontrado")
+    
+    # Preparar produtos para análise
+    produtos_para_validar = []
+    for doc in documents:
+        for prod in doc.get('produtos', []):
+            produtos_para_validar.append({
+                'doc_id': doc['id'],
+                'numero_nfe': doc['numero_nfe'],
+                'codigo': prod.get('codigo', ''),
+                'descricao': prod.get('descricao', ''),
+                'ncm': prod.get('ncm', ''),
+                'cfop': prod.get('cfop', ''),
+                'cst': prod.get('cst', ''),
+                'valor_total': prod.get('valor_total', 0),
+                'v_icms': prod.get('v_icms', 0),
+                'v_pis': prod.get('v_pis', 0),
+                'v_cofins': prod.get('v_cofins', 0)
+            })
+    
+    system_message = """Você é um especialista em tributação brasileira (ICMS, PIS e COFINS).
+Sua tarefa é analisar produtos e identificar inconsistências tributárias, fornecendo base legal.
+
+Regras gerais:
+- PIS: Alíquota básica 1,65% (regime não-cumulativo) ou 0,65% (regime cumulativo)
+- COFINS: Alíquota básica 7,6% (regime não-cumulativo) ou 3% (regime cumulativo)
+- ICMS: Varia por estado e NCM (7%, 12%, 17%, 18%, 25%)
+
+Base legal comum:
+- Lei 10.637/2002 (PIS não-cumulativo)
+- Lei 10.833/2003 (COFINS não-cumulativo)
+- Lei Complementar 87/96 (Lei Kandir - ICMS)
+- Convênio ICMS 142/2018 (Substituição Tributária)
+
+Responda APENAS com um JSON válido:
+{
+    "analise": [
+        {
+            "produto_codigo": "código",
+            "produto_descricao": "descrição",
+            "ncm": "ncm",
+            "inconsistencias": [
+                {
+                    "tipo": "PIS|COFINS|ICMS",
+                    "valor_atual": 0,
+                    "valor_esperado": 0,
+                    "descricao": "descrição do problema"
+                }
+            ],
+            "base_legal": ["referências legais"],
+            "sugestao_correcao": "o que deve ser feito"
+        }
+    ],
+    "resumo": {
+        "total_analisados": 0,
+        "com_inconsistencias": 0,
+        "principais_problemas": ["lista de problemas mais comuns"]
+    }
+}"""
+    
+    user_prompt = f"""Empresa: {company.get('razao_social', '')}
+CNAE: {company.get('cnae_principal', '')} - {company.get('cnae_principal_descricao', '')}
+UF: {company.get('uf', 'SP')}
+
+Validar: PIS={request.validar_pis}, COFINS={request.validar_cofins}, ICMS={request.validar_icms}
+
+Produtos para análise ({len(produtos_para_validar)} itens):
+{json.dumps(produtos_para_validar[:30], ensure_ascii=False, indent=2)}
+
+Analise os tributos e identifique inconsistências com base legal."""
+    
+    try:
+        chat = await get_ai_chat(
+            session_id=f"validate_taxes_{request.company_id}_{datetime.now().timestamp()}",
+            system_message=system_message
+        )
+        
+        response = await chat.send_message(UserMessage(text=user_prompt))
+        
+        # Extrair JSON
+        response_text = response.strip()
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+        
+        result = json.loads(response_text)
+        
+        return {
+            "success": True,
+            "analise": result.get('analise', []),
+            "resumo": result.get('resumo', {}),
+            "total_produtos_analisados": len(produtos_para_validar)
+        }
+        
+    except json.JSONDecodeError as e:
+        return {
+            "success": False,
+            "error": f"Erro ao processar resposta: {str(e)}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na validação: {str(e)}")
+
+@api_router.post("/ai/apply-tax-corrections")
+async def apply_tax_corrections(
+    company_id: str,
+    competencia: str,
+    corrections: List[Dict[str, Any]],
+    current_user: User = Depends(get_current_user)
+):
+    """Aplica correções de impostos em lote"""
+    applied = 0
+    for correction in corrections:
+        doc_id = correction.get('doc_id')
+        produto_codigo = correction.get('produto_codigo')
+        
+        doc = await db.xml_documents.find_one({"id": doc_id}, {"_id": 0})
+        if doc:
+            produtos_atualizados = []
+            for prod in doc.get('produtos', []):
+                if prod.get('codigo') == produto_codigo:
+                    if 'v_pis_corrigido' in correction:
+                        prod['v_pis'] = correction['v_pis_corrigido']
+                    if 'v_cofins_corrigido' in correction:
+                        prod['v_cofins'] = correction['v_cofins_corrigido']
+                    if 'v_icms_corrigido' in correction:
+                        prod['v_icms'] = correction['v_icms_corrigido']
+                    prod['corrigido_por_ia'] = True
+                    prod['data_correcao'] = datetime.now(timezone.utc).isoformat()
+                    applied += 1
+                produtos_atualizados.append(prod)
+            
+            await db.xml_documents.update_one(
+                {"id": doc_id},
+                {"$set": {"produtos": produtos_atualizados}}
+            )
+    
+    return {"success": True, "correcoes_aplicadas": applied}
+
+@api_router.post("/manual-reclassify")
+async def manual_reclassify_product(
+    doc_id: str,
+    produto_codigo: str,
+    novo_cfop: str,
+    nova_categoria: str,
+    motivo: str,
+    salvar_regra: bool = True,
+    current_user: User = Depends(get_current_user)
+):
+    """Reclassifica manualmente um produto e opcionalmente salva como regra aprendida"""
+    doc = await db.xml_documents.find_one({"id": doc_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    
+    produto_atualizado = None
+    produtos_atualizados = []
+    
+    for prod in doc.get('produtos', []):
+        if prod.get('codigo') == produto_codigo:
+            prod['cfop_original'] = prod.get('cfop', '')
+            prod['cfop'] = novo_cfop
+            prod['categoria_classificada'] = nova_categoria
+            prod['reclassificado_manualmente'] = True
+            prod['motivo_reclassificacao'] = motivo
+            prod['reclassificado_por'] = current_user.id
+            prod['data_reclassificacao'] = datetime.now(timezone.utc).isoformat()
+            produto_atualizado = prod
+        produtos_atualizados.append(prod)
+    
+    if not produto_atualizado:
+        raise HTTPException(status_code=404, detail="Produto não encontrado no documento")
+    
+    await db.xml_documents.update_one(
+        {"id": doc_id},
+        {"$set": {"produtos": produtos_atualizados}}
+    )
+    
+    # Salvar como regra aprendida
+    if salvar_regra:
+        learned_rule = LearnedRule(
+            company_id=doc['company_id'],
+            produto_descricao=produto_atualizado.get('descricao', ''),
+            produto_codigo=produto_codigo,
+            ncm=produto_atualizado.get('ncm', ''),
+            categoria_correta=nova_categoria,
+            cfop_correto=novo_cfop,
+            motivo=motivo,
+            aprendido_de='user_correction',
+            created_by=current_user.id
+        )
+        rule_doc = learned_rule.model_dump()
+        rule_doc['created_at'] = rule_doc['created_at'].isoformat()
+        await db.learned_rules.insert_one(rule_doc)
+    
+    return {
+        "success": True,
+        "produto_atualizado": produto_atualizado,
+        "regra_salva": salvar_regra
+    }
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
