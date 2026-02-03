@@ -14,7 +14,9 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 import xmltodict
 import re
+import requests
 from io import BytesIO
+from collections import defaultdict
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -75,8 +77,10 @@ class Company(BaseModel):
     uf: Optional[str] = None
     cep: Optional[str] = None
     cnae_principal: Optional[str] = None
+    cnae_principal_descricao: Optional[str] = None
     atividade_principal: Optional[str] = None
     produtos_comercializados: List[str] = []
+    insumos_producao: List[str] = []
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CompanyCreate(BaseModel):
@@ -90,8 +94,22 @@ class CompanyCreate(BaseModel):
     uf: Optional[str] = None
     cep: Optional[str] = None
     cnae_principal: Optional[str] = None
+    cnae_principal_descricao: Optional[str] = None
     atividade_principal: Optional[str] = None
     produtos_comercializados: List[str] = []
+    insumos_producao: List[str] = []
+
+class CNPJData(BaseModel):
+    cnpj: str
+    razao_social: str
+    nome_fantasia: Optional[str] = None
+    cnae_principal: str
+    cnae_principal_descricao: str
+    cep: Optional[str] = None
+    logradouro: Optional[str] = None
+    numero: Optional[str] = None
+    municipio: Optional[str] = None
+    uf: Optional[str] = None
 
 class XMLDocument(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -131,6 +149,7 @@ class ValidationException(BaseModel):
     cfop_original: str
     cfop_corrigido: str
     cfop_sugerido: Optional[str] = None
+    categoria_classificada: Optional[str] = None
     motivo: str
     aplicado_em_lote: bool = False
     created_by: str
@@ -195,30 +214,54 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             prod = item.get('prod', {})
             imposto = item.get('imposto', {})
             icms = imposto.get('ICMS', {})
+            pis = imposto.get('PIS', {})
+            cofins = imposto.get('COFINS', {})
             
             cfop = ""
-            cst = ""
+            cst_icms = ""
             for key in icms:
                 if isinstance(icms[key], dict):
                     if 'CFOP' in icms[key]:
                         cfop = icms[key]['CFOP']
                     if 'CST' in icms[key]:
-                        cst = icms[key]['CST']
+                        cst_icms = icms[key]['CST']
                     elif 'CSOSN' in icms[key]:
-                        cst = icms[key]['CSOSN']
+                        cst_icms = icms[key]['CSOSN']
                     if cfop:
                         break
+            
+            v_icms = 0
+            v_pis = 0
+            v_cofins = 0
+            
+            for key in icms:
+                if isinstance(icms[key], dict):
+                    v_icms = float(icms[key].get('vICMS', 0))
+                    break
+            
+            for key in pis:
+                if isinstance(pis[key], dict):
+                    v_pis = float(pis[key].get('vPIS', 0))
+                    break
+            
+            for key in cofins:
+                if isinstance(cofins[key], dict):
+                    v_cofins = float(cofins[key].get('vCOFINS', 0))
+                    break
             
             produtos.append({
                 'codigo': prod.get('cProd', ''),
                 'descricao': prod.get('xProd', ''),
                 'ncm': prod.get('NCM', ''),
                 'cfop': cfop,
-                'cst': cst,
+                'cst': cst_icms,
                 'quantidade': float(prod.get('qCom', 0)),
                 'valor_unitario': float(prod.get('vUnCom', 0)),
                 'valor_total': float(prod.get('vProd', 0)),
-                'unidade': prod.get('uCom', '')
+                'unidade': prod.get('uCom', ''),
+                'v_icms': v_icms,
+                'v_pis': v_pis,
+                'v_cofins': v_cofins
             })
         
         return {
@@ -236,62 +279,81 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
     except Exception as e:
         raise ValueError(f"Erro ao processar XML: {str(e)}")
 
-def classify_product_type(descricao: str, ncm: str, company_products: List[str]) -> str:
+def classify_product_category(descricao: str, ncm: str, company_products: List[str], company_insumos: List[str]) -> str:
     descricao_lower = descricao.lower()
     
-    materiais_escritorio = ['papel', 'caneta', 'lapis', 'pasta', 'grampeador', 'clips', 'borracha', 'toner', 'cartucho', 'impressora']
-    materiais_limpeza = ['sabao', 'detergente', 'desinfetante', 'alcool', 'papel higienico', 'toalha', 'vassoura', 'pano', 'luva']
-    materiais_obra = ['cimento', 'areia', 'tijolo', 'telha', 'tinta', 'massa', 'prego', 'parafuso', 'madeira', 'ferro']
+    materiais_escritorio = ['papel', 'caneta', 'lapis', 'pasta', 'grampeador', 'clips', 'borracha', 'toner', 'cartucho', 'impressora', 'tinta impressora']
+    materiais_limpeza = ['sabao', 'detergente', 'desinfetante', 'alcool gel', 'alcool', 'papel higienico', 'toalha', 'vassoura', 'pano', 'luva', 'saco lixo']
+    materiais_construcao = ['cimento', 'areia', 'tijolo', 'telha', 'tinta parede', 'massa corrida', 'prego', 'parafuso', 'madeira', 'ferro', 'porta', 'janela']
+    servicos_terceiros = ['manutencao', 'servico', 'consultoria', 'assessoria', 'reparo']
     
     for item in materiais_escritorio:
         if item in descricao_lower:
-            return 'despesa_escritorio'
+            return 'despesa'
     
     for item in materiais_limpeza:
         if item in descricao_lower:
-            return 'despesa_limpeza'
+            return 'despesa'
     
-    for item in materiais_obra:
+    for item in materiais_construcao:
         if item in descricao_lower:
-            return 'despesa_obra'
+            return 'despesa'
     
-    for prod_comercializado in company_products:
-        if prod_comercializado.lower() in descricao_lower:
+    for item in servicos_terceiros:
+        if item in descricao_lower:
+            return 'despesa'
+    
+    for insumo in company_insumos:
+        if insumo.lower() in descricao_lower or descricao_lower in insumo.lower():
+            return 'insumo'
+    
+    for produto in company_products:
+        if produto.lower() in descricao_lower or descricao_lower in produto.lower():
             return 'revenda'
     
     return 'revenda'
 
-async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tipo_doc: str, cfop_original: str) -> Optional[str]:
+async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tipo_doc: str, cfop_original: str) -> Dict[str, Any]:
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
-        return None
+        return {"cfop_sugerido": None, "categoria": None}
     
     produtos_comercializados = company.get('produtos_comercializados', [])
-    product_type = classify_product_type(
+    insumos_producao = company.get('insumos_producao', [])
+    
+    categoria = classify_product_category(
         product.get('descricao', ''),
         product.get('ncm', ''),
-        produtos_comercializados
+        produtos_comercializados,
+        insumos_producao
     )
     
     cst = product.get('cst', '')
     is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
     
-    if tipo_doc == 'entrada':
-        if cfop_original.startswith('5') or cfop_original.startswith('6'):
-            if '152' in cfop_original or '252' in cfop_original:
-                if is_st:
-                    return '1403'
-                else:
-                    return '1102'
-            elif product_type == 'despesa_escritorio' or product_type == 'despesa_limpeza' or product_type == 'despesa_obra':
-                return '1556'
-            elif product_type == 'revenda':
-                if is_st:
-                    return '1403'
-                else:
-                    return '1102'
+    cfop_sugerido = None
     
-    return None
+    if tipo_doc == 'entrada':
+        if categoria == 'revenda':
+            if is_st:
+                cfop_sugerido = '1403'
+            else:
+                cfop_sugerido = '1102'
+        elif categoria == 'insumo':
+            if is_st:
+                cfop_sugerido = '1407'
+            else:
+                cfop_sugerido = '1101'
+        elif categoria == 'despesa':
+            cfop_sugerido = '1556'
+        
+        if cfop_original.startswith('5152') or cfop_original.startswith('6152'):
+            cfop_sugerido = '1152'
+    
+    return {
+        "cfop_sugerido": cfop_sugerido,
+        "categoria": categoria
+    }
 
 def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo: str) -> str:
     lines = []
@@ -402,6 +464,35 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
     
     return '\n'.join(lines)
 
+@api_router.get("/cnpj/{cnpj}")
+async def buscar_dados_cnpj(cnpj: str):
+    cnpj_limpo = cnpj.replace('.', '').replace('/', '').replace('-', '')
+    
+    try:
+        response = requests.get(f"https://brasilapi.com.br/api/cnpj/v1/{cnpj_limpo}", timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            endereco = f"{data.get('logradouro', '')} {data.get('numero', '')}".strip()
+            
+            return CNPJData(
+                cnpj=cnpj,
+                razao_social=data.get('razao_social', ''),
+                nome_fantasia=data.get('nome_fantasia'),
+                cnae_principal=data.get('cnae_fiscal', ''),
+                cnae_principal_descricao=data.get('cnae_fiscal_descricao', ''),
+                cep=data.get('cep', ''),
+                logradouro=endereco,
+                numero=data.get('numero', ''),
+                municipio=data.get('municipio', ''),
+                uf=data.get('uf', '')
+            )
+        else:
+            raise HTTPException(status_code=404, detail="CNPJ não encontrado na Receita Federal")
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail="Erro ao consultar Receita Federal")
+
 @api_router.post("/auth/register", response_model=User)
 async def register(user_data: UserCreate):
     existing = await db.users.find_one({"email": user_data.email}, {"_id": 0})
@@ -500,11 +591,12 @@ async def upload_xml_batch(
             parsed_data = parse_xml_nfe(xml_str)
             
             for product in parsed_data['produtos']:
-                cfop_sugerido = await suggest_cfop_intelligent(
+                suggestion = await suggest_cfop_intelligent(
                     product, company_id, tipo, product.get('cfop', '')
                 )
-                if cfop_sugerido:
-                    product['cfop_sugerido'] = cfop_sugerido
+                if suggestion['cfop_sugerido']:
+                    product['cfop_sugerido'] = suggestion['cfop_sugerido']
+                    product['categoria_classificada'] = suggestion['categoria']
             
             xml_doc = XMLDocument(
                 company_id=company_id,
@@ -564,6 +656,102 @@ async def get_document(
         document['uploaded_at'] = datetime.fromisoformat(document['uploaded_at'])
     
     return document
+
+@api_router.get("/reports/by-product/{company_id}")
+async def report_by_product(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    documents = await db.xml_documents.find({"company_id": company_id}, {"_id": 0}).to_list(10000)
+    
+    product_summary = defaultdict(lambda: {
+        'descricao': '',
+        'ncm': '',
+        'quantidade': 0,
+        'valor_total': 0,
+        'credito_icms': 0,
+        'credito_pis': 0,
+        'credito_cofins': 0,
+        'documentos': 0
+    })
+    
+    for doc in documents:
+        for prod in doc['produtos']:
+            codigo = prod.get('codigo', '')
+            product_summary[codigo]['descricao'] = prod.get('descricao', '')
+            product_summary[codigo]['ncm'] = prod.get('ncm', '')
+            product_summary[codigo]['quantidade'] += prod.get('quantidade', 0)
+            product_summary[codigo]['valor_total'] += prod.get('valor_total', 0)
+            product_summary[codigo]['credito_icms'] += prod.get('v_icms', 0)
+            product_summary[codigo]['credito_pis'] += prod.get('v_pis', 0)
+            product_summary[codigo]['credito_cofins'] += prod.get('v_cofins', 0)
+            product_summary[codigo]['documentos'] += 1
+    
+    report = []
+    for codigo, data in product_summary.items():
+        report.append({
+            'codigo': codigo,
+            **data
+        })
+    
+    return sorted(report, key=lambda x: x['valor_total'], reverse=True)
+
+@api_router.get("/reports/by-ncm/{company_id}")
+async def report_by_ncm(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    documents = await db.xml_documents.find({"company_id": company_id}, {"_id": 0}).to_list(10000)
+    
+    ncm_summary = defaultdict(lambda: {
+        'quantidade_produtos': 0,
+        'quantidade': 0,
+        'valor_total': 0,
+        'credito_icms': 0,
+        'credito_pis': 0,
+        'credito_cofins': 0,
+        'documentos': set()
+    })
+    
+    for doc in documents:
+        for prod in doc['produtos']:
+            ncm = prod.get('ncm', '')
+            ncm_summary[ncm]['quantidade_produtos'] += 1
+            ncm_summary[ncm]['quantidade'] += prod.get('quantidade', 0)
+            ncm_summary[ncm]['valor_total'] += prod.get('valor_total', 0)
+            ncm_summary[ncm]['credito_icms'] += prod.get('v_icms', 0)
+            ncm_summary[ncm]['credito_pis'] += prod.get('v_pis', 0)
+            ncm_summary[ncm]['credito_cofins'] += prod.get('v_cofins', 0)
+            ncm_summary[ncm]['documentos'].add(doc['id'])
+    
+    report = []
+    for ncm, data in ncm_summary.items():
+        report.append({
+            'ncm': ncm,
+            'quantidade_produtos': data['quantidade_produtos'],
+            'quantidade': data['quantidade'],
+            'valor_total': data['valor_total'],
+            'credito_icms': data['credito_icms'],
+            'credito_pis': data['credito_pis'],
+            'credito_cofins': data['credito_cofins'],
+            'documentos': len(data['documentos'])
+        })
+    
+    return sorted(report, key=lambda x: x['valor_total'], reverse=True)
 
 @api_router.post("/cfop/rules", response_model=CFOPRule)
 async def create_cfop_rule(rule_data: CFOPRule, current_user: User = Depends(get_current_user)):
@@ -660,32 +848,28 @@ async def initialize_cfop_rules(current_user: User = Depends(get_current_user)):
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Apenas administradores podem executar esta ação")
     
-    # Clear existing rules first to avoid schema conflicts
-    await db.cfop_rules.delete_many({})
-    
     default_rules = [
-        {"cfop": "1101", "descricao": "Compra para industrialização", "tipo_operacao": "entrada", "categoria": "industrializacao"},
+        {"cfop": "1101", "descricao": "Compra para industrialização ou produção rural", "tipo_operacao": "entrada", "categoria": "insumo"},
         {"cfop": "1102", "descricao": "Compra para comercialização", "tipo_operacao": "entrada", "categoria": "revenda"},
         {"cfop": "1403", "descricao": "Compra para comercialização em operação com mercadoria sujeita ao regime de substituição tributária", "tipo_operacao": "entrada", "categoria": "revenda_st"},
+        {"cfop": "1407", "descricao": "Compra de mercadoria para uso na prestação de serviço sujeita ao ICMS ST", "tipo_operacao": "entrada", "categoria": "insumo_st"},
         {"cfop": "1152", "descricao": "Transferência para comercialização", "tipo_operacao": "entrada", "categoria": "transferencia"},
         {"cfop": "1556", "descricao": "Compra de material para uso ou consumo", "tipo_operacao": "entrada", "categoria": "despesa"},
-        {"cfop": "2101", "descricao": "Compra para industrialização de mercadoria recebida do exterior", "tipo_operacao": "entrada", "categoria": "industrializacao"},
-        {"cfop": "2102", "descricao": "Compra para comercialização de mercadoria recebida do exterior", "tipo_operacao": "entrada", "categoria": "revenda"},
-        {"cfop": "5101", "descricao": "Venda de produção do estabelecimento", "tipo_operacao": "saida", "categoria": "producao"},
+        {"cfop": "5101", "descricao": "Venda de produção do estabelecimento", "tipo_operacao": "saida", "categoria": "revenda"},
         {"cfop": "5102", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros", "tipo_operacao": "saida", "categoria": "revenda"},
-        {"cfop": "5403", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros em operação com mercadoria sujeita ao regime de substituição tributária", "tipo_operacao": "saida", "categoria": "revenda_st"},
+        {"cfop": "5405", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros em operação com mercadoria sujeita ao regime de substituição tributária", "tipo_operacao": "saida", "categoria": "revenda_st"},
         {"cfop": "5152", "descricao": "Transferência de mercadoria adquirida ou recebida de terceiros", "tipo_operacao": "saida", "categoria": "transferencia"},
-        {"cfop": "6101", "descricao": "Venda de produção do estabelecimento para o exterior", "tipo_operacao": "saida", "categoria": "producao"},
-        {"cfop": "6102", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros para o exterior", "tipo_operacao": "saida", "categoria": "revenda"},
     ]
     
     inserted = 0
     for rule_data in default_rules:
-        rule = CFOPRule(**rule_data)
-        doc = rule.model_dump()
-        doc['created_at'] = doc['created_at'].isoformat()
-        await db.cfop_rules.insert_one(doc)
-        inserted += 1
+        existing = await db.cfop_rules.find_one({"cfop": rule_data['cfop']}, {"_id": 0})
+        if not existing:
+            rule = CFOPRule(**rule_data)
+            doc = rule.model_dump()
+            doc['created_at'] = doc['created_at'].isoformat()
+            await db.cfop_rules.insert_one(doc)
+            inserted += 1
     
     return {"message": f"{inserted} regras CFOP criadas com sucesso"}
 
