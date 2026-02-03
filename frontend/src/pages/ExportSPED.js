@@ -1,0 +1,218 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import Layout from '../components/Layout';
+import { Download, FileText, Calendar } from 'lucide-react';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
+
+const ExportSPED = ({ user, onLogout }) => {
+  const [companies, setCompanies] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState('');
+  const [periodo, setPeriodo] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [documentsCount, setDocumentsCount] = useState(0);
+
+  useEffect(() => {
+    fetchCompanies();
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    setPeriodo(`${month}${year}`);
+  }, []);
+
+  const fetchCompanies = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/companies`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCompanies(response.data);
+      if (response.data.length > 0) {
+        setSelectedCompany(response.data[0].id);
+        fetchDocumentsCount(response.data[0].id);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar empresas:', err);
+    }
+  };
+
+  const fetchDocumentsCount = async (companyId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/xml/documents?company_id=${companyId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setDocumentsCount(response.data.length);
+    } catch (err) {
+      console.error('Erro ao carregar documentos:', err);
+    }
+  };
+
+  const handleCompanyChange = (companyId) => {
+    setSelectedCompany(companyId);
+    if (companyId) {
+      fetchDocumentsCount(companyId);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!selectedCompany) {
+      alert('Selecione uma empresa');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/sped/export/${selectedCompany}?periodo=${periodo}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      // Create and download file
+      const blob = new Blob([response.data.content], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = response.data.filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      alert('SPED Fiscal exportado com sucesso!');
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erro ao exportar SPED Fiscal');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectedCompanyData = companies.find(c => c.id === selectedCompany);
+
+  return (
+    <Layout user={user} onLogout={onLogout}>
+      <div data-testid="export-sped-page" className="space-y-6 max-w-4xl mx-auto">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Exportar SPED Fiscal</h1>
+          <p className="text-gray-600">Gere o arquivo SPED Fiscal completo para importação no SCI Único</p>
+        </div>
+
+        <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
+          <div className="space-y-6">
+            {/* Company Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Empresa *</label>
+              <select
+                data-testid="export-company-select"
+                value={selectedCompany}
+                onChange={(e) => handleCompanyChange(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+              >
+                <option value="">Selecione uma empresa</option>
+                {companies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.razao_social} ({company.cnpj})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Period */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Período (MMAAAA) *</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <input
+                  data-testid="export-period-input"
+                  type="text"
+                  value={periodo}
+                  onChange={(e) => setPeriodo(e.target.value.replace(/\D/g, '').substring(0, 6))}
+                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg"
+                  placeholder="012024"
+                  maxLength="6"
+                />
+              </div>
+              <p className="text-sm text-gray-500 mt-1">Formato: MÊs (2 dígitos) + Ano (4 dígitos). Ex: 012024</p>
+            </div>
+
+            {/* Company Info */}
+            {selectedCompanyData && (
+              <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+                <h3 className="font-semibold text-blue-900 mb-4">Informações da Empresa</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-blue-700 font-medium">Razão Social</p>
+                    <p className="text-blue-900">{selectedCompanyData.razao_social}</p>
+                  </div>
+                  <div>
+                    <p className="text-blue-700 font-medium">CNPJ</p>
+                    <p className="text-blue-900">{selectedCompanyData.cnpj}</p>
+                  </div>
+                  {selectedCompanyData.inscricao_estadual && (
+                    <div>
+                      <p className="text-blue-700 font-medium">Inscrição Estadual</p>
+                      <p className="text-blue-900">{selectedCompanyData.inscricao_estadual}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-blue-700 font-medium">Documentos</p>
+                    <p className="text-blue-900 font-semibold">{documentsCount} XMLs</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Export Info */}
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="flex items-start gap-3">
+                <FileText className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 mb-2">Sobre o SPED Fiscal</h3>
+                  <p className="text-sm text-gray-600 mb-3">
+                    O arquivo SPED Fiscal será gerado com todos os blocos necessários:
+                  </p>
+                  <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
+                    <li>Bloco 0 - Abertura e Identificação</li>
+                    <li>Bloco C - Documentos Fiscais (Entradas e Saídas)</li>
+                    <li>Bloco E - ICMS</li>
+                    <li>Bloco H - Inventário</li>
+                    <li>Bloco 9 - Controle e Encerramento</li>
+                  </ul>
+                  <p className="text-sm text-gray-600 mt-3">
+                    O arquivo poderá ser importado diretamente no sistema SCI Único.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Export Button */}
+            <button
+              data-testid="export-sped-button"
+              onClick={handleExport}
+              disabled={loading || !selectedCompany || !periodo || periodo.length !== 6}
+              className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-3 text-lg"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  Gerando SPED...
+                </>
+              ) : (
+                <>
+                  <Download className="w-6 h-6" />
+                  Exportar SPED Fiscal
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default ExportSPED;
