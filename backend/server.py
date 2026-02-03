@@ -282,11 +282,21 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
 def classify_product_category(descricao: str, ncm: str, company_products: List[str], company_insumos: List[str]) -> str:
     descricao_lower = descricao.lower()
     
+    # Combustíveis
+    combustiveis = ['gasolina', 'diesel', 'etanol', 'alcool combustivel', 'gnv', 'gas natural', 'oleo diesel']
+    
+    # Materiais de despesa
     materiais_escritorio = ['papel', 'caneta', 'lapis', 'pasta', 'grampeador', 'clips', 'borracha', 'toner', 'cartucho', 'impressora', 'tinta impressora']
     materiais_limpeza = ['sabao', 'detergente', 'desinfetante', 'alcool gel', 'alcool', 'papel higienico', 'toalha', 'vassoura', 'pano', 'luva', 'saco lixo']
     materiais_construcao = ['cimento', 'areia', 'tijolo', 'telha', 'tinta parede', 'massa corrida', 'prego', 'parafuso', 'madeira', 'ferro', 'porta', 'janela']
     servicos_terceiros = ['manutencao', 'servico', 'consultoria', 'assessoria', 'reparo']
     
+    # Verificar combustíveis primeiro
+    for item in combustiveis:
+        if item in descricao_lower:
+            return 'combustivel'
+    
+    # Verificar despesas
     for item in materiais_escritorio:
         if item in descricao_lower:
             return 'despesa'
@@ -303,14 +313,17 @@ def classify_product_category(descricao: str, ncm: str, company_products: List[s
         if item in descricao_lower:
             return 'despesa'
     
+    # Verificar insumos
     for insumo in company_insumos:
         if insumo.lower() in descricao_lower or descricao_lower in insumo.lower():
             return 'insumo'
     
+    # Verificar revenda
     for produto in company_products:
         if produto.lower() in descricao_lower or descricao_lower in produto.lower():
             return 'revenda'
     
+    # Default: revenda
     return 'revenda'
 
 async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tipo_doc: str, cfop_original: str) -> Dict[str, Any]:
