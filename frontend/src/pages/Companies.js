@@ -130,8 +130,8 @@ const Companies = ({ user, onLogout }) => {
   };
 
   const removerProduto = (index) => {
-    const novosprodutos = formData.produtos_comercializados.filter((_, i) => i !== index);
-    setFormData({ ...formData, produtos_comercializados: novosProducts });
+    const novosProdutos = formData.produtos_comercializados.filter((_, i) => i !== index);
+    setFormData({ ...formData, produtos_comercializados: novosProdutos });
   };
 
   const adicionarInsumo = () => {
