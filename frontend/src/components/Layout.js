@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Building2, Home, FileText, Upload, CheckCircle, Download, LogOut, Menu, X, BarChart3 } from 'lucide-react';
+import { Building2, Home, FileText, Upload, CheckCircle, Download, LogOut, Menu, X, BarChart3, Brain } from 'lucide-react';
 import { useState } from 'react';
 
 const Layout = ({ user, onLogout, children }) => {
@@ -12,6 +12,7 @@ const Layout = ({ user, onLogout, children }) => {
     { name: 'Empresas', href: '/companies', icon: Building2, testId: 'nav-companies' },
     { name: 'Upload XML', href: '/upload', icon: Upload, testId: 'nav-upload' },
     { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
+    { name: 'Reclassificação IA', href: '/reclassification', icon: Brain, testId: 'nav-reclassification' },
     { name: 'Validação', href: '/validation', icon: CheckCircle, testId: 'nav-validation' },
     { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
     { name: 'Exportar SPED', href: '/export', icon: Download, testId: 'nav-export' },
