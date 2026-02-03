@@ -19,12 +19,10 @@ from io import BytesIO
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Security
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
 ALGORITHM = "HS256"
@@ -35,8 +33,6 @@ security = HTTPBearer()
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
-# ============ MODELS ============
-
 class UserRole:
     ADMIN = "admin"
     CLIENT = "client"
@@ -46,8 +42,8 @@ class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     email: str
     name: str
-    role: str  # admin or client
-    company_ids: List[str] = []  # CNPJs or company IDs the user has access to
+    role: str
+    company_ids: List[str] = []
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class UserCreate(BaseModel):
@@ -78,6 +74,9 @@ class Company(BaseModel):
     cidade: Optional[str] = None
     uf: Optional[str] = None
     cep: Optional[str] = None
+    cnae_principal: Optional[str] = None
+    atividade_principal: Optional[str] = None
+    produtos_comercializados: List[str] = []
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CompanyCreate(BaseModel):
@@ -90,12 +89,15 @@ class CompanyCreate(BaseModel):
     cidade: Optional[str] = None
     uf: Optional[str] = None
     cep: Optional[str] = None
+    cnae_principal: Optional[str] = None
+    atividade_principal: Optional[str] = None
+    produtos_comercializados: List[str] = []
 
 class XMLDocument(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     company_id: str
-    tipo: str  # entrada or saida
+    tipo: str
     chave_nfe: str
     numero_nfe: str
     data_emissao: str
@@ -106,7 +108,7 @@ class XMLDocument(BaseModel):
     valor_total: float
     xml_content: str
     produtos: List[Dict[str, Any]] = []
-    status_validacao: str = "pendente"  # pendente, validado, com_excecao
+    status_validacao: str = "pendente"
     uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     uploaded_by: str = ""
 
@@ -115,9 +117,10 @@ class CFOPRule(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     cfop: str
     descricao: str
-    tipo_operacao: str  # entrada or saida
+    tipo_operacao: str
+    categoria: str
     exige_validacao: bool = True
-    regras: Dict[str, Any] = {}  # custom validation rules
+    regras: Dict[str, Any] = {}
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class ValidationException(BaseModel):
@@ -127,6 +130,7 @@ class ValidationException(BaseModel):
     product_code: Optional[str] = None
     cfop_original: str
     cfop_corrigido: str
+    cfop_sugerido: Optional[str] = None
     motivo: str
     aplicado_em_lote: bool = False
     created_by: str
@@ -139,8 +143,6 @@ class ExceptionCreate(BaseModel):
     cfop_corrigido: str
     motivo: str
     aplicado_em_lote: bool = False
-
-# ============ HELPER FUNCTIONS ============
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -171,11 +173,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     return User(**user)
 
 def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
-    """Parse XML NFe and extract relevant information"""
     try:
         data = xmltodict.parse(xml_content)
-        
-        # Navigate through the XML structure
         nfe = data.get('nfeProc', {}).get('NFe', {}).get('infNFe', {})
         if not nfe:
             nfe = data.get('NFe', {}).get('infNFe', {})
@@ -188,29 +187,34 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
         total = nfe.get('total', {}).get('ICMSTot', {})
         det = nfe.get('det', [])
         
-        # Ensure det is a list
         if isinstance(det, dict):
             det = [det]
         
-        # Extract products
         produtos = []
         for item in det:
             prod = item.get('prod', {})
             imposto = item.get('imposto', {})
             icms = imposto.get('ICMS', {})
             
-            # Get CFOP from the first ICMS group found
             cfop = ""
+            cst = ""
             for key in icms:
-                if isinstance(icms[key], dict) and 'CFOP' in icms[key]:
-                    cfop = icms[key]['CFOP']
-                    break
+                if isinstance(icms[key], dict):
+                    if 'CFOP' in icms[key]:
+                        cfop = icms[key]['CFOP']
+                    if 'CST' in icms[key]:
+                        cst = icms[key]['CST']
+                    elif 'CSOSN' in icms[key]:
+                        cst = icms[key]['CSOSN']
+                    if cfop:
+                        break
             
             produtos.append({
                 'codigo': prod.get('cProd', ''),
                 'descricao': prod.get('xProd', ''),
                 'ncm': prod.get('NCM', ''),
                 'cfop': cfop,
+                'cst': cst,
                 'quantidade': float(prod.get('qCom', 0)),
                 'valor_unitario': float(prod.get('vUnCom', 0)),
                 'valor_total': float(prod.get('vProd', 0)),
@@ -232,11 +236,66 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
     except Exception as e:
         raise ValueError(f"Erro ao processar XML: {str(e)}")
 
+def classify_product_type(descricao: str, ncm: str, company_products: List[str]) -> str:
+    descricao_lower = descricao.lower()
+    
+    materiais_escritorio = ['papel', 'caneta', 'lapis', 'pasta', 'grampeador', 'clips', 'borracha', 'toner', 'cartucho', 'impressora']
+    materiais_limpeza = ['sabao', 'detergente', 'desinfetante', 'alcool', 'papel higienico', 'toalha', 'vassoura', 'pano', 'luva']
+    materiais_obra = ['cimento', 'areia', 'tijolo', 'telha', 'tinta', 'massa', 'prego', 'parafuso', 'madeira', 'ferro']
+    
+    for item in materiais_escritorio:
+        if item in descricao_lower:
+            return 'despesa_escritorio'
+    
+    for item in materiais_limpeza:
+        if item in descricao_lower:
+            return 'despesa_limpeza'
+    
+    for item in materiais_obra:
+        if item in descricao_lower:
+            return 'despesa_obra'
+    
+    for prod_comercializado in company_products:
+        if prod_comercializado.lower() in descricao_lower:
+            return 'revenda'
+    
+    return 'revenda'
+
+async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tipo_doc: str, cfop_original: str) -> Optional[str]:
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        return None
+    
+    produtos_comercializados = company.get('produtos_comercializados', [])
+    product_type = classify_product_type(
+        product.get('descricao', ''),
+        product.get('ncm', ''),
+        produtos_comercializados
+    )
+    
+    cst = product.get('cst', '')
+    is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+    
+    if tipo_doc == 'entrada':
+        if cfop_original.startswith('5') or cfop_original.startswith('6'):
+            if '152' in cfop_original or '252' in cfop_original:
+                if is_st:
+                    return '1403'
+                else:
+                    return '1102'
+            elif product_type == 'despesa_escritorio' or product_type == 'despesa_limpeza' or product_type == 'despesa_obra':
+                return '1556'
+            elif product_type == 'revenda':
+                if is_st:
+                    return '1403'
+                else:
+                    return '1102'
+    
+    return None
+
 def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo: str) -> str:
-    """Generate complete SPED Fiscal file"""
     lines = []
     
-    # Bloco 0 - Abertura, Identificação e Referências
     lines.append("|0000|014|0|01012024|31012024|BUSINESS CONTABILIDADE||SP|{}|{}|||A|1|".format(
         company.cnpj.replace('.','').replace('/','').replace('-',''),
         company.inscricao_estadual or ''
@@ -247,9 +306,9 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
         company.nome_fantasia or company.razao_social,
         company.cep or '',
         company.endereco or '',
-        '',  # numero
-        '',  # complemento
-        '',  # bairro
+        '',
+        '',
+        '',
         company.cidade or ''
     ))
     lines.append("|0015|{}|SP|{}|".format(
@@ -259,7 +318,6 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
     lines.append("|0100|BUSINESS CONTABILIDADE|12345678000199|12345678|business@businessconta.com.br|1235123731|")
     lines.append("|0150|BUSINESS CONTABILIDADE|12345678000199|SP|123456789|business@businessconta.com.br|1235123731|")
     
-    # Registro de produtos
     all_products = {}
     for doc in documents:
         for prod in doc.produtos:
@@ -276,12 +334,9 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
     
     lines.append("|0990|{}|".format(len([l for l in lines if l.startswith('|0')]) + 1))
     
-    # Bloco C - Documentos Fiscais
     lines.append("|C001|0|")
     
-    # Group by date and type
     for doc in documents:
-        # C100 - Documento
         tipo_doc = '1' if doc.tipo == 'saida' else '0'
         data_emissao = doc.data_emissao[:10].replace('-', '')
         
@@ -296,7 +351,6 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             doc.chave_nfe
         ))
         
-        # C170 - Itens do documento
         for prod in doc.produtos:
             lines.append("|C170|{}|{}|{}|{}|{}|{}|||||||||||||||".format(
                 prod.get('codigo', ''),
@@ -315,15 +369,12 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
     
     lines.append("|C990|{}|".format(len([l for l in lines if l.startswith('|C')]) + 1))
     
-    # Bloco E - ICMS
     lines.append("|E001|1|")
     lines.append("|E990|2|")
     
-    # Bloco H - Inventário
     lines.append("|H001|1|")
     lines.append("|H990|2|")
     
-    # Bloco 9 - Controle e Encerramento
     lines.append("|9001|0|")
     lines.append("|9900|0000|1|")
     lines.append("|9900|0001|1|")
@@ -351,11 +402,8 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
     
     return '\n'.join(lines)
 
-# ============ ROUTES ============
-
 @api_router.post("/auth/register", response_model=User)
 async def register(user_data: UserCreate):
-    # Check if user exists
     existing = await db.users.find_one({"email": user_data.email}, {"_id": 0})
     if existing:
         raise HTTPException(status_code=400, detail="Email já cadastrado")
@@ -388,7 +436,6 @@ async def login(credentials: UserLogin):
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 
-# Companies
 @api_router.post("/companies", response_model=Company)
 async def create_company(company_data: CompanyCreate, current_user: User = Depends(get_current_user)):
     if current_user.role != UserRole.ADMIN:
@@ -428,7 +475,6 @@ async def get_company(company_id: str, current_user: User = Depends(get_current_
     
     return Company(**company)
 
-# XML Upload
 @api_router.post("/xml/upload")
 async def upload_xml_batch(
     company_id: str = Form(...),
@@ -436,7 +482,6 @@ async def upload_xml_batch(
     files: List[UploadFile] = File(...),
     current_user: User = Depends(get_current_user)
 ):
-    # Verify access
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
@@ -453,6 +498,13 @@ async def upload_xml_batch(
             xml_str = content.decode('utf-8')
             
             parsed_data = parse_xml_nfe(xml_str)
+            
+            for product in parsed_data['produtos']:
+                cfop_sugerido = await suggest_cfop_intelligent(
+                    product, company_id, tipo, product.get('cfop', '')
+                )
+                if cfop_sugerido:
+                    product['cfop_sugerido'] = cfop_sugerido
             
             xml_doc = XMLDocument(
                 company_id=company_id,
@@ -480,7 +532,6 @@ async def list_documents(
     query = {}
     
     if current_user.role != UserRole.ADMIN:
-        # Get companies user has access to
         companies = await db.companies.find({"cnpj": {"$in": current_user.company_ids}}, {"_id": 0}).to_list(1000)
         company_ids = [c['id'] for c in companies]
         query['company_id'] = {"$in": company_ids}
@@ -504,7 +555,6 @@ async def get_document(
     if not document:
         raise HTTPException(status_code=404, detail="Documento não encontrado")
     
-    # Check access
     if current_user.role != UserRole.ADMIN:
         company = await db.companies.find_one({"id": document['company_id']}, {"_id": 0})
         if not company or company['cnpj'] not in current_user.company_ids:
@@ -515,7 +565,6 @@ async def get_document(
     
     return document
 
-# CFOP Validation
 @api_router.post("/cfop/rules", response_model=CFOPRule)
 async def create_cfop_rule(rule_data: CFOPRule, current_user: User = Depends(get_current_user)):
     if current_user.role != UserRole.ADMIN:
@@ -537,7 +586,6 @@ async def list_cfop_rules(current_user: User = Depends(get_current_user)):
     
     return rules
 
-# Exceptions
 @api_router.post("/exceptions", response_model=ValidationException)
 async def create_exception(
     exception_data: ExceptionCreate,
@@ -550,7 +598,6 @@ async def create_exception(
     
     await db.validation_exceptions.insert_one(doc)
     
-    # Update document status
     await db.xml_documents.update_one(
         {"id": exception_data.xml_document_id},
         {"$set": {"status_validacao": "com_excecao"}}
@@ -575,14 +622,12 @@ async def list_exceptions(
     
     return exceptions
 
-# SPED Export
 @api_router.get("/sped/export/{company_id}")
 async def export_sped(
     company_id: str,
     periodo: str = "012024",
     current_user: User = Depends(get_current_user)
 ):
-    # Get company
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
@@ -590,7 +635,6 @@ async def export_sped(
     if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    # Get documents
     documents = await db.xml_documents.find({"company_id": company_id}, {"_id": 0}).to_list(10000)
     
     for doc in documents:
@@ -604,7 +648,6 @@ async def export_sped(
     
     company_obj = Company(**company)
     
-    # Generate SPED
     sped_content = generate_sped_fiscal(company_obj, xml_docs, periodo)
     
     return {
@@ -612,23 +655,19 @@ async def export_sped(
         "filename": f"SPED_FISCAL_{company['cnpj']}_{periodo}.txt"
     }
 
-# Initialize default CFOP rules
 @api_router.post("/cfop/initialize")
 async def initialize_cfop_rules(current_user: User = Depends(get_current_user)):
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Apenas administradores podem executar esta ação")
     
     default_rules = [
-        {"cfop": "1101", "descricao": "Compra para industrialização", "tipo_operacao": "entrada"},
-        {"cfop": "1102", "descricao": "Compra para comercialização", "tipo_operacao": "entrada"},
-        {"cfop": "1403", "descricao": "Compra para comercialização em operação com mercadoria sujeita ao regime de substituição tributária", "tipo_operacao": "entrada"},
-        {"cfop": "2101", "descricao": "Compra para industrialização de mercadoria recebida do exterior", "tipo_operacao": "entrada"},
-        {"cfop": "2102", "descricao": "Compra para comercialização de mercadoria recebida do exterior", "tipo_operacao": "entrada"},
-        {"cfop": "5101", "descricao": "Venda de produção do estabelecimento", "tipo_operacao": "saida"},
-        {"cfop": "5102", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros", "tipo_operacao": "saida"},
-        {"cfop": "5403", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros em operação com mercadoria sujeita ao regime de substituição tributária", "tipo_operacao": "saida"},
-        {"cfop": "6101", "descricao": "Venda de produção do estabelecimento para o exterior", "tipo_operacao": "saida"},
-        {"cfop": "6102", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros para o exterior", "tipo_operacao": "saida"},
+        {"cfop": "1102", "descricao": "Compra para comercialização", "tipo_operacao": "entrada", "categoria": "revenda"},
+        {"cfop": "1403", "descricao": "Compra para comercialização em operação com mercadoria sujeita ao regime de substituição tributária", "tipo_operacao": "entrada", "categoria": "revenda_st"},
+        {"cfop": "1152", "descricao": "Transferência para comercialização", "tipo_operacao": "entrada", "categoria": "transferencia"},
+        {"cfop": "1556", "descricao": "Compra de material para uso ou consumo", "tipo_operacao": "entrada", "categoria": "despesa"},
+        {"cfop": "5102", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros", "tipo_operacao": "saida", "categoria": "revenda"},
+        {"cfop": "5405", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros em operação com mercadoria sujeita ao regime de substituição tributária", "tipo_operacao": "saida", "categoria": "revenda_st"},
+        {"cfop": "5152", "descricao": "Transferência de mercadoria adquirida ou recebida de terceiros", "tipo_operacao": "saida", "categoria": "transferencia"},
     ]
     
     inserted = 0
