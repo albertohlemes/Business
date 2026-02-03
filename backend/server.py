@@ -651,10 +651,16 @@ async def upload_xml_batch(
     if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
+    # Extrair CNPJ da empresa selecionada (limpar formatação)
+    cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+    uf_empresa = company.get('uf', 'SP')
+    
     results = []
     errors = []
     conversion_report = []
     duplicadas = []
+    rejeitadas_cnpj = []
+    rejeitadas_competencia = []
     
     for file in files:
         try:
