@@ -8,6 +8,7 @@ import Documents from './pages/Documents';
 import ValidationPage from './pages/ValidationPage';
 import ExportSPED from './pages/ExportSPED';
 import Reports from './pages/Reports';
+import ReclassificationAI from './pages/ReclassificationAI';
 import './App.css';
 
 function App() {
