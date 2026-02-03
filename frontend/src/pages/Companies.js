@@ -126,7 +126,8 @@ const Companies = ({ user, onLogout }) => {
         cnae_principal_descricao: '',
         atividade_principal: '',
         produtos_comercializados: [],
-        insumos_producao: []
+        insumos_producao: [],
+        produtos_despesa: []
       });
       fetchCompanies();
       alert('Empresa cadastrada com sucesso!');
@@ -173,6 +174,21 @@ const Companies = ({ user, onLogout }) => {
   const removerInsumo = (index) => {
     const novosInsumos = formData.insumos_producao.filter((_, i) => i !== index);
     setFormData({ ...formData, insumos_producao: novosInsumos });
+  };
+
+  const adicionarDespesa = () => {
+    if (despesaInput.trim()) {
+      setFormData({
+        ...formData,
+        produtos_despesa: [...formData.produtos_despesa, despesaInput.trim()]
+      });
+      setDespesaInput('');
+    }
+  };
+
+  const removerDespesa = (index) => {
+    const novasDespesas = formData.produtos_despesa.filter((_, i) => i !== index);
+    setFormData({ ...formData, produtos_despesa: novasDespesas });
   };
 
   const filteredCompanies = companies.filter(company =>
@@ -336,6 +352,35 @@ const Companies = ({ user, onLogout }) => {
                     <span key={index} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm flex items-center gap-2">
                       {insumo}
                       <button type="button" onClick={() => removerInsumo(index)} className="hover:text-green-600">×</button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Produtos de Despesa (sempre classificados como DESPESA)</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={despesaInput}
+                    onChange={(e) => setDespesaInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), adicionarDespesa())}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Ex: Material de Limpeza, Escritório, Combustível..."
+                  />
+                  <button
+                    type="button"
+                    onClick={adicionarDespesa}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.produtos_despesa.map((despesa, index) => (
+                    <span key={index} className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm flex items-center gap-2">
+                      {despesa}
+                      <button type="button" onClick={() => removerDespesa(index)} className="hover:text-orange-600">×</button>
                     </span>
                   ))}
                 </div>
