@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { Download, FileText, Calendar } from 'lucide-react';
+import { Download, FileText, Calendar, AlertCircle } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -9,16 +9,17 @@ const API = `${BACKEND_URL}/api`;
 const ExportSPED = ({ user, onLogout }) => {
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState('');
-  const [periodo, setPeriodo] = useState('');
+  const [competencia, setCompetencia] = useState('');
   const [loading, setLoading] = useState(false);
   const [documentsCount, setDocumentsCount] = useState(0);
+  const [availableCompetencias, setAvailableCompetencias] = useState([]);
 
   useEffect(() => {
     fetchCompanies();
     const now = new Date();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = now.getFullYear();
-    setPeriodo(`${month}${year}`);
+    setCompetencia(`${month}/${year}`);
   }, []);
 
   const fetchCompanies = async () => {
@@ -30,20 +31,29 @@ const ExportSPED = ({ user, onLogout }) => {
       setCompanies(response.data);
       if (response.data.length > 0) {
         setSelectedCompany(response.data[0].id);
-        fetchDocumentsCount(response.data[0].id);
+        fetchDocumentsAndCompetencias(response.data[0].id);
       }
     } catch (err) {
       console.error('Erro ao carregar empresas:', err);
     }
   };
 
-  const fetchDocumentsCount = async (companyId) => {
+  const fetchDocumentsAndCompetencias = async (companyId) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API}/xml/documents?company_id=${companyId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      // Extrair competências únicas
+      const competencias = [...new Set(response.data.map(d => d.competencia))].filter(Boolean).sort();
+      setAvailableCompetencias(competencias);
       setDocumentsCount(response.data.length);
+      
+      // Se existirem competências, selecionar a primeira
+      if (competencias.length > 0 && !competencias.includes(competencia)) {
+        setCompetencia(competencias[0]);
+      }
     } catch (err) {
       console.error('Erro ao carregar documentos:', err);
     }
@@ -52,21 +62,24 @@ const ExportSPED = ({ user, onLogout }) => {
   const handleCompanyChange = (companyId) => {
     setSelectedCompany(companyId);
     if (companyId) {
-      fetchDocumentsCount(companyId);
+      fetchDocumentsAndCompetencias(companyId);
     }
   };
 
   const handleExport = async () => {
-    if (!selectedCompany) {
-      alert('Selecione uma empresa');
+    if (!selectedCompany || !competencia) {
+      alert('Selecione uma empresa e competência');
       return;
     }
 
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
+      // Converter competência MM/AAAA para formato do backend
+      const periodoFormatado = competencia.replace('/', '');
+      
       const response = await axios.get(
-        `${API}/sped/export/${selectedCompany}?periodo=${periodo}`,
+        `${API}/sped/export/${selectedCompany}?competencia=${competencia}&periodo=${periodoFormatado}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -92,13 +105,14 @@ const ExportSPED = ({ user, onLogout }) => {
   };
 
   const selectedCompanyData = companies.find(c => c.id === selectedCompany);
+  const docsInCompetencia = documentsCount; // TODO: filtrar por competência
 
   return (
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="export-sped-page" className="space-y-6 max-w-4xl mx-auto">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Exportar SPED Fiscal</h1>
-          <p className="text-gray-600">Gere o arquivo SPED Fiscal completo para importação no SCI Único</p>
+          <p className="text-gray-600">Gere o arquivo SPED Fiscal por competência para importação no SCI Único</p>
         </div>
 
         <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
@@ -121,23 +135,48 @@ const ExportSPED = ({ user, onLogout }) => {
               </select>
             </div>
 
-            {/* Period */}
+            {/* Competência */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Período (MMAAAA) *</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                <input
-                  data-testid="export-period-input"
-                  type="text"
-                  value={periodo}
-                  onChange={(e) => setPeriodo(e.target.value.replace(/\D/g, '').substring(0, 6))}
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg"
-                  placeholder="012024"
-                  maxLength="6"
-                />
-              </div>
-              <p className="text-sm text-gray-500 mt-1">Formato: MÊs (2 dígitos) + Ano (4 dígitos). Ex: 012024</p>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Competência (Mês/Ano) *</label>
+              {availableCompetencias.length > 0 ? (
+                <select
+                  data-testid="export-competencia-select"
+                  value={competencia}
+                  onChange={(e) => setCompetencia(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                >
+                  <option value="">Selecione a competência</option>
+                  {availableCompetencias.map((comp) => (
+                    <option key={comp} value={comp}>{comp}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                  <input
+                    data-testid="export-competencia-input"
+                    type="text"
+                    value={competencia}
+                    onChange={(e) => setCompetencia(e.target.value)}
+                    className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg"
+                    placeholder="01/2024"
+                    maxLength="7"
+                  />
+                </div>
+              )}
+              <p className="text-sm text-gray-500 mt-1">Formato: MM/AAAA. Somente documentos desta competência serão exportados.</p>
             </div>
+
+            {/* Aviso se não houver documentos */}
+            {selectedCompany && availableCompetencias.length === 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-yellow-800">Nenhum documento encontrado</p>
+                  <p className="text-sm text-yellow-700">Esta empresa não possui XMLs importados. Faça o upload primeiro.</p>
+                </div>
+              </div>
+            )}
 
             {/* Company Info */}
             {selectedCompanyData && (
@@ -159,8 +198,8 @@ const ExportSPED = ({ user, onLogout }) => {
                     </div>
                   )}
                   <div>
-                    <p className="text-red-700 font-medium">Documentos</p>
-                    <p className="text-red-900 font-semibold">{documentsCount} XMLs</p>
+                    <p className="text-red-700 font-medium">Competências Disponíveis</p>
+                    <p className="text-red-900 font-semibold">{availableCompetencias.length} período(s)</p>
                   </div>
                 </div>
               </div>
@@ -193,7 +232,7 @@ const ExportSPED = ({ user, onLogout }) => {
             <button
               data-testid="export-sped-button"
               onClick={handleExport}
-              disabled={loading || !selectedCompany || !periodo || periodo.length !== 6}
+              disabled={loading || !selectedCompany || !competencia}
               className="w-full bg-red-600 text-white py-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-3 text-lg"
             >
               {loading ? (
@@ -204,7 +243,7 @@ const ExportSPED = ({ user, onLogout }) => {
               ) : (
                 <>
                   <Download className="w-6 h-6" />
-                  Exportar SPED Fiscal
+                  Exportar SPED Fiscal - {competencia}
                 </>
               )}
             </button>
