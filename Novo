@@ -1,0 +1,67 @@
+<analysis>**original_problem_statement:**
+O usuário, proprietário do escritório Business Contabilidade, precisa de um site para otimizar o processo de fechamento fiscal.
+
+**PRODUCT REQUIREMENTS:**
+1.  **Autenticação:** Clientes ou funcionários devem fazer login com o CNPJ da empresa.
+2.  **Upload de XML:** O sistema deve permitir o upload em lote de arquivos XML de notas fiscais de entrada e saída.
+3.  **Validação Inteligente de CFOP:**
+    *   O sistema deve validar e converter os códigos CFOP de cada produto/nota.
+    *   A conversão deve ser inteligente, classificando os produtos em **REVENDA**, **INSUMO**, ou **DESPESA** com base na atividade da empresa e na natureza do produto.
+    *   A lógica deve considerar se a operação é tributada ou com Substituição Tributária (ST) e se é interestadual (iniciando com '2') ou interna (iniciando com '1').
+    *   Deve tratar CFOPs específicos para combustíveis (1653) e transferências entre matriz/filial.
+    *   Deve haver um campo no cadastro da empresa para definir palavras-chave de produtos que são sempre considerados despesa.
+4.  **Cadastro de Empresas com Busca Automática:**
+    *   Ao digitar um CNPJ no cadastro, o sistema deve buscar os dados da empresa (razão social, CNAE, etc.) automaticamente de uma API da Receita Federal.
+    *   Deve haver um botão para excluir empresas.
+5.  **Gerenciamento por Competência:**
+    *   O usuário deve poder selecionar uma empresa e uma competência (mês/ano) para trabalhar.
+    *   Os dados de cada competência devem ser armazenados separadamente.
+    *   O sistema deve impedir a importação de notas fiscais duplicadas para a mesma empresa e competência.
+6.  **Relatórios:**
+    *   **Relatório de Conversão:** Após o upload, um relatório claro deve ser exibido, mostrando o CFOP original, o CFOP convertido e o critério/classificação utilizado.
+    *   **Relatórios Gerenciais:** Páginas para gerar relatórios por Produto e por NCM, detalhando valores e créditos de impostos (ICMS, PIS, COFINS).
+7.  **Exportação:**
+    *   O sistema deve exportar um arquivo no formato SPED Fiscal, contendo todos os registros validados, para importação no sistema SCI Único.
+8.  **UI/UX:**
+    *   O design deve usar as cores da marca Business Contabilidade (vermelho e preto).
+    *   Os botões e o fluxo de análise devem ser claros e intuitivos para o usuário.
+
+**User's preferred language**: O usuário comunica-se em **Português (Brasil)**. O próximo agente DEVE responder em Português.
+
+**what currently exists?**
+Foi desenvolvida uma aplicação full-stack com backend em FastAPI e frontend em React.
+*   **Backend:** Um único arquivo  contém todos os endpoints para autenticação, gerenciamento de empresas, upload de XML, uma versão inicial da lógica de conversão de CFOP, integração com API de CNPJ e um endpoint para resetar o banco de dados.
+*   **Frontend:** Uma aplicação React com páginas para Login, Empresas, Upload de XML, Validação, Exportação SPED e Relatórios. O design foi atualizado para usar as cores vermelho e preto da empresa. A funcionalidade de deletar empresas e exibir um relatório pós-upload foi adicionada.
+
+**Last working item**:
+*   **Last item agent was working:** O agente estava no meio da implementação de um grande conjunto de feedbacks do usuário (mensagem 285), focados em corrigir funcionalidades críticas e adicionar novas.
+    *   **Agent's Goal:** Corrigir o botão Salvar Empresa, adicionar um seletor de competência (mês/ano), impedir notas duplicadas, adicionar um campo produtos de despesa e clarificar o processo de conversão de CFOP.
+    *   **Agent's Progress:** O agente atualizou o backend () para incluir o campo  no modelo da empresa e reescreveu a página de upload () para incluir o seletor de competência. O trabalho parou antes de corrigir a página de empresas ().
+*   **Status**: IN PROGRESS
+*   **Agent Testing Done**: N
+*   **Which testing method agent to use?**: both
+*   **User Testing Done**: N
+
+**All Pending/In progress Issue list**:
+*   **Issue 1 (P0):** O botão Salvar Empresa na página de cadastro de empresas não está funcionando.
+*   **Issue 2 (P1):** A conversão automática de CFOP não está sendo aplicada de forma clara ou o usuário não entende quando ela ocorre.
+*   **Issue 3 (P1):** A busca de CNPJ não está preenchendo os campos do formulário de forma consistente, apesar do agente ter afirmado que corrigiu.
+
+**Issues Detail:**
+*   **Issue 1: Botão Salvar Empresa não funciona**
+    *   **Attempted fixes:** O agente analisou a função  em , mas não identificou a causa raiz e iniciou uma refatoração maior.
+    *   **Next debug checklist:**
+        1.  Inspecionar o console do navegador e a aba de rede ao clicar no botão Salvar para verificar erros de frontend ou na requisição API.
+        2.  Verificar os logs do backend () para identificar erros no recebimento da requisição.
+        3.  Revisar a lógica da função  em  e do endpoint  em .
+    *   **Why fix this issue?** É um bug crítico que impede o cadastro de novas empresas, uma funcionalidade central da aplicação.
+    *   **Status:** IN PROGRESS
+    *   **Is recurring issue?** Y
+    *   **Should Test frontend/backend/both after fix?** both
+    *   **Blocked on other issue:** none
+
+*   **Issue 2: Análise de CFOP não está clara**
+    *   **Attempted fixes:** O backend foi modificado para aplicar a sugestão de CFOP automaticamente no upload, e a UI foi alterada para mostrar um relatório de conversão. No entanto, o usuário continua confuso sobre o processo.
+    *   **Next debug checklist:**
+        1.  Garantir que o fluxo seja: 1. Upload -> 2. Análise automática -> 3. Exibição de um relatório detalhado e de fácil compreensão.
+        2.  Revisar a UI do relatório em  para que mostre claramente: CFOP Original: XXXX - CFOP: YYYY
