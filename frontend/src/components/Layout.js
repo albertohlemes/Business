@@ -30,7 +30,7 @@ const Layout = ({ user, onLogout, children }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
                 <Building2 className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -80,7 +80,7 @@ const Layout = ({ user, onLogout, children }) => {
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     isActive(item.href)
-                      ? 'bg-blue-50 text-blue-600 font-semibold'
+                      ? 'bg-red-50 text-red-600 font-semibold'
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -118,7 +118,7 @@ const Layout = ({ user, onLogout, children }) => {
                       data-testid={item.testId}
                       className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                         isActive(item.href)
-                          ? 'bg-blue-600 text-white font-semibold shadow-lg'
+                          ? 'bg-red-600 text-white font-semibold shadow-lg'
                           : 'text-gray-600 hover:bg-gray-50'
                       }`}
                     >
