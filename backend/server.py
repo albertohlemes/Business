@@ -1,15 +1,20 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from typing import List, Optional, Dict, Any
 import uuid
-from datetime import datetime, timezone
-
+from datetime import datetime, timezone, timedelta
+from passlib.context import CryptContext
+from jose import JWTError, jwt
+import xmltodict
+import re
+from io import BytesIO
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -19,54 +24,629 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
-app = FastAPI()
+# Security
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 480
 
-# Create a router with the /api prefix
+security = HTTPBearer()
+
+app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
+# ============ MODELS ============
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
+class UserRole:
+    ADMIN = "admin"
+    CLIENT = "client"
+
+class User(BaseModel):
+    model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    email: str
+    name: str
+    role: str  # admin or client
+    company_ids: List[str] = []  # CNPJs or company IDs the user has access to
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class UserCreate(BaseModel):
+    email: str
+    password: str
+    name: str
+    role: str = UserRole.CLIENT
+    company_ids: List[str] = []
 
-# Add your routes to the router instead of directly to app
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    user: User
+
+class Company(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    cnpj: str
+    razao_social: str
+    nome_fantasia: Optional[str] = None
+    inscricao_estadual: Optional[str] = None
+    inscricao_municipal: Optional[str] = None
+    endereco: Optional[str] = None
+    cidade: Optional[str] = None
+    uf: Optional[str] = None
+    cep: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CompanyCreate(BaseModel):
+    cnpj: str
+    razao_social: str
+    nome_fantasia: Optional[str] = None
+    inscricao_estadual: Optional[str] = None
+    inscricao_municipal: Optional[str] = None
+    endereco: Optional[str] = None
+    cidade: Optional[str] = None
+    uf: Optional[str] = None
+    cep: Optional[str] = None
+
+class XMLDocument(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    company_id: str
+    tipo: str  # entrada or saida
+    chave_nfe: str
+    numero_nfe: str
+    data_emissao: str
+    emitente_cnpj: str
+    emitente_nome: str
+    destinatario_cnpj: str
+    destinatario_nome: str
+    valor_total: float
+    xml_content: str
+    produtos: List[Dict[str, Any]] = []
+    status_validacao: str = "pendente"  # pendente, validado, com_excecao
+    uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    uploaded_by: str = ""
+
+class CFOPRule(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    cfop: str
+    descricao: str
+    tipo_operacao: str  # entrada or saida
+    exige_validacao: bool = True
+    regras: Dict[str, Any] = {}  # custom validation rules
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ValidationException(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    xml_document_id: str
+    product_code: Optional[str] = None
+    cfop_original: str
+    cfop_corrigido: str
+    motivo: str
+    aplicado_em_lote: bool = False
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ExceptionCreate(BaseModel):
+    xml_document_id: str
+    product_code: Optional[str] = None
+    cfop_original: str
+    cfop_corrigido: str
+    motivo: str
+    aplicado_em_lote: bool = False
+
+# ============ HELPER FUNCTIONS ============
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Token inválido")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if user is None:
+        raise HTTPException(status_code=401, detail="Usuário não encontrado")
+    return User(**user)
+
+def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
+    """Parse XML NFe and extract relevant information"""
+    try:
+        data = xmltodict.parse(xml_content)
+        
+        # Navigate through the XML structure
+        nfe = data.get('nfeProc', {}).get('NFe', {}).get('infNFe', {})
+        if not nfe:
+            nfe = data.get('NFe', {}).get('infNFe', {})
+        if not nfe:
+            raise ValueError("Estrutura de XML NFe inválida")
+        
+        ide = nfe.get('ide', {})
+        emit = nfe.get('emit', {})
+        dest = nfe.get('dest', {})
+        total = nfe.get('total', {}).get('ICMSTot', {})
+        det = nfe.get('det', [])
+        
+        # Ensure det is a list
+        if isinstance(det, dict):
+            det = [det]
+        
+        # Extract products
+        produtos = []
+        for item in det:
+            prod = item.get('prod', {})
+            imposto = item.get('imposto', {})
+            icms = imposto.get('ICMS', {})
+            
+            # Get CFOP from the first ICMS group found
+            cfop = ""
+            for key in icms:
+                if isinstance(icms[key], dict) and 'CFOP' in icms[key]:
+                    cfop = icms[key]['CFOP']
+                    break
+            
+            produtos.append({
+                'codigo': prod.get('cProd', ''),
+                'descricao': prod.get('xProd', ''),
+                'ncm': prod.get('NCM', ''),
+                'cfop': cfop,
+                'quantidade': float(prod.get('qCom', 0)),
+                'valor_unitario': float(prod.get('vUnCom', 0)),
+                'valor_total': float(prod.get('vProd', 0)),
+                'unidade': prod.get('uCom', '')
+            })
+        
+        return {
+            'chave_nfe': nfe.get('@Id', '').replace('NFe', ''),
+            'numero_nfe': ide.get('nNF', ''),
+            'serie': ide.get('serie', ''),
+            'data_emissao': ide.get('dhEmi', ''),
+            'emitente_cnpj': emit.get('CNPJ', ''),
+            'emitente_nome': emit.get('xNome', ''),
+            'destinatario_cnpj': dest.get('CNPJ', ''),
+            'destinatario_nome': dest.get('xNome', ''),
+            'valor_total': float(total.get('vNF', 0)),
+            'produtos': produtos
+        }
+    except Exception as e:
+        raise ValueError(f"Erro ao processar XML: {str(e)}")
+
+def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo: str) -> str:
+    """Generate complete SPED Fiscal file"""
+    lines = []
+    
+    # Bloco 0 - Abertura, Identificação e Referências
+    lines.append("|0000|014|0|01012024|31012024|BUSINESS CONTABILIDADE||SP|{}|{}|||A|1|".format(
+        company.cnpj.replace('.','').replace('/','').replace('-',''),
+        company.inscricao_estadual or ''
+    ))
+    lines.append("|0001|0|")
+    lines.append("|0005|{}|{}|{}|{}|{}|{}|{}|{}||".format(
+        company.razao_social,
+        company.nome_fantasia or company.razao_social,
+        company.cep or '',
+        company.endereco or '',
+        '',  # numero
+        '',  # complemento
+        '',  # bairro
+        company.cidade or ''
+    ))
+    lines.append("|0015|{}|SP|{}|".format(
+        company.uf or 'SP',
+        company.inscricao_estadual or ''
+    ))
+    lines.append("|0100|BUSINESS CONTABILIDADE|12345678000199|12345678|business@businessconta.com.br|1235123731|")
+    lines.append("|0150|BUSINESS CONTABILIDADE|12345678000199|SP|123456789|business@businessconta.com.br|1235123731|")
+    
+    # Registro de produtos
+    all_products = {}
+    for doc in documents:
+        for prod in doc.produtos:
+            prod_code = prod.get('codigo', '')
+            if prod_code and prod_code not in all_products:
+                all_products[prod_code] = prod
+    
+    for code, prod in all_products.items():
+        lines.append("|0200|{}|{}|UN|||{}||".format(
+            code,
+            prod.get('descricao', '')[:60],
+            prod.get('ncm', '')
+        ))
+    
+    lines.append("|0990|{}|".format(len([l for l in lines if l.startswith('|0')]) + 1))
+    
+    # Bloco C - Documentos Fiscais
+    lines.append("|C001|0|")
+    
+    # Group by date and type
+    for doc in documents:
+        # C100 - Documento
+        tipo_doc = '1' if doc.tipo == 'saida' else '0'
+        data_emissao = doc.data_emissao[:10].replace('-', '')
+        
+        lines.append("|C100|{}|1|{}|55|00|{}|{}||{}|{}|{}|||||||{}||0|1||".format(
+            tipo_doc,
+            doc.numero_nfe,
+            doc.emitente_cnpj.replace('.','').replace('/','').replace('-',''),
+            doc.destinatario_cnpj.replace('.','').replace('/','').replace('-',''),
+            data_emissao,
+            data_emissao,
+            doc.valor_total,
+            doc.chave_nfe
+        ))
+        
+        # C170 - Itens do documento
+        for prod in doc.produtos:
+            lines.append("|C170|{}|{}|{}|{}|{}|{}|||||||||||||||".format(
+                prod.get('codigo', ''),
+                prod.get('descricao', '')[:60],
+                prod.get('quantidade', 0),
+                prod.get('unidade', 'UN'),
+                prod.get('valor_total', 0),
+                prod.get('cfop', '')
+            ))
+        
+        lines.append("|C190|{}|{}|{}|0.00|0.00|0.00|0.00|0.00|".format(
+            doc.produtos[0].get('cfop', '') if doc.produtos else '',
+            doc.produtos[0].get('cst', '000') if doc.produtos else '000',
+            doc.valor_total
+        ))
+    
+    lines.append("|C990|{}|".format(len([l for l in lines if l.startswith('|C')]) + 1))
+    
+    # Bloco E - ICMS
+    lines.append("|E001|1|")
+    lines.append("|E990|2|")
+    
+    # Bloco H - Inventário
+    lines.append("|H001|1|")
+    lines.append("|H990|2|")
+    
+    # Bloco 9 - Controle e Encerramento
+    lines.append("|9001|0|")
+    lines.append("|9900|0000|1|")
+    lines.append("|9900|0001|1|")
+    lines.append("|9900|0005|1|")
+    lines.append("|9900|0015|1|")
+    lines.append("|9900|0100|1|")
+    lines.append("|9900|0150|1|")
+    lines.append("|9900|0200|{}|".format(len(all_products)))
+    lines.append("|9900|0990|1|")
+    lines.append("|9900|C001|1|")
+    lines.append("|9900|C100|{}|".format(len([d for d in documents])))
+    lines.append("|9900|C170|{}|".format(sum(len(d.produtos) for d in documents)))
+    lines.append("|9900|C190|{}|".format(len([d for d in documents])))
+    lines.append("|9900|C990|1|")
+    lines.append("|9900|E001|1|")
+    lines.append("|9900|E990|1|")
+    lines.append("|9900|H001|1|")
+    lines.append("|9900|H990|1|")
+    lines.append("|9900|9001|1|")
+    lines.append("|9900|9900|{}|".format(15))
+    lines.append("|9900|9990|1|")
+    lines.append("|9900|9999|1|")
+    lines.append("|9990|{}|".format(len([l for l in lines if l.startswith('|9')]) + 2))
+    lines.append("|9999|{}|".format(len(lines) + 1))
+    
+    return '\n'.join(lines)
+
+# ============ ROUTES ============
+
+@api_router.post("/auth/register", response_model=User)
+async def register(user_data: UserCreate):
+    # Check if user exists
+    existing = await db.users.find_one({"email": user_data.email}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email já cadastrado")
+    
+    hashed_password = get_password_hash(user_data.password)
+    user_dict = user_data.model_dump(exclude={'password'})
+    user = User(**user_dict)
+    
+    doc = user.model_dump()
+    doc['hashed_password'] = hashed_password
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.users.insert_one(doc)
+    return user
+
+@api_router.post("/auth/login", response_model=Token)
+async def login(credentials: UserLogin):
+    user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
+    if not user or not verify_password(credentials.password, user.get('hashed_password', '')):
+        raise HTTPException(status_code=401, detail="Email ou senha inválidos")
+    
+    access_token = create_access_token(data={"sub": user['id']})
+    user.pop('hashed_password', None)
+    if isinstance(user['created_at'], str):
+        user['created_at'] = datetime.fromisoformat(user['created_at'])
+    
+    return Token(access_token=access_token, token_type="bearer", user=User(**user))
+
+@api_router.get("/auth/me", response_model=User)
+async def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+# Companies
+@api_router.post("/companies", response_model=Company)
+async def create_company(company_data: CompanyCreate, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem criar empresas")
+    
+    company = Company(**company_data.model_dump())
+    doc = company.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.companies.insert_one(doc)
+    return company
+
+@api_router.get("/companies", response_model=List[Company])
+async def list_companies(current_user: User = Depends(get_current_user)):
+    if current_user.role == UserRole.ADMIN:
+        companies = await db.companies.find({}, {"_id": 0}).to_list(1000)
+    else:
+        companies = await db.companies.find({"cnpj": {"$in": current_user.company_ids}}, {"_id": 0}).to_list(1000)
+    
+    for c in companies:
+        if isinstance(c['created_at'], str):
+            c['created_at'] = datetime.fromisoformat(c['created_at'])
+    
+    return companies
+
+@api_router.get("/companies/{company_id}", response_model=Company)
+async def get_company(company_id: str, current_user: User = Depends(get_current_user)):
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    if isinstance(company['created_at'], str):
+        company['created_at'] = datetime.fromisoformat(company['created_at'])
+    
+    return Company(**company)
+
+# XML Upload
+@api_router.post("/xml/upload")
+async def upload_xml_batch(
+    company_id: str = Form(...),
+    tipo: str = Form(...),
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    # Verify access
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    results = []
+    errors = []
+    
+    for file in files:
+        try:
+            content = await file.read()
+            xml_str = content.decode('utf-8')
+            
+            parsed_data = parse_xml_nfe(xml_str)
+            
+            xml_doc = XMLDocument(
+                company_id=company_id,
+                tipo=tipo,
+                xml_content=xml_str,
+                uploaded_by=current_user.id,
+                **parsed_data
+            )
+            
+            doc = xml_doc.model_dump()
+            doc['uploaded_at'] = doc['uploaded_at'].isoformat()
+            
+            await db.xml_documents.insert_one(doc)
+            results.append({"filename": file.filename, "status": "success", "chave": parsed_data['chave_nfe']})
+        except Exception as e:
+            errors.append({"filename": file.filename, "error": str(e)})
+    
+    return {"success": results, "errors": errors}
+
+@api_router.get("/xml/documents")
+async def list_documents(
+    company_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {}
+    
+    if current_user.role != UserRole.ADMIN:
+        # Get companies user has access to
+        companies = await db.companies.find({"cnpj": {"$in": current_user.company_ids}}, {"_id": 0}).to_list(1000)
+        company_ids = [c['id'] for c in companies]
+        query['company_id'] = {"$in": company_ids}
+    elif company_id:
+        query['company_id'] = company_id
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(1000)
+    
+    for doc in documents:
+        if isinstance(doc['uploaded_at'], str):
+            doc['uploaded_at'] = datetime.fromisoformat(doc['uploaded_at'])
+    
+    return documents
+
+@api_router.get("/xml/documents/{document_id}")
+async def get_document(
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    document = await db.xml_documents.find_one({"id": document_id}, {"_id": 0})
+    if not document:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    
+    # Check access
+    if current_user.role != UserRole.ADMIN:
+        company = await db.companies.find_one({"id": document['company_id']}, {"_id": 0})
+        if not company or company['cnpj'] not in current_user.company_ids:
+            raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    if isinstance(document['uploaded_at'], str):
+        document['uploaded_at'] = datetime.fromisoformat(document['uploaded_at'])
+    
+    return document
+
+# CFOP Validation
+@api_router.post("/cfop/rules", response_model=CFOPRule)
+async def create_cfop_rule(rule_data: CFOPRule, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem criar regras")
+    
+    doc = rule_data.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.cfop_rules.insert_one(doc)
+    return rule_data
+
+@api_router.get("/cfop/rules", response_model=List[CFOPRule])
+async def list_cfop_rules(current_user: User = Depends(get_current_user)):
+    rules = await db.cfop_rules.find({}, {"_id": 0}).to_list(1000)
+    
+    for rule in rules:
+        if isinstance(rule['created_at'], str):
+            rule['created_at'] = datetime.fromisoformat(rule['created_at'])
+    
+    return rules
+
+# Exceptions
+@api_router.post("/exceptions", response_model=ValidationException)
+async def create_exception(
+    exception_data: ExceptionCreate,
+    current_user: User = Depends(get_current_user)
+):
+    exception = ValidationException(**exception_data.model_dump(), created_by=current_user.id)
+    
+    doc = exception.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    
+    await db.validation_exceptions.insert_one(doc)
+    
+    # Update document status
+    await db.xml_documents.update_one(
+        {"id": exception_data.xml_document_id},
+        {"$set": {"status_validacao": "com_excecao"}}
+    )
+    
+    return exception
+
+@api_router.get("/exceptions")
+async def list_exceptions(
+    document_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    query = {}
+    if document_id:
+        query['xml_document_id'] = document_id
+    
+    exceptions = await db.validation_exceptions.find(query, {"_id": 0}).to_list(1000)
+    
+    for exc in exceptions:
+        if isinstance(exc['created_at'], str):
+            exc['created_at'] = datetime.fromisoformat(exc['created_at'])
+    
+    return exceptions
+
+# SPED Export
+@api_router.get("/sped/export/{company_id}")
+async def export_sped(
+    company_id: str,
+    periodo: str = "012024",
+    current_user: User = Depends(get_current_user)
+):
+    # Get company
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Get documents
+    documents = await db.xml_documents.find({"company_id": company_id}, {"_id": 0}).to_list(10000)
+    
+    for doc in documents:
+        if isinstance(doc['uploaded_at'], str):
+            doc['uploaded_at'] = datetime.fromisoformat(doc['uploaded_at'])
+    
+    xml_docs = [XMLDocument(**doc) for doc in documents]
+    
+    if isinstance(company['created_at'], str):
+        company['created_at'] = datetime.fromisoformat(company['created_at'])
+    
+    company_obj = Company(**company)
+    
+    # Generate SPED
+    sped_content = generate_sped_fiscal(company_obj, xml_docs, periodo)
+    
+    return {
+        "content": sped_content,
+        "filename": f"SPED_FISCAL_{company['cnpj']}_{periodo}.txt"
+    }
+
+# Initialize default CFOP rules
+@api_router.post("/cfop/initialize")
+async def initialize_cfop_rules(current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem executar esta ação")
+    
+    default_rules = [
+        {"cfop": "1101", "descricao": "Compra para industrialização", "tipo_operacao": "entrada"},
+        {"cfop": "1102", "descricao": "Compra para comercialização", "tipo_operacao": "entrada"},
+        {"cfop": "1403", "descricao": "Compra para comercialização em operação com mercadoria sujeita ao regime de substituição tributária", "tipo_operacao": "entrada"},
+        {"cfop": "2101", "descricao": "Compra para industrialização de mercadoria recebida do exterior", "tipo_operacao": "entrada"},
+        {"cfop": "2102", "descricao": "Compra para comercialização de mercadoria recebida do exterior", "tipo_operacao": "entrada"},
+        {"cfop": "5101", "descricao": "Venda de produção do estabelecimento", "tipo_operacao": "saida"},
+        {"cfop": "5102", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros", "tipo_operacao": "saida"},
+        {"cfop": "5403", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros em operação com mercadoria sujeita ao regime de substituição tributária", "tipo_operacao": "saida"},
+        {"cfop": "6101", "descricao": "Venda de produção do estabelecimento para o exterior", "tipo_operacao": "saida"},
+        {"cfop": "6102", "descricao": "Venda de mercadoria adquirida ou recebida de terceiros para o exterior", "tipo_operacao": "saida"},
+    ]
+    
+    inserted = 0
+    for rule_data in default_rules:
+        existing = await db.cfop_rules.find_one({"cfop": rule_data['cfop']}, {"_id": 0})
+        if not existing:
+            rule = CFOPRule(**rule_data)
+            doc = rule.model_dump()
+            doc['created_at'] = doc['created_at'].isoformat()
+            await db.cfop_rules.insert_one(doc)
+            inserted += 1
+    
+    return {"message": f"{inserted} regras CFOP criadas com sucesso"}
+
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
-
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
-
-# Include the router in the main app
 app.include_router(api_router)
 
 app.add_middleware(
@@ -77,7 +657,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
