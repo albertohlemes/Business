@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Building2, Home, FileText, Upload, CheckCircle, Download, LogOut, Menu, X } from 'lucide-react';
+import { Building2, Home, FileText, Upload, CheckCircle, Download, LogOut, Menu, X, BarChart3 } from 'lucide-react';
 import { useState } from 'react';
 
 const Layout = ({ user, onLogout, children }) => {
