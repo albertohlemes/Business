@@ -193,8 +193,53 @@ const UploadXML = ({ user, onLogout }) => {
                     <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
                       <p className="text-sm font-medium text-green-900">{item.filename}</p>
                       <p className="text-xs text-green-700">Chave: {item.chave}</p>
+                      {item.conversoes > 0 && (
+                        <p className="text-xs text-green-700 font-semibold">{item.conversoes} CFOP(s) convertido(s) automaticamente</p>
+                      )}
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {results.relatorio_conversoes && results.relatorio_conversoes.length > 0 && (
+              <div className="mb-4">
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-lg p-4">
+                  <h3 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5" />
+                    Relatório de Conversões Automáticas ({results.total_conversoes} produtos)
+                  </h3>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {results.relatorio_conversoes.map((arquivo, idx) => (
+                      <div key={idx} className="bg-white p-3 rounded-lg border border-purple-200">
+                        <p className="font-semibold text-purple-900 mb-2">NF-e {arquivo.nfe} - {arquivo.arquivo}</p>
+                        <div className="space-y-2">
+                          {arquivo.conversoes.map((conv, i) => (
+                            <div key={i} className="bg-purple-50 p-2 rounded text-xs">
+                              <p className="font-semibold text-gray-900">{conv.produto}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-mono">
+                                  {conv.cfop_original}
+                                </span>
+                                <span>→</span>
+                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded font-mono">
+                                  {conv.cfop_convertido}
+                                </span>
+                                <span className={'px-2 py-1 rounded font-semibold ' + 
+                                  (conv.categoria === 'revenda' ? 'bg-purple-100 text-purple-800' :
+                                   conv.categoria === 'insumo' ? 'bg-blue-100 text-blue-800' :
+                                   conv.categoria === 'despesa' ? 'bg-orange-100 text-orange-800' :
+                                   'bg-yellow-100 text-yellow-800')}>
+                                  {conv.categoria.toUpperCase()}
+                                </span>
+                              </div>
+                              <p className="text-gray-600 mt-1">{conv.motivo}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
