@@ -81,6 +81,7 @@ class Company(BaseModel):
     atividade_principal: Optional[str] = None
     produtos_comercializados: List[str] = []
     insumos_producao: List[str] = []
+    produtos_despesa: List[str] = []
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CompanyCreate(BaseModel):
@@ -98,23 +99,13 @@ class CompanyCreate(BaseModel):
     atividade_principal: Optional[str] = None
     produtos_comercializados: List[str] = []
     insumos_producao: List[str] = []
-
-class CNPJData(BaseModel):
-    cnpj: str
-    razao_social: str
-    nome_fantasia: Optional[str] = None
-    cnae_principal: str
-    cnae_principal_descricao: str
-    cep: Optional[str] = None
-    logradouro: Optional[str] = None
-    numero: Optional[str] = None
-    municipio: Optional[str] = None
-    uf: Optional[str] = None
+    produtos_despesa: List[str] = []
 
 class XMLDocument(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     company_id: str
+    competencia: str
     tipo: str
     chave_nfe: str
     numero_nfe: str
@@ -279,37 +270,26 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
     except Exception as e:
         raise ValueError(f"Erro ao processar XML: {str(e)}")
 
-def classify_product_category(descricao: str, ncm: str, company_products: List[str], company_insumos: List[str]) -> str:
+def classify_product_category(descricao: str, ncm: str, company_products: List[str], company_insumos: List[str], company_despesas: List[str]) -> str:
     descricao_lower = descricao.lower()
+    
+    # Verificar produtos de despesa customizados da empresa
+    for despesa in company_despesas:
+        if despesa.lower() in descricao_lower or descricao_lower in despesa.lower():
+            return 'despesa'
     
     # Combustíveis
     combustiveis = ['gasolina', 'diesel', 'etanol', 'alcool combustivel', 'gnv', 'gas natural', 'oleo diesel']
-    
-    # Materiais de despesa
-    materiais_escritorio = ['papel', 'caneta', 'lapis', 'pasta', 'grampeador', 'clips', 'borracha', 'toner', 'cartucho', 'impressora', 'tinta impressora']
-    materiais_limpeza = ['sabao', 'detergente', 'desinfetante', 'alcool gel', 'alcool', 'papel higienico', 'toalha', 'vassoura', 'pano', 'luva', 'saco lixo']
-    materiais_construcao = ['cimento', 'areia', 'tijolo', 'telha', 'tinta parede', 'massa corrida', 'prego', 'parafuso', 'madeira', 'ferro', 'porta', 'janela']
-    servicos_terceiros = ['manutencao', 'servico', 'consultoria', 'assessoria', 'reparo']
-    
-    # Verificar combustíveis primeiro
     for item in combustiveis:
         if item in descricao_lower:
             return 'combustivel'
     
-    # Verificar despesas
-    for item in materiais_escritorio:
-        if item in descricao_lower:
-            return 'despesa'
+    # Materiais de despesa genéricos
+    materiais_escritorio = ['papel', 'caneta', 'lapis', 'pasta', 'grampeador', 'clips', 'borracha', 'toner', 'cartucho', 'impressora', 'tinta impressora']
+    materiais_limpeza = ['sabao', 'detergente', 'desinfetante', 'alcool gel', 'alcool', 'papel higienico', 'toalha', 'vassoura', 'pano', 'luva', 'saco lixo']
+    materiais_construcao = ['cimento', 'areia', 'tijolo', 'telha', 'tinta parede', 'massa corrida', 'prego', 'parafuso', 'madeira', 'ferro', 'porta', 'janela']
     
-    for item in materiais_limpeza:
-        if item in descricao_lower:
-            return 'despesa'
-    
-    for item in materiais_construcao:
-        if item in descricao_lower:
-            return 'despesa'
-    
-    for item in servicos_terceiros:
+    for item in materiais_escritorio + materiais_limpeza + materiais_construcao:
         if item in descricao_lower:
             return 'despesa'
     
@@ -323,7 +303,6 @@ def classify_product_category(descricao: str, ncm: str, company_products: List[s
         if produto.lower() in descricao_lower or descricao_lower in produto.lower():
             return 'revenda'
     
-    # Default: revenda
     return 'revenda'
 
 async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tipo_doc: str, cfop_original: str) -> Dict[str, Any]:
@@ -333,29 +312,28 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
     
     produtos_comercializados = company.get('produtos_comercializados', [])
     insumos_producao = company.get('insumos_producao', [])
+    produtos_despesa = company.get('produtos_despesa', [])
     company_uf = company.get('uf', 'SP')
     
     categoria = classify_product_category(
         product.get('descricao', ''),
         product.get('ncm', ''),
         produtos_comercializados,
-        insumos_producao
+        insumos_producao,
+        produtos_despesa
     )
     
     cst = product.get('cst', '')
     is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
     
-    # Detectar se é transferência (CFOPs 5152/6152 ou 5552/6552)
     is_transferencia = cfop_original.startswith('5152') or cfop_original.startswith('6152') or \
                        cfop_original.startswith('5552') or cfop_original.startswith('6552')
     
-    # Detectar UF (1=dentro do estado, 2=fora do estado)
-    cfop_prefix = '1' if company_uf == 'SP' else '2'  # Simplificado - idealmente verificar UF do emitente
+    cfop_prefix = '1' if company_uf == 'SP' else '2'
     
     cfop_sugerido = None
     
     if tipo_doc == 'entrada':
-        # Transferência tem prioridade
         if is_transferencia:
             cfop_sugerido = cfop_prefix + '152'
         elif categoria == 'combustivel':
@@ -564,7 +542,6 @@ async def delete_company(company_id: str, current_user: User = Depends(get_curre
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    # Verificar se tem documentos vinculados
     docs_count = await db.xml_documents.count_documents({"company_id": company_id})
     if docs_count > 0:
         raise HTTPException(status_code=400, detail=f"Não é possível excluir. Empresa possui {docs_count} documento(s) vinculado(s)")
@@ -576,6 +553,11 @@ async def delete_company(company_id: str, current_user: User = Depends(get_curre
 async def create_company(company_data: CompanyCreate, current_user: User = Depends(get_current_user)):
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Apenas administradores podem criar empresas")
+    
+    # Verificar se CNPJ já existe
+    existing = await db.companies.find_one({"cnpj": company_data.cnpj}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail="CNPJ já cadastrado")
     
     company = Company(**company_data.model_dump())
     doc = company.model_dump()
@@ -614,6 +596,7 @@ async def get_company(company_id: str, current_user: User = Depends(get_current_
 @api_router.post("/xml/upload")
 async def upload_xml_batch(
     company_id: str = Form(...),
+    competencia: str = Form(...),
     tipo: str = Form(...),
     files: List[UploadFile] = File(...),
     current_user: User = Depends(get_current_user)
@@ -628,6 +611,7 @@ async def upload_xml_batch(
     results = []
     errors = []
     conversion_report = []
+    duplicadas = []
     
     for file in files:
         try:
@@ -635,6 +619,23 @@ async def upload_xml_batch(
             xml_str = content.decode('utf-8')
             
             parsed_data = parse_xml_nfe(xml_str)
+            chave_nfe = parsed_data['chave_nfe']
+            
+            # VERIFICAR DUPLICAÇÃO
+            existing_doc = await db.xml_documents.find_one({
+                "company_id": company_id,
+                "competencia": competencia,
+                "chave_nfe": chave_nfe
+            }, {"_id": 0})
+            
+            if existing_doc:
+                duplicadas.append({
+                    "filename": file.filename,
+                    "chave": chave_nfe,
+                    "numero_nfe": parsed_data['numero_nfe']
+                })
+                continue
+            
             file_conversions = []
             
             # APLICAR ANÁLISE INTELIGENTE E CONVERTER CFOP AUTOMATICAMENTE
@@ -665,6 +666,7 @@ async def upload_xml_batch(
             
             xml_doc = XMLDocument(
                 company_id=company_id,
+                competencia=competencia,
                 tipo=tipo,
                 xml_content=xml_str,
                 uploaded_by=current_user.id,
@@ -696,6 +698,7 @@ async def upload_xml_batch(
     return {
         "success": results,
         "errors": errors,
+        "duplicadas": duplicadas,
         "relatorio_conversoes": conversion_report,
         "total_conversoes": sum(len(r['conversoes']) for r in conversion_report)
     }
@@ -703,6 +706,7 @@ async def upload_xml_batch(
 @api_router.get("/xml/documents")
 async def list_documents(
     company_id: Optional[str] = None,
+    competencia: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
     query = {}
@@ -713,6 +717,9 @@ async def list_documents(
         query['company_id'] = {"$in": company_ids}
     elif company_id:
         query['company_id'] = company_id
+    
+    if competencia:
+        query['competencia'] = competencia
     
     documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(1000)
     
@@ -744,6 +751,7 @@ async def get_document(
 @api_router.get("/reports/by-product/{company_id}")
 async def report_by_product(
     company_id: str,
+    competencia: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
@@ -753,7 +761,11 @@ async def report_by_product(
     if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    documents = await db.xml_documents.find({"company_id": company_id}, {"_id": 0}).to_list(10000)
+    query = {"company_id": company_id}
+    if competencia:
+        query['competencia'] = competencia
+    
+    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(10000)
     
     product_summary = defaultdict(lambda: {
         'descricao': '',
@@ -790,6 +802,7 @@ async def report_by_product(
 @api_router.get("/reports/by-ncm/{company_id}")
 async def report_by_ncm(
     company_id: str,
+    competencia: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
@@ -799,7 +812,11 @@ async def report_by_ncm(
     if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    documents = await db.xml_documents.find({"company_id": company_id}, {"_id": 0}).to_list(10000)
+    query = {"company_id": company_id}
+    if competencia:
+        query['competencia'] = competencia
+    
+    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(10000)
     
     ncm_summary = defaultdict(lambda: {
         'quantidade_produtos': 0,
@@ -897,6 +914,7 @@ async def list_exceptions(
 @api_router.get("/sped/export/{company_id}")
 async def export_sped(
     company_id: str,
+    competencia: Optional[str] = None,
     periodo: str = "012024",
     current_user: User = Depends(get_current_user)
 ):
@@ -907,7 +925,11 @@ async def export_sped(
     if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    documents = await db.xml_documents.find({"company_id": company_id}, {"_id": 0}).to_list(10000)
+    query = {"company_id": company_id}
+    if competencia:
+        query['competencia'] = competencia
+    
+    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(10000)
     
     for doc in documents:
         if isinstance(doc['uploaded_at'], str):
@@ -924,7 +946,7 @@ async def export_sped(
     
     return {
         "content": sped_content,
-        "filename": f"SPED_FISCAL_{company['cnpj']}_{periodo}.txt"
+        "filename": f"SPED_FISCAL_{company['cnpj']}_{competencia or periodo}.txt"
     }
 
 @api_router.post("/cfop/initialize")
