@@ -670,6 +670,63 @@ async def upload_xml_batch(
             parsed_data = parse_xml_nfe(xml_str)
             chave_nfe = parsed_data['chave_nfe']
             
+            # VALIDAR CNPJ - Verificar se a NF-e pertence à empresa selecionada
+            # Para ENTRADA: o destinatário deve ser a empresa
+            # Para SAÍDA: o emitente deve ser a empresa
+            cnpj_emitente = parsed_data.get('emitente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+            cnpj_destinatario = parsed_data.get('destinatario_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+            
+            cnpj_valido = False
+            if tipo == 'entrada':
+                cnpj_valido = cnpj_destinatario == cnpj_empresa
+                if not cnpj_valido:
+                    rejeitadas_cnpj.append({
+                        "filename": file.filename,
+                        "numero_nfe": parsed_data.get('numero_nfe', ''),
+                        "motivo": f"CNPJ do destinatário ({cnpj_destinatario}) não corresponde à empresa selecionada ({cnpj_empresa})",
+                        "emitente": parsed_data.get('emitente_nome', ''),
+                        "destinatario": parsed_data.get('destinatario_nome', '')
+                    })
+                    continue
+            else:  # saida
+                cnpj_valido = cnpj_emitente == cnpj_empresa
+                if not cnpj_valido:
+                    rejeitadas_cnpj.append({
+                        "filename": file.filename,
+                        "numero_nfe": parsed_data.get('numero_nfe', ''),
+                        "motivo": f"CNPJ do emitente ({cnpj_emitente}) não corresponde à empresa selecionada ({cnpj_empresa})",
+                        "emitente": parsed_data.get('emitente_nome', ''),
+                        "destinatario": parsed_data.get('destinatario_nome', '')
+                    })
+                    continue
+            
+            # VALIDAR COMPETÊNCIA - Verificar se a data da NF-e corresponde à competência selecionada
+            data_emissao = parsed_data.get('data_emissao', '')
+            if data_emissao:
+                # data_emissao pode ser formato ISO: 2024-01-15T10:30:00-03:00
+                try:
+                    if 'T' in data_emissao:
+                        data_emissao_dt = datetime.fromisoformat(data_emissao.replace('Z', '+00:00'))
+                    else:
+                        data_emissao_dt = datetime.strptime(data_emissao[:10], '%Y-%m-%d')
+                    
+                    # Extrair mês/ano da NF-e
+                    mes_nfe = str(data_emissao_dt.month).zfill(2)
+                    ano_nfe = str(data_emissao_dt.year)
+                    competencia_nfe = f"{mes_nfe}/{ano_nfe}"
+                    
+                    if competencia_nfe != competencia:
+                        rejeitadas_competencia.append({
+                            "filename": file.filename,
+                            "numero_nfe": parsed_data.get('numero_nfe', ''),
+                            "motivo": f"Data da NF-e ({competencia_nfe}) não corresponde à competência selecionada ({competencia})",
+                            "data_emissao": data_emissao[:10]
+                        })
+                        continue
+                except Exception as e:
+                    # Se não conseguir parsear a data, deixa passar
+                    pass
+            
             # VERIFICAR DUPLICAÇÃO
             existing_doc = await db.xml_documents.find_one({
                 "company_id": company_id,
