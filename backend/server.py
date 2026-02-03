@@ -805,8 +805,18 @@ async def upload_xml_batch(
         "success": results,
         "errors": errors,
         "duplicadas": duplicadas,
+        "rejeitadas_cnpj": rejeitadas_cnpj,
+        "rejeitadas_competencia": rejeitadas_competencia,
         "relatorio_conversoes": conversion_report,
-        "total_conversoes": sum(len(r['conversoes']) for r in conversion_report)
+        "total_conversoes": sum(len(r['conversoes']) for r in conversion_report),
+        "resumo": {
+            "total_arquivos": len(files),
+            "importados": len(results),
+            "duplicados": len(duplicadas),
+            "rejeitados_cnpj": len(rejeitadas_cnpj),
+            "rejeitados_competencia": len(rejeitadas_competencia),
+            "erros": len(errors)
+        }
     }
 
 @api_router.get("/xml/documents")
