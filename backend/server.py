@@ -333,6 +333,7 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
     
     produtos_comercializados = company.get('produtos_comercializados', [])
     insumos_producao = company.get('insumos_producao', [])
+    company_uf = company.get('uf', 'SP')
     
     categoria = classify_product_category(
         product.get('descricao', ''),
@@ -344,28 +345,42 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
     cst = product.get('cst', '')
     is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
     
+    # Detectar se é transferência (CFOPs 5152/6152 ou 5552/6552)
+    is_transferencia = cfop_original.startswith('5152') or cfop_original.startswith('6152') or \
+                       cfop_original.startswith('5552') or cfop_original.startswith('6552')
+    
+    # Detectar UF (1=dentro do estado, 2=fora do estado)
+    cfop_prefix = '1' if company_uf == 'SP' else '2'  # Simplificado - idealmente verificar UF do emitente
+    
     cfop_sugerido = None
     
     if tipo_doc == 'entrada':
-        if categoria == 'revenda':
+        # Transferência tem prioridade
+        if is_transferencia:
+            cfop_sugerido = cfop_prefix + '152'
+        elif categoria == 'combustivel':
+            cfop_sugerido = cfop_prefix + '653'
+        elif categoria == 'revenda':
             if is_st:
-                cfop_sugerido = '1403'
+                cfop_sugerido = cfop_prefix + '403'
             else:
-                cfop_sugerido = '1102'
+                cfop_sugerido = cfop_prefix + '102'
         elif categoria == 'insumo':
             if is_st:
-                cfop_sugerido = '1407'
+                cfop_sugerido = cfop_prefix + '401'
             else:
-                cfop_sugerido = '1101'
+                cfop_sugerido = cfop_prefix + '101'
         elif categoria == 'despesa':
-            cfop_sugerido = '1556'
-        
-        if cfop_original.startswith('5152') or cfop_original.startswith('6152'):
-            cfop_sugerido = '1152'
+            if is_st:
+                cfop_sugerido = cfop_prefix + '407'
+            else:
+                cfop_sugerido = cfop_prefix + '556'
     
     return {
         "cfop_sugerido": cfop_sugerido,
-        "categoria": categoria
+        "categoria": categoria,
+        "is_st": is_st,
+        "is_transferencia": is_transferencia
     }
 
 def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo: str) -> str:
