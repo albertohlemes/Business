@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { Search, AlertTriangle, CheckCircle, Edit2, Save } from 'lucide-react';
+import { Search, AlertTriangle, CheckCircle, Edit2, Save, Sparkles } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -104,6 +104,21 @@ const ValidationPage = ({ user, onLogout }) => {
     return { valid: true, message: 'Válido' };
   };
 
+  const getCategoryBadge = (categoria) => {
+    const badges = {
+      'revenda': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'REVENDA' },
+      'insumo': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'INSUMO' },
+      'despesa': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'DESPESA' },
+      'combustivel': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'COMBUSTÍVEL' },
+    };
+    const badge = badges[categoria] || { bg: 'bg-gray-100', text: 'text-gray-800', label: categoria?.toUpperCase() || 'N/A' };
+    return (
+      <span className={'px-3 py-1 rounded-full text-xs font-bold ' + badge.bg + ' ' + badge.text}>
+        {badge.label}
+      </span>
+    );
+  };
+
   const DocumentListItem = ({ doc }) => {
     const validation = doc.produtos.map(p => validateCfop(p.cfop, doc.tipo));
     const hasErrors = validation.some(v => !v.valid);
@@ -135,12 +150,17 @@ const ValidationPage = ({ user, onLogout }) => {
     const validation = validateCfop(product.cfop, selectedDoc.tipo);
     const exception = exceptions.find(e => e.product_code === product.codigo);
     const isEditing = editingProduct === index;
+    const categoria = product.categoria_classificada;
+    const cfopSugerido = product.cfop_sugerido;
     
     return (
       <div key={index} className="p-6">
         <div className="flex items-start justify-between gap-4 mb-3">
           <div className="flex-1">
-            <p className="font-semibold text-gray-900">{product.descricao}</p>
+            <div className="flex items-center gap-2 mb-2">
+              <p className="font-semibold text-gray-900">{product.descricao}</p>
+              {categoria && getCategoryBadge(categoria)}
+            </div>
             <p className="text-sm text-gray-600">Código: {product.codigo} | NCM: {product.ncm}</p>
           </div>
           <div className="text-right">
@@ -153,8 +173,8 @@ const ValidationPage = ({ user, onLogout }) => {
 
         <div className="flex items-center gap-3 mb-3">
           <div className="flex-1">
-            <p className="text-sm text-gray-600 mb-1">CFOP</p>
-            <div className="flex items-center gap-2">
+            <p className="text-sm text-gray-600 mb-1">CFOP Atual</p>
+            <div className="flex items-center gap-2 flex-wrap">
               <span className={'px-3 py-1 rounded-lg font-mono font-semibold ' + (validation.valid ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800')}>
                 {product.cfop}
               </span>
@@ -163,6 +183,17 @@ const ValidationPage = ({ user, onLogout }) => {
                   <AlertTriangle className="w-4 h-4" />
                   {validation.message}
                 </span>
+              )}
+              {cfopSugerido && cfopSugerido !== product.cfop && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-green-700 font-medium flex items-center gap-1">
+                    <Sparkles className="w-4 h-4" />
+                    Sugestão IA:
+                  </span>
+                  <span className="px-3 py-1 rounded-lg font-mono font-semibold bg-green-100 text-green-800 border-2 border-green-300">
+                    {cfopSugerido}
+                  </span>
+                </div>
               )}
               {exception && (
                 <span className="text-sm text-red-600 font-medium">
@@ -176,7 +207,7 @@ const ValidationPage = ({ user, onLogout }) => {
               data-testid={'edit-cfop-button-' + index}
               onClick={() => {
                 setEditingProduct(index);
-                setNewCfop('');
+                setNewCfop(cfopSugerido || '');
                 setMotivo('');
               }}
               className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 flex items-center gap-2"
@@ -249,9 +280,18 @@ const ValidationPage = ({ user, onLogout }) => {
   return (
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="validation-page" className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Validação de CFOPs</h1>
-          <p className="text-gray-600">Revise e corrija os códigos fiscais dos documentos</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Validação de CFOPs</h1>
+            <p className="text-gray-600">Revise e corrija os códigos fiscais dos documentos</p>
+          </div>
+          <div className="bg-gradient-to-r from-red-600 to-orange-500 text-white px-6 py-3 rounded-xl shadow-lg">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5" />
+              <span className="font-bold">Análise Inteligente Ativa</span>
+            </div>
+            <p className="text-xs text-red-100 mt-1">Sugestões baseadas em IA</p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
