@@ -1487,6 +1487,14 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
                 const dados = extractRes.data.dados;
                 setDadosExtraidos(dados);
                 
+                // Armazenar as cláusulas originais para consolidação
+                if (dados.clausulas && dados.clausulas.length > 0) {
+                    const textoClausulas = dados.clausulas.map(c => 
+                        `CLÁUSULA ${c.numero || ''} - ${c.titulo || ''}\n${c.texto || ''}`
+                    ).join('\n\n');
+                    setTextoContratoOriginal(textoClausulas);
+                }
+                
                 // Se extraiu CNPJ, buscar CNAEs automaticamente na Receita
                 if (dados.empresa?.cnpj) {
                     setCnpjInput(dados.empresa.cnpj);
