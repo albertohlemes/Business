@@ -68,31 +68,29 @@ const Companies = ({ user, onLogout }) => {
   };
 
   const handleDelete = async (companyId, razaoSocial) => {
-    if (!window.confirm(`ATENÇÃO: Tem certeza que deseja excluir a empresa "${razaoSocial}"?\n\nEsta ação apagará TODOS os documentos e regras associadas a esta empresa.\n\nEssa ação não pode ser desfeita.`)) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${API}/companies/${companyId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      alert('Empresa excluída com sucesso!');
-      
-      // Se a empresa excluída for a selecionada no contexto, limpar a seleção
-      const storedCompany = localStorage.getItem('selectedCompanyId');
-      if (storedCompany === companyId) {
-        localStorage.removeItem('selectedCompanyId');
-        localStorage.removeItem('selectedCompetencia');
-        refreshCompanies(); // Isso deve forçar o contexto a atualizar
-      } else {
-        fetchCompanies(); // Apenas atualiza a lista local
+    if (window.confirm(`ATENÇÃO: Tem certeza que deseja excluir a empresa "${razaoSocial}"?\n\nEsta ação apagará TODOS os documentos e regras associadas a esta empresa.\n\nEssa ação não pode ser desfeita.`)) {
+      try {
+        const token = localStorage.getItem('token');
+        await axios.delete(`${API}/companies/${companyId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        alert('Empresa excluída com sucesso!');
+        
+        // Se a empresa excluída for a selecionada no contexto, limpar a seleção
+        const storedCompany = localStorage.getItem('selectedCompanyId');
+        if (storedCompany === companyId) {
+          localStorage.removeItem('selectedCompanyId');
+          localStorage.removeItem('selectedCompetencia');
+          refreshCompanies(); // Isso deve forçar o contexto a atualizar
+        } else {
+          fetchCompanies(); // Apenas atualiza a lista local
+        }
+        
+      } catch (err) {
+        console.error('Erro ao excluir:', err);
+        alert(err.response?.data?.detail || 'Erro ao excluir empresa');
       }
-      
-    } catch (err) {
-      console.error('Erro ao excluir:', err);
-      alert(err.response?.data?.detail || 'Erro ao excluir empresa');
     }
   };
 
