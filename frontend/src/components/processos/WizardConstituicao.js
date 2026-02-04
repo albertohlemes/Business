@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
@@ -8,7 +8,7 @@ import { Label } from '../ui/label';
 import { 
     Building2, ChevronLeft, ChevronRight, Upload, X, RefreshCw, CheckCircle2,
     Users, MapPin, Briefcase, DollarSign, FileText, Plus, Trash2, FileDown, Copy,
-    User, Percent, Search
+    User, Percent, Sparkles
 } from 'lucide-react';
 import {
     Dialog,
@@ -36,65 +36,151 @@ const ESTADOS = [
 const ESTADOS_CIVIS = ['Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)', 'União Estável'];
 const REGIMES_CASAMENTO = ['Comunhão Parcial de Bens', 'Comunhão Universal de Bens', 'Separação Total de Bens', 'Participação Final nos Aquestos'];
 
-// Componente para upload híbrido (digitar ou upload)
-const CampoHibrido = ({ label, value, onChange, placeholder, onFileUpload, uploading, tipo = "text", required = false }) => {
-    const inputRef = useRef(null);
+// Função para converter número para extenso
+const numeroParaExtenso = (valor) => {
+    if (!valor || valor === 0) return '';
     
-    return (
-        <div className="space-y-2">
-            <div className="flex items-center justify-between">
-                <Label className="text-zinc-400 text-xs uppercase">{label} {required && <span className="text-red-500">*</span>}</Label>
-                <button 
-                    type="button"
-                    onClick={() => inputRef.current?.click()}
-                    className="text-xs text-red-500 hover:text-red-400 flex items-center gap-1"
-                    disabled={uploading}
-                >
-                    {uploading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                    Extrair de documento
-                </button>
-            </div>
-            <input 
-                ref={inputRef} 
-                type="file" 
-                accept=".pdf,.jpg,.jpeg,.png,.docx" 
-                className="hidden" 
-                onChange={onFileUpload}
-            />
-            {tipo === "textarea" ? (
-                <Textarea
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    placeholder={placeholder}
-                    className="bg-zinc-950 border-zinc-800 min-h-[80px]"
-                />
-            ) : tipo === "currency" ? (
-                <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">R$</span>
-                    <Input
-                        type="text"
-                        value={value}
-                        onChange={(e) => onChange(e.target.value)}
-                        placeholder={placeholder}
-                        className="bg-zinc-950 border-zinc-800 pl-10"
-                    />
-                </div>
-            ) : (
-                <Input
-                    type={tipo}
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    placeholder={placeholder}
-                    className="bg-zinc-950 border-zinc-800"
-                />
-            )}
-        </div>
-    );
+    const unidades = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
+    const especiais = ['dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
+    const dezenas = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
+    const centenas = ['', 'cento', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
+    
+    const converterGrupo = (n) => {
+        if (n === 0) return '';
+        if (n === 100) return 'cem';
+        
+        let resultado = '';
+        const c = Math.floor(n / 100);
+        const d = Math.floor((n % 100) / 10);
+        const u = n % 10;
+        
+        if (c > 0) resultado += centenas[c];
+        
+        if (d === 1) {
+            if (resultado) resultado += ' e ';
+            resultado += especiais[u];
+        } else {
+            if (d > 1) {
+                if (resultado) resultado += ' e ';
+                resultado += dezenas[d];
+            }
+            if (u > 0) {
+                if (resultado) resultado += ' e ';
+                resultado += unidades[u];
+            }
+        }
+        return resultado;
+    };
+    
+    const num = Math.floor(valor);
+    const centavos = Math.round((valor - num) * 100);
+    
+    if (num === 0 && centavos > 0) {
+        return `${converterGrupo(centavos)} centavo${centavos > 1 ? 's' : ''}`;
+    }
+    
+    let resultado = '';
+    
+    // Milhões
+    const milhoes = Math.floor(num / 1000000);
+    if (milhoes > 0) {
+        resultado += converterGrupo(milhoes) + (milhoes === 1 ? ' milhão' : ' milhões');
+    }
+    
+    // Milhares
+    const milhares = Math.floor((num % 1000000) / 1000);
+    if (milhares > 0) {
+        if (resultado) resultado += ' ';
+        if (milhares === 1) {
+            resultado += 'mil';
+        } else {
+            resultado += converterGrupo(milhares) + ' mil';
+        }
+    }
+    
+    // Centenas
+    const resto = num % 1000;
+    if (resto > 0) {
+        if (resultado) {
+            resultado += (resto < 100 ? ' e ' : ' ');
+        }
+        resultado += converterGrupo(resto);
+    }
+    
+    resultado += ' rea' + (num === 1 ? 'l' : 'is');
+    
+    if (centavos > 0) {
+        resultado += ' e ' + converterGrupo(centavos) + ' centavo' + (centavos > 1 ? 's' : '');
+    }
+    
+    // Capitalizar primeira letra
+    return resultado.charAt(0).toUpperCase() + resultado.slice(1);
 };
 
-// Componente de qualificação de sócio
-const SocioCard = ({ socio, index, onChange, onRemove, onUploadDoc, canRemove }) => {
+// Função para formatar moeda
+const formatarMoeda = (valor) => {
+    const numero = valor.replace(/\D/g, '');
+    const valorNumerico = parseFloat(numero) / 100;
+    return valorNumerico.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+// Componente de qualificação de sócio com extração por IA
+const SocioCard = ({ socio, index, onChange, onRemove, canRemove }) => {
     const docInputRef = useRef(null);
+    const [extraindo, setExtraindo] = useState(false);
+    
+    const handleDocUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        setExtraindo(true);
+        toast.info('Extraindo dados do documento...');
+        
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('campo', 'socio');
+            
+            const response = await axios.post(`${API_URL}/api/constituicao/extrair-socio`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            
+            if (response.data.success && response.data.dados) {
+                const dados = response.data.dados;
+                onChange({
+                    ...socio,
+                    nome: dados.nome || socio.nome,
+                    cpf: dados.cpf || socio.cpf,
+                    rg: dados.rg || socio.rg,
+                    orgaoEmissor: dados.orgao_emissor || socio.orgaoEmissor,
+                    nacionalidade: dados.nacionalidade || socio.nacionalidade,
+                    estadoCivil: dados.estado_civil || socio.estadoCivil,
+                    profissao: dados.profissao || socio.profissao,
+                    endereco: dados.endereco || socio.endereco,
+                    documentos: [...(socio.documentos || []), file]
+                });
+                toast.success('Dados extraídos com sucesso!');
+            } else {
+                // Apenas anexar o documento
+                onChange({
+                    ...socio,
+                    documentos: [...(socio.documentos || []), file]
+                });
+                toast.info('Documento anexado');
+            }
+        } catch (error) {
+            console.error('Erro na extração:', error);
+            // Anexar documento mesmo com erro
+            onChange({
+                ...socio,
+                documentos: [...(socio.documentos || []), file]
+            });
+            toast.warning('Documento anexado (extração indisponível)');
+        } finally {
+            setExtraindo(false);
+            if (docInputRef.current) docInputRef.current.value = '';
+        }
+    };
     
     return (
         <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4 space-y-4">
@@ -105,20 +191,43 @@ const SocioCard = ({ socio, index, onChange, onRemove, onUploadDoc, canRemove })
                     </div>
                     <span className="font-medium text-white">Sócio {index + 1}</span>
                 </div>
-                {canRemove && (
-                    <button onClick={onRemove} className="text-zinc-500 hover:text-red-500">
-                        <Trash2 className="w-4 h-4" />
+                <div className="flex items-center gap-2">
+                    <button 
+                        type="button"
+                        onClick={() => docInputRef.current?.click()}
+                        disabled={extraindo}
+                        className="text-xs bg-red-600/20 text-red-500 hover:bg-red-600/30 px-3 py-1.5 rounded flex items-center gap-1"
+                    >
+                        {extraindo ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                        Preencher com IA
                     </button>
-                )}
+                    {canRemove && (
+                        <button onClick={onRemove} className="text-zinc-500 hover:text-red-500">
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    )}
+                </div>
             </div>
+            
+            <input 
+                ref={docInputRef} 
+                type="file" 
+                accept=".pdf,.jpg,.jpeg,.png" 
+                className="hidden" 
+                onChange={handleDocUpload}
+            />
+            
+            <p className="text-xs text-zinc-500">
+                Anexe CNH, RG ou outro documento para preenchimento automático
+            </p>
             
             <div className="grid grid-cols-2 gap-3">
                 <div>
                     <Label className="text-zinc-500 text-xs">Nome Completo *</Label>
                     <Input
                         value={socio.nome}
-                        onChange={(e) => onChange({ ...socio, nome: e.target.value })}
-                        placeholder="Nome completo em maiúsculas"
+                        onChange={(e) => onChange({ ...socio, nome: e.target.value.toUpperCase() })}
+                        placeholder="NOME COMPLETO EM MAIÚSCULAS"
                         className="bg-zinc-900 border-zinc-700 mt-1"
                     />
                 </div>
@@ -193,15 +302,18 @@ const SocioCard = ({ socio, index, onChange, onRemove, onUploadDoc, canRemove })
                     </div>
                 )}
                 {socio.estadoCivil !== 'Casado(a)' && (
-                    <div>
-                        <Label className="text-zinc-500 text-xs">Profissão</Label>
-                        <Input
-                            value={socio.profissao}
-                            onChange={(e) => onChange({ ...socio, profissao: e.target.value })}
-                            placeholder="Empresário"
-                            className="bg-zinc-900 border-zinc-700 mt-1"
-                        />
-                    </div>
+                    <>
+                        <div>
+                            <Label className="text-zinc-500 text-xs">Profissão</Label>
+                            <Input
+                                value={socio.profissao}
+                                onChange={(e) => onChange({ ...socio, profissao: e.target.value })}
+                                placeholder="Empresário"
+                                className="bg-zinc-900 border-zinc-700 mt-1"
+                            />
+                        </div>
+                        <div></div>
+                    </>
                 )}
             </div>
             
@@ -227,27 +339,10 @@ const SocioCard = ({ socio, index, onChange, onRemove, onUploadDoc, canRemove })
                 />
             </div>
             
-            {/* Upload de documentos do sócio */}
-            <div className="pt-2 border-t border-zinc-800">
-                <div className="flex items-center justify-between mb-2">
-                    <Label className="text-zinc-500 text-xs">Documentos (CNH, RG, Comprovante)</Label>
-                    <button 
-                        type="button"
-                        onClick={() => docInputRef.current?.click()}
-                        className="text-xs text-red-500 hover:text-red-400"
-                    >
-                        + Anexar
-                    </button>
-                </div>
-                <input 
-                    ref={docInputRef} 
-                    type="file" 
-                    accept=".pdf,.jpg,.jpeg,.png" 
-                    className="hidden" 
-                    onChange={(e) => onUploadDoc(e, index)}
-                    multiple
-                />
-                {socio.documentos && socio.documentos.length > 0 && (
+            {/* Documentos anexados */}
+            {socio.documentos && socio.documentos.length > 0 && (
+                <div className="pt-2 border-t border-zinc-800">
+                    <Label className="text-zinc-500 text-xs mb-2 block">Documentos anexados</Label>
                     <div className="flex flex-wrap gap-2">
                         {socio.documentos.map((doc, i) => (
                             <span key={i} className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded flex items-center gap-1">
@@ -256,15 +351,15 @@ const SocioCard = ({ socio, index, onChange, onRemove, onUploadDoc, canRemove })
                             </span>
                         ))}
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 };
 
 // Componente de tabela de participação
 const TabelaParticipacao = ({ socios, capitalSocial, onUpdateParticipacao }) => {
-    const capitalNumerico = parseFloat(capitalSocial?.replace(/\D/g, '') || 0) / 100;
+    const capitalNumerico = parseFloat(capitalSocial?.replace(/\./g, '').replace(',', '.') || 0);
     const totalParticipacao = socios.reduce((acc, s) => acc + (parseFloat(s.participacao) || 0), 0);
     
     return (
@@ -337,8 +432,7 @@ const TabelaParticipacao = ({ socios, capitalSocial, onUpdateParticipacao }) => 
 const WizardConstituicao = ({ open, onClose, onComplete }) => {
     const [step, setStep] = useState(1);
     const [processing, setProcessing] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const [minutaId, setMinutaId] = useState(null);
+    const [processoId, setProcessoId] = useState(null);
     
     // Step 1 - Dados da Empresa
     const [razaoSocial, setRazaoSocial] = useState('');
@@ -363,6 +457,8 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
         estado: 'SP',
         cep: ''
     });
+    const [extraindoEndereco, setExtraindoEndereco] = useState(false);
+    const enderecoInputRef = useRef(null);
     
     // Step 5 - CNAEs
     const [cnaes, setCnaes] = useState([]);
@@ -372,28 +468,42 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
     
     // Step 6 - Resultado
     const [contratoGerado, setContratoGerado] = useState('');
-    
-    // Refs
-    const fileInputRef = useRef(null);
 
     const TOTAL_STEPS = 6;
 
+    // Atualizar capital por extenso automaticamente
     useEffect(() => {
-        // Ajustar array de sócios quando numSocios muda
-        if (numSocios > socios.length) {
-            const novos = [...socios];
-            for (let i = socios.length; i < numSocios; i++) {
-                novos.push({ 
-                    nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)', 
-                    estadoCivil: '', regimeCasamento: '', profissao: '', endereco: '', 
-                    participacao: '', administrador: false, documentos: [] 
-                });
+        if (capitalSocial) {
+            const valorNumerico = parseFloat(capitalSocial.replace(/\./g, '').replace(',', '.')) || 0;
+            if (valorNumerico > 0) {
+                setCapitalExtenso(numeroParaExtenso(valorNumerico));
             }
-            setSocios(novos);
-        } else if (numSocios < socios.length) {
-            setSocios(socios.slice(0, numSocios));
         }
+    }, [capitalSocial]);
+
+    // Ajustar array de sócios quando numSocios muda
+    const ajustarSocios = useCallback(() => {
+        setSocios(prevSocios => {
+            if (numSocios > prevSocios.length) {
+                const novos = [...prevSocios];
+                for (let i = prevSocios.length; i < numSocios; i++) {
+                    novos.push({ 
+                        nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)', 
+                        estadoCivil: '', regimeCasamento: '', profissao: '', endereco: '', 
+                        participacao: '', administrador: false, documentos: [] 
+                    });
+                }
+                return novos;
+            } else if (numSocios < prevSocios.length) {
+                return prevSocios.slice(0, numSocios);
+            }
+            return prevSocios;
+        });
     }, [numSocios]);
+
+    useEffect(() => {
+        ajustarSocios();
+    }, [ajustarSocios]);
 
     const resetWizard = () => {
         setStep(1);
@@ -411,7 +521,7 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
         setCnaeInput('');
         setObjetoSocial('');
         setContratoGerado('');
-        setMinutaId(null);
+        setProcessoId(null);
     };
 
     const handleClose = () => {
@@ -419,67 +529,56 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
         onClose();
     };
 
-    // Extração de dados via IA
-    const handleFileExtraction = async (e, campo) => {
+    // Handler para input de capital social com formatação
+    const handleCapitalChange = (e) => {
+        const valor = e.target.value.replace(/\D/g, '');
+        if (valor) {
+            setCapitalSocial(formatarMoeda(valor));
+        } else {
+            setCapitalSocial('');
+        }
+    };
+
+    // Extração de endereço via IA
+    const handleEnderecoUpload = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
         
-        setUploading(true);
+        setExtraindoEndereco(true);
+        toast.info('Extraindo endereço do documento...');
+        
         try {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('campo', campo);
+            formData.append('campo', 'endereco');
             
             const response = await axios.post(`${API_URL}/api/constituicao/extrair-campo`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             
             if (response.data.success && response.data.valor) {
-                // Atualizar campo baseado no tipo
-                switch (campo) {
-                    case 'razao_social':
-                        setRazaoSocial(response.data.valor);
-                        break;
-                    case 'capital_social':
-                        setCapitalSocial(response.data.valor);
-                        break;
-                    case 'endereco':
-                        if (typeof response.data.valor === 'object') {
-                            setEndereco(prev => ({ ...prev, ...response.data.valor }));
-                        }
-                        break;
-                    case 'cnaes':
-                        if (Array.isArray(response.data.valor)) {
-                            setCnaes(prev => [...prev, ...response.data.valor]);
-                        }
-                        break;
-                    default:
-                        break;
+                const dados = response.data.valor;
+                if (typeof dados === 'object') {
+                    setEndereco(prev => ({
+                        ...prev,
+                        logradouro: dados.logradouro || prev.logradouro,
+                        numero: dados.numero || prev.numero,
+                        complemento: dados.complemento || prev.complemento,
+                        bairro: dados.bairro || prev.bairro,
+                        cidade: dados.cidade || prev.cidade,
+                        estado: dados.estado || prev.estado,
+                        cep: dados.cep || prev.cep
+                    }));
+                    toast.success('Endereço extraído com sucesso!');
                 }
-                toast.success('Dados extraídos com sucesso!');
             }
         } catch (error) {
             console.error('Erro na extração:', error);
-            toast.error('Erro ao extrair dados do documento');
+            toast.error('Erro ao extrair endereço');
         } finally {
-            setUploading(false);
+            setExtraindoEndereco(false);
+            if (enderecoInputRef.current) enderecoInputRef.current.value = '';
         }
-    };
-
-    // Upload de documento do sócio
-    const handleSocioDocUpload = (e, socioIndex) => {
-        const files = Array.from(e.target.files || []);
-        if (files.length === 0) return;
-        
-        setSocios(prev => {
-            const novos = [...prev];
-            novos[socioIndex] = {
-                ...novos[socioIndex],
-                documentos: [...(novos[socioIndex].documentos || []), ...files]
-            };
-            return novos;
-        });
-        toast.success(`${files.length} documento(s) anexado(s)`);
     };
 
     // Atualizar sócio
@@ -548,7 +647,7 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
     const handleGerarContrato = async () => {
         setProcessing(true);
         try {
-            // Criar registro da minuta
+            // Criar registro do processo
             const formData = new FormData();
             formData.append('tipo_alteracao', 'constituicao');
             formData.append('descricao', `Constituição de ${razaoSocial}`);
@@ -557,7 +656,7 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             
-            setMinutaId(uploadRes.data.id);
+            setProcessoId(uploadRes.data.id);
             
             // Gerar contrato via IA
             const response = await axios.post(`${API_URL}/api/constituicao/gerar-contrato`, {
@@ -588,7 +687,7 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
             
             if (response.data.contrato) {
                 setContratoGerado(response.data.contrato);
-                setMinutaId(response.data.minuta_id || uploadRes.data.id);
+                setProcessoId(response.data.minuta_id || uploadRes.data.id);
                 toast.success('Contrato social gerado!');
                 setStep(6);
                 onComplete();
@@ -607,9 +706,9 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
     };
 
     const downloadPDF = async () => {
-        if (!minutaId) return;
+        if (!processoId) return;
         try {
-            const response = await axios.get(`${API_URL}/api/minutas/${minutaId}/download/pdf`, {
+            const response = await axios.get(`${API_URL}/api/minutas/${processoId}/download/pdf`, {
                 responseType: 'blob'
             });
             
@@ -629,9 +728,9 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
     };
 
     const downloadWord = async () => {
-        if (!minutaId) return;
+        if (!processoId) return;
         try {
-            const response = await axios.get(`${API_URL}/api/minutas/${minutaId}/download/word`, {
+            const response = await axios.get(`${API_URL}/api/minutas/${processoId}/download/word`, {
                 responseType: 'blob'
             });
             
@@ -709,48 +808,63 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
                                     Dados da Empresa
                                 </h3>
                                 <p className="text-sm text-zinc-500 mb-4">
-                                    Preencha os dados ou extraia de um documento existente.
+                                    Preencha os dados básicos da empresa.
                                 </p>
                             </div>
                             
                             <div className="space-y-4">
-                                <CampoHibrido
-                                    label="Razão Social"
-                                    value={razaoSocial}
-                                    onChange={setRazaoSocial}
-                                    placeholder="EMPRESA EXEMPLO LTDA"
-                                    onFileUpload={(e) => handleFileExtraction(e, 'razao_social')}
-                                    uploading={uploading}
-                                    required
-                                />
+                                <div>
+                                    <Label className="text-zinc-400 text-xs uppercase mb-2 block">
+                                        Razão Social <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        value={razaoSocial}
+                                        onChange={(e) => setRazaoSocial(e.target.value.toUpperCase())}
+                                        placeholder="EMPRESA EXEMPLO LTDA"
+                                        className="bg-zinc-950 border-zinc-800"
+                                    />
+                                </div>
                                 
-                                <CampoHibrido
-                                    label="Nome Fantasia (opcional)"
-                                    value={nomeFantasia}
-                                    onChange={setNomeFantasia}
-                                    placeholder="Nome comercial"
-                                    onFileUpload={(e) => handleFileExtraction(e, 'nome_fantasia')}
-                                    uploading={uploading}
-                                />
+                                <div>
+                                    <Label className="text-zinc-400 text-xs uppercase mb-2 block">
+                                        Nome Fantasia (opcional)
+                                    </Label>
+                                    <Input
+                                        value={nomeFantasia}
+                                        onChange={(e) => setNomeFantasia(e.target.value)}
+                                        placeholder="Nome comercial"
+                                        className="bg-zinc-950 border-zinc-800"
+                                    />
+                                </div>
                                 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <CampoHibrido
-                                        label="Capital Social"
-                                        value={capitalSocial}
-                                        onChange={setCapitalSocial}
-                                        placeholder="100.000,00"
-                                        tipo="currency"
-                                        onFileUpload={(e) => handleFileExtraction(e, 'capital_social')}
-                                        uploading={uploading}
-                                        required
-                                    />
                                     <div>
-                                        <Label className="text-zinc-400 text-xs uppercase mb-2 block">Capital por Extenso</Label>
+                                        <Label className="text-zinc-400 text-xs uppercase mb-2 block">
+                                            Capital Social <span className="text-red-500">*</span>
+                                        </Label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">R$</span>
+                                            <Input
+                                                type="text"
+                                                value={capitalSocial}
+                                                onChange={handleCapitalChange}
+                                                placeholder="0,00"
+                                                className="bg-zinc-950 border-zinc-800 pl-10"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-400 text-xs uppercase mb-2 block flex items-center gap-2">
+                                            Capital por Extenso
+                                            <Sparkles className="w-3 h-3 text-red-500" />
+                                            <span className="text-red-500 text-[10px] font-normal">(automático)</span>
+                                        </Label>
                                         <Input
                                             value={capitalExtenso}
                                             onChange={(e) => setCapitalExtenso(e.target.value)}
-                                            placeholder="Cem mil reais"
-                                            className="bg-zinc-950 border-zinc-800"
+                                            placeholder="Gerado automaticamente"
+                                            className="bg-zinc-950 border-zinc-800 text-zinc-400"
+                                            readOnly
                                         />
                                     </div>
                                 </div>
@@ -767,7 +881,7 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
                                     Qualificação dos Sócios
                                 </h3>
                                 <p className="text-sm text-zinc-500 mb-4">
-                                    Preencha os dados de cada sócio ou anexe documentos para extração automática.
+                                    Preencha os dados de cada sócio ou use <span className="text-red-500">"Preencher com IA"</span> para extrair automaticamente de documentos (CNH, RG, etc).
                                 </p>
                             </div>
                             
@@ -802,7 +916,6 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
                                         index={index}
                                         onChange={(s) => handleSocioChange(index, s)}
                                         onRemove={() => handleRemoveSocio(index)}
-                                        onUploadDoc={handleSocioDocUpload}
                                         canRemove={socios.length > 1}
                                     />
                                 ))}
@@ -828,6 +941,7 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
                                     <span className="text-zinc-400">Capital Social Total:</span>
                                     <span className="text-xl font-bold text-white">R$ {capitalSocial || '0,00'}</span>
                                 </div>
+                                <div className="text-xs text-zinc-500 mt-1">{capitalExtenso}</div>
                             </div>
                             
                             <TabelaParticipacao
@@ -847,8 +961,27 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
                                     Endereço da Empresa
                                 </h3>
                                 <p className="text-sm text-zinc-500 mb-4">
-                                    Informe o endereço da sede da empresa.
+                                    Informe o endereço da sede ou use <span className="text-red-500">"Preencher com IA"</span> para extrair de um documento.
                                 </p>
+                            </div>
+                            
+                            <div className="flex justify-end mb-4">
+                                <input 
+                                    ref={enderecoInputRef} 
+                                    type="file" 
+                                    accept=".pdf,.jpg,.jpeg,.png" 
+                                    className="hidden" 
+                                    onChange={handleEnderecoUpload}
+                                />
+                                <Button 
+                                    variant="outline"
+                                    onClick={() => enderecoInputRef.current?.click()}
+                                    disabled={extraindoEndereco}
+                                    className="border-red-600/50 text-red-500 hover:bg-red-600/10"
+                                >
+                                    {extraindoEndereco ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                                    Preencher com IA
+                                </Button>
                             </div>
                             
                             <div className="space-y-4">
@@ -987,7 +1120,7 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
                                         {gerandoObjeto ? (
                                             <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                                         ) : (
-                                            <Briefcase className="w-4 h-4 mr-2" />
+                                            <Sparkles className="w-4 h-4 mr-2" />
                                         )}
                                         Gerar com IA
                                     </Button>
