@@ -3076,36 +3076,56 @@ Se o comando não for claro ou não se aplicar a nenhum produto, retorne {{"alte
         if resultado.get('erro'):
             return {"success": True, "message": resultado['erro'], "alteracoes": [], "total_alteracoes": 0}
         
-        # Aplicar alterações
+        # Aplicar alterações em LOTE - processar TODOS os produtos que correspondem
         alteracoes_aplicadas = []
+        docs_atualizados = {}  # Cache para evitar múltiplas leituras do mesmo documento
+        
         for alt in resultado.get('alteracoes', []):
-            # Encontrar o produto correspondente
+            cfop_destino = alt.get('novo_cfop', '')
+            if not cfop_destino:
+                continue
+                
+            # Encontrar TODOS os produtos correspondentes
             for p in produtos_pendentes:
-                if (p['descricao'] == alt.get('descricao_produto') or 
-                    p['cfop_atual'] == alt.get('cfop_atual')):
+                # Match por descrição parcial, CFOP atual, ou natureza
+                desc_match = alt.get('descricao_produto', '').lower() in p['descricao'].lower() if alt.get('descricao_produto') else False
+                cfop_match = p['cfop_atual'] == alt.get('cfop_atual')
+                natureza_match = alt.get('natureza', '').lower() in p.get('natureza', '').lower() if alt.get('natureza') else False
+                
+                # Se o comando menciona "todas" ou "todos", aplicar a todos com CFOP correspondente
+                aplicar_todos = 'todas' in comando.lower() or 'todos' in comando.lower()
+                
+                if cfop_match or desc_match or natureza_match or aplicar_todos:
+                    doc_id = p['doc_id']
                     
-                    # Atualizar no banco
-                    doc = await db.xml_documents.find_one({"id": p['doc_id']})
-                    if doc:
-                        produtos = doc.get('produtos', [])
-                        produtos[p['idx']]['cfop'] = alt['novo_cfop']
-                        produtos[p['idx']]['pendente_revisao_cfop'] = False
-                        produtos[p['idx']]['cfop_revisado_por'] = current_user.id
-                        produtos[p['idx']]['cfop_revisado_por_ia'] = True
-                        produtos[p['idx']]['motivo_ia'] = alt.get('motivo', '')
-                        
-                        await db.xml_documents.update_one(
-                            {"id": p['doc_id']},
-                            {"$set": {"produtos": produtos}}
-                        )
-                        
-                        alteracoes_aplicadas.append({
-                            'produto': p['descricao'],
-                            'cfop_anterior': p['cfop_atual'],
-                            'cfop_novo': alt['novo_cfop'],
-                            'motivo': alt.get('motivo', '')
-                        })
-                    break
+                    # Buscar documento do cache ou do banco
+                    if doc_id not in docs_atualizados:
+                        doc = await db.xml_documents.find_one({"id": doc_id})
+                        if doc:
+                            docs_atualizados[doc_id] = doc.get('produtos', [])
+                    
+                    if doc_id in docs_atualizados:
+                        produtos_doc = docs_atualizados[doc_id]
+                        if p['idx'] < len(produtos_doc):
+                            produtos_doc[p['idx']]['cfop'] = cfop_destino
+                            produtos_doc[p['idx']]['pendente_revisao_cfop'] = False
+                            produtos_doc[p['idx']]['cfop_revisado_por'] = current_user.id
+                            produtos_doc[p['idx']]['cfop_revisado_por_ia'] = True
+                            produtos_doc[p['idx']]['motivo_ia'] = alt.get('motivo', comando)
+                            
+                            alteracoes_aplicadas.append({
+                                'produto': p['descricao'],
+                                'cfop_anterior': p['cfop_atual'],
+                                'cfop_novo': cfop_destino,
+                                'motivo': alt.get('motivo', comando)
+                            })
+        
+        # Salvar todas as atualizações no banco
+        for doc_id, produtos in docs_atualizados.items():
+            await db.xml_documents.update_one(
+                {"id": doc_id},
+                {"$set": {"produtos": produtos}}
+            )
         
         return {
             "success": True,
