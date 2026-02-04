@@ -310,6 +310,46 @@ const UploadXML = ({ user, onLogout }) => {
               </div>
             )}
 
+            {/* ALERTAS DE CFOP - Operações Distintas de Venda */}
+            {results.alertas_cfop && results.alertas_cfop.length > 0 && (
+              <div className="mb-4">
+                <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg p-4 mb-3">
+                  <h3 className="font-bold text-xl mb-1 flex items-center gap-2">
+                    ⚠️ ALERTAS DE CFOP - Operações Distintas
+                  </h3>
+                  <p className="text-amber-100">
+                    Foram detectadas {results.total_alertas_cfop} notas com CFOPs de operações diferentes de venda (bonificação, remessa, devolução, etc.)
+                  </p>
+                  <p className="text-amber-200 text-sm mt-1">
+                    Acesse o menu "Alertas CFOP" para revisar e converter os CFOPs se necessário.
+                  </p>
+                </div>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {results.alertas_cfop.map((arquivo, idx) => (
+                    <div key={idx} className="bg-amber-50 p-4 rounded-lg border-2 border-amber-300">
+                      <p className="font-bold text-amber-900 mb-2">📄 NF-e {arquivo.nfe} - {arquivo.emitente}</p>
+                      <div className="space-y-2">
+                        {arquivo.alertas.map((alerta, i) => (
+                          <div key={i} className="bg-white p-2 rounded border border-amber-200 flex items-center justify-between flex-wrap gap-2">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{alerta.produto}</p>
+                              <p className="text-xs text-gray-600">Código: {alerta.codigo}</p>
+                            </div>
+                            <div className="text-right">
+                              <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded font-mono text-sm font-bold">
+                                CFOP {alerta.cfop}
+                              </span>
+                              <p className="text-xs text-amber-700 mt-1">{alerta.descricao_cfop}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {results.resumo && (
               <div className="mb-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <h3 className="font-bold text-gray-900 mb-3">Resumo da Importação</h3>
