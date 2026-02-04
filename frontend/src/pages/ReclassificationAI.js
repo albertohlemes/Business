@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
+import { useAppContext } from '../context/AppContext';
 import { 
   Brain, 
   RefreshCw, 
@@ -24,6 +25,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL + '/api';
 
 const ReclassificationAI = ({ user, onLogout }) => {
+  const { selectedCompany: ctxCompany, selectedCompetencia: ctxCompetencia } = useAppContext();
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState('');
   const [competencia, setCompetencia] = useState('');
@@ -52,11 +54,23 @@ const ReclassificationAI = ({ user, onLogout }) => {
 
   useEffect(() => {
     fetchCompanies();
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    setCompetencia(month + '/' + year);
   }, []);
+
+  // Auto-preencher com empresa/competência do contexto global
+  useEffect(() => {
+    if (ctxCompany && !selectedCompany) {
+      setSelectedCompany(ctxCompany.id);
+    }
+    if (ctxCompetencia && !competencia) {
+      setCompetencia(ctxCompetencia);
+    } else if (!competencia) {
+      // Fallback para data atual se não houver contexto
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = now.getFullYear();
+      setCompetencia(month + '/' + year);
+    }
+  }, [ctxCompany, ctxCompetencia]);
 
   useEffect(() => {
     if (selectedCompany) {
