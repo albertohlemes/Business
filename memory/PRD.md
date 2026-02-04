@@ -20,6 +20,7 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - Modal para trocar empresa e competência a qualquer momento
 - Seleção persiste entre navegações (localStorage)
 - Formato de competência: MM/AAAA
+- **Auto-preenchimento**: Páginas de Upload, Reclassificação e SPED usam o contexto global
 
 ### ✅ Gestão de Empresas
 - Listagem de empresas cadastradas
@@ -29,7 +30,7 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - **Exclusão de empresas** - Funcionando (apenas empresas sem documentos)
 - Badge com código da empresa exibido no card e no header
 
-### ✅ **Dashboard Completo** (04/02/2026)
+### ✅ **Dashboard Completo** (Atualizado 02/2026)
 - Estatísticas por **empresa e competência selecionada**
 - **Quantidade por tipo de documento:**
   - NF-e Entrada (compras)
@@ -47,6 +48,12 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
   - Total de Impostos a Pagar
 - **Indicadores:**
   - Markup percentual (entradas vs faturamento)
+- **🆕 Análise Comparativa Lucro Presumido vs. Lucro Real:**
+  - Para empresas do Lucro Presumido: mostra quanto pagaria no Lucro Real
+  - Para empresas do Lucro Real: mostra quanto pagaria no Lucro Presumido
+  - Compara PIS/COFINS entre os regimes
+  - Indica qual regime é mais vantajoso
+  - Mostra economia potencial
 - Links rápidos para Análise Tributária e Relatórios
 
 ### ✅ Upload de XML com Validação Inteligente
@@ -56,6 +63,7 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - **Validação de Competência** - Rejeita XMLs com data fora do período
 - **Relatório detalhado de erros** - Mostra resumo completo
 - Conversão automática de CFOP
+- **Auto-preenchimento de competência** do contexto global
 
 ### ✅ Análise Tributária Inteligente por IA
 - Página dedicada: `/analise-tributaria`
@@ -76,8 +84,9 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - Dica com exemplos clicáveis de comandos ("produtos de limpeza → DESPESA", etc.)
 - Sistema de aprendizado que memoriza correções
 - Validação de PIS/COFINS/ICMS com base legal (alíquota zero)
+- **Auto-preenchimento de competência** do contexto global
 
-### ✅ **Validação de Classificações** (04/02/2026)
+### ✅ **Validação de Classificações**
 - Página dedicada: `/validation`
 - **Apenas NF-e de Entrada** - Saídas não precisam de validação de CFOP
 - **Modo Por NF-e:** Valida por documento
@@ -89,26 +98,30 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - **Justificativa da IA:** Mostra porque classificou (ex: "Material de limpeza (detergente)")
 - **Mensagem de sucesso:** Toast verde "Produto validado com sucesso!"
 
-### ✅ **Análise de Alíquotas de Saída** (04/02/2026)
+### ✅ **Análise de Alíquotas de Saída**
 - **Página dedicada:** `/analise-aliquotas-saida`
-- Tabela de produtos com alíquotas de ICMS, PIS, COFINS
-- Compara alíquotas efetivas com padrão (18%, 1.65%, 7.6%)
+- Tabela de produtos com NCM e alíquotas de ICMS, PIS, COFINS
+- Compara alíquotas efetivas com padrão do regime tributário
+- Considera NCMs com alíquota zero (monofásico/isento)
+- Valida ICMS baseado no UF da empresa
 - Alertas para divergências e impostos zerados
+- Ordenação por todas as colunas
 - Resumo: total de produtos, produtos com alerta, alertas por imposto
 - Filtro: Todos, Com Alertas, OK
 - Exportar CSV
 
-### ✅ **Gerenciamento de Documentos** (04/02/2026)
+### ✅ **Gerenciamento de Documentos**
 - **Apagar notas em lote:** Botão "Apagar Competência {MM/AAAA}" na página de documentos
 - **Apagar individual:** Botão de lixeira em cada linha da tabela
 - Filtro por empresa, status e tipo de operação
 
-### ✅ **Relatórios por Operação** (04/02/2026)
+### ✅ **Relatórios por Operação** (Atualizado 02/2026)
 - Filtro: **Entrada (Compras)**, **Saída (Vendas)**, ou **Todos**
 - Indicador visual do tipo de operação selecionado
 - Relatórios usa empresa/competência do contexto automaticamente
+- **Filtro de entrada/saída funcionando** - Parâmetro `tipo` enviado corretamente
 
-### ✅ **Melhorias de UX** (04/02/2026)
+### ✅ **Melhorias de UX**
 - **Menu "Empresas" no header** - Ao lado do seletor de empresa
 - **Competência só números** - Digita 122025 → formata como 12/2025
 - **Memória da IA** - Explicação clara do que são as regras aprendidas
@@ -117,6 +130,7 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - **Botões em lote**: "Aprovar Todos" e "Limpar" por documento
 - **Filtro "Mostrar só pendentes"** para focar nos itens não revisados
 - Persistência de aprovações no localStorage por empresa/competência
+- **Auto-preenchimento de competência** em todas as páginas relevantes
 
 ### ✅ Relatórios por Competência
 - Filtro de competência nos relatórios gerenciais
@@ -126,11 +140,12 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 ### ✅ Exportação SPED por Competência
 - Seletor de competências disponíveis
 - Exporta apenas documentos da competência selecionada
+- **Auto-preenchimento de competência** do contexto global
 
 ### ✅ Reset da Base de Dados
 - Endpoint `POST /api/db/reset` para zerar todas as tabelas
 
-### ✅ **Menu Reorganizado** (04/02/2026)
+### ✅ **Menu Reorganizado**
 - Ordem lógica do fluxo de trabalho:
   1. Dashboard → 2. Empresas → 3. Upload XML → 4. Documentos
   5. Reclassificação IA → 6. Validação → 7. Análise Tributária
@@ -144,10 +159,12 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - **Integração com IA**: OpenAI GPT-4o via Emergent LLM Key
 - Endpoints principais:
   - Autenticação: `/api/auth/login`, `/api/auth/register`
-  - Empresas: `/api/companies` (GET, POST, DELETE)
+  - Empresas: `/api/companies` (GET, POST, PUT, DELETE)
   - CNPJ: `/api/cnpj/{cnpj}`
   - Upload XML: `/api/xml/upload`
-  - Relatórios: `/api/reports/by-product/{id}`, `/api/reports/by-ncm/{id}`
+  - Dashboard: `/api/dashboard/stats/{id}` (inclui analise_comparativa)
+  - Análise Alíquotas: `/api/analise-aliquotas-saida/{id}`
+  - Relatórios: `/api/reports/by-product/{id}`, `/api/reports/by-ncm/{id}` (aceita param `tipo`)
   - SPED: `/api/sped/export/{id}`
   - Análise Tributária: `/api/ai/analise-tributaria`
   - Reclassificação: `/api/ai/reclassify`, `/api/ai/validate-taxes`
@@ -156,18 +173,17 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 ### Frontend (React)
 - Context API para estado global (empresa/competência)
 - Componentes: Layout.js, CompanySelector.js, AppContext.js
-- Páginas: Dashboard, AnaliseTributaria, Companies, UploadXML, Documents, ReclassificationAI, Validation, Reports, ExportSPED
+- Páginas: Dashboard, AnaliseTributaria, Companies, UploadXML, Documents, ReclassificationAI, Validation, Reports, ExportSPED, AnaliseAliquotasSaida
 
 ### Integrações
 - Brasil API - dados de empresas por CNPJ
 - **OpenAI GPT-4o** - análises tributárias e reclassificação via Emergent LLM Key
 
-## Testes (04/02/2026)
-- Frontend iteration_5: 100% - Menu, Excluir Empresa, Exportar CSV, Análise Tributária
-- Frontend iteration_6: 100% - UX Validação e Reclassificação IA
-- Backend/Frontend iteration_7: 90%/100% - Dashboard, Validação por Produto, NFC-e/NFS-e
-- Backend/Frontend iteration_8: 100%/100% - Análise alíquotas saída, Competência auto-format, Empresas no header, Justificativa IA, Mensagem sucesso validação
-- Backend/Frontend iteration_9: 100%/100% - Página Análise Alíquotas Saída, Edição empresas, Código empresa, Apagar notas lote/individual, Relatórios entrada/saída
+## Testes (02/2026)
+- **Iteration 10**: 100% backend / 100% frontend
+  - Dashboard com análise comparativa Lucro Presumido vs. Real
+  - Filtro entrada/saída nos relatórios
+  - Auto-preenchimento de competência em todas as páginas
 
 ## Credenciais de Teste
 - Email: admin@test.com
@@ -176,14 +192,21 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 ## Próximas Tarefas (Backlog)
 
 ### P1 - Alta Prioridade
-- [ ] Implementar upload de **NFC-e** (cupom fiscal) e **NFS-e** (nota de serviço)
-- [ ] No relatório de erros, mostrar o **nome do arquivo** que falhou
+- [ ] Corrigir AppContext para re-buscar empresas após login (issue conhecido)
 
 ### P2 - Média Prioridade
-- [ ] Dashboard com resumo de análise tributária
 - [ ] Histórico de alterações (audit log) para reclassificações
 - [ ] Testar exportação SPED com dados reais
+- [ ] Dashboard principal com indicadores de todas as empresas
 
 ### P3 - Baixa Prioridade
 - [ ] Refatorar backend em módulos separados (routes, models, services)
 - [ ] Melhorar UX do modal de seleção de empresa
+
+## Changelog
+
+### 02/2026 - Iteration 10
+- ✅ Implementada análise comparativa Lucro Presumido vs. Lucro Real no Dashboard
+- ✅ Auto-preenchimento de competência nas páginas Upload XML, Reclassificação IA e Exportar SPED
+- ✅ Verificado que filtro entrada/saída nos relatórios funciona corretamente
+- ✅ Todas as funcionalidades testadas e aprovadas (100% backend, 100% frontend)
