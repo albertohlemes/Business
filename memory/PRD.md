@@ -84,6 +84,21 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
   - Botão "Aprovar Selecionados" para aprovação em lote
 - **Header verde com estatísticas**: Aprovados, Pendentes, Total
 - **Explicação "Como funciona?"**: Aprovar = concordar, Alterar = mudar CFOP
+- **Justificativa da IA:** Mostra porque classificou (ex: "Material de limpeza (detergente)")
+- **Mensagem de sucesso:** Toast verde "Produto validado com sucesso!"
+
+### ✅ **Análise de Alíquotas de Saída** (04/02/2026)
+- Endpoint: `/api/analise-aliquotas-saida/{company_id}`
+- Analisa ICMS, PIS, COFINS nas NFs de saída
+- Compara alíquotas efetivas com padrão (18%, 1.65%, 7.6%)
+- Gera alertas para divergências e impostos zerados
+- Resumo: total de produtos, produtos com alerta, alertas por imposto
+
+### ✅ **Melhorias de UX** (04/02/2026)
+- **Menu "Empresas" no header** - Ao lado do seletor de empresa
+- **Competência só números** - Digita 122025 → formata como 12/2025
+- **Memória da IA** - Explicação clara do que são as regras aprendidas
+- **Justificativa da classificação** - A IA explica porque classificou cada produto
 - **Checkbox individual** para aprovar cada produto
 - **Botões em lote**: "Aprovar Todos" e "Limpar" por documento
 - **Filtro "Mostrar só pendentes"** para focar nos itens não revisados
