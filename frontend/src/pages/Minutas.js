@@ -168,16 +168,46 @@ const Minutas = () => {
         setChatOpen(true);
         
         try {
-            const response = await axios.get(`${API_URL}/api/minutas/${minuta.id}`);
-            const mensagens = response.data.mensagens || [];
+            const [mRes, dRes] = await Promise.all([
+                axios.get(`${API_URL}/api/minutas/${minuta.id}`),
+                axios.get(`${API_URL}/api/minutas/${minuta.id}/documentos`)
+            ]);
+            const mensagens = mRes.data.mensagens || [];
             const formattedMessages = mensagens.flatMap(m => [
                 { type: 'user', text: m.user },
                 { type: 'ai', text: m.assistant }
             ]);
             setMessages(formattedMessages);
+            setDocsChat(dRes.data.documentos || []);
         } catch (error) {
             setMessages([]);
+            setDocsChat([]);
         }
+    };
+
+    const uploadDocChat = async (e) => {
+        const f = e.target.files?.[0];
+        if (!f || !selectedMinuta) return;
+        const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+        if (!validTypes.includes(f.type)) { toast.error('Formato inválido'); return; }
+        try {
+            const fd = new FormData();
+            fd.append('file', f);
+            fd.append('tipo_documento', 'outro');
+            const res = await axios.post(`${API_URL}/api/minutas/${selectedMinuta.id}/documentos`, fd, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setDocsChat(prev => [...prev, res.data.documento]);
+            toast.success('Documento adicionado!');
+        } catch (e) { toast.error('Erro ao adicionar'); }
+    };
+
+    const removeDocChat = async (docId) => {
+        if (!selectedMinuta) return;
+        try {
+            await axios.delete(`${API_URL}/api/minutas/${selectedMinuta.id}/documentos/${docId}`);
+            setDocsChat(prev => prev.filter(d => d.id !== docId));
+        } catch (e) { toast.error('Erro'); }
     };
 
     const sendMessage = async () => {
