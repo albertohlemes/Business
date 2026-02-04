@@ -1161,12 +1161,17 @@ async def delete_document(
     current_user: User = Depends(get_current_user)
 ):
     """Apagar documento individual"""
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Apenas administradores podem apagar documentos")
     
     doc = await db.xml_documents.find_one({"id": document_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Documento não encontrado")
+    
+    # Verificar permissão: Admin ou dono da empresa
+    if current_user.role != UserRole.ADMIN:
+        # Buscar empresa do documento
+        company = await db.companies.find_one({"id": doc['company_id']}, {"_id": 0})
+        if not company or company['cnpj'] not in current_user.company_ids:
+             raise HTTPException(status_code=403, detail="Acesso negado")
     
     await db.xml_documents.delete_one({"id": document_id})
     
