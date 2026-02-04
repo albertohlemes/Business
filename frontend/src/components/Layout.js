@@ -1,14 +1,17 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Building2, Home, FileText, Upload, CheckCircle, Download, LogOut, Menu, X, BarChart3, Brain } from 'lucide-react';
+import { Building2, Home, FileText, Upload, CheckCircle, Download, LogOut, Menu, X, BarChart3, Brain, Calendar, ChevronDown, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
+import { useAppContext } from '../context/AppContext';
 
 const Layout = ({ user, onLogout, children }) => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { selectedCompany, selectedCompetencia, openSelector } = useAppContext();
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
+    { name: 'Análise Tributária', href: '/analise-tributaria', icon: TrendingUp, testId: 'nav-analise' },
     { name: 'Empresas', href: '/companies', icon: Building2, testId: 'nav-companies' },
     { name: 'Upload XML', href: '/upload', icon: Upload, testId: 'nav-upload' },
     { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
@@ -31,16 +34,40 @@ const Layout = ({ user, onLogout, children }) => {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
+            {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-white" />
-              </div>
-              <div>
+              <img 
+                src="/logo-business.png" 
+                alt="Business Contabilidade" 
+                className="h-10 w-auto bg-black rounded-lg p-1"
+              />
+              <div className="hidden sm:block">
                 <h1 className="text-lg font-bold text-gray-900">Business Contabilidade</h1>
-                <p className="text-xs text-gray-600">Sistema Fiscal</p>
+                <p className="text-xs text-gray-600">Sistema Fiscal Inteligente</p>
               </div>
             </div>
 
+            {/* Seletor de Empresa/Competência */}
+            {selectedCompany && (
+              <button
+                data-testid="change-company-btn"
+                onClick={openSelector}
+                className="hidden md:flex items-center gap-3 px-4 py-2 bg-red-50 hover:bg-red-100 rounded-xl border border-red-200 transition-colors"
+              >
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-red-900 truncate max-w-[200px]">
+                    {selectedCompany.razao_social}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-red-700">
+                    <Calendar className="w-3 h-3" />
+                    <span>Competência: {selectedCompetencia}</span>
+                  </div>
+                </div>
+                <ChevronDown className="w-4 h-4 text-red-600" />
+              </button>
+            )}
+
+            {/* User Info */}
             <div className="hidden md:flex items-center gap-4">
               <div className="text-right">
                 <p className="text-sm font-semibold text-gray-900">{user.name}</p>
@@ -71,6 +98,20 @@ const Layout = ({ user, onLogout, children }) => {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-b border-gray-200 shadow-lg">
+          {/* Seletor Mobile */}
+          {selectedCompany && (
+            <button
+              onClick={() => { openSelector(); setMobileMenuOpen(false); }}
+              className="w-full px-4 py-3 bg-red-50 border-b border-red-200 flex items-center justify-between"
+            >
+              <div className="text-left">
+                <p className="text-sm font-semibold text-red-900">{selectedCompany.razao_social}</p>
+                <p className="text-xs text-red-700">Competência: {selectedCompetencia}</p>
+              </div>
+              <ChevronDown className="w-4 h-4 text-red-600" />
+            </button>
+          )}
+          
           <div className="px-4 py-2 space-y-1">
             {navigation.map((item) => {
               const Icon = item.icon;
