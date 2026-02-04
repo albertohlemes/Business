@@ -28,7 +28,9 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
     creditoComCredito: true,
     creditoAliqZero: false,
     debitoComDebito: true,
-    debitoAliqZero: false
+    debitoAliqZero: false,
+    transferenciasEntrada: false,
+    transferenciasSaida: false
   });
 
   useEffect(() => {
