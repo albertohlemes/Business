@@ -371,9 +371,13 @@ class TemplateManagerFiel:
         """Remove marcações Markdown e caracteres decorativos do texto"""
         import re
         
-        # Remover linhas decorativas (======, ------, ******, etc)
-        if re.match(r'^[=\-*_]{3,}$', texto.strip()):
+        # Remover linhas decorativas (======, ------, mas preservar ___ para assinaturas)
+        if re.match(r'^[=\-]{5,}$', texto.strip()):
             return ''
+        
+        # Preservar linhas de assinatura (apenas underscores)
+        if re.match(r'^_+$', texto.strip()):
+            return texto.strip()
         
         # Remover cabeçalhos markdown (### Título)
         texto = re.sub(r'^#{1,6}\s*', '', texto)
@@ -387,7 +391,7 @@ class TemplateManagerFiel:
         texto = re.sub(r'\*\*([^*]+)\*\*', r'\1', texto)
         texto = re.sub(r'\*([^*]+)\*', r'\1', texto)
         
-        # Remover underscores de ênfase
+        # Remover underscores de ênfase (mas não linhas de assinatura)
         texto = re.sub(r'__([^_]+)__', r'\1', texto)
         texto = re.sub(r'(?<!\w)_([^_]+)_(?!\w)', r'\1', texto)
         
