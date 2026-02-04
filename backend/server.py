@@ -684,6 +684,131 @@ async def delete_documento_suporte(
     
     return {"message": "Documento removido com sucesso"}
 
+@api_router.post("/minutas/{minuta_id}/extrair-dados")
+async def extrair_dados_contrato(
+    minuta_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Extrai dados estruturados do contrato usando IA.
+    Retorna campos individuais em vez de texto corrido.
+    """
+    minuta = await db.minutas.find_one({"id": minuta_id, "user_id": current_user["id"]})
+    if not minuta:
+        raise HTTPException(status_code=404, detail="Minuta não encontrada")
+    
+    if not minuta.get("arquivo_original"):
+        raise HTTPException(status_code=400, detail="Nenhum contrato anexado")
+    
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        import json as json_lib
+        
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not api_key:
+            raise HTTPException(status_code=500, detail="Chave de API não configurada")
+        
+        system_message = """Você é um especialista em análise de contratos sociais brasileiros.
+Sua tarefa é extrair informações estruturadas do contrato.
+
+SEMPRE responda APENAS com um JSON válido, sem markdown, sem explicações.
+O JSON deve seguir EXATAMENTE esta estrutura:
+
+{
+    "empresa": {
+        "razao_social": "Nome completo da empresa",
+        "cnpj": "00.000.000/0000-00",
+        "endereco": "Endereço completo com CEP",
+        "capital_social": "R$ 0.000,00 (forma de integralização)",
+        "objeto_social": "Descrição das atividades"
+    },
+    "socios": [
+        {
+            "nome": "Nome completo",
+            "cpf": "000.000.000-00",
+            "participacao": "50%",
+            "administrador": true,
+            "nacionalidade": "Brasileiro",
+            "estado_civil": "Casado",
+            "profissao": "Empresário",
+            "rg": "00.000.000-0"
+        }
+    ],
+    "atividades": ["CNAE ou descrição de cada atividade"]
+}
+
+Se algum campo não for encontrado, use null. SEMPRE retorne JSON válido."""
+
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"extract-{minuta_id}",
+            system_message=system_message
+        ).with_model("gemini", "gemini-2.5-flash")
+        
+        file_path = minuta["arquivo_original"]
+        if file_path.endswith('.pdf'):
+            mime_type = "application/pdf"
+        elif file_path.endswith('.png'):
+            mime_type = "image/png"
+        else:
+            mime_type = "image/jpeg"
+        
+        user_message = UserMessage(
+            text="Extraia todos os dados estruturados deste contrato social. Retorne APENAS o JSON.",
+            file_contents=[FileContentWithMimeType(file_path=file_path, mime_type=mime_type)]
+        )
+        
+        response = await chat.send_message(user_message)
+        
+        # Tentar parsear o JSON da resposta
+        try:
+            # Remover possíveis marcadores de markdown
+            json_str = response.strip()
+            if json_str.startswith('```'):
+                json_str = json_str.split('```')[1]
+                if json_str.startswith('json'):
+                    json_str = json_str[4:]
+            if json_str.endswith('```'):
+                json_str = json_str[:-3]
+            
+            dados = json_lib.loads(json_str.strip())
+        except json_lib.JSONDecodeError:
+            # Se falhar, tentar extrair JSON do texto
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', response)
+            if json_match:
+                dados = json_lib.loads(json_match.group())
+            else:
+                dados = {"raw_text": response}
+        
+        # Extrair CNPJ e Razão Social para atualizar a minuta
+        cnpj = dados.get("empresa", {}).get("cnpj") if dados.get("empresa") else None
+        razao_social = dados.get("empresa", {}).get("razao_social") if dados.get("empresa") else None
+        
+        # Salvar dados extraídos no banco
+        await db.minutas.update_one(
+            {"id": minuta_id},
+            {"$set": {
+                "dados_extraidos": dados,
+                "cnpj": cnpj,
+                "razao_social": razao_social,
+                "status": "em_analise"
+            }}
+        )
+        
+        return {
+            "success": True,
+            "dados": dados,
+            "cnpj": cnpj,
+            "razao_social": razao_social
+        }
+        
+    except ImportError:
+        raise HTTPException(status_code=500, detail="Biblioteca de IA não disponível")
+    except Exception as e:
+        logger.error(f"Erro ao extrair dados: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao extrair dados: {str(e)}")
+
 @api_router.get("/minutas", response_model=List[MinutaResponse])
 async def list_minutas(current_user: dict = Depends(get_current_user)):
     minutas = await db.minutas.find(
