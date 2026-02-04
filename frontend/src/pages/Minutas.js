@@ -1012,6 +1012,14 @@ Estrutura obrigatória:
                     </div>
                 </DialogContent>
             </Dialog>
+            
+            {/* Modal de Configuração de Formatação */}
+            <ConfiguracaoFormatacao 
+                open={formatacaoOpen}
+                onClose={() => setFormatacaoOpen(false)}
+                onSave={handleSalvarFormatacao}
+                configuracaoAtual={formatacaoSalva?.secoes}
+            />
         </div>
     );
 };
