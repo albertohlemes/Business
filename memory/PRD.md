@@ -241,6 +241,26 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 23 (04/02/2026)
+- ✅ **PERSISTÊNCIA DO CONTEXTO DE EMPRESA/COMPETÊNCIA CORRIGIDA**
+  - **Problema:** A seleção de empresa e competência feita no seletor global não persistia ao navegar entre as páginas. O usuário precisava selecionar novamente a empresa em cada página.
+  - **Solução:** Refatorado o arquivo `Reports.js` para usar diretamente os valores do contexto global (`ctxCompany` e `ctxCompetencia`) ao invés de manter estado local separado.
+  - **Mudanças:**
+    - Removido `useState` de `selectedCompany` e `competencia` locais
+    - Campos de Empresa e Competência na página de Relatórios agora são somente leitura, indicando que devem ser alterados no seletor global
+    - Todas as páginas agora refletem a seleção feita no header
+  - **Páginas verificadas:**
+    - Dashboard ✅
+    - Relatórios ✅
+    - Documentos ✅
+    - Validação Entrada ✅
+    - Alertas CFOP ✅
+    - Análise de Alíquotas de Saída ✅
+    - Relatório de Divergências ✅
+  - **Testes:** 100% frontend (16/16 testes passaram)
+  - **Arquivos modificados:**
+    - `/app/frontend/src/pages/Reports.js`
+
 ### 02/2026 - Iteration 22 (04/02/2026)
 - ✅ **BARRA DE PROGRESSO NO UPLOAD DE XML IMPLEMENTADA**
   - **Backend com Server-Sent Events (SSE):**
