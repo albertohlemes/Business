@@ -1642,26 +1642,32 @@ async def extrair_campo_documento(
         
         from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
         
-        emergent_api_key = os.environ.get("EMERGENT_API_KEY")
+        emergent_api_key = os.environ.get("EMERGENT_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")
         
-        llm = LlmChat(
+        # Salvar arquivo temporariamente
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{mime_type.split('/')[-1]}") as tmp:
+            tmp.write(base64.b64decode(file_base64))
+            tmp_path = tmp.name
+        
+        chat = LlmChat(
             api_key=emergent_api_key,
-            model="gemini-2.5-flash"
+            session_id=f"extract-campo-{campo}-{current_user['id']}",
+            system_message="Você é um extrator de dados de documentos. Extraia apenas a informação solicitada."
+        ).with_model("gemini", "gemini-2.5-flash")
+        
+        user_message = UserMessage(
+            text=prompt,
+            file_contents=[FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)]
         )
         
-        response = await llm.send_message(
-            UserMessage(
-                text_content=prompt,
-                file_content=[
-                    FileContentWithMimeType(
-                        content=file_base64,
-                        mime_type=mime_type
-                    )
-                ]
-            )
-        )
+        response = await chat.send_message(user_message)
         
-        valor = response.text_content.strip()
+        # Limpar arquivo temporário
+        import os as os_module
+        os_module.unlink(tmp_path)
+        
+        valor = response.strip()
         
         # Tentar parsear JSON se for endereco ou cnaes
         if campo in ['endereco', 'cnaes']:
