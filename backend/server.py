@@ -1782,6 +1782,8 @@ async def get_dashboard_stats(
             "cofins_xml": round(debito_cofins_xml, 2) if regime_tributario == 'lucro_real' else None,
             "iss": round(total_iss, 2),
             "total": round(debito_icms + debito_pis + debito_cofins + total_iss, 2),
+            "base_tributada": round(total_base_pis_cofins, 2),
+            "aliquota_zero": round(total_aliquota_zero, 2),
             "divergencias": divergencias_pis_cofins if divergencias_pis_cofins else None
         },
         "impostos_pagar": {
