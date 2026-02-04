@@ -13,76 +13,66 @@ Portal para departamento societário com:
 
 ## Implementações Concluídas
 
-### ✅ Sistema de Formatação Manual (04/02/2026) - NOVO
-Formulário onde o usuário configura exatamente como cada parte do documento deve ser formatada:
+### ✅ Sistema de Formatação Manual com Importação (04/02/2026)
 
-**Seções configuráveis:**
-1. **Título Principal** - Ex: "ALTERAÇÃO DO CONTRATO SOCIAL"
-2. **Preâmbulo** - Texto introdutório
-3. **Qualificação dos Sócios** - Nome em negrito, qualificação normal
-4. **Título das Cláusulas** - Ex: "CLÁUSULA PRIMEIRA"
-5. **Texto das Cláusulas** - Corpo da cláusula
-6. **Assinaturas** - Área de assinaturas
-7. **Rodapé** - Texto do rodapé
-8. **Logo** - Upload opcional
+**Fluxo:**
+1. Usuário clica em "Importar Documento" 
+2. Sobe um documento Word modelo
+3. Sistema analisa e extrai automaticamente a formatação
+4. Preenche o formulário com os dados extraídos
+5. Usuário confere e salva
 
-**Opções por seção:**
-- Fonte (Arial, Times New Roman, Calibri, etc.)
-- Tamanho (10pt a 24pt)
-- Negrito/Itálico
-- Alinhamento (Esquerda, Centro, Justificado)
-
-**Configurações gerais:**
+**Extração automática:**
 - Margens (Superior, Inferior, Esquerda, Direita)
-- Espaçamento entre linhas (1.0, 1.5, 2.0)
+- Espaçamento entre linhas
+- Fonte e tamanho de cada seção
+- Negrito/Itálico
+- Alinhamento
 
-### ✅ Listagem Agrupada por Cliente (04/02/2026)
+**Seções identificadas automaticamente:**
+1. Título Principal
+2. Preâmbulo
+3. Qualificação dos Sócios (nome em negrito)
+4. Título das Cláusulas
+5. Texto das Cláusulas
+6. Assinaturas
+7. Rodapé
+
+### ✅ Listagem Agrupada por Cliente
 - Minutas organizadas por CNPJ/Razão Social
-- Contador de alterações por cliente
 
 ### ✅ Minutas Contratuais
-- Wizard 4 etapas (Contrato → Alterações → Detalhes → Resultado)
-- Extração estruturada de dados via IA
-- Upload de documentos de apoio
-- Download Word/PDF com formatação personalizada
+- Wizard 4 etapas
+- Extração estruturada via IA
+- Download Word/PDF formatado
 
-### ✅ Sistema de Autenticação
+### ✅ Autenticação
 - Login/Registro com JWT
-- Proteção de rotas
 
 ## Arquivos Principais
 ```
-/app
-├── backend/
-│   ├── server.py                # Endpoints FastAPI
-│   ├── gerador_formatado.py     # NOVO - Gerador com formatação manual
-│   ├── template_manager.py      # Gerenciador de templates arquivo
-│   ├── jspdf_wrapper.py         # Gerador de PDF
-│   └── requirements.txt
-└── frontend/
-    └── src/
-        ├── pages/
-        │   └── Minutas.js
-        └── components/
-            ├── ConfiguracaoFormatacao.js  # NOVO - Modal de formatação
-            └── ClienteMinutas.js
+/app/backend/
+├── server.py                  # Endpoints FastAPI
+├── extrator_formatacao.py     # NOVO - Extrai formatação de documento Word
+├── gerador_formatado.py       # Gera documento com formatação manual
+├── template_manager.py        # Gerenciador de templates
+└── jspdf_wrapper.py           # Gerador de PDF
+
+/app/frontend/src/components/
+├── ConfiguracaoFormatacao.js  # Modal de formatação com botão Importar
+└── ClienteMinutas.js          # Listagem por cliente
 ```
 
-## Novos Endpoints
-- `POST /api/formatacao/salvar` - Salva configuração de formatação manual
+## Endpoints de Formatação
+- `POST /api/formatacao/importar` - **NOVO** - Analisa documento e extrai formatação
+- `POST /api/formatacao/salvar` - Salva configuração
 - `GET /api/formatacao` - Retorna configuração do usuário
 - `POST /api/formatacao/logo` - Upload de logo
-
-## Prioridade de Formatação
-1. **Formatação Manual** (se configurada) - usa `gerador_formatado.py`
-2. **Template de Arquivo** (fallback) - usa `template_manager.py`
-3. **Padrão** - formatação default
 
 ## Backlog
 - **P1**: Implementar IA de consolidação de minutas
 - **P2**: Finalizar automação REDESIM (pausado)
 - **P3**: Renovação automática de licenças
-- **P3**: Notificações por email
 
 ## Credenciais de Teste
 - Email: teste_template@test.com
