@@ -351,7 +351,7 @@ def _is_titulo(texto: str) -> bool:
     titulos = [
         'ALTERAÇÃO', 'CONTRATO SOCIAL', 'CONSOLIDAÇÃO',
         'ENCERRAMENTO', 'PREÂMBULO', 'QUALIFICAÇÃO',
-        'QUADRO SOCIETÁRIO', 'CLÁUSULAS DE ALTERAÇÃO'
+        'QUADRO SOCIETÁRIO', 'CLÁUSULAS DE ALTERAÇÃO', 'DISTRATO'
     ]
     texto_upper = texto_limpo.upper()
     return any(t in texto_upper for t in titulos) and len(texto_limpo) < 100
