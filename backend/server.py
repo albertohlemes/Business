@@ -1264,16 +1264,78 @@ async def get_dashboard_stats(
             credito_pis += float(prod.get('v_pis', 0) or 0)
             credito_cofins += float(prod.get('v_cofins', 0) or 0)
     
-    # Débitos (saídas)
+    # Regime tributário da empresa
+    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
+    
+    # Alíquotas por regime
+    ALIQ_PIS_LUCRO_REAL = 0.0165  # 1.65%
+    ALIQ_COFINS_LUCRO_REAL = 0.076  # 7.6%
+    ALIQ_PIS_LUCRO_PRESUMIDO = 0.0065  # 0.65%
+    ALIQ_COFINS_LUCRO_PRESUMIDO = 0.03  # 3%
+    
+    # Débitos (saídas) - Calcular valores do XML e valores esperados
     debito_icms = 0
-    debito_pis = 0
-    debito_cofins = 0
+    debito_pis_xml = 0  # Valor que veio no XML
+    debito_cofins_xml = 0  # Valor que veio no XML
+    total_base_pis_cofins = 0  # Base de cálculo para PIS/COFINS
     
     for doc in nfe_saida + nfce:
         for prod in doc.get('produtos', []):
             debito_icms += float(prod.get('v_icms', 0) or 0)
-            debito_pis += float(prod.get('v_pis', 0) or 0)
-            debito_cofins += float(prod.get('v_cofins', 0) or 0)
+            debito_pis_xml += float(prod.get('v_pis', 0) or 0)
+            debito_cofins_xml += float(prod.get('v_cofins', 0) or 0)
+            # Base de cálculo (valor do produto)
+            total_base_pis_cofins += float(prod.get('v_prod', 0) or 0)
+    
+    # Para Lucro Real, usar alíquotas corretas e verificar divergências
+    divergencias_pis_cofins = []
+    
+    if regime_tributario == 'lucro_real':
+        # Calcular valores esperados com alíquotas do Lucro Real
+        debito_pis_esperado = total_base_pis_cofins * ALIQ_PIS_LUCRO_REAL
+        debito_cofins_esperado = total_base_pis_cofins * ALIQ_COFINS_LUCRO_REAL
+        
+        # Usar valores esperados (alíquotas corretas do regime)
+        debito_pis = debito_pis_esperado
+        debito_cofins = debito_cofins_esperado
+        
+        # Verificar divergências com XML
+        tolerancia = 0.01  # 1% de tolerância para arredondamentos
+        
+        if total_base_pis_cofins > 0:
+            # Divergência PIS
+            if debito_pis_xml > 0:
+                diferenca_pis = abs(debito_pis_esperado - debito_pis_xml)
+                perc_diferenca_pis = (diferenca_pis / debito_pis_esperado) if debito_pis_esperado > 0 else 0
+                if perc_diferenca_pis > tolerancia:
+                    aliq_xml_pis = (debito_pis_xml / total_base_pis_cofins) * 100 if total_base_pis_cofins > 0 else 0
+                    divergencias_pis_cofins.append({
+                        "imposto": "PIS",
+                        "aliquota_esperada": "1.65%",
+                        "aliquota_xml": f"{aliq_xml_pis:.2f}%",
+                        "valor_esperado": round(debito_pis_esperado, 2),
+                        "valor_xml": round(debito_pis_xml, 2),
+                        "diferenca": round(debito_pis_esperado - debito_pis_xml, 2)
+                    })
+            
+            # Divergência COFINS
+            if debito_cofins_xml > 0:
+                diferenca_cofins = abs(debito_cofins_esperado - debito_cofins_xml)
+                perc_diferenca_cofins = (diferenca_cofins / debito_cofins_esperado) if debito_cofins_esperado > 0 else 0
+                if perc_diferenca_cofins > tolerancia:
+                    aliq_xml_cofins = (debito_cofins_xml / total_base_pis_cofins) * 100 if total_base_pis_cofins > 0 else 0
+                    divergencias_pis_cofins.append({
+                        "imposto": "COFINS",
+                        "aliquota_esperada": "7.6%",
+                        "aliquota_xml": f"{aliq_xml_cofins:.2f}%",
+                        "valor_esperado": round(debito_cofins_esperado, 2),
+                        "valor_xml": round(debito_cofins_xml, 2),
+                        "diferenca": round(debito_cofins_esperado - debito_cofins_xml, 2)
+                    })
+    else:
+        # Lucro Presumido - usar valores do XML (alíquotas cumulativas)
+        debito_pis = debito_pis_xml
+        debito_cofins = debito_cofins_xml
     
     # ISS (serviços)
     total_iss = 0
