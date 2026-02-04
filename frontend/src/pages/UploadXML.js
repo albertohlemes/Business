@@ -61,7 +61,8 @@ const UploadXML = ({ user, onLogout }) => {
         headers: { Authorization: 'Bearer ' + token }
       });
       setCompanies(response.data);
-      if (response.data.length > 0) {
+      // Não sobrescrever se já tiver empresa do contexto
+      if (response.data.length > 0 && !ctxCompany) {
         setSelectedCompany(response.data[0].id);
       }
     } catch (err) {
