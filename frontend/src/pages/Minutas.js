@@ -905,6 +905,80 @@ Estrutura obrigatória:
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Templates Dialog */}
+            <Dialog open={templateOpen} onOpenChange={setTemplateOpen}>
+                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-white flex items-center gap-2">
+                            <Settings className="w-5 h-5 text-red-500" />
+                            Templates de Formatação
+                        </DialogTitle>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                        <p className="text-sm text-zinc-400">
+                            Suba um documento modelo (.docx ou .pdf) para usar como template de formatação.
+                            O sistema usará a mesma fonte, margens e espaçamento ao gerar suas minutas.
+                        </p>
+                        
+                        {/* Upload */}
+                        <div className="border-2 border-dashed border-zinc-700 rounded-lg p-6 text-center">
+                            <input
+                                type="file"
+                                id="template-upload"
+                                accept=".docx,.doc,.pdf"
+                                onChange={handleTemplateUpload}
+                                className="hidden"
+                            />
+                            <label htmlFor="template-upload" className="cursor-pointer">
+                                <Upload className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
+                                <p className="text-zinc-400 text-sm">
+                                    {uploadingTemplate ? 'Enviando...' : 'Clique para enviar template'}
+                                </p>
+                                <p className="text-zinc-600 text-xs mt-1">Word (.docx) ou PDF</p>
+                            </label>
+                        </div>
+                        
+                        {/* Lista de Templates */}
+                        {templates.length > 0 && (
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-medium text-zinc-400">Templates salvos:</h4>
+                                {templates.map(t => (
+                                    <div key={t.id} className="flex items-center justify-between bg-zinc-950 border border-zinc-800 rounded p-3">
+                                        <div className="flex items-center gap-3">
+                                            <FileType className="w-5 h-5 text-red-500" />
+                                            <div>
+                                                <p className="text-sm text-white">{t.nome}</p>
+                                                <p className="text-xs text-zinc-500">{t.tipo.toUpperCase()}</p>
+                                            </div>
+                                        </div>
+                                        <Button size="sm" variant="ghost" onClick={() => deleteTemplate(t.id)} className="text-zinc-500 hover:text-red-500">
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        
+                        <div className="bg-zinc-950 border border-zinc-800 rounded p-4">
+                            <h4 className="text-sm font-medium text-zinc-400 mb-2">Como funciona:</h4>
+                            <ul className="text-xs text-zinc-500 space-y-1 list-disc list-inside">
+                                <li>O template define apenas a <strong>formatação visual</strong> (fonte, margens, espaçamento)</li>
+                                <li>O conteúdo das cláusulas vem do <strong>contrato original</strong> que você sobe</li>
+                                <li>Apenas as cláusulas selecionadas para alteração serão modificadas</li>
+                                <li>Você pode baixar em Word ou PDF com a formatação do template</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div className="flex justify-end">
+                        <Button variant="outline" onClick={() => setTemplateOpen(false)} className="border-zinc-700">
+                            Fechar
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
