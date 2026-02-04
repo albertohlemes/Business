@@ -525,8 +525,8 @@ Estrutura obrigatória:
                     </div>
                 ) : (
                     <div className="divide-y divide-zinc-800">
-                        {getMinutasAgrupadas().map(([key, cliente]) => (
-                            <div key={key} className="p-4" data-testid={`cliente-${key}`}>
+                        {minutasAgrupadas.map(cliente => (
+                            <div key={cliente.key} className="p-4" data-testid={`cliente-${cliente.key}`}>
                                 {/* Cabeçalho do Cliente */}
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-3">
