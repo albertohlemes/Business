@@ -40,9 +40,7 @@ const Companies = ({ user, onLogout }) => {
     tipo_atividade: 'comercio',
     tipos_servico: [],
     percentual_presuncao_irpj: 8.0,
-    percentual_presuncao_csll: 12.0,
-    estoque_inicial: 0,
-    estoque_final: 0
+    percentual_presuncao_csll: 12.0
   };
   
   const [formData, setFormData] = useState(emptyFormData);
