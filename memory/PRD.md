@@ -1,71 +1,48 @@
 # Portal Societário Business Contabilidade - PRD
 
 ## Problema Original
-Portal para departamento societário da Business Contabilidade com duas funcionalidades principais:
-1. Elaboração de minutas contratuais via IA - upload de contratos em PDF/imagem, IA identifica campos, usuário indica alterações, sistema gera minuta de alteração consolidada
-2. Gestão de certificados digitais A1 e automação REDESIM SP - cadastro de certificados, consulta automática de licenças de funcionamento, renovação automática
+Portal para departamento societário com:
+1. Elaboração de minutas contratuais via IA
+2. Gestão de certificados digitais e automação REDESIM SP
 
 ## Arquitetura
 - **Frontend**: React + TailwindCSS + Shadcn/UI
 - **Backend**: FastAPI + MongoDB
 - **IA**: Gemini 2.5 Flash via Emergent LLM Key
-- **PDF**: jsPDF para geração de PDFs formatados
-- **Automação**: Playwright para REDESIM SP
+- **PDF**: jsPDF
+- **Automação**: Playwright + noVNC (browser remoto visível)
 
-## Implementações Concluídas (04/02/2026)
+## Implementações (04/02/2026)
 
-### ✅ Módulo de Minutas Contratuais
-- **Wizard 4 etapas**: Contrato → Alterações → Detalhes → Resultado
-- **Extração estruturada de dados via IA**: Razão Social, CNPJ, Endereço, Capital, QSA, Atividades
-- **Campos estruturados** (não texto corrido) - componente DadosExtraidos.js
-- **Template padrão jurídico** para minutas
-- **Visualização em PDF** com modal interno (sem popup bloqueado)
-- **Download de PDF** formatado com cabeçalho Business Contabilidade
-- **Listagem organizada**: Nº Sequencial | CNPJ | Razão Social | Tipo | Status | Data
+### ✅ Minutas Contratuais
+- Wizard 4 etapas
+- Extração estruturada de dados via IA (campos, não texto corrido)
+- Template padrão jurídico
+- Download PDF direto (sem popup)
+- Listagem: Nº | CNPJ | Razão Social | Tipo | Status | Data
 
-### ✅ Módulo de Licenças REDESIM
-- Cadastro de CNPJs vinculados aos certificados
-- **Polling automático** para detectar login no Gov.br (verifica a cada 5s por 2min)
-- Consulta automática após login detectado
-- Fallback para consulta simulada
+### ✅ Licenças REDESIM - Automação VNC
+- **noVNC**: Você vê o navegador do servidor em tempo real
+- **Fluxo**:
+  1. Clica "Consultar" → Abre modal com browser remoto
+  2. Sistema navega até Gov.br
+  3. VOCÊ faz login com certificado digital (visualmente)
+  4. Sistema detecta login e continua automação
+  5. Preenche CNPJ, clica consultar, extrai dados
 
-### ✅ Autenticação e Layout
-- Login/Registro com JWT
-- Logout funcional
-- Dashboard com métricas
+### ✅ Componentes
+- Display virtual (Xvfb :99)
+- Servidor VNC (x11vnc)
+- WebSocket proxy (websockify)
+- noVNC client embutido no frontend
 
-## Estrutura de Arquivos
-```
-/app
-├── backend/
-│   ├── server.py              # API FastAPI
-│   ├── redesim_automation.py  # Automação Playwright
-│   └── .env
-└── frontend/
-    ├── src/
-    │   ├── components/
-    │   │   ├── Layout.js
-    │   │   └── DadosExtraidos.js
-    │   ├── pages/
-    │   │   ├── Minutas.js
-    │   │   └── Licencas.js
-    │   └── utils/
-    │       └── pdfGenerator.js
-    └── .env
-```
-
-## APIs (MOCKED)
-- POST /api/licencas/{id}/consultar - Simula consulta REDESIM
-- POST /api/licencas/{id}/renovar - Simula renovação
+## Endpoints Novos
+- `POST /api/redesim-vnc/iniciar/{cnpj}` - Inicia browser visível
+- `POST /api/redesim-vnc/continuar` - Continua após login
+- `GET /api/redesim-vnc/status` - Status + screenshot
+- `GET /api/novnc/{path}` - Proxy para noVNC
 
 ## Backlog
-### P0
-- [ ] Integração real com portal REDESIM SP
-
-### P1
-- [ ] Notificações por email
-- [ ] Melhorar OCR/extração
-
-### P2
-- [ ] Templates personalizáveis
-- [ ] Dashboard com gráficos
+- P1: Melhorar extração de dados do REDESIM
+- P2: Download automático do PDF da licença
+- P3: Notificações por email
