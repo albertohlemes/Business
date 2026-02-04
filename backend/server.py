@@ -773,7 +773,7 @@ def detect_xml_type(xml_content: str) -> str:
     # NF-e modelo 55 (padrão)
     return 'nfe'
 
-def classify_product_category(descricao: str, ncm: str, company_products: List[str], company_insumos: List[str], company_despesas: List[str]) -> tuple:
+def classify_product_category(descricao: str, ncm: str, company_products: List[str], company_insumos: List[str], company_despesas: List[str], company_ativos: List[str] = [], company_combustiveis: List[str] = []) -> tuple:
     """Classifica produto e retorna (categoria, justificativa)"""
     descricao_lower = descricao.lower()
     
@@ -782,11 +782,27 @@ def classify_product_category(descricao: str, ncm: str, company_products: List[s
         if despesa.lower() in descricao_lower or descricao_lower in despesa.lower():
             return ('despesa', f'Produto cadastrado como despesa da empresa ({despesa})')
     
-    # Combustíveis
+    # Verificar ativo imobilizado customizado da empresa
+    for ativo in company_ativos:
+        if ativo.lower() in descricao_lower or descricao_lower in ativo.lower():
+            return ('ativo_imobilizado', f'Ativo imobilizado cadastrado ({ativo})')
+    
+    # Verificar combustíveis customizados da empresa
+    for comb in company_combustiveis:
+        if comb.lower() in descricao_lower or descricao_lower in comb.lower():
+            return ('combustivel', f'Combustível cadastrado ({comb})')
+    
+    # Combustíveis padrão
     combustiveis = ['gasolina', 'diesel', 'etanol', 'alcool combustivel', 'gnv', 'gas natural', 'oleo diesel']
     for item in combustiveis:
         if item in descricao_lower:
             return ('combustivel', f'Combustível identificado ({item})')
+    
+    # Ativo imobilizado padrão
+    ativos_padrao = ['maquina', 'equipamento', 'veiculo', 'computador', 'servidor', 'ar condicionado', 'movel', 'estante', 'balcao', 'gondola', 'prateleira', 'freezer', 'geladeira', 'empilhadeira', 'caminhao', 'carro', 'moto']
+    for item in ativos_padrao:
+        if item in descricao_lower:
+            return ('ativo_imobilizado', f'Ativo imobilizado identificado ({item})')
     
     # Materiais de escritório
     materiais_escritorio = ['papel', 'caneta', 'lapis', 'pasta', 'grampeador', 'clips', 'borracha', 'toner', 'cartucho', 'impressora', 'tinta impressora']
