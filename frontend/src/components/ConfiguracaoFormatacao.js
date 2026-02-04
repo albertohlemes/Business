@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
 import { 
     Type, AlignLeft, AlignCenter, AlignJustify,
-    Bold, Italic, Upload, Save, X, Eye
+    Bold, Italic, Upload, Save, X, Eye, FileUp, RefreshCw
 } from 'lucide-react';
 import {
     Dialog,
@@ -20,6 +20,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from './ui/select';
+import axios from 'axios';
+import { toast } from 'sonner';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const FONTES = [
     'Times New Roman',
