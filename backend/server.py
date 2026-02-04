@@ -1751,30 +1751,42 @@ async def apuracao_pis_cofins(
         "competencia": competencia,
         "creditos": {
             "com_credito": {
+                "cst": "50",
+                "descricao_cst": "Operação com Direito a Crédito",
                 "valor_operacoes": round(creditos["com_credito"]["total"], 2),
                 "pis": pis_credito,
                 "cofins": cofins_credito,
                 "por_cfop": dict_to_list(creditos["com_credito"]["por_cfop"]),
-                "por_ncm": dict_to_list(creditos["com_credito"]["por_ncm"])
+                "por_ncm": dict_to_list(creditos["com_credito"]["por_ncm"]),
+                "por_cst": dict_to_list(creditos["com_credito"]["por_cst"])
             },
             "aliquota_zero": {
+                "cst": "73",
+                "descricao_cst": "Operação de Aquisição a Alíquota Zero",
                 "valor_operacoes": round(creditos["aliquota_zero"]["total"], 2),
                 "por_cfop": dict_to_list(creditos["aliquota_zero"]["por_cfop"]),
-                "por_ncm": dict_to_list(creditos["aliquota_zero"]["por_ncm"])
+                "por_ncm": dict_to_list(creditos["aliquota_zero"]["por_ncm"]),
+                "por_cst": dict_to_list(creditos["aliquota_zero"]["por_cst"])
             }
         },
         "debitos": {
             "com_debito": {
+                "cst": "01",
+                "descricao_cst": "Operação Tributável com Alíquota Básica",
                 "valor_operacoes": round(debitos["com_debito"]["total"], 2),
                 "pis": pis_debito,
                 "cofins": cofins_debito,
                 "por_cfop": dict_to_list(debitos["com_debito"]["por_cfop"]),
-                "por_ncm": dict_to_list(debitos["com_debito"]["por_ncm"])
+                "por_ncm": dict_to_list(debitos["com_debito"]["por_ncm"]),
+                "por_cst": dict_to_list(debitos["com_debito"]["por_cst"])
             },
             "aliquota_zero": {
+                "cst": "06",
+                "descricao_cst": "Operação Tributável a Alíquota Zero",
                 "valor_operacoes": round(debitos["aliquota_zero"]["total"], 2),
                 "por_cfop": dict_to_list(debitos["aliquota_zero"]["por_cfop"]),
-                "por_ncm": dict_to_list(debitos["aliquota_zero"]["por_ncm"])
+                "por_ncm": dict_to_list(debitos["aliquota_zero"]["por_ncm"]),
+                "por_cst": dict_to_list(debitos["aliquota_zero"]["por_cst"])
             }
         },
         "apuracao": {
