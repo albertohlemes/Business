@@ -234,16 +234,14 @@ const Processos = () => {
 
                 {/* Conteúdo de Baixa */}
                 <TabsContent value="baixa" className="mt-6">
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-12 text-center">
-                        <XCircle className="w-12 h-12 mx-auto mb-4 text-zinc-600" />
-                        <h3 className="text-lg font-medium text-white mb-2">Baixa de Empresas</h3>
-                        <p className="text-zinc-500 text-sm mb-4">
-                            Funcionalidade em desenvolvimento. Em breve você poderá gerar documentos de baixa/encerramento.
-                        </p>
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                            Em breve
-                        </span>
-                    </div>
+                    <ListaProcessos 
+                        minutas={minutasBaixa}
+                        loading={loading}
+                        tipoProcesso="baixa"
+                        onRefresh={fetchData}
+                        emptyMessage="Nenhuma baixa de empresa criada"
+                        emptyDescription="Clique em 'Nova Baixa' para gerar um distrato social"
+                    />
                 </TabsContent>
             </Tabs>
 
@@ -266,6 +264,13 @@ const Processos = () => {
             <WizardConstituicao
                 open={wizardConstituicaoOpen}
                 onClose={() => setWizardConstituicaoOpen(false)}
+                onComplete={handleMinutaCriada}
+            />
+
+            {/* Wizard de Baixa */}
+            <WizardBaixa
+                open={wizardBaixaOpen}
+                onClose={() => setWizardBaixaOpen(false)}
                 onComplete={handleMinutaCriada}
             />
         </div>
