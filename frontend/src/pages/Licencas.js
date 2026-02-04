@@ -698,6 +698,66 @@ const Licencas = () => {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* VNC Browser Dialog - Automação Visível */}
+            <Dialog open={vncOpen} onOpenChange={(open) => { if (!open) fecharVNC(); }}>
+                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-6xl h-[90vh] overflow-hidden flex flex-col p-0">
+                    <DialogHeader className="border-b border-zinc-800 p-4">
+                        <div className="flex items-center justify-between">
+                            <DialogTitle className="text-white flex items-center gap-2">
+                                <Monitor className="w-5 h-5 text-red-500" />
+                                Consulta REDESIM - Navegador Remoto
+                            </DialogTitle>
+                            <div className="flex items-center gap-3">
+                                <span className="text-sm text-zinc-400">{vncStatus}</span>
+                                {aguardandoLogin && (
+                                    <Button 
+                                        size="sm" 
+                                        onClick={continuarVNC}
+                                        className="bg-amber-600 hover:bg-amber-700"
+                                    >
+                                        <RefreshCw className="w-4 h-4 mr-2" />
+                                        Verificar Login
+                                    </Button>
+                                )}
+                                <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={fecharVNC}
+                                    className="border-zinc-700"
+                                >
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        </div>
+                        {aguardandoLogin && (
+                            <div className="mt-2 bg-amber-950/50 border border-amber-800 rounded p-3">
+                                <p className="text-amber-400 text-sm">
+                                    <strong>⚠️ Faça login com seu certificado digital na tela abaixo!</strong>
+                                    <br/>
+                                    Após fazer login no Gov.br, o sistema continuará automaticamente.
+                                </p>
+                            </div>
+                        )}
+                    </DialogHeader>
+                    <div className="flex-1 bg-black">
+                        <iframe 
+                            src={`${window.location.protocol}//${window.location.hostname}:${VNC_PORT}/vnc.html?autoconnect=true&resize=scale&quality=6`}
+                            className="w-full h-full border-0"
+                            title="Navegador Remoto - REDESIM"
+                            allow="clipboard-write"
+                        />
+                    </div>
+                    <div className="border-t border-zinc-800 p-3 flex items-center justify-between bg-zinc-950">
+                        <span className="text-xs text-zinc-500">
+                            CNPJ: <span className="font-mono text-zinc-400">{vncCnpj}</span>
+                        </span>
+                        <span className="text-xs text-zinc-500">
+                            Use o navegador acima para fazer login no Gov.br. A consulta será feita automaticamente.
+                        </span>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
