@@ -106,18 +106,35 @@ const Licencas = () => {
     const consultarLicenca = async (id) => {
         setConsultando(id);
         try {
-            // Primeiro tenta consulta automática
+            // Tenta automação REDESIM
             const redesimRes = await axios.post(`${API_URL}/api/licencas/${id}/consultar-redesim`);
+            const data = redesimRes.data;
             
-            if (redesimRes.data.status === 'manual_required') {
-                // Mostra instruções para consulta manual
-                setInstrucoesCnpj(redesimRes.data.cnpj);
-                setInstrucoesOpen(true);
-                
-                // Atualiza com status simulado para demo
-                const response = await axios.post(`${API_URL}/api/licencas/${id}/consultar`);
-                setLicencas(licencas.map(l => l.id === id ? response.data : l));
+            setInstrucoesCnpj(data.cnpj);
+            
+            // Verificar se tem screenshot
+            const etapas = data.etapas || [];
+            const ultimaEtapa = etapas[etapas.length - 1];
+            if (ultimaEtapa?.screenshot) {
+                setScreenshotRedesim(ultimaEtapa.screenshot);
+            } else if (data.tela_login?.screenshot) {
+                setScreenshotRedesim(data.tela_login.screenshot);
             }
+            
+            if (data.aguardando_login) {
+                setAguardandoLogin(true);
+                setInstrucoesOpen(true);
+                toast.info('Faça login no Gov.br com certificado digital');
+            } else if (data.consulta_realizada) {
+                toast.success('Consulta realizada!');
+                // Atualizar lista
+                const response = await axios.get(`${API_URL}/api/licencas`);
+                setLicencas(response.data);
+                setInstrucoesOpen(true);
+            } else {
+                setInstrucoesOpen(true);
+            }
+            
         } catch (error) {
             // Fallback para consulta simulada
             try {
@@ -132,8 +149,28 @@ const Licencas = () => {
         }
     };
 
+    const continuarAposLogin = async () => {
+        try {
+            const response = await axios.post(`${API_URL}/api/redesim/continuar-apos-login?cnpj=${encodeURIComponent(instrucoesCnpj)}`);
+            
+            if (response.data.success) {
+                toast.success('Consulta realizada após login!');
+                if (response.data.consulta?.screenshot) {
+                    setScreenshotRedesim(response.data.consulta.screenshot);
+                }
+                setAguardandoLogin(false);
+                // Atualizar lista
+                const licRes = await axios.get(`${API_URL}/api/licencas`);
+                setLicencas(licRes.data);
+            } else {
+                toast.error(response.data.message || 'Login não detectado ainda');
+            }
+        } catch (e) {
+            toast.error('Erro ao continuar consulta');
+        }
+    };
+
     const abrirRedesim = (cnpj) => {
-        // Abre o portal REDESIM em nova aba
         window.open('https://vreredesim.sp.gov.br', '_blank');
         toast.info(`Consulte o CNPJ: ${cnpj}`);
     };
