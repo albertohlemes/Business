@@ -374,6 +374,172 @@ const Dashboard = ({ user, onLogout }) => {
                 </Link>
               </div>
             </div>
+
+            {/* Análise Comparativa Lucro Presumido vs. Lucro Real */}
+            {stats.analise_comparativa && (
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Scale className="w-5 h-5 text-indigo-600" />
+                  Análise Comparativa: {stats.empresa.regime_tributario === 'lucro_presumido' ? 'Presumido vs. Real' : 'Real vs. Presumido'}
+                </h2>
+                
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 overflow-hidden">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-0 md:divide-x divide-indigo-200">
+                    {/* Regime Atual */}
+                    <div className="p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          stats.analise_comparativa.regime_atual === 'lucro_presumido' 
+                            ? 'bg-blue-600 text-white' 
+                            : 'bg-green-600 text-white'
+                        }`}>
+                          REGIME ATUAL
+                        </span>
+                        <span className="text-sm font-medium text-gray-700">
+                          {stats.analise_comparativa.regime_atual === 'lucro_presumido' ? 'Lucro Presumido' : 'Lucro Real'}
+                        </span>
+                      </div>
+                      
+                      {stats.analise_comparativa.regime_atual === 'lucro_presumido' ? (
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">PIS (0.65%):</span>
+                            <span className="font-medium">{formatCurrency(stats.analise_comparativa.lucro_presumido.pis)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">COFINS (3%):</span>
+                            <span className="font-medium">{formatCurrency(stats.analise_comparativa.lucro_presumido.cofins)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm font-bold border-t border-indigo-200 pt-2">
+                            <span className="text-gray-700">Total PIS/COFINS:</span>
+                            <span className="text-blue-700">{formatCurrency(stats.analise_comparativa.lucro_presumido.total)}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            * Sistema cumulativo - sem direito a créditos
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">PIS a pagar:</span>
+                            <span className="font-medium">{formatCurrency(stats.analise_comparativa.lucro_real.pis_pagar)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">COFINS a pagar:</span>
+                            <span className="font-medium">{formatCurrency(stats.analise_comparativa.lucro_real.cofins_pagar)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm font-bold border-t border-indigo-200 pt-2">
+                            <span className="text-gray-700">Total PIS/COFINS:</span>
+                            <span className="text-green-700">{formatCurrency(stats.analise_comparativa.lucro_real.total)}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            * Sistema não cumulativo - com direito a créditos
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Regime Hipotético */}
+                    <div className="p-5 bg-white/50">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-400 text-white">
+                          SE FOSSE
+                        </span>
+                        <span className="text-sm font-medium text-gray-700">
+                          {stats.analise_comparativa.regime_atual === 'lucro_presumido' ? 'Lucro Real' : 'Lucro Presumido'}
+                        </span>
+                      </div>
+                      
+                      {stats.analise_comparativa.regime_atual === 'lucro_presumido' ? (
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Débito PIS (1.65%):</span>
+                            <span className="font-medium text-red-600">{formatCurrency(stats.analise_comparativa.lucro_real_hipotetico.debito_pis)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Crédito PIS:</span>
+                            <span className="font-medium text-green-600">- {formatCurrency(stats.analise_comparativa.lucro_real_hipotetico.credito_pis)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Débito COFINS (7.6%):</span>
+                            <span className="font-medium text-red-600">{formatCurrency(stats.analise_comparativa.lucro_real_hipotetico.debito_cofins)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Crédito COFINS:</span>
+                            <span className="font-medium text-green-600">- {formatCurrency(stats.analise_comparativa.lucro_real_hipotetico.credito_cofins)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm font-bold border-t border-indigo-200 pt-2">
+                            <span className="text-gray-700">Total a pagar:</span>
+                            <span className="text-green-700">{formatCurrency(stats.analise_comparativa.lucro_real_hipotetico.total)}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">PIS (0.65%):</span>
+                            <span className="font-medium">{formatCurrency(stats.analise_comparativa.lucro_presumido_hipotetico.pis)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">COFINS (3%):</span>
+                            <span className="font-medium">{formatCurrency(stats.analise_comparativa.lucro_presumido_hipotetico.cofins)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm font-bold border-t border-indigo-200 pt-2">
+                            <span className="text-gray-700">Total PIS/COFINS:</span>
+                            <span className="text-blue-700">{formatCurrency(stats.analise_comparativa.lucro_presumido_hipotetico.total)}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Conclusão */}
+                  <div className={`p-4 border-t ${
+                    stats.analise_comparativa.diferenca > 0 
+                      ? 'bg-green-50 border-green-200' 
+                      : stats.analise_comparativa.diferenca < 0 
+                        ? 'bg-red-50 border-red-200'
+                        : 'bg-gray-50 border-gray-200'
+                  }`}>
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <div className="flex items-center gap-3">
+                        <Lightbulb className={`w-6 h-6 ${
+                          stats.analise_comparativa.diferenca > 0 ? 'text-green-600' : 'text-gray-500'
+                        }`} />
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">
+                            {stats.analise_comparativa.diferenca > 0 ? (
+                              <>
+                                O <strong>{stats.analise_comparativa.regime_mais_vantajoso === 'lucro_real' ? 'Lucro Real' : 'Lucro Presumido'}</strong> seria mais vantajoso
+                              </>
+                            ) : stats.analise_comparativa.diferenca < 0 ? (
+                              <>
+                                O regime atual é mais vantajoso para esta competência
+                              </>
+                            ) : (
+                              'Ambos os regimes resultam no mesmo valor'
+                            )}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            * Esta é uma análise simplificada apenas de PIS/COFINS. Consulte seu contador para uma análise completa.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {stats.analise_comparativa.economia_potencial > 0 && (
+                        <div className={`px-4 py-2 rounded-lg ${
+                          stats.analise_comparativa.diferenca > 0 
+                            ? 'bg-green-600 text-white' 
+                            : 'bg-gray-600 text-white'
+                        }`}>
+                          <p className="text-xs">Economia potencial</p>
+                          <p className="text-lg font-bold">{formatCurrency(stats.analise_comparativa.economia_potencial)}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         ) : null}
       </div>
