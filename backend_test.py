@@ -902,6 +902,296 @@ class FiscalSystemAPITester:
         
         return True, {"message": "Full company flow completed successfully"}
 
+    def test_bulk_delete_documents_with_filters(self):
+        """Test bulk delete documents functionality with different type and status filters"""
+        if not self.admin_token:
+            print("❌ No admin token available for bulk delete test")
+            return False, {}
+        
+        print("\n🔍 Testing Bulk Delete Documents with Filters...")
+        
+        # Step 1: Create a test company for bulk delete testing
+        company_data = {
+            "cnpj": "55.444.333/0001-22",
+            "razao_social": "Empresa Bulk Delete Test LTDA",
+            "nome_fantasia": "Bulk Delete Test Corp",
+            "inscricao_estadual": "555444333",
+            "endereco": "Rua Bulk Delete, 123",
+            "cidade": "São Paulo",
+            "uf": "SP",
+            "cep": "01000-000"
+        }
+        
+        headers = {'Authorization': f'Bearer {self.admin_token}'}
+        success, response = self.run_test(
+            "Create Company for Bulk Delete Test",
+            "POST",
+            "companies",
+            200,
+            data=company_data,
+            headers=headers
+        )
+        
+        if not success or 'id' not in response:
+            print("❌ Failed to create company for bulk delete test")
+            return False, {}
+        
+        bulk_test_company_id = response['id']
+        competencia = "12/2024"
+        print(f"✅ Created company for bulk delete test: {bulk_test_company_id}")
+        
+        # Step 2: Insert test documents directly into MongoDB with different types and statuses
+        test_documents = [
+            # Entrada documents
+            {
+                "id": str(uuid.uuid4()),
+                "company_id": bulk_test_company_id,
+                "competencia": competencia,
+                "tipo": "entrada",
+                "modelo": "nfe",
+                "chave_nfe": f"35202455444333000122550010000000{i:02d}1234567890",
+                "numero_nfe": f"100{i}",
+                "data_emissao": "2024-12-15T10:30:00-03:00",
+                "emitente_cnpj": "98.765.432/0001-10",
+                "emitente_nome": f"Fornecedor {i} LTDA",
+                "destinatario_cnpj": "55.444.333/0001-22",
+                "destinatario_nome": "Empresa Bulk Delete Test LTDA",
+                "valor_total": 1000.00 + i * 100,
+                "valor_servicos": 0.0,
+                "xml_content": f"<?xml version='1.0'?><nfe>entrada content {i}</nfe>",
+                "produtos": [{"codigo": f"PROD{i}", "descricao": f"Produto Entrada {i}"}],
+                "servicos": [],
+                "status_validacao": "pendente" if i % 2 == 0 else "validado",
+                "uploaded_at": datetime.now().isoformat(),
+                "uploaded_by": "test_user"
+            }
+            for i in range(1, 5)  # 4 entrada documents (2 pendente, 2 validado)
+        ] + [
+            # Saida documents
+            {
+                "id": str(uuid.uuid4()),
+                "company_id": bulk_test_company_id,
+                "competencia": competencia,
+                "tipo": "saida",
+                "modelo": "nfe",
+                "chave_nfe": f"35202455444333000122550010000000{i:02d}9876543210",
+                "numero_nfe": f"200{i}",
+                "data_emissao": "2024-12-15T14:30:00-03:00",
+                "emitente_cnpj": "55.444.333/0001-22",
+                "emitente_nome": "Empresa Bulk Delete Test LTDA",
+                "destinatario_cnpj": "11.222.333/0001-44",
+                "destinatario_nome": f"Cliente {i} LTDA",
+                "valor_total": 2000.00 + i * 200,
+                "valor_servicos": 0.0,
+                "xml_content": f"<?xml version='1.0'?><nfe>saida content {i}</nfe>",
+                "produtos": [{"codigo": f"PROD{i+10}", "descricao": f"Produto Saida {i}"}],
+                "servicos": [],
+                "status_validacao": "pendente" if i % 2 == 0 else "validado",
+                "uploaded_at": datetime.now().isoformat(),
+                "uploaded_by": "test_user"
+            }
+            for i in range(1, 5)  # 4 saida documents (2 pendente, 2 validado)
+        ]
+        
+        try:
+            # Insert all test documents
+            result = self.db.xml_documents.insert_many(test_documents)
+            print(f"✅ Inserted {len(result.inserted_ids)} test documents")
+            
+            # Verify initial document counts
+            total_docs = self.db.xml_documents.count_documents({
+                "company_id": bulk_test_company_id,
+                "competencia": competencia
+            })
+            entrada_docs = self.db.xml_documents.count_documents({
+                "company_id": bulk_test_company_id,
+                "competencia": competencia,
+                "tipo": "entrada"
+            })
+            saida_docs = self.db.xml_documents.count_documents({
+                "company_id": bulk_test_company_id,
+                "competencia": competencia,
+                "tipo": "saida"
+            })
+            pendente_docs = self.db.xml_documents.count_documents({
+                "company_id": bulk_test_company_id,
+                "competencia": competencia,
+                "status_validacao": "pendente"
+            })
+            validado_docs = self.db.xml_documents.count_documents({
+                "company_id": bulk_test_company_id,
+                "competencia": competencia,
+                "status_validacao": "validado"
+            })
+            
+            print(f"📊 Initial counts: Total={total_docs}, Entrada={entrada_docs}, Saida={saida_docs}, Pendente={pendente_docs}, Validado={validado_docs}")
+            
+            if total_docs != 8 or entrada_docs != 4 or saida_docs != 4 or pendente_docs != 4 or validado_docs != 4:
+                print("❌ Initial document counts don't match expected values")
+                return False, {}
+                
+        except Exception as e:
+            print(f"❌ Failed to insert test documents: {str(e)}")
+            return False, {}
+        
+        # Step 3: Test deleting ONLY 'entrada' documents
+        print("\n🔍 Test 1: Delete ONLY 'entrada' documents...")
+        competencia_encoded = "12%2F2024"
+        
+        success, response = self.run_test(
+            "Bulk Delete - ONLY Entrada",
+            "DELETE",
+            f"documents/{bulk_test_company_id}/competencia/{competencia_encoded}?tipo=entrada",
+            200,
+            headers=headers
+        )
+        
+        if not success:
+            print("❌ Failed to delete entrada documents")
+            return False, {}
+        
+        # Verify only entrada documents were deleted
+        remaining_total = self.db.xml_documents.count_documents({
+            "company_id": bulk_test_company_id,
+            "competencia": competencia
+        })
+        remaining_entrada = self.db.xml_documents.count_documents({
+            "company_id": bulk_test_company_id,
+            "competencia": competencia,
+            "tipo": "entrada"
+        })
+        remaining_saida = self.db.xml_documents.count_documents({
+            "company_id": bulk_test_company_id,
+            "competencia": competencia,
+            "tipo": "saida"
+        })
+        
+        if remaining_total != 4 or remaining_entrada != 0 or remaining_saida != 4:
+            print(f"❌ Entrada delete failed: Total={remaining_total}, Entrada={remaining_entrada}, Saida={remaining_saida}")
+            return False, {}
+        
+        print(f"✅ Test 1 PASSED: Only entrada documents deleted. Remaining: Total={remaining_total}, Saida={remaining_saida}")
+        
+        # Step 4: Re-insert entrada documents for next test
+        entrada_docs_new = [doc for doc in test_documents if doc['tipo'] == 'entrada']
+        for doc in entrada_docs_new:
+            doc['id'] = str(uuid.uuid4())  # New IDs to avoid conflicts
+        
+        try:
+            self.db.xml_documents.insert_many(entrada_docs_new)
+            print("✅ Re-inserted entrada documents for next test")
+        except Exception as e:
+            print(f"❌ Failed to re-insert entrada documents: {str(e)}")
+            return False, {}
+        
+        # Step 5: Test deleting ONLY 'pendente' documents
+        print("\n🔍 Test 2: Delete ONLY 'pendente' documents...")
+        
+        success, response = self.run_test(
+            "Bulk Delete - ONLY Pendente",
+            "DELETE",
+            f"documents/{bulk_test_company_id}/competencia/{competencia_encoded}?status=pendente",
+            200,
+            headers=headers
+        )
+        
+        if not success:
+            print("❌ Failed to delete pendente documents")
+            return False, {}
+        
+        # Verify only pendente documents were deleted
+        remaining_total = self.db.xml_documents.count_documents({
+            "company_id": bulk_test_company_id,
+            "competencia": competencia
+        })
+        remaining_pendente = self.db.xml_documents.count_documents({
+            "company_id": bulk_test_company_id,
+            "competencia": competencia,
+            "status_validacao": "pendente"
+        })
+        remaining_validado = self.db.xml_documents.count_documents({
+            "company_id": bulk_test_company_id,
+            "competencia": competencia,
+            "status_validacao": "validado"
+        })
+        
+        if remaining_total != 4 or remaining_pendente != 0 or remaining_validado != 4:
+            print(f"❌ Pendente delete failed: Total={remaining_total}, Pendente={remaining_pendente}, Validado={remaining_validado}")
+            return False, {}
+        
+        print(f"✅ Test 2 PASSED: Only pendente documents deleted. Remaining: Total={remaining_total}, Validado={remaining_validado}")
+        
+        # Step 6: Re-insert all documents for final test
+        for doc in test_documents:
+            doc['id'] = str(uuid.uuid4())  # New IDs to avoid conflicts
+        
+        try:
+            self.db.xml_documents.insert_many(test_documents)
+            print("✅ Re-inserted all documents for final test")
+        except Exception as e:
+            print(f"❌ Failed to re-insert all documents: {str(e)}")
+            return False, {}
+        
+        # Step 7: Test deleting 'entrada' AND 'pendente' (combined filters)
+        print("\n🔍 Test 3: Delete 'entrada' AND 'pendente' documents...")
+        
+        success, response = self.run_test(
+            "Bulk Delete - Entrada AND Pendente",
+            "DELETE",
+            f"documents/{bulk_test_company_id}/competencia/{competencia_encoded}?tipo=entrada&status=pendente",
+            200,
+            headers=headers
+        )
+        
+        if not success:
+            print("❌ Failed to delete entrada AND pendente documents")
+            return False, {}
+        
+        # Verify only entrada documents with pendente status were deleted
+        remaining_total = self.db.xml_documents.count_documents({
+            "company_id": bulk_test_company_id,
+            "competencia": competencia
+        })
+        remaining_entrada_pendente = self.db.xml_documents.count_documents({
+            "company_id": bulk_test_company_id,
+            "competencia": competencia,
+            "tipo": "entrada",
+            "status_validacao": "pendente"
+        })
+        remaining_entrada_validado = self.db.xml_documents.count_documents({
+            "company_id": bulk_test_company_id,
+            "competencia": competencia,
+            "tipo": "entrada",
+            "status_validacao": "validado"
+        })
+        remaining_saida = self.db.xml_documents.count_documents({
+            "company_id": bulk_test_company_id,
+            "competencia": competencia,
+            "tipo": "saida"
+        })
+        
+        # Should have deleted 2 entrada+pendente docs, leaving 6 total (2 entrada+validado + 4 saida)
+        if remaining_total != 6 or remaining_entrada_pendente != 0 or remaining_entrada_validado != 2 or remaining_saida != 4:
+            print(f"❌ Combined filter delete failed: Total={remaining_total}, Entrada+Pendente={remaining_entrada_pendente}, Entrada+Validado={remaining_entrada_validado}, Saida={remaining_saida}")
+            return False, {}
+        
+        print(f"✅ Test 3 PASSED: Only entrada+pendente documents deleted. Remaining: Total={remaining_total}")
+        
+        # Step 8: Cleanup - delete the test company (cascade delete will remove remaining documents)
+        success, response = self.run_test(
+            "Cleanup - Delete Test Company",
+            "DELETE",
+            f"companies/{bulk_test_company_id}",
+            200,
+            headers=headers
+        )
+        
+        if success:
+            print("✅ Cleanup completed - Test company and remaining documents deleted")
+        
+        print("✅ ALL BULK DELETE FILTER TESTS PASSED")
+        return True, {"message": "Bulk delete with filters functionality verified successfully"}
+
 def main():
     print("🚀 Starting Business Contabilidade Fiscal System API Tests")
     print("=" * 60)
