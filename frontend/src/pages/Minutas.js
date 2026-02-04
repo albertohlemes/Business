@@ -451,12 +451,12 @@ const Minutas = () => {
                                 {uploading ? (
                                     <>
                                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                        Enviando...
+                                        Criando...
                                     </>
                                 ) : (
                                     <>
                                         <Upload className="w-4 h-4 mr-2" />
-                                        Enviar Documento
+                                        Criar Minuta
                                     </>
                                 )}
                             </Button>
