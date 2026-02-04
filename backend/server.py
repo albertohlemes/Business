@@ -1128,6 +1128,7 @@ async def delete_documents_by_competencia(
 ):
     """Apagar notas da competência da empresa, opcionalmente filtrando por tipo"""
     
+    print(f"DELETE /documents request: company={company_id}, competencia={competencia}, type={tipo}, user={current_user.email}")
     # Verificar se a empresa existe
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
