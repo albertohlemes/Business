@@ -1701,16 +1701,6 @@ async def apuracao_pis_cofins(
                     transferencias["saida"]["total"] += valor
                 continue  # Não processar como crédito/débito
             
-            # Entradas (créditos)
-            if is_entrada:
-            
-            # Determinar entrada/saída pelo CFOP ou tipo do documento
-            is_entrada = primeiro_digito in ['1', '2', '3'] if primeiro_digito else (tipo_op == 'entrada')
-            is_saida = primeiro_digito in ['5', '6', '7'] if primeiro_digito else (tipo_op == 'saida')
-            
-            # Se não tem CFOP, usar "SEM CFOP" como chave
-            cfop_key = cfop if cfop else f"SEM CFOP"
-            
             # Determinar CST baseado no tipo e tributação
             # Entrada: 50 (tributado/com crédito), 73 (alíquota zero)
             # Saída: 01 (tributado), 06 (alíquota zero)
