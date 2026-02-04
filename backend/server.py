@@ -402,6 +402,8 @@ def parse_xml_nfce(xml_content: str) -> Dict[str, Any]:
             
             cfop = prod.get('CFOP', '')
             cst_icms = ""
+            cst_pis = ""
+            cst_cofins = ""
             v_icms = 0
             v_pis = 0
             v_cofins = 0
@@ -419,11 +421,13 @@ def parse_xml_nfce(xml_content: str) -> Dict[str, Any]:
             for key in pis:
                 if isinstance(pis[key], dict):
                     v_pis = float(pis[key].get('vPIS', 0))
+                    cst_pis = pis[key].get('CST', '')
                     break
             
             for key in cofins:
                 if isinstance(cofins[key], dict):
                     v_cofins = float(cofins[key].get('vCOFINS', 0))
+                    cst_cofins = cofins[key].get('CST', '')
                     break
             
             produtos.append({
@@ -432,6 +436,8 @@ def parse_xml_nfce(xml_content: str) -> Dict[str, Any]:
                 'ncm': prod.get('NCM', ''),
                 'cfop': cfop,
                 'cst': cst_icms,
+                'cst_pis': cst_pis,
+                'cst_cofins': cst_cofins,
                 'quantidade': float(prod.get('qCom', 0)),
                 'valor_unitario': float(prod.get('vUnCom', 0)),
                 'valor_total': float(prod.get('vProd', 0)),
