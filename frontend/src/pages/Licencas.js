@@ -34,6 +34,10 @@ const Licencas = () => {
     const [consultando, setConsultando] = useState(null);
     const [renovando, setRenovando] = useState(null);
     const [baixando, setBaixando] = useState(null);
+    
+    // Visualização licença
+    const [licencaViewOpen, setLicencaViewOpen] = useState(false);
+    const [licencaContent, setLicencaContent] = useState('');
 
     // Form state
     const [cnpj, setCnpj] = useState('');
