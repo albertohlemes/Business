@@ -62,7 +62,10 @@ const Minutas = () => {
     const [tipoAlteracao, setTipoAlteracao] = useState('');
     const [descricao, setDescricao] = useState('');
     const [file, setFile] = useState(null);
+    const [docsSuporte, setDocsSuporte] = useState([]);
+    const [docsChat, setDocsChat] = useState([]);
     const fileInputRef = useRef(null);
+    const docInputRef = useRef(null);
     const chatEndRef = useRef(null);
 
     useEffect(() => {
