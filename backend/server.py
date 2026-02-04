@@ -2666,9 +2666,31 @@ async def get_dashboard_stats(
             else:
                 credito_icms += v_icms
             
-            # PIS e COFINS mantém cálculo normal
-            credito_pis += float(prod.get('v_pis', 0) or 0)
-            credito_cofins += float(prod.get('v_cofins', 0) or 0)
+            # PIS e COFINS - usar mesma lógica do endpoint de apuração
+            # Verificar se o produto tem direito a crédito baseado em NCM, CFOP e regime
+            ncm = str(prod.get('ncm', ''))
+            cfop = str(prod.get('cfop', ''))
+            valor_prod = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
+            cst_pis_calculado = str(prod.get('cst_pis_calculado', prod.get('cst_pis', ''))).strip()
+            
+            # Verificar se NCM é alíquota zero
+            aliq_zero = prod.get('ncm_aliq_zero', is_ncm_aliquota_zero(ncm))
+            
+            # Verificar se CFOP não gera crédito (sem incidência)
+            cfop_sem_incidencia = cfop in CFOPS_ENTRADA_SEM_INCIDENCIA
+            
+            # Lógica de crédito PIS/COFINS (igual ao endpoint de apuração)
+            if cfop_sem_incidencia or cst_pis_calculado == '98':
+                # Sem incidência - CST 98 - não gera crédito
+                pass
+            elif aliq_zero or cst_pis_calculado == '73':
+                # Alíquota zero - CST 73 - não gera crédito
+                pass
+            elif cst_pis_calculado == '50' or ((cfop in CFOPS_COM_CREDITO_PIS_COFINS or not cfop) and regime_tributario == 'lucro_real'):
+                # Gera crédito - CST 50 (apenas Lucro Real)
+                # Calcular crédito com alíquotas do Lucro Real (1,65% PIS, 7,6% COFINS)
+                credito_pis += round(valor_prod * 0.0165, 2)
+                credito_cofins += round(valor_prod * 0.076, 2)
     
     # Regime tributário da empresa
     regime_tributario = company.get('regime_tributario', 'lucro_presumido')
