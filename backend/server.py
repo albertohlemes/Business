@@ -1471,7 +1471,8 @@ async def upload_xml_batch(
                             result['categoria'], 
                             product.get('cst', ''), 
                             company.get('uf', 'SP'),
-                            product.get('cfop', '')
+                            product.get('cfop', ''),
+                            emitente_uf
                         )
                         
                         if cfop_sugerido:
