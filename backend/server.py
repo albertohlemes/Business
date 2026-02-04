@@ -71,6 +71,7 @@ class Company(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     cnpj: str
     razao_social: str
+    codigo_empresa: Optional[str] = None  # ID customizado da empresa
     nome_fantasia: Optional[str] = None
     inscricao_estadual: Optional[str] = None
     inscricao_municipal: Optional[str] = None
