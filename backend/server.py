@@ -1240,6 +1240,49 @@ async def get_formatacao(current_user: dict = Depends(get_current_user)):
     )
     return formatacao or {"secoes": [], "margens": {}, "espacamento": "1.5"}
 
+@api_router.post("/formatacao/importar")
+async def importar_formatacao_documento(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Importa formatação de um documento Word modelo.
+    Analisa o documento e retorna as configurações extraídas para preencher o formulário.
+    """
+    from extrator_formatacao import extrair_formatacao_documento
+    
+    # Validar tipo de arquivo
+    valid_types = ['.docx', '.doc']
+    ext = '.' + file.filename.split('.')[-1].lower() if '.' in file.filename else ''
+    
+    if ext not in valid_types:
+        raise HTTPException(status_code=400, detail="Use arquivo Word (.docx)")
+    
+    # Salvar temporariamente
+    temp_path = TEMPLATES_DIR / f"temp_import_{current_user['id']}{ext}"
+    
+    try:
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Extrair formatação
+        resultado = extrair_formatacao_documento(str(temp_path))
+        
+        return {
+            "success": True,
+            "message": "Formatação extraída com sucesso",
+            "data": resultado
+        }
+    
+    except Exception as e:
+        logger.error(f"Erro ao importar formatação: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao analisar documento: {str(e)}")
+    
+    finally:
+        # Remover arquivo temporário
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
 @api_router.post("/formatacao/logo")
 async def upload_logo_formatacao(
     file: UploadFile = File(...),
