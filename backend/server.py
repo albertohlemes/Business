@@ -2085,6 +2085,294 @@ INSTRUÇÕES:
         logger.error(f"Erro ao gerar contrato: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============ ENDPOINTS DE BAIXA (DISTRATO) ============
+
+class DadosBaixa(BaseModel):
+    motivo: str
+    motivo_detalhado: Optional[str] = None
+    data_encerramento: str
+    destinacao_acervo: Optional[str] = None
+    declaracao_quitacao: bool = True
+    distribuicao_patrimonio: Optional[str] = None
+    responsavel_guarda: str
+    prazo_guarda: str = "5 anos"
+
+class DadosEmpresaBaixa(BaseModel):
+    razao_social: str
+    cnpj: str
+    nire: Optional[str] = None
+    capital_social: Optional[str] = None
+    data_registro: Optional[str] = None
+    junta_comercial: Optional[str] = None
+    endereco: Optional[str] = None
+
+class SocioBaixa(BaseModel):
+    nome: str
+    cpf: str
+    rg: Optional[str] = None
+    orgao_emissor: Optional[str] = None
+    nacionalidade: Optional[str] = "Brasileiro(a)"
+    estado_civil: Optional[str] = None
+    regime_casamento: Optional[str] = None
+    profissao: Optional[str] = None
+    endereco: Optional[str] = None
+    participacao: Optional[str] = None
+
+class BaixaRequest(BaseModel):
+    minuta_id: str
+    empresa: DadosEmpresaBaixa
+    socios: List[SocioBaixa]
+    baixa: DadosBaixa
+
+@api_router.post("/baixa/extrair-contrato")
+async def extrair_contrato_para_baixa(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Extrai dados do contrato social para preencher o distrato"""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        import tempfile
+        import json as json_lib
+        
+        emergent_api_key = os.environ.get("EMERGENT_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")
+        
+        # Salvar arquivo temporariamente
+        content_type = file.content_type or ''
+        if 'pdf' in content_type:
+            mime_type = 'application/pdf'
+            suffix = '.pdf'
+        elif 'image' in content_type:
+            mime_type = content_type
+            suffix = '.jpg'
+        else:
+            mime_type = 'application/octet-stream'
+            suffix = '.pdf'
+        
+        file_content = await file.read()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(file_content)
+            tmp_path = tmp.name
+        
+        system_message = """Você é um especialista em análise de contratos sociais brasileiros.
+Sua tarefa é extrair TODAS as informações do contrato para preencher um distrato social.
+
+SEMPRE responda APENAS com JSON válido, sem markdown.
+Estrutura:
+
+{
+    "empresa": {
+        "razao_social": "Nome completo da empresa",
+        "cnpj": "00.000.000/0000-00",
+        "nire": "Número NIRE",
+        "capital_social": "R$ 0.000,00",
+        "data_registro": "DD/MM/AAAA",
+        "junta_comercial": "Nome da Junta",
+        "endereco": {
+            "logradouro": "Rua/Av",
+            "numero": "123",
+            "complemento": "",
+            "bairro": "Bairro",
+            "cidade": "Cidade",
+            "estado": "UF",
+            "cep": "00000-000"
+        }
+    },
+    "socios": [
+        {
+            "nome": "NOME COMPLETO",
+            "cpf": "000.000.000-00",
+            "rg": "00.000.000-0",
+            "orgao_emissor": "SSP/UF",
+            "nacionalidade": "Brasileiro(a)",
+            "estado_civil": "Casado(a)/Solteiro(a)",
+            "regime_casamento": "Se casado",
+            "profissao": "Profissão",
+            "endereco": "Endereço completo",
+            "participacao": "50%"
+        }
+    ]
+}
+
+Se algum campo não for encontrado, use null."""
+
+        chat = LlmChat(
+            api_key=emergent_api_key,
+            session_id=f"baixa-extract-{current_user['id']}",
+            system_message=system_message
+        ).with_model("gemini", "gemini-2.5-flash")
+        
+        user_message = UserMessage(
+            text="Extraia todos os dados deste contrato social para preenchimento do distrato. Retorne APENAS JSON.",
+            file_contents=[FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)]
+        )
+        
+        response = await chat.send_message(user_message)
+        
+        # Limpar arquivo temporário
+        import os as os_module
+        os_module.unlink(tmp_path)
+        
+        # Parsear JSON
+        try:
+            json_str = response.strip()
+            if '```' in json_str:
+                json_str = json_str.split('```')[1]
+                if json_str.startswith('json'):
+                    json_str = json_str[4:]
+            dados = json_lib.loads(json_str.strip())
+        except:
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', response)
+            if json_match:
+                dados = json_lib.loads(json_match.group())
+            else:
+                dados = {}
+        
+        return {"success": True, "dados": dados}
+        
+    except Exception as e:
+        logger.error(f"Erro ao extrair contrato para baixa: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/baixa/gerar-distrato")
+async def gerar_distrato_social(
+    request: BaixaRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Gera o distrato social completo usando IA"""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        
+        emergent_api_key = os.environ.get("EMERGENT_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")
+        
+        empresa = request.empresa
+        socios = request.socios
+        baixa = request.baixa
+        
+        # Formatar motivo
+        motivos_map = {
+            'vontade_socios': 'por deliberação unânime dos sócios',
+            'termino_prazo': 'pelo término do prazo de duração',
+            'falencia': 'por decretação de falência',
+            'incorporacao': 'por incorporação por outra sociedade',
+            'fusao': 'por fusão com outra sociedade',
+            'cisao_total': 'por cisão total',
+            'inatividade': 'por inatividade prolongada',
+            'outros': baixa.motivo_detalhado or 'por outros motivos'
+        }
+        motivo_texto = motivos_map.get(baixa.motivo, baixa.motivo)
+        
+        # Formatar data
+        try:
+            from datetime import datetime as dt
+            data_obj = dt.strptime(baixa.data_encerramento, '%Y-%m-%d')
+            data_formatada = data_obj.strftime('%d de %B de %Y').replace('January', 'janeiro').replace('February', 'fevereiro').replace('March', 'março').replace('April', 'abril').replace('May', 'maio').replace('June', 'junho').replace('July', 'julho').replace('August', 'agosto').replace('September', 'setembro').replace('October', 'outubro').replace('November', 'novembro').replace('December', 'dezembro')
+        except:
+            data_formatada = baixa.data_encerramento
+        
+        # Montar qualificação dos sócios
+        socios_qualificados = []
+        for s in socios:
+            qualif = f"{s.nome}, {s.nacionalidade or 'brasileiro(a)'}, {s.estado_civil or 'estado civil não informado'}"
+            if s.regime_casamento:
+                qualif += f", pelo regime de {s.regime_casamento}"
+            qualif += f", {s.profissao or 'profissão não informada'}"
+            if s.rg:
+                qualif += f", portador(a) da Cédula de Identidade RG nº {s.rg}"
+                if s.orgao_emissor:
+                    qualif += f" {s.orgao_emissor}"
+            qualif += f", inscrito(a) no CPF sob nº {s.cpf}"
+            if s.endereco:
+                qualif += f", residente e domiciliado(a) em {s.endereco}"
+            socios_qualificados.append(qualif)
+        
+        prompt = f"""Gere um DISTRATO SOCIAL completo e formal para a empresa abaixo.
+
+DADOS DA EMPRESA:
+- Razão Social: {empresa.razao_social}
+- CNPJ: {empresa.cnpj}
+- NIRE: {empresa.nire or 'Não informado'}
+- Capital Social: {empresa.capital_social or 'Não informado'}
+- Data de Registro: {empresa.data_registro or 'Não informada'}
+- Junta Comercial: {empresa.junta_comercial or 'Não informada'}
+- Endereço: {empresa.endereco or 'Não informado'}
+
+SÓCIOS:
+{chr(10).join([f'{i+1}. {q}' for i, q in enumerate(socios_qualificados)])}
+
+DETALHES DA BAIXA:
+- Motivo: {motivo_texto}
+- Data de encerramento das atividades: {data_formatada}
+- Destinação do acervo: {baixa.destinacao_acervo or 'Os livros e documentos da sociedade ficarão sob a guarda do sócio responsável'}
+- Declaração de quitação: {'Sim' if baixa.declaracao_quitacao else 'Não'}
+- Distribuição do patrimônio: {baixa.distribuicao_patrimonio or 'O patrimônio líquido remanescente será dividido entre os sócios na proporção de suas quotas'}
+- Responsável pela guarda: {baixa.responsavel_guarda}
+- Prazo de guarda: {baixa.prazo_guarda}
+
+ESTRUTURA OBRIGATÓRIA DO DISTRATO:
+
+1. TÍTULO: DISTRATO SOCIAL DE [RAZÃO SOCIAL]
+
+2. PREÂMBULO: Identificação do instrumento, CNPJ, NIRE, registro na Junta
+
+3. QUALIFICAÇÃO DOS SÓCIOS: Dados completos de cada sócio
+
+4. CLÁUSULAS:
+   - Cláusula 1ª: DA DISSOLUÇÃO (motivo)
+   - Cláusula 2ª: DA CESSAÇÃO DAS ATIVIDADES (data)
+   - Cláusula 3ª: DO ACERVO CONTÁBIL (destinação dos livros)
+   - Cláusula 4ª: DO PASSIVO SOCIAL (declaração de quitação)
+   - Cláusula 5ª: DO PATRIMÔNIO REMANESCENTE (distribuição)
+   - Cláusula 6ª: DA RESPONSABILIDADE DOS SÓCIOS
+   - Cláusula 7ª: DA GUARDA DOS DOCUMENTOS
+
+5. ENCERRAMENTO: Local, data e espaço para assinaturas
+
+O documento deve estar pronto para impressão e registro na Junta Comercial."""
+
+        system_message = """Você é um advogado societário especialista em dissolução de empresas.
+Gere documentos formais, completos e prontos para registro na Junta Comercial.
+Use linguagem jurídica adequada e siga rigorosamente a estrutura solicitada."""
+
+        chat = LlmChat(
+            api_key=emergent_api_key,
+            session_id=f"distrato-{request.minuta_id}",
+            system_message=system_message
+        ).with_model("gemini", "gemini-2.5-flash")
+        
+        response = await chat.send_message(UserMessage(text=prompt))
+        
+        distrato = response.strip()
+        
+        # Salvar na minuta
+        await db.minutas.update_one(
+            {"id": request.minuta_id},
+            {
+                "$set": {
+                    "tipo_processo": "baixa",
+                    "conteudo_gerado": distrato,
+                    "dados_empresa": empresa.dict(),
+                    "dados_socios": [s.dict() for s in socios],
+                    "dados_baixa": baixa.dict(),
+                    "cnpj": empresa.cnpj,
+                    "razao_social": empresa.razao_social,
+                    "status": "concluida",
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }
+            }
+        )
+        
+        return {
+            "success": True,
+            "distrato": distrato,
+            "minuta_id": request.minuta_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao gerar distrato: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============ HEALTH CHECK ============
 
 @api_router.get("/health")
