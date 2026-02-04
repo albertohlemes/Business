@@ -367,6 +367,31 @@ class TemplateManagerFiel:
             if isinstance(linha_spacing, (int, float)) and linha_spacing > 0:
                 para.paragraph_format.line_spacing = linha_spacing
     
+    def _limpar_markdown(self, texto: str) -> str:
+        """Remove marcações Markdown do texto"""
+        import re
+        
+        # Remover cabeçalhos markdown (### Título)
+        texto = re.sub(r'^#{1,6}\s*', '', texto)
+        
+        # Remover marcadores de lista
+        texto = re.sub(r'^[\-\*\+]\s+', '', texto)
+        texto = re.sub(r'^\d+\.\s+', '', texto)
+        
+        # Remover ** e * (negrito e itálico)
+        texto = re.sub(r'\*\*\*([^*]+)\*\*\*', r'\1', texto)
+        texto = re.sub(r'\*\*([^*]+)\*\*', r'\1', texto)
+        texto = re.sub(r'\*([^*]+)\*', r'\1', texto)
+        
+        # Remover underscores de ênfase
+        texto = re.sub(r'__([^_]+)__', r'\1', texto)
+        texto = re.sub(r'(?<!\w)_([^_]+)_(?!\w)', r'\1', texto)
+        
+        # Remover backticks (código)
+        texto = re.sub(r'`([^`]+)`', r'\1', texto)
+        
+        return texto.strip()
+    
     def _is_titulo(self, texto: str) -> bool:
         """Verifica se é um título"""
         titulos = [
