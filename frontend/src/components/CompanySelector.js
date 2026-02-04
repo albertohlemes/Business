@@ -244,29 +244,49 @@ const CompanySelector = () => {
                   </div>
                   
                   {getTotalSieg() > 0 && (
-                    <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={autoSyncEnabled}
-                          onChange={(e) => setAutoSyncEnabled(e.target.checked)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        Importar automaticamente ao confirmar
-                      </label>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={autoSyncEnabled}
+                            onChange={(e) => setAutoSyncEnabled(e.target.checked)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            disabled={siegSyncing || syncProgress.active}
+                          />
+                          Importar automaticamente ao confirmar
+                        </label>
+                        
+                        <button
+                          onClick={handleSyncNow}
+                          disabled={siegSyncing || syncProgress.active}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {(siegSyncing || syncProgress.active) ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <CloudDownload className="w-4 h-4" />
+                          )}
+                          {(siegSyncing || syncProgress.active) ? 'Importando...' : 'Importar Agora'}
+                        </button>
+                      </div>
                       
-                      <button
-                        onClick={handleSyncNow}
-                        disabled={siegSyncing}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
-                      >
-                        {siegSyncing ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <CloudDownload className="w-4 h-4" />
-                        )}
-                        {siegSyncing ? 'Importando...' : 'Importar Agora'}
-                      </button>
+                      {/* Barra de progresso */}
+                      {syncProgress.active && (
+                        <div className="bg-white rounded-lg p-3 border border-blue-200">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                            <span className="text-sm font-medium text-gray-700">{syncProgress.step}</span>
+                            <span className="text-sm font-bold text-blue-600 ml-auto">{syncProgress.percent}%</span>
+                          </div>
+                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300"
+                              style={{ width: `${syncProgress.percent}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                   
@@ -278,11 +298,35 @@ const CompanySelector = () => {
                           {syncResult.error}
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4" />
-                          Importados: {syncResult.processados?.entrada || 0} entradas, {syncResult.processados?.saida || 0} saídas
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4" />
+                            <span className="font-semibold">Importação concluída!</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="bg-white/50 p-2 rounded">
+                              <span className="text-green-800">Entradas: </span>
+                              <span className="font-bold">{syncResult.processados?.entrada || 0}</span>
+                            </div>
+                            <div className="bg-white/50 p-2 rounded">
+                              <span className="text-green-800">Saídas: </span>
+                              <span className="font-bold">{syncResult.processados?.saida || 0}</span>
+                            </div>
+                          </div>
+                          {syncResult.classificados && (syncResult.classificados.cache > 0 || syncResult.classificados.ia > 0) && (
+                            <div className="flex items-center gap-2 text-xs bg-purple-50 text-purple-700 p-2 rounded border border-purple-200">
+                              <Sparkles className="w-3 h-3" />
+                              <span>
+                                Classificação IA: 
+                                {syncResult.classificados.cache > 0 && ` ${syncResult.classificados.cache} do cache`}
+                                {syncResult.classificados.ia > 0 && ` ${syncResult.classificados.ia} pela IA`}
+                              </span>
+                            </div>
+                          )}
                           {syncResult.duplicados?.length > 0 && (
-                            <span className="text-xs">({syncResult.duplicados.length} duplicados)</span>
+                            <div className="text-xs text-yellow-700 bg-yellow-50 p-2 rounded">
+                              {syncResult.duplicados.length} nota(s) já importada(s)
+                            </div>
                           )}
                         </div>
                       )}
