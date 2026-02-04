@@ -28,9 +28,14 @@ ALINHAMENTO_MAP = {
 
 def _limpar_markdown(texto: str) -> str:
     """Remove marcações Markdown e caracteres decorativos do texto"""
-    # Remover linhas decorativas (======, ------, ******, etc)
-    if re.match(r'^[=\-*_]{3,}$', texto.strip()):
+    # Remover linhas decorativas (======, ------, mas preservar ___ para assinaturas)
+    # Linhas de = ou - são decorativas, linhas de _ são assinaturas
+    if re.match(r'^[=\-]{5,}$', texto.strip()):
         return ''
+    
+    # Preservar linhas de assinatura (apenas underscores)
+    if re.match(r'^_+$', texto.strip()):
+        return texto.strip()
     
     # Remover cabeçalhos markdown (### Título)
     texto = re.sub(r'^#{1,6}\s*', '', texto)
@@ -43,7 +48,7 @@ def _limpar_markdown(texto: str) -> str:
     # texto = re.sub(r'\*\*([^*]+)\*\*', r'\1', texto)
     # texto = re.sub(r'\*([^*]+)\*', r'\1', texto)
     
-    # Remover underscores de ênfase
+    # Remover underscores de ênfase (mas não linhas de assinatura)
     texto = re.sub(r'__([^_]+)__', r'\1', texto)
     texto = re.sub(r'(?<!\w)_([^_]+)_(?!\w)', r'\1', texto)
     
@@ -60,9 +65,13 @@ def _extrair_formatacao_inline(texto: str) -> List[Tuple[str, bool, bool]]:
     """
     partes = []
     
-    # Verificar se é linha decorativa
-    if re.match(r'^[=\-*_]{3,}$', texto.strip()):
+    # Verificar se é linha decorativa (= ou -, mas não _)
+    if re.match(r'^[=\-]{5,}$', texto.strip()):
         return []  # Ignorar linhas decorativas
+    
+    # Preservar linhas de assinatura
+    if re.match(r'^_+$', texto.strip()):
+        return [(texto.strip(), False, False)]
     
     # Limpar marcações de lista primeiro
     texto = re.sub(r'^[\-\*\+]\s+', '', texto)
