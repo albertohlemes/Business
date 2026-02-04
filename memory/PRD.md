@@ -11,6 +11,12 @@ Portal para departamento societário com geração de documentos via IA.
 
 ## Implementações Concluídas
 
+### ✅ Bug Fix - Categorização de Processos (05/02/2026)
+- Corrigido bug onde processos de "Constituição" apareciam na aba "Alteração"
+- Adicionado campo `tipo_processo` ao modelo `MinutaResponse` no backend
+- Atualizado endpoint `/api/minutas` para retornar `tipo_processo`
+- Executada migração de dados para documentos antigos no MongoDB
+
 ### ✅ Wizard de Constituição Completo (04/02/2026)
 
 **Etapa 1 - Dados da Empresa:**
@@ -53,6 +59,7 @@ Portal para departamento societário com geração de documentos via IA.
 ### ✅ Correção do Bug de PDF (04/02/2026)
 - Logo no cabeçalho
 - Rodapé alinhado
+- **Status: Aguardando verificação do usuário**
 
 ## Banco de CNAEs Incluídos
 - Desenvolvimento de software (62.01, 62.02, 62.03)
@@ -83,6 +90,9 @@ Portal para departamento societário com geração de documentos via IA.
 
 ## Backlog
 
+### P0 - Alta Prioridade
+- ⏳ Verificação do usuário: exportação PDF (logo/rodapé)
+
 ### P1 - Média Prioridade
 - ⏳ Implementar processo de **Baixa**
 - ⏳ Adicionar mais CNAEs ao banco de dados
@@ -90,9 +100,11 @@ Portal para departamento societário com geração de documentos via IA.
 
 ### P2 - Baixa Prioridade
 - ⏳ Reativar automação REDESIM
+- ⏳ Reativar plugin Babel `visual-edits`
 
 ## Credenciais de Teste
 - Email: teste2@teste.com
 - Senha: 123456
 
 ## Status: MVP Constituição COMPLETO ✅
+- Bug de categorização de processos CORRIGIDO ✅
