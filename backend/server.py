@@ -1360,16 +1360,47 @@ async def analise_aliquotas_saida(
     if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
+    # Regime tributário e UF da empresa
+    regime = company.get('regime_tributario', 'lucro_presumido')
+    uf_empresa = company.get('uf', 'SP')
+    
+    # Alíquotas de PIS/COFINS por regime
+    if regime == 'lucro_real':
+        ALIQ_PIS_PADRAO = 1.65
+        ALIQ_COFINS_PADRAO = 7.6
+    else:  # lucro_presumido ou simples
+        ALIQ_PIS_PADRAO = 0.65
+        ALIQ_COFINS_PADRAO = 3.0
+    
+    # Alíquotas de ICMS por UF (principais estados)
+    ALIQ_ICMS_POR_UF = {
+        'SP': 18.0, 'RJ': 20.0, 'MG': 18.0, 'RS': 18.0, 'PR': 19.0,
+        'SC': 17.0, 'BA': 19.0, 'PE': 18.0, 'CE': 18.0, 'GO': 17.0,
+        'DF': 18.0, 'ES': 17.0, 'MT': 17.0, 'MS': 17.0, 'PA': 17.0,
+        'AM': 18.0, 'MA': 18.0, 'PI': 18.0, 'RN': 18.0, 'PB': 18.0,
+        'AL': 18.0, 'SE': 18.0, 'TO': 18.0, 'RO': 17.5, 'AC': 17.0,
+        'AP': 18.0, 'RR': 17.0
+    }
+    ALIQ_ICMS_PADRAO = ALIQ_ICMS_POR_UF.get(uf_empresa, 18.0)
+    
+    # NCMs com alíquota zero de PIS/COFINS (monofásico/isentos comuns)
+    NCM_ALIQ_ZERO = [
+        '0901', '1006', '1101', '1102',  # Café, arroz, farinha de trigo
+        '2201', '2202',  # Águas, refrigerantes (alguns)
+        '2710',  # Combustíveis (monofásico)
+        '3002', '3003', '3004',  # Medicamentos (alguns)
+        '8703',  # Veículos (alguns)
+    ]
+    
+    def is_ncm_aliq_zero(ncm: str) -> bool:
+        """Verifica se NCM é de produto com alíquota zero"""
+        ncm_4 = ncm[:4] if ncm else ''
+        return ncm_4 in NCM_ALIQ_ZERO
+    
     # Buscar apenas documentos de saída
     query = {"company_id": company_id, "competencia": competencia, "tipo": "saida"}
     documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(1000)
     
-    # Alíquotas padrão esperadas
-    ALIQ_ICMS_PADRAO = 18.0  # SP
-    ALIQ_PIS_PADRAO = 1.65
-    ALIQ_COFINS_PADRAO = 7.6
-    
-    # Analisar cada produto de cada NF de saída
     alertas = []
     produtos_analisados = []
     
@@ -1379,16 +1410,21 @@ async def analise_aliquotas_saida(
             v_icms = float(prod.get('v_icms', 0) or 0)
             v_pis = float(prod.get('v_pis', 0) or 0)
             v_cofins = float(prod.get('v_cofins', 0) or 0)
+            ncm = prod.get('ncm', '')
             
             # Calcular alíquotas efetivas
             aliq_icms = (v_icms / valor_total * 100) if valor_total > 0 else 0
             aliq_pis = (v_pis / valor_total * 100) if valor_total > 0 else 0
             aliq_cofins = (v_cofins / valor_total * 100) if valor_total > 0 else 0
             
+            # Verificar se é alíquota zero pelo NCM
+            ncm_is_aliq_zero = is_ncm_aliq_zero(ncm)
+            
             produto_info = {
                 'documento': doc.get('numero_nfe'),
                 'codigo': prod.get('codigo'),
                 'descricao': prod.get('descricao'),
+                'ncm': ncm,
                 'valor_total': valor_total,
                 'aliquotas': {
                     'icms': round(aliq_icms, 2),
@@ -1400,50 +1436,66 @@ async def analise_aliquotas_saida(
                     'pis': v_pis,
                     'cofins': v_cofins
                 },
+                'ncm_aliq_zero': ncm_is_aliq_zero,
                 'alertas': []
             }
             
-            # Verificar alíquotas
-            # ICMS zerado pode ser correto (isento, ST já pago, etc)
+            # ICMS - verificar alíquota com base no UF
             if aliq_icms == 0 and valor_total > 0:
                 produto_info['alertas'].append({
                     'tipo': 'info',
                     'imposto': 'ICMS',
-                    'mensagem': 'ICMS zerado - verificar se é isento, ST, ou erro'
+                    'mensagem': f'ICMS zerado - verificar se é isento, ST ou imune'
                 })
             elif aliq_icms > 0 and abs(aliq_icms - ALIQ_ICMS_PADRAO) > 1:
-                produto_info['alertas'].append({
-                    'tipo': 'atencao',
-                    'imposto': 'ICMS',
-                    'mensagem': f'Alíquota ICMS {aliq_icms:.2f}% diferente do padrão ({ALIQ_ICMS_PADRAO}%)'
-                })
+                # Verificar se é alíquota de outro estado ou redução de base
+                if aliq_icms in [7, 12, 4]:  # Alíquotas interestaduais
+                    produto_info['alertas'].append({
+                        'tipo': 'info',
+                        'imposto': 'ICMS',
+                        'mensagem': f'ICMS {aliq_icms:.2f}% parece interestadual ou com redução'
+                    })
+                else:
+                    produto_info['alertas'].append({
+                        'tipo': 'atencao',
+                        'imposto': 'ICMS',
+                        'mensagem': f'ICMS {aliq_icms:.2f}% diferente do padrão {uf_empresa} ({ALIQ_ICMS_PADRAO}%)'
+                    })
             
-            # PIS zerado pode ser alíquota zero
+            # PIS - verificar com base no regime e NCM
             if aliq_pis == 0 and valor_total > 0:
-                produto_info['alertas'].append({
-                    'tipo': 'info',
-                    'imposto': 'PIS',
-                    'mensagem': 'PIS zerado - verificar se é alíquota zero ou monofásico'
-                })
-            elif aliq_pis > 0 and abs(aliq_pis - ALIQ_PIS_PADRAO) > 0.1:
+                if ncm_is_aliq_zero:
+                    # OK - NCM com alíquota zero
+                    pass
+                else:
+                    produto_info['alertas'].append({
+                        'tipo': 'info',
+                        'imposto': 'PIS',
+                        'mensagem': f'PIS zerado - NCM não identificado como alíq. zero'
+                    })
+            elif aliq_pis > 0 and abs(aliq_pis - ALIQ_PIS_PADRAO) > 0.15:
                 produto_info['alertas'].append({
                     'tipo': 'atencao',
                     'imposto': 'PIS',
-                    'mensagem': f'Alíquota PIS {aliq_pis:.2f}% diferente do padrão ({ALIQ_PIS_PADRAO}%)'
+                    'mensagem': f'PIS {aliq_pis:.2f}% diferente do padrão {regime.replace("_", " ").title()} ({ALIQ_PIS_PADRAO}%)'
                 })
             
-            # COFINS zerado pode ser alíquota zero
+            # COFINS - verificar com base no regime e NCM
             if aliq_cofins == 0 and valor_total > 0:
-                produto_info['alertas'].append({
-                    'tipo': 'info',
-                    'imposto': 'COFINS',
-                    'mensagem': 'COFINS zerado - verificar se é alíquota zero ou monofásico'
-                })
-            elif aliq_cofins > 0 and abs(aliq_cofins - ALIQ_COFINS_PADRAO) > 0.1:
+                if ncm_is_aliq_zero:
+                    # OK - NCM com alíquota zero
+                    pass
+                else:
+                    produto_info['alertas'].append({
+                        'tipo': 'info',
+                        'imposto': 'COFINS',
+                        'mensagem': f'COFINS zerado - NCM não identificado como alíq. zero'
+                    })
+            elif aliq_cofins > 0 and abs(aliq_cofins - ALIQ_COFINS_PADRAO) > 0.15:
                 produto_info['alertas'].append({
                     'tipo': 'atencao',
                     'imposto': 'COFINS',
-                    'mensagem': f'Alíquota COFINS {aliq_cofins:.2f}% diferente do padrão ({ALIQ_COFINS_PADRAO}%)'
+                    'mensagem': f'COFINS {aliq_cofins:.2f}% diferente do padrão {regime.replace("_", " ").title()} ({ALIQ_COFINS_PADRAO}%)'
                 })
             
             produtos_analisados.append(produto_info)
@@ -1456,6 +1508,13 @@ async def analise_aliquotas_saida(
     return {
         "empresa": company['razao_social'],
         "competencia": competencia,
+        "regime_tributario": regime,
+        "uf": uf_empresa,
+        "aliquotas_esperadas": {
+            "icms": ALIQ_ICMS_PADRAO,
+            "pis": ALIQ_PIS_PADRAO,
+            "cofins": ALIQ_COFINS_PADRAO
+        },
         "total_documentos_saida": len(documents),
         "total_produtos": total_produtos,
         "produtos_com_alerta": produtos_com_alerta,
