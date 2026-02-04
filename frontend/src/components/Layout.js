@@ -62,46 +62,29 @@ const Layout = ({ children }) => {
                     })}
                 </nav>
 
-                <div className="p-4 border-t border-zinc-800">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button 
-                                variant="ghost" 
-                                className="w-full justify-start gap-3 text-zinc-400 hover:text-white hover:bg-zinc-800"
-                                data-testid="user-menu-trigger"
-                            >
-                                <div className="w-8 h-8 rounded bg-red-600/20 flex items-center justify-center">
-                                    <User className="w-4 h-4 text-red-500" strokeWidth={1.5} />
-                                </div>
-                                <div className="text-left flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-white truncate">
-                                        {user?.name || 'Usuário'}
-                                    </p>
-                                    <p className="text-xs text-zinc-500 truncate">
-                                        {user?.email}
-                                    </p>
-                                </div>
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent 
-                            className="w-56 bg-zinc-900 border-zinc-800"
-                            align="end"
-                        >
-                            <DropdownMenuItem className="text-zinc-400 focus:text-white focus:bg-zinc-800">
-                                <User className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                                Perfil
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-zinc-800" />
-                            <DropdownMenuItem 
-                                className="text-red-500 focus:text-red-400 focus:bg-red-950"
-                                onClick={handleLogout}
-                                data-testid="logout-btn"
-                            >
-                                <LogOut className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                                Sair
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                <div className="p-4 border-t border-zinc-800 space-y-3">
+                    <div className="flex items-center gap-3 px-2">
+                        <div className="w-8 h-8 rounded bg-red-600/20 flex items-center justify-center">
+                            <User className="w-4 h-4 text-red-500" strokeWidth={1.5} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate">
+                                {user?.name || 'Usuário'}
+                            </p>
+                            <p className="text-xs text-zinc-500 truncate">
+                                {user?.email}
+                            </p>
+                        </div>
+                    </div>
+                    <Button 
+                        variant="outline"
+                        onClick={handleLogout}
+                        data-testid="logout-btn"
+                        className="w-full border-zinc-700 text-zinc-400 hover:text-red-500 hover:border-red-600 hover:bg-red-950/20"
+                    >
+                        <LogOut className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                        Sair
+                    </Button>
                 </div>
             </aside>
 
