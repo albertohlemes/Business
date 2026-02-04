@@ -1506,6 +1506,128 @@ class FiscalSystemAPITester:
         print("✅ ALL BULK DELETE FILTER TESTS PASSED")
         return True, {"message": "Bulk delete with filters functionality verified successfully"}
 
+    def test_single_document_delete_verification(self):
+        """Test single document delete verification as requested in review"""
+        if not self.admin_token:
+            print("❌ No admin token available for single document delete test")
+            return False, {}
+        
+        print("\n🔍 Testing Single Document Delete Verification...")
+        
+        # Step 1: Create a document by inserting directly into MongoDB
+        document_id = str(uuid.uuid4())
+        
+        dummy_document = {
+            "id": document_id,
+            "company_id": "test-company-id",  # Using a test company ID
+            "competencia": "12/2024",
+            "tipo": "entrada",
+            "modelo": "nfe",
+            "chave_nfe": f"35202412345678000190550010000000011{uuid.uuid4().hex[:8]}",
+            "numero_nfe": "999999",
+            "data_emissao": "2024-12-30T10:30:00-03:00",
+            "emitente_cnpj": "12.345.678/0001-90",
+            "emitente_nome": "Fornecedor Delete Test LTDA",
+            "destinatario_cnpj": "98.765.432/0001-01",
+            "destinatario_nome": "Cliente Delete Test LTDA",
+            "valor_total": 500.00,
+            "valor_servicos": 0.0,
+            "xml_content": "<?xml version='1.0'?><nfe>delete test content</nfe>",
+            "produtos": [
+                {
+                    "codigo": "PROD999",
+                    "descricao": "Produto Delete Test",
+                    "ncm": "12345678",
+                    "cfop": "1102",
+                    "quantidade": 1.0,
+                    "valor_unitario": 500.0,
+                    "valor_total": 500.0,
+                    "unidade": "UN"
+                }
+            ],
+            "servicos": [],
+            "status_validacao": "pendente",
+            "uploaded_at": datetime.now().isoformat(),
+            "uploaded_by": "test_user"
+        }
+        
+        try:
+            # Insert document directly into MongoDB
+            result = self.db.xml_documents.insert_one(dummy_document)
+            print(f"✅ Step 1 Complete: Created document with ID: {document_id}")
+        except Exception as e:
+            print(f"❌ Step 1 Failed: Could not create document - {str(e)}")
+            return False, {}
+        
+        # Step 2: Verify document exists by calling GET /api/xml/documents/{document_id}
+        headers = {'Authorization': f'Bearer {self.admin_token}'}
+        success, response = self.run_test(
+            "Step 2: Verify Document Exists",
+            "GET",
+            f"xml/documents/{document_id}",
+            200,
+            headers=headers
+        )
+        
+        if not success:
+            print("❌ Step 2 Failed: Document does not exist or API call failed")
+            return False, {}
+        
+        if response.get('id') != document_id:
+            print(f"❌ Step 2 Failed: Document ID mismatch - expected {document_id}, got {response.get('id')}")
+            return False, {}
+        
+        print(f"✅ Step 2 Complete: Verified document exists with correct ID")
+        
+        # Step 3: Delete the document using DELETE /api/documents/{document_id}
+        success, response = self.run_test(
+            "Step 3: Delete Document",
+            "DELETE",
+            f"documents/{document_id}",
+            200,
+            headers=headers
+        )
+        
+        if not success:
+            print("❌ Step 3 Failed: Document deletion API call failed")
+            return False, {}
+        
+        # Verify response contains success message
+        if 'message' not in response:
+            print("❌ Step 3 Failed: Delete response missing success message")
+            return False, {}
+        
+        print(f"✅ Step 3 Complete: Document deleted successfully - {response.get('message')}")
+        
+        # Step 4: Verify document is gone by calling GET /api/xml/documents/{document_id} (should return 404)
+        success, response = self.run_test(
+            "Step 4: Verify Document is Gone",
+            "GET",
+            f"xml/documents/{document_id}",
+            404,  # Should return 404 since document is deleted
+            headers=headers
+        )
+        
+        if not success:
+            print("❌ Step 4 Failed: Document still exists after deletion")
+            return False, {}
+        
+        print(f"✅ Step 4 Complete: Verified document is completely gone (404 response)")
+        
+        # Additional verification: Check directly in MongoDB that document is gone
+        try:
+            db_check = self.db.xml_documents.find_one({"id": document_id})
+            if db_check:
+                print("❌ Additional Check Failed: Document still exists in database")
+                return False, {}
+            else:
+                print("✅ Additional Check Passed: Document confirmed deleted from database")
+        except Exception as e:
+            print(f"⚠️  Could not verify database deletion: {str(e)}")
+        
+        print("✅ SINGLE DOCUMENT DELETE VERIFICATION COMPLETED SUCCESSFULLY")
+        return True, {"message": "Single document delete verification completed successfully"}
+
 def main():
     print("🚀 Starting Business Contabilidade Fiscal System API Tests")
     print("=" * 60)
