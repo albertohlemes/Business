@@ -15,9 +15,14 @@ class FiscalSystemAPITester:
         self.client_user = None
         self.company_id = None
         self.document_id = None
+        self.cascade_test_company_id = None
+        self.cascade_test_document_id = None
         self.tests_run = 0
         self.tests_passed = 0
         self.errors = []
+        # MongoDB connection for direct DB operations
+        self.mongo_client = MongoClient("mongodb://localhost:27017")
+        self.db = self.mongo_client["test_database"]
 
     def run_test(self, name, method, endpoint, expected_status, data=None, headers=None, files=None):
         """Run a single API test"""
