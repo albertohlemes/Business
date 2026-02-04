@@ -1383,6 +1383,8 @@ async def upload_xml_batch(
             products_for_ai = []
             
             # 1. Primeira passada: Regras diretas (rápido) e coleta para IA
+            emitente_uf = parsed_data.get('emitente_uf', '')
+            
             for product in parsed_data['produtos']:
                 cfop_original = product.get('cfop', '')
                 ncm = product.get('ncm', '')
