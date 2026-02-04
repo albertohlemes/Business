@@ -389,6 +389,14 @@ const ValidationPage = ({ user, onLogout }) => {
             <p className="text-sm text-gray-600 mb-2">
               Código: {product.codigo} | NCM: {product.ncm} | Qtd: {product.quantidade} {product.unidade}
             </p>
+            
+            {/* Justificativa da IA */}
+            {product.justificativa_ia && (
+              <div className="mb-2 flex items-center gap-2 text-xs">
+                <Info className="w-4 h-4 text-blue-500" />
+                <span className="text-blue-700 bg-blue-50 px-2 py-1 rounded">{product.justificativa_ia}</span>
+              </div>
+            )}
 
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2">
