@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { Building2, Plus, Search, RefreshCw, Trash2, Edit, X } from 'lucide-react';
+import { Building2, Plus, Search, RefreshCw, Trash2, Edit, X, Settings } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
