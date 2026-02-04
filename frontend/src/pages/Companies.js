@@ -305,6 +305,36 @@ const Companies = ({ user, onLogout }) => {
     setFormData({ ...formData, produtos_despesa: novasDespesas });
   };
 
+  const adicionarAtivo = () => {
+    if (ativoInput.trim()) {
+      setFormData({
+        ...formData,
+        ativo_imobilizado: [...formData.ativo_imobilizado, ativoInput.trim()]
+      });
+      setAtivoInput('');
+    }
+  };
+
+  const removerAtivo = (index) => {
+    const novosAtivos = formData.ativo_imobilizado.filter((_, i) => i !== index);
+    setFormData({ ...formData, ativo_imobilizado: novosAtivos });
+  };
+
+  const adicionarCombustivel = () => {
+    if (combustivelInput.trim()) {
+      setFormData({
+        ...formData,
+        combustivel: [...formData.combustivel, combustivelInput.trim()]
+      });
+      setCombustivelInput('');
+    }
+  };
+
+  const removerCombustivel = (index) => {
+    const novosCombustiveis = formData.combustivel.filter((_, i) => i !== index);
+    setFormData({ ...formData, combustivel: novosCombustiveis });
+  };
+
   const filteredCompanies = companies.filter(company =>
     company.razao_social.toLowerCase().includes(searchTerm.toLowerCase()) ||
     company.cnpj.includes(searchTerm) ||
