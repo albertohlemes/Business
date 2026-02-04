@@ -140,6 +140,10 @@ const Documents = ({ user, onLogout }) => {
   };
 
   const filteredDocuments = documents.filter(doc => {
+    // Filtrar pela empresa do contexto
+    if (ctxCompany && doc.company_id !== ctxCompany.id) return false;
+    // Filtrar pela competência do contexto
+    if (selectedCompetencia && doc.competencia !== selectedCompetencia) return false;
     if (selectedStatus && doc.status_validacao !== selectedStatus) return false;
     if (selectedTipo && doc.tipo !== selectedTipo) return false;
     return true;
