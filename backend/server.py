@@ -827,6 +827,8 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
     produtos_comercializados = company.get('produtos_comercializados', [])
     insumos_producao = company.get('insumos_producao', [])
     produtos_despesa = company.get('produtos_despesa', [])
+    ativo_imobilizado = company.get('ativo_imobilizado', [])
+    combustivel = company.get('combustivel', [])
     company_uf = company.get('uf', 'SP')
     
     categoria, justificativa = classify_product_category(
@@ -834,7 +836,9 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
         product.get('ncm', ''),
         produtos_comercializados,
         insumos_producao,
-        produtos_despesa
+        produtos_despesa,
+        ativo_imobilizado,
+        combustivel
     )
     
     cst = product.get('cst', '')
@@ -857,6 +861,12 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
             justificativa = 'Transferência entre estabelecimentos'
         elif categoria == 'combustivel':
             cfop_sugerido = cfop_prefix + '653'
+        elif categoria == 'ativo_imobilizado':
+            if is_st:
+                cfop_sugerido = cfop_prefix + '406'
+                justificativa += ' (com Substituição Tributária)'
+            else:
+                cfop_sugerido = cfop_prefix + '551'
         elif categoria == 'revenda':
             if is_st:
                 cfop_sugerido = cfop_prefix + '403'
