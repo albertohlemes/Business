@@ -97,6 +97,32 @@ class MinutaCreate(BaseModel):
     tipo_alteracao: str
     descricao: str
 
+class DadosEmpresa(BaseModel):
+    """Dados estruturados extraídos do contrato"""
+    razao_social: Optional[str] = None
+    cnpj: Optional[str] = None
+    endereco: Optional[str] = None
+    capital_social: Optional[str] = None
+    objeto_social: Optional[str] = None
+
+class Socio(BaseModel):
+    """Dados de um sócio"""
+    nome: str
+    cpf: Optional[str] = None
+    participacao: Optional[str] = None
+    administrador: Optional[bool] = None
+    nacionalidade: Optional[str] = None
+    estado_civil: Optional[str] = None
+    profissao: Optional[str] = None
+    rg: Optional[str] = None
+
+class DadosExtraidos(BaseModel):
+    """Todos os dados extraídos do contrato"""
+    empresa: Optional[DadosEmpresa] = None
+    socios: List[Socio] = []
+    atividades: List[str] = []
+    raw_text: Optional[str] = None
+
 class MinutaResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
@@ -106,6 +132,10 @@ class MinutaResponse(BaseModel):
     conteudo_gerado: Optional[str] = None
     status: str
     created_at: str
+    # Novos campos para listagem
+    cnpj: Optional[str] = None
+    razao_social: Optional[str] = None
+    numero_alteracao: Optional[int] = None
 
 class ChatMessage(BaseModel):
     message: str
