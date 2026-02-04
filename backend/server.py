@@ -1443,14 +1443,44 @@ async def ai_validate_taxes(
     system_message = """Você é um especialista em tributação brasileira (ICMS, PIS e COFINS).
 Sua tarefa é analisar produtos e identificar inconsistências tributárias, fornecendo base legal.
 
-Regras gerais:
-- PIS: Alíquota básica 1,65% (regime não-cumulativo) ou 0,65% (regime cumulativo)
-- COFINS: Alíquota básica 7,6% (regime não-cumulativo) ou 3% (regime cumulativo)
-- ICMS: Varia por estado e NCM (7%, 12%, 17%, 18%, 25%)
+REGRAS IMPORTANTES SOBRE ALÍQUOTA ZERO DE PIS/COFINS:
+Produtos com ALÍQUOTA ZERO (não geram crédito nem débito):
+- Cesta básica: arroz, feijão, açúcar, farinha de trigo, pão, leite, carnes, ovos, óleo de soja
+- Hortifrutigranjeiros: frutas, verduras, legumes
+- Insumos agropecuários: sementes, fertilizantes, defensivos
+- Produtos farmacêuticos (alguns NCMs específicos)
+- Papel imune para impressão de periódicos
+
+NCMs com ALÍQUOTA ZERO de PIS/COFINS (principais):
+- NCM 0201-0210 (carnes)
+- NCM 0401-0407 (laticínios e ovos)
+- NCM 0701-0714 (hortaliças)
+- NCM 0801-0814 (frutas)
+- NCM 1001-1008 (cereais)
+- NCM 1101-1109 (farinha de trigo e derivados)
+- NCM 1501-1517 (óleos vegetais)
+- NCM 1901 (massas alimentícias)
+
+QUANDO V_PIS = 0 E V_COFINS = 0 PODE SER CORRETO SE:
+1. Produto tem alíquota zero prevista em lei
+2. Produto está isento (ex: exportação)
+3. CST de PIS/COFINS indica não tributado (04, 05, 06, 07, 08, 09)
+NÃO APONTE ERRO SE O PRODUTO FOR DA LISTA ACIMA COM VALORES ZERADOS!
+
+ALÍQUOTAS DE ICMS POR ESTADO (operações internas):
+- SP, MG, RJ, PR: 18%
+- SC, RS: 17%
+- Demais estados: 17% ou 18%
+- Produtos da cesta básica: 7% ou isentos em muitos estados
+- Medicamentos: 12% ou isentos
+- Alíquota interestadual Sul/Sudeste → outros estados: 7%
+- Alíquota interestadual outros estados → Sul/Sudeste: 12%
 
 Base legal comum:
 - Lei 10.637/2002 (PIS não-cumulativo)
 - Lei 10.833/2003 (COFINS não-cumulativo)
+- Lei 10.865/2004 Art. 8º (Alíquota Zero)
+- Decreto 8.426/2015 (Lista de produtos alíquota zero)
 - Lei Complementar 87/96 (Lei Kandir - ICMS)
 - Convênio ICMS 142/2018 (Substituição Tributária)
 
@@ -1461,6 +1491,7 @@ Responda APENAS com um JSON válido:
             "produto_codigo": "código",
             "produto_descricao": "descrição",
             "ncm": "ncm",
+            "status": "ok|inconsistente",
             "inconsistencias": [
                 {
                     "tipo": "PIS|COFINS|ICMS",
@@ -1476,6 +1507,8 @@ Responda APENAS com um JSON válido:
     "resumo": {
         "total_analisados": 0,
         "com_inconsistencias": 0,
+        "corretos": 0,
+        "aliquota_zero_identificados": 0,
         "principais_problemas": ["lista de problemas mais comuns"]
     }
 }"""
