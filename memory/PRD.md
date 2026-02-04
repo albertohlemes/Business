@@ -242,6 +242,22 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 26 (04/02/2026)
+- ✅ **MENUS UNIFICADOS: "Validação & IA"**
+  - **Problema:** Dois menus separados ("Reclassificação IA" e "Validação Entrada") tinham funcionalidades sobrepostas
+  - **Solução:** Criada nova página `ClassificacaoPage.js` combinando:
+    - ✅ Aprovação de produtos em lote
+    - ✅ Comandos de IA para reclassificação
+    - ✅ Memória da IA (regras aprendidas)
+    - ✅ Reclassificação manual com modal
+    - ✅ Visualização por produto agrupado
+    - ✅ Filtros e ordenação
+  - **Arquivos modificados:**
+    - Criado: `/app/frontend/src/pages/ClassificacaoPage.js`
+    - Modificado: `/app/frontend/src/components/Layout.js` (menu)
+    - Modificado: `/app/frontend/src/App.js` (rotas)
+  - **Rotas antigas redirecionam:** `/validation` e `/reclassification` → `/classificacao`
+
 ### 02/2026 - Iteration 25 (04/02/2026)
 - ✅ **NOVO LOGO IMPLEMENTADO**
   - Substituído o logo anterior pelo novo logo com fundo transparente fornecido pelo usuário
