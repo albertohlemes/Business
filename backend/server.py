@@ -1368,9 +1368,6 @@ async def get_dashboard_stats(
     notas_pendentes = len([d for d in documents if d.get('status_validacao') != 'validado'])
     notas_validadas = len(documents) - notas_pendentes
     
-    # Regime tributário da empresa
-    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
-    
     # Análise comparativa Lucro Presumido vs. Lucro Real
     # Para Lucro Presumido: não há crédito de PIS/COFINS
     # Para Lucro Real: há crédito de PIS/COFINS (1.65% e 7.6%)
