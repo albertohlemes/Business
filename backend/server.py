@@ -558,6 +558,74 @@ async def continuar_apos_login(
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+# ============ REDESIM VNC (Browser Visível) ============
+
+from redesim_vnc import get_vnc_instance, executar_fluxo_completo, continuar_apos_login
+
+@api_router.post("/redesim-vnc/iniciar/{cnpj}")
+async def iniciar_consulta_vnc(cnpj: str, current_user: dict = Depends(get_current_user)):
+    """
+    Inicia consulta REDESIM com browser visível via noVNC.
+    O usuário verá a tela do navegador e poderá fazer login.
+    """
+    try:
+        resultado = await executar_fluxo_completo(cnpj)
+        resultado["vnc_url"] = "/novnc/vnc.html?autoconnect=true&resize=scale"
+        return resultado
+    except Exception as e:
+        logger.error(f"Erro VNC: {e}")
+        return {"success": False, "error": str(e)}
+
+@api_router.post("/redesim-vnc/continuar")
+async def continuar_consulta_vnc(cnpj: str, current_user: dict = Depends(get_current_user)):
+    """
+    Continua a automação após o usuário fazer login no Gov.br
+    """
+    try:
+        resultado = await continuar_apos_login(cnpj)
+        
+        # Se encontrou dados, atualizar licença no banco
+        if resultado.get("success") and resultado.get("dados"):
+            dados = resultado["dados"]
+            
+            # Atualizar licença com dados extraídos
+            update_data = {}
+            if dados.get("status"):
+                update_data["status_licenca"] = dados["status"]
+            if dados.get("vencimento"):
+                update_data["data_vencimento"] = dados["vencimento"]
+            
+            if update_data:
+                await db.licencas.update_one(
+                    {"cnpj": cnpj},
+                    {"$set": update_data}
+                )
+        
+        return resultado
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@api_router.get("/redesim-vnc/status")
+async def status_vnc(current_user: dict = Depends(get_current_user)):
+    """Retorna status atual da automação VNC"""
+    try:
+        consulta = get_vnc_instance()
+        status = await consulta.get_status()
+        screenshot = await consulta.capturar_screenshot()
+        return {**status, "screenshot": screenshot}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+@api_router.post("/redesim-vnc/fechar")
+async def fechar_vnc(current_user: dict = Depends(get_current_user)):
+    """Fecha o browser VNC"""
+    try:
+        consulta = get_vnc_instance()
+        await consulta.fechar()
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 # ============ MINUTAS ROUTES ============
 
 @api_router.post("/minutas/upload")
