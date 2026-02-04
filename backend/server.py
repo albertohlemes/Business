@@ -2772,8 +2772,8 @@ async def relatorio_divergencias_saida(
             esta_tributado = cst_pis not in csts_aliq_zero or cst_cofins not in csts_aliq_zero
             tem_valor_imposto = v_pis > 0 or v_cofins > 0
             
-            # Divergência: NCM é alíquota zero mas está tributado
-            if deveria_ser_aliq_zero and (esta_tributado or tem_valor_imposto):
+    # Divergência: NCM é alíquota zero mas está tributado (com valor > 0)
+            if deveria_ser_aliq_zero and tem_valor_imposto:
                 doc_divergencias.append({
                     'produto': prod.get('descricao', ''),
                     'codigo': prod.get('codigo', ''),
