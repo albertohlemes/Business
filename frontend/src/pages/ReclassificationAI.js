@@ -54,6 +54,14 @@ const ReclassificationAI = ({ user, onLogout }) => {
     motivo: ''
   });
 
+  // Estado para edição de regras
+  const [editingRule, setEditingRule] = useState(null);
+  const [ruleEdit, setRuleEdit] = useState({
+    categoria: '',
+    cfop: ''
+  });
+  const [deletingRule, setDeletingRule] = useState(null);
+
   useEffect(() => {
     fetchCompanies();
   }, []);
