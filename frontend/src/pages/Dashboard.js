@@ -111,7 +111,7 @@ const Dashboard = () => {
                     <div className="flex items-center gap-4">
                         <Button 
                             data-testid="nova-minuta-btn"
-                            onClick={() => navigate('/minutas')}
+                            onClick={() => navigate('/processos')}
                             className="bg-red-600 hover:bg-red-700 btn-business"
                         >
                             Nova Minuta
