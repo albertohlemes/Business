@@ -795,14 +795,124 @@ class FiscalSystemAPITester:
         
         return True, response
 
+    def test_admin_default_login(self):
+        """Test login with admin_default credentials (test@test.com / 123456)"""
+        login_data = {
+            "email": "test@test.com",
+            "password": "123456"
+        }
+        success, response = self.run_test(
+            "Admin Default Login",
+            "POST",
+            "auth/login",
+            200,
+            data=login_data
+        )
+        if success and 'access_token' in response:
+            self.admin_token = response['access_token']
+            print(f"✅ Successfully logged in with admin_default credentials")
+        return success, response
+
+    def test_full_company_flow(self):
+        """Test the full company flow: create, verify exists, delete, verify gone"""
+        if not self.admin_token:
+            print("❌ No admin token available for company flow test")
+            return False, {}
+        
+        print("\n🔍 Testing Full Company Flow...")
+        
+        # Step 1: Create a company
+        company_data = {
+            "cnpj": "99.888.777/0001-66",
+            "razao_social": "Empresa Flow Test LTDA",
+            "nome_fantasia": "Flow Test Corp",
+            "inscricao_estadual": "111222333",
+            "endereco": "Rua Flow Test, 789",
+            "cidade": "Rio de Janeiro",
+            "uf": "RJ",
+            "cep": "20000-000"
+        }
+        
+        headers = {'Authorization': f'Bearer {self.admin_token}'}
+        success, response = self.run_test(
+            "Step 1: Create Company",
+            "POST",
+            "companies",
+            200,
+            data=company_data,
+            headers=headers
+        )
+        
+        if not success or 'id' not in response:
+            print("❌ Failed to create company in flow test")
+            return False, {}
+        
+        flow_company_id = response['id']
+        print(f"✅ Step 1 Complete: Created company with ID: {flow_company_id}")
+        
+        # Step 2: Verify company exists by getting it
+        success, response = self.run_test(
+            "Step 2: Verify Company Exists",
+            "GET",
+            f"companies/{flow_company_id}",
+            200,
+            headers=headers
+        )
+        
+        if not success:
+            print("❌ Failed to verify company exists")
+            return False, {}
+        
+        if response.get('id') != flow_company_id:
+            print(f"❌ Company ID mismatch: expected {flow_company_id}, got {response.get('id')}")
+            return False, {}
+        
+        print(f"✅ Step 2 Complete: Verified company exists with correct data")
+        
+        # Step 3: Delete the company
+        success, response = self.run_test(
+            "Step 3: Delete Company",
+            "DELETE",
+            f"companies/{flow_company_id}",
+            200,
+            headers=headers
+        )
+        
+        if not success:
+            print("❌ Failed to delete company")
+            return False, {}
+        
+        print(f"✅ Step 3 Complete: Company deleted successfully")
+        
+        # Step 4: Verify company is gone (should return 404)
+        success, response = self.run_test(
+            "Step 4: Verify Company is Gone",
+            "GET",
+            f"companies/{flow_company_id}",
+            404,  # Should return 404 since company is deleted
+            headers=headers
+        )
+        
+        if not success:
+            print("❌ Company still exists after deletion")
+            return False, {}
+        
+        print(f"✅ Step 4 Complete: Verified company is completely gone")
+        print(f"✅ Full Company Flow Test PASSED - All steps completed successfully")
+        
+        return True, {"message": "Full company flow completed successfully"}
+
 def main():
     print("🚀 Starting Business Contabilidade Fiscal System API Tests")
     print("=" * 60)
     
     tester = FiscalSystemAPITester()
     
-    # Test sequence
+    # Test sequence - focusing on the specific review request
     tests = [
+        tester.test_admin_default_login,
+        tester.test_full_company_flow,
+        # Additional comprehensive tests
         tester.test_root_endpoint,
         tester.test_admin_registration,
         tester.test_client_registration,
