@@ -396,15 +396,15 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
                   </div>
                 </div>
                 <DataTable 
-                  items={viewMode === 'cfop' ? data.creditos.com_credito.por_cfop : data.creditos.com_credito.por_ncm}
+                  items={viewMode === 'cst' ? data.creditos.com_credito.por_cst : viewMode === 'cfop' ? data.creditos.com_credito.por_cfop : data.creditos.com_credito.por_ncm}
                   showTaxes={true}
                 />
               </ExpandableSection>
               
               {/* Operações sem crédito (alíquota zero) */}
               <ExpandableSection
-                title="Operações Alíquota Zero / Sem Crédito"
-                subtitle={`${(viewMode === 'cfop' ? data.creditos.aliquota_zero.por_cfop : data.creditos.aliquota_zero.por_ncm).length} ${viewMode === 'cfop' ? 'CFOP(s)' : 'NCM(s)'}`}
+                title={`Operações Alíquota Zero / Sem Crédito (CST ${data.creditos.aliquota_zero.cst})`}
+                subtitle={`${(viewMode === 'cst' ? data.creditos.aliquota_zero.por_cst : viewMode === 'cfop' ? data.creditos.aliquota_zero.por_cfop : data.creditos.aliquota_zero.por_ncm).length} registro(s)`}
                 icon={AlertCircle}
                 color="bg-gray-500"
                 isExpanded={expandedSections.creditoAliqZero}
@@ -412,7 +412,7 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
                 badge={formatCurrency(data.creditos.aliquota_zero.valor_operacoes)}
               >
                 <DataTable 
-                  items={viewMode === 'cfop' ? data.creditos.aliquota_zero.por_cfop : data.creditos.aliquota_zero.por_ncm}
+                  items={viewMode === 'cst' ? data.creditos.aliquota_zero.por_cst : viewMode === 'cfop' ? data.creditos.aliquota_zero.por_cfop : data.creditos.aliquota_zero.por_ncm}
                   showTaxes={false}
                 />
               </ExpandableSection>
