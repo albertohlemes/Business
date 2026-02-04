@@ -1008,13 +1008,24 @@ const WizardBaixa = ({ open, onClose, onComplete }) => {
                                     <Label className="text-zinc-400 text-xs uppercase mb-2 block">
                                         Responsável pela Guarda dos Documentos <span className="text-red-500">*</span>
                                     </Label>
-                                    <Input
-                                        value={responsavelGuarda}
-                                        onChange={(e) => setResponsavelGuarda(e.target.value)}
-                                        placeholder="Nome completo do responsável"
-                                        className="bg-zinc-950 border-zinc-800"
-                                        required
-                                    />
+                                    <Select 
+                                        value={responsavelGuardaIndex.toString()} 
+                                        onValueChange={(v) => setResponsavelGuardaIndex(parseInt(v))}
+                                    >
+                                        <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                                            <SelectValue placeholder="Selecione o sócio responsável" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-zinc-900 border-zinc-700">
+                                            {socios.map((s, idx) => (
+                                                <SelectItem key={idx} value={idx.toString()}>
+                                                    {s.nome || `Sócio ${idx + 1}`}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-zinc-500 mt-1">
+                                        O sócio selecionado será responsável pela guarda de todos os livros e documentos da sociedade.
+                                    </p>
                                 </div>
                                 
                                 <div>
