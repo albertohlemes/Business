@@ -67,30 +67,11 @@ const Companies = ({ user, onLogout }) => {
     }
   };
 
+  /* Função de apagar removida a pedido do usuário
   const handleDelete = async (companyId, razaoSocial) => {
-    console.log('handleDelete called with:', companyId, razaoSocial);
-    
-    if (!window.confirm('Tem certeza que deseja excluir a empresa ' + razaoSocial + '?')) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      console.log('Making DELETE request to:', API + '/companies/' + companyId);
-      
-      const response = await axios.delete(API + '/companies/' + companyId, {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      
-      console.log('Delete response:', response.data);
-      alert('Empresa excluída com sucesso!');
-      fetchCompanies();
-      refreshCompanies();
-    } catch (err) {
-      console.error('Delete error:', err);
-      alert(err.response?.data?.detail || 'Erro ao excluir empresa');
-    }
+    ...
   };
+  */
 
   const handleEdit = (company) => {
     setEditingCompany(company);
