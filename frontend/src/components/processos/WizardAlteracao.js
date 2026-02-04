@@ -1541,7 +1541,11 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
             
             if (alteracoesSelecionadas.includes('socios')) {
                 descricaoCompleta += `\n\nALTERAÇÃO DE SÓCIOS (QSA):\n`;
-                if (dadosQSA.tipoQSA === 'saida') {
+                const tiposQSA = dadosQSA.tiposQSA || [];
+                
+                // Saída de sócios
+                if (tiposQSA.includes('saida')) {
+                    descricaoCompleta += `\n[SAÍDA DE SÓCIOS]\n`;
                     // Sócios selecionados da lista extraída
                     if (dadosQSA.sociosSaindo?.length > 0) {
                         const sociosSaindo = dadosQSA.sociosSaindo.map(idx => socios[idx]?.nome || `Sócio ${idx+1}`);
@@ -1554,13 +1558,23 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
                         });
                     }
                 }
-                if (dadosQSA.tipoQSA === 'entrada' && dadosQSA.sociosEntrando?.length > 0) {
+                
+                // Entrada de sócios
+                if (tiposQSA.includes('entrada') && dadosQSA.sociosEntrando?.length > 0) {
+                    descricaoCompleta += `\n[ENTRADA DE SÓCIOS]\n`;
                     dadosQSA.sociosEntrando.forEach(s => {
-                        descricaoCompleta += `- Novo sócio: ${s.nome}, CPF ${s.cpf}, ${s.estadoCivil}, ${s.profissao}, participação ${s.participacao}%\n`;
+                        const endereco = s.endereco || {};
+                        descricaoCompleta += `- Novo sócio: ${s.nome}, ${s.nacionalidade}, ${s.estadoCivil}, ${s.profissao}\n`;
+                        descricaoCompleta += `  CPF: ${s.cpf}, RG: ${s.rg} ${s.orgaoEmissor}\n`;
+                        descricaoCompleta += `  Endereço: ${endereco.logradouro || ''}, ${endereco.numero || ''}, ${endereco.bairro || ''}, ${endereco.cidade || ''}-${endereco.estado || ''}, CEP ${endereco.cep || ''}\n`;
+                        descricaoCompleta += `  Participação: ${s.participacao}%\n`;
                     });
                 }
-                if (dadosQSA.tipoQSA === 'redistribuicao') {
-                    descricaoCompleta += `- Redistribuição de cotas entre os sócios\n`;
+                
+                // Redistribuição de cotas
+                if (tiposQSA.includes('redistribuicao')) {
+                    descricaoCompleta += `\n[REDISTRIBUIÇÃO DE COTAS]\n`;
+                    descricaoCompleta += `- Nova distribuição do capital social:\n`;
                     Object.entries(dadosQSA.novasParticipacoes || {}).forEach(([idx, valor]) => {
                         descricaoCompleta += `  - ${socios[idx]?.nome || `Sócio ${parseInt(idx)+1}`}: ${valor}%\n`;
                     });
