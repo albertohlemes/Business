@@ -389,6 +389,7 @@ class FiscalSystemAPITester:
         
         data = {
             'company_id': self.company_id,
+            'competencia': '01/2024',  # Add competencia for proper testing
             'tipo': 'saida'
         }
         
