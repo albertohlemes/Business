@@ -771,7 +771,9 @@ ${TEMPLATE_MINUTA}
                                 <Button 
                                     size="sm" 
                                     onClick={() => {
-                                        visualizarPDF(viewContent, {}, null);
+                                        const url = gerarPDFBlobUrl(viewContent, {}, null);
+                                        setPdfUrl(url);
+                                        setPdfViewOpen(true);
                                     }}
                                     className="bg-red-600 hover:bg-red-700"
                                 >
@@ -799,7 +801,7 @@ ${TEMPLATE_MINUTA}
                             </div>
                         </div>
                         <p className="text-xs text-zinc-500 mt-2">
-                            Use "Ver PDF" para visualizar formatado e salvar, ou "Baixar" para download direto
+                            Use "Ver PDF" para visualizar formatado, ou "Baixar" para download direto
                         </p>
                     </DialogHeader>
                     <div className="flex-1 overflow-y-auto p-4">
@@ -813,6 +815,58 @@ ${TEMPLATE_MINUTA}
                         <Button variant="outline" onClick={() => setViewOpen(false)} className="border-zinc-700">
                             Fechar
                         </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* PDF Viewer Dialog */}
+            <Dialog open={pdfViewOpen} onOpenChange={(open) => {
+                if (!open && pdfUrl) {
+                    URL.revokeObjectURL(pdfUrl);
+                    setPdfUrl('');
+                }
+                setPdfViewOpen(open);
+            }}>
+                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-5xl h-[90vh] overflow-hidden flex flex-col p-0">
+                    <DialogHeader className="border-b border-zinc-800 p-4">
+                        <div className="flex items-center justify-between">
+                            <DialogTitle className="text-white flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-red-500" />
+                                Visualização do PDF
+                            </DialogTitle>
+                            <div className="flex gap-2">
+                                <Button 
+                                    size="sm" 
+                                    onClick={() => {
+                                        const link = document.createElement('a');
+                                        link.href = pdfUrl;
+                                        link.download = `minuta_${new Date().toISOString().split('T')[0]}.pdf`;
+                                        link.click();
+                                        toast.success('PDF baixado!');
+                                    }}
+                                    className="bg-red-600 hover:bg-red-700"
+                                >
+                                    <FileDown className="w-4 h-4 mr-2" /> Salvar PDF
+                                </Button>
+                                <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => setPdfViewOpen(false)}
+                                    className="border-zinc-700"
+                                >
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogHeader>
+                    <div className="flex-1 bg-zinc-800">
+                        {pdfUrl && (
+                            <iframe 
+                                src={pdfUrl} 
+                                className="w-full h-full border-0"
+                                title="Visualização do PDF"
+                            />
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>
