@@ -107,6 +107,10 @@ function App() {
               path="/apuracao"
               element={user ? <ApuracaoPeriodo user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/apuracao-pis-cofins"
+              element={user ? <ApuracaoPisCofins user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
           </Routes>
         </AppProvider>
       </BrowserRouter>
