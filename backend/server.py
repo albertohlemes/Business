@@ -317,24 +317,26 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                         cst_icms = icms[key]['CSOSN']
             
             v_icms = 0
+            v_bc = 0
             v_pis = 0
             v_cofins = 0
             
             for key in icms:
                 if isinstance(icms[key], dict):
-                    v_icms = float(icms[key].get('vICMS', 0))
+                    v_icms = float(icms[key].get('vICMS', 0) or 0)
+                    v_bc = float(icms[key].get('vBC', 0) or 0)
                     break
             
             for key in pis:
                 if isinstance(pis[key], dict):
-                    v_pis = float(pis[key].get('vPIS', 0))
+                    v_pis = float(pis[key].get('vPIS', 0) or 0)
                     # Extrair CST de PIS
                     cst_pis = pis[key].get('CST', '')
                     break
             
             for key in cofins:
                 if isinstance(cofins[key], dict):
-                    v_cofins = float(cofins[key].get('vCOFINS', 0))
+                    v_cofins = float(cofins[key].get('vCOFINS', 0) or 0)
                     # Extrair CST de COFINS
                     cst_cofins = cofins[key].get('CST', '')
                     break
@@ -347,10 +349,11 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                 'cst': cst_icms,
                 'cst_pis': cst_pis,
                 'cst_cofins': cst_cofins,
-                'quantidade': float(prod.get('qCom', 0)),
-                'valor_unitario': float(prod.get('vUnCom', 0)),
-                'valor_total': float(prod.get('vProd', 0)),
+                'quantidade': float(prod.get('qCom', 0) or 0),
+                'valor_unitario': float(prod.get('vUnCom', 0) or 0),
+                'valor_total': float(prod.get('vProd', 0) or 0),
                 'unidade': prod.get('uCom', ''),
+                'v_bc_icms': v_bc,
                 'v_icms': v_icms,
                 'v_pis': v_pis,
                 'v_cofins': v_cofins
