@@ -205,10 +205,11 @@ class FiscalSystemAPITester:
         if not self.admin_token:
             return False, {}
         
-        # Use timestamp to ensure unique CNPJ
-        timestamp = datetime.now().strftime('%H%M%S')
+        # Use microsecond timestamp to ensure unique CNPJ
+        import time
+        timestamp = str(int(time.time() * 1000000))[-6:]
         company_data = {
-            "cnpj": f"12.345.{timestamp[:3]}/0001-90",
+            "cnpj": f"12.{timestamp[:3]}.{timestamp[3:]}/0001-90",
             "razao_social": "Empresa Teste LTDA",
             "nome_fantasia": "Teste Corp",
             "inscricao_estadual": "123456789",
