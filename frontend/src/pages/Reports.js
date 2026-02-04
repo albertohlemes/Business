@@ -86,34 +86,62 @@ const Reports = ({ user, onLogout }) => {
   };
 
   const exportToCSV = () => {
-    if (reportData.length === 0) return;
+    if (!reportData || reportData.length === 0) {
+      alert('Nenhum dado para exportar');
+      return;
+    }
 
     let headers = '';
     let rows = '';
 
-    if (reportType === 'product') {
-      headers = 'Codigo,Descricao,NCM,Quantidade,Valor Total,Credito ICMS,Credito PIS,Credito COFINS,Documentos\n';
-      rows = reportData.map(item => 
-        [item.codigo, '"' + item.descricao + '"', item.ncm, item.quantidade, 
-         item.valor_total.toFixed(2), item.credito_icms.toFixed(2), 
-         item.credito_pis.toFixed(2), item.credito_cofins.toFixed(2), item.documentos].join(',')
-      ).join('\n');
-    } else {
-      headers = 'NCM,Qtd Produtos,Quantidade,Valor Total,Credito ICMS,Credito PIS,Credito COFINS,Documentos\n';
-      rows = reportData.map(item =>
-        [item.ncm, item.quantidade_produtos, item.quantidade, item.valor_total.toFixed(2),
-         item.credito_icms.toFixed(2), item.credito_pis.toFixed(2), 
-         item.credito_cofins.toFixed(2), item.documentos].join(',')
-      ).join('\n');
-    }
+    try {
+      if (reportType === 'product') {
+        headers = 'Codigo,Descricao,NCM,Quantidade,Valor Total,Credito ICMS,Credito PIS,Credito COFINS,Documentos\n';
+        rows = reportData.map(item => 
+          [
+            item.codigo || '', 
+            '"' + (item.descricao || '').replace(/"/g, '""') + '"', 
+            item.ncm || '', 
+            (item.quantidade || 0).toFixed(2), 
+            (item.valor_total || 0).toFixed(2), 
+            (item.credito_icms || 0).toFixed(2), 
+            (item.credito_pis || 0).toFixed(2), 
+            (item.credito_cofins || 0).toFixed(2), 
+            item.documentos || 0
+          ].join(',')
+        ).join('\n');
+      } else {
+        headers = 'NCM,Qtd Produtos,Quantidade,Valor Total,Credito ICMS,Credito PIS,Credito COFINS,Documentos\n';
+        rows = reportData.map(item =>
+          [
+            item.ncm || '', 
+            item.quantidade_produtos || 0, 
+            (item.quantidade || 0).toFixed(2), 
+            (item.valor_total || 0).toFixed(2),
+            (item.credito_icms || 0).toFixed(2), 
+            (item.credito_pis || 0).toFixed(2), 
+            (item.credito_cofins || 0).toFixed(2), 
+            item.documentos || 0
+          ].join(',')
+        ).join('\n');
+      }
 
-    const csv = headers + rows;
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'relatorio_' + reportType + '_' + competencia.replace('/', '-') + '.csv';
-    link.click();
+      // Adicionar BOM para UTF-8
+      const BOM = '\uFEFF';
+      const csv = BOM + headers + rows;
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'relatorio_' + reportType + '_' + (competencia || 'todas').replace('/', '-') + '.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Erro ao exportar:', err);
+      alert('Erro ao exportar CSV');
+    }
   };
 
   const totals = reportData.reduce((acc, item) => ({
