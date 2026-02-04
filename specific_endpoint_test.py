@@ -53,7 +53,7 @@ class SpecificEndpointTester:
             return False
         
         company_data = {
-            "cnpj": "12.345.678/0001-99",
+            "cnpj": f"12.345.678/0001-{datetime.now().strftime('%S')}",  # Use seconds for uniqueness
             "razao_social": "Empresa Teste Específico LTDA",
             "nome_fantasia": "Teste Específico",
             "uf": "SP"
