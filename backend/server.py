@@ -302,18 +302,16 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             pis = imposto.get('PIS', {})
             cofins = imposto.get('COFINS', {})
             
-            cfop = ""
+            cfop = prod.get('CFOP', '')  # CFOP está no prod, não no ICMS
             cst_icms = ""
             for key in icms:
                 if isinstance(icms[key], dict):
-                    if 'CFOP' in icms[key]:
+                    if not cfop and 'CFOP' in icms[key]:  # Fallback para ICMS se não encontrar em prod
                         cfop = icms[key]['CFOP']
                     if 'CST' in icms[key]:
                         cst_icms = icms[key]['CST']
                     elif 'CSOSN' in icms[key]:
                         cst_icms = icms[key]['CSOSN']
-                    if cfop:
-                        break
             
             v_icms = 0
             v_pis = 0
