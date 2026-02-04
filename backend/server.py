@@ -2064,6 +2064,9 @@ async def apuracao_periodo(
         "competencia": competencia
     }, {"_id": 0}).to_list(None)
     
+    # CFOPs de Substituição Tributária (não dão direito a crédito de ICMS)
+    CFOPS_ST = ['1403', '1409', '2403', '2409', '5403', '5405', '5409', '6403', '6404', '6409']
+    
     # Agrupar por CFOP
     cfop_entradas = {}  # CFOPs de entrada (1xxx, 2xxx, 3xxx)
     cfop_saidas = {}    # CFOPs de saída (5xxx, 6xxx, 7xxx)
@@ -2080,10 +2083,14 @@ async def apuracao_periodo(
             
             # Valores do produto - usar campos corretos
             valor = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
-            bc_icms = float(prod.get('v_bc_icms', 0) or prod.get('v_bc', 0) or valor or 0)
+            # Base de cálculo de ICMS - NÃO usar valor como fallback
+            bc_icms = float(prod.get('v_bc_icms', 0) or prod.get('v_bc', 0) or 0)
             v_icms = float(prod.get('v_icms', 0) or 0)
             v_pis = float(prod.get('v_pis', 0) or 0)
             v_cofins = float(prod.get('v_cofins', 0) or 0)
+            
+            # Verificar se é CFOP de Substituição Tributária
+            is_st = cfop in CFOPS_ST
             
             # Determinar se é entrada ou saída pelo CFOP ou tipo do documento
             primeiro_digito = cfop[0] if cfop else ''
@@ -2106,7 +2113,9 @@ async def apuracao_periodo(
                         'v_icms': 0,
                         'v_pis': 0,
                         'v_cofins': 0,
-                        'qtd_itens': 0
+                        'qtd_itens': 0,
+                        'is_st': is_st,  # Marcar como ST
+                        'sem_credito_icms': is_st  # Não dá crédito
                     }
                 cfop_entradas[cfop_key]['valor'] += valor
                 cfop_entradas[cfop_key]['bc_icms'] += bc_icms
@@ -2129,7 +2138,9 @@ async def apuracao_periodo(
                         'v_icms': 0,
                         'v_pis': 0,
                         'v_cofins': 0,
-                        'qtd_itens': 0
+                        'qtd_itens': 0,
+                        'is_st': is_st,
+                        'sem_credito_icms': is_st
                     }
                 cfop_saidas[cfop_key]['valor'] += valor
                 cfop_saidas[cfop_key]['bc_icms'] += bc_icms
