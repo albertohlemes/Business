@@ -9,7 +9,7 @@ API_URL = "http://localhost:8001/api"
 
 def login():
     try:
-        response = requests.post(f"{API_URL}/auth/login", json={"email": "test@test.com", "password": "test"})
+        response = requests.post(f"{API_URL}/auth/login", json={"email": "admin_debug@test.com", "password": "123456"})
         response.raise_for_status()
         return response.json()['access_token']
     except Exception as e:
