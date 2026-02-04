@@ -2237,6 +2237,165 @@ async def analise_aliquotas_saida(
         "produtos": produtos_analisados
     }
 
+# CFOPs de operações distintas de venda (saída do emissor que virou entrada para nós)
+CFOPS_OPERACOES_DISTINTAS_GLOBAL = {
+    # Remessas
+    '5910': {'descricao': 'Remessa em bonificação', 'sugestao_entrada': '1910'},
+    '5911': {'descricao': 'Remessa de amostra grátis', 'sugestao_entrada': '1911'},
+    '5912': {'descricao': 'Remessa de mercadoria para demonstração', 'sugestao_entrada': '1912'},
+    '5913': {'descricao': 'Retorno de mercadoria para demonstração', 'sugestao_entrada': '1913'},
+    '5914': {'descricao': 'Remessa de mercadoria para exposição/feira', 'sugestao_entrada': '1914'},
+    '5915': {'descricao': 'Remessa de mercadoria para consignação', 'sugestao_entrada': '1915'},
+    '5916': {'descricao': 'Retorno de mercadoria de consignação', 'sugestao_entrada': '1916'},
+    '5917': {'descricao': 'Remessa de mercadoria em consignação simbólica', 'sugestao_entrada': '1917'},
+    '5918': {'descricao': 'Devolução de mercadoria de consignação simbólica', 'sugestao_entrada': '1918'},
+    '5919': {'descricao': 'Devolução simbólica por venda de mercadoria de consignação', 'sugestao_entrada': '1919'},
+    '5920': {'descricao': 'Remessa de vasilhame/sacaria', 'sugestao_entrada': '1920'},
+    '5921': {'descricao': 'Devolução de vasilhame/sacaria', 'sugestao_entrada': '1921'},
+    '5922': {'descricao': 'Lançamento para simples faturamento', 'sugestao_entrada': '1922'},
+    '5923': {'descricao': 'Remessa de mercadoria por conta e ordem', 'sugestao_entrada': '1923'},
+    '5924': {'descricao': 'Remessa para industrialização por conta e ordem', 'sugestao_entrada': '1924'},
+    '5925': {'descricao': 'Retorno de mercadoria depositada em depósito fechado/armazém', 'sugestao_entrada': '1925'},
+    '5949': {'descricao': 'Outra saída não especificada', 'sugestao_entrada': '1949'},
+    # Devoluções
+    '5201': {'descricao': 'Devolução de compra - indústria', 'sugestao_entrada': '1201'},
+    '5202': {'descricao': 'Devolução de compra - comercialização', 'sugestao_entrada': '1202'},
+    '5208': {'descricao': 'Devolução de mercadoria recebida em transferência', 'sugestao_entrada': '1208'},
+    '5209': {'descricao': 'Devolução de mercadoria recebida para uso/consumo', 'sugestao_entrada': '1209'},
+    '5210': {'descricao': 'Devolução de compra para industrialização', 'sugestao_entrada': '1210'},
+    '5122': {'descricao': 'Venda com entrega futura', 'sugestao_entrada': '1102', 'sugestao_compra': '1102'},
+    '5123': {'descricao': 'Venda de mercadoria remetida anteriormente em consignação mercantil', 'sugestao_entrada': '1102', 'sugestao_compra': '1102'},
+    # Remessas interestaduais (6xxx)
+    '6910': {'descricao': 'Remessa em bonificação', 'sugestao_entrada': '2910'},
+    '6911': {'descricao': 'Remessa de amostra grátis', 'sugestao_entrada': '2911'},
+    '6912': {'descricao': 'Remessa de mercadoria para demonstração', 'sugestao_entrada': '2912'},
+    '6949': {'descricao': 'Outra saída não especificada', 'sugestao_entrada': '2949'},
+    '6201': {'descricao': 'Devolução de compra - indústria', 'sugestao_entrada': '2201'},
+    '6202': {'descricao': 'Devolução de compra - comercialização', 'sugestao_entrada': '2202'},
+    '6122': {'descricao': 'Venda com entrega futura', 'sugestao_entrada': '2102', 'sugestao_compra': '2102'},
+}
+
+@api_router.get("/alertas-cfop/{company_id}")
+async def alertas_cfop_operacoes_distintas(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Detecta documentos de entrada com CFOPs de operações distintas de venda.
+    Quando o fornecedor emite NF com CFOPs como 5910, 5949, 5122, etc.,
+    alerta o usuário para decidir se mantém a natureza ou converte para CFOP de compra.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar documentos de entrada
+    documents = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "entrada"
+    }, {"_id": 0}).to_list(10000)
+    
+    alertas = []
+    
+    for doc in documents:
+        doc_alertas = []
+        
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            
+            # Verificar se o CFOP está na lista de operações distintas
+            if cfop in CFOPS_OPERACOES_DISTINTAS_GLOBAL:
+                info = CFOPS_OPERACOES_DISTINTAS_GLOBAL[cfop]
+                doc_alertas.append({
+                    'produto_codigo': prod.get('codigo', ''),
+                    'produto_descricao': prod.get('descricao', ''),
+                    'cfop_atual': cfop,
+                    'cfop_descricao': info['descricao'],
+                    'sugestao_manter_natureza': info.get('sugestao_entrada', ''),
+                    'sugestao_converter_compra': info.get('sugestao_compra', info.get('sugestao_entrada', '').replace('9', '1') if info.get('sugestao_entrada', '').startswith('1') or info.get('sugestao_entrada', '').startswith('2') else ''),
+                    'valor': prod.get('valor_total', 0)
+                })
+        
+        if doc_alertas:
+            alertas.append({
+                'documento_id': doc.get('id', ''),
+                'numero_nfe': doc.get('numero_nfe', ''),
+                'emitente': doc.get('emitente_nome', ''),
+                'data_emissao': doc.get('data_emissao', ''),
+                'valor_total': doc.get('valor_total', 0),
+                'produtos_com_alerta': doc_alertas
+            })
+    
+    return {
+        "empresa": company['razao_social'],
+        "competencia": competencia,
+        "total_documentos_entrada": len(documents),
+        "documentos_com_alerta": len(alertas),
+        "alertas": alertas
+    }
+
+@api_router.post("/converter-cfop")
+async def converter_cfop_documento(
+    documento_id: str,
+    produto_codigo: str,
+    novo_cfop: str,
+    aplicar_regra: bool = False,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Converte o CFOP de um produto específico em um documento.
+    Se aplicar_regra=True, salva como regra para aplicação futura.
+    """
+    doc = await db.xml_documents.find_one({"id": documento_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    
+    # Atualizar o CFOP do produto
+    produtos = doc.get('produtos', [])
+    atualizado = False
+    
+    for i, prod in enumerate(produtos):
+        if prod.get('codigo') == produto_codigo:
+            produtos[i]['cfop'] = novo_cfop
+            produtos[i]['cfop_original'] = prod.get('cfop', '')
+            produtos[i]['cfop_convertido'] = True
+            atualizado = True
+            break
+    
+    if not atualizado:
+        raise HTTPException(status_code=404, detail="Produto não encontrado no documento")
+    
+    # Atualizar documento no banco
+    await db.xml_documents.update_one(
+        {"id": documento_id},
+        {"$set": {"produtos": produtos}}
+    )
+    
+    # Se solicitado, salvar como regra
+    if aplicar_regra:
+        prod_info = next((p for p in produtos if p.get('codigo') == produto_codigo), {})
+        await db.learned_rules.insert_one({
+            "id": str(uuid.uuid4()),
+            "company_id": doc.get('company_id'),
+            "produto_descricao": prod_info.get('descricao', ''),
+            "produto_codigo": produto_codigo,
+            "ncm": prod_info.get('ncm', ''),
+            "categoria_correta": "conversao_cfop",
+            "cfop_correto": novo_cfop,
+            "cfop_original": prod_info.get('cfop_original', ''),
+            "motivo": f"Conversão de {prod_info.get('cfop_original', '')} para {novo_cfop}",
+            "aprendido_de": "user_correction",
+            "created_by": current_user.id,
+            "created_at": datetime.now(timezone.utc)
+        })
+    
+    return {"success": True, "message": f"CFOP convertido para {novo_cfop}"}
+
 @api_router.get("/reports/by-product/{company_id}")
 async def report_by_product(
     company_id: str,
