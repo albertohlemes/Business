@@ -272,12 +272,33 @@ const Dashboard = ({ user, onLogout }) => {
             <div>
               <h2 className="text-lg font-bold text-gray-900 mb-4">Impostos</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <TaxCard
-                  title="ICMS"
-                  credito={stats.creditos.icms}
-                  debito={stats.debitos.icms}
-                  pagar={stats.impostos_pagar.icms}
-                />
+                {/* ICMS com informação de ST */}
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <h4 className="font-semibold text-gray-900 mb-3">ICMS</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-600">Crédito:</span>
+                      <span className="font-medium text-green-700">{formatCurrency(stats.creditos.icms)}</span>
+                    </div>
+                    {stats.creditos.icms_st_desconsiderado > 0 && (
+                      <div className="flex justify-between text-xs bg-orange-50 -mx-2 px-2 py-1 rounded">
+                        <span className="text-orange-600">ICMS-ST (sem crédito):</span>
+                        <span className="font-medium text-orange-700">{formatCurrency(stats.creditos.icms_st_desconsiderado)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-red-600">Débito:</span>
+                      <span className="font-medium text-red-700">{formatCurrency(stats.debitos.icms)}</span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between text-sm font-bold">
+                      <span className="text-gray-700">A Pagar:</span>
+                      <span className={stats.impostos_pagar.icms > 0 ? 'text-red-700' : 'text-green-700'}>
+                        {formatCurrency(stats.impostos_pagar.icms)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
                 <TaxCard
                   title="PIS"
                   credito={stats.creditos.pis}
