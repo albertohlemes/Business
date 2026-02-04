@@ -98,12 +98,8 @@ function App() {
               element={user ? <Reports user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
-              path="/apuracao"
-              element={user ? <ApuracaoPeriodo user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
-            />
-            <Route
-              path="/apuracao-pis-cofins"
-              element={user ? <ApuracaoPisCofins user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+              path="/apuracao-mensal"
+              element={user ? <ApuracaoMensal user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
               path="/alertas-cfop"
@@ -113,15 +109,11 @@ function App() {
               path="/analise-saidas"
               element={user ? <AnaliseSaidas user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
-            {/* Rotas antigas redirecionam para a nova página unificada */}
-            <Route
-              path="/analise-aliquotas-saida"
-              element={<Navigate to="/analise-saidas" />}
-            />
-            <Route
-              path="/divergencias-saida"
-              element={<Navigate to="/analise-saidas" />}
-            />
+            {/* Rotas antigas redirecionam */}
+            <Route path="/analise-aliquotas-saida" element={<Navigate to="/analise-saidas" />} />
+            <Route path="/divergencias-saida" element={<Navigate to="/analise-saidas" />} />
+            <Route path="/apuracao" element={<Navigate to="/apuracao-mensal" />} />
+            <Route path="/apuracao-pis-cofins" element={<Navigate to="/apuracao-mensal" />} />
           </Routes>
         </AppProvider>
       </BrowserRouter>
