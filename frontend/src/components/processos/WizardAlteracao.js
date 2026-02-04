@@ -989,11 +989,13 @@ const FormularioOutras = ({ dados, onChange, dadosExtraidos }) => {
 const WizardAlteracao = ({ open, onClose, onComplete }) => {
     const [step, setStep] = useState(1);
     const [processing, setProcessing] = useState(false);
+    const [buscandoCnpj, setBuscandoCnpj] = useState(false);
     
     // Step 1 - Contrato
     const [contratoFile, setContratoFile] = useState(null);
     const [dadosExtraidos, setDadosExtraidos] = useState(null);
     const [minutaId, setMinutaId] = useState(null);
+    const [cnpjInput, setCnpjInput] = useState('');
     
     // Step 2 - Tipos de alteração
     const [alteracoesSelecionadas, setAlteracoesSelecionadas] = useState([]);
@@ -1005,6 +1007,7 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
     const [dadosCapital, setDadosCapital] = useState({ tipoCapital: 'aumento', novoCapital: '', motivoCapital: '' });
     const [dadosNome, setDadosNome] = useState({ novaRazaoSocial: '', novoNomeFantasia: '' });
     const [dadosAdministracao, setDadosAdministracao] = useState({ novosAdministradores: [], poderesAdmin: '' });
+    const [dadosOutras, setDadosOutras] = useState({ clausulasParaAlterar: [], clausulaManualTitulo: '', clausulaManualTexto: '' });
     
     // Step 4 - Resultado
     const [minutaGerada, setMinutaGerada] = useState('');
