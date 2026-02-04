@@ -473,10 +473,16 @@ Estrutura obrigatória:
                     <h1 className="text-3xl font-bold text-white mb-2">Minutas Contratuais</h1>
                     <p className="text-zinc-500">Crie minutas de alteração com auxílio de IA</p>
                 </div>
-                <Button onClick={openWizard} className="bg-red-600 hover:bg-red-700 btn-business" data-testid="nova-minuta-btn">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Nova Minuta
-                </Button>
+                <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => setTemplateOpen(true)} className="border-zinc-700">
+                        <Settings className="w-4 h-4 mr-2" />
+                        Templates
+                    </Button>
+                    <Button onClick={openWizard} className="bg-red-600 hover:bg-red-700 btn-business" data-testid="nova-minuta-btn">
+                        <FileText className="w-4 h-4 mr-2" />
+                        Nova Minuta
+                    </Button>
+                </div>
             </div>
 
             {/* Lista de Minutas */}
