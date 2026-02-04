@@ -27,12 +27,19 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - Upload em lote de arquivos XML de notas fiscais
 - Seletor de competência (mês/ano) - formato MM/AAAA
 - Tipo de operação (Entrada/Saída)
+- **NOVA: Validação de CNPJ** - Rejeita XMLs que não pertencem à empresa selecionada
+- **NOVA: Validação de Competência** - Rejeita XMLs com data fora da competência selecionada
 - Validação de notas duplicadas por chave NFe e competência
 - Conversão automática de CFOP baseada em:
   - Classificação do produto (REVENDA, INSUMO, DESPESA, COMBUSTÍVEL)
   - Substituição Tributária (ST)
   - Operações interestaduais (prefixo 1 ou 2)
   - Transferências entre filiais
+- **NOVO: Relatório detalhado de erros** - Mostra resumo com:
+  - Total enviados, importados, duplicados
+  - Rejeitados por CNPJ errado (com detalhes de emitente/destinatário)
+  - Rejeitados por competência diferente (com data de emissão)
+  - Erros de processamento
 
 ### ✅ Relatório de Conversão de CFOP
 - Exibido automaticamente após upload
@@ -40,24 +47,27 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - Classificação aplicada (REVENDA, INSUMO, DESPESA)
 - Critério/motivo da conversão
 
-### ✅ **NOVO: Reclassificação com IA** (03/02/2026)
-- **Nova página dedicada**: `/reclassification`
-- **Visualização por NF-e**: Lista notas fiscais com produtos expandíveis
-- **Visualização por Produtos**: Agrupa produtos por código com contagem de ocorrências
-- **Numeração sequencial**: IDs únicos para notas e produtos dentro da competência
-- **Comando para IA**: Campo de texto para instruir a IA (Ex: "Reclassifique produtos de limpeza como DESPESA")
-- **Edição manual**: Permite corrigir CFOP e categoria de produtos individualmente
-- **Sistema de aprendizado**: Todas as correções (manuais ou por IA) são memorizadas
-- **Regras aprendidas**: Visualização das regras que a IA aprendeu para a empresa
-- **Validação de PIS/COFINS/ICMS**: IA analisa impostos e retorna inconsistências com base legal
+### ✅ Reclassificação com IA
+- Página dedicada: `/reclassification`
+- Visualização por NF-e (expandível) ou por Produtos (agrupados por código)
+- Campo de comando para IA reclassificar produtos em lote
+- Edição manual com salvamento de regras aprendidas
+- Sistema de aprendizado que memoriza correções
+- **MELHORADO: Validação de PIS/COFINS/ICMS com base legal**
+  - Considera alíquota zero de PIS/COFINS para produtos da cesta básica
+  - Usa o estado da empresa (UF) para calcular alíquotas de ICMS corretas
+  - NCMs com alíquota zero são identificados e não apontados como erro
 
-### ✅ **NOVO: Exportação SPED por Competência** (03/02/2026)
-- Seletor de competências disponíveis baseado nos documentos importados
+### ✅ Exportação SPED por Competência
+- Seletor de competências disponíveis
 - Exporta apenas documentos da competência selecionada
 
-### ✅ **NOVO: Relatórios por Competência** (03/02/2026)
+### ✅ Relatórios por Competência
 - Filtro de competência nos relatórios gerenciais
 - Exportação CSV com nome incluindo a competência
+
+### ✅ Reset da Base de Dados
+- Endpoint `POST /api/db/reset` para zerar todas as tabelas (exceto usuários)
 
 ### ✅ Páginas Adicionais
 - Documentos Fiscais - listagem de XMLs importados
@@ -77,12 +87,12 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
   - `GET/POST /api/companies` - CRUD empresas
   - `DELETE /api/companies/{id}` - excluir empresa
   - `GET /api/cnpj/{cnpj}` - busca Receita Federal
-  - `POST /api/xml/upload` - upload com análise
+  - `POST /api/xml/upload` - upload com análise e validação
   - `GET /api/xml/documents` - listagem documentos
   - `GET /api/reports/by-product/{company_id}` - relatório por produto
   - `GET /api/reports/by-ncm/{company_id}` - relatório por NCM
   - `GET /api/sped/export/{company_id}` - exportação SPED
-  - **NOVOS:**
+  - `POST /api/db/reset` - zerar base de dados
   - `GET /api/reclassification/documents/{company_id}` - docs para reclassificação
   - `GET /api/reclassification/products/{company_id}` - produtos agrupados
   - `POST /api/ai/reclassify` - reclassificação com IA
@@ -94,9 +104,9 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - `/app/frontend/src/pages/`
   - Login.js - autenticação
   - Companies.js - gestão de empresas
-  - UploadXML.js - upload e análise
+  - UploadXML.js - upload e análise (com relatório de erros)
   - Documents.js - listagem de documentos
-  - **ReclassificationAI.js** - reclassificação com IA (NOVA)
+  - ReclassificationAI.js - reclassificação com IA
   - Validation.js - validação CFOPs
   - Reports.js - relatórios gerenciais (com filtro competência)
   - ExportSPED.js - exportação SPED (com seletor competência)
@@ -105,19 +115,17 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - Brasil API (`https://brasilapi.com.br/api/cnpj/v1/{cnpj}`) - dados de empresas
 - **OpenAI GPT-4o** via Emergent LLM Key - reclassificação e validação fiscal
 
-## Status dos Issues (03/02/2026)
+## Status dos Issues (04/02/2026)
 
 | Issue | Status | Descrição |
 |-------|--------|-----------|
-| Botão "Salvar Empresa" | ✅ RESOLVIDO | Funcionando corretamente |
-| Busca CNPJ | ✅ RESOLVIDO | Preenche formulário automaticamente |
-| Campo produtos_despesa | ✅ IMPLEMENTADO | Adicionado ao formulário |
-| Seletor de competência | ✅ IMPLEMENTADO | Formato MM/AAAA |
-| Validação duplicados | ✅ IMPLEMENTADO | Por chave NFe + competência |
-| Relatório conversão CFOP | ✅ IMPLEMENTADO | Exibido após upload |
-| Reclassificação com IA | ✅ IMPLEMENTADO | Nova página funcional |
-| Validação PIS/COFINS/ICMS | ✅ IMPLEMENTADO | Com base legal |
-| Exportação por competência | ✅ IMPLEMENTADO | SPED e Relatórios |
+| Botão "Excluir Empresa" | ✅ RESOLVIDO | Backend funcionando, testado via curl |
+| Validação CNPJ no upload | ✅ IMPLEMENTADO | Rejeita XMLs de outras empresas |
+| Validação competência | ✅ IMPLEMENTADO | Rejeita XMLs de outras competências |
+| Relatório de erros | ✅ IMPLEMENTADO | Resumo detalhado na tela |
+| Alíquota zero PIS/COFINS | ✅ MELHORADO | IA considera NCMs da cesta básica |
+| ICMS por estado | ✅ MELHORADO | IA usa UF da empresa para alíquotas |
+| Reset da base | ✅ IMPLEMENTADO | Endpoint /api/db/reset funcionando |
 
 ## Próximas Tarefas (Backlog)
 
