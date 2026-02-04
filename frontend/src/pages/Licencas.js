@@ -566,16 +566,16 @@ const Licencas = () => {
 
             {/* Instruções REDESIM Dialog */}
             <Dialog open={instrucoesOpen} onOpenChange={setInstrucoesOpen}>
-                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-lg">
+                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
                     <DialogHeader className="border-b border-zinc-800 pb-4">
                         <DialogTitle className="text-white flex items-center gap-2">
                             <Info className="w-5 h-5 text-red-500" strokeWidth={1.5} />
                             Consulta no Portal REDESIM
                         </DialogTitle>
                     </DialogHeader>
-                    <div className="p-4 space-y-4">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
                         <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
-                            <p className="text-sm text-zinc-400 mb-2">CNPJ para consultar:</p>
+                            <p className="text-sm text-zinc-400 mb-2">CNPJ consultando:</p>
                             <p className="text-lg font-mono text-white">{instrucoesCnpj}</p>
                             <Button size="sm" variant="outline" className="mt-2 border-zinc-700"
                                 onClick={() => { navigator.clipboard.writeText(instrucoesCnpj); toast.success('CNPJ copiado!'); }}>
@@ -583,10 +583,37 @@ const Licencas = () => {
                             </Button>
                         </div>
                         
+                        {screenshotRedesim && (
+                            <div className="space-y-2">
+                                <p className="text-sm text-zinc-400">Tela atual do navegador:</p>
+                                <div className="border border-zinc-800 rounded-lg overflow-hidden">
+                                    <img 
+                                        src={`data:image/png;base64,${screenshotRedesim}`} 
+                                        alt="Tela REDESIM" 
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        
+                        {aguardandoLogin && (
+                            <div className="bg-amber-950/30 border border-amber-800 rounded-lg p-4">
+                                <p className="text-amber-400 font-medium mb-2">⚠️ Aguardando login</p>
+                                <p className="text-sm text-zinc-400 mb-3">
+                                    O sistema navegou até a tela de login. Faça login com seu certificado digital no Gov.br 
+                                    e depois clique no botão abaixo.
+                                </p>
+                                <Button onClick={continuarAposLogin} className="bg-amber-600 hover:bg-amber-700">
+                                    <RefreshCw className="w-4 h-4 mr-2" />
+                                    Já fiz login, continuar consulta
+                                </Button>
+                            </div>
+                        )}
+                        
                         <div className="space-y-2">
                             <p className="text-sm text-zinc-400">Instruções:</p>
                             <ol className="text-sm text-zinc-300 space-y-2 list-decimal list-inside">
-                                <li>Clique no botão abaixo para abrir o portal</li>
+                                <li>Clique no botão abaixo para abrir o portal em nova aba</li>
                                 <li>Faça login com seu <strong>Gov.br</strong> (certificado digital)</li>
                                 <li>Acesse "Consultar Licenças" ou "Meu Espaço"</li>
                                 <li>Pesquise pelo CNPJ acima</li>
