@@ -540,6 +540,16 @@ Estrutura obrigatória:
                     <p className="text-zinc-500">Crie minutas de alteração com auxílio de IA</p>
                 </div>
                 <div className="flex gap-3">
+                    <Button 
+                        variant="outline" 
+                        onClick={() => setFormatacaoOpen(true)} 
+                        className={`border-zinc-700 ${formatacaoSalva ? 'text-green-500 border-green-700' : ''}`}
+                        data-testid="formatacao-btn"
+                    >
+                        <Type className="w-4 h-4 mr-2" />
+                        Formatação
+                        {formatacaoSalva && <CheckCircle2 className="w-3 h-3 ml-1" />}
+                    </Button>
                     <Button variant="outline" onClick={() => setTemplateOpen(true)} className="border-zinc-700">
                         <Settings className="w-4 h-4 mr-2" />
                         Templates
