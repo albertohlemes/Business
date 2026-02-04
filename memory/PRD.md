@@ -242,6 +242,22 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 25 (04/02/2026)
+- ✅ **NOVO LOGO IMPLEMENTADO**
+  - Substituído o logo anterior pelo novo logo com fundo transparente fornecido pelo usuário
+  - Logo agora combina perfeitamente com qualquer fundo (header branco, modal vermelho, etc.)
+  - **Arquivos modificados:**
+    - `/app/frontend/public/logo-business.png` (substituído)
+    - `/app/frontend/src/components/Layout.js` (simplificado CSS)
+    - `/app/frontend/src/components/CompanySelector.js` (simplificado CSS)
+
+- ✅ **PÁGINA DE UPLOAD AGORA PRIORIZA EMPRESA DO CONTEXTO**
+  - **Problema:** A página de Upload não priorizava a empresa selecionada no contexto global
+  - **Solução:** Removida a condição `!selectedCompany` do useEffect e ajustada a lógica de fallback no fetchCompanies
+  - **Resultado:** A empresa selecionada no header agora é automaticamente preenchida na página de Upload
+  - **Arquivos modificados:**
+    - `/app/frontend/src/pages/UploadXML.js`
+
 ### 02/2026 - Iteration 24 (04/02/2026)
 - ✅ **COR DE FUNDO DO LOGO AJUSTADA**
   - **Problema:** O logo (com fundo preto sólido na imagem) destoava quando exibido em fundos brancos (header) ou vermelhos (modal de seleção de empresa).
