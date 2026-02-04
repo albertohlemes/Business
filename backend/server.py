@@ -1262,7 +1262,7 @@ async def download_minuta_word(minuta_id: str, current_user: dict = Depends(get_
     doc_bytes = gerar_minuta_word(conteudo, dados_extraidos, template_path)
     
     # Nome do arquivo
-    cnpj = minuta.get("cnpj", "").replace(".", "").replace("/", "").replace("-", "")
+    cnpj = (minuta.get("cnpj") or "").replace(".", "").replace("/", "").replace("-", "")
     data_str = datetime.now().strftime("%Y%m%d")
     filename = f"alteracao_contratual_{cnpj or 'minuta'}_{data_str}.docx"
     
@@ -1301,7 +1301,7 @@ async def download_minuta_pdf(minuta_id: str, current_user: dict = Depends(get_c
     # Gerar PDF com formatação do template
     pdf_bytes = gerar_pdf_simples(conteudo, dados_extraidos, formato)
     
-    cnpj = minuta.get("cnpj", "").replace(".", "").replace("/", "").replace("-", "")
+    cnpj = (minuta.get("cnpj") or "").replace(".", "").replace("/", "").replace("-", "")
     data_str = datetime.now().strftime("%Y%m%d")
     filename = f"alteracao_contratual_{cnpj or 'minuta'}_{data_str}.pdf"
     
