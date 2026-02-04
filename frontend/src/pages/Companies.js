@@ -746,18 +746,35 @@ const Companies = ({ user, onLogout }) => {
                 className="bg-white rounded-xl p-6 shadow-md border border-gray-100 card-hover"
               >
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                    <Building2 className="w-6 h-6 text-red-600" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                      <Building2 className="w-6 h-6 text-red-600" />
+                    </div>
+                    {company.codigo_empresa && (
+                      <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm font-bold">
+                        #{company.codigo_empresa}
+                      </span>
+                    )}
                   </div>
                   {user.role === 'admin' && (
-                    <button
-                      data-testid={'delete-company-btn-' + company.id}
-                      onClick={() => handleDelete(company.id, company.razao_social)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Excluir empresa"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        data-testid={'edit-company-btn-' + company.id}
+                        onClick={() => handleEdit(company)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Editar empresa"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </button>
+                      <button
+                        data-testid={'delete-company-btn-' + company.id}
+                        onClick={() => handleDelete(company.id, company.razao_social)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Excluir empresa"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
                   )}
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2 text-lg">{company.razao_social}</h3>
@@ -768,9 +785,18 @@ const Companies = ({ user, onLogout }) => {
                   <p className="text-gray-600">
                     <span className="font-medium">CNPJ:</span> {company.cnpj}
                   </p>
-                  {company.cnae_principal && (
+                  {company.regime_tributario && (
                     <p className="text-gray-600">
-                      <span className="font-medium">CNAE:</span> {company.cnae_principal}
+                      <span className="font-medium">Regime:</span>{' '}
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                        company.regime_tributario === 'lucro_real' ? 'bg-green-100 text-green-800' :
+                        company.regime_tributario === 'lucro_presumido' ? 'bg-blue-100 text-blue-800' :
+                        'bg-purple-100 text-purple-800'
+                      }`}>
+                        {company.regime_tributario === 'lucro_real' ? 'Lucro Real' :
+                         company.regime_tributario === 'lucro_presumido' ? 'Lucro Presumido' :
+                         'Simples Nacional'}
+                      </span>
                     </p>
                   )}
                   {company.cidade && (
