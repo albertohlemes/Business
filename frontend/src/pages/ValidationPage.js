@@ -1052,6 +1052,161 @@ const ValidationPage = ({ user, onLogout }) => {
           </div>
         </div>
       )}
+
+      {/* Modal de Reclassificação Agrupada (Por Produto) */}
+      {reclassifyingGrouped && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 text-white">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <Layers className="w-5 h-5" />
+                Reclassificar Produto
+              </h3>
+              <p className="text-purple-100 text-sm">
+                Aplicar em {reclassifyingGrouped.occurrences.length} ocorrência(s)
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="font-semibold text-gray-900">{reclassifyingGrouped.product.descricao}</p>
+                <p className="text-sm text-gray-600">
+                  Código: {reclassifyingGrouped.product.codigo} | NCM: {reclassifyingGrouped.product.ncm}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  CFOP atual: <span className="font-mono font-bold">{reclassifyingGrouped.product.cfop}</span>
+                  {reclassifyingGrouped.product.categoria && (
+                    <span className="ml-2 text-purple-600">
+                      ({reclassifyingGrouped.product.categoria.toUpperCase()})
+                    </span>
+                  )}
+                </p>
+              </div>
+              
+              {/* Seleção de Natureza/Categoria */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Natureza da Operação
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { id: 'revenda', label: 'REVENDA', color: 'purple', desc: 'Mercadoria para comercialização' },
+                    { id: 'insumo', label: 'INSUMO', color: 'blue', desc: 'Matéria-prima / Produção' },
+                    { id: 'despesa', label: 'DESPESA', color: 'orange', desc: 'Material de uso e consumo' },
+                    { id: 'combustivel', label: 'COMBUSTÍVEL', color: 'green', desc: 'Combustível / Energia' },
+                  ].map(cat => {
+                    const cfopPrefix = reclassifyingGrouped.product.cfop?.[0] || '1';
+                    const autoCfop = getCfopForCategoria(cat.id, cfopPrefix);
+                    const isSelected = groupedCategoria === cat.id;
+                    
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          setGroupedCategoria(cat.id);
+                          if (!customCfopMode) {
+                            setGroupedCfop(autoCfop);
+                          }
+                        }}
+                        className={`p-3 rounded-lg border-2 text-left transition-all ${
+                          isSelected 
+                            ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200' 
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`font-bold text-sm ${isSelected ? 'text-purple-700' : 'text-gray-800'}`}>
+                            {cat.label}
+                          </span>
+                          <span className={`text-xs font-mono px-2 py-0.5 rounded ${
+                            isSelected ? 'bg-purple-200 text-purple-800' : 'bg-gray-200 text-gray-600'
+                          }`}>
+                            {autoCfop}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">{cat.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              {/* CFOP com opção de editar */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-700">CFOP Resultante</label>
+                  <button
+                    type="button"
+                    onClick={() => setCustomCfopMode(!customCfopMode)}
+                    className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                    {customCfopMode ? 'Usar automático' : 'Editar manualmente'}
+                  </button>
+                </div>
+                
+                {customCfopMode ? (
+                  <input
+                    type="text"
+                    value={groupedCfop}
+                    onChange={(e) => setGroupedCfop(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    maxLength={4}
+                    className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg font-mono text-lg text-center focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                    placeholder="0000"
+                  />
+                ) : (
+                  <div className="w-full px-4 py-3 bg-gray-100 rounded-lg font-mono text-lg text-center text-gray-800">
+                    {groupedCfop || (groupedCategoria ? getCfopForCategoria(groupedCategoria, reclassifyingGrouped.product.cfop?.[0] || '1') : '----')}
+                  </div>
+                )}
+              </div>
+              
+              {/* Justificativa */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Justificativa (opcional)
+                </label>
+                <textarea
+                  value={groupedMotivo}
+                  onChange={(e) => setGroupedMotivo(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
+                  rows="2"
+                  placeholder="Ex: Produto utilizado na produção de alimentos"
+                />
+              </div>
+              
+              <div className="bg-blue-50 rounded-lg p-3 text-sm text-blue-800 flex items-start gap-2">
+                <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>
+                  <strong>Memorização automática:</strong> Esta classificação será aplicada automaticamente em futuras importações deste produto.
+                </span>
+              </div>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setReclassifyingGrouped(null);
+                  setGroupedCategoria('');
+                  setGroupedCfop('');
+                  setGroupedMotivo('');
+                  setCustomCfopMode(false);
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleReclassifyGrouped}
+                disabled={!groupedCategoria}
+                className="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                Salvar ({reclassifyingGrouped.occurrences.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
