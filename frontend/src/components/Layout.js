@@ -47,25 +47,39 @@ const Layout = ({ user, onLogout, children }) => {
               </div>
             </div>
 
-            {/* Seletor de Empresa/Competência */}
-            {selectedCompany && (
-              <button
-                data-testid="change-company-btn"
-                onClick={openSelector}
-                className="hidden md:flex items-center gap-3 px-4 py-2 bg-red-50 hover:bg-red-100 rounded-xl border border-red-200 transition-colors"
+            {/* Seletor de Empresa/Competência + Link Empresas */}
+            <div className="hidden md:flex items-center gap-2">
+              {/* Link para gerenciar empresas */}
+              <Link
+                to="/companies"
+                data-testid="nav-companies"
+                className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Gerenciar Empresas"
               >
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-red-900 truncate max-w-[200px]">
-                    {selectedCompany.razao_social}
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-red-700">
-                    <Calendar className="w-3 h-3" />
-                    <span>Competência: {selectedCompetencia}</span>
+                <Building2 className="w-5 h-5" />
+                <span className="text-sm font-medium">Empresas</span>
+              </Link>
+              
+              {/* Seletor de empresa/competência */}
+              {selectedCompany && (
+                <button
+                  data-testid="change-company-btn"
+                  onClick={openSelector}
+                  className="flex items-center gap-3 px-4 py-2 bg-red-50 hover:bg-red-100 rounded-xl border border-red-200 transition-colors"
+                >
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-red-900 truncate max-w-[200px]">
+                      {selectedCompany.razao_social}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-red-700">
+                      <Calendar className="w-3 h-3" />
+                      <span>Competência: {selectedCompetencia}</span>
+                    </div>
                   </div>
-                </div>
-                <ChevronDown className="w-4 h-4 text-red-600" />
-              </button>
-            )}
+                  <ChevronDown className="w-4 h-4 text-red-600" />
+                </button>
+              )}
+            </div>
 
             {/* User Info */}
             <div className="hidden md:flex items-center gap-4">
