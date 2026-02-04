@@ -52,6 +52,7 @@ const Minutas = () => {
     // Step 3 - Detalhes
     const [descricaoAlteracao, setDescricaoAlteracao] = useState('');
     const [docsApoio, setDocsApoio] = useState([]);
+    const [dataAlteracao, setDataAlteracao] = useState(new Date().toISOString().split('T')[0]);
     
     // Step 4 - Preview
     const [minutaGerada, setMinutaGerada] = useState('');
