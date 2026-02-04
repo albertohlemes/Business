@@ -481,18 +481,29 @@ const ValidationPage = ({ user, onLogout }) => {
               )}
 
               {!isApproved && !exception && (
-                <button
-                  data-testid={'edit-cfop-button-' + index}
-                  onClick={() => {
-                    setEditingProduct(index);
-                    setNewCfop(cfopSugerido || product.cfop);
-                    setMotivo('');
-                  }}
-                  className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 flex items-center gap-1"
-                >
-                  <Edit2 className="w-3 h-3" />
-                  Alterar
-                </button>
+                <>
+                  <button
+                    data-testid={'reclassify-button-' + index}
+                    onClick={() => openReclassifyModal(selectedDoc.id, index, product)}
+                    className="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 flex items-center gap-1"
+                    title="Reclassificar categoria (REVENDA/INSUMO/DESPESA)"
+                  >
+                    <Layers className="w-3 h-3" />
+                    Reclassificar
+                  </button>
+                  <button
+                    data-testid={'edit-cfop-button-' + index}
+                    onClick={() => {
+                      setEditingProduct(index);
+                      setNewCfop(cfopSugerido || product.cfop);
+                      setMotivo('');
+                    }}
+                    className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 flex items-center gap-1"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                    Alterar CFOP
+                  </button>
+                </>
               )}
             </div>
           </div>
