@@ -1640,6 +1640,216 @@ async def apply_tax_corrections(
     
     return {"success": True, "correcoes_aplicadas": applied}
 
+class AnaliseTributariaRequest(BaseModel):
+    company_id: str
+    competencia: str
+
+@api_router.post("/ai/analise-tributaria")
+async def ai_analise_tributaria(
+    request: AnaliseTributariaRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Gera análise tributária completa usando IA"""
+    company = await db.companies.find_one({"id": request.company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar documentos
+    docs_entrada = await db.xml_documents.find({
+        "company_id": request.company_id,
+        "competencia": request.competencia,
+        "tipo": "entrada"
+    }, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    docs_saida = await db.xml_documents.find({
+        "company_id": request.company_id,
+        "competencia": request.competencia,
+        "tipo": "saida"
+    }, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    if len(docs_entrada) == 0 and len(docs_saida) == 0:
+        raise HTTPException(status_code=404, detail="Nenhum documento encontrado para esta competência")
+    
+    # Calcular métricas
+    total_entradas = sum(d.get('valor_total', 0) for d in docs_entrada)
+    total_saidas = sum(d.get('valor_total', 0) for d in docs_saida)
+    
+    # Calcular créditos e débitos
+    total_credito_icms = sum(sum(p.get('v_icms', 0) for p in d.get('produtos', [])) for d in docs_entrada)
+    total_credito_pis = sum(sum(p.get('v_pis', 0) for p in d.get('produtos', [])) for d in docs_entrada)
+    total_credito_cofins = sum(sum(p.get('v_cofins', 0) for p in d.get('produtos', [])) for d in docs_entrada)
+    
+    total_debito_icms = sum(sum(p.get('v_icms', 0) for p in d.get('produtos', [])) for d in docs_saida)
+    total_debito_pis = sum(sum(p.get('v_pis', 0) for p in d.get('produtos', [])) for d in docs_saida)
+    total_debito_cofins = sum(sum(p.get('v_cofins', 0) for p in d.get('produtos', [])) for d in docs_saida)
+    
+    # Analisar CFOPs para identificar interestaduais
+    cfops_interestadual = 0
+    cfops_interno = 0
+    for doc in docs_entrada:
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            if cfop.startswith('2'):
+                cfops_interestadual += 1
+            elif cfop.startswith('1'):
+                cfops_interno += 1
+    
+    total_cfops = cfops_interestadual + cfops_interno
+    percentual_interestadual = (cfops_interestadual / total_cfops * 100) if total_cfops > 0 else 0
+    
+    # Preparar resumo para IA
+    resumo_dados = {
+        "empresa": company.get('razao_social', ''),
+        "uf": company.get('uf', 'SP'),
+        "cnae": company.get('cnae_principal', ''),
+        "cnae_descricao": company.get('cnae_principal_descricao', ''),
+        "competencia": request.competencia,
+        "total_notas_entrada": len(docs_entrada),
+        "total_notas_saida": len(docs_saida),
+        "valor_total_entradas": total_entradas,
+        "valor_total_saidas": total_saidas,
+        "total_creditos": total_credito_icms + total_credito_pis + total_credito_cofins,
+        "total_debitos": total_debito_icms + total_debito_pis + total_debito_cofins,
+        "credito_icms": total_credito_icms,
+        "credito_pis": total_credito_pis,
+        "credito_cofins": total_credito_cofins,
+        "debito_icms": total_debito_icms,
+        "debito_pis": total_debito_pis,
+        "debito_cofins": total_debito_cofins,
+        "percentual_compras_interestaduais": percentual_interestadual,
+        "markup_medio": ((total_saidas / total_entradas - 1) * 100) if total_entradas > 0 else 0
+    }
+    
+    system_message = """Você é um consultor tributário sênior especializado em análise fiscal brasileira.
+Sua tarefa é analisar os dados fiscais de uma empresa e gerar insights estratégicos.
+
+INDICADORES IMPORTANTES A ANALISAR:
+1. Percentual de compras interestaduais vs internas (impacto no DIFAL)
+2. Fornecedores do Simples Nacional (sem direito a crédito de ICMS)
+3. Diferencial de alíquotas (entrada 12% vs saída 18%)
+4. Clientes do Simples Nacional (não aplicam redução de base de cálculo)
+5. Análise de markup (margem praticada vs carga tributária)
+6. Carga tributária efetiva sobre faturamento
+7. Oportunidades de economia fiscal
+8. Riscos de compliance
+
+ALÍQUOTAS DE ICMS POR ESTADO:
+- SP, MG, RJ, PR: 18%
+- SC, RS: 17%
+- Interestadual Sul/Sudeste → outros: 7%
+- Interestadual outros → Sul/Sudeste: 12%
+
+Responda APENAS com um JSON válido no formato:
+{
+    "indicadores": {
+        "percentual_interestadual": 0,
+        "percentual_simples_nacional": 0,
+        "diferencial_aliquota": 0,
+        "markup_medio": 0,
+        "carga_tributaria": 0,
+        "total_creditos": 0,
+        "total_debitos": 0,
+        "clientes_simples_nacional": 0
+    },
+    "alertas": [
+        {
+            "tipo": "critico|atencao|oportunidade|info",
+            "titulo": "título do alerta",
+            "descricao": "descrição detalhada",
+            "impacto": "valor ou percentual estimado",
+            "base_legal": "referência legal se aplicável"
+        }
+    ],
+    "recomendacoes": [
+        {
+            "titulo": "título da recomendação",
+            "descricao": "o que fazer",
+            "economia_potencial": 0,
+            "prazo": "curto/médio/longo prazo"
+        }
+    ],
+    "markup": {
+        "minimo": 0,
+        "medio": 0,
+        "maximo": 0,
+        "analise": "análise da margem praticada"
+    }
+}"""
+    
+    user_prompt = f"""Analise os dados fiscais da empresa e gere insights estratégicos:
+
+DADOS DA EMPRESA:
+{json.dumps(resumo_dados, ensure_ascii=False, indent=2)}
+
+AMOSTRA DE PRODUTOS DE ENTRADA (primeiros 20):
+{json.dumps([{
+    'descricao': p.get('descricao', ''),
+    'cfop': p.get('cfop', ''),
+    'ncm': p.get('ncm', ''),
+    'valor': p.get('valor_total', 0),
+    'icms': p.get('v_icms', 0)
+} for d in docs_entrada[:5] for p in d.get('produtos', [])[:4]], ensure_ascii=False, indent=2)}
+
+AMOSTRA DE PRODUTOS DE SAÍDA (primeiros 20):
+{json.dumps([{
+    'descricao': p.get('descricao', ''),
+    'cfop': p.get('cfop', ''),
+    'ncm': p.get('ncm', ''),
+    'valor': p.get('valor_total', 0),
+    'icms': p.get('v_icms', 0)
+} for d in docs_saida[:5] for p in d.get('produtos', [])[:4]], ensure_ascii=False, indent=2)}
+
+GERE:
+1. Indicadores calculados baseados nos dados reais
+2. Alertas sobre situações que merecem atenção
+3. Recomendações estratégicas com economia potencial
+4. Análise de markup considerando a carga tributária
+
+Seja específico e use os valores reais fornecidos."""
+    
+    try:
+        chat = await get_ai_chat(
+            session_id=f"analise_tributaria_{request.company_id}_{datetime.now().timestamp()}",
+            system_message=system_message
+        )
+        
+        response = await chat.send_message(UserMessage(text=user_prompt))
+        
+        # Extrair JSON
+        response_text = response.strip()
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+        
+        result = json.loads(response_text)
+        
+        # Complementar com dados reais
+        if 'indicadores' in result:
+            result['indicadores']['total_creditos'] = round(total_credito_icms + total_credito_pis + total_credito_cofins, 2)
+            result['indicadores']['total_debitos'] = round(total_debito_icms + total_debito_pis + total_debito_cofins, 2)
+        
+        return {
+            "success": True,
+            **result,
+            "dados_base": {
+                "total_entradas": total_entradas,
+                "total_saidas": total_saidas,
+                "notas_entrada": len(docs_entrada),
+                "notas_saida": len(docs_saida)
+            }
+        }
+        
+    except json.JSONDecodeError as e:
+        return {
+            "success": False,
+            "error": f"Erro ao processar resposta: {str(e)}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na análise: {str(e)}")
+
 @api_router.post("/manual-reclassify")
 async def manual_reclassify_product(
     doc_id: str,
