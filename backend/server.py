@@ -527,23 +527,21 @@ async def chat_minuta(
             raise HTTPException(status_code=500, detail="Chave de API não configurada")
         
         system_message = """Você é um assistente jurídico especializado em direito societário brasileiro.
-Sua função é analisar contratos sociais e gerar minutas de alteração contratual.
-Ao analisar documentos, identifique:
-- Razão social e nome fantasia
-- CNPJ
-- Endereço da sede
-- Capital social e quotas
-- Quadro societário (sócios, CPF, quotas, administração)
-- Objeto social (atividades)
-- Cláusulas relevantes
+Sua função é analisar contratos sociais e documentos de suporte para gerar minutas de alteração contratual.
+
+Ao analisar documentos, identifique e extraia:
+- Do contrato social: Razão social, CNPJ, endereço, capital social, quadro societário, objeto social
+- De CNH/RG: Nome completo, CPF, RG, data de nascimento, nacionalidade, estado civil
+- De comprovante de endereço: Endereço completo com CEP
+- De lista de CNAEs: Códigos e descrições das atividades
 
 Ao gerar minutas de alteração, siga o formato padrão:
 1. Preâmbulo com dados da empresa
-2. Cláusulas de alteração específicas
+2. Cláusulas de alteração específicas (usando os dados extraídos dos documentos)
 3. Consolidação do contrato social
 4. Cláusula de encerramento
 
-Responda sempre em português brasileiro formal."""
+Responda sempre em português brasileiro formal. Quando extrair dados de documentos, liste-os claramente para o usuário confirmar antes de gerar a minuta."""
 
         chat = LlmChat(
             api_key=api_key,
@@ -551,21 +549,33 @@ Responda sempre em português brasileiro formal."""
             system_message=system_message
         ).with_model("gemini", "gemini-2.5-flash")
         
-        # Check if there's a file to attach
+        # Collect all files to attach (contrato + documentos de suporte)
         file_contents = []
-        if minuta.get("arquivo_original") and os.path.exists(minuta["arquivo_original"]):
-            file_path = minuta["arquivo_original"]
+        
+        def get_mime_type(file_path):
             if file_path.endswith('.pdf'):
-                mime_type = "application/pdf"
-            elif file_path.endswith(('.png', '.jpg', '.jpeg')):
-                mime_type = "image/png" if file_path.endswith('.png') else "image/jpeg"
+                return "application/pdf"
+            elif file_path.endswith('.png'):
+                return "image/png"
+            elif file_path.endswith(('.jpg', '.jpeg')):
+                return "image/jpeg"
             else:
-                mime_type = "application/octet-stream"
-            
+                return "application/octet-stream"
+        
+        # Add main contract if exists
+        if minuta.get("arquivo_original") and os.path.exists(minuta["arquivo_original"]):
             file_contents.append(FileContentWithMimeType(
-                file_path=file_path,
-                mime_type=mime_type
+                file_path=minuta["arquivo_original"],
+                mime_type=get_mime_type(minuta["arquivo_original"])
             ))
+        
+        # Add support documents
+        for doc in minuta.get("documentos_suporte", []):
+            if doc.get("arquivo") and os.path.exists(doc["arquivo"]):
+                file_contents.append(FileContentWithMimeType(
+                    file_path=doc["arquivo"],
+                    mime_type=get_mime_type(doc["arquivo"])
+                ))
         
         # Build context from previous messages
         mensagens = minuta.get("mensagens", [])
@@ -576,8 +586,17 @@ Responda sempre em português brasileiro formal."""
                 context += f"Usuário: {msg.get('user', '')}\n"
                 context += f"Assistente: {msg.get('assistant', '')}\n"
         
+        # Add info about attached documents
+        docs_info = ""
+        if minuta.get("arquivo_original"):
+            docs_info += f"\nContrato social anexado: {minuta.get('arquivo_nome', 'documento')}"
+        if minuta.get("documentos_suporte"):
+            docs_info += "\nDocumentos de suporte anexados:"
+            for doc in minuta["documentos_suporte"]:
+                docs_info += f"\n- {doc['tipo']}: {doc['nome']}"
+        
         user_message = UserMessage(
-            text=f"{context}\n\nNova mensagem do usuário: {chat_data.message}",
+            text=f"{context}{docs_info}\n\nNova mensagem do usuário: {chat_data.message}",
             file_contents=file_contents if file_contents else None
         )
         
