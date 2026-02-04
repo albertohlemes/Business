@@ -264,15 +264,28 @@ const ApuracaoMensal = ({ user, onLogout }) => {
             </tr>
           </thead>
           <tbody>
-            {items.map((item, idx) => (
-              <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="px-4 py-2 font-mono font-medium">{item.cfop || item.cst || item.codigo}</td>
-                <td className="px-4 py-2 text-right">{formatCurrency(item.valor)}</td>
-                <td className="px-4 py-2 text-right">{formatCurrency(item.v_icms)}</td>
-                <td className="px-4 py-2 text-right">{formatCurrency(item.v_pis || item.pis)}</td>
-                <td className="px-4 py-2 text-right">{formatCurrency(item.v_cofins || item.cofins)}</td>
-              </tr>
-            ))}
+            {items.map((item, idx) => {
+              const isST = item.is_st || item.sem_credito_icms;
+              return (
+                <tr 
+                  key={idx} 
+                  className={`border-b border-gray-100 ${isST && tipo === 'entrada' ? 'bg-red-50' : 'hover:bg-gray-50'}`}
+                >
+                  <td className="px-4 py-2 font-mono font-medium">
+                    {item.cfop || item.cst || item.codigo}
+                    {isST && tipo === 'entrada' && (
+                      <span className="ml-2 text-xs bg-red-200 text-red-700 px-1.5 py-0.5 rounded font-normal">ST</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2 text-right">{formatCurrency(item.valor)}</td>
+                  <td className={`px-4 py-2 text-right ${isST && tipo === 'entrada' ? 'text-red-500 line-through' : ''}`}>
+                    {formatCurrency(item.v_icms)}
+                  </td>
+                  <td className="px-4 py-2 text-right">{formatCurrency(item.v_pis || item.pis)}</td>
+                  <td className="px-4 py-2 text-right">{formatCurrency(item.v_cofins || item.cofins)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
