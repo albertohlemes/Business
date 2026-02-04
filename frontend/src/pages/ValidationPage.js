@@ -28,6 +28,9 @@ const ValidationPage = ({ user, onLogout }) => {
   // Seleção para modo produto
   const [selectedProductCodes, setSelectedProductCodes] = useState([]);
   
+  // Ordenação da lista de produtos
+  const [sortConfig, setSortConfig] = useState({ field: 'descricao', direction: 'asc' });
+  
   // Mensagem de sucesso
   const [successMessage, setSuccessMessage] = useState('');
   
@@ -35,6 +38,14 @@ const ValidationPage = ({ user, onLogout }) => {
   const [reclassifyingProduct, setReclassifyingProduct] = useState(null); // {docId, productIndex, product}
   const [newCategoria, setNewCategoria] = useState('');
   const [reclassifyMotivo, setReclassifyMotivo] = useState('');
+
+  // Função para alternar ordenação
+  const toggleSort = (field) => {
+    setSortConfig(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
 
   // Mostrar mensagem de sucesso por 3 segundos
   const showSuccess = (message) => {
