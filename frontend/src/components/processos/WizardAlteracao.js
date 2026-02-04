@@ -1362,7 +1362,7 @@ Use linguagem jurídica formal. O documento deve estar pronto para registro na J
                             <div>
                                 <h3 className="text-lg font-semibold text-white mb-2">Upload do Contrato Atual</h3>
                                 <p className="text-sm text-zinc-500 mb-4">
-                                    Envie o contrato social atual. A IA irá extrair os dados da empresa, sócios e CNAEs.
+                                    Envie o contrato social atual. A IA irá extrair os dados da empresa, sócios e buscar os CNAEs na Receita Federal.
                                 </p>
                                 
                                 <div 
@@ -1375,7 +1375,7 @@ Use linguagem jurídica formal. O documento deve estar pronto para registro na J
                                         <div className="text-red-500">
                                             <RefreshCw className="w-12 h-12 mx-auto mb-3 animate-spin" />
                                             <p className="font-medium">Analisando contrato...</p>
-                                            <p className="text-xs text-zinc-500 mt-1">Extraindo dados da empresa, sócios e CNAEs</p>
+                                            <p className="text-xs text-zinc-500 mt-1">Extraindo dados e buscando CNAEs na Receita Federal</p>
                                         </div>
                                     ) : contratoFile ? (
                                         <div className="text-green-500">
@@ -1390,6 +1390,34 @@ Use linguagem jurídica formal. O documento deve estar pronto para registro na J
                                             <p className="text-xs mt-1">PDF, DOCX ou Imagem</p>
                                         </div>
                                     )}
+                                </div>
+                            </div>
+                            
+                            {/* Busca manual por CNPJ */}
+                            <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
+                                <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                                    <Search className="w-4 h-4 text-red-500" />
+                                    Buscar CNAEs na Receita Federal
+                                </h4>
+                                <p className="text-zinc-500 text-xs mb-3">
+                                    Informe o CNPJ para buscar os CNAEs diretamente na Receita Federal.
+                                </p>
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={cnpjInput}
+                                        onChange={(e) => setCnpjInput(e.target.value)}
+                                        placeholder="00.000.000/0000-00"
+                                        className="bg-zinc-900 border-zinc-700"
+                                    />
+                                    <Button 
+                                        type="button"
+                                        onClick={handleBuscarCnpj}
+                                        disabled={buscandoCnpj || !cnpjInput}
+                                        className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
+                                    >
+                                        {buscandoCnpj ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 mr-1" />}
+                                        {buscandoCnpj ? 'Buscando...' : 'Buscar'}
+                                    </Button>
                                 </div>
                             </div>
                             
@@ -1410,10 +1438,29 @@ Use linguagem jurídica formal. O documento deve estar pronto para registro na J
                                             <p className="text-white">{dadosExtraidos.socios?.length || 0} encontrado(s)</p>
                                         </div>
                                         <div>
-                                            <span className="text-zinc-500">CNAEs:</span>
-                                            <p className="text-white">{dadosExtraidos.cnaes?.length || 0} encontrado(s)</p>
+                                            <span className="text-zinc-500">CNAEs (Receita Federal):</span>
+                                            <p className="text-white">{dadosExtraidos.cnaes?.length || 0} atividade(s)</p>
                                         </div>
                                     </div>
+                                    
+                                    {/* Listar CNAEs carregados */}
+                                    {dadosExtraidos.cnaes?.length > 0 && (
+                                        <div className="mt-4 pt-4 border-t border-zinc-800">
+                                            <p className="text-zinc-500 text-xs mb-2">Atividades cadastradas na Receita:</p>
+                                            <div className="max-h-32 overflow-y-auto space-y-1">
+                                                {dadosExtraidos.cnaes.map((cnae, idx) => (
+                                                    <div key={idx} className="flex items-center gap-2 text-xs">
+                                                        <span className={`font-mono ${cnae.principal ? 'text-green-400' : 'text-zinc-400'}`}>
+                                                            {cnae.codigo}
+                                                        </span>
+                                                        <span className="text-zinc-500">-</span>
+                                                        <span className="text-zinc-400 truncate">{cnae.descricao}</span>
+                                                        {cnae.principal && <span className="text-green-500 text-[10px]">(Principal)</span>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
