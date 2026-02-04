@@ -991,18 +991,19 @@ async def upload_xml_batch(
                     product['cfop_sugerido'] = suggestion['cfop_sugerido']
                     product['cfop_original'] = cfop_original
                     product['categoria_classificada'] = suggestion['categoria']
+                    product['justificativa_ia'] = suggestion.get('justificativa', '')
                     
                     # APLICAR AUTOMATICAMENTE O CFOP SUGERIDO
                     product['cfop'] = suggestion['cfop_sugerido']
                     
-                    # Registrar conversão
+                    # Registrar conversão com justificativa detalhada
                     file_conversions.append({
                         'produto': product.get('descricao', ''),
                         'codigo': product.get('codigo', ''),
                         'cfop_original': cfop_original,
                         'cfop_convertido': suggestion['cfop_sugerido'],
                         'categoria': suggestion['categoria'],
-                        'motivo': f"Classificado como {suggestion['categoria'].upper()}"
+                        'motivo': suggestion.get('justificativa', f"Classificado como {suggestion['categoria'].upper()}")
                     })
             
             xml_doc = XMLDocument(
