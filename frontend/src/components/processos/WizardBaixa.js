@@ -264,12 +264,23 @@ const SocioBaixaCard = ({ socio, index, onChange, onRemove, canRemove }) => {
             </div>
             
             <div>
-                <Label className="text-zinc-500 text-xs">Endereço Completo <span className="text-red-500">*</span></Label>
+                <div className="flex items-center justify-between mb-1">
+                    <Label className="text-zinc-500 text-xs">Endereço Completo <span className="text-red-500">*</span></Label>
+                    <button 
+                        type="button"
+                        onClick={() => enderecoInputRef.current?.click()}
+                        disabled={extraindoEndereco}
+                        className="text-xs bg-red-600/20 text-red-500 hover:bg-red-600/30 px-2 py-1 rounded flex items-center gap-1"
+                    >
+                        {extraindoEndereco ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                        Preencher com IA
+                    </button>
+                </div>
                 <Input
                     value={socio.endereco}
                     onChange={(e) => onChange({ ...socio, endereco: e.target.value })}
                     placeholder="Rua, número, bairro, cidade-UF, CEP"
-                    className="bg-zinc-900 border-zinc-700 mt-1"
+                    className="bg-zinc-900 border-zinc-700"
                     required
                 />
             </div>
