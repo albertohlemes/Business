@@ -48,23 +48,30 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    const savedCompanyId = localStorage.getItem('selectedCompanyId');
+    
     if (companies.length > 0) {
-      const savedCompanyId = localStorage.getItem('selectedCompanyId');
       if (savedCompanyId) {
         const company = companies.find(c => c.id === savedCompanyId);
         if (company) {
           setSelectedCompany(company);
+          setShowSelector(false);
         } else {
-          // Se não encontrou, mostra seletor
+          // Se não encontrou a empresa salva, mostra seletor
           setShowSelector(true);
         }
       } else {
-        // Primeira vez, mostra seletor
+        // Primeira vez com empresas, mostra seletor
         setShowSelector(true);
       }
-      setLoading(false);
+    } else if (!loading) {
+      // Não tem empresas e já terminou de carregar
+      // Não mostra seletor, usuário precisa cadastrar empresa primeiro
+      setShowSelector(false);
     }
-  }, [companies]);
+    
+    setLoading(false);
+  }, [companies, loading]);
 
   const fetchCompanies = async () => {
     try {
