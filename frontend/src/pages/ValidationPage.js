@@ -310,10 +310,21 @@ const ValidationPage = ({ user, onLogout }) => {
     );
   };
 
-  // Calcular estatísticas
+  // Calcular estatísticas - filtrar apenas aprovações de documentos que ainda existem
   const totalProducts = documents.reduce((acc, doc) => acc + doc.produtos.length, 0);
-  const totalApproved = Object.keys(approvedProducts).length;
-  const totalPending = totalProducts - totalApproved;
+  
+  // Contar aprovações válidas (apenas de documentos que ainda existem)
+  const validApprovedKeys = new Set();
+  documents.forEach(doc => {
+    doc.produtos.forEach(prod => {
+      const key = `${doc.id}_${prod.codigo}`;
+      if (approvedProducts[key]) {
+        validApprovedKeys.add(key);
+      }
+    });
+  });
+  const totalApproved = validApprovedKeys.size;
+  const totalPending = Math.max(0, totalProducts - totalApproved);
 
   // Componente: Item de documento na lista
   const DocumentListItem = ({ doc }) => {
