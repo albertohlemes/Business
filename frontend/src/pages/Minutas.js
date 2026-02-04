@@ -7,11 +7,11 @@ import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
 import { Checkbox } from '../components/ui/checkbox';
 import { 
-    FileText, Upload, Download, Trash2, 
+    FileText, Upload, Trash2, 
     Clock, CheckCircle2, RefreshCw, 
     ChevronRight, ChevronLeft, Eye, Copy, Building2,
-    Users, MapPin, Briefcase, DollarSign, FileSearch, X,
-    Calendar, FileDown, Hash
+    Users, MapPin, Briefcase, DollarSign, X,
+    Calendar, Hash, FileDown
 } from 'lucide-react';
 import {
     Dialog,
@@ -20,6 +20,7 @@ import {
     DialogTitle,
 } from '../components/ui/dialog';
 import DadosExtraidos from '../components/DadosExtraidos';
+import { visualizarPDF, baixarPDF, TEMPLATE_MINUTA } from '../utils/pdfGenerator';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
