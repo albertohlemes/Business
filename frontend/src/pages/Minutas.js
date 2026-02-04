@@ -196,7 +196,7 @@ const Minutas = () => {
                 year: 'numeric'
             });
             
-            // Montar prompt com alterações
+            // Montar alterações selecionadas
             const tiposStr = alteracoesSelecionadas.map(id => 
                 TIPOS_ALTERACAO.find(t => t.id === id)?.label
             ).join(', ');
@@ -204,36 +204,46 @@ const Minutas = () => {
             // Extrair dados da empresa para o template
             const empresa = dadosExtraidos?.empresa || {};
             const socios = dadosExtraidos?.socios || [];
-            
-            const prompt = `Com base no contrato social analisado e nos documentos de apoio anexados, gere uma MINUTA DE ALTERAÇÃO CONTRATUAL completa.
 
-DADOS DA EMPRESA:
-- Razão Social: ${empresa.razao_social || '[A IDENTIFICAR]'}
-- CNPJ: ${empresa.cnpj || '[A IDENTIFICAR]'}
-- Endereço: ${empresa.endereco || '[A IDENTIFICAR]'}
-- Capital Social: ${empresa.capital_social || '[A IDENTIFICAR]'}
+            const prompt = `GERE UMA MINUTA DE ALTERAÇÃO CONTRATUAL seguindo EXATAMENTE este formato:
 
-SÓCIOS ATUAIS:
-${socios.map(s => `- ${s.nome}, CPF ${s.cpf || 'N/A'}, ${s.participacao || 'N/A'} das quotas${s.administrador ? ' (Administrador)' : ''}`).join('\n') || '[A IDENTIFICAR DO CONTRATO]'}
+================================================================================
+                    ALTERAÇÃO DO CONTRATO SOCIAL
+                    
+${empresa.razao_social || '[RAZÃO SOCIAL]'}
+CNPJ: ${empresa.cnpj || '[CNPJ]'}
+================================================================================
+
+Pelo presente instrumento particular, os sócios abaixo qualificados:
+
+QUADRO SOCIETÁRIO ATUAL:
+${socios.map((s, i) => `${i+1}. ${s.nome}, ${s.nacionalidade || 'brasileiro(a)'}, ${s.estado_civil || ''}, ${s.profissao || ''}, portador(a) do RG nº ${s.rg || 'XXXXX'} e CPF nº ${s.cpf || 'XXX.XXX.XXX-XX'}, residente e domiciliado(a) em [ENDEREÇO], titular de ${s.participacao || 'XX%'} das quotas do capital social${s.administrador ? ', ADMINISTRADOR(A)' : ''}.`).join('\n\n') || '[LISTAR SÓCIOS DO CONTRATO ORIGINAL]'}
+
+Únicos sócios da empresa ${empresa.razao_social || '[RAZÃO SOCIAL]'}, inscrita no CNPJ sob nº ${empresa.cnpj || '[CNPJ]'}, com sede em ${empresa.endereco || '[ENDEREÇO]'}, resolvem, de comum acordo, proceder às seguintes alterações:
+
+--------------------------------------------------------------------------------
+                         CLÁUSULAS DE ALTERAÇÃO
+--------------------------------------------------------------------------------
 
 DATA DA ALTERAÇÃO: ${dataFormatada}
+TIPO DE ALTERAÇÃO: ${tiposStr}
 
-ALTERAÇÕES SOLICITADAS: ${tiposStr}
-
-DESCRIÇÃO DAS ALTERAÇÕES:
+DESCRIÇÃO DA ALTERAÇÃO SOLICITADA:
 ${descricaoAlteracao}
 
-INSTRUÇÕES OBRIGATÓRIAS:
-1. Use o seguinte FORMATO PADRÃO para a minuta:
+INSTRUÇÕES IMPORTANTES:
+1. Gere APENAS as cláusulas de alteração para: ${tiposStr}
+2. MANTENHA todas as outras cláusulas do contrato original SEM MODIFICAÇÃO
+3. Use os dados dos documentos de apoio anexados (CNH, comprovantes) se houver
+4. Na CONSOLIDAÇÃO, reproduza o contrato original INTEGRALMENTE, alterando APENAS os campos especificados acima
+5. Use linguagem jurídica formal
 
-${TEMPLATE_MINUTA}
+Estrutura obrigatória:
+- CLÁUSULA PRIMEIRA - [tipo da alteração]: Detalhe da alteração
+- CONSOLIDAÇÃO DO CONTRATO SOCIAL: Contrato completo com a alteração aplicada
+- ENCERRAMENTO: Assinaturas dos sócios
 
-2. Substitua todos os campos entre colchetes com os dados reais
-3. Extraia informações dos documentos de apoio (CNH, comprovantes) quando necessário
-4. Use a data "${dataFormatada}" em todo o documento
-5. Linguagem jurídica formal e precisa
-6. Inclua a CONSOLIDAÇÃO completa do contrato social
-7. Deixe espaço para assinaturas no final`;
+================================================================================`;
 
             const chatRes = await axios.post(`${API_URL}/api/minutas/${minutaId}/chat`, {
                 message: prompt,
@@ -242,7 +252,7 @@ ${TEMPLATE_MINUTA}
             
             setMinutaGerada(chatRes.data.response);
             
-            // Atualizar tipo
+            // Atualizar minuta
             await axios.post(`${API_URL}/api/minutas/${minutaId}/gerar`);
             
             toast.success('Minuta gerada!');
