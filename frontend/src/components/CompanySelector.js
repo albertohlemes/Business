@@ -16,6 +16,23 @@ const CompanySelector = () => {
   const [tempCompany, setTempCompany] = useState(selectedCompany);
   const [tempCompetencia, setTempCompetencia] = useState(selectedCompetencia);
 
+  // Formatar competência automaticamente (só números → MM/AAAA)
+  const handleCompetenciaChange = (e) => {
+    let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
+    
+    // Limitar a 6 dígitos (MMAAAA)
+    if (value.length > 6) {
+      value = value.slice(0, 6);
+    }
+    
+    // Formatar como MM/AAAA
+    if (value.length > 2) {
+      value = value.slice(0, 2) + '/' + value.slice(2);
+    }
+    
+    setTempCompetencia(value);
+  };
+
   const handleConfirm = () => {
     if (tempCompany) {
       selectCompany(tempCompany);
@@ -108,12 +125,12 @@ const CompanySelector = () => {
             <input
               type="text"
               value={tempCompetencia}
-              onChange={(e) => setTempCompetencia(e.target.value)}
-              placeholder="01/2024"
+              onChange={handleCompetenciaChange}
+              placeholder="122025"
               maxLength="7"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:ring-0 text-lg font-mono text-center"
             />
-            <p className="text-xs text-gray-500 mt-2 text-center">Formato: MM/AAAA</p>
+            <p className="text-xs text-gray-500 mt-2 text-center">Digite apenas números (ex: 122025 → 12/2025)</p>
           </div>
 
           {/* Botão Confirmar */}
