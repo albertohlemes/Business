@@ -22,16 +22,19 @@ const Reports = ({ user, onLogout }) => {
     fetchCompanies();
   }, []);
 
-  // Usar empresa/competência do contexto
+  // Usar empresa/competência do contexto - SEMPRE priorizar contexto global
   useEffect(() => {
-    if (ctxCompany && !selectedCompany) {
+    if (ctxCompany) {
       setSelectedCompany(ctxCompany.id);
       fetchCompetencias(ctxCompany.id);
     }
-    if (ctxCompetencia && !competencia) {
+  }, [ctxCompany]);
+  
+  useEffect(() => {
+    if (ctxCompetencia) {
       setCompetencia(ctxCompetencia);
     }
-  }, [ctxCompany, ctxCompetencia]);
+  }, [ctxCompetencia]);
 
   const fetchCompanies = async () => {
     try {
