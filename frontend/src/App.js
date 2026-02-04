@@ -97,6 +97,10 @@ function App() {
               path="/reclassification"
               element={user ? <ReclassificationAI user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/analise-aliquotas-saida"
+              element={user ? <AnaliseAliquotasSaida user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
           </Routes>
         </AppProvider>
       </BrowserRouter>
