@@ -1618,15 +1618,19 @@ async def apuracao_pis_cofins(
         "competencia": competencia
     }, {"_id": 0}).to_list(None)
     
+    # CSTs de PIS/COFINS
+    # Saída: 01 (tributado), 06 (alíquota zero)
+    # Entrada: 50 (com crédito), 73 (alíquota zero)
+    
     # Estruturas para armazenar dados
     creditos = {
-        "com_credito": {"por_cfop": {}, "por_ncm": {}, "total": 0, "pis": 0, "cofins": 0},
-        "aliquota_zero": {"por_cfop": {}, "por_ncm": {}, "total": 0, "motivo": "NCM com alíquota zero"}
+        "com_credito": {"por_cfop": {}, "por_ncm": {}, "por_cst": {}, "total": 0, "pis": 0, "cofins": 0, "cst": "50"},
+        "aliquota_zero": {"por_cfop": {}, "por_ncm": {}, "por_cst": {}, "total": 0, "cst": "73"}
     }
     
     debitos = {
-        "com_debito": {"por_cfop": {}, "por_ncm": {}, "total": 0, "pis": 0, "cofins": 0},
-        "aliquota_zero": {"por_cfop": {}, "por_ncm": {}, "total": 0, "motivo": "NCM com alíquota zero"}
+        "com_debito": {"por_cfop": {}, "por_ncm": {}, "por_cst": {}, "total": 0, "pis": 0, "cofins": 0, "cst": "01"},
+        "aliquota_zero": {"por_cfop": {}, "por_ncm": {}, "por_cst": {}, "total": 0, "cst": "06"}
     }
     
     def is_ncm_aliquota_zero(ncm):
@@ -1652,6 +1656,8 @@ async def apuracao_pis_cofins(
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
             ncm = str(prod.get('ncm', ''))
+            cst_pis = str(prod.get('cst_pis', prod.get('CST_PIS', '')))
+            cst_cofins = str(prod.get('cst_cofins', prod.get('CST_COFINS', '')))
             valor = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
             v_pis = float(prod.get('v_pis', 0) or 0)
             v_cofins = float(prod.get('v_cofins', 0) or 0)
