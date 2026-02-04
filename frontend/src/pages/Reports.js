@@ -51,9 +51,6 @@ const Reports = ({ user, onLogout }) => {
       });
       const competencias = [...new Set(response.data.map(d => d.competencia))].filter(Boolean).sort();
       setAvailableCompetencias(competencias);
-      if (competencias.length > 0 && !competencias.includes(competencia)) {
-        setCompetencia(competencias[0]);
-      }
     } catch (err) {
       console.error('Erro:', err);
     }
