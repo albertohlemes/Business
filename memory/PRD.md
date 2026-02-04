@@ -90,11 +90,23 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - **Mensagem de sucesso:** Toast verde "Produto validado com sucesso!"
 
 ### ✅ **Análise de Alíquotas de Saída** (04/02/2026)
-- Endpoint: `/api/analise-aliquotas-saida/{company_id}`
-- Analisa ICMS, PIS, COFINS nas NFs de saída
+- **Página dedicada:** `/analise-aliquotas-saida`
+- Tabela de produtos com alíquotas de ICMS, PIS, COFINS
 - Compara alíquotas efetivas com padrão (18%, 1.65%, 7.6%)
-- Gera alertas para divergências e impostos zerados
+- Alertas para divergências e impostos zerados
 - Resumo: total de produtos, produtos com alerta, alertas por imposto
+- Filtro: Todos, Com Alertas, OK
+- Exportar CSV
+
+### ✅ **Gerenciamento de Documentos** (04/02/2026)
+- **Apagar notas em lote:** Botão "Apagar Competência {MM/AAAA}" na página de documentos
+- **Apagar individual:** Botão de lixeira em cada linha da tabela
+- Filtro por empresa, status e tipo de operação
+
+### ✅ **Relatórios por Operação** (04/02/2026)
+- Filtro: **Entrada (Compras)**, **Saída (Vendas)**, ou **Todos**
+- Indicador visual do tipo de operação selecionado
+- Relatórios usa empresa/competência do contexto automaticamente
 
 ### ✅ **Melhorias de UX** (04/02/2026)
 - **Menu "Empresas" no header** - Ao lado do seletor de empresa
