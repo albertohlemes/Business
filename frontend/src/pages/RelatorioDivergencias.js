@@ -67,6 +67,38 @@ const RelatorioDivergencias = ({ user, onLogout }) => {
     }));
   };
 
+  const getGroupedData = () => {
+    if (!data || !data.divergencias) return [];
+
+    if (!grouped) return data.divergencias;
+
+    const groups = {};
+    
+    data.divergencias.forEach(doc => {
+      doc.produtos.forEach(prod => {
+        const key = `${prod.codigo}|${prod.ncm}|${prod.cst_pis_atual}|${prod.cst_pis_correto}`;
+        if (!groups[key]) {
+          groups[key] = {
+            ...prod,
+            quantidade_docs: 0,
+            valor_total: 0,
+            impacto_pis_total: 0,
+            impacto_cofins_total: 0,
+            documentos: []
+          };
+        }
+        
+        groups[key].quantidade_docs += 1;
+        groups[key].valor_total += prod.valor;
+        groups[key].impacto_pis_total += prod.impacto_pis || 0;
+        groups[key].impacto_cofins_total += prod.impacto_cofins || 0;
+        groups[key].documentos.push(doc.numero_nfe);
+      });
+    });
+
+    return Object.values(groups).sort((a, b) => b.valor_total - a.valor_total);
+  };
+
   const exportCSV = () => {
     if (!data || !data.divergencias.length) return;
 
