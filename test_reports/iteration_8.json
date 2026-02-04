@@ -1,0 +1,110 @@
+{
+  "summary": "Completed testing of iteration 8 features. All 7 requested features verified working: Header 'Empresas' link, Competência auto-format, Dashboard 'Selecionar Empresa' button, Validation success message, Justificativa da IA, 'Memória da IA' button, and /api/analise-aliquotas-saida endpoint. 10/10 backend tests passed, all frontend features verified.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Company Selector Modal",
+        "issue": "Intermittent issue where modal shows 'Nenhuma empresa cadastrada' on first login even though companies exist. This is a timing issue with AppContext not re-fetching companies after login. Workaround: refresh page or navigate to Companies page first.",
+        "affected_selectors": [".fixed.inset-0"],
+        "priority": "MEDIUM"
+      }
+    ],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "FEATURE 1: Header 'Empresas' link - Link visible in header at y=14 with data-testid='nav-companies'",
+    "FEATURE 2: CompanySelector competência auto-format - 122025 → 12/2025 works correctly",
+    "FEATURE 2: CompanySelector helper text - 'Digite apenas números (ex: 122025 → 12/2025)' visible",
+    "FEATURE 3: Dashboard 'Selecionar Empresa' button - Visible when no company selected",
+    "FEATURE 4: Validation success message - Green toast 'Produto validado com sucesso!' appears on approval",
+    "FEATURE 5: Justificativa da IA - Field exists in products (justificativa_ia)",
+    "FEATURE 6: 'Memória da IA' button - Button visible with title 'A IA memoriza suas correções para aplicar automaticamente no futuro'",
+    "FEATURE 7: /api/analise-aliquotas-saida endpoint - Returns 200 with correct structure",
+    "Backend: /api/analise-aliquotas-saida returns empresa, competencia, total_documentos_saida, total_produtos, produtos_com_alerta, resumo_alertas",
+    "Backend: resumo_alertas contains total, icms, pis, cofins counts",
+    "Backend: produto structure contains documento, codigo, descricao, valor_total, aliquotas, valores, alertas",
+    "Backend: /api/learned-rules returns 200 with list",
+    "Backend: /api/dashboard/stats returns 200 with quantidades",
+    "Backend: Documents have justificativa_ia field in produtos"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_new_features_iteration8.py",
+    "/app/test_reports/pytest/pytest_iteration8.xml"
+  ],
+
+  "action_items": [
+    "OPTIONAL: Fix AppContext timing issue - companies should be re-fetched after login to avoid 'Nenhuma empresa cadastrada' message"
+  ],
+
+  "critical_code_review_comments": [
+    "Layout.js: 'Empresas' link correctly placed in header with data-testid='nav-companies' (line 53-61)",
+    "CompanySelector.js: handleCompetenciaChange correctly auto-formats competência (line 20-34)",
+    "ValidationPage.js: showSuccess function correctly shows green toast for 3 seconds (line 35-38)",
+    "ValidationPage.js: justificativa_ia displayed with Info icon and blue styling (line 394-399)",
+    "ReclassificationAI.js: 'Memória da IA' button with title explanation (line 369-373)",
+    "server.py: /api/analise-aliquotas-saida endpoint correctly analyzes ICMS/PIS/COFINS aliquotas (line 1244-1365)"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_new_features_iteration8.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (10/10 tests passed)",
+    "frontend": "100% (all 7 features verified)"
+  },
+
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "test123",
+    "role": "admin"
+  },
+
+  "seed_data_creation": "None - used existing ANZEN company (id: e04975c4-b209-483f-b9bf-4e429a52fa74) with 119 documents (109 entrada, 10 saída) in competencia 12/2025",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": true,
+
+  "context_for_next_testing_agent": "All iteration 8 features verified working: 1) 'Empresas' link in header navigates to /companies, 2) Competência input auto-formats numbers to MM/AAAA, 3) 'Selecionar Empresa' button on Dashboard opens company selector, 4) Green success toast appears when approving products in Validation page, 5) justificativa_ia field displayed in products (when present), 6) 'Memória da IA' button on Reclassification page with explanation tooltip, 7) /api/analise-aliquotas-saida endpoint returns ICMS/PIS/COFINS analysis for saída documents. Company ANZEN has 10 saída documents with 33 products for testing aliquotas analysis.",
+
+  "features_verified": {
+    "header_empresas_link": {
+      "status": "WORKING",
+      "details": "Link visible in header with data-testid='nav-companies', navigates to /companies"
+    },
+    "competencia_auto_format": {
+      "status": "WORKING",
+      "details": "Input accepts only numbers, auto-formats to MM/AAAA (e.g., 122025 → 12/2025)"
+    },
+    "dashboard_selecionar_empresa_button": {
+      "status": "WORKING",
+      "details": "Button visible on Dashboard when no company selected, opens company selector modal"
+    },
+    "validation_success_message": {
+      "status": "WORKING",
+      "details": "Green toast 'Produto validado com sucesso!' appears in top-right corner for 3 seconds"
+    },
+    "justificativa_ia": {
+      "status": "WORKING",
+      "details": "Field exists in products, displayed with Info icon and blue styling when present"
+    },
+    "memoria_da_ia_button": {
+      "status": "WORKING",
+      "details": "Button shows 'Memória da IA (N)' with title 'A IA memoriza suas correções para aplicar automaticamente no futuro'"
+    },
+    "analise_aliquotas_saida_endpoint": {
+      "status": "WORKING",
+      "details": "Returns empresa, competencia, total_documentos_saida, total_produtos, produtos_com_alerta, resumo_alertas (icms, pis, cofins), produtos array with aliquotas and alertas"
+    }
+  }
+}
