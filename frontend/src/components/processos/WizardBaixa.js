@@ -517,7 +517,7 @@ const WizardBaixa = ({ open, onClose, onComplete }) => {
                     destinacao_acervo: destinacaoAcervo,
                     declaracao_quitacao: declaracaoQuitacao,
                     distribuicao_patrimonio: distribuicaoPatrimonio,
-                    responsavel_guarda: responsavelGuarda,
+                    responsavel_guarda: socios[responsavelGuardaIndex]?.nome || socios[0]?.nome || '',
                     prazo_guarda: prazoGuarda
                 }
             });
