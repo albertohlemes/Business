@@ -261,6 +261,27 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
     - `/app/backend/server.py` - 3 novos endpoints SSE
     - `/app/frontend/src/pages/UploadXML.js` - Componente ProgressBar e lógica SSE
 
+- ✅ **DOWNLOAD AUTOMÁTICO DO SIEG COM PROGRESSO SSE**
+  - **Backend com processamento completo:**
+    - `POST /api/sieg/sync-init/{company_id}` - Inicializa sessão de sincronização
+    - `GET /api/sieg/sync-progress/{sync_id}` - Stream de progresso via SSE
+    - `POST /api/sieg/sync-execute/{sync_id}` - Executa a sincronização com IA
+    - XMLs baixados são processados com a mesma lógica do upload manual:
+      - Classificação de produtos com IA/cache
+      - Cálculo de CST PIS/COFINS
+      - Conversão automática de CFOP
+      - Verificação de duplicatas
+  - **Frontend melhorado:**
+    - Barra de progresso na seção SIEG do modal de seleção
+    - Mostra etapa atual ("Baixando XMLs...", "Processando entrada X/Y...")
+    - Resultado detalhado com entradas/saídas processadas
+    - Estatísticas de classificação (cache/regras/IA)
+    - Indicador de notas duplicadas
+  - **Arquivos modificados:**
+    - `/app/backend/server.py` - 3 novos endpoints para SIEG SSE
+    - `/app/frontend/src/context/AppContext.js` - Função syncFromSieg com SSE
+    - `/app/frontend/src/components/CompanySelector.js` - UI de progresso
+
 ### 02/2026 - Iteration 21 (04/02/2026)
 - ✅ **Reclassificação Manual na Validação de Entrada**
   - Botão "Reclassificar" nos produtos (visão Por NF-e)
