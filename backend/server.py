@@ -4203,41 +4203,53 @@ async def ai_analise_tributaria(
     debito_icms_isento = 0
     debito_pis_tributado = 0
     debito_pis_aliquota_zero = 0
+    debito_pis_sem_incidencia = 0
     debito_cofins_tributado = 0
     debito_cofins_aliquota_zero = 0
+    debito_cofins_sem_incidencia = 0
     
     valor_vendas_st = 0
     valor_vendas_tributado = 0
     valor_vendas_isento = 0
     
+    # Base de débito (apenas produtos tributados)
+    base_debito_pis_cofins = 0
+    
     for doc in docs_saida:
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
-            ncm = str(prod.get('ncm', ''))[:4]
+            ncm = str(prod.get('ncm', ''))
             cst = str(prod.get('cst', ''))
-            valor = prod.get('valor_total', 0)
+            cst_pis = str(prod.get('cst_pis_calculado', prod.get('cst_pis', '')))
+            valor = float(prod.get('valor_total', 0) or 0)
+            v_pis = float(prod.get('v_pis', 0) or 0)
+            v_cofins = float(prod.get('v_cofins', 0) or 0)
             
             # Classificar ICMS de saída
             if cst in ['10', '30', '60', '70'] or 'ST' in cfop.upper():
-                debito_icms_st += prod.get('v_icms', 0)
+                debito_icms_st += float(prod.get('v_icms', 0) or 0)
                 valor_vendas_st += valor
-            elif cst in ['40', '41', '50'] or prod.get('v_icms', 0) == 0:
-                debito_icms_isento += prod.get('v_icms', 0)
+            elif cst in ['40', '41', '50'] or float(prod.get('v_icms', 0) or 0) == 0:
+                debito_icms_isento += float(prod.get('v_icms', 0) or 0)
                 valor_vendas_isento += valor
             else:
-                debito_icms_tributado += prod.get('v_icms', 0)
+                debito_icms_tributado += float(prod.get('v_icms', 0) or 0)
                 valor_vendas_tributado += valor
             
-            # PIS/COFINS de saída
-            if ncm in ncms_aliquota_zero or prod.get('v_pis', 0) == 0:
-                debito_pis_aliquota_zero += prod.get('v_pis', 0)
+            # PIS/COFINS de saída - Usar CST calculado
+            if cst_pis == '49' or cfop in CFOPS_SAIDA_SEM_INCIDENCIA:
+                # Sem incidência (CST 49)
+                debito_pis_sem_incidencia += valor
+                debito_cofins_sem_incidencia += valor
+            elif cst_pis == '06' or prod.get('ncm_aliq_zero', False) or is_ncm_aliquota_zero(ncm):
+                # Alíquota zero (CST 06)
+                debito_pis_aliquota_zero += valor
+                debito_cofins_aliquota_zero += valor
             else:
-                debito_pis_tributado += prod.get('v_pis', 0)
-            
-            if ncm in ncms_aliquota_zero or prod.get('v_cofins', 0) == 0:
-                debito_cofins_aliquota_zero += prod.get('v_cofins', 0)
-            else:
-                debito_cofins_tributado += prod.get('v_cofins', 0)
+                # Tributado (CST 01)
+                debito_pis_tributado += valor
+                debito_cofins_tributado += valor
+                base_debito_pis_cofins += valor
     
     # ============ CÁLCULOS FISCAIS ============
     total_cfops = cfops_interestadual + cfops_interno
