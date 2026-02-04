@@ -138,6 +138,9 @@ def gerar_documento_formatado(
     secoes_config = {s['id']: s for s in formatacao.get('secoes', [])}
     espacamento = float(formatacao.get('espacamento', 1.5))
     
+    # Organização inteligente de páginas
+    organizacao_inteligente = formatacao.get('organizacao_inteligente', True)
+    
     # Adicionar logo se existir
     logo_base64 = formatacao.get('logo_base64')
     if logo_base64:
