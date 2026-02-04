@@ -73,22 +73,38 @@ const Documents = ({ user, onLogout }) => {
     }
     
     const company = companies.find(c => c.id === selectedCompany);
-    const count = documents.filter(d => d.company_id === selectedCompany && d.competencia === selectedCompetencia).length;
+    
+    // Filtrar documentos considerando o tipo selecionado
+    let docsToDelete = documents.filter(d => 
+      d.company_id === selectedCompany && d.competencia === selectedCompetencia
+    );
+    
+    // Aplicar filtro de tipo se selecionado
+    if (selectedTipo) {
+      docsToDelete = docsToDelete.filter(d => d.tipo === selectedTipo);
+    }
+    
+    const count = docsToDelete.length;
     
     if (count === 0) {
-      alert('Nenhum documento para apagar nesta competência');
+      alert('Nenhum documento para apagar com os filtros selecionados');
       return;
     }
     
-    if (!window.confirm(`Tem certeza que deseja apagar TODOS os ${count} documentos da competência ${selectedCompetencia} da empresa ${company?.razao_social}?`)) {
+    const tipoLabel = selectedTipo === 'entrada' ? ' de ENTRADA' : 
+                      selectedTipo === 'saida' ? ' de SAÍDA' : '';
+    
+    if (!window.confirm(`Tem certeza que deseja apagar ${count} documento(s)${tipoLabel} da competência ${selectedCompetencia} da empresa ${company?.razao_social}?`)) {
       return;
     }
     
     setDeleting(true);
     try {
       const token = localStorage.getItem('token');
+      // Passar o tipo como parâmetro para o backend
+      const tipoParam = selectedTipo ? `?tipo=${selectedTipo}` : '';
       const response = await axios.delete(
-        `${API}/documents/${selectedCompany}/competencia/${selectedCompetencia}`,
+        `${API}/documents/${selectedCompany}/competencia/${selectedCompetencia}${tipoParam}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       alert(response.data.message);
