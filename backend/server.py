@@ -2881,7 +2881,7 @@ Se o comando não for claro ou não se aplicar a nenhum produto, retorne {{"alte
         response = await llm.send_message(UserMessage(content=prompt))
         
         # Extrair JSON da resposta
-        response_text = response.content if hasattr(response, 'content') else str(response)
+        response_text = response if isinstance(response, str) else str(response)
         json_match = re.search(r'\{[\s\S]*\}', response_text)
         
         if json_match:
