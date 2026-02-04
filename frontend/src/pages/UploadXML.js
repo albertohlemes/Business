@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { Upload, FileText, Check, AlertCircle, Sparkles, Calendar } from 'lucide-react';
+import { Upload, FileText, Check, AlertCircle, Sparkles, Calendar, Loader2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -16,9 +16,26 @@ const UploadXML = ({ user, onLogout }) => {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState(null);
+  
+  // Progress state
+  const [progress, setProgress] = useState({
+    percent: 0,
+    currentFile: '',
+    currentStep: '',
+    processedFiles: 0,
+    totalFiles: 0
+  });
+  
+  const eventSourceRef = useRef(null);
 
   useEffect(() => {
     fetchCompanies();
+    return () => {
+      // Cleanup SSE connection on unmount
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
   }, []);
 
   // Auto-preencher com empresa/competência do contexto global
@@ -56,6 +73,13 @@ const UploadXML = ({ user, onLogout }) => {
     const selectedFiles = Array.from(e.target.files);
     setFiles(selectedFiles);
     setResults(null);
+    setProgress({
+      percent: 0,
+      currentFile: '',
+      currentStep: '',
+      processedFiles: 0,
+      totalFiles: 0
+    });
   };
 
   const handleUpload = async () => {
@@ -65,30 +89,95 @@ const UploadXML = ({ user, onLogout }) => {
     }
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append('company_id', selectedCompany);
-    formData.append('competencia', competencia);
-    formData.append('tipo', tipo);
-    
-    files.forEach((file) => {
-      formData.append('files', file);
+    setResults(null);
+    setProgress({
+      percent: 0,
+      currentFile: '',
+      currentStep: 'Iniciando upload...',
+      processedFiles: 0,
+      totalFiles: files.length
     });
 
+    const token = localStorage.getItem('token');
+
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(API + '/xml/upload', formData, {
+      // 1. Iniciar sessão de upload
+      const initFormData = new FormData();
+      initFormData.append('company_id', selectedCompany);
+      initFormData.append('competencia', competencia);
+      initFormData.append('tipo', tipo);
+      initFormData.append('total_files', files.length);
+
+      const initResponse = await axios.post(API + '/xml/upload-init', initFormData, {
         headers: {
           'Authorization': 'Bearer ' + token,
           'Content-Type': 'multipart/form-data'
         }
       });
-      setResults(response.data);
-      setFiles([]);
-      document.getElementById('file-input').value = '';
+
+      const uploadId = initResponse.data.upload_id;
+
+      // 2. Conectar ao SSE para receber progresso
+      const eventSource = new EventSource(`${API}/xml/upload-progress/${uploadId}`);
+      eventSourceRef.current = eventSource;
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          setProgress({
+            percent: data.progress_percent || 0,
+            currentFile: data.current_file || '',
+            currentStep: data.current_step || '',
+            processedFiles: data.processed_files || 0,
+            totalFiles: data.total_files || files.length
+          });
+
+          if (data.completed && data.results) {
+            setResults(data.results);
+            setUploading(false);
+            setFiles([]);
+            document.getElementById('file-input').value = '';
+            eventSource.close();
+            eventSourceRef.current = null;
+          }
+
+          if (data.error) {
+            console.error('SSE Error:', data.error);
+            eventSource.close();
+            eventSourceRef.current = null;
+          }
+        } catch (e) {
+          console.error('Error parsing SSE data:', e);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('SSE connection error:', error);
+        // Don't close immediately, let the upload continue
+      };
+
+      // 3. Enviar arquivos
+      const uploadFormData = new FormData();
+      uploadFormData.append('upload_id', uploadId);
+      files.forEach((file) => {
+        uploadFormData.append('files', file);
+      });
+
+      await axios.post(API + '/xml/upload-stream', uploadFormData, {
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
     } catch (err) {
       alert(err.response?.data?.detail || 'Erro ao enviar arquivos');
-    } finally {
       setUploading(false);
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
     }
   };
 
@@ -100,9 +189,64 @@ const UploadXML = ({ user, onLogout }) => {
     </div>
   );
 
+  // Componente da barra de progresso
+  const ProgressBar = () => (
+    <div data-testid="upload-progress-bar" className="fixed top-0 left-0 right-0 z-50 bg-white shadow-lg border-b-2 border-red-600">
+      <div className="max-w-5xl mx-auto px-4 py-4">
+        <div className="flex items-center gap-4 mb-3">
+          <Loader2 className="w-6 h-6 text-red-600 animate-spin" />
+          <div className="flex-1">
+            <div className="flex justify-between items-center mb-1">
+              <span className="font-semibold text-gray-900">
+                Processando arquivos XML
+              </span>
+              <span className="text-sm font-bold text-red-600">
+                {progress.percent}%
+              </span>
+            </div>
+            <p className="text-sm text-gray-600">
+              {progress.currentStep}
+            </p>
+          </div>
+        </div>
+        
+        {/* Barra de progresso principal */}
+        <div className="relative h-4 bg-gray-200 rounded-full overflow-hidden">
+          <div 
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-500 to-orange-500 transition-all duration-300 ease-out rounded-full"
+            style={{ width: `${progress.percent}%` }}
+          />
+          {/* Efeito de brilho animado */}
+          <div 
+            className="absolute top-0 left-0 h-full w-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"
+            style={{ 
+              transform: `translateX(${progress.percent - 100}%)`,
+              transition: 'transform 0.3s ease-out'
+            }}
+          />
+        </div>
+        
+        {/* Info detalhada */}
+        <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+          <span>
+            {progress.processedFiles} de {progress.totalFiles} arquivos processados
+          </span>
+          {progress.currentFile && (
+            <span className="truncate max-w-xs">
+              Arquivo atual: <span className="font-medium text-gray-700">{progress.currentFile}</span>
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <Layout user={user} onLogout={onLogout}>
-      <div data-testid="upload-xml-page" className="space-y-6 max-w-5xl mx-auto">
+      {/* Barra de progresso fixa no topo */}
+      {uploading && <ProgressBar />}
+      
+      <div data-testid="upload-xml-page" className={`space-y-6 max-w-5xl mx-auto ${uploading ? 'pt-28' : ''}`}>
         <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl p-6 shadow-lg">
           <div className="flex items-center gap-3 mb-2">
             <Sparkles className="w-8 h-8" />
@@ -121,6 +265,7 @@ const UploadXML = ({ user, onLogout }) => {
                   value={selectedCompany}
                   onChange={(e) => setSelectedCompany(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                  disabled={uploading}
                 >
                   <option value="">Selecione uma empresa</option>
                   {companies.map((company) => (
@@ -143,6 +288,7 @@ const UploadXML = ({ user, onLogout }) => {
                     className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg"
                     placeholder="01/2024"
                     maxLength="7"
+                    disabled={uploading}
                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Formato: MM/AAAA (Ex: 01/2024)</p>
@@ -160,6 +306,7 @@ const UploadXML = ({ user, onLogout }) => {
                     checked={tipo === 'entrada'}
                     onChange={(e) => setTipo(e.target.value)}
                     className="w-4 h-4 text-red-600"
+                    disabled={uploading}
                   />
                   <span className="text-gray-700">Entrada (Compras)</span>
                 </label>
@@ -171,19 +318,20 @@ const UploadXML = ({ user, onLogout }) => {
                     checked={tipo === 'saida'}
                     onChange={(e) => setTipo(e.target.value)}
                     className="w-4 h-4 text-red-600"
+                    disabled={uploading}
                   />
                   <span className="text-gray-700">Saída (Vendas)</span>
                 </label>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                💡 O sistema detecta automaticamente se é NF-e, NFC-e (cupom) ou NFS-e (serviço)
+                O sistema detecta automaticamente se é NF-e, NFC-e (cupom) ou NFS-e (serviço)
               </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Arquivos XML *</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-red-500 transition-colors">
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${uploading ? 'border-gray-200 bg-gray-50' : 'border-gray-300 hover:border-red-500'}`}>
+                <Upload className={`w-12 h-12 mx-auto mb-4 ${uploading ? 'text-gray-300' : 'text-gray-400'}`} />
                 <input
                   id="file-input"
                   data-testid="xml-file-input"
@@ -192,16 +340,19 @@ const UploadXML = ({ user, onLogout }) => {
                   accept=".xml"
                   onChange={handleFileChange}
                   className="hidden"
+                  disabled={uploading}
                 />
-                <label htmlFor="file-input" className="cursor-pointer">
-                  <span className="text-red-600 hover:text-red-700 font-semibold">Clique para selecionar</span>
-                  <span className="text-gray-600"> ou arraste os arquivos aqui</span>
+                <label htmlFor="file-input" className={uploading ? 'cursor-not-allowed' : 'cursor-pointer'}>
+                  <span className={`font-semibold ${uploading ? 'text-gray-400' : 'text-red-600 hover:text-red-700'}`}>
+                    {uploading ? 'Upload em andamento...' : 'Clique para selecionar'}
+                  </span>
+                  {!uploading && <span className="text-gray-600"> ou arraste os arquivos aqui</span>}
                 </label>
                 <p className="text-sm text-gray-500 mt-2">Aceita múltiplos arquivos .xml</p>
               </div>
             </div>
 
-            {files.length > 0 && (
+            {files.length > 0 && !uploading && (
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="font-semibold text-gray-900 mb-3">Arquivos Selecionados ({files.length})</h3>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
@@ -220,8 +371,8 @@ const UploadXML = ({ user, onLogout }) => {
             >
               {uploading ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  Processando e Convertendo CFOPs...
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  Processando... {progress.percent}%
                 </>
               ) : (
                 <>
