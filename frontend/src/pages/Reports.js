@@ -38,10 +38,6 @@ const Reports = ({ user, onLogout }) => {
         headers: { Authorization: 'Bearer ' + token }
       });
       setCompanies(response.data);
-      if (response.data.length > 0 && !selectedCompany) {
-        setSelectedCompany(response.data[0].id);
-        fetchCompetencias(response.data[0].id);
-      }
     } catch (err) {
       console.error('Erro ao carregar empresas:', err);
     }
