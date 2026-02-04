@@ -22,6 +22,9 @@ from collections import defaultdict
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 import json
 
+# SIEG Integration
+from sieg_service import count_xmls_sieg, download_xmls_sieg, sync_from_sieg
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
