@@ -487,12 +487,12 @@ Estrutura obrigatória:
                 </div>
             </div>
 
-            {/* Lista de Minutas */}
+            {/* Lista de Minutas Agrupada por Cliente */}
             <div className="bg-zinc-900 border border-zinc-800 rounded">
                 <div className="p-6 border-b border-zinc-800">
                     <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                         <FileText className="w-5 h-5 text-red-500" />
-                        Histórico de Alterações
+                        Histórico de Alterações por Cliente
                     </h2>
                 </div>
                 
@@ -506,65 +506,85 @@ Estrutura obrigatória:
                         <p>Nenhuma minuta criada</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th className="w-20">Nº</th>
-                                    <th>CNPJ</th>
-                                    <th>Razão Social</th>
-                                    <th>Tipo de Alteração</th>
-                                    <th>Status</th>
-                                    <th>Data</th>
-                                    <th className="text-right">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {minutas.map(m => (
-                                    <tr key={m.id} data-testid={`minuta-${m.id}`}>
-                                        <td>
-                                            <span className="flex items-center gap-1 text-red-500 font-mono font-medium">
-                                                <Hash className="w-3 h-3" />
-                                                {m.numero_alteracao || '-'}
-                                            </span>
-                                        </td>
-                                        <td className="font-mono text-sm">
-                                            {m.cnpj || '-'}
-                                        </td>
-                                        <td className="max-w-[200px] truncate">
-                                            {m.razao_social || '-'}
-                                        </td>
-                                        <td>
-                                            {m.tipo_alteracao || 'Minuta'}
-                                        </td>
-                                        <td>{getStatus(m.status)}</td>
-                                        <td className="text-xs text-zinc-500">
-                                            {new Date(m.created_at).toLocaleDateString('pt-BR')}
-                                        </td>
-                                        <td>
-                                            <div className="flex items-center justify-end gap-1">
+                    <div className="divide-y divide-zinc-800">
+                        {/* Agrupar minutas por cliente (CNPJ) */}
+                        {Object.entries(
+                            minutas.reduce((acc, m) => {
+                                const key = m.cnpj || m.razao_social || 'sem-identificacao';
+                                if (!acc[key]) {
+                                    acc[key] = {
+                                        cnpj: m.cnpj,
+                                        razao_social: m.razao_social,
+                                        alteracoes: []
+                                    };
+                                }
+                                acc[key].alteracoes.push(m);
+                                return acc;
+                            }, {})
+                        ).map(([key, cliente]) => (
+                            <div key={key} className="p-4" data-testid={`cliente-${key}`}>
+                                {/* Cabeçalho do Cliente */}
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-3">
+                                        <Building2 className="w-5 h-5 text-red-500" />
+                                        <div>
+                                            <p className="font-medium text-white">
+                                                {cliente.razao_social || 'Empresa não identificada'}
+                                            </p>
+                                            <p className="text-xs text-zinc-500 font-mono">
+                                                {cliente.cnpj || 'CNPJ não informado'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs text-zinc-500 bg-zinc-800 px-2 py-1 rounded">
+                                        {cliente.alteracoes.length} alteraç{cliente.alteracoes.length === 1 ? 'ão' : 'ões'}
+                                    </span>
+                                </div>
+                                
+                                {/* Lista de Alterações do Cliente */}
+                                <div className="ml-8 space-y-2">
+                                    {cliente.alteracoes.map(m => (
+                                        <div 
+                                            key={m.id} 
+                                            className="flex items-center justify-between bg-zinc-950 border border-zinc-800 rounded p-3 hover:border-zinc-700 transition-colors"
+                                            data-testid={`minuta-${m.id}`}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <span className="flex items-center gap-1 text-red-500 font-mono font-medium text-sm">
+                                                    <Hash className="w-3 h-3" />
+                                                    {m.numero_alteracao || '-'}
+                                                </span>
+                                                <span className="text-zinc-300">
+                                                    {m.tipo_alteracao || 'Minuta'}
+                                                </span>
+                                                {getStatus(m.status)}
+                                                <span className="text-xs text-zinc-500">
+                                                    {new Date(m.created_at).toLocaleDateString('pt-BR')}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
                                                 {m.conteudo_gerado && (
                                                     <>
-                                                        <Button size="sm" variant="outline" onClick={() => downloadWord(m.id)} className="border-zinc-700" title="Baixar Word">
+                                                        <Button size="sm" variant="outline" onClick={() => downloadWord(m.id)} className="border-zinc-700 h-8" title="Baixar Word">
                                                             <FileType className="w-4 h-4" />
                                                         </Button>
-                                                        <Button size="sm" variant="outline" onClick={() => downloadPDF(m.id)} className="border-zinc-700" title="Baixar PDF">
+                                                        <Button size="sm" variant="outline" onClick={() => downloadPDF(m.id)} className="border-zinc-700 h-8" title="Baixar PDF">
                                                             <FileDown className="w-4 h-4" />
                                                         </Button>
                                                     </>
                                                 )}
-                                                <Button size="sm" variant="outline" onClick={() => viewMinuta(m)} className="border-zinc-700" title="Visualizar">
+                                                <Button size="sm" variant="outline" onClick={() => viewMinuta(m)} className="border-zinc-700 h-8" title="Visualizar">
                                                     <Eye className="w-4 h-4" />
                                                 </Button>
-                                                <Button size="sm" variant="outline" onClick={() => deleteMinuta(m.id)} className="border-zinc-700 hover:border-red-600" title="Excluir">
+                                                <Button size="sm" variant="outline" onClick={() => deleteMinuta(m.id)} className="border-zinc-700 hover:border-red-600 h-8" title="Excluir">
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
                                             </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>
