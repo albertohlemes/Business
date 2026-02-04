@@ -88,10 +88,10 @@ const Processos = () => {
     };
 
     const handleNovoProcesso = () => {
-        if (activeTab === 'alteracao') {
-            setWizardAlteracaoOpen(true);
-        } else if (activeTab === 'constituicao') {
+        if (activeTab === 'constituicao') {
             setWizardConstituicaoOpen(true);
+        } else if (activeTab === 'alteracao') {
+            setWizardAlteracaoOpen(true);
         } else {
             toast.info('Funcionalidade de Baixa em desenvolvimento');
         }
@@ -101,7 +101,7 @@ const Processos = () => {
         fetchData();
     };
 
-    // Filtrar minutas por tipo
+    // Filtrar processos por tipo
     const minutasAlteracao = minutas.filter(m => 
         !m.tipo_processo || m.tipo_processo === 'alteracao'
     );
@@ -114,8 +114,8 @@ const Processos = () => {
 
     const getButtonLabel = () => {
         switch (activeTab) {
-            case 'alteracao': return 'Nova Alteração';
             case 'constituicao': return 'Nova Constituição';
+            case 'alteracao': return 'Nova Alteração';
             case 'baixa': return 'Nova Baixa';
             default: return 'Novo Processo';
         }
@@ -123,8 +123,8 @@ const Processos = () => {
 
     const getButtonIcon = () => {
         switch (activeTab) {
-            case 'alteracao': return FileEdit;
             case 'constituicao': return Building2;
+            case 'alteracao': return FileEdit;
             case 'baixa': return XCircle;
             default: return Plus;
         }
