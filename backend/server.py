@@ -130,6 +130,7 @@ class MinutaResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str
     tipo_alteracao: str
+    tipo_processo: Optional[str] = None
     descricao: str
     arquivo_original: Optional[str] = None
     conteudo_gerado: Optional[str] = None
