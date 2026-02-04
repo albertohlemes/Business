@@ -4,7 +4,7 @@ import { Toaster } from './components/ui/sonner';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Minutas from './pages/Minutas';
+import Processos from './pages/Processos';
 import Certificados from './pages/Certificados';
 import Licencas from './pages/Licencas';
 import './App.css';
