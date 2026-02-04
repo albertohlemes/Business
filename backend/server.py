@@ -304,6 +304,9 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             
             cfop = prod.get('CFOP', '')  # CFOP está no prod, não no ICMS
             cst_icms = ""
+            cst_pis = ""
+            cst_cofins = ""
+            
             for key in icms:
                 if isinstance(icms[key], dict):
                     if not cfop and 'CFOP' in icms[key]:  # Fallback para ICMS se não encontrar em prod
@@ -325,11 +328,15 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             for key in pis:
                 if isinstance(pis[key], dict):
                     v_pis = float(pis[key].get('vPIS', 0))
+                    # Extrair CST de PIS
+                    cst_pis = pis[key].get('CST', '')
                     break
             
             for key in cofins:
                 if isinstance(cofins[key], dict):
                     v_cofins = float(cofins[key].get('vCOFINS', 0))
+                    # Extrair CST de COFINS
+                    cst_cofins = cofins[key].get('CST', '')
                     break
             
             produtos.append({
@@ -338,6 +345,8 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                 'ncm': prod.get('NCM', ''),
                 'cfop': cfop,
                 'cst': cst_icms,
+                'cst_pis': cst_pis,
+                'cst_cofins': cst_cofins,
                 'quantidade': float(prod.get('qCom', 0)),
                 'valor_unitario': float(prod.get('vUnCom', 0)),
                 'valor_total': float(prod.get('vProd', 0)),
