@@ -2887,9 +2887,6 @@ Se o comando não for claro ou não se aplicar a nenhum produto, retorne {{"alte
         )
         
         # Extrair JSON da resposta
-        import json
-        import re
-        
         response_text = response.content if hasattr(response, 'content') else str(response)
         json_match = re.search(r'\{[\s\S]*\}', response_text)
         
