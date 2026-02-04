@@ -125,7 +125,11 @@ const Licencas = () => {
         try {
             // Iniciar consulta com VNC (browser visível)
             console.log('Chamando API VNC...');
-            const response = await axios.post(`${API_URL}/api/redesim-vnc/iniciar?cnpj=${encodeURIComponent(licenca.cnpj)}`);
+            const response = await axios.post(
+                `${API_URL}/api/redesim-vnc/iniciar?cnpj=${encodeURIComponent(licenca.cnpj)}`,
+                {},
+                { timeout: 60000 }  // 60 segundos de timeout
+            );
             
             console.log('Resposta VNC:', JSON.stringify(response.data));
             
