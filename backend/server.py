@@ -885,15 +885,12 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
         mes, ano = periodo.split('/')
         mes = int(mes)
         ano = int(ano)
-        # Primeiro e último dia do mês
-        dt_inicio = f"{ano:04d}{mes:02d}01"
+        # SPED usa formato DDMMAAAA
+        dt_inicio = f"01{mes:02d}{ano:04d}"
         # Último dia do mês
-        if mes == 12:
-            dt_fim = f"{ano:04d}1231"
-        else:
-            from calendar import monthrange
-            ultimo_dia = monthrange(ano, mes)[1]
-            dt_fim = f"{ano:04d}{mes:02d}{ultimo_dia:02d}"
+        from calendar import monthrange
+        ultimo_dia = monthrange(ano, mes)[1]
+        dt_fim = f"{ultimo_dia:02d}{mes:02d}{ano:04d}"
     except:
         dt_inicio = "01012024"
         dt_fim = "31012024"
