@@ -633,13 +633,44 @@ Use linguagem jurídica formal e precisa. Inclua todos os dados extraídos dos d
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-lg font-semibold text-white">Minuta Gerada</h3>
-                                    <Button size="sm" onClick={copyToClipboard} className="bg-red-600 hover:bg-red-700">
-                                        <Copy className="w-4 h-4 mr-2" /> Copiar Tudo
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button 
+                                            size="sm" 
+                                            onClick={() => {
+                                                const empresa = dadosExtraidos?.empresa || {};
+                                                visualizarPDF(minutaGerada, empresa, dataAlteracao);
+                                            }}
+                                            className="bg-red-600 hover:bg-red-700"
+                                            data-testid="visualizar-pdf-btn"
+                                        >
+                                            <Eye className="w-4 h-4 mr-2" /> Visualizar PDF
+                                        </Button>
+                                        <Button 
+                                            size="sm" 
+                                            variant="outline"
+                                            onClick={() => {
+                                                const empresa = dadosExtraidos?.empresa || {};
+                                                baixarPDF(minutaGerada, empresa, dataAlteracao);
+                                                toast.success('PDF baixado!');
+                                            }}
+                                            className="border-zinc-700"
+                                            data-testid="baixar-pdf-btn"
+                                        >
+                                            <FileDown className="w-4 h-4 mr-2" /> Baixar PDF
+                                        </Button>
+                                        <Button 
+                                            size="sm" 
+                                            variant="outline"
+                                            onClick={copyToClipboard}
+                                            className="border-zinc-700"
+                                        >
+                                            <Copy className="w-4 h-4 mr-2" /> Copiar
+                                        </Button>
+                                    </div>
                                 </div>
                                 
                                 <p className="text-xs text-zinc-500">
-                                    Selecione o texto abaixo e copie (Ctrl+C) ou use o botão "Copiar Tudo". Cole no Word para formatar.
+                                    Clique em "Visualizar PDF" para ver o documento formatado e salvar onde quiser, ou "Baixar PDF" para download direto.
                                 </p>
                                 
                                 <div className="bg-white text-black rounded-lg p-6 max-h-[450px] overflow-y-auto border">
