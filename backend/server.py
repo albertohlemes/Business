@@ -4135,8 +4135,10 @@ async def ai_analise_tributaria(
     credito_icms_st = 0  # ST não dá crédito
     credito_pis_tributado = 0
     credito_pis_aliquota_zero = 0
+    credito_pis_sem_incidencia = 0
     credito_cofins_tributado = 0
     credito_cofins_aliquota_zero = 0
+    credito_cofins_sem_incidencia = 0
     
     # Análise de CFOPs de entrada
     cfops_interestadual = 0
@@ -4144,16 +4146,18 @@ async def ai_analise_tributaria(
     valor_interestadual = 0
     valor_interno = 0
     
-    # NCMs de alíquota zero (cesta básica)
-    ncms_aliquota_zero = ['0201', '0202', '0203', '0204', '0206', '0207', '0401', '0402', '0403',
-                          '0701', '0702', '0703', '0713', '0901', '1001', '1006', '1101', '1501', '1507', '1701']
+    # Base de crédito (apenas produtos com direito a crédito)
+    base_credito_pis_cofins = 0
     
     for doc in docs_entrada:
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
-            ncm = str(prod.get('ncm', ''))[:4]
+            ncm = str(prod.get('ncm', ''))
             cst = str(prod.get('cst', ''))
-            valor = prod.get('valor_total', 0)
+            cst_pis = str(prod.get('cst_pis_calculado', prod.get('cst_pis', '')))
+            valor = float(prod.get('valor_total', 0) or 0)
+            v_pis = float(prod.get('v_pis', 0) or 0)
+            v_cofins = float(prod.get('v_cofins', 0) or 0)
             
             # Classificar CFOP
             if cfop.startswith('2'):
@@ -4165,20 +4169,28 @@ async def ai_analise_tributaria(
             
             # ICMS - ST não dá crédito (CST 10, 30, 60, 70)
             if cst in ['10', '30', '60', '70'] or 'ST' in cfop.upper():
-                credito_icms_st += prod.get('v_icms', 0)
+                credito_icms_st += float(prod.get('v_icms', 0) or 0)
             else:
-                credito_icms_tributado += prod.get('v_icms', 0)
+                credito_icms_tributado += float(prod.get('v_icms', 0) or 0)
             
-            # PIS/COFINS - Verificar alíquota zero
-            if ncm in ncms_aliquota_zero or prod.get('v_pis', 0) == 0:
-                credito_pis_aliquota_zero += prod.get('v_pis', 0)
+            # PIS/COFINS - Usar CST calculado
+            if cst_pis == '98' or cfop in CFOPS_ENTRADA_SEM_INCIDENCIA:
+                # Sem incidência (CST 98)
+                credito_pis_sem_incidencia += valor
+                credito_cofins_sem_incidencia += valor
+            elif cst_pis == '73' or prod.get('ncm_aliq_zero', False) or is_ncm_aliquota_zero(ncm):
+                # Alíquota zero (CST 73)
+                credito_pis_aliquota_zero += valor
+                credito_cofins_aliquota_zero += valor
+            elif cst_pis == '50' or (cfop in CFOPS_COM_CREDITO_PIS_COFINS and regime == 'lucro_real'):
+                # Com crédito (CST 50) - apenas Lucro Real
+                credito_pis_tributado += v_pis
+                credito_cofins_tributado += v_cofins
+                base_credito_pis_cofins += valor
             else:
-                credito_pis_tributado += prod.get('v_pis', 0)
-            
-            if ncm in ncms_aliquota_zero or prod.get('v_cofins', 0) == 0:
-                credito_cofins_aliquota_zero += prod.get('v_cofins', 0)
-            else:
-                credito_cofins_tributado += prod.get('v_cofins', 0)
+                # CST 70 ou outro - sem crédito
+                credito_pis_aliquota_zero += valor
+                credito_cofins_aliquota_zero += valor
     
     # ============ ANÁLISE DETALHADA DE SAÍDAS (DÉBITOS/FATURAMENTO) ============
     total_saidas = sum(d.get('valor_total', 0) for d in docs_saida)
