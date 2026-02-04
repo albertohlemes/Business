@@ -248,15 +248,52 @@ Use linguagem jurídica formal e precisa. Inclua todos os dados extraídos dos d
         toast.success('Copiado!');
     };
 
-    const exportarMinuta = () => {
+    const exportarTxt = () => {
         const blob = new Blob([minutaGerada], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `minuta_alteracao_${new Date().toISOString().split('T')[0]}.txt`;
-        a.click();
-        URL.revokeObjectURL(url);
-        toast.success('Minuta exportada!');
+        saveAs(blob, `minuta_alteracao_${dataAlteracao}.txt`);
+        toast.success('TXT exportado!');
+    };
+
+    const exportarWord = async () => {
+        try {
+            const linhas = minutaGerada.split('\n');
+            const paragrafos = linhas.map(linha => {
+                const isTitle = linha.trim().toUpperCase() === linha.trim() && linha.trim().length > 3;
+                return new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: linha,
+                            bold: isTitle,
+                            size: isTitle ? 28 : 24,
+                        })
+                    ],
+                    alignment: isTitle ? AlignmentType.CENTER : AlignmentType.JUSTIFIED,
+                    spacing: { after: 200 },
+                });
+            });
+
+            const doc = new Document({
+                sections: [{
+                    properties: {},
+                    children: [
+                        new Paragraph({
+                            children: [new TextRun({ text: 'ALTERAÇÃO CONTRATUAL', bold: true, size: 32 })],
+                            heading: HeadingLevel.TITLE,
+                            alignment: AlignmentType.CENTER,
+                            spacing: { after: 400 },
+                        }),
+                        ...paragrafos
+                    ],
+                }],
+            });
+
+            const blob = await Packer.toBlob(doc);
+            saveAs(blob, `minuta_alteracao_${dataAlteracao}.docx`);
+            toast.success('Word exportado!');
+        } catch (e) {
+            console.error(e);
+            toast.error('Erro ao exportar Word');
+        }
     };
 
     const deleteMinuta = async (id) => {
