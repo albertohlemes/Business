@@ -65,12 +65,16 @@ function AppRoutes() {
                 } 
             />
             <Route 
-                path="/minutas" 
+                path="/processos" 
                 element={
                     <ProtectedRoute>
-                        <Minutas />
+                        <Processos />
                     </ProtectedRoute>
                 } 
+            />
+            <Route 
+                path="/minutas" 
+                element={<Navigate to="/processos" replace />}
             />
             <Route 
                 path="/certificados" 
