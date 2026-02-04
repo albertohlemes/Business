@@ -38,6 +38,7 @@ security = HTTPBearer()
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
+tasks_store = {}
 class UserRole:
     ADMIN = "admin"
     CLIENT = "client"
