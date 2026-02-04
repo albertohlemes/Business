@@ -3,6 +3,8 @@ import sys
 import json
 from datetime import datetime
 import os
+import uuid
+from pymongo import MongoClient
 
 class FiscalSystemAPITester:
     def __init__(self, base_url="https://contaboost.preview.emergentagent.com/api"):
