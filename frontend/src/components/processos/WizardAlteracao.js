@@ -1675,15 +1675,22 @@ TIPOS DE ALTERAÇÃO: ${tiposStr}
 DETALHES DAS ALTERAÇÕES:
 ${descricaoCompleta}
 
+${textoContratoOriginal ? `CLÁUSULAS DO CONTRATO ORIGINAL (para consolidação):
+${textoContratoOriginal}
+
+INSTRUÇÃO IMPORTANTE PARA CONSOLIDAÇÃO:
+A consolidação do contrato deve MANTER TODAS as cláusulas originais listadas acima, modificando APENAS as informações que foram alteradas. Não omita ou exclua cláusulas que não foram alteradas.
+` : ''}
+
 ESTRUTURA OBRIGATÓRIA:
 
 1. TÍTULO CENTRALIZADO: ALTERAÇÃO DO CONTRATO SOCIAL DE ${empresa.razao_social || '[RAZÃO SOCIAL]'}
 
 2. PREÂMBULO: Identificação do instrumento e dos sócios
 
-3. CLÁUSULAS DE ALTERAÇÃO: Uma cláusula para cada tipo de alteração
+3. CLÁUSULAS DE ALTERAÇÃO: Uma cláusula para cada tipo de alteração realizada
 
-4. CONSOLIDAÇÃO: Contrato social completo atualizado com as alterações
+4. CONSOLIDAÇÃO DO CONTRATO SOCIAL: Contrato social completo e atualizado, mantendo TODAS as cláusulas originais e atualizando apenas as informações que foram alteradas. A consolidação deve ser completa, incluindo todas as cláusulas do contrato original.
 
 5. ENCERRAMENTO: Local, data e espaço para assinaturas
 
