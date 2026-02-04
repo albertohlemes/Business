@@ -50,7 +50,9 @@ const MOTIVOS_BAIXA = [
 // Componente de qualificação de sócio para baixa
 const SocioBaixaCard = ({ socio, index, onChange, onRemove, canRemove }) => {
     const docInputRef = useRef(null);
+    const enderecoInputRef = useRef(null);
     const [extraindo, setExtraindo] = useState(false);
+    const [extraindoEndereco, setExtraindoEndereco] = useState(false);
     
     const handleDocUpload = async (e) => {
         const file = e.target.files?.[0];
@@ -87,6 +89,49 @@ const SocioBaixaCard = ({ socio, index, onChange, onRemove, canRemove }) => {
         } finally {
             setExtraindo(false);
             if (docInputRef.current) docInputRef.current.value = '';
+        }
+    };
+
+    const handleEnderecoUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        setExtraindoEndereco(true);
+        toast.info('Extraindo endereço do documento...');
+        
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('campo', 'endereco');
+            
+            const response = await axios.post(`${API_URL}/api/constituicao/extrair-campo`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            
+            if (response.data.success && response.data.valor) {
+                const dados = response.data.valor;
+                if (typeof dados === 'object') {
+                    const enderecoStr = [
+                        dados.logradouro,
+                        dados.numero,
+                        dados.complemento,
+                        dados.bairro,
+                        dados.cidade && dados.estado ? `${dados.cidade}-${dados.estado}` : '',
+                        dados.cep ? `CEP ${dados.cep}` : ''
+                    ].filter(Boolean).join(', ');
+                    onChange({ ...socio, endereco: enderecoStr });
+                    toast.success('Endereço extraído!');
+                } else {
+                    onChange({ ...socio, endereco: dados });
+                    toast.success('Endereço extraído!');
+                }
+            }
+        } catch (error) {
+            console.error('Erro na extração:', error);
+            toast.error('Erro ao extrair endereço');
+        } finally {
+            setExtraindoEndereco(false);
+            if (enderecoInputRef.current) enderecoInputRef.current.value = '';
         }
     };
     
