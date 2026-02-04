@@ -462,6 +462,10 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
         total = nfe.get('total', {}).get('ICMSTot', {})
         det = nfe.get('det', [])
         
+        # Extrair UF do emitente
+        enderEmit = emit.get('enderEmit', {})
+        emitente_uf = enderEmit.get('UF', '')
+        
         if isinstance(det, dict):
             det = [det]
         
