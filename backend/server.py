@@ -4369,19 +4369,27 @@ async def ai_analise_tributaria(
         "creditos": {
             "icms_tributado": round(credito_icms_tributado, 2),
             "icms_st_sem_credito": round(credito_icms_st, 2),
-            "pis_tributado": round(credito_pis_tributado, 2),
+            "pis_base": round(base_credito_pis_cofins, 2),
+            "pis_calculado": round(credito_pis_calculado, 2),
             "pis_aliquota_zero": round(credito_pis_aliquota_zero, 2),
-            "cofins_tributado": round(credito_cofins_tributado, 2),
-            "cofins_aliquota_zero": round(credito_cofins_aliquota_zero, 2)
+            "pis_sem_incidencia": round(credito_pis_sem_incidencia, 2),
+            "cofins_base": round(base_credito_pis_cofins, 2),
+            "cofins_calculado": round(credito_cofins_calculado, 2),
+            "cofins_aliquota_zero": round(credito_cofins_aliquota_zero, 2),
+            "cofins_sem_incidencia": round(credito_cofins_sem_incidencia, 2)
         },
         "debitos": {
             "icms_tributado": round(debito_icms_tributado, 2),
             "icms_st": round(debito_icms_st, 2),
             "icms_isento": round(debito_icms_isento, 2),
-            "pis_tributado": round(debito_pis_tributado, 2),
+            "pis_base": round(base_debito_pis_cofins, 2),
+            "pis_calculado": round(debito_pis_calculado, 2),
             "pis_aliquota_zero": round(debito_pis_aliquota_zero, 2),
-            "cofins_tributado": round(debito_cofins_tributado, 2),
-            "cofins_aliquota_zero": round(debito_cofins_aliquota_zero, 2)
+            "pis_sem_incidencia": round(debito_pis_sem_incidencia, 2),
+            "cofins_base": round(base_debito_pis_cofins, 2),
+            "cofins_calculado": round(debito_cofins_calculado, 2),
+            "cofins_aliquota_zero": round(debito_cofins_aliquota_zero, 2),
+            "cofins_sem_incidencia": round(debito_cofins_sem_incidencia, 2)
         },
         "apuracao": {
             "icms_a_pagar": round(icms_a_pagar, 2),
