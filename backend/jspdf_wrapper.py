@@ -6,7 +6,7 @@ Remove Markdown e caracteres decorativos
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image
 from reportlab.platypus.frames import Frame
 from reportlab.platypus.doctemplate import PageTemplate, BaseDocTemplate
 from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_LEFT
@@ -15,24 +15,34 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import io
 import re
+import base64
+import os
 from typing import Dict, Any
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PDFComCabecalhoRodape(BaseDocTemplate):
     """PDF com cabeçalho e rodapé em todas as páginas"""
     
-    def __init__(self, filename, cabecalho_texto=None, rodape_texto=None, **kwargs):
+    def __init__(self, filename, cabecalho_texto=None, rodape_texto=None, logo_base64=None, margens=None, **kwargs):
         BaseDocTemplate.__init__(self, filename, **kwargs)
         self.cabecalho_texto = cabecalho_texto or ["BUSINESS CONTABILIDADE"]
         self.rodape_texto = rodape_texto or ["Documento gerado pelo Portal Societário"]
+        self.logo_base64 = logo_base64
+        self.margens_config = margens or {}
+        
+        # Calcular espaço do cabeçalho (maior se tiver logo)
+        cabecalho_height = 2.5*cm if logo_base64 else 2*cm
         
         # Configurar frame e template de página
         frame = Frame(
             self.leftMargin,
             self.bottomMargin + 1.5*cm,
             self.width,
-            self.height - 2*cm,
+            self.height - cabecalho_height,
             id='normal'
         )
         
@@ -50,8 +60,24 @@ class PDFComCabecalhoRodape(BaseDocTemplate):
         
         page_width, page_height = A4
         
-        # Cabeçalho
+        # ===== CABEÇALHO =====
         y_cabecalho = page_height - 1.5*cm
+        
+        # Desenhar logo se existir
+        if self.logo_base64:
+            try:
+                logo_path = self._salvar_logo_temp()
+                if logo_path and os.path.exists(logo_path):
+                    # Desenhar logo centralizado no topo
+                    logo_height = 1.5*cm
+                    logo_width = 4*cm  # Proporção aproximada
+                    x_logo = (page_width - logo_width) / 2
+                    canvas.drawImage(logo_path, x_logo, page_height - 2*cm, width=logo_width, height=logo_height, preserveAspectRatio=True, mask='auto')
+                    y_cabecalho = page_height - 2.5*cm  # Ajustar posição do texto
+            except Exception as e:
+                logger.warning(f"Erro ao desenhar logo no PDF: {e}")
+        
+        # Texto do cabeçalho
         canvas.setFont('Times-Bold', 14)
         canvas.setFillColor(HexColor('#DC2626'))
         
@@ -65,23 +91,63 @@ class PDFComCabecalhoRodape(BaseDocTemplate):
             canvas.drawCentredString(page_width/2, y_cabecalho - (i * 0.5*cm), texto)
         
         # Linha separadora do cabeçalho
+        linha_cabecalho_y = y_cabecalho - (len(self.cabecalho_texto) * 0.5*cm) - 0.3*cm
         canvas.setStrokeColor(HexColor('#DDDDDD'))
-        canvas.line(doc.leftMargin, y_cabecalho - 1*cm, page_width - doc.rightMargin, y_cabecalho - 1*cm)
+        canvas.setLineWidth(0.5)
+        canvas.line(doc.leftMargin, linha_cabecalho_y, page_width - doc.rightMargin, linha_cabecalho_y)
         
-        # Rodapé
+        # ===== RODAPÉ =====
+        # Posição base do rodapé (respeitando margem inferior)
+        margem_inferior = float(self.margens_config.get('inferior', self.margens_config.get('bottom', 2.5)))
+        rodape_base_y = margem_inferior * cm - 0.5*cm
+        
+        # Linha separadora do rodapé
+        linha_rodape_y = rodape_base_y + 0.8*cm
+        canvas.line(doc.leftMargin, linha_rodape_y, page_width - doc.rightMargin, linha_rodape_y)
+        
+        # Texto do rodapé
         canvas.setFont('Times-Italic', 9)
         canvas.setFillColor(HexColor('#888888'))
         
         for i, texto in enumerate(self.rodape_texto):
-            canvas.drawCentredString(page_width/2, 1.5*cm - (i * 0.4*cm), texto)
+            canvas.drawCentredString(page_width/2, rodape_base_y - (i * 0.4*cm), texto)
         
-        # Número da página
-        canvas.drawRightString(page_width - doc.rightMargin, 1*cm, f"Página {doc.page}")
-        
-        # Linha separadora do rodapé
-        canvas.line(doc.leftMargin, 2*cm, page_width - doc.rightMargin, 2*cm)
+        # Número da página (alinhado à direita, na mesma altura do rodapé)
+        canvas.drawRightString(page_width - doc.rightMargin, rodape_base_y, f"Página {doc.page}")
         
         canvas.restoreState()
+    
+    def _salvar_logo_temp(self):
+        """Salva o logo em arquivo temporário para uso pelo reportlab"""
+        if not self.logo_base64:
+            return None
+        
+        try:
+            # Extrair dados do base64
+            if 'base64,' in self.logo_base64:
+                logo_data = self.logo_base64.split('base64,')[1]
+            else:
+                logo_data = self.logo_base64
+            
+            # Decodificar
+            logo_bytes = base64.b64decode(logo_data)
+            
+            # Detectar tipo de imagem
+            ext = 'png'
+            if self.logo_base64.startswith('data:image/jpeg') or self.logo_base64.startswith('data:image/jpg'):
+                ext = 'jpg'
+            elif self.logo_base64.startswith('data:image/gif'):
+                ext = 'gif'
+            
+            # Salvar temporariamente
+            temp_path = f'/tmp/logo_pdf_temp.{ext}'
+            with open(temp_path, 'wb') as f:
+                f.write(logo_bytes)
+            
+            return temp_path
+        except Exception as e:
+            logger.error(f"Erro ao processar logo base64: {e}")
+            return None
 
 
 def _limpar_markdown_pdf(texto: str) -> str:
