@@ -31,7 +31,7 @@ def get_authenticated_session():
         )
         
         if login_response.status_code == 200:
-            _token = login_response.json().get("token")
+            _token = login_response.json().get("access_token")
             _session.headers.update({
                 "Authorization": f"Bearer {_token}",
                 "Content-Type": "application/json"
