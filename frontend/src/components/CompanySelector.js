@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Building2, Calendar, ChevronRight, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Building2, Calendar, ChevronRight, X, Cloud, CloudDownload, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const CompanySelector = () => {
@@ -10,7 +10,12 @@ const CompanySelector = () => {
     showSelector,
     selectCompany, 
     selectCompetencia, 
-    closeSelector 
+    closeSelector,
+    // SIEG
+    siegStatus,
+    siegSyncing,
+    checkSiegCount,
+    syncFromSieg
   } = useAppContext();
 
   // Inicializar com data atual se competência estiver vazia
@@ -24,6 +29,15 @@ const CompanySelector = () => {
 
   const [tempCompany, setTempCompany] = useState(selectedCompany);
   const [tempCompetencia, setTempCompetencia] = useState(getInitialCompetencia());
+  const [syncResult, setSyncResult] = useState(null);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+
+  // Verificar SIEG quando empresa e competência mudarem
+  useEffect(() => {
+    if (tempCompany && tempCompetencia && tempCompetencia.length === 7) {
+      checkSiegCount(tempCompany.id, tempCompetencia);
+    }
+  }, [tempCompany, tempCompetencia]);
 
   // Formatar competência automaticamente (só números → MM/AAAA)
   const handleCompetenciaChange = (e) => {
@@ -42,11 +56,36 @@ const CompanySelector = () => {
     setTempCompetencia(value);
   };
 
-  const handleConfirm = () => {
+  const handleSyncNow = async () => {
+    if (!tempCompany || !tempCompetencia) return;
+    
+    try {
+      const result = await syncFromSieg(tempCompany.id, tempCompetencia);
+      setSyncResult(result);
+    } catch (err) {
+      setSyncResult({ error: err.response?.data?.detail || 'Erro na sincronização' });
+    }
+  };
+
+  const handleConfirm = async () => {
     if (tempCompany) {
+      // Se auto-sync está habilitado e há XMLs disponíveis, sincroniza
+      if (autoSyncEnabled && siegStatus.count) {
+        const totalEntrada = siegStatus.count.entrada?.total || 0;
+        const totalSaida = siegStatus.count.saida?.total || 0;
+        if (totalEntrada > 0 || totalSaida > 0) {
+          await handleSyncNow();
+        }
+      }
+      
       selectCompany(tempCompany);
       selectCompetencia(tempCompetencia);
     }
+  };
+
+  const getTotalSieg = () => {
+    if (!siegStatus.count) return 0;
+    return (siegStatus.count.entrada?.total || 0) + (siegStatus.count.saida?.total || 0);
   };
 
   if (!showSelector) return null;
