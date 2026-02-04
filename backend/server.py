@@ -1039,12 +1039,15 @@ async def delete_company(company_id: str, current_user: User = Depends(get_curre
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
+    # Excluir documentos vinculados primeiro (Cascade Delete)
     docs_count = await db.xml_documents.count_documents({"company_id": company_id})
     if docs_count > 0:
-        raise HTTPException(status_code=400, detail=f"Não é possível excluir. Empresa possui {docs_count} documento(s) vinculado(s)")
+        await db.xml_documents.delete_many({"company_id": company_id})
+        # Também apagar regras aprendidas
+        await db.learned_rules.delete_many({"company_id": company_id})
     
     await db.companies.delete_one({"id": company_id})
-    return {"message": "Empresa excluída com sucesso"}
+    return {"message": f"Empresa e {docs_count} documento(s) excluídos com sucesso"}
 
 @api_router.post("/companies", response_model=Company)
 async def create_company(company_data: CompanyCreate, current_user: User = Depends(get_current_user)):
