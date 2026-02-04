@@ -119,6 +119,30 @@ const Licencas = () => {
         }
     };
 
+    const downloadLicenca = async (id) => {
+        setBaixando(id);
+        try {
+            const response = await axios.get(`${API_URL}/api/licencas/${id}/download`);
+            const { conteudo, nome_arquivo } = response.data;
+            
+            const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = nome_arquivo;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            toast.success('Licença baixada com sucesso!');
+        } catch (error) {
+            toast.error(error.response?.data?.detail || 'Erro ao baixar licença');
+        } finally {
+            setBaixando(null);
+        }
+    };
+
     const deleteLicenca = async (id) => {
         try {
             await axios.delete(`${API_URL}/api/licencas/${id}`);
