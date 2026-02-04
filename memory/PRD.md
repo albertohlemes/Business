@@ -153,6 +153,7 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - Frontend iteration_6: 100% - UX Validação e Reclassificação IA
 - Backend/Frontend iteration_7: 90%/100% - Dashboard, Validação por Produto, NFC-e/NFS-e
 - Backend/Frontend iteration_8: 100%/100% - Análise alíquotas saída, Competência auto-format, Empresas no header, Justificativa IA, Mensagem sucesso validação
+- Backend/Frontend iteration_9: 100%/100% - Página Análise Alíquotas Saída, Edição empresas, Código empresa, Apagar notas lote/individual, Relatórios entrada/saída
 
 ## Credenciais de Teste
 - Email: admin@test.com
