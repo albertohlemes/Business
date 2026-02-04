@@ -112,35 +112,38 @@ const Licencas = () => {
     const consultarLicenca = async (id) => {
         // Encontrar licença
         const licenca = licencas.find(l => l.id === id);
-        if (!licenca) return;
+        if (!licenca) {
+            console.log('Licença não encontrada:', id);
+            return;
+        }
         
+        console.log('Iniciando consulta para:', licenca.cnpj);
         setConsultando(id);
         setVncCnpj(licenca.cnpj);
         setVncStatus('Iniciando navegador...');
         
         try {
             // Iniciar consulta com VNC (browser visível)
+            console.log('Chamando API VNC...');
             const response = await axios.post(`${API_URL}/api/redesim-vnc/iniciar?cnpj=${encodeURIComponent(licenca.cnpj)}`);
             
-            console.log('Resposta VNC:', response.data);
+            console.log('Resposta VNC:', JSON.stringify(response.data));
             
-            if (response.data.aguardando_login) {
-                setVncStatus('Faça login com seu certificado digital!');
-                setAguardandoLogin(true);
+            // Sempre abrir o modal se houver etapas
+            if (response.data.aguardando_login || response.data.etapas?.length > 0) {
+                console.log('Abrindo modal VNC');
+                setVncStatus(response.data.aguardando_login ? 'Faça login com seu certificado digital!' : 'Navegador aberto');
+                setAguardandoLogin(!!response.data.aguardando_login);
                 setVncOpen(true);
-                toast.info('Olhe a tela abaixo e faça login no Gov.br');
-                iniciarPollingVNC(licenca.cnpj);
-            } else if (response.data.etapas?.length > 0) {
-                // Verificar se houve erro em alguma etapa
-                const erros = response.data.etapas.filter(e => !e.success);
-                if (erros.length > 0) {
-                    toast.warning('Automação iniciada com avisos');
+                if (response.data.aguardando_login) {
+                    toast.info('Olhe a tela abaixo e faça login no Gov.br');
+                    iniciarPollingVNC(licenca.cnpj);
                 }
-                // Abrir modal mesmo assim para o usuário ver
-                setAguardandoLogin(true);
-                setVncOpen(true);
             } else if (response.data.error) {
+                console.log('Erro na resposta:', response.data.error);
                 toast.error(`Erro: ${response.data.error}`);
+            } else {
+                console.log('Resposta inesperada:', response.data);
             }
             
         } catch (error) {
