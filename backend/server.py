@@ -1274,8 +1274,9 @@ async def download_minuta_word(minuta_id: str, current_user: dict = Depends(get_
 
 @api_router.get("/minutas/{minuta_id}/download/pdf")
 async def download_minuta_pdf(minuta_id: str, current_user: dict = Depends(get_current_user)):
-    """Gera e baixa a minuta em formato PDF"""
-    from template_manager import gerar_minuta_word
+    """Gera e baixa a minuta em formato PDF com formatação do template"""
+    from template_manager import template_manager_fiel
+    from jspdf_wrapper import gerar_pdf_simples
     
     minuta = await db.minutas.find_one({"id": minuta_id, "user_id": current_user["id"]})
     if not minuta:
@@ -1287,11 +1288,18 @@ async def download_minuta_pdf(minuta_id: str, current_user: dict = Depends(get_c
     
     dados_extraidos = minuta.get("dados_extraidos", {})
     
-    # Por enquanto, gera Word e converte (ideal seria usar weasyprint ou similar)
-    # Como alternativa simples, retornamos o PDF gerado pelo frontend
-    from jspdf_wrapper import gerar_pdf_simples
+    # Verificar se usuário tem template para extrair formatação
+    template = await db.templates.find_one({"user_id": current_user["id"]})
+    formato = None
     
-    pdf_bytes = gerar_pdf_simples(conteudo, dados_extraidos)
+    if template and template.get("arquivo"):
+        try:
+            formato = template_manager_fiel.extrair_formatacao_completa(template["arquivo"])
+        except Exception as e:
+            logger.warning(f"Erro ao extrair formatação do template para PDF: {e}")
+    
+    # Gerar PDF com formatação do template
+    pdf_bytes = gerar_pdf_simples(conteudo, dados_extraidos, formato)
     
     cnpj = minuta.get("cnpj", "").replace(".", "").replace("/", "").replace("-", "")
     data_str = datetime.now().strftime("%Y%m%d")
