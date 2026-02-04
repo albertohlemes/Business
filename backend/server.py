@@ -2480,6 +2480,62 @@ async def get_learned_rules(
     rules = await db.learned_rules.find({"company_id": company_id}, {"_id": 0}).to_list(1000)
     return rules
 
+@api_router.put("/ai/learned-rules/{rule_id}")
+async def update_learned_rule(
+    rule_id: str,
+    categoria: str,
+    cfop: str = None,
+    motivo: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Atualiza uma regra aprendida pela IA"""
+    rule = await db.learned_rules.find_one({"id": rule_id}, {"_id": 0})
+    if not rule:
+        raise HTTPException(status_code=404, detail="Regra não encontrada")
+    
+    update_data = {
+        "categoria": categoria,
+        "updated_at": datetime.utcnow().isoformat()
+    }
+    if cfop:
+        update_data["cfop"] = cfop
+    if motivo:
+        update_data["motivo"] = motivo
+    
+    await db.learned_rules.update_one(
+        {"id": rule_id},
+        {"$set": update_data}
+    )
+    
+    return {"message": "Regra atualizada com sucesso"}
+
+@api_router.delete("/ai/learned-rules/{rule_id}")
+async def delete_learned_rule(
+    rule_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Exclui uma regra aprendida pela IA"""
+    rule = await db.learned_rules.find_one({"id": rule_id}, {"_id": 0})
+    if not rule:
+        raise HTTPException(status_code=404, detail="Regra não encontrada")
+    
+    await db.learned_rules.delete_one({"id": rule_id})
+    
+    return {"message": "Regra excluída com sucesso"}
+
+@api_router.delete("/ai/learned-rules/company/{company_id}")
+async def delete_all_learned_rules(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Exclui todas as regras aprendidas de uma empresa"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem excluir todas as regras")
+    
+    result = await db.learned_rules.delete_many({"company_id": company_id})
+    
+    return {"message": f"{result.deleted_count} regra(s) excluída(s) com sucesso"}
+
 @api_router.post("/ai/reclassify")
 async def ai_reclassify_products(
     request: ReclassificationRequest,
