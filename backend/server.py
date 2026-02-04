@@ -2817,7 +2817,7 @@ async def resolver_alerta_cfop_ia(
     Resolve alertas de CFOP usando comando de IA.
     Ex: "classificar bonificações como 1910", "converter todas remessas para compra"
     """
-    from emergentintegrations.llm.chat import chat, UserMessage
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
     
     # Buscar produtos pendentes
     documents = await db.xml_documents.find({
@@ -2873,8 +2873,8 @@ Se o comando não for claro ou não se aplicar a nenhum produto, retorne {{"alte
 """
 
     try:
-        response = await chat(
-            api_key=os.environ.get('EMERGENT_API_KEY'),
+        llm = LlmChat(api_key=os.environ.get('EMERGENT_API_KEY'))
+        response = await llm.chat(
             messages=[UserMessage(content=prompt)],
             model="gpt-4o"
         )
