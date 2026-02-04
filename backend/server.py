@@ -1694,7 +1694,7 @@ async def gerar_objeto_social(
         if not cnaes:
             raise HTTPException(status_code=400, detail="Nenhum CNAE fornecido")
         
-        from emergentintegrations.llm.chat import chat, Message
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
         
         emergent_api_key = os.environ.get("EMERGENT_API_KEY")
         
@@ -1716,13 +1716,14 @@ REGRAS:
 
 Retorne APENAS o texto do objeto social, sem explicações ou comentários."""
 
-        response = await chat(
+        llm = LlmChat(
             api_key=emergent_api_key,
-            model="gemini-2.5-flash",
-            messages=[Message(role="user", content=prompt)]
+            model="gemini-2.5-flash"
         )
         
-        return {"success": True, "objeto_social": response.content.strip()}
+        response = await llm.send_message(UserMessage(text_content=prompt))
+        
+        return {"success": True, "objeto_social": response.text_content.strip()}
         
     except Exception as e:
         logger.error(f"Erro ao gerar objeto social: {str(e)}")
