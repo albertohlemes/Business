@@ -1785,7 +1785,7 @@ async def gerar_contrato_constituicao(
             qtd_quotas = int(valor_quotas)  # 1 quota = R$ 1,00
             quadro_quotas += f"- {socio.nome}: {qtd_quotas} quotas ({perc}%) = R$ {valor_quotas:,.2f}\n"
         
-        from emergentintegrations.llm.chat import chat, Message
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
         
         emergent_api_key = os.environ.get("EMERGENT_API_KEY")
         
@@ -1951,13 +1951,14 @@ INSTRUÇÕES:
 5. NÃO use Markdown. Use texto simples com linhas de = e - para separação
 6. O contrato deve estar pronto para impressão e assinatura"""
 
-        response = await chat(
+        llm = LlmChat(
             api_key=emergent_api_key,
-            model="gemini-2.5-flash",
-            messages=[Message(role="user", content=prompt)]
+            model="gemini-2.5-flash"
         )
         
-        contrato = response.content.strip()
+        response = await llm.send_message(UserMessage(text_content=prompt))
+        
+        contrato = response.text_content.strip()
         
         # Salvar na minuta
         await db.minutas.update_one(
