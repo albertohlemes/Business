@@ -17,6 +17,7 @@ const Layout = ({ user, onLogout, children }) => {
     { name: 'Reclassificação IA', href: '/reclassification', icon: Brain, testId: 'nav-reclassification' },
     { name: 'Validação Entrada', href: '/validation', icon: CheckCircle, testId: 'nav-validation' },
     { name: 'Análise Saída', href: '/analise-aliquotas-saida', icon: ArrowUpCircle, testId: 'nav-analise-saida' },
+    { name: 'Apuração do Período', href: '/apuracao', icon: Calculator, testId: 'nav-apuracao' },
     { name: 'Análise Tributária', href: '/analise-tributaria', icon: TrendingUp, testId: 'nav-analise' },
     { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
     { name: 'Exportar SPED', href: '/export', icon: Download, testId: 'nav-export' },
