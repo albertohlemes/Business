@@ -1201,6 +1201,7 @@ class ConfiguracaoFormatacao(BaseModel):
     margens: dict = {"superior": "2.5", "inferior": "2.5", "esquerda": "3.0", "direita": "2.0"}
     espacamento: str = "1.5"
     logoBase64: Optional[str] = None
+    organizacaoInteligente: bool = True  # Evita quebras de página ruins
 
 @api_router.post("/formatacao/salvar")
 async def salvar_formatacao(
@@ -1218,6 +1219,7 @@ async def salvar_formatacao(
         "margens": config.margens,
         "espacamento": config.espacamento,
         "logo_base64": config.logoBase64,
+        "organizacao_inteligente": config.organizacaoInteligente,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
