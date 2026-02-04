@@ -564,7 +564,7 @@ async def continuar_apos_login(
 
 from redesim_vnc import get_vnc_instance, executar_fluxo_completo, continuar_apos_login
 
-@api_router.post("/redesim-vnc/iniciar/{cnpj}")
+@api_router.post("/redesim-vnc/iniciar")
 async def iniciar_consulta_vnc(cnpj: str, current_user: dict = Depends(get_current_user)):
     """
     Inicia consulta REDESIM com browser visível via noVNC.
