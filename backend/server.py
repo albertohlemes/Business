@@ -1549,6 +1549,29 @@ async def get_dashboard_stats(
     debito_cofins_xml = 0  # Valor que veio no XML
     total_base_pis_cofins = 0  # Base de cálculo para PIS/COFINS (apenas produtos TRIBUTADOS)
     total_aliquota_zero = 0  # Total de produtos com alíquota zero (não geram débito)
+    total_cfop_sem_incidencia = 0  # Total de produtos com CFOP sem incidência de PIS/COFINS
+    
+    # CFOPs de saída que NÃO geram débito de PIS/COFINS (remessas, devoluções, transferências, etc.)
+    CFOPS_SAIDA_SEM_DEBITO = [
+        # Devoluções (não geram receita)
+        '5201', '5202', '5205', '5206', '5207', '5208', '5209', '5210',
+        '6201', '6202', '6205', '6206', '6207', '6208', '6209', '6210',
+        # Transferências (operação interna, não gera receita)
+        '5151', '5152', '5153', '5155', '5156', '5408', '5409', '5410',
+        '6151', '6152', '6153', '6155', '6156', '6408', '6409', '6410',
+        # Remessas (não são vendas)
+        '5901', '5902', '5903', '5904', '5905', '5906', '5907', '5908', '5909',
+        '5910', '5911', '5912', '5913', '5914', '5915', '5916', '5917', '5918',
+        '5919', '5920', '5921', '5922', '5923', '5924', '5925', '5926', '5927',
+        '5928', '5929', '5931', '5932', '5933', '5934', '5949',
+        '6901', '6902', '6903', '6904', '6905', '6906', '6907', '6908', '6909',
+        '6910', '6911', '6912', '6913', '6914', '6915', '6916', '6917', '6918',
+        '6919', '6920', '6921', '6922', '6923', '6924', '6925', '6929', '6931',
+        '6932', '6933', '6934', '6949',
+        # Exportações (alíquota zero por operação)
+        '7101', '7102', '7105', '7106', '7127', '7501', '7551', '7553', '7556',
+        '7651', '7654', '7667', '7930', '7949'
+    ]
     
     for doc in nfe_saida + nfce:
         for prod in doc.get('produtos', []):
@@ -1558,13 +1581,20 @@ async def get_dashboard_stats(
             
             valor_prod = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
             ncm = prod.get('ncm', '')
+            cfop = str(prod.get('cfop', ''))
             
             # Verificar se o produto é de alíquota zero pelo NCM ou pelo CST calculado
             ncm_aliq_zero = prod.get('ncm_aliq_zero', is_ncm_aliquota_zero(ncm))
             cst_calculado = str(prod.get('cst_pis_calculado', prod.get('cst_pis', ''))).strip()
             
-            # Produto é alíquota zero se: NCM está na lista OU CST é 06 (calculado)
-            if ncm_aliq_zero or cst_calculado == '06':
+            # Verificar se o CFOP não gera débito de PIS/COFINS
+            cfop_sem_debito = cfop in CFOPS_SAIDA_SEM_DEBITO
+            
+            if cfop_sem_debito:
+                # CFOP de remessa/devolução/transferência - não gera débito
+                total_cfop_sem_incidencia += valor_prod
+            elif ncm_aliq_zero or cst_calculado == '06':
+                # Produto é alíquota zero pelo NCM ou CST
                 total_aliquota_zero += valor_prod
             else:
                 # Apenas produtos TRIBUTADOS entram na base de cálculo do débito
