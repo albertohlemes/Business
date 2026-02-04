@@ -27,7 +27,11 @@ ALINHAMENTO_MAP = {
 
 
 def _limpar_markdown(texto: str) -> str:
-    """Remove marcações Markdown simples do texto"""
+    """Remove marcações Markdown e caracteres decorativos do texto"""
+    # Remover linhas decorativas (======, ------, ******, etc)
+    if re.match(r'^[=\-*_]{3,}$', texto.strip()):
+        return ''
+    
     # Remover cabeçalhos markdown (### Título)
     texto = re.sub(r'^#{1,6}\s*', '', texto)
     
@@ -55,6 +59,10 @@ def _extrair_formatacao_inline(texto: str) -> List[Tuple[str, bool, bool]]:
     Retorna lista de tuplas: (texto, is_bold, is_italic)
     """
     partes = []
+    
+    # Verificar se é linha decorativa
+    if re.match(r'^[=\-*_]{3,}$', texto.strip()):
+        return []  # Ignorar linhas decorativas
     
     # Limpar marcações de lista primeiro
     texto = re.sub(r'^[\-\*\+]\s+', '', texto)
