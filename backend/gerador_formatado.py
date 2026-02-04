@@ -305,7 +305,7 @@ def _adicionar_paragrafo(
     espacamento: float,
     dados_extraidos: Dict[str, Any] = None
 ):
-    """Adiciona um parágrafo com a formatação especificada"""
+    """Adiciona um parágrafo com a formatação especificada. Retorna o parágrafo."""
     para = doc.add_paragraph()
     
     # Alinhamento
@@ -322,6 +322,8 @@ def _adicionar_paragrafo(
     else:
         # Processar Markdown e adicionar texto com formatação
         _adicionar_texto_com_markdown(para, texto, config)
+    
+    return para
 
 
 def _adicionar_texto_com_markdown(para, texto: str, config: Dict[str, Any]):
