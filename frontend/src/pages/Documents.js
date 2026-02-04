@@ -61,48 +61,36 @@ const Documents = ({ user, onLogout }) => {
 
   const handleDeleteAllCompetencia = async () => {
     if (!ctxCompany || !selectedCompetencia) {
-      alert('Selecione uma empresa e competência no header');
-      return;
-    }
-    
-    const companyId = ctxCompany.id;
-    
-    // Filtrar documentos considerando o tipo selecionado
-    let docsToDelete = documents.filter(d => 
-      d.company_id === companyId && d.competencia === selectedCompetencia
-    );
-    
-    // Aplicar filtro de tipo se selecionado
-    if (selectedTipo) {
-      docsToDelete = docsToDelete.filter(d => d.tipo === selectedTipo);
-    }
-    
-    const count = docsToDelete.length;
-    
-    if (count === 0) {
-      alert('Nenhum documento para apagar com os filtros selecionados');
+      alert('Selecione uma empresa e competência');
       return;
     }
     
     const tipoLabel = selectedTipo === 'entrada' ? ' de ENTRADA' : 
                       selectedTipo === 'saida' ? ' de SAÍDA' : '';
     
-    if (!window.confirm(`Tem certeza que deseja apagar ${count} documento(s)${tipoLabel} da competência ${selectedCompetencia} da empresa ${ctxCompany?.razao_social}?`)) {
+    const count = filteredDocuments.length;
+    
+    if (count === 0) {
+      alert('Nenhum documento para apagar com os filtros selecionados');
+      return;
+    }
+    
+    if (!window.confirm(`Tem certeza que deseja apagar ${count} documento(s)${tipoLabel} da competência ${selectedCompetencia}?`)) {
       return;
     }
     
     setDeleting(true);
     try {
       const token = localStorage.getItem('token');
-      // Passar o tipo como parâmetro para o backend
       const tipoParam = selectedTipo ? `?tipo=${selectedTipo}` : '';
       const response = await axios.delete(
-        `${API}/documents/${companyId}/competencia/${encodeURIComponent(selectedCompetencia)}${tipoParam}`,
+        `${API}/documents/${ctxCompany.id}/competencia/${encodeURIComponent(selectedCompetencia)}${tipoParam}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert(response.data.message);
+      alert(`${response.data.deleted_count} documento(s) apagado(s) com sucesso!`);
       fetchData();
     } catch (err) {
+      console.error('Erro ao apagar:', err);
       alert(err.response?.data?.detail || 'Erro ao apagar documentos');
     } finally {
       setDeleting(false);
