@@ -459,7 +459,7 @@ class CFOPLogicTester:
                 "name": "Whitespace emitente_uf",
                 "emitente_uf": "  ",
                 "company_uf": "SP", 
-                "expected_prefix": "1"
+                "expected_prefix": "2"  # Whitespace is truthy and != "SP", so should be interestadual
             },
             {
                 "name": "Invalid categoria",
