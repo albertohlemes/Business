@@ -14,7 +14,7 @@ import {
 import { 
     FileCheck, Search, RefreshCw, Trash2, Plus,
     CheckCircle2, AlertTriangle, Clock, Building2,
-    Download, ExternalLink, Monitor, X, Info
+    Download, ExternalLink, Monitor, X, Info, ArrowUpRight
 } from 'lucide-react';
 import {
     Dialog,
