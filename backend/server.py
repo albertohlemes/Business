@@ -1410,8 +1410,8 @@ async def get_dashboard_stats(
             debito_icms += float(prod.get('v_icms', 0) or 0)
             debito_pis_xml += float(prod.get('v_pis', 0) or 0)
             debito_cofins_xml += float(prod.get('v_cofins', 0) or 0)
-            # Base de cálculo (valor do produto)
-            total_base_pis_cofins += float(prod.get('v_prod', 0) or 0)
+            # Base de cálculo (valor do produto) - usa valor_total que é o campo correto
+            total_base_pis_cofins += float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
     
     # Para Lucro Real, usar alíquotas corretas e verificar divergências
     divergencias_pis_cofins = []
