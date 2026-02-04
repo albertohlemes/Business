@@ -234,38 +234,6 @@ const Dashboard = ({ user, onLogout }) => {
               </div>
             </div>
 
-            {/* Validação */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Link to="/validation" className="block">
-                <div className="bg-green-50 rounded-xl p-5 border-2 border-green-200 hover:border-green-400 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-10 h-10 text-green-600" />
-                      <div>
-                        <h3 className="font-bold text-green-900">Notas Validadas</h3>
-                        <p className="text-sm text-green-700">{stats.validacao.produtos_validados} produtos aprovados</p>
-                      </div>
-                    </div>
-                    <span className="text-4xl font-bold text-green-700">{stats.validacao.notas_validadas}</span>
-                  </div>
-                </div>
-              </Link>
-              <Link to="/validation" className="block">
-                <div className="bg-orange-50 rounded-xl p-5 border-2 border-orange-200 hover:border-orange-400 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <AlertTriangle className="w-10 h-10 text-orange-600" />
-                      <div>
-                        <h3 className="font-bold text-orange-900">Notas a Validar</h3>
-                        <p className="text-sm text-orange-700">{stats.validacao.produtos_total - stats.validacao.produtos_validados} produtos pendentes</p>
-                      </div>
-                    </div>
-                    <span className="text-4xl font-bold text-orange-700">{stats.validacao.notas_pendentes}</span>
-                  </div>
-                </div>
-              </Link>
-            </div>
-
             {/* Valores Financeiros */}
             <div>
               <h2 className="text-lg font-bold text-gray-900 mb-4">Valores do Período</h2>
