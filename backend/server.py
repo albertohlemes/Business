@@ -1472,6 +1472,7 @@ async def analise_aliquotas_saida(
 async def report_by_product(
     company_id: str,
     competencia: Optional[str] = None,
+    tipo: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
@@ -1484,6 +1485,8 @@ async def report_by_product(
     query = {"company_id": company_id}
     if competencia:
         query['competencia'] = competencia
+    if tipo and tipo != 'todos':
+        query['tipo'] = tipo
     
     documents = await db.xml_documents.find(query, {"_id": 0}).to_list(10000)
     
@@ -1499,7 +1502,7 @@ async def report_by_product(
     })
     
     for doc in documents:
-        for prod in doc['produtos']:
+        for prod in doc.get('produtos', []):
             codigo = prod.get('codigo', '')
             product_summary[codigo]['descricao'] = prod.get('descricao', '')
             product_summary[codigo]['ncm'] = prod.get('ncm', '')
