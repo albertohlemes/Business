@@ -14,6 +14,7 @@ import ReclassificationAI from './pages/ReclassificationAI';
 import AnaliseTributaria from './pages/AnaliseTributaria';
 import AnaliseAliquotasSaida from './pages/AnaliseAliquotasSaida';
 import ApuracaoPeriodo from './pages/ApuracaoPeriodo';
+import ApuracaoPisCofins from './pages/ApuracaoPisCofins';
 import './App.css';
 
 function App() {
