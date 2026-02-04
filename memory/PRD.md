@@ -27,8 +27,29 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - Busca automática de dados da Receita Federal via CNPJ
 - **Exclusão de empresas** - Funcionando (apenas empresas sem documentos)
 
+### ✅ **Dashboard Completo** (04/02/2026)
+- Estatísticas por **empresa e competência selecionada**
+- **Quantidade por tipo de documento:**
+  - NF-e Entrada (compras)
+  - NF-e Saída (vendas)
+  - NFC-e (cupons fiscais)
+  - NFS-e (notas de serviço)
+- **Notas validadas vs pendentes**
+- **Valores do período:**
+  - Total de Entradas
+  - Total de Vendas
+  - Total de Serviços
+  - Faturamento Total
+- **Impostos (Créditos, Débitos, A Pagar):**
+  - ICMS, PIS, COFINS, ISS
+  - Total de Impostos a Pagar
+- **Indicadores:**
+  - Markup percentual (entradas vs faturamento)
+- Links rápidos para Análise Tributária e Relatórios
+
 ### ✅ Upload de XML com Validação Inteligente
 - Upload em lote de arquivos XML de notas fiscais
+- **Detecção automática de tipo:** NF-e, NFC-e (cupom) ou NFS-e (serviço)
 - **Validação de CNPJ** - Rejeita XMLs de empresas diferentes
 - **Validação de Competência** - Rejeita XMLs com data fora do período
 - **Relatório detalhado de erros** - Mostra resumo completo
@@ -56,6 +77,11 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ### ✅ **Validação de Classificações** (04/02/2026)
 - Página dedicada: `/validation`
+- **Apenas NF-e de Entrada** - Saídas não precisam de validação de CFOP
+- **Modo Por NF-e:** Valida por documento
+- **Modo Por Produto:** Produtos agrupados por código
+  - Botão "Selecionar Todos" / "Limpar Seleção"
+  - Botão "Aprovar Selecionados" para aprovação em lote
 - **Header verde com estatísticas**: Aprovados, Pendentes, Total
 - **Explicação "Como funciona?"**: Aprovar = concordar, Alterar = mudar CFOP
 - **Checkbox individual** para aprovar cada produto
