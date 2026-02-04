@@ -86,10 +86,16 @@ function App() {
             />
             <Route
               path="/validation"
-              element={user ? <ValidationPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+              element={user ? <ClassificacaoPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
-              path="/export"
+              path="/classificacao"
+              element={user ? <ClassificacaoPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/reclassification"
+              element={user ? <Navigate to="/classificacao" /> : <Navigate to="/login" />}
+            />
               element={user ? <ExportMenu user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
