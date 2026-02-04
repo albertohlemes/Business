@@ -4769,15 +4769,6 @@ async def classify_products_batch_llm(products: List[Dict[str, Any]], company_da
             
     return classified_results
 
-        
-    except json.JSONDecodeError as e:
-        return {
-            "success": False,
-            "error": f"Erro ao processar resposta: {str(e)}"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro na análise: {str(e)}")
-
 @api_router.post("/manual-reclassify")
 async def run_analise_task_wrapper(task_id: str, request: AnaliseTributariaRequest):
     try:
