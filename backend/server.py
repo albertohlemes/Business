@@ -2695,9 +2695,6 @@ async def get_dashboard_stats(
                 credito_pis += round(valor_prod * 0.0165, 2)
                 credito_cofins += round(valor_prod * 0.076, 2)
     
-    # Regime tributário da empresa
-    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
-    
     # Alíquotas por regime
     ALIQ_PIS_LUCRO_REAL = 0.0165  # 1.65%
     ALIQ_COFINS_LUCRO_REAL = 0.076  # 7.6%
