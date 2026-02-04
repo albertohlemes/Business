@@ -20,7 +20,7 @@ import {
     DialogTitle,
 } from '../components/ui/dialog';
 import DadosExtraidos from '../components/DadosExtraidos';
-import { visualizarPDF, baixarPDF, TEMPLATE_MINUTA } from '../utils/pdfGenerator';
+import { gerarPDFBlobUrl, baixarPDF, TEMPLATE_MINUTA } from '../utils/pdfGenerator';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
