@@ -1183,6 +1183,98 @@ async def delete_minuta(minuta_id: str, current_user: dict = Depends(get_current
 TEMPLATES_DIR = UPLOAD_DIR / "templates"
 TEMPLATES_DIR.mkdir(exist_ok=True)
 
+class SecaoFormatacao(BaseModel):
+    """Configuração de formatação de uma seção do documento"""
+    id: str
+    nome: str
+    exemplo: str
+    fonte: str = "Times New Roman"
+    tamanho: str = "12"
+    negrito: bool = False
+    italico: bool = False
+    alinhamento: str = "justify"
+    nomeNegrito: Optional[bool] = None  # Específico para sócios
+
+class ConfiguracaoFormatacao(BaseModel):
+    """Configuração completa de formatação do documento"""
+    secoes: List[SecaoFormatacao]
+    margens: dict = {"superior": "2.5", "inferior": "2.5", "esquerda": "3.0", "direita": "2.0"}
+    espacamento: str = "1.5"
+    logoBase64: Optional[str] = None
+
+@api_router.post("/formatacao/salvar")
+async def salvar_formatacao(
+    config: ConfiguracaoFormatacao,
+    current_user: dict = Depends(get_current_user)
+):
+    """Salva configuração de formatação manual do usuário"""
+    formatacao_id = str(uuid.uuid4())
+    
+    # Converter para dict e salvar
+    formatacao = {
+        "id": formatacao_id,
+        "user_id": current_user["id"],
+        "secoes": [s.model_dump() for s in config.secoes],
+        "margens": config.margens,
+        "espacamento": config.espacamento,
+        "logo_base64": config.logoBase64,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Upsert - atualiza se já existe para o usuário
+    await db.formatacoes.update_one(
+        {"user_id": current_user["id"]},
+        {"$set": formatacao},
+        upsert=True
+    )
+    
+    return {"id": formatacao_id, "message": "Configuração salva com sucesso"}
+
+@api_router.get("/formatacao")
+async def get_formatacao(current_user: dict = Depends(get_current_user)):
+    """Retorna configuração de formatação do usuário"""
+    formatacao = await db.formatacoes.find_one(
+        {"user_id": current_user["id"]},
+        {"_id": 0, "user_id": 0}
+    )
+    return formatacao or {"secoes": [], "margens": {}, "espacamento": "1.5"}
+
+@api_router.post("/formatacao/logo")
+async def upload_logo_formatacao(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Upload de logo para formatação"""
+    valid_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif']
+    if file.content_type not in valid_types:
+        raise HTTPException(status_code=400, detail="Use PNG, JPG ou GIF")
+    
+    # Salvar arquivo
+    logo_id = str(uuid.uuid4())
+    ext = file.filename.split('.')[-1] if '.' in file.filename else 'png'
+    file_path = TEMPLATES_DIR / f"logo_{current_user['id']}.{ext}"
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Converter para base64 para armazenar
+    with open(file_path, "rb") as f:
+        logo_base64 = base64.b64encode(f.read()).decode('utf-8')
+    
+    # Atualizar formatação do usuário
+    await db.formatacoes.update_one(
+        {"user_id": current_user["id"]},
+        {"$set": {
+            "logo_base64": f"data:{file.content_type};base64,{logo_base64}",
+            "logo_path": str(file_path),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    return {"message": "Logo salvo com sucesso", "path": str(file_path)}
+
 @api_router.post("/templates/upload")
 async def upload_template(
     file: UploadFile = File(...),
