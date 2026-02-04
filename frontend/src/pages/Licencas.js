@@ -122,23 +122,30 @@ const Licencas = () => {
             // Iniciar consulta com VNC (browser visível)
             const response = await axios.post(`${API_URL}/api/redesim-vnc/iniciar?cnpj=${encodeURIComponent(licenca.cnpj)}`);
             
+            console.log('Resposta VNC:', response.data);
+            
             if (response.data.aguardando_login) {
                 setVncStatus('Faça login com seu certificado digital!');
                 setAguardandoLogin(true);
                 setVncOpen(true);
                 toast.info('Olhe a tela abaixo e faça login no Gov.br');
-                
-                // Iniciar polling
                 iniciarPollingVNC(licenca.cnpj);
-            } else if (response.data.success) {
-                toast.success('Consulta realizada!');
-                fetchData();
+            } else if (response.data.etapas?.length > 0) {
+                // Verificar se houve erro em alguma etapa
+                const erros = response.data.etapas.filter(e => !e.success);
+                if (erros.length > 0) {
+                    toast.warning('Automação iniciada com avisos');
+                }
+                // Abrir modal mesmo assim para o usuário ver
+                setAguardandoLogin(true);
+                setVncOpen(true);
             } else if (response.data.error) {
                 toast.error(`Erro: ${response.data.error}`);
             }
             
         } catch (error) {
             console.error('Erro VNC:', error);
+            toast.error('Erro na automação: ' + (error.response?.data?.detail || error.message));
             // Fallback para consulta simulada
             try {
                 const response = await axios.post(`${API_URL}/api/licencas/${id}/consultar`);
