@@ -160,20 +160,7 @@ const Documents = ({ user, onLogout }) => {
               <h2 className="font-semibold text-gray-900">Filtros</h2>
             </div>
             
-            {/* Botão apagar em lote - visível para admin */}
-            {ctxCompany && selectedCompetencia && (
-              <button
-                data-testid="btn-apagar-lote"
-                onClick={() => {
-                  handleDeleteAllCompetencia();
-                }}
-                disabled={deleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 flex items-center gap-2 disabled:opacity-50"
-              >
-                <Trash2 className="w-4 h-4" />
-                {deleting ? 'Apagando...' : `Apagar ${selectedTipo === 'entrada' ? 'Entradas' : selectedTipo === 'saida' ? 'Saídas' : 'Todos'} - ${selectedCompetencia}`}
-              </button>
-            )}
+{/* Botão apagar em lote removido a pedido do usuário */}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
