@@ -1878,6 +1878,7 @@ async def apuracao_periodo(
         
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
+            cst = str(prod.get('cst', ''))
             
             # Valores do produto - usar campos corretos
             valor = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
@@ -1901,6 +1902,7 @@ async def apuracao_periodo(
                 if cfop_key not in cfop_entradas:
                     cfop_entradas[cfop_key] = {
                         'cfop': cfop_key,
+                        'cst': cst,
                         'valor': 0,
                         'bc_icms': 0,
                         'v_icms': 0,
@@ -1914,12 +1916,16 @@ async def apuracao_periodo(
                 cfop_entradas[cfop_key]['v_pis'] += v_pis
                 cfop_entradas[cfop_key]['v_cofins'] += v_cofins
                 cfop_entradas[cfop_key]['qtd_itens'] += 1
+                # Manter o CST mais comum (último encontrado)
+                if cst:
+                    cfop_entradas[cfop_key]['cst'] = cst
                 
             elif is_saida:
                 # Saída
                 if cfop_key not in cfop_saidas:
                     cfop_saidas[cfop_key] = {
                         'cfop': cfop_key,
+                        'cst': cst,
                         'valor': 0,
                         'bc_icms': 0,
                         'v_icms': 0,
@@ -1933,6 +1939,9 @@ async def apuracao_periodo(
                 cfop_saidas[cfop_key]['v_pis'] += v_pis
                 cfop_saidas[cfop_key]['v_cofins'] += v_cofins
                 cfop_saidas[cfop_key]['qtd_itens'] += 1
+                # Manter o CST mais comum (último encontrado)
+                if cst:
+                    cfop_saidas[cfop_key]['cst'] = cst
     
     # Converter para listas ordenadas por CFOP
     lista_entradas = sorted(cfop_entradas.values(), key=lambda x: x['cfop'])
