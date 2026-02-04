@@ -161,40 +161,28 @@ const Companies = ({ user, onLogout }) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.post(API + '/companies', formData, {
-        headers: { Authorization: 'Bearer ' + token }
-      });
+      
+      if (editingCompany) {
+        // Atualizar empresa existente
+        await axios.put(API + '/companies/' + editingCompany.id, formData, {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+        alert('Empresa atualizada com sucesso!');
+      } else {
+        // Criar nova empresa
+        await axios.post(API + '/companies', formData, {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+        alert('Empresa cadastrada com sucesso!');
+      }
+      
       setShowForm(false);
-      setFormData({
-        cnpj: '',
-        razao_social: '',
-        nome_fantasia: '',
-        inscricao_estadual: '',
-        inscricao_municipal: '',
-        endereco: '',
-        cidade: '',
-        uf: 'SP',
-        cep: '',
-        cnae_principal: '',
-        cnae_principal_descricao: '',
-        atividade_principal: '',
-        produtos_comercializados: [],
-        insumos_producao: [],
-        produtos_despesa: [],
-        regime_tributario: 'lucro_presumido',
-        anexos_simples: [],
-        tipo_atividade: 'comercio',
-        tipos_servico: [],
-        percentual_presuncao_irpj: 8.0,
-        percentual_presuncao_csll: 12.0,
-        estoque_inicial: 0,
-        estoque_final: 0
-      });
+      setEditingCompany(null);
+      setFormData(emptyFormData);
       fetchCompanies();
       refreshCompanies();
-      alert('Empresa cadastrada com sucesso!');
     } catch (err) {
-      alert(err.response?.data?.detail || 'Erro ao cadastrar empresa');
+      alert(err.response?.data?.detail || 'Erro ao salvar empresa');
     }
   };
 
