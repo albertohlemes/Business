@@ -427,8 +427,8 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
               
               {/* Operações com débito */}
               <ExpandableSection
-                title="Operações com Débito"
-                subtitle={`${(viewMode === 'cfop' ? data.debitos.com_debito.por_cfop : data.debitos.com_debito.por_ncm).length} ${viewMode === 'cfop' ? 'CFOP(s)' : 'NCM(s)'}`}
+                title={`Operações com Débito (CST ${data.debitos.com_debito.cst})`}
+                subtitle={`${(viewMode === 'cst' ? data.debitos.com_debito.por_cst : viewMode === 'cfop' ? data.debitos.com_debito.por_cfop : data.debitos.com_debito.por_ncm).length} registro(s)`}
                 icon={CheckCircle}
                 color="bg-red-600"
                 isExpanded={expandedSections.debitoComDebito}
@@ -450,15 +450,15 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
                   </div>
                 </div>
                 <DataTable 
-                  items={viewMode === 'cfop' ? data.debitos.com_debito.por_cfop : data.debitos.com_debito.por_ncm}
+                  items={viewMode === 'cst' ? data.debitos.com_debito.por_cst : viewMode === 'cfop' ? data.debitos.com_debito.por_cfop : data.debitos.com_debito.por_ncm}
                   showTaxes={true}
                 />
               </ExpandableSection>
               
               {/* Operações sem débito (alíquota zero) */}
               <ExpandableSection
-                title="Operações Alíquota Zero / Sem Débito"
-                subtitle={`${(viewMode === 'cfop' ? data.debitos.aliquota_zero.por_cfop : data.debitos.aliquota_zero.por_ncm).length} ${viewMode === 'cfop' ? 'CFOP(s)' : 'NCM(s)'}`}
+                title={`Operações Alíquota Zero / Sem Débito (CST ${data.debitos.aliquota_zero.cst})`}
+                subtitle={`${(viewMode === 'cst' ? data.debitos.aliquota_zero.por_cst : viewMode === 'cfop' ? data.debitos.aliquota_zero.por_cfop : data.debitos.aliquota_zero.por_ncm).length} registro(s)`}
                 icon={AlertCircle}
                 color="bg-gray-500"
                 isExpanded={expandedSections.debitoAliqZero}
@@ -466,7 +466,7 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
                 badge={formatCurrency(data.debitos.aliquota_zero.valor_operacoes)}
               >
                 <DataTable 
-                  items={viewMode === 'cfop' ? data.debitos.aliquota_zero.por_cfop : data.debitos.aliquota_zero.por_ncm}
+                  items={viewMode === 'cst' ? data.debitos.aliquota_zero.por_cst : viewMode === 'cfop' ? data.debitos.aliquota_zero.por_cfop : data.debitos.aliquota_zero.por_ncm}
                   showTaxes={false}
                 />
               </ExpandableSection>
