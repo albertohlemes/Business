@@ -4680,36 +4680,14 @@ def apply_classification(product, result, cfop_original, file_conversions):
         'categoria': result['categoria'],
         'motivo': result.get('justificativa', f"Classificado como {result['categoria'].upper()}")
     })
-            response_text = response_text[7:]
-        if response_text.startswith("```"):
-            response_text = response_text[3:]
-        if response_text.endswith("```"):
-            response_text = response_text[:-3]
-        
-        result = json.loads(response_text)
-        
-        # Retornar dados calculados + análise da IA
-        return {
-            "success": True,
-            "regime_tributario": regime,
-            "dados_calculados": resumo_dados,
-            "indicadores_ia": result.get('indicadores', {}),
-            "alertas": result.get('alertas', []),
-            "recomendacoes": result.get('recomendacoes', []),
-            "markup": result.get('markup', {}),
-            "ponto_equilibrio": ponto_equilibrio,
-            "irpj_csll": resumo_dados.get('irpj_csll'),
-            "notas_processadas": {
-                "entrada": len(docs_entrada),
-                "saida": len(docs_saida)
+
 async def get_ai_chat(session_id: str, system_message: str):
     return LlmChat(
         system_message=system_message,
         session_id=session_id,
         model="gpt-4o"
     )
-            }
-        }
+
 async def classify_products_batch_llm(products: List[Dict[str, Any]], company_data: Dict[str, Any], batch_size: int = 20) -> Dict[str, Any]:
     """
     Classifica uma lista de produtos usando LLM com base nas regras da empresa.
