@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { FileBarChart, Download, TrendingUp, Package, Boxes, Calendar, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { FileBarChart, Download, TrendingUp, Package, Boxes, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
