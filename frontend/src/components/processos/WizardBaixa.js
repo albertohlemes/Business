@@ -354,13 +354,13 @@ const WizardBaixa = ({ open, onClose, onComplete }) => {
         setJuntaComercial('');
         setEndereco('');
         setSocios([]);
-        setMotivoBaixa('');
+        setMotivoBaixa('vontade_socios');
         setMotivoDetalhado('');
-        setDataEncerramentoAtividades('');
-        setDestinacaoAcervo('');
+        setDataEncerramentoAtividades(getDataHoje());
+        setDestinacaoAcervo('Os livros e documentos contábeis da sociedade ficarão sob a guarda do sócio responsável, pelo prazo legal, no endereço da sede.');
         setDeclaracaoQuitacao(true);
-        setDistribuicaoPatrimonio('');
-        setResponsavelGuarda('');
+        setDistribuicaoPatrimonio('O patrimônio líquido remanescente, se houver, será dividido entre os sócios na proporção de suas quotas de capital social, após a quitação de todas as obrigações.');
+        setResponsavelGuardaIndex(0);
         setPrazoGuarda('5 anos');
         setDistratoGerado('');
         setProcessoId(null);
