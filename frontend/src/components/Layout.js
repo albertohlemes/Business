@@ -53,7 +53,7 @@ const Layout = ({ user, onLogout, children }) => {
               <img 
                 src="/logo-business.png" 
                 alt="Business Contabilidade" 
-                className="h-10 w-auto bg-black rounded-lg p-1"
+                className="h-10 w-auto rounded-lg p-1"
               />
               <div className="hidden sm:block">
                 <h1 className="text-lg font-bold text-gray-900">Business Contabilidade</h1>
