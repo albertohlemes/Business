@@ -42,6 +42,24 @@ const Documents = ({ user, onLogout }) => {
     }
   };
 
+  const handleDeleteDocument = async (docId, numeroNfe) => {
+    if (!window.confirm(`Tem certeza que deseja apagar a NF-e ${numeroNfe}?`)) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API}/documents/${docId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert('Documento apagado com sucesso!');
+      fetchData();
+    } catch (err) {
+      console.error('Erro ao apagar documento:', err);
+      alert(err.response?.data?.detail || 'Erro ao apagar documento');
+    }
+  };
+
   const handleDeleteAllCompetencia = async () => {
     if (!ctxCompany || !selectedCompetencia) {
       alert('Selecione uma empresa e competência');
