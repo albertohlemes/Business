@@ -1513,16 +1513,27 @@ Responda APENAS com um JSON válido:
     }
 }"""
     
+    uf_empresa = company.get('uf', 'SP')
+    
     user_prompt = f"""Empresa: {company.get('razao_social', '')}
 CNAE: {company.get('cnae_principal', '')} - {company.get('cnae_principal_descricao', '')}
-UF: {company.get('uf', 'SP')}
+UF DA EMPRESA: {uf_empresa}
+
+ATENÇÃO: A empresa está localizada em {uf_empresa}. Use as alíquotas de ICMS corretas para este estado.
+- Alíquota interna de {uf_empresa}: {'18%' if uf_empresa in ['SP', 'MG', 'RJ', 'PR'] else '17%'}
+- Considere também produtos da cesta básica com alíquotas reduzidas (7%) ou isentos
 
 Validar: PIS={request.validar_pis}, COFINS={request.validar_cofins}, ICMS={request.validar_icms}
 
 Produtos para análise ({len(produtos_para_validar)} itens):
 {json.dumps(produtos_para_validar[:30], ensure_ascii=False, indent=2)}
 
-Analise os tributos e identifique inconsistências com base legal."""
+IMPORTANTE: 
+1. Verifique o NCM de cada produto antes de apontar erro em PIS/COFINS zerados
+2. Produtos alimentícios e da cesta básica frequentemente têm alíquota zero - isso NÃO é erro
+3. Para ICMS, considere o estado {uf_empresa} e o tipo de produto
+
+Analise os tributos e identifique APENAS inconsistências reais, não aponte como erro produtos com alíquota zero legitimamente aplicada."""
     
     try:
         chat = await get_ai_chat(
