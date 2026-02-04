@@ -35,6 +35,7 @@ const Processos = () => {
     // Wizards
     const [wizardAlteracaoOpen, setWizardAlteracaoOpen] = useState(false);
     const [wizardConstituicaoOpen, setWizardConstituicaoOpen] = useState(false);
+    const [wizardBaixaOpen, setWizardBaixaOpen] = useState(false);
 
     useEffect(() => {
         fetchData();
