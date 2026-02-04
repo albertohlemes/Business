@@ -3,6 +3,7 @@ import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from passlib.context import CryptContext
 from dotenv import load_dotenv
+from datetime import datetime, timezone
 
 load_dotenv('/app/backend/.env')
 
@@ -19,7 +20,8 @@ async def create_admin():
         "hashed_password": hashed_password,
         "name": "Debug Admin",
         "role": "admin",
-        "company_ids": []
+        "company_ids": [],
+        "created_at": datetime.now(timezone.utc)
     }
     
     await db.users.update_one(
