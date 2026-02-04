@@ -7,10 +7,11 @@ import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
 import { Checkbox } from '../components/ui/checkbox';
 import { 
-    FileText, Upload, Send, Download, Trash2, 
-    MessageSquare, Clock, CheckCircle2, RefreshCw, 
+    FileText, Upload, Download, Trash2, 
+    Clock, CheckCircle2, RefreshCw, 
     ChevronRight, ChevronLeft, Eye, Copy, Building2,
-    Users, MapPin, Briefcase, DollarSign, FileSearch, X
+    Users, MapPin, Briefcase, DollarSign, FileSearch, X,
+    Calendar, FileDown
 } from 'lucide-react';
 import {
     Dialog,
@@ -18,6 +19,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '../components/ui/dialog';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { saveAs } from 'file-saver';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
