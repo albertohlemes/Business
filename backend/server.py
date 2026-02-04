@@ -1584,6 +1584,51 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
         }
     }
 
+# ============ ENDPOINT DE BUSCA DE CEP ============
+
+@api_router.get("/cep/{cep}")
+async def buscar_cep(cep: str):
+    """Busca endereço completo pelo CEP usando API ViaCEP (Correios)"""
+    import httpx
+    
+    # Limpar CEP (remover pontos e hífens)
+    cep_limpo = ''.join(filter(str.isdigit, cep))
+    
+    if len(cep_limpo) != 8:
+        raise HTTPException(status_code=400, detail="CEP deve ter 8 dígitos")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"https://viacep.com.br/ws/{cep_limpo}/json/", timeout=10.0)
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=404, detail="CEP não encontrado")
+            
+            dados = response.json()
+            
+            if dados.get("erro"):
+                raise HTTPException(status_code=404, detail="CEP não encontrado")
+            
+            # Retornar no formato padronizado dos Correios
+            return {
+                "success": True,
+                "endereco": {
+                    "cep": dados.get("cep", "").replace("-", ""),
+                    "logradouro": dados.get("logradouro", ""),
+                    "complemento": dados.get("complemento", ""),
+                    "bairro": dados.get("bairro", ""),
+                    "cidade": dados.get("localidade", ""),
+                    "estado": dados.get("uf", ""),
+                    "ibge": dados.get("ibge", ""),
+                    "ddd": dados.get("ddd", "")
+                }
+            }
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Timeout ao consultar CEP")
+    except Exception as e:
+        logger.error(f"Erro ao buscar CEP: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar CEP: {str(e)}")
+
 # ============ ENDPOINTS DE CONSTITUIÇÃO ============
 
 class DadosEmpresaConstituicao(BaseModel):
