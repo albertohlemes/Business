@@ -911,8 +911,9 @@ class FiscalSystemAPITester:
         print("\n🔍 Testing Bulk Delete Documents with Filters...")
         
         # Step 1: Create a test company for bulk delete testing
+        timestamp = datetime.now().strftime('%H%M%S')
         company_data = {
-            "cnpj": "55.444.333/0001-22",
+            "cnpj": f"55.444.{timestamp[:3]}/0001-22",
             "razao_social": "Empresa Bulk Delete Test LTDA",
             "nome_fantasia": "Bulk Delete Test Corp",
             "inscricao_estadual": "555444333",
@@ -941,57 +942,60 @@ class FiscalSystemAPITester:
         print(f"✅ Created company for bulk delete test: {bulk_test_company_id}")
         
         # Step 2: Insert test documents directly into MongoDB with different types and statuses
-        test_documents = [
-            # Entrada documents
-            {
-                "id": str(uuid.uuid4()),
-                "company_id": bulk_test_company_id,
-                "competencia": competencia,
-                "tipo": "entrada",
-                "modelo": "nfe",
-                "chave_nfe": f"35202455444333000122550010000000{i:02d}1234567890",
-                "numero_nfe": f"100{i}",
-                "data_emissao": "2024-12-15T10:30:00-03:00",
-                "emitente_cnpj": "98.765.432/0001-10",
-                "emitente_nome": f"Fornecedor {i} LTDA",
-                "destinatario_cnpj": "55.444.333/0001-22",
-                "destinatario_nome": "Empresa Bulk Delete Test LTDA",
-                "valor_total": 1000.00 + i * 100,
-                "valor_servicos": 0.0,
-                "xml_content": f"<?xml version='1.0'?><nfe>entrada content {i}</nfe>",
-                "produtos": [{"codigo": f"PROD{i}", "descricao": f"Produto Entrada {i}"}],
-                "servicos": [],
-                "status_validacao": "pendente" if i % 2 == 0 else "validado",
-                "uploaded_at": datetime.now().isoformat(),
-                "uploaded_by": "test_user"
-            }
-            for i in range(1, 5)  # 4 entrada documents (2 pendente, 2 validado)
-        ] + [
-            # Saida documents
-            {
-                "id": str(uuid.uuid4()),
-                "company_id": bulk_test_company_id,
-                "competencia": competencia,
-                "tipo": "saida",
-                "modelo": "nfe",
-                "chave_nfe": f"35202455444333000122550010000000{i:02d}9876543210",
-                "numero_nfe": f"200{i}",
-                "data_emissao": "2024-12-15T14:30:00-03:00",
-                "emitente_cnpj": "55.444.333/0001-22",
-                "emitente_nome": "Empresa Bulk Delete Test LTDA",
-                "destinatario_cnpj": "11.222.333/0001-44",
-                "destinatario_nome": f"Cliente {i} LTDA",
-                "valor_total": 2000.00 + i * 200,
-                "valor_servicos": 0.0,
-                "xml_content": f"<?xml version='1.0'?><nfe>saida content {i}</nfe>",
-                "produtos": [{"codigo": f"PROD{i+10}", "descricao": f"Produto Saida {i}"}],
-                "servicos": [],
-                "status_validacao": "pendente" if i % 2 == 0 else "validado",
-                "uploaded_at": datetime.now().isoformat(),
-                "uploaded_by": "test_user"
-            }
-            for i in range(1, 5)  # 4 saida documents (2 pendente, 2 validado)
-        ]
+        def create_test_documents():
+            return [
+                # Entrada documents
+                {
+                    "id": str(uuid.uuid4()),
+                    "company_id": bulk_test_company_id,
+                    "competencia": competencia,
+                    "tipo": "entrada",
+                    "modelo": "nfe",
+                    "chave_nfe": f"35202455444333000122550010000000{i:02d}{uuid.uuid4().hex[:8]}",
+                    "numero_nfe": f"100{i}",
+                    "data_emissao": "2024-12-15T10:30:00-03:00",
+                    "emitente_cnpj": "98.765.432/0001-10",
+                    "emitente_nome": f"Fornecedor {i} LTDA",
+                    "destinatario_cnpj": company_data["cnpj"],
+                    "destinatario_nome": "Empresa Bulk Delete Test LTDA",
+                    "valor_total": 1000.00 + i * 100,
+                    "valor_servicos": 0.0,
+                    "xml_content": f"<?xml version='1.0'?><nfe>entrada content {i}</nfe>",
+                    "produtos": [{"codigo": f"PROD{i}", "descricao": f"Produto Entrada {i}"}],
+                    "servicos": [],
+                    "status_validacao": "pendente" if i % 2 == 0 else "validado",
+                    "uploaded_at": datetime.now().isoformat(),
+                    "uploaded_by": "test_user"
+                }
+                for i in range(1, 5)  # 4 entrada documents (2 pendente, 2 validado)
+            ] + [
+                # Saida documents
+                {
+                    "id": str(uuid.uuid4()),
+                    "company_id": bulk_test_company_id,
+                    "competencia": competencia,
+                    "tipo": "saida",
+                    "modelo": "nfe",
+                    "chave_nfe": f"35202455444333000122550010000000{i:02d}{uuid.uuid4().hex[:8]}",
+                    "numero_nfe": f"200{i}",
+                    "data_emissao": "2024-12-15T14:30:00-03:00",
+                    "emitente_cnpj": company_data["cnpj"],
+                    "emitente_nome": "Empresa Bulk Delete Test LTDA",
+                    "destinatario_cnpj": "11.222.333/0001-44",
+                    "destinatario_nome": f"Cliente {i} LTDA",
+                    "valor_total": 2000.00 + i * 200,
+                    "valor_servicos": 0.0,
+                    "xml_content": f"<?xml version='1.0'?><nfe>saida content {i}</nfe>",
+                    "produtos": [{"codigo": f"PROD{i+10}", "descricao": f"Produto Saida {i}"}],
+                    "servicos": [],
+                    "status_validacao": "pendente" if i % 2 == 0 else "validado",
+                    "uploaded_at": datetime.now().isoformat(),
+                    "uploaded_by": "test_user"
+                }
+                for i in range(1, 5)  # 4 saida documents (2 pendente, 2 validado)
+            ]
+        
+        test_documents = create_test_documents()
         
         try:
             # Insert all test documents
@@ -1073,9 +1077,7 @@ class FiscalSystemAPITester:
         print(f"✅ Test 1 PASSED: Only entrada documents deleted. Remaining: Total={remaining_total}, Saida={remaining_saida}")
         
         # Step 4: Re-insert entrada documents for next test
-        entrada_docs_new = [doc for doc in test_documents if doc['tipo'] == 'entrada']
-        for doc in entrada_docs_new:
-            doc['id'] = str(uuid.uuid4())  # New IDs to avoid conflicts
+        entrada_docs_new = create_test_documents()[:4]  # Only entrada documents
         
         try:
             self.db.xml_documents.insert_many(entrada_docs_new)
@@ -1122,11 +1124,10 @@ class FiscalSystemAPITester:
         print(f"✅ Test 2 PASSED: Only pendente documents deleted. Remaining: Total={remaining_total}, Validado={remaining_validado}")
         
         # Step 6: Re-insert all documents for final test
-        for doc in test_documents:
-            doc['id'] = str(uuid.uuid4())  # New IDs to avoid conflicts
+        all_docs_new = create_test_documents()
         
         try:
-            self.db.xml_documents.insert_many(test_documents)
+            self.db.xml_documents.insert_many(all_docs_new)
             print("✅ Re-inserted all documents for final test")
         except Exception as e:
             print(f"❌ Failed to re-insert all documents: {str(e)}")
