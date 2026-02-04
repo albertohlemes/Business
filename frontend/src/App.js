@@ -12,8 +12,7 @@ import ExportMenu from './pages/ExportMenu';
 import Reports from './pages/Reports';
 import AnaliseTributaria from './pages/AnaliseTributaria';
 import AnaliseSaidas from './pages/AnaliseSaidas';
-import ApuracaoPeriodo from './pages/ApuracaoPeriodo';
-import ApuracaoPisCofins from './pages/ApuracaoPisCofins';
+import ApuracaoMensal from './pages/ApuracaoMensal';
 import AlertasCfop from './pages/AlertasCfop';
 import './App.css';
 
