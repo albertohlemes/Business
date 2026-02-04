@@ -96,6 +96,8 @@ export const AppProvider = ({ children }) => {
   };
 
   const openSelector = () => {
+    // Recarregar empresas ao abrir o modal
+    fetchCompanies();
     setShowSelector(true);
   };
 
