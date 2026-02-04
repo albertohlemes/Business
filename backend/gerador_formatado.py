@@ -69,14 +69,17 @@ def _extrair_formatacao_inline(texto: str) -> List[Tuple[str, bool, bool]]:
     Retorna lista de tuplas: (texto, is_bold, is_italic)
     """
     partes = []
+    texto_strip = texto.strip()
     
-    # Verificar se é linha decorativa (= ou -, mas não _)
-    if re.match(r'^[=\-]{5,}$', texto.strip()):
+    # Verificar se é linha decorativa (= ou - ou *, 3 ou mais)
+    if re.match(r'^[=\-]{3,}$', texto_strip):
         return []  # Ignorar linhas decorativas
+    if re.match(r'^\*{3,}$', texto_strip):
+        return []  # Ignorar linhas de asteriscos
     
     # Preservar linhas de assinatura
-    if re.match(r'^_+$', texto.strip()):
-        return [(texto.strip(), False, False)]
+    if re.match(r'^_+$', texto_strip):
+        return [(texto_strip, False, False)]
     
     # Limpar marcações de lista primeiro
     texto = re.sub(r'^[\-\*\+]\s+', '', texto)
