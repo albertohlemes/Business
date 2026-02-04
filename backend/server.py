@@ -4712,15 +4712,6 @@ async def classify_products_batch_llm(products: List[Dict[str, Any]], company_da
     if not products:
         return {}
         
-    # Agrupar produtos únicos para economizar tokens
-    unique_products = {}
-    for p in products:
-        key = f"{p['descricao']}|{p['ncm']}"
-        if key not in unique_products:
-            unique_products[key] = p
-            
-    # Preparar lotes
-    items = list(unique_products.values())
     classified_results = {}
     
     # Construir contexto da empresa
@@ -4734,16 +4725,15 @@ async def classify_products_batch_llm(products: List[Dict[str, Any]], company_da
     3. DESPESA (Uso e Consumo): {', '.join(company_data.get('produtos_despesa', []))}
     
     Instruções:
-    Analise cada produto e classifique como 'revenda', 'insumo' ou 'despesa' com base nas palavras-chave acima.
-    Use inteligência semântica: se 'Limpeza' é despesa, então 'Detergente', 'Sabão', 'Vassoura' são despesas.
-    Se 'Oriental' é revenda, então 'Sushi', 'Shoyu', 'Arroz Japonês' são revenda.
-    Se não houver correspondência semântica clara, use o padrão para a atividade da empresa.
+    Analise cada produto e classifique como 'revenda', 'insumo' ou 'despesa'.
+    Use inteligência semântica baseada nas palavras-chave acima.
+    Exemplos: 'Limpeza' implica 'Detergente', 'Vassoura'. 'Oriental' implica 'Sushi', 'Shoyu'.
     
     Responda APENAS um JSON no formato:
     {{
-        "produtos": [
+        "resultados": [
             {{
-                "descricao": "nome do produto",
+                "id": "id_do_produto",
                 "categoria": "revenda|insumo|despesa",
                 "justificativa": "breve explicação"
             }}
@@ -4751,10 +4741,15 @@ async def classify_products_batch_llm(products: List[Dict[str, Any]], company_da
     }}
     """
     
-    for i in range(0, len(items), batch_size):
-        batch = items[i:i+batch_size]
+    # Adicionar ID temporário para cada produto para garantir mapeamento correto
+    for idx, p in enumerate(products):
+        p['_temp_id'] = str(idx)
+    
+    for i in range(0, len(products), batch_size):
+        batch = products[i:i+batch_size]
         
         batch_prompt = "Classifique estes produtos:\n" + json.dumps([{
+            'id': p['_temp_id'],
             'descricao': p['descricao'],
             'ncm': p['ncm']
         } for p in batch], ensure_ascii=False)
@@ -4772,10 +4767,8 @@ async def classify_products_batch_llm(products: List[Dict[str, Any]], company_da
                 
             result = json.loads(response_text)
             
-            for item in result.get('produtos', []):
-                # Encontrar chave original (pode haver pequenas variações na string de retorno)
-                # Vamos usar map direto se possível, ou match difuso
-                classified_results[item['descricao']] = {
+            for item in result.get('resultados', []):
+                classified_results[item['id']] = {
                     "categoria": item['categoria'],
                     "justificativa": item['justificativa']
                 }
