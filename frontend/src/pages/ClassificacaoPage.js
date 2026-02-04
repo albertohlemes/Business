@@ -380,6 +380,51 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     }
   };
 
+  // Excluir regras selecionadas em lote
+  const handleDeleteSelectedRules = async () => {
+    if (selectedRules.length === 0) return;
+    if (!window.confirm(`Excluir ${selectedRules.length} regra(s) selecionada(s)?`)) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      let deleted = 0;
+      
+      for (const ruleId of selectedRules) {
+        try {
+          await axios.delete(`${API}/ai/learned-rules/${ruleId}`, {
+            headers: { Authorization: 'Bearer ' + token }
+          });
+          deleted++;
+        } catch (err) {
+          console.error('Erro ao excluir regra:', ruleId, err);
+        }
+      }
+      
+      setSelectedRules([]);
+      fetchLearnedRules();
+      showSuccess(`${deleted} regra(s) excluída(s)!`);
+    } catch (err) {
+      alert('Erro ao excluir regras');
+    }
+  };
+
+  // Excluir todas as regras
+  const handleDeleteAllRules = async () => {
+    if (!window.confirm(`Excluir TODAS as ${learnedRules.length} regras da memória da IA?`)) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API}/ai/learned-rules/company/${selectedCompany.id}`, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      setSelectedRules([]);
+      fetchLearnedRules();
+      showSuccess('Todas as regras foram excluídas!');
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erro ao excluir regras');
+    }
+  };
+
   // Estatísticas
   const totalProducts = documents.reduce((acc, doc) => acc + doc.produtos.length, 0);
   const validApprovedKeys = new Set();
