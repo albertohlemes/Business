@@ -124,30 +124,24 @@ const Minutas = () => {
             
             setMinutaId(uploadRes.data.id);
             
-            // Solicitar extração de dados via chat
-            const chatRes = await axios.post(`${API_URL}/api/minutas/${uploadRes.data.id}/chat`, {
-                message: `Analise o contrato social anexado e extraia as seguintes informações em formato estruturado:
-
-1. RAZÃO SOCIAL: (nome completo da empresa)
-2. CNPJ: (número do CNPJ)
-3. ENDEREÇO: (endereço completo da sede)
-4. CAPITAL SOCIAL: (valor e forma de integralização)
-5. QUADRO SOCIETÁRIO (QSA): Liste cada sócio com:
-   - Nome completo
-   - CPF
-   - Participação (%)
-   - Se é administrador
-6. ATIVIDADES/OBJETO SOCIAL: Liste os CNAEs ou descrição das atividades
-
-Formate de forma clara e organizada.`,
-                minuta_id: uploadRes.data.id
-            });
+            // Usar novo endpoint para extração estruturada
+            const extractRes = await axios.post(`${API_URL}/api/minutas/${uploadRes.data.id}/extrair-dados`);
             
-            setDadosExtraidos(chatRes.data.response);
-            toast.success('Contrato analisado!');
+            if (extractRes.data.success && extractRes.data.dados) {
+                setDadosExtraidos(extractRes.data.dados);
+                toast.success('Contrato analisado com sucesso!');
+            } else {
+                // Fallback para chat se extração falhar
+                const chatRes = await axios.post(`${API_URL}/api/minutas/${uploadRes.data.id}/chat`, {
+                    message: `Analise o contrato social anexado e extraia as informações em formato estruturado.`,
+                    minuta_id: uploadRes.data.id
+                });
+                setDadosExtraidos({ raw_text: chatRes.data.response });
+                toast.success('Contrato analisado!');
+            }
         } catch (e) {
+            console.error('Erro ao analisar:', e);
             toast.error('Erro ao analisar contrato');
-            console.error(e);
         } finally {
             setProcessing(false);
         }
