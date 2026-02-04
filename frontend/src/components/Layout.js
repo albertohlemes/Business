@@ -50,13 +50,11 @@ const Layout = ({ user, onLogout, children }) => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="bg-gray-900 rounded-lg overflow-hidden">
-                <img 
-                  src="/logo-business.png" 
-                  alt="Business Contabilidade" 
-                  className="h-10 w-auto"
-                />
-              </div>
+              <img 
+                src="/logo-business.png" 
+                alt="Business Contabilidade" 
+                className="h-10 w-auto"
+              />
               <div className="hidden sm:block">
                 <h1 className="text-lg font-bold text-gray-900">Business Contabilidade</h1>
                 <p className="text-xs text-gray-600">Sistema Fiscal Inteligente</p>
