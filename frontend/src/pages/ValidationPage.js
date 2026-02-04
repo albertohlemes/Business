@@ -137,14 +137,14 @@ const ValidationPage = ({ user, onLogout }) => {
     const groups = {};
     
     documents.forEach(doc => {
-      (doc.produtos || []).forEach(prod => {
+      (doc.produtos || []).forEach((prod, prodIndex) => {
         const code = prod.codigo || 'SEM_CODIGO';
         if (!groups[code]) {
           groups[code] = {
             codigo: code,
             descricao: prod.descricao,
             ncm: prod.ncm,
-            categoria: prod.categoria_classificada,
+            categoria: prod.categoria_classificada || 'não classificado',
             cfop: prod.cfop,
             cfop_sugerido: prod.cfop_sugerido,
             ocorrencias: [],
@@ -159,15 +159,65 @@ const ValidationPage = ({ user, onLogout }) => {
           quantidade: prod.quantidade,
           valor: prod.valor_total,
           cfop: prod.cfop,
-          cfop_sugerido: prod.cfop_sugerido
+          cfop_sugerido: prod.cfop_sugerido,
+          product_index: prodIndex
         });
         groups[code].quantidade_total += prod.quantidade || 0;
         groups[code].valor_total += prod.valor_total || 0;
+        // Atualizar categoria se encontrar uma mais recente
+        if (prod.categoria_classificada) {
+          groups[code].categoria = prod.categoria_classificada;
+        }
       });
     });
     
-    return Object.values(groups).sort((a, b) => a.descricao?.localeCompare(b.descricao || ''));
+    return Object.values(groups);
   }, [documents]);
+
+  // Produtos ordenados
+  const sortedProducts = useMemo(() => {
+    const sorted = [...groupedProducts];
+    
+    sorted.sort((a, b) => {
+      let aVal, bVal;
+      
+      switch (sortConfig.field) {
+        case 'descricao':
+          aVal = a.descricao || '';
+          bVal = b.descricao || '';
+          break;
+        case 'categoria':
+          aVal = a.categoria || 'zzz'; // 'não classificado' vai pro final
+          bVal = b.categoria || 'zzz';
+          break;
+        case 'cfop':
+          aVal = a.cfop || '';
+          bVal = b.cfop || '';
+          break;
+        case 'valor':
+          aVal = a.valor_total || 0;
+          bVal = b.valor_total || 0;
+          break;
+        case 'ocorrencias':
+          aVal = a.ocorrencias?.length || 0;
+          bVal = b.ocorrencias?.length || 0;
+          break;
+        default:
+          aVal = a.descricao || '';
+          bVal = b.descricao || '';
+      }
+      
+      if (typeof aVal === 'string') {
+        return sortConfig.direction === 'asc' 
+          ? aVal.localeCompare(bVal) 
+          : bVal.localeCompare(aVal);
+      }
+      
+      return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+    
+    return sorted;
+  }, [groupedProducts, sortConfig]);
 
   const selectDocument = async (docId) => {
     try {
