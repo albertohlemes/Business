@@ -85,7 +85,6 @@ async def count_xmls_sieg(
     data_inicio, data_fim = get_competencia_dates(competencia)
     
     headers = {
-        "Authorization": api_key,
         "Content-Type": "application/json"
     }
     
@@ -98,15 +97,23 @@ async def count_xmls_sieg(
     
     async with httpx.AsyncClient(timeout=30.0) as client:
         # Contar notas de entrada
-        response_entrada = await client.post(
-            f"{SIEG_API_BASE}/ContarXmls",
-            headers=headers,
-            json=payload
-        )
-        
-        count_entrada = {"NFe": 0, "NFCe": 0, "CTe": 0, "CFe": 0, "NFSe": 0}
-        if response_entrada.status_code == 200:
-            count_entrada = response_entrada.json()
+        try:
+            response_entrada = await client.post(
+                build_sieg_url("ContarXmls", api_key),
+                headers=headers,
+                json=payload
+            )
+            
+            count_entrada = {"NFe": 0, "NFCe": 0, "CTe": 0, "CFe": 0, "NFSe": 0}
+            if response_entrada.status_code == 200:
+                resp_data = response_entrada.json()
+                if isinstance(resp_data, dict) and "Message" not in resp_data:
+                    count_entrada = resp_data
+                elif "Message" in resp_data:
+                    print(f"[SIEG] Aviso entrada: {resp_data['Message']}")
+        except Exception as e:
+            print(f"[SIEG] Erro ao contar entradas: {e}")
+            count_entrada = {"NFe": 0, "NFCe": 0, "CTe": 0, "CFe": 0, "NFSe": 0}
         
         # Contar notas de saída (onde a empresa é emitente)
         payload_saida = {
@@ -115,15 +122,23 @@ async def count_xmls_sieg(
             "DataEmissaoFim": data_fim.isoformat()
         }
         
-        response_saida = await client.post(
-            f"{SIEG_API_BASE}/ContarXmls",
-            headers=headers,
-            json=payload_saida
-        )
-        
-        count_saida = {"NFe": 0, "NFCe": 0, "CTe": 0, "CFe": 0, "NFSe": 0}
-        if response_saida.status_code == 200:
-            count_saida = response_saida.json()
+        try:
+            response_saida = await client.post(
+                build_sieg_url("ContarXmls", api_key),
+                headers=headers,
+                json=payload_saida
+            )
+            
+            count_saida = {"NFe": 0, "NFCe": 0, "CTe": 0, "CFe": 0, "NFSe": 0}
+            if response_saida.status_code == 200:
+                resp_data = response_saida.json()
+                if isinstance(resp_data, dict) and "Message" not in resp_data:
+                    count_saida = resp_data
+                elif "Message" in resp_data:
+                    print(f"[SIEG] Aviso saída: {resp_data['Message']}")
+        except Exception as e:
+            print(f"[SIEG] Erro ao contar saídas: {e}")
+            count_saida = {"NFe": 0, "NFCe": 0, "CTe": 0, "CFe": 0, "NFSe": 0}
     
     return {
         "entrada": {
@@ -132,7 +147,7 @@ async def count_xmls_sieg(
             "cte": count_entrada.get("CTe", 0),
             "cfe": count_entrada.get("CFe", 0),
             "nfse": count_entrada.get("NFSe", 0),
-            "total": sum(count_entrada.values()) if isinstance(count_entrada, dict) else 0
+            "total": sum(v for v in count_entrada.values() if isinstance(v, int))
         },
         "saida": {
             "nfe": count_saida.get("NFe", 0),
@@ -140,7 +155,7 @@ async def count_xmls_sieg(
             "cte": count_saida.get("CTe", 0),
             "cfe": count_saida.get("CFe", 0),
             "nfse": count_saida.get("NFSe", 0),
-            "total": sum(count_saida.values()) if isinstance(count_saida, dict) else 0
+            "total": sum(v for v in count_saida.values() if isinstance(v, int))
         },
         "competencia": competencia,
         "cnpj": cnpj_limpo
