@@ -319,15 +319,15 @@ const Documents = ({ user, onLogout }) => {
                 </p>
               </div>
               <div>
-                <p className="text-gray-600 text-sm mb-1">Produtos</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {filteredDocuments.reduce((sum, doc) => sum + doc.produtos.length, 0)}
+                <p className="text-gray-600 text-sm mb-1">Entradas</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {filteredDocuments.filter(d => d.tipo === 'entrada').length}
                 </p>
               </div>
               <div>
-                <p className="text-gray-600 text-sm mb-1">Validados</p>
+                <p className="text-gray-600 text-sm mb-1">Saídas</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {filteredDocuments.filter(d => d.status_validacao === 'validado').length}
+                  {filteredDocuments.filter(d => d.tipo === 'saida').length}
                 </p>
               </div>
             </div>
