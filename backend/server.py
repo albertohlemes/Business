@@ -3533,8 +3533,6 @@ async def export_csv_entrada(
 @api_router.post("/cfop/initialize")
 async def initialize_cfop_rules(current_user: User = Depends(get_current_user)):
     if current_user.role != UserRole.ADMIN:
-    # Removed misplaced export endpoints
-
         raise HTTPException(status_code=403, detail="Apenas administradores podem executar esta ação")
     
     default_rules = [
