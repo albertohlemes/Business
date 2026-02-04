@@ -206,6 +206,23 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 17
+- ✅ **Ordenação nas tabelas da Apuração PIS/COFINS**
+  - Clique na coluna para ordenar crescente/decrescente
+  - Indicador visual (▲/▼) mostra a ordenação atual
+  - Todas as colunas são ordenáveis: CST/CFOP/NCM, Valor, PIS, COFINS, Qtd
+- ✅ **CST de PIS/COFINS em vez de ICMS**
+  - Extração de `cst_pis` e `cst_cofins` das tags `<PIS>` e `<COFINS>` do XML
+  - Atualizado tanto para NF-e quanto NFC-e
+  - Usado nos endpoints de apuração PIS/COFINS e Apuração do Período
+- ✅ **Nova página Alertas CFOP**
+  - Detecta documentos de entrada com CFOPs de operações distintas de venda
+  - CFOPs como 5910, 5949, 5122, 5201, etc. são alertados
+  - Usuário pode escolher: "Manter natureza" ou "Converter para compra"
+  - Endpoint `/api/alertas-cfop/{company_id}` criado
+  - Endpoint `/api/converter-cfop` para aplicar conversões
+- ✅ **Menu atualizado** com item "Alertas CFOP"
+
 ### 02/2026 - Iteration 16
 - ✅ **BUG CRÍTICO CORRIGIDO: Modal de seleção de empresa fechava sozinho**
   - O problema era que ao abrir o modal, `fetchCompanies()` era chamado e ao atualizar o estado de `companies`, um `useEffect` fechava o modal automaticamente
