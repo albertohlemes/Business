@@ -4108,10 +4108,8 @@ class AnaliseTributariaRequest(BaseModel):
     company_id: str
     competencia: str
 
-@api_router.post("/ai/analise-tributaria")
-async def ai_analise_tributaria(
-    request: AnaliseTributariaRequest,
-    current_user: User = Depends(get_current_user)
+async def internal_analise_tributaria(
+    request: AnaliseTributariaRequest
 ):
     """Gera análise tributária completa usando IA"""
     company = await db.companies.find_one({"id": request.company_id}, {"_id": 0})
