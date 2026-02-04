@@ -1,27 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { FileBarChart, Download, TrendingUp, Package, Boxes, Calendar } from 'lucide-react';
+import { FileBarChart, Download, TrendingUp, Package, Boxes, Calendar, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL + '/api';
 
 const Reports = ({ user, onLogout }) => {
+  const { selectedCompany: ctxCompany, selectedCompetencia: ctxCompetencia } = useAppContext();
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState('');
   const [competencia, setCompetencia] = useState('');
   const [availableCompetencias, setAvailableCompetencias] = useState([]);
   const [reportType, setReportType] = useState('product');
+  const [tipoOperacao, setTipoOperacao] = useState('entrada'); // entrada, saida, todos
   const [reportData, setReportData] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchCompanies();
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    setCompetencia(month + '/' + year);
   }, []);
+
+  // Usar empresa/competência do contexto
+  useEffect(() => {
+    if (ctxCompany && !selectedCompany) {
+      setSelectedCompany(ctxCompany.id);
+      fetchCompetencias(ctxCompany.id);
+    }
+    if (ctxCompetencia && !competencia) {
+      setCompetencia(ctxCompetencia);
+    }
+  }, [ctxCompany, ctxCompetencia]);
 
   const fetchCompanies = async () => {
     try {
@@ -30,7 +40,7 @@ const Reports = ({ user, onLogout }) => {
         headers: { Authorization: 'Bearer ' + token }
       });
       setCompanies(response.data);
-      if (response.data.length > 0) {
+      if (response.data.length > 0 && !selectedCompany) {
         setSelectedCompany(response.data[0].id);
         fetchCompetencias(response.data[0].id);
       }
@@ -73,7 +83,10 @@ const Reports = ({ user, onLogout }) => {
     try {
       const token = localStorage.getItem('token');
       const endpoint = reportType === 'product' ? 'by-product' : 'by-ncm';
-      const params = competencia ? '?competencia=' + competencia : '';
+      let params = competencia ? '?competencia=' + competencia : '';
+      if (tipoOperacao !== 'todos') {
+        params += (params ? '&' : '?') + 'tipo=' + tipoOperacao;
+      }
       const response = await axios.get(API + '/reports/' + endpoint + '/' + selectedCompany + params, {
         headers: { Authorization: 'Bearer ' + token }
       });
