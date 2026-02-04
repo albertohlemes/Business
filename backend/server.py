@@ -1795,8 +1795,6 @@ async def apuracao_periodo(
         
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
-            if not cfop:
-                continue
             
             # Valores do produto - usar campos corretos
             valor = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
@@ -1805,8 +1803,17 @@ async def apuracao_periodo(
             v_pis = float(prod.get('v_pis', 0) or 0)
             v_cofins = float(prod.get('v_cofins', 0) or 0)
             
-            # Determinar se é entrada ou saída pelo CFOP
+            # Determinar se é entrada ou saída pelo CFOP ou tipo do documento
             primeiro_digito = cfop[0] if cfop else ''
+            
+            # Se CFOP vazio, usar tipo do documento
+            is_entrada = primeiro_digito in ['1', '2', '3'] if primeiro_digito else (tipo_operacao == 'entrada')
+            is_saida = primeiro_digito in ['5', '6', '7'] if primeiro_digito else (tipo_operacao == 'saida')
+            
+            # Se não tem CFOP, usar "SEM CFOP" como chave
+            cfop_key = cfop if cfop else f"SEM CFOP ({tipo_operacao.upper()})"
+            
+            if is_entrada:
             
             if primeiro_digito in ['1', '2', '3']:
                 # Entrada
