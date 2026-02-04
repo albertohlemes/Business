@@ -226,12 +226,20 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
             </div>
             
             <div className="flex items-center gap-3">
-              {/* Toggle CFOP/NCM */}
+              {/* Toggle CST/CFOP/NCM */}
               {data && (
                 <div className="bg-white/20 rounded-lg p-1 flex">
                   <button
+                    onClick={() => setViewMode('cst')}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      viewMode === 'cst' ? 'bg-white text-blue-700' : 'text-white hover:bg-white/10'
+                    }`}
+                  >
+                    Por CST
+                  </button>
+                  <button
                     onClick={() => setViewMode('cfop')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       viewMode === 'cfop' ? 'bg-white text-blue-700' : 'text-white hover:bg-white/10'
                     }`}
                   >
@@ -239,7 +247,7 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
                   </button>
                   <button
                     onClick={() => setViewMode('ncm')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       viewMode === 'ncm' ? 'bg-white text-blue-700' : 'text-white hover:bg-white/10'
                     }`}
                   >
