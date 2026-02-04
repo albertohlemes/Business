@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Building2, Home, FileText, Upload, CheckCircle, Download, LogOut, Menu, X, BarChart3, Brain, Calendar, ChevronDown, TrendingUp } from 'lucide-react';
+import { Building2, Home, FileText, Upload, CheckCircle, Download, LogOut, Menu, X, BarChart3, Brain, Calendar, ChevronDown, TrendingUp, Settings } from 'lucide-react';
 import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 
@@ -9,10 +9,9 @@ const Layout = ({ user, onLogout, children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { selectedCompany, selectedCompetencia, openSelector } = useAppContext();
 
-  // Menu organizado em ordem lógica do fluxo de trabalho
+  // Menu organizado em ordem lógica do fluxo de trabalho (sem Empresas - agora está no header)
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
-    { name: 'Empresas', href: '/companies', icon: Building2, testId: 'nav-companies' },
     { name: 'Upload XML', href: '/upload', icon: Upload, testId: 'nav-upload' },
     { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
     { name: 'Reclassificação IA', href: '/reclassification', icon: Brain, testId: 'nav-reclassification' },
