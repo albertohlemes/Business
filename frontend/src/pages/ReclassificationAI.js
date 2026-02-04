@@ -18,7 +18,9 @@ import {
   Eye,
   Edit3,
   Save,
-  BookOpen
+  BookOpen,
+  Trash2,
+  X
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
