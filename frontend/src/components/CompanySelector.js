@@ -13,8 +13,17 @@ const CompanySelector = () => {
     closeSelector 
   } = useAppContext();
 
+  // Inicializar com data atual se competência estiver vazia
+  const getInitialCompetencia = () => {
+    if (selectedCompetencia) return selectedCompetencia;
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    return `${month}/${year}`;
+  };
+
   const [tempCompany, setTempCompany] = useState(selectedCompany);
-  const [tempCompetencia, setTempCompetencia] = useState(selectedCompetencia);
+  const [tempCompetencia, setTempCompetencia] = useState(getInitialCompetencia());
 
   // Formatar competência automaticamente (só números → MM/AAAA)
   const handleCompetenciaChange = (e) => {
