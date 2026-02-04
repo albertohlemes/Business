@@ -242,6 +242,21 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 29 (04/02/2026)
+- ✅ **MENUS UNIFICADOS: "Análise de Saídas"**
+  - **Problema:** Dois menus separados ("Análise Saída" e "Divergências Saída") tinham funcionalidades complementares
+  - **Solução:** Criada nova página `AnaliseSaidas.js` combinando:
+    - ✅ Lista de todos os produtos de saída com alíquotas (ICMS, PIS, COFINS)
+    - ✅ Alertas de divergência para qualquer problema
+    - ✅ Card de Impacto Fiscal (PIS/COFINS cobrado indevidamente)
+    - ✅ Filtros: Todos, Com Alertas, Divergentes (NCM alíq zero), OK
+    - ✅ Toggle: Por NF-e ou Por Produto
+    - ✅ Ordenação em todas as colunas
+    - ✅ Exportar CSV
+    - ✅ Legenda visual (AZ = NCM alíq zero, DIV = Divergente)
+  - **Menu simplificado:** 12 itens → 11 itens
+  - **Rotas antigas redirecionam:** `/analise-aliquotas-saida` e `/divergencias-saida` → `/analise-saidas`
+
 ### 02/2026 - Iteration 28 (04/02/2026)
 - ✅ **NOVOS CAMPOS NO CADASTRO DE EMPRESA: ATIVO IMOBILIZADO E COMBUSTÍVEL**
   - Adicionados campos de palavras-chave no cadastro de empresa para guiar a classificação da IA:
