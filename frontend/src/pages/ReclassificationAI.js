@@ -471,23 +471,93 @@ const ReclassificationAI = ({ user, onLogout }) => {
         {/* Regras Aprendidas (Memória da IA) */}
         {showRules && learnedRules.length > 0 && (
           <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
-            <h3 className="font-bold text-purple-900 mb-2 flex items-center gap-2">
-              <BookOpen className="w-5 h-5" />
-              Memória da IA - Correções Aprendidas
-            </h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-bold text-purple-900 flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                Memória da IA - Correções Aprendidas
+              </h3>
+              <button
+                onClick={handleDeleteAllRules}
+                className="text-xs px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 flex items-center gap-1"
+              >
+                <Trash2 className="w-3 h-3" />
+                Limpar Tudo
+              </button>
+            </div>
             <p className="text-sm text-purple-700 mb-3">
               Quando você corrige uma classificação, a IA memoriza para aplicar automaticamente em importações futuras.
             </p>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="space-y-2 max-h-64 overflow-y-auto">
               {learnedRules.map((rule, idx) => (
-                <div key={idx} className="bg-white p-3 rounded-lg border border-purple-100 text-sm">
-                  <span className="font-medium">{rule.produto_descricao}</span>
-                  <span className="text-gray-500 mx-2">→</span>
-                  <span className={'px-2 py-0.5 rounded ' + getCategoriaColor(rule.categoria_correta)}>
-                    {rule.categoria_correta}
-                  </span>
-                  <span className="text-gray-500 ml-2">CFOP {rule.cfop_correto}</span>
-                  <span className="text-gray-400 text-xs ml-3">({rule.aprendido_de})</span>
+                <div key={idx} className="bg-white p-3 rounded-lg border border-purple-100">
+                  {editingRule === rule.id ? (
+                    // Modo edição
+                    <div className="space-y-2">
+                      <p className="font-medium text-sm text-gray-700">{rule.produto_descricao}</p>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={ruleEdit.categoria}
+                          onChange={(e) => setRuleEdit({ ...ruleEdit, categoria: e.target.value })}
+                          className="flex-1 px-2 py-1 border rounded text-sm"
+                        >
+                          <option value="REVENDA">REVENDA</option>
+                          <option value="INSUMO">INSUMO</option>
+                          <option value="DESPESA">DESPESA</option>
+                          <option value="IMOBILIZADO">IMOBILIZADO</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={ruleEdit.cfop}
+                          onChange={(e) => setRuleEdit({ ...ruleEdit, cfop: e.target.value })}
+                          placeholder="CFOP"
+                          className="w-20 px-2 py-1 border rounded text-sm"
+                        />
+                        <button
+                          onClick={() => handleSaveRule(rule.id)}
+                          className="p-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
+                          title="Salvar"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setEditingRule(null)}
+                          className="p-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                          title="Cancelar"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    // Modo visualização
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 text-sm">
+                        <span className="font-medium">{rule.produto_descricao}</span>
+                        <span className="text-gray-500 mx-2">→</span>
+                        <span className={'px-2 py-0.5 rounded ' + getCategoriaColor(rule.categoria_correta || rule.categoria)}>
+                          {rule.categoria_correta || rule.categoria}
+                        </span>
+                        <span className="text-gray-500 ml-2">CFOP {rule.cfop_correto || rule.cfop}</span>
+                        <span className="text-gray-400 text-xs ml-3">({rule.aprendido_de || 'manual'})</span>
+                      </div>
+                      <div className="flex items-center gap-1 ml-2">
+                        <button
+                          onClick={() => handleEditRule(rule)}
+                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          title="Editar"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteRule(rule.id)}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
