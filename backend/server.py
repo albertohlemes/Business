@@ -6223,6 +6223,39 @@ async def manual_reclassify_product(
         "regra_salva": salvar_regra
     }
 
+# Estoque por Competência
+class EstoqueCompetencia(BaseModel):
+    competencia: str
+    estoque_inicial: float = 0
+    estoque_final: float = 0
+
+@api_router.get("/estoque-competencia/{company_id}")
+async def get_estoque_competencia(company_id: str, competencia: str, current_user: dict = Depends(get_current_user)):
+    """Buscar estoque de uma competência específica"""
+    estoque = await db.estoques_competencia.find_one(
+        {"company_id": company_id, "competencia": competencia},
+        {"_id": 0}
+    )
+    if not estoque:
+        return {"estoque_inicial": 0, "estoque_final": 0}
+    return estoque
+
+@api_router.post("/estoque-competencia/{company_id}")
+async def save_estoque_competencia(company_id: str, estoque: EstoqueCompetencia, current_user: dict = Depends(get_current_user)):
+    """Salvar estoque de uma competência"""
+    await db.estoques_competencia.update_one(
+        {"company_id": company_id, "competencia": estoque.competencia},
+        {"$set": {
+            "company_id": company_id,
+            "competencia": estoque.competencia,
+            "estoque_inicial": estoque.estoque_inicial,
+            "estoque_final": estoque.estoque_final,
+            "updated_at": datetime.now(timezone.utc)
+        }},
+        upsert=True
+    )
+    return {"success": True, "message": "Estoque salvo com sucesso"}
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
