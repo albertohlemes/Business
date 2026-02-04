@@ -168,13 +168,20 @@ export const gerarPDFMinuta = (conteudo, dadosEmpresa = {}, dataAlteracao) => {
 };
 
 /**
- * Abre o PDF em uma nova aba para visualização/salvamento
+ * Retorna o PDF como Data URL para exibição em iframe/embed
  */
-export const visualizarPDF = (conteudo, dadosEmpresa = {}, dataAlteracao) => {
+export const gerarPDFDataUrl = (conteudo, dadosEmpresa = {}, dataAlteracao) => {
     const doc = gerarPDFMinuta(conteudo, dadosEmpresa, dataAlteracao);
-    const pdfBlob = doc.output('blob');
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    window.open(pdfUrl, '_blank');
+    return doc.output('datauristring');
+};
+
+/**
+ * Retorna o PDF como Blob URL para exibição
+ */
+export const gerarPDFBlobUrl = (conteudo, dadosEmpresa = {}, dataAlteracao) => {
+    const doc = gerarPDFMinuta(conteudo, dadosEmpresa, dataAlteracao);
+    const blob = doc.output('blob');
+    return URL.createObjectURL(blob);
 };
 
 /**
@@ -232,4 +239,4 @@ _______________________________
 CPF: [CPF]
 `;
 
-export default { gerarPDFMinuta, visualizarPDF, baixarPDF, TEMPLATE_MINUTA };
+export default { gerarPDFMinuta, gerarPDFDataUrl, gerarPDFBlobUrl, baixarPDF, TEMPLATE_MINUTA };
