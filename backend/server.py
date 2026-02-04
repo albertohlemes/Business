@@ -1644,6 +1644,45 @@ async def apuracao_pis_cofins(
         '6152', '6153', '6155', '6156', '6409', '6411', '6552', '6553', '6555', '6556'
     ]
     
+    # CFOPs de operações distintas de venda (saída do emissor que virou entrada para nós)
+    # Quando um fornecedor emite NF com esses CFOPs, precisamos alertar o usuário
+    CFOPS_OPERACOES_DISTINTAS = {
+        # Remessas
+        '5910': {'descricao': 'Remessa em bonificação', 'sugestao': '1910'},
+        '5911': {'descricao': 'Remessa de amostra grátis', 'sugestao': '1911'},
+        '5912': {'descricao': 'Remessa de mercadoria para demonstração', 'sugestao': '1912'},
+        '5913': {'descricao': 'Retorno de mercadoria para demonstração', 'sugestao': '1913'},
+        '5914': {'descricao': 'Remessa de mercadoria para exposição/feira', 'sugestao': '1914'},
+        '5915': {'descricao': 'Remessa de mercadoria para consignação', 'sugestao': '1915'},
+        '5916': {'descricao': 'Retorno de mercadoria de consignação', 'sugestao': '1916'},
+        '5917': {'descricao': 'Remessa de mercadoria em consignação simbólica', 'sugestao': '1917'},
+        '5918': {'descricao': 'Devolução de mercadoria de consignação simbólica', 'sugestao': '1918'},
+        '5919': {'descricao': 'Devolução simbólica por venda de mercadoria de consignação', 'sugestao': '1919'},
+        '5920': {'descricao': 'Remessa de vasilhame/sacaria', 'sugestao': '1920'},
+        '5921': {'descricao': 'Devolução de vasilhame/sacaria', 'sugestao': '1921'},
+        '5922': {'descricao': 'Lançamento para simples faturamento', 'sugestao': '1922'},
+        '5923': {'descricao': 'Remessa de mercadoria por conta e ordem', 'sugestao': '1923'},
+        '5924': {'descricao': 'Remessa para industrialização por conta e ordem', 'sugestao': '1924'},
+        '5925': {'descricao': 'Retorno de mercadoria depositada em depósito fechado/armazém', 'sugestao': '1925'},
+        '5949': {'descricao': 'Outra saída não especificada', 'sugestao': '1949'},
+        # Devoluções
+        '5201': {'descricao': 'Devolução de compra - indústria', 'sugestao': '1201'},
+        '5202': {'descricao': 'Devolução de compra - comercialização', 'sugestao': '1202'},
+        '5208': {'descricao': 'Devolução de mercadoria recebida em transferência', 'sugestao': '1208'},
+        '5209': {'descricao': 'Devolução de mercadoria recebida para uso/consumo', 'sugestao': '1209'},
+        '5210': {'descricao': 'Devolução de compra para industrialização', 'sugestao': '1210'},
+        '5122': {'descricao': 'Venda com entrega futura', 'sugestao': '1102'},
+        '5123': {'descricao': 'Venda de mercadoria remetida anteriormente em consignação mercantil', 'sugestao': '1102'},
+        # Remessas interestaduais (6xxx)
+        '6910': {'descricao': 'Remessa em bonificação', 'sugestao': '2910'},
+        '6911': {'descricao': 'Remessa de amostra grátis', 'sugestao': '2911'},
+        '6912': {'descricao': 'Remessa de mercadoria para demonstração', 'sugestao': '2912'},
+        '6949': {'descricao': 'Outra saída não especificada', 'sugestao': '2949'},
+        '6201': {'descricao': 'Devolução de compra - indústria', 'sugestao': '2201'},
+        '6202': {'descricao': 'Devolução de compra - comercialização', 'sugestao': '2202'},
+        '6122': {'descricao': 'Venda com entrega futura', 'sugestao': '2102'},
+    }
+    
     # Estruturas para armazenar dados
     creditos = {
         "com_credito": {"por_cfop": {}, "por_ncm": {}, "por_cst": {}, "total": 0, "pis": 0, "cofins": 0, "cst": "50"},
