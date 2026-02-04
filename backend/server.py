@@ -802,7 +802,12 @@ async def extrair_dados_contrato(
             raise HTTPException(status_code=500, detail="Chave de API não configurada")
         
         system_message = """Você é um especialista em análise de contratos sociais brasileiros.
-Sua tarefa é extrair informações estruturadas do contrato.
+Sua tarefa é extrair TODAS as informações estruturadas do contrato social ou última alteração contratual.
+
+IMPORTANTE: Extraia TODAS as informações disponíveis, especialmente:
+- NIRE (Número de Identificação do Registro de Empresas)
+- Data de registro na Junta Comercial
+- Número da alteração (se for alteração contratual)
 
 SEMPRE responda APENAS com um JSON válido, sem markdown, sem explicações.
 O JSON deve seguir EXATAMENTE esta estrutura:
@@ -810,24 +815,66 @@ O JSON deve seguir EXATAMENTE esta estrutura:
 {
     "empresa": {
         "razao_social": "Nome completo da empresa",
+        "nome_fantasia": "Nome fantasia (se houver)",
         "cnpj": "00.000.000/0000-00",
-        "endereco": "Endereço completo com CEP",
-        "capital_social": "R$ 0.000,00 (forma de integralização)",
-        "objeto_social": "Descrição das atividades"
+        "nire": "Número NIRE completo",
+        "data_registro": "Data do registro na Junta",
+        "junta_comercial": "Nome da Junta Comercial (JUCESP, etc)",
+        "endereco": {
+            "logradouro": "Rua/Av completo com número",
+            "complemento": "Sala, andar, etc",
+            "bairro": "Nome do bairro",
+            "cidade": "Nome da cidade",
+            "estado": "UF",
+            "cep": "00000-000"
+        },
+        "capital_social": {
+            "valor": "R$ 0.000,00",
+            "extenso": "valor por extenso",
+            "integralizacao": "forma de integralização"
+        },
+        "objeto_social": "Descrição COMPLETA das atividades",
+        "prazo_duracao": "Indeterminado ou data específica",
+        "inicio_atividades": "Data de início das atividades"
     },
     "socios": [
         {
-            "nome": "Nome completo",
+            "nome": "Nome completo em maiúsculas",
             "cpf": "000.000.000-00",
-            "participacao": "50%",
+            "rg": "00.000.000-0",
+            "orgao_emissor": "SSP/UF",
+            "nacionalidade": "Brasileiro(a)",
+            "estado_civil": "Casado(a)/Solteiro(a)/etc",
+            "regime_casamento": "Comunhão parcial (se casado)",
+            "profissao": "Profissão",
+            "endereco": "Endereço completo do sócio",
+            "participacao": {
+                "quotas": "número de quotas",
+                "valor": "R$ 0.000,00",
+                "percentual": "50%"
+            },
             "administrador": true,
-            "nacionalidade": "Brasileiro",
-            "estado_civil": "Casado",
-            "profissao": "Empresário",
-            "rg": "00.000.000-0"
+            "poderes": "Descrição dos poderes de administração"
         }
     ],
-    "atividades": ["CNAE ou descrição de cada atividade"]
+    "administracao": {
+        "tipo": "Administração conjunta/isolada",
+        "poderes": "Descrição dos poderes",
+        "pro_labore": "Informações sobre pro-labore"
+    },
+    "clausulas": [
+        {
+            "numero": "1",
+            "titulo": "DO OBJETO SOCIAL",
+            "texto": "Texto completo da cláusula"
+        }
+    ],
+    "ultima_alteracao": {
+        "numero": "Número da última alteração",
+        "data": "Data da última alteração",
+        "objeto": "O que foi alterado"
+    },
+    "atividades_cnae": ["00.00-0-00 - Descrição da atividade"]
 }
 
 Se algum campo não for encontrado, use null. SEMPRE retorne JSON válido."""
