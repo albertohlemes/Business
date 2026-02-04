@@ -178,7 +178,10 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
             <tr className="bg-gray-50 border-b border-gray-200">
               <SortHeader label={columnLabel} sortKey="codigo" />
               <SortHeader label="Valor" sortKey="valor" align="right" />
-              <SortHeader label="CST PIS/COFINS" sortKey="cst" align="center" />
+              {/* Ocultar coluna CST duplicada quando viewMode é 'cst' */}
+              {viewMode !== 'cst' && (
+                <SortHeader label="CST PIS/COFINS" sortKey="cst" align="center" />
+              )}
               {showTaxes && (
                 <>
                   <SortHeader label="PIS" sortKey="pis" align="right" />
@@ -191,7 +194,7 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
           <tbody>
             {sortedItems.length === 0 ? (
               <tr>
-                <td colSpan={showTaxes ? 6 : 4} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={showTaxes ? (viewMode === 'cst' ? 5 : 6) : (viewMode === 'cst' ? 3 : 4)} className="px-4 py-8 text-center text-gray-500">
                   Nenhum registro encontrado
                 </td>
               </tr>
@@ -200,11 +203,14 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
                 <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="px-4 py-3 font-mono font-medium text-gray-900">{item.codigo}</td>
                   <td className="px-4 py-3 text-right">{formatCurrency(item.valor)}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs font-mono font-semibold">
-                      {item.cst || '-'}
-                    </span>
-                  </td>
+                  {/* Ocultar coluna CST duplicada quando viewMode é 'cst' */}
+                  {viewMode !== 'cst' && (
+                    <td className="px-4 py-3 text-center">
+                      <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs font-mono font-semibold">
+                        {item.cst || '-'}
+                      </span>
+                    </td>
+                  )}
                   {showTaxes && (
                     <>
                       <td className="px-4 py-3 text-right text-blue-600">{formatCurrency(item.pis)}</td>
