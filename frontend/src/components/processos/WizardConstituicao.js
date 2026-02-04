@@ -1236,6 +1236,34 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
         }
     };
 
+    // Função para buscar CEP nos Correios
+    const buscarCep = async (cep, setEnderecoFn) => {
+        const cepLimpo = cep.replace(/\D/g, '');
+        if (cepLimpo.length !== 8) {
+            toast.error('CEP deve ter 8 dígitos');
+            return;
+        }
+        
+        try {
+            const response = await axios.get(`${API_URL}/api/cep/${cepLimpo}`);
+            if (response.data.success && response.data.endereco) {
+                const dados = response.data.endereco;
+                setEnderecoFn(prev => ({
+                    ...prev,
+                    logradouro: dados.logradouro || prev.logradouro,
+                    bairro: dados.bairro || prev.bairro,
+                    cidade: dados.cidade || prev.cidade,
+                    estado: dados.estado || prev.estado,
+                    cep: dados.cep || prev.cep
+                }));
+                toast.success('Endereço atualizado via Correios!');
+            }
+        } catch (error) {
+            console.error('Erro ao buscar CEP:', error);
+            toast.error('CEP não encontrado');
+        }
+    };
+
     const handleSocioChange = (index, socioAtualizado) => {
         setSocios(prev => {
             const novos = [...prev];
