@@ -521,40 +521,51 @@ def detect_xml_type(xml_content: str) -> str:
     # NF-e modelo 55 (padrão)
     return 'nfe'
 
-def classify_product_category(descricao: str, ncm: str, company_products: List[str], company_insumos: List[str], company_despesas: List[str]) -> str:
+def classify_product_category(descricao: str, ncm: str, company_products: List[str], company_insumos: List[str], company_despesas: List[str]) -> tuple:
+    """Classifica produto e retorna (categoria, justificativa)"""
     descricao_lower = descricao.lower()
     
     # Verificar produtos de despesa customizados da empresa
     for despesa in company_despesas:
         if despesa.lower() in descricao_lower or descricao_lower in despesa.lower():
-            return 'despesa'
+            return ('despesa', f'Produto cadastrado como despesa da empresa ({despesa})')
     
     # Combustíveis
     combustiveis = ['gasolina', 'diesel', 'etanol', 'alcool combustivel', 'gnv', 'gas natural', 'oleo diesel']
     for item in combustiveis:
         if item in descricao_lower:
-            return 'combustivel'
+            return ('combustivel', f'Combustível identificado ({item})')
     
-    # Materiais de despesa genéricos
+    # Materiais de escritório
     materiais_escritorio = ['papel', 'caneta', 'lapis', 'pasta', 'grampeador', 'clips', 'borracha', 'toner', 'cartucho', 'impressora', 'tinta impressora']
-    materiais_limpeza = ['sabao', 'detergente', 'desinfetante', 'alcool gel', 'alcool', 'papel higienico', 'toalha', 'vassoura', 'pano', 'luva', 'saco lixo']
-    materiais_construcao = ['cimento', 'areia', 'tijolo', 'telha', 'tinta parede', 'massa corrida', 'prego', 'parafuso', 'madeira', 'ferro', 'porta', 'janela']
-    
-    for item in materiais_escritorio + materiais_limpeza + materiais_construcao:
+    for item in materiais_escritorio:
         if item in descricao_lower:
-            return 'despesa'
+            return ('despesa', f'Material de escritório ({item})')
     
-    # Verificar insumos
+    # Materiais de limpeza
+    materiais_limpeza = ['sabao', 'detergente', 'desinfetante', 'alcool gel', 'alcool', 'papel higienico', 'toalha', 'vassoura', 'pano', 'luva', 'saco lixo']
+    for item in materiais_limpeza:
+        if item in descricao_lower:
+            return ('despesa', f'Material de limpeza ({item})')
+    
+    # Materiais de construção
+    materiais_construcao = ['cimento', 'areia', 'tijolo', 'telha', 'tinta parede', 'massa corrida', 'prego', 'parafuso', 'madeira', 'ferro', 'porta', 'janela']
+    for item in materiais_construcao:
+        if item in descricao_lower:
+            return ('despesa', f'Material de construção/manutenção ({item})')
+    
+    # Verificar insumos cadastrados
     for insumo in company_insumos:
         if insumo.lower() in descricao_lower or descricao_lower in insumo.lower():
-            return 'insumo'
+            return ('insumo', f'Insumo de produção cadastrado ({insumo})')
     
-    # Verificar revenda
+    # Verificar produtos de revenda cadastrados
     for produto in company_products:
         if produto.lower() in descricao_lower or descricao_lower in produto.lower():
-            return 'revenda'
+            return ('revenda', f'Produto comercializado pela empresa ({produto})')
     
-    return 'revenda'
+    # Padrão: revenda (produto do escopo da empresa)
+    return ('revenda', 'Produto presumido para revenda (escopo comercial da empresa)')
 
 async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tipo_doc: str, cfop_original: str) -> Dict[str, Any]:
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
