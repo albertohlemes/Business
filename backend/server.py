@@ -1211,6 +1211,167 @@ async def delete_document(
         }
     }
 
+# ============================================================================
+# SIEG INTEGRATION ENDPOINTS
+# ============================================================================
+
+@api_router.get("/sieg/count/{company_id}")
+async def sieg_count_xmls(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Conta quantos XMLs estão disponíveis no SIEG para a empresa e competência
+    """
+    # Buscar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    cnpj = company.get('cnpj', '')
+    if not cnpj:
+        raise HTTPException(status_code=400, detail="CNPJ da empresa não configurado")
+    
+    try:
+        result = await count_xmls_sieg(cnpj, competencia)
+        return {
+            "empresa": company.get('razao_social', ''),
+            "cnpj": cnpj,
+            "competencia": competencia,
+            "contagem": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao consultar SIEG: {str(e)}")
+
+
+@api_router.post("/sieg/sync/{company_id}")
+async def sieg_sync_xmls(
+    company_id: str,
+    competencia: str = Form(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Sincroniza XMLs do SIEG para a empresa e competência.
+    Baixa os XMLs e processa automaticamente (entradas e saídas).
+    """
+    # Buscar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    cnpj = company.get('cnpj', '')
+    if not cnpj:
+        raise HTTPException(status_code=400, detail="CNPJ da empresa não configurado")
+    
+    print(f"[SIEG] Iniciando sincronização para {company.get('razao_social')} - {competencia}")
+    
+    try:
+        # Baixar XMLs do SIEG
+        sieg_result = await sync_from_sieg(cnpj, competencia)
+        
+        results = {
+            "empresa": company.get('razao_social', ''),
+            "competencia": competencia,
+            "sieg_stats": {
+                "entrada": sieg_result.get("totais", {}).get("entrada", 0),
+                "saida": sieg_result.get("totais", {}).get("saida", 0)
+            },
+            "processados": {"entrada": 0, "saida": 0},
+            "erros": [],
+            "duplicados": []
+        }
+        
+        # Processar XMLs de entrada
+        for xml_data in sieg_result.get("entrada", {}).get("xmls", []):
+            try:
+                xml_content = xml_data.get("xml", "")
+                if xml_content:
+                    # Processar usando a mesma lógica do upload
+                    parsed = parse_nfe_xml(xml_content)
+                    if parsed:
+                        # Verificar duplicata
+                        existing = await db.xml_documents.find_one({
+                            "company_id": company_id,
+                            "chave": parsed.get("chave")
+                        })
+                        
+                        if existing:
+                            results["duplicados"].append(parsed.get("chave", "")[-10:])
+                            continue
+                        
+                        # Preparar documento
+                        doc = {
+                            "id": str(uuid.uuid4()),
+                            "company_id": company_id,
+                            "tipo": "entrada",
+                            "competencia": competencia,
+                            "origem": "sieg",
+                            **parsed,
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                            "created_by": current_user.email
+                        }
+                        
+                        await db.xml_documents.insert_one(doc)
+                        results["processados"]["entrada"] += 1
+            except Exception as e:
+                results["erros"].append(f"Entrada: {str(e)}")
+        
+        # Processar XMLs de saída
+        for xml_data in sieg_result.get("saida", {}).get("xmls", []):
+            try:
+                xml_content = xml_data.get("xml", "")
+                if xml_content:
+                    parsed = parse_nfe_xml(xml_content)
+                    if parsed:
+                        # Verificar duplicata
+                        existing = await db.xml_documents.find_one({
+                            "company_id": company_id,
+                            "chave": parsed.get("chave")
+                        })
+                        
+                        if existing:
+                            results["duplicados"].append(parsed.get("chave", "")[-10:])
+                            continue
+                        
+                        doc = {
+                            "id": str(uuid.uuid4()),
+                            "company_id": company_id,
+                            "tipo": "saida",
+                            "competencia": competencia,
+                            "origem": "sieg",
+                            **parsed,
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                            "created_by": current_user.email
+                        }
+                        
+                        await db.xml_documents.insert_one(doc)
+                        results["processados"]["saida"] += 1
+            except Exception as e:
+                results["erros"].append(f"Saída: {str(e)}")
+        
+        print(f"[SIEG] Sincronização concluída: {results['processados']}")
+        return results
+        
+    except Exception as e:
+        print(f"[SIEG] Erro na sincronização: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao sincronizar com SIEG: {str(e)}")
+
+
+@api_router.get("/sieg/status")
+async def sieg_check_status(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Verifica se a API do SIEG está configurada e acessível
+    """
+    api_key = os.environ.get('SIEG_API_KEY', '')
+    
+    return {
+        "configurado": bool(api_key),
+        "api_key_preview": api_key[:10] + "..." if api_key else None
+    }
+
 @api_router.post("/xml/upload")
 async def upload_xml_batch(
     company_id: str = Form(...),
