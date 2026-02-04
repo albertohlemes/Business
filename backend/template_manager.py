@@ -126,32 +126,47 @@ class TemplateManagerFiel:
     ) -> bytes:
         """
         Gera documento FIEL ao template:
-        - Mesmo cabeçalho e rodapé
+        - Mesmo cabeçalho e rodapé (preservados diretamente do template)
         - Mesma fonte e tamanho
         - Mesmo espaçamento
+        - Mesmas margens
         """
         
         # Se tem template, usa como base
         if template_path and os.path.exists(template_path):
-            # Copiar o template como base
+            # Copiar o template como base - preserva tudo (cabeçalho, rodapé, estilos)
             doc = Document(template_path)
             formato = self.extrair_formatacao_completa(template_path)
             
-            # Limpar conteúdo do corpo (manter cabeçalho/rodapé)
-            for para in doc.paragraphs:
+            # Verificar se o template tem cabeçalho/rodapé definido
+            template_tem_header = bool(formato.get("cabecalho"))
+            template_tem_footer = bool(formato.get("rodape"))
+            
+            # Limpar APENAS o conteúdo do corpo (preserva cabeçalho/rodapé nativos)
+            for para in list(doc.paragraphs):
                 p = para._element
                 p.getparent().remove(p)
+            
+            # Adicionar conteúdo preservando formatação
+            self._adicionar_conteudo_formatado(doc, conteudo, formato, dados_extraidos)
+            
+            # Só adiciona cabeçalho/rodapé se o template NÃO tinha
+            # (o template original já foi preservado ao copiar o documento)
+            if not template_tem_header and not template_tem_footer:
+                # Se não tinha, usa o padrão Business
+                formato_padrao = self._formato_padrao()
+                self._garantir_cabecalho_rodape(doc, formato_padrao)
         else:
             # Criar documento novo com formatação padrão
             doc = Document()
             formato = self._formato_padrao()
             self._configurar_secao(doc, formato)
-        
-        # Adicionar conteúdo preservando formatação
-        self._adicionar_conteudo_formatado(doc, conteudo, formato, dados_extraidos)
-        
-        # Garantir cabeçalho e rodapé em todas as páginas
-        self._garantir_cabecalho_rodape(doc, formato)
+            
+            # Adicionar conteúdo
+            self._adicionar_conteudo_formatado(doc, conteudo, formato, dados_extraidos)
+            
+            # Adicionar cabeçalho e rodapé padrão
+            self._garantir_cabecalho_rodape(doc, formato)
         
         # Salvar em memória
         buffer = io.BytesIO()
