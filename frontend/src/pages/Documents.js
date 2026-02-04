@@ -42,64 +42,15 @@ const Documents = ({ user, onLogout }) => {
     }
   };
 
+  /* Funções de apagar removidas a pedido do usuário para reconstrução
   const handleDeleteDocument = async (docId, numeroNfe) => {
-    console.log('Attempting to delete document:', docId, numeroNfe);
-    if (!window.confirm(`Tem certeza que deseja apagar a NF-e ${numeroNfe}?`)) {
-      return;
-    }
-    
-    try {
-      const token = localStorage.getItem('token');
-      console.log('Sending delete request...');
-      await axios.delete(`${API}/documents/${docId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      console.log('Delete successful');
-      alert('Documento apagado com sucesso!');
-      fetchData();
-    } catch (err) {
-      console.error('Delete error:', err);
-      alert(err.response?.data?.detail || 'Erro ao apagar documento');
-    }
+    ...
   };
 
   const handleDeleteAllCompetencia = async () => {
-    if (!ctxCompany || !selectedCompetencia) {
-      alert('Selecione uma empresa e competência');
-      return;
-    }
-    
-    const tipoLabel = selectedTipo === 'entrada' ? ' de ENTRADA' : 
-                      selectedTipo === 'saida' ? ' de SAÍDA' : '';
-    
-    const count = filteredDocuments.length;
-    
-    if (count === 0) {
-      alert('Nenhum documento para apagar com os filtros selecionados');
-      return;
-    }
-    
-    if (!window.confirm(`Tem certeza que deseja apagar ${count} documento(s)${tipoLabel} da competência ${selectedCompetencia}?`)) {
-      return;
-    }
-    
-    setDeleting(true);
-    try {
-      const token = localStorage.getItem('token');
-      const tipoParam = selectedTipo ? `?tipo=${selectedTipo}` : '';
-      const response = await axios.delete(
-        `${API}/documents/${ctxCompany.id}/competencia/${encodeURIComponent(selectedCompetencia)}${tipoParam}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      alert(`${response.data.deleted_count} documento(s) apagado(s) com sucesso!`);
-      fetchData();
-    } catch (err) {
-      console.error('Erro ao apagar:', err);
-      alert(err.response?.data?.detail || 'Erro ao apagar documentos');
-    } finally {
-      setDeleting(false);
-    }
+    ...
   };
+  */
 
   const getCompanyName = (companyId) => {
     const company = companies.find(c => c.id === companyId);
