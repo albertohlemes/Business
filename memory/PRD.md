@@ -18,8 +18,9 @@ Portal para departamento societário com geração de documentos via IA.
 
 **Etapa 1 - Upload do Contrato:**
 - Upload do contrato social atual
-- IA extrai: empresa, sócios, CNAEs
+- IA extrai: empresa, sócios, CNAEs, cláusulas
 - Campo de CNPJ para buscar CNAEs na Receita Federal
+- Armazena cláusulas originais para consolidação
 
 **Etapa 2 - Tipos de Alteração (seleção múltipla):**
 - Alteração de Sócios (QSA)
@@ -32,41 +33,31 @@ Portal para departamento societário com geração de documentos via IA.
 
 **Etapa 3 - Formulários específicos por tipo:**
 
-**QSA (Quadro Societário):**
-- 3 opções: Saída de sócio, Entrada de sócio, Redistribuição de cotas
+**QSA (Quadro Societário) - MULTI-OPÇÃO:**
+- Permite selecionar MÚLTIPLAS opções simultaneamente (Saída + Entrada, por exemplo)
+- 3 opções com checkboxes: Saída de Sócio, Entrada de Sócio, Redistribuição
+- Cada seção aparece de forma independente quando selecionada
+
+**Saída de Sócios:**
 - Lista sócios atuais com checkbox para selecionar saída
-- Formulário para novos sócios com botão "Preencher com IA"
-- Campo para nova participação em redistribuição
+- Formulário manual para adicionar retirantes quando não há extração
+- Campos: Nome, CPF, Participação
 
-**Endereço:**
-- Mostra endereço atual da empresa
-- Formulário completo de novo endereço
-- Botão "Preencher com IA" 
-- Busca de CEP automática
+**Entrada de Sócios - FORMULÁRIO COMPLETO (igual à Constituição):**
+- Botão "✨ Preencher com IA" para extração de documentos (CNH, RG)
+- Dados pessoais: Nome, CPF, RG, Órgão Emissor, Nacionalidade, Estado Civil, Regime de Casamento, Profissão, Participação
+- Seção de Endereço Residencial completa:
+  - Botão "✨ Preencher Endereço com IA"
+  - Logradouro, Número, Complemento, Bairro, Cidade, Estado, CEP
+  - Busca automática de CEP
 
-**Atividades (CNAEs):**
-- Lista CNAEs atuais com checkbox para EXCLUIR
-- Busca para ADICIONAR novos CNAEs
-- Indicadores visuais: vermelho=excluir, verde=adicionar
+**Redistribuição:**
+- Lista sócios atuais com campo para nova participação (%)
 
-**Capital:**
-- Mostra capital atual
-- Opções: Aumento ou Redução
-- Campo para novo valor e motivo
-
-**Nome:**
-- Mostra razão social e nome fantasia atuais
-- Campos para novos valores
-
-**Administração:**
-- Lista sócios com checkbox para selecionar administradores
-- Campo de poderes dos administradores
-
-**Outras Alterações:**
-- Lista cláusulas extraídas do contrato
-- Seleção de cláusulas para alterar
-- Campo de texto original e novo texto
-- Opção de adicionar alteração manual
+**CONSOLIDAÇÃO DO CONTRATO:**
+- As cláusulas originais são extraídas e armazenadas
+- O prompt de geração inclui todas as cláusulas originais
+- A IA gera a minuta mantendo as cláusulas não alteradas e atualizando apenas as modificadas
 
 **Etapa 4 - Resultado:**
 - Minuta gerada com todas as alterações
