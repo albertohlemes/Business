@@ -372,24 +372,33 @@ async def delete_licenca(licenca_id: str, current_user: dict = Depends(get_curre
 
 @api_router.post("/minutas/upload")
 async def upload_minuta(
-    file: UploadFile = File(...),
+    file: UploadFile = File(None),
     tipo_alteracao: str = Form(...),
     descricao: str = Form(default=""),
     current_user: dict = Depends(get_current_user)
 ):
     minuta_id = str(uuid.uuid4())
-    file_ext = file.filename.split(".")[-1] if "." in file.filename else "pdf"
-    file_path = UPLOAD_DIR / f"minuta_{minuta_id}.{file_ext}"
+    arquivo_original = None
+    arquivo_nome = None
     
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # Contrato social é opcional agora
+    if file and file.filename:
+        file_ext = file.filename.split(".")[-1] if "." in file.filename else "pdf"
+        file_path = UPLOAD_DIR / f"minuta_{minuta_id}.{file_ext}"
+        
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        arquivo_original = str(file_path)
+        arquivo_nome = file.filename
     
     minuta = {
         "id": minuta_id,
         "tipo_alteracao": tipo_alteracao,
         "descricao": descricao,
-        "arquivo_original": str(file_path),
-        "arquivo_nome": file.filename,
+        "arquivo_original": arquivo_original,
+        "arquivo_nome": arquivo_nome,
+        "documentos_suporte": [],  # Lista de documentos de suporte
         "conteudo_gerado": None,
         "status": "pendente",
         "user_id": current_user["id"],
@@ -402,11 +411,76 @@ async def upload_minuta(
         id=minuta_id,
         tipo_alteracao=tipo_alteracao,
         descricao=descricao,
-        arquivo_original=file.filename,
+        arquivo_original=arquivo_nome or "",
         conteudo_gerado=None,
         status="pendente",
         created_at=minuta["created_at"]
     )
+
+@api_router.post("/minutas/{minuta_id}/documentos")
+async def upload_documento_suporte(
+    minuta_id: str,
+    file: UploadFile = File(...),
+    tipo_documento: str = Form(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Upload de documento de suporte (CNH, comprovante, CNAEs, etc.)"""
+    minuta = await db.minutas.find_one({"id": minuta_id, "user_id": current_user["id"]})
+    if not minuta:
+        raise HTTPException(status_code=404, detail="Minuta não encontrada")
+    
+    doc_id = str(uuid.uuid4())
+    file_ext = file.filename.split(".")[-1] if "." in file.filename else "pdf"
+    file_path = UPLOAD_DIR / f"doc_{minuta_id}_{doc_id}.{file_ext}"
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    documento = {
+        "id": doc_id,
+        "tipo": tipo_documento,
+        "arquivo": str(file_path),
+        "nome": file.filename,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.minutas.update_one(
+        {"id": minuta_id},
+        {"$push": {"documentos_suporte": documento}}
+    )
+    
+    return {"message": "Documento adicionado com sucesso", "documento": documento}
+
+@api_router.get("/minutas/{minuta_id}/documentos")
+async def list_documentos_suporte(
+    minuta_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Lista documentos de suporte de uma minuta"""
+    minuta = await db.minutas.find_one(
+        {"id": minuta_id, "user_id": current_user["id"]},
+        {"_id": 0, "documentos_suporte": 1}
+    )
+    if not minuta:
+        raise HTTPException(status_code=404, detail="Minuta não encontrada")
+    
+    return {"documentos": minuta.get("documentos_suporte", [])}
+
+@api_router.delete("/minutas/{minuta_id}/documentos/{doc_id}")
+async def delete_documento_suporte(
+    minuta_id: str,
+    doc_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Remove um documento de suporte"""
+    result = await db.minutas.update_one(
+        {"id": minuta_id, "user_id": current_user["id"]},
+        {"$pull": {"documentos_suporte": {"id": doc_id}}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    
+    return {"message": "Documento removido com sucesso"}
 
 @api_router.get("/minutas", response_model=List[MinutaResponse])
 async def list_minutas(current_user: dict = Depends(get_current_user)):
