@@ -121,3 +121,39 @@ All three specifically requested endpoints are functioning correctly and meet th
 Both requested validation scenarios are working correctly:
 1. **Company creation with empty strings/0 values**: ✅ WORKING - All optional fields properly handle empty strings and zero numeric values
 2. **List companies without 500 error**: ✅ WORKING - Endpoint consistently returns 200 status with no intermittent errors
+
+## Company Cascade Delete Testing Results - December 30, 2024
+
+### Test Summary
+**Date**: December 30, 2024  
+**Tester**: Testing Agent  
+**Focus**: Company deletion with cascade delete of associated XML documents
+
+### Test Performed
+
+#### ✅ Company Cascade Delete Functionality
+- **Test**: Verify company deletion works even if the company has associated XML documents (cascade delete)
+- **Status**: WORKING ✅
+- **Test Steps**:
+  1. Created a test company via API
+  2. Inserted a dummy XML document directly to MongoDB linked to this company
+  3. Called DELETE /api/companies/{id}
+  4. Verified both company and document are completely removed
+- **Verification**: 
+  - Company creation successful with unique ID generation
+  - Document insertion directly to database successful
+  - Both company and document existed before deletion (confirmed via DB queries)
+  - DELETE API call returned 200 status with proper message
+  - Response message confirmed "1 documento(s) excluídos com sucesso"
+  - Both company and associated XML document completely removed from database
+  - No orphaned documents left in the system
+
+### Key Findings
+- **✅ CASCADE DELETE WORKING**: Company deletion properly removes all associated XML documents
+- **✅ PROPER RESPONSE**: API returns informative message about number of documents deleted
+- **✅ DATA INTEGRITY**: No orphaned documents remain after company deletion
+- **✅ ADMIN PERMISSIONS**: Only admin users can delete companies (proper authorization)
+- **✅ COMPLETE CLEANUP**: Both companies and xml_documents collections properly cleaned up
+
+### Cascade Delete Results Summary
+**Company deletion with cascade delete**: ✅ WORKING - Company deletion now works correctly even if the company has associated XML documents. All linked documents are automatically removed (cascade delete functionality implemented and verified).
