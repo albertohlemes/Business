@@ -196,6 +196,7 @@ const ValidationPage = ({ user, onLogout }) => {
     
     setApprovedProducts(newApprovals);
     saveApprovals(newApprovals);
+    showSuccess(`${doc.produtos.length} produtos validados com sucesso!`);
   };
 
   // Remover aprovação de todos do documento
@@ -223,6 +224,7 @@ const ValidationPage = ({ user, onLogout }) => {
   // Aprovar todos os produtos selecionados (modo produto)
   const approveSelectedProducts = () => {
     const newApprovals = { ...approvedProducts };
+    let totalAprovados = 0;
     
     selectedProductCodes.forEach(code => {
       const product = groupedProducts.find(p => p.codigo === code);
