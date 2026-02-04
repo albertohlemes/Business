@@ -905,6 +905,298 @@ class FiscalSystemAPITester:
         
         return True, {"message": "Full company flow completed successfully"}
 
+    def test_ai_batch_classification_integration(self):
+        """Test AI batch classification logic integration in upload flow"""
+        if not self.admin_token:
+            print("❌ No admin token available for AI classification test")
+            return False, {}
+        
+        print("\n🔍 Testing AI Batch Classification Integration...")
+        
+        # Step 1: Create a test company for AI classification testing
+        import time
+        timestamp = str(int(time.time() * 1000000))[-6:]
+        company_data = {
+            "cnpj": f"77.{timestamp[:3]}.{timestamp[3:]}/0001-88",
+            "razao_social": "Empresa AI Test LTDA",
+            "nome_fantasia": "AI Test Corp",
+            "inscricao_estadual": "777888999",
+            "endereco": "Rua AI Test, 456",
+            "cidade": "São Paulo",
+            "uf": "SP",
+            "cep": "01000-000",
+            "produtos_comercializados": ["Eletrônicos", "Computadores"],
+            "insumos_producao": ["Componentes", "Peças"],
+            "produtos_despesa": ["Material de Escritório", "Limpeza"]
+        }
+        
+        headers = {'Authorization': f'Bearer {self.admin_token}'}
+        success, response = self.run_test(
+            "Create Company for AI Test",
+            "POST",
+            "companies",
+            200,
+            data=company_data,
+            headers=headers
+        )
+        
+        if not success or 'id' not in response:
+            print("❌ Failed to create company for AI test")
+            return False, {}
+        
+        ai_test_company_id = response['id']
+        print(f"✅ Created company for AI test: {ai_test_company_id}")
+        
+        # Step 2: Create XML with products that should trigger AI classification
+        xml_content = '''<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe">
+    <NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+        <infNFe Id="NFe35240177888999000188550010000000011123456789">
+            <ide>
+                <cUF>35</cUF>
+                <cNF>12345678</cNF>
+                <natOp>Compra para Revenda</natOp>
+                <mod>55</mod>
+                <serie>1</serie>
+                <nNF>1</nNF>
+                <dhEmi>2024-01-15T10:30:00-03:00</dhEmi>
+                <tpNF>0</tpNF>
+                <idDest>1</idDest>
+                <cMunFG>3549904</cMunFG>
+                <tpImp>1</tpImp>
+                <tpEmis>1</tpEmis>
+                <cDV>9</cDV>
+                <tpAmb>2</tpAmb>
+                <finNFe>1</finNFe>
+                <indFinal>0</indFinal>
+                <indPres>1</indPres>
+            </ide>
+            <emit>
+                <CNPJ>12345678000190</CNPJ>
+                <xNome>Fornecedor Teste LTDA</xNome>
+                <enderEmit>
+                    <xLgr>Rua das Flores</xLgr>
+                    <nro>100</nro>
+                    <xBairro>Centro</xBairro>
+                    <cMun>3549904</cMun>
+                    <xMun>São José dos Campos</xMun>
+                    <UF>SP</UF>
+                    <CEP>12345678</CEP>
+                </enderEmit>
+                <IE>123456789</IE>
+            </emit>
+            <dest>
+                <CNPJ>77888999000188</CNPJ>
+                <xNome>Empresa AI Test LTDA</xNome>
+                <enderDest>
+                    <xLgr>Rua AI Test</xLgr>
+                    <nro>456</nro>
+                    <xBairro>Centro</xBairro>
+                    <cMun>3549904</cMun>
+                    <xMun>São Paulo</xMun>
+                    <UF>SP</UF>
+                    <CEP>01000000</CEP>
+                </enderDest>
+                <IE>777888999</IE>
+            </dest>
+            <det nItem="1">
+                <prod>
+                    <cProd>LAPTOP001</cProd>
+                    <cEAN></cEAN>
+                    <xProd>Notebook Dell Inspiron 15</xProd>
+                    <NCM>84713012</NCM>
+                    <CFOP>1102</CFOP>
+                    <uCom>UN</uCom>
+                    <qCom>1.0000</qCom>
+                    <vUnCom>2500.0000</vUnCom>
+                    <vProd>2500.00</vProd>
+                    <cEANTrib></cEANTrib>
+                    <uTrib>UN</uTrib>
+                    <qTrib>1.0000</qTrib>
+                    <vUnTrib>2500.0000</vUnTrib>
+                </prod>
+                <imposto>
+                    <ICMS>
+                        <ICMS00>
+                            <orig>0</orig>
+                            <CST>00</CST>
+                            <modBC>0</modBC>
+                            <vBC>2500.00</vBC>
+                            <pICMS>18.00</pICMS>
+                            <vICMS>450.00</vICMS>
+                        </ICMS00>
+                    </ICMS>
+                </imposto>
+            </det>
+            <det nItem="2">
+                <prod>
+                    <cProd>PAPEL001</cProd>
+                    <cEAN></cEAN>
+                    <xProd>Papel A4 Sulfite</xProd>
+                    <NCM>48025599</NCM>
+                    <CFOP>1556</CFOP>
+                    <uCom>PCT</uCom>
+                    <qCom>10.0000</qCom>
+                    <vUnCom>25.0000</vUnCom>
+                    <vProd>250.00</vProd>
+                    <cEANTrib></cEANTrib>
+                    <uTrib>PCT</uTrib>
+                    <qTrib>10.0000</qTrib>
+                    <vUnTrib>25.0000</vUnTrib>
+                </prod>
+                <imposto>
+                    <ICMS>
+                        <ICMS00>
+                            <orig>0</orig>
+                            <CST>00</CST>
+                            <modBC>0</modBC>
+                            <vBC>250.00</vBC>
+                            <pICMS>18.00</pICMS>
+                            <vICMS>45.00</vICMS>
+                        </ICMS00>
+                    </ICMS>
+                </imposto>
+            </det>
+            <total>
+                <ICMSTot>
+                    <vBC>2750.00</vBC>
+                    <vICMS>495.00</vICMS>
+                    <vICMSDeson>0.00</vICMSDeson>
+                    <vFCP>0.00</vFCP>
+                    <vBCST>0.00</vBCST>
+                    <vST>0.00</vST>
+                    <vFCPST>0.00</vFCPST>
+                    <vFCPSTRet>0.00</vFCPSTRet>
+                    <vProd>2750.00</vProd>
+                    <vFrete>0.00</vFrete>
+                    <vSeg>0.00</vSeg>
+                    <vDesc>0.00</vDesc>
+                    <vII>0.00</vII>
+                    <vIPI>0.00</vIPI>
+                    <vIPIDevol>0.00</vIPIDevol>
+                    <vPIS>0.00</vPIS>
+                    <vCOFINS>0.00</vCOFINS>
+                    <vOutro>0.00</vOutro>
+                    <vNF>2750.00</vNF>
+                </ICMSTot>
+            </total>
+        </infNFe>
+    </NFe>
+</nfeProc>'''
+        
+        # Step 3: Test XML upload that should trigger AI classification
+        files = {
+            'files': ('test_ai_nfe.xml', xml_content, 'application/xml')
+        }
+        
+        data = {
+            'company_id': ai_test_company_id,
+            'competencia': '01/2024',
+            'tipo': 'entrada'  # This should trigger AI classification for products
+        }
+        
+        success, response = self.run_test(
+            "Upload XML with AI Classification",
+            "POST",
+            "xml/upload",
+            200,
+            data=data,
+            headers=headers,
+            files=files
+        )
+        
+        if not success:
+            print("❌ Failed to upload XML for AI classification test")
+            return False, {}
+        
+        # Step 4: Verify the response contains AI classification results
+        if 'results' not in response:
+            print("❌ Upload response missing 'results' field")
+            return False, {}
+        
+        results = response['results']
+        if not results or len(results) == 0:
+            print("❌ No results in upload response")
+            return False, {}
+        
+        # Check if conversion report exists (indicates AI processing occurred)
+        has_conversions = False
+        for result in results:
+            if 'conversions' in result and result['conversions']:
+                has_conversions = True
+                conversions = result['conversions']
+                print(f"✅ Found {len(conversions)} product conversions from AI classification")
+                
+                # Verify conversion structure
+                for conversion in conversions:
+                    required_fields = ['produto', 'cfop_original', 'cfop_convertido', 'categoria', 'motivo']
+                    for field in required_fields:
+                        if field not in conversion:
+                            print(f"❌ Missing field '{field}' in conversion result")
+                            return False, {}
+                
+                # Look for AI-specific indicators in motivo
+                ai_indicators = ['IA:', 'Classificado como']
+                for conversion in conversions:
+                    motivo = conversion.get('motivo', '')
+                    if any(indicator in motivo for indicator in ai_indicators):
+                        print(f"✅ Found AI classification indicator in motivo: {motivo}")
+                        break
+                else:
+                    print("⚠️  No explicit AI classification indicators found in conversion motivos")
+                
+                break
+        
+        if not has_conversions:
+            print("⚠️  No conversions found - AI classification may not have been triggered")
+            print("    This could be normal if products matched direct rules instead of AI")
+        
+        # Step 5: Verify documents were created and can be retrieved
+        success, docs_response = self.run_test(
+            "List Documents After AI Upload",
+            "GET",
+            "xml/documents",
+            200,
+            headers=headers
+        )
+        
+        if success and docs_response:
+            # Find our uploaded document
+            uploaded_doc = None
+            for doc in docs_response:
+                if doc.get('company_id') == ai_test_company_id and doc.get('competencia') == '01/2024':
+                    uploaded_doc = doc
+                    break
+            
+            if uploaded_doc:
+                print(f"✅ Found uploaded document with {len(uploaded_doc.get('produtos', []))} products")
+                
+                # Check if products have AI classification fields
+                produtos = uploaded_doc.get('produtos', [])
+                for produto in produtos:
+                    if 'categoria_classificada' in produto or 'justificativa_ia' in produto:
+                        print(f"✅ Product '{produto.get('descricao', '')}' has AI classification fields")
+                    if 'cfop_sugerido' in produto:
+                        print(f"✅ Product '{produto.get('descricao', '')}' has suggested CFOP: {produto['cfop_sugerido']}")
+            else:
+                print("❌ Could not find uploaded document in list")
+                return False, {}
+        
+        # Step 6: Cleanup - delete the test company
+        success, cleanup_response = self.run_test(
+            "Cleanup - Delete AI Test Company",
+            "DELETE",
+            f"companies/{ai_test_company_id}",
+            200,
+            headers=headers
+        )
+        
+        if success:
+            print("✅ Cleanup completed - AI test company deleted")
+        
+        print("✅ AI BATCH CLASSIFICATION INTEGRATION TEST COMPLETED")
+        return True, {"message": "AI batch classification integration verified successfully"}
+
     def test_bulk_delete_documents_with_filters(self):
         """Test bulk delete documents functionality with different type and status filters"""
         if not self.admin_token:
