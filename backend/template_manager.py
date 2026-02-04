@@ -1,108 +1,157 @@
 """
-Gerenciador de Templates para Minutas
-- Upload de templates (Word/PDF)
-- Extração de formatação
-- Geração de documentos formatados
+Gerenciador de Templates para Minutas - Versão Fiel ao Template
+Preserva cabeçalho, rodapé, fontes e espaçamentos do documento modelo
 """
 import os
 import re
 import io
-import base64
+import copy
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 from docx import Document
-from docx.shared import Pt, Inches, Cm
+from docx.shared import Pt, Inches, Cm, Twips
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.style import WD_STYLE_TYPE
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 import logging
 
 logger = logging.getLogger(__name__)
 
-TEMPLATES_DIR = "/app/backend/templates"
+TEMPLATES_DIR = "/app/backend/uploads/templates"
 os.makedirs(TEMPLATES_DIR, exist_ok=True)
 
-class TemplateManager:
-    """Gerencia templates de formatação para minutas"""
+
+class TemplateManagerFiel:
+    """Gerencia templates preservando formatação fiel ao original"""
     
     def __init__(self):
         self.templates_dir = TEMPLATES_DIR
     
-    def salvar_template(self, user_id: str, nome: str, arquivo_path: str, tipo: str) -> Dict[str, Any]:
-        """Salva um template de formatação"""
-        template_id = f"{user_id}_{nome.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        
-        # Extrair informações de formatação do template
-        formato = self._extrair_formatacao(arquivo_path, tipo)
-        
-        return {
-            "id": template_id,
-            "nome": nome,
-            "tipo": tipo,
-            "arquivo": arquivo_path,
-            "formato": formato
-        }
-    
-    def _extrair_formatacao(self, arquivo_path: str, tipo: str) -> Dict[str, Any]:
-        """Extrai informações de formatação de um documento"""
+    def extrair_formatacao_completa(self, template_path: str) -> Dict[str, Any]:
+        """Extrai TODA a formatação do template"""
         formato = {
-            "fonte_padrao": "Times New Roman",
-            "tamanho_fonte": 12,
-            "margens": {"top": 2.5, "bottom": 2.5, "left": 3, "right": 2},
-            "espacamento_linha": 1.5,
-            "alinhamento": "justify",
-            "estilos": {}
+            "fonte": {
+                "nome": "Times New Roman",
+                "tamanho": 12,
+                "cor": None
+            },
+            "margens": {
+                "top": 2.5,
+                "bottom": 2.5,
+                "left": 3.0,
+                "right": 2.0
+            },
+            "espacamento": {
+                "linha": 1.5,
+                "antes_paragrafo": 0,
+                "depois_paragrafo": 6
+            },
+            "cabecalho": None,
+            "rodape": None,
+            "estilos_paragrafo": {}
         }
         
-        if tipo == "docx" and os.path.exists(arquivo_path):
-            try:
-                doc = Document(arquivo_path)
-                
-                # Extrair margens
-                section = doc.sections[0]
-                formato["margens"] = {
-                    "top": section.top_margin.cm if section.top_margin else 2.5,
-                    "bottom": section.bottom_margin.cm if section.bottom_margin else 2.5,
-                    "left": section.left_margin.cm if section.left_margin else 3,
-                    "right": section.right_margin.cm if section.right_margin else 2
-                }
-                
-                # Extrair estilos de parágrafos
-                for para in doc.paragraphs[:10]:  # Analisar primeiros parágrafos
-                    if para.runs:
-                        run = para.runs[0]
-                        if run.font.name:
-                            formato["fonte_padrao"] = run.font.name
-                        if run.font.size:
-                            formato["tamanho_fonte"] = run.font.size.pt
-                
-            except Exception as e:
-                logger.error(f"Erro ao extrair formatação: {e}")
+        if not os.path.exists(template_path):
+            return formato
+        
+        try:
+            doc = Document(template_path)
+            
+            # Extrair margens da seção
+            section = doc.sections[0]
+            if section.top_margin:
+                formato["margens"]["top"] = section.top_margin.cm
+            if section.bottom_margin:
+                formato["margens"]["bottom"] = section.bottom_margin.cm
+            if section.left_margin:
+                formato["margens"]["left"] = section.left_margin.cm
+            if section.right_margin:
+                formato["margens"]["right"] = section.right_margin.cm
+            
+            # Extrair fonte padrão do primeiro parágrafo com conteúdo
+            for para in doc.paragraphs:
+                if para.text.strip() and para.runs:
+                    run = para.runs[0]
+                    if run.font.name:
+                        formato["fonte"]["nome"] = run.font.name
+                    if run.font.size:
+                        formato["fonte"]["tamanho"] = run.font.size.pt
+                    
+                    # Espaçamento de linha
+                    if para.paragraph_format.line_spacing:
+                        formato["espacamento"]["linha"] = para.paragraph_format.line_spacing
+                    if para.paragraph_format.space_before:
+                        formato["espacamento"]["antes_paragrafo"] = para.paragraph_format.space_before.pt
+                    if para.paragraph_format.space_after:
+                        formato["espacamento"]["depois_paragrafo"] = para.paragraph_format.space_after.pt
+                    break
+            
+            # Extrair cabeçalho
+            if section.header and section.header.paragraphs:
+                cabecalho_texto = []
+                for para in section.header.paragraphs:
+                    if para.text.strip():
+                        cabecalho_texto.append(para.text)
+                if cabecalho_texto:
+                    formato["cabecalho"] = {
+                        "texto": cabecalho_texto,
+                        "alinhamento": "center"
+                    }
+            
+            # Extrair rodapé
+            if section.footer and section.footer.paragraphs:
+                rodape_texto = []
+                for para in section.footer.paragraphs:
+                    if para.text.strip():
+                        rodape_texto.append(para.text)
+                if rodape_texto:
+                    formato["rodape"] = {
+                        "texto": rodape_texto,
+                        "alinhamento": "center"
+                    }
+            
+            logger.info(f"Formatação extraída: fonte={formato['fonte']['nome']} {formato['fonte']['tamanho']}pt")
+            
+        except Exception as e:
+            logger.error(f"Erro ao extrair formatação: {e}")
         
         return formato
     
-    def gerar_documento_formatado(
+    def gerar_documento_fiel(
         self,
         conteudo: str,
-        template_path: Optional[str] = None,
-        dados_empresa: Dict[str, Any] = None,
-        formato_saida: str = "docx"
+        template_path: str,
+        dados_extraidos: Dict[str, Any] = None
     ) -> bytes:
         """
-        Gera documento Word com a formatação do template
+        Gera documento FIEL ao template:
+        - Mesmo cabeçalho e rodapé
+        - Mesma fonte e tamanho
+        - Mesmo espaçamento
         """
+        
+        # Se tem template, usa como base
         if template_path and os.path.exists(template_path):
-            # Usar template como base
+            # Copiar o template como base
             doc = Document(template_path)
-            # Limpar conteúdo existente mas manter formatação
+            formato = self.extrair_formatacao_completa(template_path)
+            
+            # Limpar conteúdo do corpo (manter cabeçalho/rodapé)
             for para in doc.paragraphs:
-                para.clear()
+                p = para._element
+                p.getparent().remove(p)
         else:
             # Criar documento novo com formatação padrão
             doc = Document()
-            self._aplicar_formatacao_padrao(doc)
+            formato = self._formato_padrao()
+            self._configurar_secao(doc, formato)
         
-        # Processar conteúdo e adicionar ao documento
-        self._adicionar_conteudo(doc, conteudo, dados_empresa)
+        # Adicionar conteúdo preservando formatação
+        self._adicionar_conteudo_formatado(doc, conteudo, formato, dados_extraidos)
+        
+        # Garantir cabeçalho e rodapé em todas as páginas
+        self._garantir_cabecalho_rodape(doc, formato)
         
         # Salvar em memória
         buffer = io.BytesIO()
@@ -111,115 +160,193 @@ class TemplateManager:
         
         return buffer.getvalue()
     
-    def _aplicar_formatacao_padrao(self, doc: Document):
-        """Aplica formatação padrão Business Contabilidade"""
-        # Configurar seção
-        section = doc.sections[0]
-        section.top_margin = Cm(2.5)
-        section.bottom_margin = Cm(2.5)
-        section.left_margin = Cm(3)
-        section.right_margin = Cm(2)
-        
-        # Configurar estilo Normal
-        style = doc.styles['Normal']
-        font = style.font
-        font.name = 'Times New Roman'
-        font.size = Pt(12)
-        
-        paragraph_format = style.paragraph_format
-        paragraph_format.line_spacing = 1.5
-        paragraph_format.space_after = Pt(6)
-        paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    def _formato_padrao(self) -> Dict[str, Any]:
+        """Retorna formatação padrão Business Contabilidade"""
+        return {
+            "fonte": {
+                "nome": "Times New Roman",
+                "tamanho": 12
+            },
+            "margens": {
+                "top": 2.5,
+                "bottom": 2.5,
+                "left": 3.0,
+                "right": 2.0
+            },
+            "espacamento": {
+                "linha": 1.5,
+                "antes_paragrafo": 0,
+                "depois_paragrafo": 6
+            },
+            "cabecalho": {
+                "texto": ["BUSINESS CONTABILIDADE", "Portal Societário"],
+                "alinhamento": "center"
+            },
+            "rodape": {
+                "texto": ["Documento gerado pelo Portal Societário"],
+                "alinhamento": "center"
+            }
+        }
     
-    def _adicionar_conteudo(self, doc: Document, conteudo: str, dados_empresa: Dict[str, Any] = None):
-        """Adiciona conteúdo ao documento preservando estrutura"""
+    def _configurar_secao(self, doc: Document, formato: Dict[str, Any]):
+        """Configura seção com margens do template"""
+        section = doc.sections[0]
+        
+        margens = formato.get("margens", {})
+        section.top_margin = Cm(margens.get("top", 2.5))
+        section.bottom_margin = Cm(margens.get("bottom", 2.5))
+        section.left_margin = Cm(margens.get("left", 3.0))
+        section.right_margin = Cm(margens.get("right", 2.0))
+        
+        # Configurar para cabeçalho/rodapé aparecer em todas as páginas
+        section.different_first_page_header_footer = False
+    
+    def _garantir_cabecalho_rodape(self, doc: Document, formato: Dict[str, Any]):
+        """Adiciona/atualiza cabeçalho e rodapé em todas as páginas"""
+        section = doc.sections[0]
+        
+        # Cabeçalho
+        cabecalho_config = formato.get("cabecalho")
+        if cabecalho_config:
+            header = section.header
+            header.is_linked_to_previous = False
+            
+            # Limpar cabeçalho existente
+            for para in header.paragraphs:
+                para.clear()
+            
+            # Adicionar texto do cabeçalho
+            textos = cabecalho_config.get("texto", [])
+            for i, texto in enumerate(textos):
+                if i == 0:
+                    para = header.paragraphs[0] if header.paragraphs else header.add_paragraph()
+                else:
+                    para = header.add_paragraph()
+                
+                run = para.add_run(texto)
+                run.font.name = formato["fonte"]["nome"]
+                run.font.size = Pt(formato["fonte"]["tamanho"] - 2)  # Menor que o corpo
+                run.bold = (i == 0)  # Primeiro item em negrito
+                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # Rodapé
+        rodape_config = formato.get("rodape")
+        if rodape_config:
+            footer = section.footer
+            footer.is_linked_to_previous = False
+            
+            # Limpar rodapé existente
+            for para in footer.paragraphs:
+                para.clear()
+            
+            # Adicionar texto do rodapé
+            textos = rodape_config.get("texto", [])
+            for i, texto in enumerate(textos):
+                if i == 0:
+                    para = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
+                else:
+                    para = footer.add_paragraph()
+                
+                run = para.add_run(texto)
+                run.font.name = formato["fonte"]["nome"]
+                run.font.size = Pt(9)  # Rodapé menor
+                run.italic = True
+                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    def _adicionar_conteudo_formatado(
+        self,
+        doc: Document,
+        conteudo: str,
+        formato: Dict[str, Any],
+        dados_extraidos: Dict[str, Any] = None
+    ):
+        """Adiciona conteúdo ao documento preservando formatação do template"""
+        
+        fonte_nome = formato["fonte"]["nome"]
+        fonte_tamanho = formato["fonte"]["tamanho"]
+        espacamento = formato.get("espacamento", {})
+        
         linhas = conteudo.split('\n')
         
         for linha in linhas:
             linha_limpa = linha.strip()
             
             if not linha_limpa:
-                doc.add_paragraph()
+                # Linha vazia - adicionar espaço
+                para = doc.add_paragraph()
+                para.paragraph_format.space_after = Pt(espacamento.get("depois_paragrafo", 6))
                 continue
             
-            # Detectar títulos/seções
+            # Criar parágrafo
+            para = doc.add_paragraph()
+            
+            # Detectar tipo de linha
             is_titulo = self._is_titulo(linha_limpa)
             is_clausula = self._is_clausula(linha_limpa)
+            is_assinatura = self._is_assinatura(linha_limpa)
             
-            para = doc.add_paragraph()
+            # Adicionar texto com formatação
             run = para.add_run(linha_limpa)
+            run.font.name = fonte_nome
             
+            # Aplicar estilo baseado no tipo
             if is_titulo:
                 run.bold = True
-                run.font.size = Pt(14)
+                run.font.size = Pt(fonte_tamanho + 2)
                 para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                para.paragraph_format.space_before = Pt(18)
+                para.paragraph_format.space_after = Pt(12)
             elif is_clausula:
                 run.bold = True
+                run.font.size = Pt(fonte_tamanho)
                 para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                para.paragraph_format.space_before = Pt(12)
+                para.paragraph_format.space_after = Pt(6)
+            elif is_assinatura:
+                run.font.size = Pt(fonte_tamanho)
+                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                para.paragraph_format.space_before = Pt(24)
             else:
+                run.font.size = Pt(fonte_tamanho)
                 para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                para.paragraph_format.space_after = Pt(espacamento.get("depois_paragrafo", 6))
+            
+            # Espaçamento entre linhas
+            linha_spacing = espacamento.get("linha", 1.5)
+            if isinstance(linha_spacing, (int, float)) and linha_spacing > 0:
+                para.paragraph_format.line_spacing = linha_spacing
     
     def _is_titulo(self, texto: str) -> bool:
         """Verifica se é um título"""
         titulos = [
-            'ALTERAÇÃO', 'CONTRATO SOCIAL', 'CONSOLIDAÇÃO',
-            'ENCERRAMENTO', 'PREÂMBULO', 'QUALIFICAÇÃO'
+            'ALTERAÇÃO DO CONTRATO', 'CONTRATO SOCIAL', 'CONSOLIDAÇÃO',
+            'ENCERRAMENTO', 'PREÂMBULO', 'QUALIFICAÇÃO DOS SÓCIOS',
+            'QUADRO SOCIETÁRIO', 'CLÁUSULAS DE ALTERAÇÃO'
         ]
         texto_upper = texto.upper()
-        return any(t in texto_upper for t in titulos) and len(texto) < 100
+        return any(t in texto_upper for t in titulos) and len(texto) < 80
     
     def _is_clausula(self, texto: str) -> bool:
         """Verifica se é uma cláusula"""
-        return bool(re.match(r'^(CLÁUSULA|PRIMEIRA|SEGUNDA|TERCEIRA|QUARTA|QUINTA|SEXTA|SÉTIMA|OITAVA|NONA|DÉCIMA)', texto, re.IGNORECASE))
+        return bool(re.match(
+            r'^(CLÁUSULA|PRIMEIRA|SEGUNDA|TERCEIRA|QUARTA|QUINTA|SEXTA|SÉTIMA|OITAVA|NONA|DÉCIMA|ARTIGO|ART\.)',
+            texto,
+            re.IGNORECASE
+        ))
     
-    def substituir_campos(self, texto: str, dados: Dict[str, Any]) -> str:
-        """Substitui campos {campo} pelos valores reais"""
-        resultado = texto
-        
-        # Mapeamento de campos
-        campos = {
-            'razao_social': dados.get('empresa', {}).get('razao_social', ''),
-            'cnpj': dados.get('empresa', {}).get('cnpj', ''),
-            'endereco': dados.get('empresa', {}).get('endereco', ''),
-            'capital_social': dados.get('empresa', {}).get('capital_social', ''),
-            'objeto_social': dados.get('empresa', {}).get('objeto_social', ''),
-            'data': datetime.now().strftime('%d de %B de %Y'),
-            'data_extenso': self._data_por_extenso(),
-        }
-        
-        # Adicionar sócios
-        socios = dados.get('socios', [])
-        for i, socio in enumerate(socios):
-            campos[f'socio{i+1}_nome'] = socio.get('nome', '')
-            campos[f'socio{i+1}_cpf'] = socio.get('cpf', '')
-            campos[f'socio{i+1}_participacao'] = socio.get('participacao', '')
-        
-        # Substituir campos
-        for campo, valor in campos.items():
-            resultado = resultado.replace(f'{{{campo}}}', str(valor) if valor else f'[{campo.upper()}]')
-        
-        return resultado
-    
-    def _data_por_extenso(self) -> str:
-        """Retorna data atual por extenso"""
-        meses = {
-            1: 'janeiro', 2: 'fevereiro', 3: 'março', 4: 'abril',
-            5: 'maio', 6: 'junho', 7: 'julho', 8: 'agosto',
-            9: 'setembro', 10: 'outubro', 11: 'novembro', 12: 'dezembro'
-        }
-        hoje = datetime.now()
-        return f"{hoje.day} de {meses[hoje.month]} de {hoje.year}"
+    def _is_assinatura(self, texto: str) -> bool:
+        """Verifica se é linha de assinatura"""
+        return texto.startswith('_') or 'CPF:' in texto or 'Assinatura' in texto
 
 
 # Instância global
-template_manager = TemplateManager()
+template_manager_fiel = TemplateManagerFiel()
 
 
 def gerar_minuta_word(conteudo: str, dados_extraidos: Dict = None, template_path: str = None) -> bytes:
-    """Função auxiliar para gerar documento Word"""
-    return template_manager.gerar_documento_formatado(
+    """Função auxiliar para gerar documento Word fiel ao template"""
+    return template_manager_fiel.gerar_documento_fiel(
         conteudo=conteudo,
         template_path=template_path,
-        dados_empresa=dados_extraidos,
-        formato_saida="docx"
+        dados_extraidos=dados_extraidos
     )
