@@ -452,6 +452,43 @@ const ConfiguracaoFormatacao = ({ open, onClose, onSave, configuracaoAtual }) =>
                         </div>
                     </div>
 
+                    {/* Organização Inteligente */}
+                    <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h4 className="font-medium text-white">Organização Inteligente de Páginas</h4>
+                                <p className="text-xs text-zinc-500 mt-1">
+                                    Evita quebras de página que separam títulos do texto ou dividem cláusulas
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setOrganizacaoInteligente(!organizacaoInteligente)}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                        organizacaoInteligente ? 'bg-red-600' : 'bg-zinc-700'
+                                    }`}
+                                >
+                                    <span
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                            organizacaoInteligente ? 'translate-x-6' : 'translate-x-1'
+                                        }`}
+                                    />
+                                </button>
+                                <span className={`text-sm ${organizacaoInteligente ? 'text-green-500' : 'text-zinc-500'}`}>
+                                    {organizacaoInteligente ? 'Ativado' : 'Desativado'}
+                                </span>
+                            </div>
+                        </div>
+                        {organizacaoInteligente && (
+                            <div className="mt-3 pt-3 border-t border-zinc-800 text-xs text-zinc-400 space-y-1">
+                                <p>• Títulos sempre ficam na mesma página que o texto seguinte</p>
+                                <p>• Cláusulas curtas não são divididas entre páginas</p>
+                                <p>• Controle automático de viúvas e órfãs</p>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Seções */}
                     {secoes.map((secao, index) => (
                         <SecaoConfig 
