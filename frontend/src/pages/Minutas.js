@@ -155,8 +155,15 @@ const Minutas = () => {
             });
             setMessages(prev => [...prev, { type: 'ai', text: response.data.response }]);
         } catch (error) {
-            toast.error('Erro ao enviar mensagem');
-            setMessages(prev => prev.slice(0, -1));
+            console.error('Chat error:', error);
+            const errorMsg = error.response?.status === 520 
+                ? 'Serviço de IA temporariamente indisponível. Tente novamente em alguns instantes.'
+                : 'Erro ao processar mensagem. Verifique sua conexão e tente novamente.';
+            toast.error(errorMsg);
+            setMessages(prev => [...prev, { 
+                type: 'ai', 
+                text: 'Desculpe, não foi possível processar sua mensagem no momento. Por favor, tente novamente.' 
+            }]);
         } finally {
             setSendingMessage(false);
         }
