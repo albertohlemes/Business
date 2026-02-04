@@ -1201,6 +1201,8 @@ def main():
     # Test sequence - focusing on the specific review request
     tests = [
         tester.test_admin_default_login,
+        # PRIORITY TEST: Bulk delete documents functionality as requested in review
+        tester.test_bulk_delete_documents_with_filters,
         tester.test_full_company_flow,
         # Additional comprehensive tests
         tester.test_root_endpoint,
