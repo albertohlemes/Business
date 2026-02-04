@@ -316,7 +316,8 @@ const ConfiguracaoFormatacao = ({ open, onClose, onSave, configuracaoAtual }) =>
             logo,
             logoPreview,
             margens,
-            espacamento
+            espacamento,
+            organizacaoInteligente
         });
         onClose();
     };
