@@ -512,6 +512,135 @@ class FiscalSystemAPITester:
         )
         return success, response
 
+    def test_relatorio_divergencias_saida(self):
+        """Test Relatorio Divergencias Saida endpoint - should return ONLY items where tem_valor_imposto is true AND deveria_ser_aliq_zero is true"""
+        if not self.admin_token or not self.company_id:
+            return False, {}
+        
+        headers = {'Authorization': f'Bearer {self.admin_token}'}
+        
+        # Test with a competencia (month/year format)
+        competencia = "01/2024"
+        
+        success, response = self.run_test(
+            "Relatorio Divergencias Saida",
+            "GET",
+            f"relatorio-divergencias-saida/{self.company_id}?competencia={competencia}",
+            200,
+            headers=headers
+        )
+        
+        if success and response:
+            # Verify the response structure
+            expected_keys = ['empresa', 'competencia', 'total_documentos_saida', 'documentos_com_divergencia', 
+                           'total_produtos_divergentes', 'valor_total_divergente', 'impacto_fiscal', 'divergencias']
+            
+            for key in expected_keys:
+                if key not in response:
+                    print(f"❌ Missing key in response: {key}")
+                    self.errors.append(f"Relatorio Divergencias Saida: Missing key {key}")
+                    return False, response
+            
+            # Verify that divergencias only contain items where tem_valor_imposto=true AND deveria_ser_aliq_zero=true
+            divergencias = response.get('divergencias', [])
+            for doc in divergencias:
+                produtos = doc.get('produtos', [])
+                for produto in produtos:
+                    # Check if this product has imposto values > 0 (tem_valor_imposto = true)
+                    v_pis = produto.get('v_pis_cobrado', 0)
+                    v_cofins = produto.get('v_cofins_cobrado', 0)
+                    tem_valor_imposto = v_pis > 0 or v_cofins > 0
+                    
+                    # Check if tipo_divergencia indicates it should be zero rate (deveria_ser_aliq_zero = true)
+                    tipo_divergencia = produto.get('tipo_divergencia', '')
+                    deveria_ser_aliq_zero = 'alíquota zero' in tipo_divergencia.lower()
+                    
+                    if not (tem_valor_imposto and deveria_ser_aliq_zero):
+                        error_msg = f"Invalid divergencia found: tem_valor_imposto={tem_valor_imposto}, deveria_ser_aliq_zero={deveria_ser_aliq_zero}"
+                        print(f"❌ {error_msg}")
+                        self.errors.append(f"Relatorio Divergencias Saida: {error_msg}")
+                        return False, response
+            
+            print(f"✅ Verified {len(divergencias)} documents with divergencias - all meet criteria")
+        
+        return success, response
+
+    def test_delete_document_admin(self):
+        """Test Delete Document endpoint for admin user"""
+        if not self.admin_token or not self.document_id:
+            return False, {}
+        
+        headers = {'Authorization': f'Bearer {self.admin_token}'}
+        
+        success, response = self.run_test(
+            "Delete Document (Admin)",
+            "DELETE",
+            f"documents/{self.document_id}",
+            200,
+            headers=headers
+        )
+        
+        if success and response:
+            # Verify response structure
+            if 'message' not in response:
+                print("❌ Missing 'message' in delete response")
+                self.errors.append("Delete Document: Missing message in response")
+                return False, response
+            
+            # Verify the document was actually deleted by trying to get it
+            get_success, get_response = self.run_test(
+                "Verify Document Deleted",
+                "GET",
+                f"xml/documents/{self.document_id}",
+                404,  # Should return 404 since document is deleted
+                headers=headers
+            )
+            
+            if not get_success:
+                print("❌ Document was not properly deleted")
+                self.errors.append("Delete Document: Document still exists after deletion")
+                return False, response
+        
+        return success, response
+
+    def test_delete_batch_documents_admin(self):
+        """Test Delete Batch Documents endpoint for admin user with encoded competencia"""
+        if not self.admin_token or not self.company_id:
+            return False, {}
+        
+        headers = {'Authorization': f'Bearer {self.admin_token}'}
+        
+        # Use encoded competencia (URL encoded format)
+        competencia_encoded = "01%2F2024"  # This is "01/2024" URL encoded
+        
+        success, response = self.run_test(
+            "Delete Batch Documents (Admin)",
+            "DELETE",
+            f"documents/{self.company_id}/competencia/{competencia_encoded}",
+            200,
+            headers=headers
+        )
+        
+        if success and response:
+            # Verify response structure
+            expected_keys = ['message', 'deleted_count']
+            for key in expected_keys:
+                if key not in response:
+                    print(f"❌ Missing key in batch delete response: {key}")
+                    self.errors.append(f"Delete Batch Documents: Missing key {key}")
+                    return False, response
+            
+            # Verify deleted_count is a number
+            deleted_count = response.get('deleted_count')
+            if not isinstance(deleted_count, int):
+                print(f"❌ deleted_count should be integer, got {type(deleted_count)}")
+                self.errors.append("Delete Batch Documents: deleted_count is not integer")
+                return False, response
+            
+            print(f"✅ Batch delete successful - {deleted_count} documents deleted")
+        
+        return success, response
+
 def main():
     print("🚀 Starting Business Contabilidade Fiscal System API Tests")
     print("=" * 60)
