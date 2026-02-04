@@ -242,6 +242,23 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 27 (04/02/2026)
+- ✅ **MELHORIAS NA MEMÓRIA DA IA**
+  - Adicionado checkbox para selecionar múltiplas regras
+  - Adicionado botão "Selecionar todas" 
+  - Adicionado botão "Limpar Tudo" para excluir todas as regras da empresa
+  - Ao editar categoria, o CFOP é ajustado automaticamente:
+    - REVENDA → 1102/2102 (tributado) ou 1403/2403 (ST)
+    - INSUMO → 1101/2101 (tributado) ou 1401/2401 (ST)
+    - DESPESA → 1556/2556 (tributado) ou 1407/2407 (ST)
+  - Adicionado suporte para categorias com ST (REVENDA_ST, INSUMO_ST, DESPESA_ST)
+
+- ✅ **GARANTIA DE CLASSIFICAÇÃO PARA NFs DE ENTRADA**
+  - **Problema:** Alguns produtos de entrada não estavam sendo classificados quando a IA falhava
+  - **Solução:** Adicionado fallback em 3 endpoints de upload/processamento
+  - **Regra:** Na dúvida, classificar como REVENDA com CFOP 1102/2102 (tributado) ou 1403/2403 (ST)
+  - **Nenhuma NF de entrada** pode ser importada sem classificação
+
 ### 02/2026 - Iteration 26 (04/02/2026)
 - ✅ **MENUS UNIFICADOS: "Validação & IA"**
   - **Problema:** Dois menus separados ("Reclassificação IA" e "Validação Entrada") tinham funcionalidades sobrepostas
