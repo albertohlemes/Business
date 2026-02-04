@@ -116,8 +116,17 @@ function App() {
               element={user ? <AlertasCfop user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
+              path="/analise-saidas"
+              element={user ? <AnaliseSaidas user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            {/* Rotas antigas redirecionam para a nova página unificada */}
+            <Route
+              path="/analise-aliquotas-saida"
+              element={<Navigate to="/analise-saidas" />}
+            />
+            <Route
               path="/divergencias-saida"
-              element={user ? <RelatorioDivergencias user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+              element={<Navigate to="/analise-saidas" />}
             />
           </Routes>
         </AppProvider>
