@@ -164,19 +164,21 @@ class TestAnaliseAliquotasSaida:
         assert response.status_code == 200
         data = response.json()
         
-        # Verify structure
+        # Verify structure (actual API response keys)
         assert "empresa" in data
         assert "competencia" in data
         assert "regime_tributario" in data
-        assert "aliquotas_padrao" in data
-        assert "produtos_analisados" in data
-        assert "alertas" in data
-        assert "resumo" in data
+        assert "aliquotas_esperadas" in data
+        assert "produtos" in data
+        assert "resumo_alertas" in data
+        assert "total_produtos" in data
+        assert "total_documentos_saida" in data
+        assert "uf" in data
         
         print(f"SUCCESS: analise-aliquotas-saida endpoint returns correct structure")
         print(f"  - Regime: {data['regime_tributario']}")
-        print(f"  - Alíquotas padrão: {data['aliquotas_padrao']}")
-        print(f"  - Produtos analisados: {len(data['produtos_analisados'])}")
+        print(f"  - Alíquotas esperadas: {data['aliquotas_esperadas']}")
+        print(f"  - Total produtos: {data['total_produtos']}")
 
 
 class TestCompanySelection:
