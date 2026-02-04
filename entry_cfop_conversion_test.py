@@ -46,7 +46,7 @@ def get_cfop_from_category(categoria: str, emitente_uf: str, company_uf: str = '
     Returns entry CFOPs (1xxx for same state, 2xxx for different state)
     """
     # Determine prefix based on UF comparison
-    if emitente_uf and emitente_uf != company_uf:
+    if emitente_uf and company_uf and emitente_uf != company_uf:
         prefix = '2'  # Interestadual
     else:
         prefix = '1'  # Estadual
