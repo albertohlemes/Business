@@ -15,7 +15,7 @@ import {
 import { 
     FileText, Upload, Send, Download, Trash2, 
     MessageSquare, FileUp, Clock, CheckCircle2,
-    AlertCircle, RefreshCw
+    RefreshCw, Plus, X, File
 } from 'lucide-react';
 import {
     Dialog,
