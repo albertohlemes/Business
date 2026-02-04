@@ -72,6 +72,10 @@ const Minutas = () => {
     const [viewOpen, setViewOpen] = useState(false);
     const [viewContent, setViewContent] = useState('');
     const [viewMinutaId, setViewMinutaId] = useState(null);
+    
+    // Configuração de formatação
+    const [formatacaoOpen, setFormatacaoOpen] = useState(false);
+    const [formatacaoSalva, setFormatacaoSalva] = useState(null);
 
     // Agrupar minutas por cliente usando useMemo
     const minutasAgrupadas = useMemo(() => {
@@ -93,7 +97,19 @@ const Minutas = () => {
 
     useEffect(() => {
         fetchMinutas();
+        fetchFormatacao();
     }, []);
+    
+    const fetchFormatacao = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/api/formatacao`);
+            if (res.data && res.data.secoes && res.data.secoes.length > 0) {
+                setFormatacaoSalva(res.data);
+            }
+        } catch (e) {
+            // Sem formatação salva
+        }
+    };
 
     const fetchMinutas = async () => {
         try {
