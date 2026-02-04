@@ -2312,7 +2312,7 @@ DETALHES DA BAIXA:
 
 ESTRUTURA OBRIGATÓRIA DO DISTRATO:
 
-1. TÍTULO: DISTRATO SOCIAL DE [RAZÃO SOCIAL]
+1. TÍTULO: DISTRATO SOCIAL DE [RAZÃO SOCIAL] - DEVE VIR CENTRALIZADO NO DOCUMENTO
 
 2. PREÂMBULO: Identificação do instrumento, CNPJ, NIRE, registro na Junta
 
@@ -2329,7 +2329,10 @@ ESTRUTURA OBRIGATÓRIA DO DISTRATO:
 
 5. ENCERRAMENTO: Local, data e espaço para assinaturas
 
-O documento deve estar pronto para impressão e registro na Junta Comercial."""
+IMPORTANTE: 
+- O título e o nome da empresa devem estar CENTRALIZADOS na parte inicial do documento
+- Use formatação clara com espaçamento adequado
+- O documento deve estar pronto para impressão e registro na Junta Comercial."""
 
         system_message = """Você é um advogado societário especialista em dissolução de empresas.
 Gere documentos formais, completos e prontos para registro na Junta Comercial.
