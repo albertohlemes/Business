@@ -181,7 +181,12 @@ export const AppProvider = ({ children }) => {
       openSelector,
       closeSelector,
       clearSelection,
-      refreshCompanies
+      refreshCompanies,
+      // SIEG
+      siegStatus,
+      siegSyncing,
+      checkSiegCount,
+      syncFromSieg
     }}>
       {children}
     </AppContext.Provider>
