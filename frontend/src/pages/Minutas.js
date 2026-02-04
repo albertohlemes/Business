@@ -5,17 +5,12 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '../components/ui/select';
+import { Checkbox } from '../components/ui/checkbox';
 import { 
     FileText, Upload, Send, Download, Trash2, 
-    MessageSquare, FileUp, Clock, CheckCircle2,
-    AlertCircle, RefreshCw
+    MessageSquare, Clock, CheckCircle2, RefreshCw, 
+    ChevronRight, ChevronLeft, Eye, Copy, Building2,
+    Users, MapPin, Briefcase, DollarSign, FileSearch, X
 } from 'lucide-react';
 import {
     Dialog,
@@ -27,519 +22,605 @@ import {
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const TIPOS_ALTERACAO = [
-    { value: 'alteracao_socios', label: 'Alteração de Sócios' },
-    { value: 'alteracao_endereco', label: 'Alteração de Endereço' },
-    { value: 'alteracao_atividade', label: 'Alteração de Atividade/Objeto Social' },
-    { value: 'alteracao_capital', label: 'Alteração de Capital Social' },
-    { value: 'alteracao_nome', label: 'Alteração de Razão Social/Nome Fantasia' },
-    { value: 'alteracao_administracao', label: 'Alteração de Administração' },
-    { value: 'consolidacao', label: 'Consolidação do Contrato Social' },
-    { value: 'outro', label: 'Outro' },
+    { id: 'socios', label: 'Alteração de Sócios', icon: Users },
+    { id: 'endereco', label: 'Alteração de Endereço', icon: MapPin },
+    { id: 'atividade', label: 'Alteração de Atividades', icon: Briefcase },
+    { id: 'capital', label: 'Alteração de Capital', icon: DollarSign },
+    { id: 'nome', label: 'Alteração de Nome', icon: Building2 },
+    { id: 'administracao', label: 'Alteração de Administração', icon: Users },
 ];
 
 const Minutas = () => {
     const [minutas, setMinutas] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [uploading, setUploading] = useState(false);
-    const [selectedMinuta, setSelectedMinuta] = useState(null);
-    const [chatOpen, setChatOpen] = useState(false);
-    const [messages, setMessages] = useState([]);
-    const [newMessage, setNewMessage] = useState('');
-    const [sendingMessage, setSendingMessage] = useState(false);
-    const [generating, setGenerating] = useState(false);
-    const [previewOpen, setPreviewOpen] = useState(false);
-    const [previewContent, setPreviewContent] = useState('');
-
-    // Upload form state
-    const [tipoAlteracao, setTipoAlteracao] = useState('');
-    const [descricao, setDescricao] = useState('');
-    const [file, setFile] = useState(null);
-    const fileInputRef = useRef(null);
-    const chatEndRef = useRef(null);
+    
+    // Wizard state
+    const [wizardOpen, setWizardOpen] = useState(false);
+    const [step, setStep] = useState(1);
+    const [processing, setProcessing] = useState(false);
+    
+    // Step 1 - Contrato
+    const [contratoFile, setContratoFile] = useState(null);
+    const [dadosExtraidos, setDadosExtraidos] = useState(null);
+    
+    // Step 2 - Alterações
+    const [alteracoesSelecionadas, setAlteracoesSelecionadas] = useState([]);
+    
+    // Step 3 - Detalhes
+    const [descricaoAlteracao, setDescricaoAlteracao] = useState('');
+    const [docsApoio, setDocsApoio] = useState([]);
+    
+    // Step 4 - Preview
+    const [minutaGerada, setMinutaGerada] = useState('');
+    const [minutaId, setMinutaId] = useState(null);
+    
+    // Refs
+    const contratoInputRef = useRef(null);
+    const docsInputRef = useRef(null);
+    
+    // View minuta
+    const [viewOpen, setViewOpen] = useState(false);
+    const [viewContent, setViewContent] = useState('');
 
     useEffect(() => {
         fetchMinutas();
     }, []);
 
-    useEffect(() => {
-        if (chatEndRef.current) {
-            chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-    }, [messages]);
-
     const fetchMinutas = async () => {
         try {
-            const response = await axios.get(`${API_URL}/api/minutas`);
-            setMinutas(response.data);
-        } catch (error) {
-            toast.error('Erro ao carregar minutas');
+            const res = await axios.get(`${API_URL}/api/minutas`);
+            setMinutas(res.data);
+        } catch (e) {
+            toast.error('Erro ao carregar');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleFileChange = (e) => {
-        const selectedFile = e.target.files?.[0];
-        if (selectedFile) {
-            const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
-            if (!validTypes.includes(selectedFile.type)) {
-                toast.error('Formato inválido. Use PDF, JPG ou PNG.');
-                return;
-            }
-            setFile(selectedFile);
-        }
+    const resetWizard = () => {
+        setStep(1);
+        setContratoFile(null);
+        setDadosExtraidos(null);
+        setAlteracoesSelecionadas([]);
+        setDescricaoAlteracao('');
+        setDocsApoio([]);
+        setMinutaGerada('');
+        setMinutaId(null);
     };
 
-    const handleUpload = async (e) => {
-        e.preventDefault();
-        if (!file || !tipoAlteracao) {
-            toast.error('Selecione o tipo de alteração e o arquivo');
+    const openWizard = () => {
+        resetWizard();
+        setWizardOpen(true);
+    };
+
+    // Step 1: Upload e análise do contrato
+    const handleContratoUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+        if (!validTypes.includes(file.type)) {
+            toast.error('Use PDF, JPG ou PNG');
             return;
         }
-
-        setUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('tipo_alteracao', tipoAlteracao);
-        formData.append('descricao', descricao);
-
+        
+        setContratoFile(file);
+        setProcessing(true);
+        
         try {
-            const response = await axios.post(`${API_URL}/api/minutas/upload`, formData, {
+            // Upload contrato
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('tipo_alteracao', 'analise_inicial');
+            formData.append('descricao', 'Análise inicial do contrato');
+            
+            const uploadRes = await axios.post(`${API_URL}/api/minutas/upload`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            toast.success('Documento enviado com sucesso!');
-            setMinutas([response.data, ...minutas]);
-            setFile(null);
-            setTipoAlteracao('');
-            setDescricao('');
-            if (fileInputRef.current) fileInputRef.current.value = '';
             
-            // Open chat automatically
-            openChat(response.data);
-        } catch (error) {
-            toast.error(error.response?.data?.detail || 'Erro ao enviar documento');
-        } finally {
-            setUploading(false);
-        }
-    };
+            setMinutaId(uploadRes.data.id);
+            
+            // Solicitar extração de dados via chat
+            const chatRes = await axios.post(`${API_URL}/api/minutas/${uploadRes.data.id}/chat`, {
+                message: `Analise o contrato social anexado e extraia as seguintes informações em formato estruturado:
 
-    const openChat = async (minuta) => {
-        setSelectedMinuta(minuta);
-        setChatOpen(true);
-        
-        try {
-            const response = await axios.get(`${API_URL}/api/minutas/${minuta.id}`);
-            const mensagens = response.data.mensagens || [];
-            const formattedMessages = mensagens.flatMap(m => [
-                { type: 'user', text: m.user },
-                { type: 'ai', text: m.assistant }
-            ]);
-            setMessages(formattedMessages);
-        } catch (error) {
-            setMessages([]);
-        }
-    };
+1. RAZÃO SOCIAL: (nome completo da empresa)
+2. CNPJ: (número do CNPJ)
+3. ENDEREÇO: (endereço completo da sede)
+4. CAPITAL SOCIAL: (valor e forma de integralização)
+5. QUADRO SOCIETÁRIO (QSA): Liste cada sócio com:
+   - Nome completo
+   - CPF
+   - Participação (%)
+   - Se é administrador
+6. ATIVIDADES/OBJETO SOCIAL: Liste os CNAEs ou descrição das atividades
 
-    const sendMessage = async () => {
-        if (!newMessage.trim() || !selectedMinuta) return;
-
-        const userMsg = newMessage.trim();
-        setNewMessage('');
-        setMessages(prev => [...prev, { type: 'user', text: userMsg }]);
-        setSendingMessage(true);
-
-        try {
-            const response = await axios.post(`${API_URL}/api/minutas/${selectedMinuta.id}/chat`, {
-                message: userMsg,
-                minuta_id: selectedMinuta.id
+Formate de forma clara e organizada.`,
+                minuta_id: uploadRes.data.id
             });
-            setMessages(prev => [...prev, { type: 'ai', text: response.data.response }]);
-        } catch (error) {
-            console.error('Chat error:', error);
-            const errorMsg = error.response?.status === 520 
-                ? 'Serviço de IA temporariamente indisponível. Tente novamente em alguns instantes.'
-                : 'Erro ao processar mensagem. Verifique sua conexão e tente novamente.';
-            toast.error(errorMsg);
-            setMessages(prev => [...prev, { 
-                type: 'ai', 
-                text: 'Desculpe, não foi possível processar sua mensagem no momento. Por favor, tente novamente.' 
-            }]);
+            
+            setDadosExtraidos(chatRes.data.response);
+            toast.success('Contrato analisado!');
+        } catch (e) {
+            toast.error('Erro ao analisar contrato');
+            console.error(e);
         } finally {
-            setSendingMessage(false);
+            setProcessing(false);
         }
     };
 
-    const gerarMinuta = async () => {
-        if (!selectedMinuta) return;
+    // Step 2: Toggle alteração
+    const toggleAlteracao = (id) => {
+        setAlteracoesSelecionadas(prev => 
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+    };
+
+    // Step 3: Upload docs apoio
+    const handleDocsApoio = (e) => {
+        const files = Array.from(e.target.files || []);
+        const validFiles = files.filter(f => 
+            ['application/pdf', 'image/jpeg', 'image/png'].includes(f.type)
+        );
+        setDocsApoio(prev => [...prev, ...validFiles.map(f => ({ file: f, id: Date.now() + Math.random() }))]);
+        if (docsInputRef.current) docsInputRef.current.value = '';
+    };
+
+    const removeDocApoio = (id) => {
+        setDocsApoio(prev => prev.filter(d => d.id !== id));
+    };
+
+    // Step 4: Gerar minuta
+    const gerarMinutaFinal = async () => {
+        if (!minutaId) return;
         
-        setGenerating(true);
+        setProcessing(true);
         try {
-            const response = await axios.post(`${API_URL}/api/minutas/${selectedMinuta.id}/gerar`);
-            toast.success('Minuta gerada com sucesso!');
-            setPreviewContent(response.data.conteudo);
-            setPreviewOpen(true);
+            // Upload docs de apoio
+            for (const doc of docsApoio) {
+                const fd = new FormData();
+                fd.append('file', doc.file);
+                fd.append('tipo_documento', 'apoio');
+                await axios.post(`${API_URL}/api/minutas/${minutaId}/documentos`, fd, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            }
+            
+            // Montar prompt com alterações
+            const tiposStr = alteracoesSelecionadas.map(id => 
+                TIPOS_ALTERACAO.find(t => t.id === id)?.label
+            ).join(', ');
+            
+            const prompt = `Com base no contrato social analisado e nos documentos de apoio anexados, gere uma MINUTA DE ALTERAÇÃO CONTRATUAL completa.
+
+ALTERAÇÕES SOLICITADAS: ${tiposStr}
+
+DESCRIÇÃO DAS ALTERAÇÕES:
+${descricaoAlteracao}
+
+INSTRUÇÕES:
+1. Extraia os dados necessários dos documentos de apoio (CNH, comprovantes, etc.)
+2. Gere a minuta no formato padrão:
+   - PREÂMBULO (dados da empresa e sócios atuais)
+   - CLÁUSULAS DE ALTERAÇÃO (cada alteração em cláusula separada)
+   - CONSOLIDAÇÃO DO CONTRATO SOCIAL (texto consolidado com as alterações)
+   - ENCERRAMENTO E ASSINATURAS
+
+Use linguagem jurídica formal e precisa. Inclua todos os dados extraídos dos documentos.`;
+
+            const chatRes = await axios.post(`${API_URL}/api/minutas/${minutaId}/chat`, {
+                message: prompt,
+                minuta_id: minutaId
+            });
+            
+            setMinutaGerada(chatRes.data.response);
+            
+            // Atualizar tipo
+            await axios.post(`${API_URL}/api/minutas/${minutaId}/gerar`);
+            
+            toast.success('Minuta gerada!');
+            setStep(4);
             fetchMinutas();
-        } catch (error) {
+        } catch (e) {
             toast.error('Erro ao gerar minuta');
         } finally {
-            setGenerating(false);
+            setProcessing(false);
         }
+    };
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(minutaGerada);
+        toast.success('Copiado!');
+    };
+
+    const exportarMinuta = () => {
+        const blob = new Blob([minutaGerada], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `minuta_alteracao_${new Date().toISOString().split('T')[0]}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success('Minuta exportada!');
     };
 
     const deleteMinuta = async (id) => {
         try {
             await axios.delete(`${API_URL}/api/minutas/${id}`);
-            toast.success('Minuta removida');
+            toast.success('Removida');
             setMinutas(minutas.filter(m => m.id !== id));
-            if (selectedMinuta?.id === id) {
-                setChatOpen(false);
-                setSelectedMinuta(null);
-            }
-        } catch (error) {
-            toast.error('Erro ao remover minuta');
+        } catch (e) {
+            toast.error('Erro');
         }
     };
 
     const viewMinuta = async (minuta) => {
         try {
-            const response = await axios.get(`${API_URL}/api/minutas/${minuta.id}`);
-            if (response.data.conteudo_gerado) {
-                setPreviewContent(response.data.conteudo_gerado);
-                setPreviewOpen(true);
+            const res = await axios.get(`${API_URL}/api/minutas/${minuta.id}`);
+            if (res.data.conteudo_gerado) {
+                setViewContent(res.data.conteudo_gerado);
             } else {
-                openChat(minuta);
+                const msgs = res.data.mensagens || [];
+                const lastAi = msgs.filter(m => m.assistant).pop();
+                setViewContent(lastAi?.assistant || 'Sem conteúdo');
             }
-        } catch (error) {
-            toast.error('Erro ao carregar minuta');
+            setViewOpen(true);
+        } catch (e) {
+            toast.error('Erro');
         }
     };
 
-    const getStatusBadge = (status) => {
-        const styles = {
-            pendente: 'badge-pending',
-            em_analise: 'badge-warning',
-            concluida: 'badge-success'
-        };
-        const labels = {
-            pendente: 'Pendente',
-            em_analise: 'Em Análise',
-            concluida: 'Concluída'
-        };
-        return <span className={`badge ${styles[status] || 'badge-pending'}`}>{labels[status] || status}</span>;
+    const getStatus = (s) => {
+        const cfg = { pendente: 'badge-pending', em_analise: 'badge-warning', concluida: 'badge-success' };
+        const lbl = { pendente: 'Pendente', em_analise: 'Em Análise', concluida: 'Concluída' };
+        return <span className={`badge ${cfg[s] || 'badge-pending'}`}>{lbl[s] || s}</span>;
     };
 
     return (
         <div className="p-8 fade-in" data-testid="minutas-page">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-white mb-2">Minutas Contratuais</h1>
-                <p className="text-zinc-500">
-                    Crie minutas de alteração contratual com auxílio de inteligência artificial
-                </p>
+            <div className="flex items-center justify-between mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-white mb-2">Minutas Contratuais</h1>
+                    <p className="text-zinc-500">Crie minutas de alteração com auxílio de IA</p>
+                </div>
+                <Button onClick={openWizard} className="bg-red-600 hover:bg-red-700 btn-business" data-testid="nova-minuta-btn">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Nova Minuta
+                </Button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Upload Form */}
-                <div className="lg:col-span-1">
-                    <div className="bg-zinc-900 border border-zinc-800 rounded p-6">
-                        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                            <FileUp className="w-5 h-5 text-red-500" strokeWidth={1.5} />
-                            Novo Documento
-                        </h2>
-
-                        <form onSubmit={handleUpload} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label className="text-zinc-400 text-xs uppercase tracking-wider">
-                                    Tipo de Alteração
-                                </Label>
-                                <Select value={tipoAlteracao} onValueChange={setTipoAlteracao}>
-                                    <SelectTrigger 
-                                        data-testid="tipo-alteracao-select"
-                                        className="bg-zinc-950 border-zinc-800 focus:border-red-600"
-                                    >
-                                        <SelectValue placeholder="Selecione o tipo" />
-                                    </SelectTrigger>
-                                    <SelectContent className="bg-zinc-900 border-zinc-800">
-                                        {TIPOS_ALTERACAO.map(tipo => (
-                                            <SelectItem 
-                                                key={tipo.value} 
-                                                value={tipo.value}
-                                                className="focus:bg-zinc-800"
-                                            >
-                                                {tipo.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-zinc-400 text-xs uppercase tracking-wider">
-                                    Descrição (opcional)
-                                </Label>
-                                <Textarea
-                                    data-testid="descricao-input"
-                                    value={descricao}
-                                    onChange={(e) => setDescricao(e.target.value)}
-                                    placeholder="Descreva brevemente a alteração..."
-                                    className="bg-zinc-950 border-zinc-800 focus:border-red-600 min-h-[80px]"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-zinc-400 text-xs uppercase tracking-wider">
-                                    Contrato Social (PDF ou Imagem)
-                                </Label>
-                                <div 
-                                    className={`drop-zone rounded p-6 text-center cursor-pointer ${file ? 'active' : ''}`}
-                                    onClick={() => fileInputRef.current?.click()}
-                                >
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        data-testid="file-upload-input"
-                                        onChange={handleFileChange}
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                        className="hidden"
-                                    />
-                                    {file ? (
-                                        <div className="flex items-center justify-center gap-2 text-red-500">
-                                            <FileText className="w-5 h-5" strokeWidth={1.5} />
-                                            <span className="text-sm truncate max-w-[180px]">{file.name}</span>
-                                        </div>
-                                    ) : (
-                                        <div className="text-zinc-500">
-                                            <Upload className="w-8 h-8 mx-auto mb-2" strokeWidth={1.5} />
-                                            <p className="text-sm">Arraste ou clique para enviar</p>
-                                            <p className="text-xs mt-1">PDF, JPG ou PNG</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                data-testid="upload-submit-btn"
-                                disabled={uploading || !file || !tipoAlteracao}
-                                className="w-full bg-red-600 hover:bg-red-700 btn-business"
-                            >
-                                {uploading ? (
-                                    <>
-                                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                        Enviando...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Upload className="w-4 h-4 mr-2" />
-                                        Enviar Documento
-                                    </>
-                                )}
-                            </Button>
-                        </form>
-                    </div>
+            {/* Lista de Minutas */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded">
+                <div className="p-6 border-b border-zinc-800">
+                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-red-500" />
+                        Histórico
+                    </h2>
                 </div>
-
-                {/* Minutas List */}
-                <div className="lg:col-span-2">
-                    <div className="bg-zinc-900 border border-zinc-800 rounded">
-                        <div className="p-6 border-b border-zinc-800">
-                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <FileText className="w-5 h-5 text-red-500" strokeWidth={1.5} />
-                                Histórico de Minutas
-                            </h2>
-                        </div>
-
-                        {loading ? (
-                            <div className="p-12 text-center">
-                                <RefreshCw className="w-8 h-8 text-zinc-500 animate-spin mx-auto" />
-                            </div>
-                        ) : minutas.length === 0 ? (
-                            <div className="p-12 text-center text-zinc-500">
-                                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" strokeWidth={1.5} />
-                                <p>Nenhuma minuta cadastrada</p>
-                                <p className="text-sm mt-1">Envie um documento para começar</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-zinc-800">
-                                {minutas.map((minuta) => (
-                                    <div 
-                                        key={minuta.id} 
-                                        className="p-4 hover:bg-zinc-800/50 transition-colors"
-                                        data-testid={`minuta-item-${minuta.id}`}
-                                    >
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-white font-medium">
-                                                        {TIPOS_ALTERACAO.find(t => t.value === minuta.tipo_alteracao)?.label || minuta.tipo_alteracao}
-                                                    </span>
-                                                    {getStatusBadge(minuta.status)}
-                                                </div>
-                                                <p className="text-sm text-zinc-500 truncate">
-                                                    {minuta.arquivo_original || 'Sem arquivo'}
-                                                </p>
-                                                <p className="text-xs text-zinc-600 mt-1 flex items-center gap-1">
-                                                    <Clock className="w-3 h-3" strokeWidth={1.5} />
-                                                    {new Date(minuta.created_at).toLocaleDateString('pt-BR')}
-                                                </p>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    data-testid={`chat-btn-${minuta.id}`}
-                                                    onClick={() => openChat(minuta)}
-                                                    className="border-zinc-700 hover:border-red-600 hover:text-red-500"
-                                                >
-                                                    <MessageSquare className="w-4 h-4" strokeWidth={1.5} />
-                                                </Button>
-                                                {minuta.status === 'concluida' && (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        data-testid={`view-btn-${minuta.id}`}
-                                                        onClick={() => viewMinuta(minuta)}
-                                                        className="border-zinc-700 hover:border-emerald-600 hover:text-emerald-500"
-                                                    >
-                                                        <Download className="w-4 h-4" strokeWidth={1.5} />
-                                                    </Button>
-                                                )}
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    data-testid={`delete-btn-${minuta.id}`}
-                                                    onClick={() => deleteMinuta(minuta.id)}
-                                                    className="border-zinc-700 hover:border-red-600 hover:text-red-500"
-                                                >
-                                                    <Trash2 className="w-4 h-4" strokeWidth={1.5} />
-                                                </Button>
-                                            </div>
-                                        </div>
+                
+                {loading ? (
+                    <div className="p-12 text-center">
+                        <RefreshCw className="w-8 h-8 text-zinc-500 animate-spin mx-auto" />
+                    </div>
+                ) : minutas.length === 0 ? (
+                    <div className="p-12 text-center text-zinc-500">
+                        <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>Nenhuma minuta</p>
+                    </div>
+                ) : (
+                    <div className="divide-y divide-zinc-800">
+                        {minutas.map(m => (
+                            <div key={m.id} className="p-4 hover:bg-zinc-800/50 flex items-center justify-between" data-testid={`minuta-${m.id}`}>
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-white font-medium">{m.tipo_alteracao || 'Minuta'}</span>
+                                        {getStatus(m.status)}
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Chat Dialog */}
-            <Dialog open={chatOpen} onOpenChange={setChatOpen}>
-                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-2xl h-[80vh] flex flex-col">
-                    <DialogHeader className="border-b border-zinc-800 pb-4">
-                        <DialogTitle className="text-white flex items-center gap-2">
-                            <MessageSquare className="w-5 h-5 text-red-500" strokeWidth={1.5} />
-                            Chat - {TIPOS_ALTERACAO.find(t => t.value === selectedMinuta?.tipo_alteracao)?.label}
-                        </DialogTitle>
-                    </DialogHeader>
-
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4" data-testid="chat-messages">
-                        {messages.length === 0 && (
-                            <div className="text-center text-zinc-500 py-8">
-                                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" strokeWidth={1.5} />
-                                <p>Inicie a conversa descrevendo a alteração desejada.</p>
-                                <p className="text-sm mt-2">A IA irá analisar o documento e auxiliar na criação da minuta.</p>
-                            </div>
-                        )}
-                        {messages.map((msg, idx) => (
-                            <div
-                                key={idx}
-                                className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                            >
-                                <div
-                                    className={`max-w-[80%] p-4 ${
-                                        msg.type === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'
-                                    }`}
-                                >
-                                    <p className="text-sm text-white whitespace-pre-wrap">{msg.text}</p>
+                                    <p className="text-xs text-zinc-500 flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {new Date(m.created_at).toLocaleDateString('pt-BR')}
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button size="sm" variant="outline" onClick={() => viewMinuta(m)} className="border-zinc-700">
+                                        <Eye className="w-4 h-4" />
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => deleteMinuta(m.id)} className="border-zinc-700 hover:border-red-600">
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
                                 </div>
                             </div>
                         ))}
-                        {sendingMessage && (
-                            <div className="flex justify-start">
-                                <div className="chat-bubble-ai p-4">
-                                    <div className="flex items-center gap-2 text-zinc-400">
-                                        <RefreshCw className="w-4 h-4 animate-spin" />
-                                        <span className="text-sm">Analisando...</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Wizard Dialog */}
+            <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
+                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+                    <DialogHeader className="border-b border-zinc-800 pb-4">
+                        <DialogTitle className="text-white flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-red-500" />
+                            Nova Minuta de Alteração
+                        </DialogTitle>
+                        {/* Progress */}
+                        <div className="flex items-center gap-2 mt-4">
+                            {[1,2,3,4].map(s => (
+                                <div key={s} className="flex items-center">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                                        step >= s ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-500'
+                                    }`}>
+                                        {s}
+                                    </div>
+                                    {s < 4 && <div className={`w-12 h-1 ${step > s ? 'bg-red-600' : 'bg-zinc-800'}`} />}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                            <span>Contrato</span>
+                            <span>Alterações</span>
+                            <span>Detalhes</span>
+                            <span>Resultado</span>
+                        </div>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto p-6">
+                        {/* Step 1: Upload Contrato */}
+                        {step === 1 && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-white mb-2">Upload do Contrato Atual</h3>
+                                    <p className="text-sm text-zinc-500 mb-4">
+                                        Envie o contrato social atual. A IA irá extrair automaticamente os dados.
+                                    </p>
+                                    
+                                    <div 
+                                        className={`drop-zone rounded-lg p-8 text-center cursor-pointer ${contratoFile ? 'active' : ''}`}
+                                        onClick={() => contratoInputRef.current?.click()}
+                                    >
+                                        <input ref={contratoInputRef} type="file" onChange={handleContratoUpload}
+                                            accept=".pdf,.jpg,.jpeg,.png" className="hidden" data-testid="contrato-input" />
+                                        
+                                        {processing ? (
+                                            <div className="text-red-500">
+                                                <RefreshCw className="w-10 h-10 mx-auto mb-3 animate-spin" />
+                                                <p>Analisando contrato...</p>
+                                            </div>
+                                        ) : contratoFile ? (
+                                            <div className="text-red-500">
+                                                <CheckCircle2 className="w-10 h-10 mx-auto mb-3" />
+                                                <p className="font-medium">{contratoFile.name}</p>
+                                            </div>
+                                        ) : (
+                                            <div className="text-zinc-500">
+                                                <Upload className="w-10 h-10 mx-auto mb-3" />
+                                                <p className="font-medium">Arraste ou clique</p>
+                                                <p className="text-xs mt-1">PDF ou Imagem</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {dadosExtraidos && (
+                                    <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <FileSearch className="w-5 h-5 text-red-500" />
+                                            <h4 className="font-semibold text-white">Dados Extraídos</h4>
+                                        </div>
+                                        <pre className="text-sm text-zinc-300 whitespace-pre-wrap max-h-64 overflow-y-auto">
+                                            {dadosExtraidos}
+                                        </pre>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Step 2: Seleção de Alterações */}
+                        {step === 2 && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-white mb-2">Selecione as Alterações</h3>
+                                    <p className="text-sm text-zinc-500 mb-4">
+                                        Marque todas as alterações que deseja realizar no contrato.
+                                    </p>
+                                    
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {TIPOS_ALTERACAO.map(tipo => {
+                                            const Icon = tipo.icon;
+                                            const selected = alteracoesSelecionadas.includes(tipo.id);
+                                            return (
+                                                <div
+                                                    key={tipo.id}
+                                                    onClick={() => toggleAlteracao(tipo.id)}
+                                                    className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                                                        selected 
+                                                            ? 'border-red-600 bg-red-600/10' 
+                                                            : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'
+                                                    }`}
+                                                    data-testid={`alt-${tipo.id}`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <Checkbox checked={selected} className="border-zinc-600" />
+                                                        <Icon className={`w-5 h-5 ${selected ? 'text-red-500' : 'text-zinc-500'}`} />
+                                                        <span className={selected ? 'text-white' : 'text-zinc-400'}>
+                                                            {tipo.label}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
                         )}
-                        <div ref={chatEndRef} />
+
+                        {/* Step 3: Detalhes e Docs */}
+                        {step === 3 && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-white mb-2">Detalhes da Alteração</h3>
+                                    <p className="text-sm text-zinc-500 mb-4">
+                                        Descreva as alterações e envie os documentos de apoio.
+                                    </p>
+                                    
+                                    <div className="space-y-4">
+                                        <div>
+                                            <Label className="text-zinc-400 text-xs uppercase mb-2 block">
+                                                Descreva as alterações
+                                            </Label>
+                                            <Textarea
+                                                value={descricaoAlteracao}
+                                                onChange={(e) => setDescricaoAlteracao(e.target.value)}
+                                                placeholder={`Ex:\n- Entrada do sócio João Silva, CPF 000.000.000-00, com 30% das quotas\n- Saída do sócio Maria Santos\n- Novo endereço: Rua ABC, 123, São Paulo/SP`}
+                                                className="bg-zinc-950 border-zinc-800 min-h-[120px]"
+                                                data-testid="descricao-alteracao"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <Label className="text-zinc-400 text-xs uppercase">
+                                                    Documentos de Apoio
+                                                </Label>
+                                                <button onClick={() => docsInputRef.current?.click()}
+                                                    className="text-xs text-red-500 hover:text-red-400">
+                                                    + Adicionar
+                                                </button>
+                                            </div>
+                                            <input ref={docsInputRef} type="file" multiple onChange={handleDocsApoio}
+                                                accept=".pdf,.jpg,.jpeg,.png" className="hidden" data-testid="docs-input" />
+                                            
+                                            {docsApoio.length === 0 ? (
+                                                <div 
+                                                    className="border border-dashed border-zinc-800 rounded-lg p-6 text-center cursor-pointer hover:border-red-600/50"
+                                                    onClick={() => docsInputRef.current?.click()}
+                                                >
+                                                    <Upload className="w-6 h-6 mx-auto mb-2 text-zinc-600" />
+                                                    <p className="text-sm text-zinc-500">CNH, Comprovante, CNAEs, etc.</p>
+                                                    <p className="text-xs text-zinc-600 mt-1">A IA vai extrair os dados automaticamente</p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {docsApoio.map(doc => (
+                                                        <div key={doc.id} className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded p-2">
+                                                            <FileText className="w-4 h-4 text-red-500" />
+                                                            <span className="text-sm text-zinc-300 flex-1 truncate">{doc.file.name}</span>
+                                                            <button onClick={() => removeDocApoio(doc.id)} className="text-zinc-500 hover:text-red-500">
+                                                                <X className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                    <button onClick={() => docsInputRef.current?.click()}
+                                                        className="w-full border border-dashed border-zinc-800 rounded p-2 text-xs text-zinc-500 hover:border-red-600/50">
+                                                        + Mais documentos
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 4: Resultado */}
+                        {step === 4 && (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold text-white">Minuta Gerada</h3>
+                                    <div className="flex gap-2">
+                                        <Button size="sm" variant="outline" onClick={copyToClipboard} className="border-zinc-700">
+                                            <Copy className="w-4 h-4 mr-1" /> Copiar
+                                        </Button>
+                                        <Button size="sm" onClick={exportarMinuta} className="bg-red-600 hover:bg-red-700">
+                                            <Download className="w-4 h-4 mr-1" /> Exportar
+                                        </Button>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4 max-h-[400px] overflow-y-auto">
+                                    <pre className="text-sm text-zinc-300 whitespace-pre-wrap font-mono">
+                                        {minutaGerada}
+                                    </pre>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="border-t border-zinc-800 p-4 space-y-3">
-                        <div className="flex gap-2">
-                            <Input
-                                data-testid="chat-input"
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                                placeholder="Descreva a alteração desejada..."
-                                className="bg-zinc-950 border-zinc-800 focus:border-red-600"
-                                disabled={sendingMessage}
-                            />
-                            <Button
-                                data-testid="send-message-btn"
-                                onClick={sendMessage}
-                                disabled={sendingMessage || !newMessage.trim()}
-                                className="bg-red-600 hover:bg-red-700"
-                            >
-                                <Send className="w-4 h-4" strokeWidth={1.5} />
-                            </Button>
-                        </div>
-                        <Button
-                            data-testid="gerar-minuta-btn"
-                            onClick={gerarMinuta}
-                            disabled={generating || messages.length < 2}
-                            className="w-full bg-zinc-800 hover:bg-zinc-700 text-white"
+                    {/* Footer */}
+                    <div className="border-t border-zinc-800 p-4 flex justify-between">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => step > 1 ? setStep(step - 1) : setWizardOpen(false)}
+                            className="border-zinc-700"
                         >
-                            {generating ? (
-                                <>
-                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                    Gerando Minuta...
-                                </>
-                            ) : (
-                                <>
-                                    <FileText className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                                    Gerar Minuta Final
-                                </>
-                            )}
+                            <ChevronLeft className="w-4 h-4 mr-1" />
+                            {step === 1 ? 'Cancelar' : 'Voltar'}
                         </Button>
+                        
+                        {step < 4 ? (
+                            <Button 
+                                onClick={() => {
+                                    if (step === 3) {
+                                        gerarMinutaFinal();
+                                    } else {
+                                        setStep(step + 1);
+                                    }
+                                }}
+                                disabled={
+                                    (step === 1 && !dadosExtraidos) ||
+                                    (step === 2 && alteracoesSelecionadas.length === 0) ||
+                                    (step === 3 && !descricaoAlteracao) ||
+                                    processing
+                                }
+                                className="bg-red-600 hover:bg-red-700"
+                                data-testid="next-btn"
+                            >
+                                {processing ? (
+                                    <>
+                                        <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                                        Processando...
+                                    </>
+                                ) : step === 3 ? (
+                                    <>
+                                        Gerar Minuta
+                                        <ChevronRight className="w-4 h-4 ml-1" />
+                                    </>
+                                ) : (
+                                    <>
+                                        Próximo
+                                        <ChevronRight className="w-4 h-4 ml-1" />
+                                    </>
+                                )}
+                            </Button>
+                        ) : (
+                            <Button onClick={() => setWizardOpen(false)} className="bg-red-600 hover:bg-red-700">
+                                <CheckCircle2 className="w-4 h-4 mr-1" />
+                                Concluir
+                            </Button>
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>
 
-            {/* Preview Dialog */}
-            <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+            {/* View Dialog */}
+            <Dialog open={viewOpen} onOpenChange={setViewOpen}>
                 <DialogContent className="bg-zinc-900 border-zinc-800 max-w-3xl max-h-[80vh] overflow-auto">
                     <DialogHeader className="border-b border-zinc-800 pb-4">
                         <DialogTitle className="text-white flex items-center gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-emerald-500" strokeWidth={1.5} />
-                            Minuta Gerada
+                            <FileText className="w-5 h-5 text-red-500" />
+                            Visualizar Minuta
                         </DialogTitle>
                     </DialogHeader>
-                    <div className="p-4">
-                        <pre className="whitespace-pre-wrap text-sm text-zinc-300 font-mono bg-zinc-950 p-6 rounded border border-zinc-800">
-                            {previewContent}
-                        </pre>
-                    </div>
+                    <pre className="p-4 whitespace-pre-wrap text-sm text-zinc-300 font-mono bg-zinc-950 rounded border border-zinc-800 m-4">
+                        {viewContent}
+                    </pre>
                     <div className="flex justify-end gap-2 p-4 border-t border-zinc-800">
-                        <Button
-                            variant="outline"
-                            onClick={() => setPreviewOpen(false)}
-                            className="border-zinc-700"
-                        >
+                        <Button variant="outline" onClick={() => setViewOpen(false)} className="border-zinc-700">
                             Fechar
                         </Button>
-                        <Button
-                            onClick={() => {
-                                navigator.clipboard.writeText(previewContent);
-                                toast.success('Conteúdo copiado!');
-                            }}
-                            className="bg-red-600 hover:bg-red-700"
-                        >
-                            <Download className="w-4 h-4 mr-2" strokeWidth={1.5} />
-                            Copiar
+                        <Button onClick={() => { navigator.clipboard.writeText(viewContent); toast.success('Copiado!'); }}
+                            className="bg-red-600 hover:bg-red-700">
+                            <Copy className="w-4 h-4 mr-2" /> Copiar
                         </Button>
                     </div>
                 </DialogContent>
