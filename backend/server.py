@@ -1517,7 +1517,8 @@ async def download_minuta_pdf(minuta_id: str, current_user: dict = Depends(get_c
             "margens": formatacao.get('margens', {}),
             "espacamento": {"linha": float(formatacao.get('espacamento', 1.5))},
             "cabecalho": {"texto": [secoes.get('titulo', {}).get('exemplo', 'ALTERAÇÃO CONTRATUAL')]},
-            "rodape": {"texto": [secoes.get('rodape', {}).get('exemplo', 'Documento gerado pelo Portal Societário')]}
+            "rodape": {"texto": [secoes.get('rodape', {}).get('exemplo', 'Documento gerado pelo Portal Societário')]},
+            "logo_base64": formatacao.get('logo_base64')  # Incluir logo
         }
     else:
         # Tentar usar template de arquivo
