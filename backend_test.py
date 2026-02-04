@@ -1125,12 +1125,29 @@ class FiscalSystemAPITester:
         
         print(f"✅ Test 2 PASSED: Only pendente documents deleted. Remaining: Total={remaining_total}, Validado={remaining_validado}")
         
-        # Step 6: Re-insert all documents for final test
+        # Step 6: Clean up all existing documents and re-insert fresh set for final test
+        # First, delete all remaining documents
+        self.db.xml_documents.delete_many({
+            "company_id": bulk_test_company_id,
+            "competencia": competencia
+        })
+        
+        # Re-insert fresh set of all documents for final test
         all_docs_new = create_test_documents()
         
         try:
             self.db.xml_documents.insert_many(all_docs_new)
-            print("✅ Re-inserted all documents for final test")
+            print("✅ Re-inserted fresh set of all documents for final test")
+            
+            # Verify we have the expected counts
+            total_check = self.db.xml_documents.count_documents({
+                "company_id": bulk_test_company_id,
+                "competencia": competencia
+            })
+            if total_check != 8:
+                print(f"❌ Expected 8 documents for final test, got {total_check}")
+                return False, {}
+                
         except Exception as e:
             print(f"❌ Failed to re-insert all documents: {str(e)}")
             return False, {}
