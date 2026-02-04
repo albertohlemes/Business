@@ -27,16 +27,17 @@ const Documents = ({ user, onLogout }) => {
 
   useEffect(() => {
     fetchData();
-  }, [selectedCompany]);
+  }, [ctxCompany]);
 
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
+      const companyParam = ctxCompany ? `?company_id=${ctxCompany.id}` : '';
       const [companiesRes, documentsRes] = await Promise.all([
         axios.get(`${API}/companies`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get(`${API}/xml/documents${selectedCompany ? `?company_id=${selectedCompany}` : ''}`, {
+        axios.get(`${API}/xml/documents${companyParam}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
