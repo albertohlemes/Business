@@ -1629,6 +1629,93 @@ async def buscar_cep(cep: str):
         logger.error(f"Erro ao buscar CEP: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao buscar CEP: {str(e)}")
 
+@api_router.get("/cnpj/{cnpj}")
+async def buscar_cnpj(cnpj: str):
+    """Busca dados da empresa na Receita Federal pelo CNPJ"""
+    import httpx
+    
+    # Limpar CNPJ (remover pontos, barras e hífens)
+    cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+    
+    if len(cnpj_limpo) != 14:
+        raise HTTPException(status_code=400, detail="CNPJ deve ter 14 dígitos")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"https://receitaws.com.br/v1/cnpj/{cnpj_limpo}",
+                timeout=30.0,
+                headers={"Accept": "application/json"}
+            )
+            
+            if response.status_code == 429:
+                raise HTTPException(status_code=429, detail="Limite de consultas excedido. Tente novamente em alguns segundos.")
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=404, detail="CNPJ não encontrado")
+            
+            dados = response.json()
+            
+            if dados.get("status") == "ERROR":
+                raise HTTPException(status_code=404, detail=dados.get("message", "CNPJ não encontrado"))
+            
+            # Formatar CNAEs
+            cnaes = []
+            
+            # Atividade principal
+            if dados.get("atividade_principal"):
+                for ativ in dados["atividade_principal"]:
+                    cnaes.append({
+                        "codigo": ativ.get("code", ""),
+                        "descricao": ativ.get("text", ""),
+                        "principal": True
+                    })
+            
+            # Atividades secundárias
+            if dados.get("atividades_secundarias"):
+                for ativ in dados["atividades_secundarias"]:
+                    if ativ.get("code") and ativ.get("code") != "00.00-0-00":
+                        cnaes.append({
+                            "codigo": ativ.get("code", ""),
+                            "descricao": ativ.get("text", ""),
+                            "principal": False
+                        })
+            
+            return {
+                "success": True,
+                "empresa": {
+                    "cnpj": cnpj_limpo,
+                    "razao_social": dados.get("nome", ""),
+                    "nome_fantasia": dados.get("fantasia", ""),
+                    "abertura": dados.get("abertura", ""),
+                    "situacao": dados.get("situacao", ""),
+                    "tipo": dados.get("tipo", ""),
+                    "porte": dados.get("porte", ""),
+                    "natureza_juridica": dados.get("natureza_juridica", ""),
+                    "capital_social": dados.get("capital_social", ""),
+                    "endereco": {
+                        "logradouro": dados.get("logradouro", ""),
+                        "numero": dados.get("numero", ""),
+                        "complemento": dados.get("complemento", ""),
+                        "bairro": dados.get("bairro", ""),
+                        "cidade": dados.get("municipio", ""),
+                        "estado": dados.get("uf", ""),
+                        "cep": dados.get("cep", "").replace(".", "").replace("-", "")
+                    },
+                    "telefone": dados.get("telefone", ""),
+                    "email": dados.get("email", "")
+                },
+                "cnaes": cnaes,
+                "qsa": dados.get("qsa", [])
+            }
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Timeout ao consultar Receita Federal")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao buscar CNPJ: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar CNPJ: {str(e)}")
+
 # ============ ENDPOINTS DE CONSTITUIÇÃO ============
 
 class DadosEmpresaConstituicao(BaseModel):
