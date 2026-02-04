@@ -4613,6 +4613,39 @@ Seja específico e use os valores reais fornecidos."""
         # Extrair JSON
         response_text = response.strip()
         if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+        
+        result = json.loads(response_text)
+        
+        # Retornar dados calculados + análise da IA
+        return {
+            "success": True,
+            "regime_tributario": regime,
+            "dados_calculados": resumo_dados,
+            "indicadores_ia": result.get('indicadores', {}),
+            "alertas": result.get('alertas', []),
+            "recomendacoes": result.get('recomendacoes', []),
+            "markup": result.get('markup', {}),
+            "ponto_equilibrio": ponto_equilibrio,
+            "irpj_csll": resumo_dados.get('irpj_csll'),
+            "notas_processadas": {
+                "entrada": len(docs_entrada),
+                "saida": len(docs_saida)
+            }
+        }
+        
+    except json.JSONDecodeError as e:
+        return {
+            "success": False,
+            "error": f"Erro ao processar resposta: {str(e)}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na análise: {str(e)}")
+
 def get_cfop_from_category(categoria: str, cst: str, company_uf: str, cfop_original: str) -> str:
     """Helper para converter categoria (IA) em CFOP"""
     is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
