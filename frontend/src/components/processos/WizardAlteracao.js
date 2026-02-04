@@ -1379,7 +1379,7 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
     const [alteracoesSelecionadas, setAlteracoesSelecionadas] = useState([]);
     
     // Step 3 - Dados específicos por tipo
-    const [dadosQSA, setDadosQSA] = useState({ tipoQSA: '', sociosSaindo: [], sociosEntrando: [], sociosRetirantes: [], novasParticipacoes: {} });
+    const [dadosQSA, setDadosQSA] = useState({ tiposQSA: [], sociosSaindo: [], sociosEntrando: [], sociosRetirantes: [], novasParticipacoes: {} });
     const [dadosEndereco, setDadosEndereco] = useState({});
     const [dadosAtividades, setDadosAtividades] = useState({ cnaesExcluir: [], cnaesAdicionar: [] });
     const [dadosCapital, setDadosCapital] = useState({ tipoCapital: 'aumento', novoCapital: '', motivoCapital: '' });
