@@ -360,23 +360,39 @@ const AnaliseTributaria = ({ user, onLogout }) => {
                 <div className="bg-blue-50 p-3 rounded-lg">
                   <p className="text-sm font-semibold text-blue-800">PIS</p>
                   <div className="flex justify-between mt-1">
-                    <span className="text-sm text-blue-700">Tributado</span>
-                    <span className="font-bold text-blue-900">R$ {dados.creditos.pis_tributado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                    <span className="text-sm text-blue-700">Base com Crédito</span>
+                    <span className="font-bold text-blue-900">R$ {(dados.creditos.pis_base || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                   </div>
                   <div className="flex justify-between mt-1">
-                    <span className="text-sm text-gray-500">Alíquota Zero</span>
-                    <span className="text-gray-500">R$ {dados.creditos.pis_aliquota_zero.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                    <span className="text-sm text-blue-700">Crédito Calculado</span>
+                    <span className="font-bold text-blue-900">R$ {(dados.creditos.pis_calculado || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-sm text-gray-500">Alíquota Zero (CST 73)</span>
+                    <span className="text-gray-500">R$ {(dados.creditos.pis_aliquota_zero || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-sm text-gray-500">Sem Incidência (CST 98)</span>
+                    <span className="text-gray-500">R$ {(dados.creditos.pis_sem_incidencia || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                   </div>
                 </div>
                 <div className="bg-purple-50 p-3 rounded-lg">
                   <p className="text-sm font-semibold text-purple-800">COFINS</p>
                   <div className="flex justify-between mt-1">
-                    <span className="text-sm text-purple-700">Tributado</span>
-                    <span className="font-bold text-purple-900">R$ {dados.creditos.cofins_tributado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                    <span className="text-sm text-purple-700">Base com Crédito</span>
+                    <span className="font-bold text-purple-900">R$ {(dados.creditos.cofins_base || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                   </div>
                   <div className="flex justify-between mt-1">
-                    <span className="text-sm text-gray-500">Alíquota Zero</span>
-                    <span className="text-gray-500">R$ {dados.creditos.cofins_aliquota_zero.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                    <span className="text-sm text-purple-700">Crédito Calculado</span>
+                    <span className="font-bold text-purple-900">R$ {(dados.creditos.cofins_calculado || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-sm text-gray-500">Alíquota Zero (CST 73)</span>
+                    <span className="text-gray-500">R$ {(dados.creditos.cofins_aliquota_zero || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-sm text-gray-500">Sem Incidência (CST 98)</span>
+                    <span className="text-gray-500">R$ {(dados.creditos.cofins_sem_incidencia || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                   </div>
                 </div>
               </div>
