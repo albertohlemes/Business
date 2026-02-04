@@ -5,13 +5,6 @@ import {
     LayoutDashboard, FileText, Shield, FileCheck,
     LogOut, Building2, User
 } from 'lucide-react';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from './ui/dropdown-menu';
 
 const Layout = ({ children }) => {
     const { user, logout } = useAuth();
