@@ -675,36 +675,92 @@ const ClassificacaoPage = ({ user, onLogout }) => {
         {/* Regras Aprendidas */}
         {showRules && learnedRules.length > 0 && (
           <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
-            <h3 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
-              <BookOpen className="w-5 h-5" />
-              Memória da IA ({learnedRules.length} regras)
-            </h3>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-purple-900 flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                Memória da IA ({learnedRules.length} regras)
+              </h3>
+              <div className="flex gap-2">
+                {selectedRules.length > 0 && (
+                  <button
+                    onClick={handleDeleteSelectedRules}
+                    className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-red-200"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Excluir {selectedRules.length}
+                  </button>
+                )}
+                <button
+                  onClick={handleDeleteAllRules}
+                  className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-red-700"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Limpar Tudo
+                </button>
+              </div>
+            </div>
+            
+            {/* Selecionar todas */}
+            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-purple-200">
+              <input
+                type="checkbox"
+                checked={selectedRules.length === learnedRules.length && learnedRules.length > 0}
+                onChange={() => {
+                  if (selectedRules.length === learnedRules.length) {
+                    setSelectedRules([]);
+                  } else {
+                    setSelectedRules(learnedRules.map(r => r.id));
+                  }
+                }}
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm text-purple-700 font-medium">Selecionar todas</span>
+            </div>
+            
+            <div className="space-y-2 max-h-64 overflow-y-auto">
               {learnedRules.map((rule) => (
-                <div key={rule.id} className="bg-white p-3 rounded-lg border border-purple-100 flex items-center justify-between">
+                <div key={rule.id} className="bg-white p-3 rounded-lg border border-purple-100 flex items-center gap-3">
+                  {/* Checkbox */}
+                  <input
+                    type="checkbox"
+                    checked={selectedRules.includes(rule.id)}
+                    onChange={() => {
+                      if (selectedRules.includes(rule.id)) {
+                        setSelectedRules(prev => prev.filter(id => id !== rule.id));
+                      } else {
+                        setSelectedRules(prev => [...prev, rule.id]);
+                      }
+                    }}
+                    className="rounded border-gray-300"
+                  />
+                  
                   {editingRule === rule.id ? (
                     <div className="flex items-center gap-2 flex-1">
                       <span className="text-sm truncate max-w-[200px]">{rule.produto_descricao}</span>
                       <select
                         value={ruleEdit.categoria}
-                        onChange={(e) => setRuleEdit({ ...ruleEdit, categoria: e.target.value })}
+                        onChange={(e) => handleCategoriaChange(e.target.value)}
                         className="px-2 py-1 border rounded text-sm"
                       >
                         <option value="REVENDA">REVENDA</option>
+                        <option value="REVENDA_ST">REVENDA (ST)</option>
                         <option value="INSUMO">INSUMO</option>
+                        <option value="INSUMO_ST">INSUMO (ST)</option>
                         <option value="DESPESA">DESPESA</option>
+                        <option value="DESPESA_ST">DESPESA (ST)</option>
+                        <option value="COMBUSTIVEL">COMBUSTÍVEL</option>
                       </select>
                       <input
                         type="text"
                         value={ruleEdit.cfop}
                         onChange={(e) => setRuleEdit({ ...ruleEdit, cfop: e.target.value })}
-                        className="w-16 px-2 py-1 border rounded text-sm"
+                        className="w-16 px-2 py-1 border rounded text-sm font-mono"
                         placeholder="CFOP"
                       />
-                      <button onClick={() => handleSaveRule(rule.id)} className="p-1 bg-green-100 text-green-700 rounded">
+                      <button onClick={() => handleSaveRule(rule.id)} className="p-1 bg-green-100 text-green-700 rounded hover:bg-green-200">
                         <Check className="w-4 h-4" />
                       </button>
-                      <button onClick={() => setEditingRule(null)} className="p-1 bg-gray-100 text-gray-700 rounded">
+                      <button onClick={() => setEditingRule(null)} className="p-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
                         <X className="w-4 h-4" />
                       </button>
                     </div>
@@ -714,7 +770,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                         <span className="font-medium">{rule.produto_descricao}</span>
                         <span className="text-gray-500 mx-2">→</span>
                         {getCategoryBadge(rule.categoria_correta || rule.categoria)}
-                        <span className="text-gray-500 ml-2">CFOP {rule.cfop_correto || rule.cfop}</span>
+                        <span className="text-gray-500 ml-2 font-mono">CFOP {rule.cfop_correto || rule.cfop}</span>
                       </div>
                       <div className="flex gap-1">
                         <button
