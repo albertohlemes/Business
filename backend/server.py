@@ -547,6 +547,7 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             'data_emissao': ide.get('dhEmi', ''),
             'emitente_cnpj': emit.get('CNPJ', ''),
             'emitente_nome': emit.get('xNome', ''),
+            'emitente_uf': emitente_uf,
             'destinatario_cnpj': dest.get('CNPJ', ''),
             'destinatario_nome': dest.get('xNome', ''),
             'valor_total': float(total.get('vNF', 0)),
