@@ -1647,14 +1647,15 @@ async def get_dashboard_stats(
             # Verificar se o CFOP não gera débito de PIS/COFINS
             cfop_sem_debito = cfop in CFOPS_SAIDA_SEM_DEBITO
             
-            if cfop_sem_debito:
-                # CFOP de remessa/devolução/transferência - não gera débito
+            # Verificar também se o CST calculado é 49 (sem incidência)
+            if cfop_sem_debito or cst_calculado == '49':
+                # CFOP de remessa/devolução/transferência - CST 49 - não gera débito
                 total_cfop_sem_incidencia += valor_prod
             elif ncm_aliq_zero or cst_calculado == '06':
-                # Produto é alíquota zero pelo NCM ou CST
+                # Produto é alíquota zero pelo NCM ou CST 06
                 total_aliquota_zero += valor_prod
             else:
-                # Apenas produtos TRIBUTADOS entram na base de cálculo do débito
+                # Apenas produtos TRIBUTADOS (CST 01) entram na base de cálculo do débito
                 total_base_pis_cofins += valor_prod
     
     # Para Lucro Real, usar alíquotas corretas e verificar divergências
