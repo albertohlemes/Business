@@ -33,6 +33,8 @@ const Companies = ({ user, onLogout }) => {
     produtos_comercializados: [],
     insumos_producao: [],
     produtos_despesa: [],
+    ativo_imobilizado: [],
+    combustivel: [],
     regime_tributario: 'lucro_presumido',
     anexos_simples: [],
     tipo_atividade: 'comercio',
@@ -47,6 +49,8 @@ const Companies = ({ user, onLogout }) => {
   const [produtoInput, setProdutoInput] = useState('');
   const [insumoInput, setInsumoInput] = useState('');
   const [despesaInput, setDespesaInput] = useState('');
+  const [ativoInput, setAtivoInput] = useState('');
+  const [combustivelInput, setCombustivelInput] = useState('');
   const [servicoInput, setServicoInput] = useState('');
 
   useEffect(() => {
