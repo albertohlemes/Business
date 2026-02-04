@@ -874,13 +874,17 @@ Estrutura obrigatória:
                             <div className="flex gap-2">
                                 <Button 
                                     size="sm" 
-                                    onClick={() => {
-                                        baixarPDF(viewContent, {}, null);
-                                        toast.success('PDF salvo na pasta Downloads!');
-                                    }}
+                                    onClick={() => downloadWord(viewMinutaId)}
+                                    className="bg-blue-600 hover:bg-blue-700"
+                                >
+                                    <FileType className="w-4 h-4 mr-2" /> Word
+                                </Button>
+                                <Button 
+                                    size="sm" 
+                                    onClick={() => downloadPDF(viewMinutaId)}
                                     className="bg-red-600 hover:bg-red-700"
                                 >
-                                    <FileDown className="w-4 h-4 mr-2" /> Salvar PDF
+                                    <FileDown className="w-4 h-4 mr-2" /> PDF
                                 </Button>
                                 <Button 
                                     size="sm" 
