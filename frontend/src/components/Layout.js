@@ -28,7 +28,16 @@ const Layout = ({ user, onLogout, children }) => {
     if (href === '/') {
       return location.pathname === '/';
     }
-    return location.pathname.startsWith(href);
+    // Verificar correspondência exata ou com subrotas (mas não rotas similares)
+    // Ex: /apuracao não deve ativar quando estiver em /apuracao-pis-cofins
+    if (location.pathname === href) {
+      return true;
+    }
+    // Verificar se é uma subrota válida (com /)
+    if (location.pathname.startsWith(href + '/')) {
+      return true;
+    }
+    return false;
   };
 
   return (
