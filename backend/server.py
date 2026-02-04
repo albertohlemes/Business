@@ -6073,18 +6073,24 @@ async def classify_products_batch_llm(products: List[Dict[str, Any]], company_da
     1. REVENDA (Comercialização): {', '.join(company_data.get('produtos_comercializados', []))}
     2. INSUMO (Produção/Industrialização): {', '.join(company_data.get('insumos_producao', []))}
     3. DESPESA (Uso e Consumo): {', '.join(company_data.get('produtos_despesa', []))}
+    4. ATIVO_IMOBILIZADO (Bens permanentes): {', '.join(company_data.get('ativo_imobilizado', []))}
+    5. COMBUSTIVEL: {', '.join(company_data.get('combustivel', []))}
     
     Instruções:
-    Analise cada produto e classifique como 'revenda', 'insumo' ou 'despesa'.
+    Analise cada produto e classifique como 'revenda', 'insumo', 'despesa', 'ativo_imobilizado' ou 'combustivel'.
     Use inteligência semântica baseada nas palavras-chave acima.
-    Exemplos: 'Limpeza' implica 'Detergente', 'Vassoura'. 'Oriental' implica 'Sushi', 'Shoyu'.
+    - REVENDA: Produtos para comercialização/venda
+    - INSUMO: Matéria-prima para produção/industrialização
+    - DESPESA: Material de uso e consumo (limpeza, escritório, etc)
+    - ATIVO_IMOBILIZADO: Máquinas, equipamentos, veículos, móveis, computadores (bens permanentes)
+    - COMBUSTIVEL: Gasolina, diesel, etanol, GNV
     
     Responda APENAS um JSON no formato:
     {{
         "resultados": [
             {{
                 "id": "id_do_produto",
-                "categoria": "revenda|insumo|despesa",
+                "categoria": "revenda|insumo|despesa|ativo_imobilizado|combustivel",
                 "justificativa": "breve explicação"
             }}
         ]
