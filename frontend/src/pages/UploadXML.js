@@ -395,7 +395,28 @@ const UploadXML = ({ user, onLogout }) => {
                     <Sparkles className="w-6 h-6" />
                     RELATÓRIO DE CONVERSÕES AUTOMÁTICAS
                   </h3>
-                  <p className="text-purple-100">Total: {results.total_conversoes} produtos analisados e convertidos pela IA</p>
+                  <p className="text-purple-100">Total: {results.total_conversoes} produtos classificados</p>
+                  
+                  {/* Performance Stats */}
+                  {results.performance && (
+                    <div className="flex gap-4 mt-2 text-sm">
+                      {results.performance.produtos_do_cache > 0 && (
+                        <span className="bg-green-500 px-2 py-1 rounded">
+                          ⚡ {results.performance.produtos_do_cache} do cache
+                        </span>
+                      )}
+                      {results.performance.produtos_de_regras > 0 && (
+                        <span className="bg-blue-500 px-2 py-1 rounded">
+                          📋 {results.performance.produtos_de_regras} de regras
+                        </span>
+                      )}
+                      {results.performance.produtos_da_ia > 0 && (
+                        <span className="bg-yellow-500 text-yellow-900 px-2 py-1 rounded">
+                          🤖 {results.performance.produtos_da_ia} da IA
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {results.relatorio_conversoes.map((arquivo, idx) => (
@@ -404,7 +425,20 @@ const UploadXML = ({ user, onLogout }) => {
                       <div className="space-y-3">
                         {arquivo.conversoes.map((conv, i) => (
                           <div key={i} className="bg-white p-3 rounded-lg border border-purple-200">
-                            <p className="font-semibold text-gray-900 mb-2">{conv.produto}</p>
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="font-semibold text-gray-900">{conv.produto}</p>
+                              {/* Origem da classificação */}
+                              {conv.origem && (
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  conv.origem === 'cache' ? 'bg-green-100 text-green-700' :
+                                  conv.origem === 'regra' ? 'bg-blue-100 text-blue-700' :
+                                  'bg-yellow-100 text-yellow-700'
+                                }`}>
+                                  {conv.origem === 'cache' ? '⚡ Cache' : 
+                                   conv.origem === 'regra' ? '📋 Regra' : '🤖 IA'}
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-3 flex-wrap">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-gray-600">Original:</span>
