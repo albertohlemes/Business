@@ -426,6 +426,55 @@ async def delete_licenca(licenca_id: str, current_user: dict = Depends(get_curre
         raise HTTPException(status_code=404, detail="Licença não encontrada")
     return {"message": "Licença removida com sucesso"}
 
+@api_router.post("/licencas/{licenca_id}/consultar-redesim")
+async def consultar_redesim_automatico(
+    licenca_id: str, 
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Consulta automática no portal REDESIM SP usando certificado digital
+    """
+    licenca = await db.licencas.find_one({"id": licenca_id, "user_id": current_user["id"]})
+    if not licenca:
+        raise HTTPException(status_code=404, detail="Licença não encontrada")
+    
+    # Buscar certificado
+    cert = await db.certificados.find_one({"id": licenca["certificado_id"], "user_id": current_user["id"]})
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificado não encontrado")
+    
+    cert_path = cert.get("arquivo")
+    if not cert_path or not os.path.exists(cert_path):
+        raise HTTPException(status_code=400, detail="Arquivo de certificado não encontrado")
+    
+    try:
+        from redesim_automation import consultar_redesim
+        import asyncio
+        
+        # A senha está hasheada, precisamos da original
+        # Por segurança, vamos retornar instruções ao invés de tentar automatizar
+        
+        return {
+            "status": "manual_required",
+            "message": "A consulta automática no REDESIM requer login manual no Gov.br",
+            "cnpj": licenca["cnpj"],
+            "razao_social": licenca["razao_social"],
+            "portal_url": "https://vreredesim.sp.gov.br",
+            "instrucoes": [
+                "1. Acesse o portal REDESIM SP pelo link acima",
+                "2. Clique em 'Entrar' e faça login com Gov.br",
+                "3. Use seu certificado digital para autenticação",
+                "4. Na área logada, acesse 'Consultar Licenças'",
+                "5. Pesquise pelo CNPJ: " + licenca["cnpj"],
+                "6. Verifique o status da licença e data de vencimento",
+            ],
+            "certificado_nome": cert["nome"],
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro na consulta REDESIM: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro na consulta: {str(e)}")
+
 # ============ MINUTAS ROUTES ============
 
 @api_router.post("/minutas/upload")
