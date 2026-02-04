@@ -91,7 +91,7 @@ function App() {
             />
             <Route
               path="/export"
-              element={user ? <ExportSPED user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+              element={user ? <ExportMenu user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
               path="/reports"
