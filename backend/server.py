@@ -1514,6 +1514,136 @@ async def get_dashboard_stats(
         "analise_comparativa": analise_comparativa
     }
 
+@api_router.get("/apuracao-periodo/{company_id}")
+async def apuracao_periodo(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Apuração do período por CFOP com totais de entradas e saídas"""
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar documentos da competência
+    documents = await db.documents.find({
+        "company_id": company_id,
+        "competencia": competencia
+    }, {"_id": 0}).to_list(None)
+    
+    # Agrupar por CFOP
+    cfop_entradas = {}  # CFOPs de entrada (1xxx, 2xxx, 3xxx)
+    cfop_saidas = {}    # CFOPs de saída (5xxx, 6xxx, 7xxx)
+    
+    for doc in documents:
+        tipo_operacao = doc.get('tipo_operacao', 'entrada')
+        
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            if not cfop:
+                continue
+            
+            # Valores do produto
+            valor = float(prod.get('v_prod', 0) or 0)
+            bc_icms = float(prod.get('v_bc_icms', 0) or prod.get('v_bc', 0) or 0)
+            v_icms = float(prod.get('v_icms', 0) or 0)
+            v_pis = float(prod.get('v_pis', 0) or 0)
+            v_cofins = float(prod.get('v_cofins', 0) or 0)
+            
+            # Determinar se é entrada ou saída pelo CFOP
+            primeiro_digito = cfop[0] if cfop else ''
+            
+            if primeiro_digito in ['1', '2', '3']:
+                # Entrada
+                if cfop not in cfop_entradas:
+                    cfop_entradas[cfop] = {
+                        'cfop': cfop,
+                        'valor': 0,
+                        'bc_icms': 0,
+                        'v_icms': 0,
+                        'v_pis': 0,
+                        'v_cofins': 0,
+                        'qtd_itens': 0
+                    }
+                cfop_entradas[cfop]['valor'] += valor
+                cfop_entradas[cfop]['bc_icms'] += bc_icms
+                cfop_entradas[cfop]['v_icms'] += v_icms
+                cfop_entradas[cfop]['v_pis'] += v_pis
+                cfop_entradas[cfop]['v_cofins'] += v_cofins
+                cfop_entradas[cfop]['qtd_itens'] += 1
+                
+            elif primeiro_digito in ['5', '6', '7']:
+                # Saída
+                if cfop not in cfop_saidas:
+                    cfop_saidas[cfop] = {
+                        'cfop': cfop,
+                        'valor': 0,
+                        'bc_icms': 0,
+                        'v_icms': 0,
+                        'v_pis': 0,
+                        'v_cofins': 0,
+                        'qtd_itens': 0
+                    }
+                cfop_saidas[cfop]['valor'] += valor
+                cfop_saidas[cfop]['bc_icms'] += bc_icms
+                cfop_saidas[cfop]['v_icms'] += v_icms
+                cfop_saidas[cfop]['v_pis'] += v_pis
+                cfop_saidas[cfop]['v_cofins'] += v_cofins
+                cfop_saidas[cfop]['qtd_itens'] += 1
+    
+    # Converter para listas ordenadas por CFOP
+    lista_entradas = sorted(cfop_entradas.values(), key=lambda x: x['cfop'])
+    lista_saidas = sorted(cfop_saidas.values(), key=lambda x: x['cfop'])
+    
+    # Arredondar valores
+    for item in lista_entradas + lista_saidas:
+        item['valor'] = round(item['valor'], 2)
+        item['bc_icms'] = round(item['bc_icms'], 2)
+        item['v_icms'] = round(item['v_icms'], 2)
+        item['v_pis'] = round(item['v_pis'], 2)
+        item['v_cofins'] = round(item['v_cofins'], 2)
+    
+    # Calcular subtotais
+    subtotal_entradas = {
+        'valor': round(sum(x['valor'] for x in lista_entradas), 2),
+        'bc_icms': round(sum(x['bc_icms'] for x in lista_entradas), 2),
+        'v_icms': round(sum(x['v_icms'] for x in lista_entradas), 2),
+        'v_pis': round(sum(x['v_pis'] for x in lista_entradas), 2),
+        'v_cofins': round(sum(x['v_cofins'] for x in lista_entradas), 2),
+        'qtd_itens': sum(x['qtd_itens'] for x in lista_entradas)
+    }
+    
+    subtotal_saidas = {
+        'valor': round(sum(x['valor'] for x in lista_saidas), 2),
+        'bc_icms': round(sum(x['bc_icms'] for x in lista_saidas), 2),
+        'v_icms': round(sum(x['v_icms'] for x in lista_saidas), 2),
+        'v_pis': round(sum(x['v_pis'] for x in lista_saidas), 2),
+        'v_cofins': round(sum(x['v_cofins'] for x in lista_saidas), 2),
+        'qtd_itens': sum(x['qtd_itens'] for x in lista_saidas)
+    }
+    
+    return {
+        "empresa": {
+            "id": company['id'],
+            "razao_social": company['razao_social'],
+            "cnpj": company['cnpj'],
+            "regime_tributario": company.get('regime_tributario', 'lucro_presumido')
+        },
+        "competencia": competencia,
+        "entradas": {
+            "itens": lista_entradas,
+            "subtotal": subtotal_entradas
+        },
+        "saidas": {
+            "itens": lista_saidas,
+            "subtotal": subtotal_saidas
+        }
+    }
+
 @api_router.get("/analise-aliquotas-saida/{company_id}")
 async def analise_aliquotas_saida(
     company_id: str,
