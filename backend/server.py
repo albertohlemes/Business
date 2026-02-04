@@ -1334,6 +1334,7 @@ async def delete_template(template_id: str, current_user: dict = Depends(get_cur
 @api_router.get("/minutas/{minuta_id}/download/word")
 async def download_minuta_word(minuta_id: str, current_user: dict = Depends(get_current_user)):
     """Gera e baixa a minuta em formato Word (.docx)"""
+    from gerador_formatado import gerar_documento_formatado
     from template_manager import gerar_minuta_word
     
     minuta = await db.minutas.find_one({"id": minuta_id, "user_id": current_user["id"]})
@@ -1346,12 +1347,20 @@ async def download_minuta_word(minuta_id: str, current_user: dict = Depends(get_
     
     dados_extraidos = minuta.get("dados_extraidos", {})
     
-    # Verificar se usuário tem template
-    template = await db.templates.find_one({"user_id": current_user["id"]})
-    template_path = template["arquivo"] if template else None
+    # PRIORIDADE 1: Verificar se usuário tem formatação manual configurada
+    formatacao = await db.formatacoes.find_one({"user_id": current_user["id"]})
     
-    # Gerar documento Word
-    doc_bytes = gerar_minuta_word(conteudo, dados_extraidos, template_path)
+    if formatacao and formatacao.get("secoes") and len(formatacao.get("secoes", [])) > 0:
+        # Usar gerador com formatação manual
+        logger.info(f"Usando formatação manual para minuta {minuta_id}")
+        doc_bytes = gerar_documento_formatado(conteudo, formatacao, dados_extraidos)
+    else:
+        # PRIORIDADE 2: Verificar se usuário tem template de arquivo
+        template = await db.templates.find_one({"user_id": current_user["id"]})
+        template_path = template["arquivo"] if template else None
+        
+        # Gerar documento Word com template de arquivo
+        doc_bytes = gerar_minuta_word(conteudo, dados_extraidos, template_path)
     
     # Nome do arquivo
     cnpj = (minuta.get("cnpj") or "").replace(".", "").replace("/", "").replace("-", "")
@@ -1367,7 +1376,6 @@ async def download_minuta_word(minuta_id: str, current_user: dict = Depends(get_
 @api_router.get("/minutas/{minuta_id}/download/pdf")
 async def download_minuta_pdf(minuta_id: str, current_user: dict = Depends(get_current_user)):
     """Gera e baixa a minuta em formato PDF com formatação do template"""
-    from template_manager import template_manager_fiel
     from jspdf_wrapper import gerar_pdf_simples
     
     minuta = await db.minutas.find_one({"id": minuta_id, "user_id": current_user["id"]})
@@ -1380,17 +1388,35 @@ async def download_minuta_pdf(minuta_id: str, current_user: dict = Depends(get_c
     
     dados_extraidos = minuta.get("dados_extraidos", {})
     
-    # Verificar se usuário tem template para extrair formatação
-    template = await db.templates.find_one({"user_id": current_user["id"]})
+    # Verificar se usuário tem formatação manual
+    formatacao = await db.formatacoes.find_one({"user_id": current_user["id"]})
     formato = None
     
-    if template and template.get("arquivo"):
-        try:
-            formato = template_manager_fiel.extrair_formatacao_completa(template["arquivo"])
-        except Exception as e:
-            logger.warning(f"Erro ao extrair formatação do template para PDF: {e}")
+    if formatacao and formatacao.get("secoes"):
+        # Converter formatação manual para formato esperado pelo PDF
+        secoes = {s['id']: s for s in formatacao.get('secoes', [])}
+        formato = {
+            "fonte": {
+                "nome": secoes.get('clausula_texto', {}).get('fonte', 'Times'),
+                "tamanho": int(secoes.get('clausula_texto', {}).get('tamanho', 12))
+            },
+            "margens": formatacao.get('margens', {}),
+            "espacamento": {"linha": float(formatacao.get('espacamento', 1.5))},
+            "cabecalho": {"texto": [secoes.get('titulo', {}).get('exemplo', 'ALTERAÇÃO CONTRATUAL')]},
+            "rodape": {"texto": [secoes.get('rodape', {}).get('exemplo', 'Documento gerado pelo Portal Societário')]}
+        }
+    else:
+        # Tentar usar template de arquivo
+        from template_manager import template_manager_fiel
+        template = await db.templates.find_one({"user_id": current_user["id"]})
+        
+        if template and template.get("arquivo"):
+            try:
+                formato = template_manager_fiel.extrair_formatacao_completa(template["arquivo"])
+            except Exception as e:
+                logger.warning(f"Erro ao extrair formatação do template para PDF: {e}")
     
-    # Gerar PDF com formatação do template
+    # Gerar PDF
     pdf_bytes = gerar_pdf_simples(conteudo, dados_extraidos, formato)
     
     cnpj = (minuta.get("cnpj") or "").replace(".", "").replace("/", "").replace("-", "")
