@@ -689,7 +689,7 @@ async def list_minutas(current_user: dict = Depends(get_current_user)):
     minutas = await db.minutas.find(
         {"user_id": current_user["id"]},
         {"_id": 0, "user_id": 0, "mensagens": 0}
-    ).to_list(100)
+    ).sort("numero_alteracao", -1).to_list(100)
     
     return [MinutaResponse(
         id=m["id"],
@@ -698,7 +698,10 @@ async def list_minutas(current_user: dict = Depends(get_current_user)):
         arquivo_original=m.get("arquivo_nome", ""),
         conteudo_gerado=m.get("conteudo_gerado"),
         status=m["status"],
-        created_at=m["created_at"]
+        created_at=m["created_at"],
+        cnpj=m.get("cnpj"),
+        razao_social=m.get("razao_social"),
+        numero_alteracao=m.get("numero_alteracao", 0)
     ) for m in minutas]
 
 @api_router.get("/minutas/{minuta_id}")
