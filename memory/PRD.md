@@ -10,71 +10,79 @@ Portal para departamento societário com:
 - **Backend**: FastAPI + MongoDB
 - **IA**: Gemini 2.5 Flash via Emergent LLM Key
 - **Geração de Docs**: python-docx (Word), reportlab (PDF)
-- **Automação**: Playwright + noVNC (browser remoto visível) - PAUSADO
 
 ## Implementações Concluídas
 
-### ✅ Sistema de Templates de Formatação (04/02/2026)
-- Upload de templates .docx com formatação personalizada
-- Extração automática de:
-  - Cabeçalho e rodapé
-  - Fonte (nome e tamanho)
-  - Margens
-  - Espaçamento entre linhas
-- Geração de documentos Word preservando formatação do template
-- Geração de PDF com mesma formatação
+### ✅ Sistema de Formatação Manual (04/02/2026) - NOVO
+Formulário onde o usuário configura exatamente como cada parte do documento deve ser formatada:
+
+**Seções configuráveis:**
+1. **Título Principal** - Ex: "ALTERAÇÃO DO CONTRATO SOCIAL"
+2. **Preâmbulo** - Texto introdutório
+3. **Qualificação dos Sócios** - Nome em negrito, qualificação normal
+4. **Título das Cláusulas** - Ex: "CLÁUSULA PRIMEIRA"
+5. **Texto das Cláusulas** - Corpo da cláusula
+6. **Assinaturas** - Área de assinaturas
+7. **Rodapé** - Texto do rodapé
+8. **Logo** - Upload opcional
+
+**Opções por seção:**
+- Fonte (Arial, Times New Roman, Calibri, etc.)
+- Tamanho (10pt a 24pt)
+- Negrito/Itálico
+- Alinhamento (Esquerda, Centro, Justificado)
+
+**Configurações gerais:**
+- Margens (Superior, Inferior, Esquerda, Direita)
+- Espaçamento entre linhas (1.0, 1.5, 2.0)
 
 ### ✅ Listagem Agrupada por Cliente (04/02/2026)
-- Minutas agrupadas por CNPJ/Razão Social
-- Visualização clara de todas alterações por cliente
+- Minutas organizadas por CNPJ/Razão Social
 - Contador de alterações por cliente
-- Componente `ClienteMinutas` para melhor organização
 
 ### ✅ Minutas Contratuais
 - Wizard 4 etapas (Contrato → Alterações → Detalhes → Resultado)
-- Extração estruturada de dados via IA (campos, não texto corrido)
+- Extração estruturada de dados via IA
 - Upload de documentos de apoio
-- Download Word/PDF com template aplicado
+- Download Word/PDF com formatação personalizada
 
 ### ✅ Sistema de Autenticação
 - Login/Registro com JWT
 - Proteção de rotas
-- Logout funcional
 
 ## Arquivos Principais
 ```
 /app
 ├── backend/
-│   ├── server.py              # Endpoints FastAPI
-│   ├── template_manager.py    # Gerenciador de templates fiel
-│   ├── jspdf_wrapper.py       # Gerador de PDF com formatação
+│   ├── server.py                # Endpoints FastAPI
+│   ├── gerador_formatado.py     # NOVO - Gerador com formatação manual
+│   ├── template_manager.py      # Gerenciador de templates arquivo
+│   ├── jspdf_wrapper.py         # Gerador de PDF
 │   └── requirements.txt
 └── frontend/
     └── src/
         ├── pages/
-        │   └── Minutas.js     # Página com listagem agrupada
-        ├── components/
-        │   └── ClienteMinutas.js  # Componente de alterações por cliente
-        └── contexts/
-            └── AuthContext.js
+        │   └── Minutas.js
+        └── components/
+            ├── ConfiguracaoFormatacao.js  # NOVO - Modal de formatação
+            └── ClienteMinutas.js
 ```
 
-## Endpoints de Templates
-- `POST /api/templates/upload` - Upload de template .docx/.pdf
-- `GET /api/templates` - Lista templates do usuário
-- `DELETE /api/templates/{id}` - Remove template
-- `GET /api/minutas/{id}/download/word` - Download Word com template
-- `GET /api/minutas/{id}/download/pdf` - Download PDF com template
+## Novos Endpoints
+- `POST /api/formatacao/salvar` - Salva configuração de formatação manual
+- `GET /api/formatacao` - Retorna configuração do usuário
+- `POST /api/formatacao/logo` - Upload de logo
+
+## Prioridade de Formatação
+1. **Formatação Manual** (se configurada) - usa `gerador_formatado.py`
+2. **Template de Arquivo** (fallback) - usa `template_manager.py`
+3. **Padrão** - formatação default
 
 ## Backlog
-- **P1**: Implementar IA de consolidação de minutas (gerar conteúdo da alteração)
-- **P2**: Finalizar automação REDESIM (VNC WebSocket proxy)
+- **P1**: Implementar IA de consolidação de minutas
+- **P2**: Finalizar automação REDESIM (pausado)
 - **P3**: Renovação automática de licenças
 - **P3**: Notificações por email
-
-## Issues Conhecidos
-- Plugin visual-edits do Babel desabilitado (bug de recursão)
-- Automação REDESIM pausada (problema de WebSocket proxy)
 
 ## Credenciais de Teste
 - Email: teste_template@test.com
