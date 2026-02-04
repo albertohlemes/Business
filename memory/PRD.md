@@ -242,6 +242,24 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 28 (04/02/2026)
+- ✅ **NOVOS CAMPOS NO CADASTRO DE EMPRESA: ATIVO IMOBILIZADO E COMBUSTÍVEL**
+  - Adicionados campos de palavras-chave no cadastro de empresa para guiar a classificação da IA:
+    - **Ativo Imobilizado**: máquinas, equipamentos, veículos, computadores (bens permanentes)
+    - **Combustível**: gasolina, diesel, etanol, GNV
+  - CFOPs para Ativo Imobilizado:
+    - Tributados: 1551/2551
+    - Com ST: 1406/2406
+  - **Arquivos modificados:**
+    - Backend: `server.py` (models Company, CompanyCreate, CompanyUpdate, funções de classificação)
+    - Frontend: `Companies.js` (formulário com novos campos)
+    - Frontend: `ClassificacaoPage.js` (modal de reclassificação e edição de regras)
+
+- ✅ **IA ATUALIZADA PARA CLASSIFICAR NOVAS CATEGORIAS**
+  - Prompt da IA agora inclui as 5 categorias: REVENDA, INSUMO, DESPESA, ATIVO_IMOBILIZADO, COMBUSTÍVEL
+  - Função `classify_product_category` atualizada com detecção automática de ativos (máquina, equipamento, veículo, etc.)
+  - Função `get_cfop_from_category` atualizada com os CFOPs corretos para cada categoria
+
 ### 02/2026 - Iteration 27 (04/02/2026)
 - ✅ **MELHORIAS NA MEMÓRIA DA IA**
   - Adicionado checkbox para selecionar múltiplas regras
