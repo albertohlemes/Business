@@ -230,6 +230,26 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 22 (04/02/2026)
+- ✅ **BARRA DE PROGRESSO NO UPLOAD DE XML IMPLEMENTADA**
+  - **Backend com Server-Sent Events (SSE):**
+    - `POST /api/xml/upload-init` - Inicializa sessão de upload, retorna `upload_id`
+    - `GET /api/xml/upload-progress/{upload_id}` - Stream de progresso via SSE
+    - `POST /api/xml/upload-stream` - Upload de arquivos com atualização de progresso em tempo real
+  - **Frontend com feedback visual:**
+    - Barra de progresso fixa no topo da tela durante o upload
+    - Exibe porcentagem de progresso em tempo real
+    - Contador de arquivos processados vs total ("X de Y arquivos processados")
+    - Etapa atual do processamento ("Lendo arquivo...", "Validando...", "Classificando...", "Salvando...")
+    - Nome do arquivo sendo processado
+    - Botão mostra "Processando... X%" com spinner animado
+    - Inputs desabilitados durante o upload para evitar alterações
+    - Área de upload mostra "Upload em andamento..."
+  - **Testes:** 100% backend (7/7) e 100% frontend verificado
+  - **Arquivos modificados:**
+    - `/app/backend/server.py` - 3 novos endpoints SSE
+    - `/app/frontend/src/pages/UploadXML.js` - Componente ProgressBar e lógica SSE
+
 ### 02/2026 - Iteration 21 (04/02/2026)
 - ✅ **Reclassificação Manual na Validação de Entrada**
   - Botão "Reclassificar" nos produtos (visão Por NF-e)
