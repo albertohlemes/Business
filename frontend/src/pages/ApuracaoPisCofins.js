@@ -23,7 +23,7 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
-  const [viewMode, setViewMode] = useState('cfop'); // 'cfop' ou 'ncm'
+  const [viewMode, setViewMode] = useState('cst'); // 'cfop', 'ncm' ou 'cst'
   const [expandedSections, setExpandedSections] = useState({
     creditoComCredito: true,
     creditoAliqZero: false,
