@@ -697,23 +697,32 @@ Use linguagem jurídica formal e precisa. Inclua todos os dados extraídos dos d
 
             {/* View Dialog */}
             <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-3xl max-h-[80vh] overflow-auto">
+                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
                     <DialogHeader className="border-b border-zinc-800 pb-4">
-                        <DialogTitle className="text-white flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-red-500" />
-                            Visualizar Minuta
-                        </DialogTitle>
+                        <div className="flex items-center justify-between">
+                            <DialogTitle className="text-white flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-red-500" />
+                                Visualizar Minuta
+                            </DialogTitle>
+                            <Button size="sm" onClick={() => { navigator.clipboard.writeText(viewContent); toast.success('Copiado!'); }}
+                                className="bg-red-600 hover:bg-red-700">
+                                <Copy className="w-4 h-4 mr-2" /> Copiar Tudo
+                            </Button>
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-2">
+                            Selecione e copie o texto abaixo, ou use o botão "Copiar Tudo"
+                        </p>
                     </DialogHeader>
-                    <pre className="p-4 whitespace-pre-wrap text-sm text-zinc-300 font-mono bg-zinc-950 rounded border border-zinc-800 m-4">
-                        {viewContent}
-                    </pre>
-                    <div className="flex justify-end gap-2 p-4 border-t border-zinc-800">
+                    <div className="flex-1 overflow-y-auto p-4">
+                        <div className="bg-white text-black rounded-lg p-6">
+                            <pre className="whitespace-pre-wrap text-sm font-serif leading-relaxed" style={{fontFamily: 'Times New Roman, serif'}}>
+                                {viewContent}
+                            </pre>
+                        </div>
+                    </div>
+                    <div className="flex justify-end p-4 border-t border-zinc-800">
                         <Button variant="outline" onClick={() => setViewOpen(false)} className="border-zinc-700">
                             Fechar
-                        </Button>
-                        <Button onClick={() => { navigator.clipboard.writeText(viewContent); toast.success('Copiado!'); }}
-                            className="bg-red-600 hover:bg-red-700">
-                            <Copy className="w-4 h-4 mr-2" /> Copiar
                         </Button>
                     </div>
                 </DialogContent>
