@@ -1291,6 +1291,25 @@ async def upload_xml_batch(
             # APLICAR ANÁLISE INTELIGENTE E CONVERTER CFOP AUTOMATICAMENTE
             for product in parsed_data['produtos']:
                 cfop_original = product.get('cfop', '')
+                ncm = product.get('ncm', '')
+                
+                # APLICAR CST CALCULADO DE PIS/COFINS
+                cst_info = calcular_cst_pis_cofins(
+                    ncm=ncm,
+                    cfop=cfop_original,
+                    tipo_operacao=tipo,
+                    cst_xml=product.get('cst_pis_xml', product.get('cst_pis', '')),
+                    regime=regime_tributario
+                )
+                
+                # Aplicar CST calculado (não o do XML)
+                product['cst_pis_calculado'] = cst_info['cst_calculado']
+                product['cst_cofins_calculado'] = cst_info['cst_calculado']  # PIS e COFINS usam mesmo CST
+                product['cst_pis'] = cst_info['cst_calculado']  # Sobrescrever com calculado
+                product['cst_cofins'] = cst_info['cst_calculado']  # Sobrescrever com calculado
+                product['cst_divergente'] = cst_info['divergente']
+                product['cst_motivo'] = cst_info['motivo']
+                product['ncm_aliq_zero'] = cst_info['aliq_zero']
                 
                 # VERIFICAR SE É CFOP DE OPERAÇÃO DISTINTA (apenas para entradas)
                 if tipo == 'entrada' and cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
