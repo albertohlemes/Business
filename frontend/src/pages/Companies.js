@@ -368,6 +368,152 @@ const Companies = ({ user, onLogout }) => {
                 </div>
               </div>
 
+              {/* REGIME TRIBUTÁRIO */}
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                <h3 className="font-bold text-blue-900 mb-4 flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Regime Tributário
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Regime *</label>
+                    <select
+                      value={formData.regime_tributario}
+                      onChange={(e) => setFormData({ ...formData, regime_tributario: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="simples_nacional">Simples Nacional</option>
+                      <option value="lucro_presumido">Lucro Presumido</option>
+                      <option value="lucro_real">Lucro Real</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Atividade *</label>
+                    <select
+                      value={formData.tipo_atividade}
+                      onChange={(e) => atualizarPresuncao(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    >
+                      <option value="comercio">Comércio</option>
+                      <option value="industria">Indústria</option>
+                      <option value="servicos">Serviços</option>
+                      <option value="mista">Mista (Comércio + Serviços)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Anexos do Simples Nacional */}
+                {formData.regime_tributario === 'simples_nacional' && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Anexos do Simples Nacional</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['I', 'II', 'III', 'IV', 'V'].map((anexo) => (
+                        <button
+                          key={anexo}
+                          type="button"
+                          onClick={() => toggleAnexoSimples(anexo)}
+                          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                            formData.anexos_simples.includes(anexo)
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          Anexo {anexo}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">I=Comércio, II=Indústria, III=Serviços, IV=Serviços específicos, V=Serviços profissionais</p>
+                  </div>
+                )}
+
+                {/* Presunção do Lucro Presumido */}
+                {formData.regime_tributario === 'lucro_presumido' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Presunção IRPJ (%)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={formData.percentual_presuncao_irpj}
+                        onChange={(e) => setFormData({ ...formData, percentual_presuncao_irpj: parseFloat(e.target.value) })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Comércio: 8% | Serviços: 32%</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Presunção CSLL (%)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={formData.percentual_presuncao_csll}
+                        onChange={(e) => setFormData({ ...formData, percentual_presuncao_csll: parseFloat(e.target.value) })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Comércio: 12% | Serviços: 32%</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Estoque para Lucro Real */}
+                {formData.regime_tributario === 'lucro_real' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Estoque Inicial (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={formData.estoque_inicial}
+                        onChange={(e) => setFormData({ ...formData, estoque_inicial: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Estoque Final (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={formData.estoque_final}
+                        onChange={(e) => setFormData({ ...formData, estoque_final: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Tipos de Serviço */}
+                {(formData.tipo_atividade === 'servicos' || formData.tipo_atividade === 'mista') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tipos de Serviço Prestados</label>
+                    <div className="flex gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={servicoInput}
+                        onChange={(e) => setServicoInput(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), adicionarServico())}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                        placeholder="Ex: Transporte, Consultoria, TI..."
+                      />
+                      <button
+                        type="button"
+                        onClick={adicionarServico}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.tipos_servico.map((servico, index) => (
+                        <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm flex items-center gap-2">
+                          {servico}
+                          <button type="button" onClick={() => removerServico(index)} className="hover:text-blue-600">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Produtos Comercializados (para classificação REVENDA)</label>
                 <div className="flex gap-2 mb-2">
