@@ -44,6 +44,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
   const [showRules, setShowRules] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
   const [ruleEdit, setRuleEdit] = useState({ categoria: '', cfop: '' });
+  const [selectedRules, setSelectedRules] = useState([]); // Para exclusão em lote
 
   // Funções de ordenação
   const toggleSort = (field) => {
