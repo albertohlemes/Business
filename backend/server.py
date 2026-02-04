@@ -1767,11 +1767,20 @@ async def apuracao_pis_cofins(
     }
     
     def is_ncm_aliquota_zero(ncm):
-        """Verifica se NCM tem alíquota zero"""
+        """Verifica se NCM tem alíquota zero (Tabela 4.3.13 SPED)"""
         if not ncm:
             return False
-        ncm_str = str(ncm).replace('.', '')[:4]
-        return ncm_str in NCMS_ALIQUOTA_ZERO_PREFIXOS
+        ncm_str = str(ncm).replace('.', '').strip()
+        
+        # Verificar NCM completo (8 dígitos)
+        if len(ncm_str) >= 8 and ncm_str[:8] in NCMS_ALIQUOTA_ZERO_COMPLETOS:
+            return True
+        
+        # Verificar prefixo (4 dígitos)
+        if len(ncm_str) >= 4 and ncm_str[:4] in NCMS_ALIQUOTA_ZERO_PREFIXOS:
+            return True
+            
+        return False
     
     def add_to_dict(d, key, valor, pis, cofins, cst=None):
         """Adiciona valores a um dicionário agrupador"""
