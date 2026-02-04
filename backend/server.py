@@ -4613,6 +4613,12 @@ Seja específico e use os valores reais fornecidos."""
             "notas_processadas": {
                 "entrada": len(docs_entrada),
                 "saida": len(docs_saida)
+async def get_ai_chat(session_id: str, system_message: str):
+    return LlmChat(
+        system_message=system_message,
+        session_id=session_id,
+        model="gpt-4o"
+    )
             }
         }
 async def classify_products_batch_llm(products: List[Dict[str, Any]], company_data: Dict[str, Any], batch_size: int = 20) -> Dict[str, Any]:
