@@ -1727,6 +1727,27 @@ async def extrair_campo_documento(
                     if valor.startswith('json'):
                         valor = valor[4:]
                 valor = json.loads(valor.strip())
+                
+                # Se for endereço e tiver CEP, consultar os Correios para atualizar logradouro
+                if campo == 'endereco' and isinstance(valor, dict) and valor.get('cep'):
+                    import httpx
+                    cep_limpo = ''.join(filter(str.isdigit, str(valor.get('cep', ''))))
+                    if len(cep_limpo) == 8:
+                        try:
+                            async with httpx.AsyncClient() as client:
+                                cep_response = await client.get(f"https://viacep.com.br/ws/{cep_limpo}/json/", timeout=5.0)
+                                if cep_response.status_code == 200:
+                                    dados_correios = cep_response.json()
+                                    if not dados_correios.get("erro"):
+                                        # Atualizar com dados oficiais dos Correios
+                                        valor['logradouro'] = dados_correios.get('logradouro', valor.get('logradouro', ''))
+                                        valor['bairro'] = dados_correios.get('bairro', valor.get('bairro', ''))
+                                        valor['cidade'] = dados_correios.get('localidade', valor.get('cidade', ''))
+                                        valor['estado'] = dados_correios.get('uf', valor.get('estado', ''))
+                                        valor['cep'] = dados_correios.get('cep', valor.get('cep', '')).replace('-', '')
+                                        logger.info(f"Endereço atualizado via Correios para CEP {cep_limpo}")
+                        except Exception as e:
+                            logger.warning(f"Não foi possível consultar CEP nos Correios: {str(e)}")
             except:
                 pass
         
