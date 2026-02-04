@@ -1613,7 +1613,7 @@ async def apuracao_pis_cofins(
     ]
     
     # Buscar documentos
-    documents = await db.documents.find({
+    documents = await db.xml_documents.find({
         "company_id": company_id,
         "competencia": competencia
     }, {"_id": 0}).to_list(None)
