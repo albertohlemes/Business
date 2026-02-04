@@ -880,8 +880,32 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
 def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo: str) -> str:
     lines = []
     
-    lines.append("|0000|014|0|01012024|31012024|BUSINESS CONTABILIDADE||SP|{}|{}|||A|1|".format(
-        company.cnpj.replace('.','').replace('/','').replace('-',''),
+    # Parsear período (MM/AAAA) para obter datas corretas
+    try:
+        mes, ano = periodo.split('/')
+        mes = int(mes)
+        ano = int(ano)
+        # Primeiro e último dia do mês
+        dt_inicio = f"{ano:04d}{mes:02d}01"
+        # Último dia do mês
+        if mes == 12:
+            dt_fim = f"{ano:04d}1231"
+        else:
+            from calendar import monthrange
+            ultimo_dia = monthrange(ano, mes)[1]
+            dt_fim = f"{ano:04d}{mes:02d}{ultimo_dia:02d}"
+    except:
+        dt_inicio = "01012024"
+        dt_fim = "31012024"
+    
+    # Registro 0000 - Abertura do arquivo digital
+    cnpj_limpo = company.cnpj.replace('.','').replace('/','').replace('-','')
+    lines.append("|0000|014|0|{}|{}|{}||{}|{}|{}|||A|1|".format(
+        dt_inicio,
+        dt_fim,
+        company.razao_social[:100] if company.razao_social else '',
+        company.uf or 'SP',
+        cnpj_limpo,
         company.inscricao_estadual or ''
     ))
     lines.append("|0001|0|")
@@ -899,8 +923,23 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
         company.uf or 'SP',
         company.inscricao_estadual or ''
     ))
+    
+    # Registro 0100 - Contador (dados genéricos)
     lines.append("|0100|BUSINESS CONTABILIDADE|12345678000199|12345678|business@businessconta.com.br|1235123731|")
-    lines.append("|0150|BUSINESS CONTABILIDADE|12345678000199|SP|123456789|business@businessconta.com.br|1235123731|")
+    
+    # Registro 0150 - Participantes (fornecedores/clientes)
+    participantes = {}
+    for doc in documents:
+        emit_cnpj = doc.emitente_cnpj.replace('.','').replace('/','').replace('-','') if doc.emitente_cnpj else ''
+        dest_cnpj = doc.destinatario_cnpj.replace('.','').replace('/','').replace('-','') if doc.destinatario_cnpj else ''
+        
+        if emit_cnpj and emit_cnpj not in participantes:
+            participantes[emit_cnpj] = doc.emitente_nome or 'FORNECEDOR'
+        if dest_cnpj and dest_cnpj not in participantes:
+            participantes[dest_cnpj] = doc.destinatario_nome or 'CLIENTE'
+    
+    for cnpj, nome in participantes.items():
+        lines.append("|0150|{}|{}|SP|||{}|".format(cnpj, nome[:60], cnpj))
     
     all_products = {}
     for doc in documents:
