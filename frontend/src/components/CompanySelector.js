@@ -115,13 +115,11 @@ const CompanySelector = () => {
         <div className="bg-gradient-to-r from-red-600 to-red-700 p-6 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-gray-900 rounded-lg overflow-hidden">
-                <img 
-                  src="/logo-business.png" 
-                  alt="Business Contabilidade" 
-                  className="h-12 w-auto"
-                />
-              </div>
+              <img 
+                src="/logo-business.png" 
+                alt="Business Contabilidade" 
+                className="h-12 w-auto"
+              />
               <div>
                 <h2 className="text-xl font-bold">Selecione a Empresa</h2>
                 <p className="text-red-100 text-sm">Escolha a empresa e competência para trabalhar</p>
