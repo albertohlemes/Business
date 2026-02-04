@@ -13,6 +13,7 @@ import Reports from './pages/Reports';
 import ReclassificationAI from './pages/ReclassificationAI';
 import AnaliseTributaria from './pages/AnaliseTributaria';
 import AnaliseAliquotasSaida from './pages/AnaliseAliquotasSaida';
+import ApuracaoPeriodo from './pages/ApuracaoPeriodo';
 import './App.css';
 
 function App() {
