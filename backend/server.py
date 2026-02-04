@@ -1494,9 +1494,12 @@ async def get_dashboard_stats(
         "debitos": {
             "icms": round(debito_icms, 2),
             "pis": round(debito_pis, 2),
+            "pis_xml": round(debito_pis_xml, 2) if regime_tributario == 'lucro_real' else None,
             "cofins": round(debito_cofins, 2),
+            "cofins_xml": round(debito_cofins_xml, 2) if regime_tributario == 'lucro_real' else None,
             "iss": round(total_iss, 2),
-            "total": round(debito_icms + debito_pis + debito_cofins + total_iss, 2)
+            "total": round(debito_icms + debito_pis + debito_cofins + total_iss, 2),
+            "divergencias": divergencias_pis_cofins if divergencias_pis_cofins else None
         },
         "impostos_pagar": {
             "icms": round(icms_pagar, 2),
