@@ -85,15 +85,15 @@ const Dashboard = () => {
                     <div className="metric-label">Requerem Ação</div>
                 </div>
 
-                <div className="metric-card card-hover" data-testid="metric-minutas">
+                <div className="metric-card card-hover" data-testid="metric-processos">
                     <div className="flex items-start justify-between mb-4">
                         <FileText className="w-6 h-6 text-red-500" strokeWidth={1.5} />
-                        <span className="text-xs text-zinc-500 uppercase">Minutas</span>
+                        <span className="text-xs text-zinc-500 uppercase">Processos</span>
                     </div>
                     <div className="metric-value text-white">
                         {stats?.minutas?.total || 0}
                     </div>
-                    <div className="metric-label">Total de Minutas</div>
+                    <div className="metric-label">Total de Processos</div>
                 </div>
             </div>
 
@@ -102,19 +102,19 @@ const Dashboard = () => {
                 <div className="bg-zinc-900 border border-zinc-800 rounded p-6">
                     <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                         <FileText className="w-5 h-5 text-red-500" strokeWidth={1.5} />
-                        Minutas Contratuais
+                        Processos Societários
                     </h2>
                     <p className="text-zinc-400 mb-6 text-sm">
-                        Crie minutas de alteração contratual com auxílio de IA. 
-                        Faça upload do contrato social e descreva as alterações desejadas.
+                        Constituição, alteração e baixa de empresas com auxílio de IA.
+                        Faça upload de documentos para preenchimento automático.
                     </p>
                     <div className="flex items-center gap-4">
                         <Button 
-                            data-testid="nova-minuta-btn"
+                            data-testid="novo-processo-btn"
                             onClick={() => navigate('/processos')}
                             className="bg-red-600 hover:bg-red-700 btn-business"
                         >
-                            Nova Minuta
+                            Novo Processo
                             <ArrowRight className="w-4 h-4 ml-2" strokeWidth={1.5} />
                         </Button>
                         <span className="text-zinc-500 text-sm">
