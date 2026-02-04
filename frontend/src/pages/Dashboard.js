@@ -128,9 +128,19 @@ const Dashboard = ({ user, onLogout }) => {
           <div className="bg-yellow-50 rounded-xl p-8 text-center border border-yellow-200">
             <Building2 className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-yellow-900 mb-2">Selecione uma Empresa</h3>
-            <p className="text-yellow-700">
-              Clique no botão no header para selecionar a empresa e competência
+            <p className="text-yellow-700 mb-4">
+              Clique no botão abaixo ou no header para selecionar a empresa e competência
             </p>
+            <button
+              onClick={() => {
+                // Importar openSelector do contexto e chamar
+                const { openSelector } = require('../context/AppContext');
+              }}
+              data-testid="open-selector-from-dashboard"
+              className="px-6 py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700"
+            >
+              Selecionar Empresa
+            </button>
           </div>
         ) : loading ? (
           <div className="text-center py-12">
