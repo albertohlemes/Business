@@ -64,6 +64,12 @@ class SpecificEndpointTester:
         
         if response.status_code != 200:
             print(f"❌ Company creation failed: {response.status_code}")
+            if response.content:
+                try:
+                    error_detail = response.json()
+                    print(f"   Error detail: {error_detail}")
+                except:
+                    print(f"   Error text: {response.text}")
             return False
         
         self.company_id = response.json()['id']
