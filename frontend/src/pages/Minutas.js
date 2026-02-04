@@ -65,6 +65,10 @@ const Minutas = () => {
     // View minuta
     const [viewOpen, setViewOpen] = useState(false);
     const [viewContent, setViewContent] = useState('');
+    
+    // PDF viewer
+    const [pdfViewOpen, setPdfViewOpen] = useState(false);
+    const [pdfUrl, setPdfUrl] = useState('');
 
     useEffect(() => {
         fetchMinutas();
