@@ -30,6 +30,11 @@ const ValidationPage = ({ user, onLogout }) => {
   
   // Mensagem de sucesso
   const [successMessage, setSuccessMessage] = useState('');
+  
+  // Estado para reclassificação manual
+  const [reclassifyingProduct, setReclassifyingProduct] = useState(null); // {docId, productIndex, product}
+  const [newCategoria, setNewCategoria] = useState('');
+  const [reclassifyMotivo, setReclassifyMotivo] = useState('');
 
   // Mostrar mensagem de sucesso por 3 segundos
   const showSuccess = (message) => {
