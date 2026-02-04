@@ -1025,13 +1025,59 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
         setDadosCapital({ tipoCapital: 'aumento', novoCapital: '', motivoCapital: '' });
         setDadosNome({ novaRazaoSocial: '', novoNomeFantasia: '' });
         setDadosAdministracao({ novosAdministradores: [], poderesAdmin: '' });
+        setDadosOutras({ clausulasParaAlterar: [], clausulaManualTitulo: '', clausulaManualTexto: '' });
         setMinutaGerada('');
         setMinutaId(null);
+        setCnpjInput('');
     };
 
     const handleClose = () => {
         resetWizard();
         onClose();
+    };
+
+    // Buscar dados na Receita Federal pelo CNPJ
+    const handleBuscarCnpj = async () => {
+        const cnpjLimpo = cnpjInput.replace(/\D/g, '');
+        if (cnpjLimpo.length !== 14) {
+            toast.error('CNPJ deve ter 14 dígitos');
+            return;
+        }
+        
+        setBuscandoCnpj(true);
+        try {
+            const response = await axios.get(`${API_URL}/api/cnpj/${cnpjLimpo}`);
+            if (response.data.success) {
+                const { empresa, cnaes, qsa } = response.data;
+                
+                // Mesclar com dados existentes ou criar novos
+                setDadosExtraidos(prev => ({
+                    ...prev,
+                    empresa: {
+                        ...prev?.empresa,
+                        ...empresa,
+                        cnpj: empresa.cnpj,
+                        razao_social: empresa.razao_social,
+                        nome_fantasia: empresa.nome_fantasia,
+                        endereco: empresa.endereco,
+                        capital_social: empresa.capital_social
+                    },
+                    cnaes: cnaes,
+                    socios: qsa?.map(s => ({
+                        nome: s.nome,
+                        qualificacao: s.qual
+                    })) || prev?.socios || []
+                }));
+                
+                toast.success(`CNAEs da empresa carregados: ${cnaes.length} atividade(s)`);
+            }
+        } catch (error) {
+            console.error('Erro ao buscar CNPJ:', error);
+            const msg = error.response?.data?.detail || 'Erro ao consultar Receita Federal';
+            toast.error(msg);
+        } finally {
+            setBuscandoCnpj(false);
+        }
     };
 
     // Step 1: Upload e análise do contrato
@@ -1059,7 +1105,33 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
             const extractRes = await axios.post(`${API_URL}/api/minutas/${uploadRes.data.id}/extrair-dados`);
             
             if (extractRes.data.success && extractRes.data.dados) {
-                setDadosExtraidos(extractRes.data.dados);
+                const dados = extractRes.data.dados;
+                setDadosExtraidos(dados);
+                
+                // Se extraiu CNPJ, buscar CNAEs automaticamente na Receita
+                if (dados.empresa?.cnpj) {
+                    setCnpjInput(dados.empresa.cnpj);
+                    try {
+                        const cnpjLimpo = dados.empresa.cnpj.replace(/\D/g, '');
+                        if (cnpjLimpo.length === 14) {
+                            const receitaRes = await axios.get(`${API_URL}/api/cnpj/${cnpjLimpo}`);
+                            if (receitaRes.data.success) {
+                                setDadosExtraidos(prev => ({
+                                    ...prev,
+                                    cnaes: receitaRes.data.cnaes,
+                                    empresa: {
+                                        ...prev?.empresa,
+                                        ...receitaRes.data.empresa
+                                    }
+                                }));
+                                toast.success(`CNAEs carregados da Receita Federal: ${receitaRes.data.cnaes?.length || 0} atividade(s)`);
+                            }
+                        }
+                    } catch (receitaError) {
+                        console.log('Não foi possível buscar CNAEs na Receita:', receitaError.message);
+                    }
+                }
+                
                 toast.success('Contrato analisado com sucesso!');
             } else {
                 toast.warning('Análise parcial. Alguns dados podem não estar disponíveis.');
