@@ -1229,14 +1229,17 @@ async def upload_xml_batch(
         "rejeitadas_cnpj": rejeitadas_cnpj,
         "rejeitadas_competencia": rejeitadas_competencia,
         "relatorio_conversoes": conversion_report,
+        "alertas_cfop": alertas_cfop,
         "total_conversoes": sum(len(r['conversoes']) for r in conversion_report),
+        "total_alertas_cfop": sum(len(a['alertas']) for a in alertas_cfop),
         "resumo": {
             "total_arquivos": len(files),
             "importados": len(results),
             "duplicados": len(duplicadas),
             "rejeitados_cnpj": len(rejeitadas_cnpj),
             "rejeitados_competencia": len(rejeitadas_competencia),
-            "erros": len(errors)
+            "erros": len(errors),
+            "alertas_cfop": len(alertas_cfop)
         }
     }
 
