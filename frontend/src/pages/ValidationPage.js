@@ -42,6 +42,46 @@ const ValidationPage = ({ user, onLogout }) => {
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
+  // Função para reclassificar produto manualmente
+  const handleReclassifyProduct = async () => {
+    if (!reclassifyingProduct || !newCategoria) {
+      alert('Selecione uma categoria');
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API}/products/reclassify-manual`, {
+        document_id: reclassifyingProduct.docId,
+        product_index: reclassifyingProduct.productIndex,
+        nova_categoria: newCategoria,
+        motivo: reclassifyMotivo || null
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      showSuccess(`${response.data.message}. Regra memorizada para futuras importações!`);
+      setReclassifyingProduct(null);
+      setNewCategoria('');
+      setReclassifyMotivo('');
+      
+      // Recarregar dados
+      fetchData();
+      if (selectedDoc) {
+        selectDocument(selectedDoc.id);
+      }
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erro ao reclassificar produto');
+    }
+  };
+
+  // Abrir modal de reclassificação
+  const openReclassifyModal = (docId, productIndex, product) => {
+    setReclassifyingProduct({ docId, productIndex, product });
+    setNewCategoria(product.categoria_classificada || '');
+    setReclassifyMotivo('');
+  };
+
   useEffect(() => {
     if (selectedCompany && selectedCompetencia) {
       fetchData();
