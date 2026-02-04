@@ -11,6 +11,9 @@ from typing import Optional, Dict, Any
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 import logging
 
+# Configurar path dos browsers do Playwright
+os.environ['PLAYWRIGHT_BROWSERS_PATH'] = '/app/backend/browsers'
+
 logger = logging.getLogger(__name__)
 
 class RedesimConsultaVNC:
