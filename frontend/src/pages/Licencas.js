@@ -655,13 +655,19 @@ const Licencas = () => {
                             <div className="bg-amber-950/30 border border-amber-800 rounded-lg p-4">
                                 <p className="text-amber-400 font-medium mb-2">⚠️ Aguardando login</p>
                                 <p className="text-sm text-zinc-400 mb-3">
-                                    O sistema navegou até a tela de login. Faça login com seu certificado digital no Gov.br 
-                                    e depois clique no botão abaixo.
+                                    O sistema navegou até a tela de login. Faça login com seu certificado digital no Gov.br.
+                                    <br/><br/>
+                                    <strong className="text-amber-300">A consulta será feita automaticamente após você fazer o login!</strong>
                                 </p>
-                                <Button onClick={continuarAposLogin} className="bg-amber-600 hover:bg-amber-700">
-                                    <RefreshCw className="w-4 h-4 mr-2" />
-                                    Já fiz login, continuar consulta
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button onClick={continuarAposLogin} className="bg-amber-600 hover:bg-amber-700">
+                                        <RefreshCw className="w-4 h-4 mr-2" />
+                                        Verificar Login Manualmente
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-zinc-500 mt-2">
+                                    Verificando automaticamente a cada 5 segundos...
+                                </p>
                             </div>
                         )}
                         
