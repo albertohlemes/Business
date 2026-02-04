@@ -2873,7 +2873,14 @@ Se o comando não for claro ou não se aplicar a nenhum produto, retorne {{"alte
 """
 
     try:
-        llm = LlmChat(api_key=os.environ.get('EMERGENT_LLM_KEY'))
+        import json
+        import re
+        
+        llm = LlmChat(
+            api_key=os.environ.get('EMERGENT_LLM_KEY'),
+            session_id=f"cfop-resolver-{company_id}-{competencia}",
+            system_message="Você é um assistente fiscal especializado em classificação de CFOPs. Responda sempre em formato JSON válido."
+        )
         response = await llm.chat(
             messages=[UserMessage(content=prompt)],
             model="gpt-4o"
