@@ -180,23 +180,7 @@ const Documents = ({ user, onLogout }) => {
               </button>
             )}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Empresa</label>
-              <select
-                data-testid="filter-company-select"
-                value={selectedCompany}
-                onChange={(e) => setSelectedCompany(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-              >
-                <option value="">Todas</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.codigo_empresa ? `#${company.codigo_empresa} - ` : ''}{company.razao_social}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
               <select
