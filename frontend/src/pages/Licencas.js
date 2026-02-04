@@ -42,6 +42,8 @@ const Licencas = () => {
     // Instruções REDESIM
     const [instrucoesOpen, setInstrucoesOpen] = useState(false);
     const [instrucoesCnpj, setInstrucoesCnpj] = useState('');
+    const [screenshotRedesim, setScreenshotRedesim] = useState('');
+    const [aguardandoLogin, setAguardandoLogin] = useState(false);
 
     // Form state
     const [cnpj, setCnpj] = useState('');
