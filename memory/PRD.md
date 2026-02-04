@@ -108,8 +108,8 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - **OpenAI GPT-4o** - análises tributárias e reclassificação via Emergent LLM Key
 
 ## Testes (04/02/2026)
-- Frontend: 100% - Todos os 4 bugs/features testados e funcionando
-- iteration_5.json: Menu, Excluir Empresa, Exportar CSV, Análise Tributária
+- Frontend iteration_5: 100% - Menu, Excluir Empresa, Exportar CSV, Análise Tributária
+- Frontend iteration_6: 100% - UX Validação e Reclassificação IA (8 features)
 
 ## Credenciais de Teste
 - Email: admin@test.com
