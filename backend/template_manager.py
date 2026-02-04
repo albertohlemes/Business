@@ -29,7 +29,7 @@ class TemplateManagerFiel:
         self.templates_dir = TEMPLATES_DIR
     
     def extrair_formatacao_completa(self, template_path: str) -> Dict[str, Any]:
-        """Extrai TODA a formatação do template"""
+        """Extrai TODA a formatação do template de forma mais completa"""
         formato = {
             "fonte": {
                 "nome": "Times New Roman",
@@ -69,7 +69,21 @@ class TemplateManagerFiel:
             if section.right_margin:
                 formato["margens"]["right"] = section.right_margin.cm
             
-            # Extrair fonte padrão do primeiro parágrafo com conteúdo
+            # Tentar extrair fonte do estilo Normal primeiro
+            try:
+                normal_style = doc.styles['Normal']
+                if normal_style.font.name:
+                    formato["fonte"]["nome"] = normal_style.font.name
+                if normal_style.font.size:
+                    formato["fonte"]["tamanho"] = normal_style.font.size.pt
+                
+                # Espaçamento do estilo Normal
+                if normal_style.paragraph_format.line_spacing:
+                    formato["espacamento"]["linha"] = normal_style.paragraph_format.line_spacing
+            except KeyError:
+                pass
+            
+            # Extrair fonte padrão do primeiro parágrafo com conteúdo (fallback)
             for para in doc.paragraphs:
                 if para.text.strip() and para.runs:
                     run = para.runs[0]
@@ -87,31 +101,47 @@ class TemplateManagerFiel:
                         formato["espacamento"]["depois_paragrafo"] = para.paragraph_format.space_after.pt
                     break
             
-            # Extrair cabeçalho
-            if section.header and section.header.paragraphs:
+            # Extrair cabeçalho (verificar se realmente tem conteúdo)
+            if section.header:
                 cabecalho_texto = []
+                cabecalho_formatacao = []
                 for para in section.header.paragraphs:
-                    if para.text.strip():
-                        cabecalho_texto.append(para.text)
+                    texto = para.text.strip()
+                    if texto:
+                        cabecalho_texto.append(texto)
+                        # Capturar formatação do cabeçalho
+                        if para.runs:
+                            cabecalho_formatacao.append({
+                                "texto": texto,
+                                "fonte": para.runs[0].font.name if para.runs[0].font.name else formato["fonte"]["nome"],
+                                "tamanho": para.runs[0].font.size.pt if para.runs[0].font.size else formato["fonte"]["tamanho"],
+                                "negrito": para.runs[0].bold
+                            })
+                
                 if cabecalho_texto:
                     formato["cabecalho"] = {
                         "texto": cabecalho_texto,
-                        "alinhamento": "center"
+                        "alinhamento": "center",
+                        "formatacao": cabecalho_formatacao
                     }
             
-            # Extrair rodapé
-            if section.footer and section.footer.paragraphs:
+            # Extrair rodapé (verificar se realmente tem conteúdo)
+            if section.footer:
                 rodape_texto = []
                 for para in section.footer.paragraphs:
-                    if para.text.strip():
-                        rodape_texto.append(para.text)
+                    texto = para.text.strip()
+                    if texto:
+                        rodape_texto.append(texto)
+                
                 if rodape_texto:
                     formato["rodape"] = {
                         "texto": rodape_texto,
                         "alinhamento": "center"
                     }
             
-            logger.info(f"Formatação extraída: fonte={formato['fonte']['nome']} {formato['fonte']['tamanho']}pt")
+            logger.info(f"Formatação extraída: fonte={formato['fonte']['nome']} {formato['fonte']['tamanho']}pt, "
+                       f"cabeçalho={'Sim' if formato['cabecalho'] else 'Não'}, "
+                       f"rodapé={'Sim' if formato['rodape'] else 'Não'}")
             
         except Exception as e:
             logger.error(f"Erro ao extrair formatação: {e}")
