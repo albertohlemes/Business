@@ -1455,6 +1455,12 @@ async def upload_xml_batch(
                     emitente_uf
                 )
                 
+                # Acumular estatísticas
+                total_stats["from_cache"] += stats.get("from_cache", 0)
+                total_stats["from_rules"] += stats.get("from_rules", 0)
+                total_stats["from_ai"] += stats.get("from_ai", 0)
+                total_stats["total"] += stats.get("total", 0)
+                
                 # Log de performance
                 print(f"📊 Classificação: {stats['from_cache']} do cache, {stats['from_rules']} de regras, {stats['from_ai']} da IA")
                 
@@ -1472,13 +1478,17 @@ async def upload_xml_batch(
                         product['categoria_classificada'] = result['categoria']
                         product['justificativa_ia'] = result['justificativa']
                         
+                        # Marcar origem da classificação
+                        origem = "cache" if "Memorizado" in result['justificativa'] else ("regra" if "cadastrado" in result['justificativa'].lower() else "ia")
+                        
                         file_conversions.append({
                             'produto': product.get('descricao', ''),
                             'codigo': product.get('codigo', ''),
                             'cfop_original': cfop_original,
                             'cfop_convertido': cfop_novo,
                             'categoria': result['categoria'],
-                            'motivo': result['justificativa']
+                            'motivo': result['justificativa'],
+                            'origem': origem
                         })
             
             # Registrar alertas de CFOP para este arquivo
