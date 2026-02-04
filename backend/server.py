@@ -2372,6 +2372,141 @@ async def analise_aliquotas_saida(
         "produtos": produtos_analisados
     }
 
+@api_router.get("/relatorio-divergencias-saida/{company_id}")
+async def relatorio_divergencias_saida(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Gera relatório de divergências nas saídas:
+    - Produtos com NCM de alíquota zero mas com tributação (PIS/COFINS CST != 06)
+    - Produtos com tributação normal mas que deveriam ter alíquota zero
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar documentos de saída
+    documents = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "saida"
+    }, {"_id": 0}).to_list(10000)
+    
+    # NCMs com alíquota zero (prefixos e completos)
+    NCMS_ALIQ_ZERO_PREFIXOS = [
+        '0105', '0206', '0210', '0302', '0405', '0506', '0510', '0511', '0713', '1006',
+        '1101', '1102', '1103', '1104', '1106', '1502', '1517', '1701', '1901', '1902', '1905',
+        '2101', '2106', '2201', '2202', '2710', '2711', '3002', '3003', '3004', '3401', '3826',
+        '4011', '4013', '4103', '4801', '4802', '4810', '4818', '8443', '8469', '8470', '8471',
+        '8472', '8502', '8503', '8517', '8525', '8702', '8714', '8901', '9018', '9021'
+    ]
+    
+    NCMS_ALIQ_ZERO_COMPLETOS = [
+        '02061000', '02063000', '02068000', '02102000', '02109900', '03029000', '04051000',
+        '05069000', '05100010', '05111000', '05119910', '05119920', '07133319', '07133329',
+        '07133399', '11010010', '15171000', '17011400', '17019900', '19012000', '19021100',
+        '19021900', '19022000', '19023000', '19059090', '21069010', '22011000', '22029000',
+        '27101911', '27101921', '27111100', '27111910', '27112100', '30029099', '30039099',
+        '30049099', '34011190', '38260000', '40115000', '40132000', '48010010', '48010090',
+        '48026191', '48026199', '48101989', '48102290', '48181000', '84433222', '84690039',
+        '84701000', '84713012', '84713019', '84713090', '84715010', '84716052', '84716053',
+        '84716090', '84719014', '84721000', '85023100', '85030090', '85171231', '85176241',
+        '85176255', '85176262', '85176272', '85176277', '85258019', '87021000', '87029090',
+        '87100000', '87142000', '89019000', '89061000', '90189099', '90213980', '90214000',
+        '90219019', '90219082', '90219089', '90219091', '90219092', '90219099'
+    ]
+    
+    def is_ncm_aliq_zero(ncm):
+        if not ncm:
+            return False
+        ncm_str = str(ncm).replace('.', '').strip()
+        if len(ncm_str) >= 8 and ncm_str[:8] in NCMS_ALIQ_ZERO_COMPLETOS:
+            return True
+        if len(ncm_str) >= 4 and ncm_str[:4] in NCMS_ALIQ_ZERO_PREFIXOS:
+            return True
+        return False
+    
+    divergencias = []
+    total_valor_divergente = 0
+    
+    for doc in documents:
+        doc_divergencias = []
+        
+        for prod in doc.get('produtos', []):
+            ncm = str(prod.get('ncm', '')).replace('.', '').strip()
+            cst_pis = str(prod.get('cst_pis', ''))
+            cst_cofins = str(prod.get('cst_cofins', ''))
+            v_pis = float(prod.get('v_pis', 0) or 0)
+            v_cofins = float(prod.get('v_cofins', 0) or 0)
+            valor = float(prod.get('valor_total', 0) or 0)
+            
+            deveria_ser_aliq_zero = is_ncm_aliq_zero(ncm)
+            
+            # CSTs de alíquota zero/isento: 04, 05, 06, 07, 08, 09
+            csts_aliq_zero = ['04', '05', '06', '07', '08', '09']
+            esta_tributado = cst_pis not in csts_aliq_zero or cst_cofins not in csts_aliq_zero
+            tem_valor_imposto = v_pis > 0 or v_cofins > 0
+            
+            # Divergência: NCM é alíquota zero mas está tributado
+            if deveria_ser_aliq_zero and (esta_tributado or tem_valor_imposto):
+                doc_divergencias.append({
+                    'produto': prod.get('descricao', ''),
+                    'codigo': prod.get('codigo', ''),
+                    'ncm': ncm,
+                    'valor': valor,
+                    'cst_pis_atual': cst_pis or '-',
+                    'cst_cofins_atual': cst_cofins or '-',
+                    'cst_pis_correto': '06',
+                    'cst_cofins_correto': '06',
+                    'v_pis_cobrado': v_pis,
+                    'v_cofins_cobrado': v_cofins,
+                    'tipo_divergencia': 'NCM é alíquota zero mas está sendo tributado',
+                    'impacto_pis': v_pis,
+                    'impacto_cofins': v_cofins
+                })
+                total_valor_divergente += valor
+        
+        if doc_divergencias:
+            divergencias.append({
+                'documento_id': doc.get('id', ''),
+                'numero_nfe': doc.get('numero_nfe', ''),
+                'cliente': doc.get('destinatario_nome', ''),
+                'data_emissao': doc.get('data_emissao', ''),
+                'valor_total': doc.get('valor_total', 0),
+                'qtd_divergencias': len(doc_divergencias),
+                'produtos': doc_divergencias
+            })
+    
+    # Calcular totais de impacto
+    total_pis_divergente = sum(
+        sum(p['impacto_pis'] for p in d['produtos']) 
+        for d in divergencias
+    )
+    total_cofins_divergente = sum(
+        sum(p['impacto_cofins'] for p in d['produtos']) 
+        for d in divergencias
+    )
+    
+    return {
+        "empresa": company['razao_social'],
+        "competencia": competencia,
+        "total_documentos_saida": len(documents),
+        "documentos_com_divergencia": len(divergencias),
+        "total_produtos_divergentes": sum(len(d['produtos']) for d in divergencias),
+        "valor_total_divergente": round(total_valor_divergente, 2),
+        "impacto_fiscal": {
+            "pis_indevido": round(total_pis_divergente, 2),
+            "cofins_indevido": round(total_cofins_divergente, 2),
+            "total_indevido": round(total_pis_divergente + total_cofins_divergente, 2)
+        },
+        "divergencias": divergencias
+    }
+
 # CFOPs de operações distintas de venda (saída do emissor que virou entrada para nós)
 CFOPS_OPERACOES_DISTINTAS_GLOBAL = {
     # Remessas
