@@ -93,6 +93,7 @@ const ApuracaoPeriodo = ({ user, onLogout }) => {
         <thead>
           <tr className={`${tipo === 'entrada' ? 'bg-blue-50' : 'bg-green-50'}`}>
             <th className="px-4 py-3 text-left font-semibold text-gray-700">CFOP</th>
+            <th className="px-4 py-3 text-center font-semibold text-gray-700">CST</th>
             <th className="px-4 py-3 text-right font-semibold text-gray-700">Valor</th>
             <th className="px-4 py-3 text-right font-semibold text-gray-700">BC ICMS</th>
             <th className="px-4 py-3 text-right font-semibold text-gray-700">ICMS</th>
@@ -103,7 +104,7 @@ const ApuracaoPeriodo = ({ user, onLogout }) => {
         <tbody>
           {items.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+              <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                 Nenhum registro encontrado
               </td>
             </tr>
@@ -111,6 +112,7 @@ const ApuracaoPeriodo = ({ user, onLogout }) => {
             items.map((item, idx) => (
               <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
                 <td className="px-4 py-3 font-mono font-medium text-gray-900">{item.cfop}</td>
+                <td className="px-4 py-3 text-center font-mono text-gray-600">{item.cst || '-'}</td>
                 <td className="px-4 py-3 text-right">{formatCurrency(item.valor)}</td>
                 <td className="px-4 py-3 text-right">{formatCurrency(item.bc_icms)}</td>
                 <td className="px-4 py-3 text-right">{formatCurrency(item.v_icms)}</td>
@@ -123,6 +125,7 @@ const ApuracaoPeriodo = ({ user, onLogout }) => {
         <tfoot>
           <tr className={`${tipo === 'entrada' ? 'bg-blue-100' : 'bg-green-100'} font-bold`}>
             <td className="px-4 py-3 text-gray-800">SUBTOTAL</td>
+            <td className="px-4 py-3 text-center text-gray-600">-</td>
             <td className="px-4 py-3 text-right text-gray-900">{formatCurrency(subtotal.valor)}</td>
             <td className="px-4 py-3 text-right text-gray-900">{formatCurrency(subtotal.bc_icms)}</td>
             <td className="px-4 py-3 text-right text-gray-900">{formatCurrency(subtotal.v_icms)}</td>
