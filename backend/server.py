@@ -361,6 +361,64 @@ async def renovar_licenca(licenca_id: str, current_user: dict = Depends(get_curr
     updated = await db.licencas.find_one({"id": licenca_id}, {"_id": 0, "user_id": 0})
     return LicencaResponse(**updated)
 
+@api_router.get("/licencas/{licenca_id}/download")
+async def download_licenca(licenca_id: str, current_user: dict = Depends(get_current_user)):
+    licenca = await db.licencas.find_one({"id": licenca_id, "user_id": current_user["id"]})
+    if not licenca:
+        raise HTTPException(status_code=404, detail="Licença não encontrada")
+    
+    if licenca.get("status") != "ativa":
+        raise HTTPException(status_code=400, detail="Licença não está ativa")
+    
+    # Gerar conteúdo da licença (simulado)
+    vencimento = licenca.get("vencimento", "")
+    if vencimento:
+        vencimento_fmt = datetime.fromisoformat(vencimento.replace('Z', '+00:00')).strftime('%d/%m/%Y')
+    else:
+        vencimento_fmt = "N/A"
+    
+    conteudo = f"""
+================================================================================
+                    PREFEITURA DO MUNICÍPIO DE SÃO PAULO
+                    SECRETARIA MUNICIPAL DE URBANISMO E LICENCIAMENTO
+                    COORDENADORIA DE LICENCIAMENTO E FISCALIZAÇÃO - SELIF
+================================================================================
+
+                         LICENÇA DE FUNCIONAMENTO
+
+CNPJ: {licenca.get('cnpj', 'N/A')}
+RAZÃO SOCIAL: {licenca.get('razao_social', 'N/A')}
+
+NÚMERO DA LICENÇA: LF-{licenca_id[:8].upper()}
+DATA DE EMISSÃO: {datetime.now(timezone.utc).strftime('%d/%m/%Y')}
+DATA DE VALIDADE: {vencimento_fmt}
+
+STATUS: ATIVA
+
+--------------------------------------------------------------------------------
+
+Esta licença autoriza o funcionamento do estabelecimento acima identificado,
+de acordo com as normas vigentes do município de São Paulo.
+
+A presente licença deve ser mantida em local visível do estabelecimento.
+
+--------------------------------------------------------------------------------
+
+OBSERVAÇÕES:
+- Licença emitida eletronicamente via Portal REDESIM SP
+- Documento válido em todo território nacional
+- Consulte a autenticidade em www.redesim.sp.gov.br
+
+================================================================================
+                    DOCUMENTO GERADO ELETRONICAMENTE
+================================================================================
+"""
+    
+    return {
+        "conteudo": conteudo,
+        "nome_arquivo": f"licenca_{licenca.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')}_{datetime.now().strftime('%Y%m%d')}.txt"
+    }
+
 @api_router.delete("/licencas/{licenca_id}")
 async def delete_licenca(licenca_id: str, current_user: dict = Depends(get_current_user)):
     result = await db.licencas.delete_one({"id": licenca_id, "user_id": current_user["id"]})
