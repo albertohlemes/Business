@@ -9,8 +9,6 @@ const API = BACKEND_URL + '/api';
 
 const Reports = ({ user, onLogout }) => {
   const { selectedCompany: ctxCompany, selectedCompetencia: ctxCompetencia } = useAppContext();
-  const [companies, setCompanies] = useState([]);
-  const [availableCompetencias, setAvailableCompetencias] = useState([]);
   const [reportType, setReportType] = useState('product');
   const [tipoOperacao, setTipoOperacao] = useState('entrada'); // entrada, saida, todos
   const [reportData, setReportData] = useState([]);
@@ -19,42 +17,6 @@ const Reports = ({ user, onLogout }) => {
   // Usar valores diretamente do contexto
   const selectedCompany = ctxCompany?.id || '';
   const competencia = ctxCompetencia || '';
-
-  useEffect(() => {
-    fetchCompanies();
-  }, []);
-
-  // Atualizar competências quando empresa mudar
-  useEffect(() => {
-    if (ctxCompany) {
-      fetchCompetencias(ctxCompany.id);
-    }
-  }, [ctxCompany]);
-
-  const fetchCompanies = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(API + '/companies', {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      setCompanies(response.data);
-    } catch (err) {
-      console.error('Erro ao carregar empresas:', err);
-    }
-  };
-
-  const fetchCompetencias = async (companyId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(API + '/xml/documents?company_id=' + companyId, {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      const competencias = [...new Set(response.data.map(d => d.competencia))].filter(Boolean).sort();
-      setAvailableCompetencias(competencias);
-    } catch (err) {
-      console.error('Erro:', err);
-    }
-  };
 
   const generateReport = async () => {
     if (!selectedCompany) {
