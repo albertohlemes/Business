@@ -88,6 +88,7 @@ const Minutas = () => {
         setAlteracoesSelecionadas([]);
         setDescricaoAlteracao('');
         setDocsApoio([]);
+        setDataAlteracao(new Date().toISOString().split('T')[0]);
         setMinutaGerada('');
         setMinutaId(null);
     };
