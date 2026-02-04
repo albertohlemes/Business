@@ -143,7 +143,8 @@ const Minutas = () => {
                 secoes: config.secoes,
                 margens: config.margens,
                 espacamento: config.espacamento,
-                logoBase64: config.logoPreview || null
+                logoBase64: config.logoPreview || null,
+                organizacaoInteligente: config.organizacaoInteligente !== false // default true
             });
             
             setFormatacaoSalva(config);
