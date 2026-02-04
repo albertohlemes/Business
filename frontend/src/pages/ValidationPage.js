@@ -1006,6 +1006,78 @@ const ValidationPage = ({ user, onLogout }) => {
               </div>
             </div>
             
+            {/* Cabeçalho ordenável */}
+            <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 grid grid-cols-12 gap-2 items-center text-sm font-semibold text-gray-700">
+              <div className="col-span-1 text-center">
+                <input 
+                  type="checkbox"
+                  checked={selectedProductCodes.length === groupedProducts.length && groupedProducts.length > 0}
+                  onChange={toggleSelectAllProducts}
+                  className="rounded border-gray-300"
+                />
+              </div>
+              
+              <button 
+                onClick={() => toggleSort('descricao')}
+                className="col-span-4 flex items-center gap-1 hover:text-purple-700 transition-colors"
+              >
+                Produto
+                {sortConfig.field === 'descricao' ? (
+                  sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                ) : (
+                  <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
+              
+              <button 
+                onClick={() => toggleSort('categoria')}
+                className="col-span-2 flex items-center gap-1 hover:text-purple-700 transition-colors"
+              >
+                Classificação
+                {sortConfig.field === 'categoria' ? (
+                  sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                ) : (
+                  <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
+              
+              <button 
+                onClick={() => toggleSort('cfop')}
+                className="col-span-1 flex items-center gap-1 hover:text-purple-700 transition-colors"
+              >
+                CFOP
+                {sortConfig.field === 'cfop' ? (
+                  sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                ) : (
+                  <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
+              
+              <button 
+                onClick={() => toggleSort('valor')}
+                className="col-span-2 flex items-center gap-1 hover:text-purple-700 transition-colors justify-end"
+              >
+                Valor Total
+                {sortConfig.field === 'valor' ? (
+                  sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                ) : (
+                  <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
+              
+              <button 
+                onClick={() => toggleSort('ocorrencias')}
+                className="col-span-2 flex items-center gap-1 hover:text-purple-700 transition-colors justify-end"
+              >
+                Ocorrências
+                {sortConfig.field === 'ocorrencias' ? (
+                  sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                ) : (
+                  <ArrowUpDown className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
+            </div>
+            
             <div className="max-h-[600px] overflow-y-auto">
               {loading ? (
                 <div className="p-6 text-center">
