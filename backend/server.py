@@ -4613,6 +4613,40 @@ Seja específico e use os valores reais fornecidos."""
         # Extrair JSON
         response_text = response.strip()
         if response_text.startswith("```json"):
+def get_cfop_from_category(categoria: str, cst: str, company_uf: str, cfop_original: str) -> str:
+    """Helper para converter categoria (IA) em CFOP"""
+    is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+    cfop_prefix = '1' if company_uf == 'SP' else '2' # Simplificação, ideal seria comparar UFs
+    
+    if categoria == 'combustivel':
+        return cfop_prefix + '653'
+    elif categoria == 'revenda':
+        return (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
+    elif categoria == 'insumo':
+        return (cfop_prefix + '401') if is_st else (cfop_prefix + '101')
+    elif categoria == 'despesa':
+        return (cfop_prefix + '407') if is_st else (cfop_prefix + '556')
+    return None
+
+def apply_classification(product, result, cfop_original, file_conversions):
+    """Aplica o resultado da classificação ao produto"""
+    product['cfop_sugerido'] = result['cfop_sugerido']
+    product['cfop_original'] = cfop_original
+    product['categoria_classificada'] = result['categoria']
+    product['justificativa_ia'] = result.get('justificativa', '')
+    
+    # APLICAR AUTOMATICAMENTE O CFOP SUGERIDO
+    product['cfop'] = result['cfop_sugerido']
+    
+    # Registrar conversão
+    file_conversions.append({
+        'produto': product.get('descricao', ''),
+        'codigo': product.get('codigo', ''),
+        'cfop_original': cfop_original,
+        'cfop_convertido': result['cfop_sugerido'],
+        'categoria': result['categoria'],
+        'motivo': result.get('justificativa', f"Classificado como {result['categoria'].upper()}")
+    })
             response_text = response_text[7:]
         if response_text.startswith("```"):
             response_text = response_text[3:]
