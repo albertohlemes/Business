@@ -205,6 +205,20 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 16
+- ✅ **BUG CRÍTICO CORRIGIDO: Modal de seleção de empresa fechava sozinho**
+  - O problema era que ao abrir o modal, `fetchCompanies()` era chamado e ao atualizar o estado de `companies`, um `useEffect` fechava o modal automaticamente
+  - Adicionada flag `initialLoadDone` para garantir que o comportamento de auto-fechar só acontece na primeira carga
+- ✅ **Seção de Transferências na Apuração PIS/COFINS**
+  - Nova seção exibe CFOPs de transferência separadamente (1152, 1556, etc.)
+  - Alerta explicativo: "CFOPs de transferência não geram direito a crédito nem obrigação de débito"
+  - Exibe valor total de transferências de entrada e saída
+- ✅ **Coluna CST adicionada na Apuração do Período**
+  - Tabela de entradas e saídas agora mostra coluna CST para cada CFOP
+  - Exportação CSV também inclui a coluna CST
+- ✅ **Bug de código duplicado corrigido no backend**
+  - Removido código duplicado no endpoint `/api/apuracao-pis-cofins` que causava erro de sintaxe
+
 ### 02/2026 - Iteration 15
 - ✅ **Classificação por CST na Apuração PIS/COFINS**:
   - Adicionado toggle "Por CST" / "Por CFOP" / "Por NCM"
