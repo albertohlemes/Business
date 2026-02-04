@@ -1581,6 +1581,409 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
         }
     }
 
+# ============ ENDPOINTS DE CONSTITUIÇÃO ============
+
+class DadosEmpresaConstituicao(BaseModel):
+    razao_social: str
+    nome_fantasia: Optional[str] = None
+    capital_social: str
+    capital_extenso: Optional[str] = None
+    endereco: dict
+    objeto_social: str
+
+class SocioConstituicao(BaseModel):
+    nome: str
+    cpf: str
+    rg: Optional[str] = None
+    orgao_emissor: Optional[str] = None
+    nacionalidade: Optional[str] = "Brasileiro(a)"
+    estado_civil: Optional[str] = None
+    regime_casamento: Optional[str] = None
+    profissao: Optional[str] = None
+    endereco: Optional[str] = None
+    participacao: str
+    administrador: bool = False
+
+class ConstituicaoRequest(BaseModel):
+    minuta_id: str
+    empresa: DadosEmpresaConstituicao
+    socios: List[SocioConstituicao]
+    cnaes: List[str]
+
+@api_router.post("/constituicao/extrair-campo")
+async def extrair_campo_documento(
+    file: UploadFile = File(...),
+    campo: str = Form(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Extrai um campo específico de um documento usando IA"""
+    try:
+        file_content = await file.read()
+        file_base64 = base64.b64encode(file_content).decode('utf-8')
+        
+        # Determinar tipo de arquivo
+        content_type = file.content_type or ''
+        if 'pdf' in content_type:
+            mime_type = 'application/pdf'
+        elif 'image' in content_type:
+            mime_type = content_type
+        else:
+            mime_type = 'application/octet-stream'
+        
+        prompts_por_campo = {
+            'razao_social': 'Extraia apenas a RAZÃO SOCIAL (nome empresarial) deste documento. Retorne apenas o nome, em maiúsculas, sem explicações.',
+            'nome_fantasia': 'Extraia apenas o NOME FANTASIA deste documento. Retorne apenas o nome, sem explicações.',
+            'capital_social': 'Extraia apenas o VALOR DO CAPITAL SOCIAL deste documento. Retorne apenas o valor numérico formatado (ex: 100.000,00), sem explicações.',
+            'endereco': 'Extraia o ENDEREÇO COMPLETO deste documento e retorne em formato JSON: {"logradouro": "", "numero": "", "complemento": "", "bairro": "", "cidade": "", "estado": "", "cep": ""}. Retorne apenas o JSON.',
+            'cnaes': 'Extraia todos os CNAEs (Código Nacional de Atividades Econômicas) deste documento. Retorne uma lista JSON com os códigos e descrições: ["00.00-0-00 - Descrição"]. Retorne apenas o JSON.'
+        }
+        
+        prompt = prompts_por_campo.get(campo, f'Extraia o campo "{campo}" deste documento.')
+        
+        from emergentintegrations.llm.chat import chat, Message, ContentPart, ContentPartType
+        
+        emergent_api_key = os.environ.get("EMERGENT_API_KEY")
+        
+        response = await chat(
+            api_key=emergent_api_key,
+            model="gemini-2.5-flash",
+            messages=[
+                Message(
+                    role="user",
+                    content=[
+                        ContentPart(type=ContentPartType.TEXT, text=prompt),
+                        ContentPart(
+                            type=ContentPartType.IMAGE_URL,
+                            image_url=f"data:{mime_type};base64,{file_base64}"
+                        )
+                    ]
+                )
+            ]
+        )
+        
+        valor = response.content.strip()
+        
+        # Tentar parsear JSON se for endereco ou cnaes
+        if campo in ['endereco', 'cnaes']:
+            try:
+                import json
+                # Remover markdown se houver
+                if '```' in valor:
+                    valor = valor.split('```')[1]
+                    if valor.startswith('json'):
+                        valor = valor[4:]
+                valor = json.loads(valor.strip())
+            except:
+                pass
+        
+        return {"success": True, "valor": valor}
+        
+    except Exception as e:
+        logger.error(f"Erro ao extrair campo: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/constituicao/gerar-objeto-social")
+async def gerar_objeto_social(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Gera o objeto social baseado nos CNAEs fornecidos"""
+    try:
+        cnaes = request.get('cnaes', [])
+        
+        if not cnaes:
+            raise HTTPException(status_code=400, detail="Nenhum CNAE fornecido")
+        
+        from emergentintegrations.llm.chat import chat, Message
+        
+        emergent_api_key = os.environ.get("EMERGENT_API_KEY")
+        
+        cnaes_texto = "\n".join([f"- {cnae}" for cnae in cnaes])
+        
+        prompt = f"""Você é um especialista em direito societário brasileiro. 
+Com base nos seguintes CNAEs, elabore um OBJETO SOCIAL completo e profissional para o contrato social de uma empresa:
+
+CNAEs:
+{cnaes_texto}
+
+REGRAS:
+1. Use linguagem jurídica formal
+2. O texto deve ser em parágrafo único, sem bullets ou numeração
+3. Deve cobrir todas as atividades dos CNAEs
+4. Inclua termos como "compreende", "prestação de serviços", "comércio", conforme aplicável
+5. Finalize com "bem como a prática de todos os atos comerciais necessários à consecução do objeto social"
+6. NÃO inclua os códigos CNAE no texto, apenas as atividades descritas
+
+Retorne APENAS o texto do objeto social, sem explicações ou comentários."""
+
+        response = await chat(
+            api_key=emergent_api_key,
+            model="gemini-2.5-flash",
+            messages=[Message(role="user", content=prompt)]
+        )
+        
+        return {"success": True, "objeto_social": response.content.strip()}
+        
+    except Exception as e:
+        logger.error(f"Erro ao gerar objeto social: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/constituicao/gerar-contrato")
+async def gerar_contrato_constituicao(
+    request: ConstituicaoRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Gera o contrato social completo de constituição"""
+    try:
+        empresa = request.empresa
+        socios = request.socios
+        cnaes = request.cnaes
+        
+        # Formatar endereço
+        end = empresa.endereco
+        endereco_completo = f"{end.get('logradouro', '')}, {end.get('numero', '')}"
+        if end.get('complemento'):
+            endereco_completo += f", {end['complemento']}"
+        endereco_completo += f", {end.get('bairro', '')}, {end.get('cidade', '')}-{end.get('estado', '')}"
+        if end.get('cep'):
+            endereco_completo += f", CEP {end['cep']}"
+        
+        # Formatar sócios
+        socios_texto = ""
+        for i, socio in enumerate(socios, 1):
+            socio_info = f"{socio.nome}, {socio.nacionalidade or 'brasileiro(a)'}"
+            if socio.estado_civil:
+                socio_info += f", {socio.estado_civil.lower()}"
+                if socio.regime_casamento and 'casado' in socio.estado_civil.lower():
+                    socio_info += f" pelo regime de {socio.regime_casamento}"
+            if socio.profissao:
+                socio_info += f", {socio.profissao}"
+            if socio.rg:
+                socio_info += f", portador(a) da Cédula de Identidade RG nº {socio.rg}"
+                if socio.orgao_emissor:
+                    socio_info += f" {socio.orgao_emissor}"
+            socio_info += f", inscrito(a) no CPF sob nº {socio.cpf}"
+            if socio.endereco:
+                socio_info += f", residente e domiciliado(a) em {socio.endereco}"
+            
+            socios_texto += f"{i}. {socio_info}\n\n"
+        
+        # Determinar administradores
+        administradores = [s for s in socios if s.administrador]
+        if not administradores:
+            administradores = [socios[0]]
+        
+        admin_texto = ", ".join([a.nome for a in administradores])
+        
+        # Calcular quotas
+        capital_valor = float(empresa.capital_social.replace('.', '').replace(',', '.'))
+        quadro_quotas = ""
+        for socio in socios:
+            perc = float(socio.participacao)
+            valor_quotas = capital_valor * perc / 100
+            qtd_quotas = int(valor_quotas)  # 1 quota = R$ 1,00
+            quadro_quotas += f"- {socio.nome}: {qtd_quotas} quotas ({perc}%) = R$ {valor_quotas:,.2f}\n"
+        
+        from emergentintegrations.llm.chat import chat, Message
+        
+        emergent_api_key = os.environ.get("EMERGENT_API_KEY")
+        
+        data_atual = datetime.now().strftime("%d de %B de %Y").replace(
+            'January', 'janeiro').replace('February', 'fevereiro').replace('March', 'março'
+        ).replace('April', 'abril').replace('May', 'maio').replace('June', 'junho'
+        ).replace('July', 'julho').replace('August', 'agosto').replace('September', 'setembro'
+        ).replace('October', 'outubro').replace('November', 'novembro').replace('December', 'dezembro')
+        
+        prompt = f"""Você é um advogado especialista em direito societário brasileiro. 
+Elabore um CONTRATO SOCIAL completo e profissional para constituição de uma SOCIEDADE LIMITADA.
+
+DADOS DA EMPRESA:
+- Razão Social: {empresa.razao_social}
+- Nome Fantasia: {empresa.nome_fantasia or 'não possui'}
+- Capital Social: R$ {empresa.capital_social} ({empresa.capital_extenso or 'por extenso'})
+- Endereço: {endereco_completo}
+- Objeto Social: {empresa.objeto_social}
+
+SÓCIOS:
+{socios_texto}
+
+QUADRO DE QUOTAS:
+{quadro_quotas}
+
+ADMINISTRADOR(ES): {admin_texto}
+
+DATA: {data_atual}
+
+MODELO DO CONTRATO (siga esta estrutura EXATAMENTE):
+
+================================================================================
+                           CONTRATO SOCIAL
+
+                    {empresa.razao_social}
+================================================================================
+
+Pelo presente instrumento particular e na melhor forma de direito, os abaixo assinados:
+
+[LISTAR QUALIFICAÇÃO COMPLETA DE CADA SÓCIO CONFORME DADOS ACIMA]
+
+Resolvem constituir uma sociedade empresária limitada, que se regerá pelas cláusulas e condições seguintes:
+
+--------------------------------------------------------------------------------
+                    CLÁUSULA PRIMEIRA - DA DENOMINAÇÃO SOCIAL
+--------------------------------------------------------------------------------
+
+A sociedade girará sob a denominação social de "{empresa.razao_social}".
+
+--------------------------------------------------------------------------------
+                    CLÁUSULA SEGUNDA - DA SEDE
+--------------------------------------------------------------------------------
+
+A sede da sociedade será em {endereco_completo}.
+
+--------------------------------------------------------------------------------
+                    CLÁUSULA TERCEIRA - DO OBJETO SOCIAL
+--------------------------------------------------------------------------------
+
+A sociedade tem por objeto social: {empresa.objeto_social}
+
+--------------------------------------------------------------------------------
+                    CLÁUSULA QUARTA - DO CAPITAL SOCIAL
+--------------------------------------------------------------------------------
+
+O capital social é de R$ {empresa.capital_social} ({empresa.capital_extenso}), dividido em [NÚMERO] quotas no valor de R$ 1,00 (um real) cada uma, totalmente subscrito e integralizado neste ato, em moeda corrente nacional, da seguinte forma:
+
+[LISTAR QUOTAS DE CADA SÓCIO]
+
+--------------------------------------------------------------------------------
+                    CLÁUSULA QUINTA - DA RESPONSABILIDADE DOS SÓCIOS
+--------------------------------------------------------------------------------
+
+A responsabilidade de cada sócio é restrita ao valor de suas quotas, mas todos respondem solidariamente pela integralização do capital social.
+
+--------------------------------------------------------------------------------
+                    CLÁUSULA SEXTA - DA ADMINISTRAÇÃO
+--------------------------------------------------------------------------------
+
+A administração da sociedade será exercida por {admin_texto}, com poderes para representar a sociedade ativa e passivamente, judicial e extrajudicialmente, podendo praticar todos os atos necessários ao cumprimento do objeto social.
+
+Parágrafo Único: É vedado aos administradores onerar ou alienar bens imóveis da sociedade, bem como prestar fiança, aval ou qualquer forma de garantia em favor de terceiros, sem a prévia e expressa autorização dos sócios.
+
+--------------------------------------------------------------------------------
+                    CLÁUSULA SÉTIMA - DO PRO LABORE
+--------------------------------------------------------------------------------
+
+Os sócios administradores terão direito a uma retirada mensal a título de pro labore, cujo valor será fixado de comum acordo entre os sócios.
+
+--------------------------------------------------------------------------------
+                    CLÁUSULA OITAVA - DO EXERCÍCIO SOCIAL
+--------------------------------------------------------------------------------
+
+O exercício social encerrar-se-á em 31 de dezembro de cada ano, quando serão levantados os balanços patrimonial e de resultado econômico.
+
+--------------------------------------------------------------------------------
+                    CLÁUSULA NONA - DOS LUCROS E PREJUÍZOS
+--------------------------------------------------------------------------------
+
+Os lucros ou prejuízos apurados serão distribuídos ou suportados pelos sócios na proporção de suas quotas.
+
+--------------------------------------------------------------------------------
+                    CLÁUSULA DÉCIMA - DAS DELIBERAÇÕES SOCIAIS
+--------------------------------------------------------------------------------
+
+As deliberações sociais serão tomadas por maioria de votos, contados segundo o valor das quotas de cada sócio, observadas as formalidades legais.
+
+--------------------------------------------------------------------------------
+                    CLÁUSULA DÉCIMA PRIMEIRA - DA CESSÃO DE QUOTAS
+--------------------------------------------------------------------------------
+
+As quotas são indivisíveis e não poderão ser cedidas ou transferidas a terceiros sem o consentimento do outro sócio, a quem fica assegurado, em igualdade de condições e preço, o direito de preferência para sua aquisição se postas à venda.
+
+--------------------------------------------------------------------------------
+                    CLÁUSULA DÉCIMA SEGUNDA - DO FALECIMENTO OU INCAPACIDADE
+--------------------------------------------------------------------------------
+
+Falecendo ou sendo interditado qualquer sócio, a sociedade continuará suas atividades com os herdeiros, sucessores e o sócio remanescente.
+
+--------------------------------------------------------------------------------
+                    CLÁUSULA DÉCIMA TERCEIRA - DO FORO
+--------------------------------------------------------------------------------
+
+Os sócios elegem o foro da Comarca de {end.get('cidade', 'São Paulo')}, Estado de {end.get('estado', 'SP')}, para dirimir quaisquer dúvidas oriundas deste contrato, renunciando a qualquer outro, por mais privilegiado que seja.
+
+--------------------------------------------------------------------------------
+                    CLÁUSULA DÉCIMA QUARTA - DAS DISPOSIÇÕES FINAIS
+--------------------------------------------------------------------------------
+
+Os casos omissos serão resolvidos pelos sócios de comum acordo, observadas as disposições legais aplicáveis.
+
+E por estarem assim justos e contratados, assinam o presente instrumento em [NÚMERO] vias de igual teor e forma, na presença de duas testemunhas.
+
+{end.get('cidade', 'São Paulo')}, {data_atual}.
+
+================================================================================
+                              ASSINATURAS
+================================================================================
+
+[ESPAÇO PARA ASSINATURA DE CADA SÓCIO]
+
+_______________________________________________
+
+_______________________________________________
+
+TESTEMUNHAS:
+
+1. _____________________________________________
+   Nome:
+   CPF:
+
+2. _____________________________________________
+   Nome:
+   CPF:
+
+================================================================================
+
+INSTRUÇÕES:
+1. Gere o contrato COMPLETO seguindo exatamente a estrutura acima
+2. Preencha TODOS os campos com os dados fornecidos
+3. Use linguagem jurídica formal
+4. Mantenha os traços de assinatura (___) para os sócios e testemunhas
+5. NÃO use Markdown. Use texto simples com linhas de = e - para separação
+6. O contrato deve estar pronto para impressão e assinatura"""
+
+        response = await chat(
+            api_key=emergent_api_key,
+            model="gemini-2.5-flash",
+            messages=[Message(role="user", content=prompt)]
+        )
+        
+        contrato = response.content.strip()
+        
+        # Salvar na minuta
+        await db.minutas.update_one(
+            {"id": request.minuta_id},
+            {
+                "$set": {
+                    "tipo_processo": "constituicao",
+                    "conteudo_gerado": contrato,
+                    "dados_empresa": empresa.dict(),
+                    "dados_socios": [s.dict() for s in socios],
+                    "cnaes": cnaes,
+                    "status": "concluida",
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+        
+        return {
+            "success": True, 
+            "contrato": contrato,
+            "minuta_id": request.minuta_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao gerar contrato: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============ HEALTH CHECK ============
 
 @api_router.get("/health")
