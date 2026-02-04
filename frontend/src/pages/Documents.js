@@ -168,12 +168,15 @@ const Documents = ({ user, onLogout }) => {
               <h2 className="font-semibold text-gray-900">Filtros</h2>
             </div>
             
-            {/* Botão apagar em lote */}
-            {user.role === 'admin' && ctxCompany && selectedCompetencia && (
+            {/* Botão apagar em lote - visível para admin */}
+            {ctxCompany && selectedCompetencia && (
               <button
                 data-testid="btn-apagar-lote"
                 onClick={() => {
-                  console.log('Clicou no botão apagar', { ctxCompany, selectedCompetencia, selectedTipo });
+                  if (user.role !== 'admin') {
+                    alert('Apenas administradores podem apagar documentos');
+                    return;
+                  }
                   handleDeleteAllCompetencia();
                 }}
                 disabled={deleting}
