@@ -2878,7 +2878,7 @@ Se o comando não for claro ou não se aplicar a nenhum produto, retorne {{"alte
             session_id=f"cfop-resolver-{company_id}-{competencia}",
             system_message="Você é um assistente fiscal especializado em classificação de CFOPs. Responda sempre em formato JSON válido."
         )
-        response = await llm.send_message(UserMessage(content=prompt))
+        response = await llm.send_message(UserMessage(text=prompt))
         
         # Extrair JSON da resposta
         response_text = response if isinstance(response, str) else str(response)
