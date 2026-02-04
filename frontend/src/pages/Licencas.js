@@ -742,7 +742,7 @@ const Licencas = () => {
                     </DialogHeader>
                     <div className="flex-1 bg-black">
                         <iframe 
-                            src={`${window.location.protocol}//${window.location.hostname}:${VNC_PORT}/vnc.html?autoconnect=true&resize=scale&quality=6`}
+                            src={`${API_URL}/api/novnc/vnc.html?autoconnect=true&resize=scale&quality=6`}
                             className="w-full h-full border-0"
                             title="Navegador Remoto - REDESIM"
                             allow="clipboard-write"
