@@ -248,6 +248,8 @@ const ConfiguracaoFormatacao = ({ open, onClose, onSave, configuracaoAtual }) =>
         direita: '2.0'
     });
     const [espacamento, setEspacamento] = useState('1.5');
+    const [importando, setImportando] = useState(false);
+    const importInputRef = useRef(null);
 
     const handleSecaoChange = (index, novaSecao) => {
         const novasSecoes = [...secoes];
@@ -262,6 +264,48 @@ const ConfiguracaoFormatacao = ({ open, onClose, onSave, configuracaoAtual }) =>
             const reader = new FileReader();
             reader.onload = (e) => setLogoPreview(e.target.result);
             reader.readAsDataURL(file);
+        }
+    };
+    
+    const handleImportarDocumento = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        // Validar extensão
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (ext !== 'docx' && ext !== 'doc') {
+            toast.error('Use um arquivo Word (.docx)');
+            return;
+        }
+        
+        setImportando(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const response = await axios.post(`${API_URL}/api/formatacao/importar`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            
+            if (response.data.success) {
+                const dados = response.data.data;
+                
+                // Atualizar formulário com dados extraídos
+                setSecoes(dados.secoes);
+                setMargens(dados.margens);
+                setEspacamento(dados.espacamento);
+                
+                toast.success('Formatação importada! Confira os campos e salve.');
+            }
+        } catch (error) {
+            console.error('Erro ao importar:', error);
+            toast.error('Erro ao analisar documento');
+        } finally {
+            setImportando(false);
+            // Limpar input para permitir selecionar o mesmo arquivo novamente
+            if (importInputRef.current) {
+                importInputRef.current.value = '';
+            }
         }
     };
 
@@ -280,13 +324,40 @@ const ConfiguracaoFormatacao = ({ open, onClose, onSave, configuracaoAtual }) =>
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="bg-zinc-900 border-zinc-800 max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                 <DialogHeader className="border-b border-zinc-800 pb-4">
-                    <DialogTitle className="text-white flex items-center gap-2">
-                        <Type className="w-5 h-5 text-red-500" />
-                        Configurar Formatação do Documento
-                    </DialogTitle>
-                    <p className="text-sm text-zinc-500">
-                        Cole exemplos de cada parte e ajuste a formatação. O documento será gerado exatamente como você configurar.
-                    </p>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <DialogTitle className="text-white flex items-center gap-2">
+                                <Type className="w-5 h-5 text-red-500" />
+                                Configurar Formatação do Documento
+                            </DialogTitle>
+                            <p className="text-sm text-zinc-500 mt-1">
+                                Importe um documento modelo ou configure manualmente cada seção.
+                            </p>
+                        </div>
+                        <div>
+                            <input
+                                ref={importInputRef}
+                                type="file"
+                                accept=".docx,.doc"
+                                onChange={handleImportarDocumento}
+                                className="hidden"
+                                id="import-doc-input"
+                            />
+                            <Button
+                                variant="outline"
+                                onClick={() => importInputRef.current?.click()}
+                                disabled={importando}
+                                className="border-red-600 text-red-500 hover:bg-red-950/30"
+                            >
+                                {importando ? (
+                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                    <FileUp className="w-4 h-4 mr-2" />
+                                )}
+                                {importando ? 'Analisando...' : 'Importar Documento'}
+                            </Button>
+                        </div>
+                    </div>
                 </DialogHeader>
 
                 <div className="flex-1 overflow-y-auto py-4 space-y-6">
