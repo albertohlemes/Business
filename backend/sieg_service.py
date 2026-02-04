@@ -194,7 +194,6 @@ async def download_xmls_sieg(
         xml_types = ["nfe"]
     
     headers = {
-        "Authorization": api_key,
         "Content-Type": "application/json"
     }
     
@@ -228,13 +227,19 @@ async def download_xmls_sieg(
             
             try:
                 response = await client.post(
-                    f"{SIEG_API_BASE}/BaixarXmls",
+                    build_sieg_url("BaixarXmls", api_key),
                     headers=headers,
                     json=payload
                 )
                 
                 if response.status_code == 200:
                     data = response.json()
+                    
+                    # Verificar se é erro
+                    if isinstance(data, dict) and "Message" in data:
+                        print(f"[SIEG] Aviso {xml_type}: {data['Message']}")
+                        stats["por_tipo"][xml_type] = 0
+                        continue
                     
                     # A API retorna XMLs em Base64 na resposta
                     # Formato: lista de objetos com "Xml" em Base64
