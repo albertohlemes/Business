@@ -4615,6 +4615,87 @@ Seja específico e use os valores reais fornecidos."""
                 "saida": len(docs_saida)
             }
         }
+async def classify_products_batch_llm(products: List[Dict[str, Any]], company_data: Dict[str, Any], batch_size: int = 20) -> Dict[str, Any]:
+    """
+    Classifica uma lista de produtos usando LLM com base nas regras da empresa.
+    """
+    if not products:
+        return {}
+        
+    # Agrupar produtos únicos para economizar tokens
+    unique_products = {}
+    for p in products:
+        key = f"{p['descricao']}|{p['ncm']}"
+        if key not in unique_products:
+            unique_products[key] = p
+            
+    # Preparar lotes
+    items = list(unique_products.values())
+    classified_results = {}
+    
+    # Construir contexto da empresa
+    context = f"""
+    Empresa: {company_data.get('razao_social')}
+    Atividade: {company_data.get('tipo_atividade')}
+    
+    PALAVRAS-CHAVE E REGRAS DA EMPRESA:
+    1. REVENDA (Comercialização): {', '.join(company_data.get('produtos_comercializados', []))}
+    2. INSUMO (Produção/Industrialização): {', '.join(company_data.get('insumos_producao', []))}
+    3. DESPESA (Uso e Consumo): {', '.join(company_data.get('produtos_despesa', []))}
+    
+    Instruções:
+    Analise cada produto e classifique como 'revenda', 'insumo' ou 'despesa' com base nas palavras-chave acima.
+    Use inteligência semântica: se 'Limpeza' é despesa, então 'Detergente', 'Sabão', 'Vassoura' são despesas.
+    Se 'Oriental' é revenda, então 'Sushi', 'Shoyu', 'Arroz Japonês' são revenda.
+    Se não houver correspondência semântica clara, use o padrão para a atividade da empresa.
+    
+    Responda APENAS um JSON no formato:
+    {{
+        "produtos": [
+            {{
+                "descricao": "nome do produto",
+                "categoria": "revenda|insumo|despesa",
+                "justificativa": "breve explicação"
+            }}
+        ]
+    }}
+    """
+    
+    for i in range(0, len(items), batch_size):
+        batch = items[i:i+batch_size]
+        
+        batch_prompt = "Classifique estes produtos:\n" + json.dumps([{
+            'descricao': p['descricao'],
+            'ncm': p['ncm']
+        } for p in batch], ensure_ascii=False)
+        
+        try:
+            chat = await get_ai_chat(session_id=f"classification_{uuid.uuid4()}", system_message=context)
+            response = await chat.send_message(UserMessage(text=batch_prompt))
+            
+            # Extrair JSON
+            response_text = response.strip()
+            if "```json" in response_text:
+                response_text = response_text.split("```json")[1].split("```")[0]
+            elif "```" in response_text:
+                response_text = response_text.split("```")[1].split("```")[0]
+                
+            result = json.loads(response_text)
+            
+            for item in result.get('produtos', []):
+                # Encontrar chave original (pode haver pequenas variações na string de retorno)
+                # Vamos usar map direto se possível, ou match difuso
+                classified_results[item['descricao']] = {
+                    "categoria": item['categoria'],
+                    "justificativa": item['justificativa']
+                }
+                
+        except Exception as e:
+            print(f"Erro na classificação LLM: {str(e)}")
+            continue
+            
+    return classified_results
+
         
     except json.JSONDecodeError as e:
         return {
