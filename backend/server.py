@@ -2046,14 +2046,17 @@ async def apuracao_pis_cofins(
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
             ncm = str(prod.get('ncm', ''))
-            cst_pis = str(prod.get('cst_pis', prod.get('CST_PIS', '')))
-            cst_cofins = str(prod.get('cst_cofins', prod.get('CST_COFINS', '')))
+            
+            # Usar CST CALCULADO (não o do XML) - aplicado durante importação
+            cst_calculado = str(prod.get('cst_pis_calculado', prod.get('cst_pis', '')))
+            cst_xml = str(prod.get('cst_pis_xml', ''))
+            
             valor = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
             v_pis = float(prod.get('v_pis', 0) or 0)
             v_cofins = float(prod.get('v_cofins', 0) or 0)
             
             primeiro_digito = cfop[0] if cfop else ''
-            aliq_zero = is_ncm_aliquota_zero(ncm)
+            aliq_zero = prod.get('ncm_aliq_zero', is_ncm_aliquota_zero(ncm))
             
             # Verificar se é transferência
             is_transferencia = cfop in CFOPS_TRANSFERENCIA
@@ -2077,37 +2080,33 @@ async def apuracao_pis_cofins(
                     transferencias["saida"]["total"] += valor
                 continue  # Não processar como crédito/débito
             
-            # Determinar CST baseado no tipo e tributação
-            # Entrada: 50 (tributado/com crédito), 73 (alíquota zero)
+            # USAR CST CALCULADO (não do XML)
+            # Entrada: 50 (com crédito), 70 (sem crédito), 73 (alíquota zero)
             # Saída: 01 (tributado), 06 (alíquota zero)
             
             # Entradas (créditos)
             if is_entrada:
-                # Usar CST do PIS do XML quando disponível, senão calcular
-                cst_real = cst_pis if cst_pis else None
+                cst_usado = cst_calculado or calcular_cst_pis_cofins(ncm, cfop, 'entrada', cst_xml, regime)['cst_calculado']
                 
-                if aliq_zero:
+                if aliq_zero or cst_usado == '73':
                     # Alíquota zero - CST 73 - não gera crédito
-                    cst_usado = cst_real or "73"
-                    add_to_dict(creditos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0, cst_usado)
-                    add_to_dict(creditos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, cst_usado)
-                    add_to_dict(creditos["aliquota_zero"]["por_cst"], cst_usado, valor, 0, 0, cst_usado)
+                    add_to_dict(creditos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0, '73')
+                    add_to_dict(creditos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, '73')
+                    add_to_dict(creditos["aliquota_zero"]["por_cst"], '73', valor, 0, 0, '73')
                     creditos["aliquota_zero"]["total"] += valor
-                elif (cfop in CFOPS_CREDITO_PIS_COFINS or not cfop) and regime == 'lucro_real':
+                elif cst_usado == '50' or ((cfop in CFOPS_COM_CREDITO_PIS_COFINS or not cfop) and regime == 'lucro_real'):
                     # Gera crédito - CST 50 (apenas Lucro Real)
-                    cst_usado = cst_real or "50"
-                    add_to_dict(creditos["com_credito"]["por_cfop"], cfop_key, valor, v_pis, v_cofins, cst_usado)
-                    add_to_dict(creditos["com_credito"]["por_ncm"], ncm or "SEM NCM", valor, v_pis, v_cofins, cst_usado)
-                    add_to_dict(creditos["com_credito"]["por_cst"], cst_usado, valor, v_pis, v_cofins, cst_usado)
+                    add_to_dict(creditos["com_credito"]["por_cfop"], cfop_key, valor, v_pis, v_cofins, '50')
+                    add_to_dict(creditos["com_credito"]["por_ncm"], ncm or "SEM NCM", valor, v_pis, v_cofins, '50')
+                    add_to_dict(creditos["com_credito"]["por_cst"], '50', valor, v_pis, v_cofins, '50')
                     creditos["com_credito"]["total"] += valor
                     creditos["com_credito"]["pis"] += v_pis
                     creditos["com_credito"]["cofins"] += v_cofins
                 else:
-                    # CFOP não gera crédito ou empresa é Lucro Presumido - CST 73
-                    cst_usado = cst_real or "73"
-                    add_to_dict(creditos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0, cst_usado)
-                    add_to_dict(creditos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, cst_usado)
-                    add_to_dict(creditos["aliquota_zero"]["por_cst"], cst_usado, valor, 0, 0, cst_usado)
+                    # CFOP não gera crédito ou empresa é Lucro Presumido - CST 70
+                    add_to_dict(creditos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0, '70')
+                    add_to_dict(creditos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, '70')
+                    add_to_dict(creditos["aliquota_zero"]["por_cst"], '70', valor, 0, 0, '70')
                     creditos["aliquota_zero"]["total"] += valor
             
             # Saídas (débitos)
