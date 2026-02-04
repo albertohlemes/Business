@@ -1142,14 +1142,25 @@ async def upload_xml_batch(
                 continue
             
             file_conversions = []
+            file_alertas_cfop = []  # Alertas de CFOP para este arquivo
             
             # APLICAR ANÁLISE INTELIGENTE E CONVERTER CFOP AUTOMATICAMENTE
             for product in parsed_data['produtos']:
-                suggestion = await suggest_cfop_intelligent(
-                    product, company_id, tipo, product.get('cfop', '')
-                )
-                
                 cfop_original = product.get('cfop', '')
+                
+                # VERIFICAR SE É CFOP DE OPERAÇÃO DISTINTA (apenas para entradas)
+                if tipo == 'entrada' and cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
+                    file_alertas_cfop.append({
+                        'produto': product.get('descricao', ''),
+                        'codigo': product.get('codigo', ''),
+                        'cfop': cfop_original,
+                        'descricao_cfop': CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original],
+                        'valor': product.get('valor_total', 0)
+                    })
+                
+                suggestion = await suggest_cfop_intelligent(
+                    product, company_id, tipo, cfop_original
+                )
                 
                 if suggestion['cfop_sugerido']:
                     product['cfop_sugerido'] = suggestion['cfop_sugerido']
@@ -1169,6 +1180,15 @@ async def upload_xml_batch(
                         'categoria': suggestion['categoria'],
                         'motivo': suggestion.get('justificativa', f"Classificado como {suggestion['categoria'].upper()}")
                     })
+            
+            # Registrar alertas de CFOP para este arquivo
+            if file_alertas_cfop:
+                alertas_cfop.append({
+                    "arquivo": file.filename,
+                    "nfe": parsed_data['numero_nfe'],
+                    "emitente": parsed_data.get('emitente_nome', ''),
+                    "alertas": file_alertas_cfop
+                })
             
             xml_doc = XMLDocument(
                 company_id=company_id,
