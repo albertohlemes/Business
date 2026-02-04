@@ -13,17 +13,9 @@ const Documents = ({ user, onLogout }) => {
   const [documents, setDocuments] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedTipo, setSelectedTipo] = useState('');
   const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    // Usar empresa do contexto se disponível
-    if (ctxCompany && !selectedCompany) {
-      setSelectedCompany(ctxCompany.id);
-    }
-  }, [ctxCompany]);
 
   useEffect(() => {
     fetchData();
