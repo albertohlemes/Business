@@ -656,27 +656,13 @@ ${TEMPLATE_MINUTA}
                                             size="sm" 
                                             onClick={() => {
                                                 const empresa = dadosExtraidos?.empresa || {};
-                                                const url = gerarPDFBlobUrl(minutaGerada, empresa, dataAlteracao);
-                                                setPdfUrl(url);
-                                                setPdfViewOpen(true);
+                                                baixarPDF(minutaGerada, empresa, dataAlteracao);
+                                                toast.success('PDF salvo na pasta Downloads!');
                                             }}
                                             className="bg-red-600 hover:bg-red-700"
-                                            data-testid="visualizar-pdf-btn"
-                                        >
-                                            <Eye className="w-4 h-4 mr-2" /> Visualizar PDF
-                                        </Button>
-                                        <Button 
-                                            size="sm" 
-                                            variant="outline"
-                                            onClick={() => {
-                                                const empresa = dadosExtraidos?.empresa || {};
-                                                baixarPDF(minutaGerada, empresa, dataAlteracao);
-                                                toast.success('PDF baixado!');
-                                            }}
-                                            className="border-zinc-700"
                                             data-testid="baixar-pdf-btn"
                                         >
-                                            <FileDown className="w-4 h-4 mr-2" /> Baixar PDF
+                                            <FileDown className="w-4 h-4 mr-2" /> Salvar PDF
                                         </Button>
                                         <Button 
                                             size="sm" 
@@ -684,13 +670,13 @@ ${TEMPLATE_MINUTA}
                                             onClick={copyToClipboard}
                                             className="border-zinc-700"
                                         >
-                                            <Copy className="w-4 h-4 mr-2" /> Copiar
+                                            <Copy className="w-4 h-4 mr-2" /> Copiar Texto
                                         </Button>
                                     </div>
                                 </div>
                                 
                                 <p className="text-xs text-zinc-500">
-                                    Clique em "Visualizar PDF" para ver o documento formatado, ou "Baixar PDF" para download direto.
+                                    Clique em "Salvar PDF" para baixar o documento formatado. O arquivo será salvo na pasta Downloads.
                                 </p>
                                 
                                 <div className="bg-white text-black rounded-lg p-6 max-h-[450px] overflow-y-auto border">
