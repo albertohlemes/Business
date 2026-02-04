@@ -1654,10 +1654,11 @@ async def get_dashboard_stats(
     # Análise comparativa Lucro Presumido vs. Lucro Real
     # Para Lucro Presumido: não há crédito de PIS/COFINS
     # Para Lucro Real: há crédito de PIS/COFINS (1.65% e 7.6%)
+    # IMPORTANTE: Usar apenas a base tributada (excluindo alíquota zero)
     
     analise_comparativa = None
     
-    if regime_tributario == 'lucro_presumido' and faturamento_total > 0:
+    if regime_tributario == 'lucro_presumido' and total_base_pis_cofins > 0:
         # Alíquotas do Lucro Presumido (cumulativo)
         aliq_pis_presumido = 0.0065  # 0.65%
         aliq_cofins_presumido = 0.03  # 3%
@@ -1666,14 +1667,14 @@ async def get_dashboard_stats(
         aliq_pis_real = 0.0165  # 1.65%
         aliq_cofins_real = 0.076  # 7.6%
         
-        # Cálculo para Lucro Presumido (atual)
-        pis_presumido = faturamento_total * aliq_pis_presumido
-        cofins_presumido = faturamento_total * aliq_cofins_presumido
+        # Cálculo para Lucro Presumido (atual) - APENAS sobre base tributada
+        pis_presumido = total_base_pis_cofins * aliq_pis_presumido
+        cofins_presumido = total_base_pis_cofins * aliq_cofins_presumido
         total_presumido = pis_presumido + cofins_presumido
         
-        # Cálculo hipotético para Lucro Real (com créditos)
-        debito_pis_real = faturamento_total * aliq_pis_real
-        debito_cofins_real = faturamento_total * aliq_cofins_real
+        # Cálculo hipotético para Lucro Real (com créditos) - APENAS sobre base tributada
+        debito_pis_real = total_base_pis_cofins * aliq_pis_real
+        debito_cofins_real = total_base_pis_cofins * aliq_cofins_real
         
         # Créditos hipotéticos (assumindo mesmas alíquotas sobre compras)
         credito_pis_real = total_entradas * aliq_pis_real
@@ -1688,6 +1689,8 @@ async def get_dashboard_stats(
         
         analise_comparativa = {
             "regime_atual": "lucro_presumido",
+            "base_calculo": round(total_base_pis_cofins, 2),
+            "aliquota_zero_excluida": round(total_aliquota_zero, 2),
             "lucro_presumido": {
                 "pis": round(pis_presumido, 2),
                 "cofins": round(cofins_presumido, 2),
@@ -1710,13 +1713,14 @@ async def get_dashboard_stats(
             "regime_mais_vantajoso": "lucro_real" if diferenca > 0 else "lucro_presumido",
             "economia_potencial": round(abs(diferenca), 2)
         }
-    elif regime_tributario == 'lucro_real':
+    elif regime_tributario == 'lucro_real' and total_base_pis_cofins > 0:
         # Para empresas no Lucro Real, mostrar quanto seria no Presumido
         aliq_pis_presumido = 0.0065
         aliq_cofins_presumido = 0.03
         
-        pis_presumido = faturamento_total * aliq_pis_presumido
-        cofins_presumido = faturamento_total * aliq_cofins_presumido
+        # APENAS sobre base tributada
+        pis_presumido = total_base_pis_cofins * aliq_pis_presumido
+        cofins_presumido = total_base_pis_cofins * aliq_cofins_presumido
         total_presumido = pis_presumido + cofins_presumido
         
         total_real = pis_pagar + cofins_pagar
