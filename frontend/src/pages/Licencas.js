@@ -192,7 +192,11 @@ const Licencas = () => {
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">Licenças REDESIM</h1>
                     <p className="text-zinc-500">
-                        Consulte e gerencie licenças de funcionamento via portal REDESIM SP
+                        Gerencie licenças de funcionamento - 
+                        <a href="https://vreredesim.sp.gov.br" target="_blank" rel="noopener noreferrer" 
+                           className="text-red-500 hover:text-red-400 ml-1">
+                            Acessar Portal REDESIM SP ↗
+                        </a>
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
