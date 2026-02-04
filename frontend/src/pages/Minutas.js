@@ -101,6 +101,19 @@ const Minutas = () => {
         }
     };
 
+    const handleDocSuporte = (e) => {
+        const f = e.target.files?.[0];
+        if (f) {
+            const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+            if (!validTypes.includes(f.type)) {
+                toast.error('Formato inválido');
+                return;
+            }
+            setDocsSuporte(prev => [...prev, { file: f, tipo: 'outro', id: Date.now() }]);
+        }
+        if (docInputRef.current) docInputRef.current.value = '';
+    };
+
     const handleUpload = async (e) => {
         e.preventDefault();
         if (!file || !tipoAlteracao) {
