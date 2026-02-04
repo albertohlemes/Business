@@ -63,19 +63,19 @@ const ApuracaoPeriodo = ({ user, onLogout }) => {
     
     // Entradas
     csv += 'ENTRADAS\n';
-    csv += 'CFOP;Valor;BC ICMS;ICMS;PIS;COFINS\n';
+    csv += 'CFOP;CST;Valor;BC ICMS;ICMS;PIS;COFINS\n';
     data.entradas.itens.forEach(item => {
-      csv += `${item.cfop};${item.valor};${item.bc_icms};${item.v_icms};${item.v_pis};${item.v_cofins}\n`;
+      csv += `${item.cfop};${item.cst || ''};${item.valor};${item.bc_icms};${item.v_icms};${item.v_pis};${item.v_cofins}\n`;
     });
-    csv += `SUBTOTAL ENTRADAS;${data.entradas.subtotal.valor};${data.entradas.subtotal.bc_icms};${data.entradas.subtotal.v_icms};${data.entradas.subtotal.v_pis};${data.entradas.subtotal.v_cofins}\n\n`;
+    csv += `SUBTOTAL ENTRADAS;;${data.entradas.subtotal.valor};${data.entradas.subtotal.bc_icms};${data.entradas.subtotal.v_icms};${data.entradas.subtotal.v_pis};${data.entradas.subtotal.v_cofins}\n\n`;
     
     // Saídas
     csv += 'SAÍDAS\n';
-    csv += 'CFOP;Valor;BC ICMS;ICMS;PIS;COFINS\n';
+    csv += 'CFOP;CST;Valor;BC ICMS;ICMS;PIS;COFINS\n';
     data.saidas.itens.forEach(item => {
-      csv += `${item.cfop};${item.valor};${item.bc_icms};${item.v_icms};${item.v_pis};${item.v_cofins}\n`;
+      csv += `${item.cfop};${item.cst || ''};${item.valor};${item.bc_icms};${item.v_icms};${item.v_pis};${item.v_cofins}\n`;
     });
-    csv += `SUBTOTAL SAÍDAS;${data.saidas.subtotal.valor};${data.saidas.subtotal.bc_icms};${data.saidas.subtotal.v_icms};${data.saidas.subtotal.v_pis};${data.saidas.subtotal.v_cofins}\n`;
+    csv += `SUBTOTAL SAÍDAS;;${data.saidas.subtotal.valor};${data.saidas.subtotal.bc_icms};${data.saidas.subtotal.v_icms};${data.saidas.subtotal.v_pis};${data.saidas.subtotal.v_cofins}\n`;
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
