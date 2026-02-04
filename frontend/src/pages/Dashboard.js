@@ -108,6 +108,48 @@ const Dashboard = ({ user, onLogout }) => {
     </div>
   );
 
+  // Card de PIS/COFINS com divergência (para Lucro Real)
+  const TaxCardWithDivergence = ({ title, credito, debito, debitoXml, pagar, divergencia }) => (
+    <div className={`bg-white rounded-xl p-4 shadow-sm border ${divergencia ? 'border-orange-300 bg-orange-50' : 'border-gray-100'}`}>
+      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        {title}
+        {divergencia && (
+          <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full">
+            Divergência
+          </span>
+        )}
+      </h4>
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm">
+          <span className="text-green-600">Crédito:</span>
+          <span className="font-medium text-green-700">{formatCurrency(credito)}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-red-600">Débito ({title === 'PIS' ? '1.65%' : '7.6%'}):</span>
+          <span className="font-medium text-red-700">{formatCurrency(debito)}</span>
+        </div>
+        {divergencia && debitoXml !== null && (
+          <div className="flex justify-between text-xs bg-orange-100 -mx-2 px-2 py-1 rounded">
+            <span className="text-orange-700">Valor no XML ({divergencia.aliquota_xml}):</span>
+            <span className="font-medium text-orange-800">{formatCurrency(debitoXml)}</span>
+          </div>
+        )}
+        {divergencia && (
+          <div className="flex justify-between text-xs text-orange-600">
+            <span>Diferença:</span>
+            <span className="font-medium">{formatCurrency(divergencia.diferenca)}</span>
+          </div>
+        )}
+        <div className="border-t pt-2 flex justify-between text-sm font-bold">
+          <span className="text-gray-700">A Pagar:</span>
+          <span className={pagar > 0 ? 'text-red-700' : 'text-green-700'}>
+            {formatCurrency(pagar)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="dashboard-page" className="space-y-6">
