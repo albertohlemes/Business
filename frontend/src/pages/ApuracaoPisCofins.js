@@ -126,35 +126,76 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
     URL.revokeObjectURL(url);
   };
 
-  // Componente de tabela
+  // Componente de tabela com ordenação
   const DataTable = ({ items, showTaxes = true, title }) => {
+    const [sortConfig, setSortConfig] = useState({ key: 'valor', direction: 'desc' });
     const columnLabel = viewMode === 'cfop' ? 'CFOP' : viewMode === 'ncm' ? 'NCM' : 'CST';
+    
+    const sortedItems = React.useMemo(() => {
+      if (!items || items.length === 0) return [];
+      
+      return [...items].sort((a, b) => {
+        const aVal = a[sortConfig.key] ?? 0;
+        const bVal = b[sortConfig.key] ?? 0;
+        
+        if (typeof aVal === 'string') {
+          return sortConfig.direction === 'asc' 
+            ? aVal.localeCompare(bVal) 
+            : bVal.localeCompare(aVal);
+        }
+        
+        return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+      });
+    }, [items, sortConfig]);
+    
+    const requestSort = (key) => {
+      setSortConfig(prev => ({
+        key,
+        direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+      }));
+    };
+    
+    const SortHeader = ({ label, sortKey, align = 'left' }) => (
+      <th 
+        onClick={() => requestSort(sortKey)}
+        className={`px-4 py-3 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors select-none ${align === 'right' ? 'text-right' : 'text-left'}`}
+      >
+        <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}>
+          {label}
+          <span className="text-gray-400 text-xs">
+            {sortConfig.key === sortKey ? (
+              sortConfig.direction === 'asc' ? '▲' : '▼'
+            ) : '↕'}
+          </span>
+        </div>
+      </th>
+    );
     
     return (
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50">
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">{columnLabel}</th>
-              <th className="px-4 py-3 text-right font-semibold text-gray-700">Valor</th>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <SortHeader label={columnLabel} sortKey="codigo" />
+              <SortHeader label="Valor" sortKey="valor" align="right" />
               {showTaxes && (
                 <>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-700">PIS</th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-700">COFINS</th>
+                  <SortHeader label="PIS" sortKey="pis" align="right" />
+                  <SortHeader label="COFINS" sortKey="cofins" align="right" />
                 </>
               )}
-              <th className="px-4 py-3 text-right font-semibold text-gray-700">Qtd</th>
+              <SortHeader label="Qtd" sortKey="qtd" align="right" />
             </tr>
           </thead>
           <tbody>
-            {items.length === 0 ? (
+            {sortedItems.length === 0 ? (
               <tr>
                 <td colSpan={showTaxes ? 5 : 3} className="px-4 py-8 text-center text-gray-500">
                   Nenhum registro encontrado
                 </td>
               </tr>
             ) : (
-              items.map((item, idx) => (
+              sortedItems.map((item, idx) => (
                 <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="px-4 py-3 font-mono font-medium text-gray-900">{item.codigo}</td>
                   <td className="px-4 py-3 text-right">{formatCurrency(item.valor)}</td>
