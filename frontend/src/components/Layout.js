@@ -9,14 +9,15 @@ const Layout = ({ user, onLogout, children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { selectedCompany, selectedCompetencia, openSelector } = useAppContext();
 
+  // Menu organizado em ordem lógica do fluxo de trabalho
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
-    { name: 'Análise Tributária', href: '/analise-tributaria', icon: TrendingUp, testId: 'nav-analise' },
     { name: 'Empresas', href: '/companies', icon: Building2, testId: 'nav-companies' },
     { name: 'Upload XML', href: '/upload', icon: Upload, testId: 'nav-upload' },
     { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
     { name: 'Reclassificação IA', href: '/reclassification', icon: Brain, testId: 'nav-reclassification' },
     { name: 'Validação', href: '/validation', icon: CheckCircle, testId: 'nav-validation' },
+    { name: 'Análise Tributária', href: '/analise-tributaria', icon: TrendingUp, testId: 'nav-analise' },
     { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
     { name: 'Exportar SPED', href: '/export', icon: Download, testId: 'nav-export' },
   ];

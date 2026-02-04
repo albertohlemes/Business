@@ -64,18 +64,26 @@ const Companies = ({ user, onLogout }) => {
   };
 
   const handleDelete = async (companyId, razaoSocial) => {
+    console.log('handleDelete called with:', companyId, razaoSocial);
+    
     if (!window.confirm('Tem certeza que deseja excluir a empresa ' + razaoSocial + '?')) {
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(API + '/companies/' + companyId, {
+      console.log('Making DELETE request to:', API + '/companies/' + companyId);
+      
+      const response = await axios.delete(API + '/companies/' + companyId, {
         headers: { Authorization: 'Bearer ' + token }
       });
+      
+      console.log('Delete response:', response.data);
       alert('Empresa excluída com sucesso!');
       fetchCompanies();
+      refreshCompanies();
     } catch (err) {
+      console.error('Delete error:', err);
       alert(err.response?.data?.detail || 'Erro ao excluir empresa');
     }
   };

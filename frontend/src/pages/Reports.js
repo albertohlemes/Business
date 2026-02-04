@@ -86,44 +86,65 @@ const Reports = ({ user, onLogout }) => {
   };
 
   const exportToCSV = () => {
+    console.log('exportToCSV called, reportData:', reportData);
+    
     if (!reportData || reportData.length === 0) {
-      alert('Nenhum dado para exportar');
+      alert('Nenhum dado para exportar. Gere o relatório primeiro.');
       return;
     }
 
-    let headers = '';
-    let rows = '';
-
     try {
+      let headers = '';
+      let rows = '';
+
       if (reportType === 'product') {
         headers = 'Codigo,Descricao,NCM,Quantidade,Valor Total,Credito ICMS,Credito PIS,Credito COFINS,Documentos\n';
-        rows = reportData.map(item => 
-          [
-            item.codigo || '', 
-            '"' + (item.descricao || '').replace(/"/g, '""') + '"', 
-            item.ncm || '', 
-            (item.quantidade || 0).toFixed(2), 
-            (item.valor_total || 0).toFixed(2), 
-            (item.credito_icms || 0).toFixed(2), 
-            (item.credito_pis || 0).toFixed(2), 
-            (item.credito_cofins || 0).toFixed(2), 
-            item.documentos || 0
-          ].join(',')
-        ).join('\n');
+        rows = reportData.map(item => {
+          const codigo = String(item.codigo || '');
+          const descricao = String(item.descricao || '').replace(/"/g, '""');
+          const ncm = String(item.ncm || '');
+          const quantidade = parseFloat(item.quantidade) || 0;
+          const valor_total = parseFloat(item.valor_total) || 0;
+          const credito_icms = parseFloat(item.credito_icms) || 0;
+          const credito_pis = parseFloat(item.credito_pis) || 0;
+          const credito_cofins = parseFloat(item.credito_cofins) || 0;
+          const documentos = parseInt(item.documentos) || 0;
+          
+          return [
+            codigo,
+            '"' + descricao + '"',
+            ncm,
+            quantidade.toFixed(2),
+            valor_total.toFixed(2),
+            credito_icms.toFixed(2),
+            credito_pis.toFixed(2),
+            credito_cofins.toFixed(2),
+            documentos
+          ].join(',');
+        }).join('\n');
       } else {
         headers = 'NCM,Qtd Produtos,Quantidade,Valor Total,Credito ICMS,Credito PIS,Credito COFINS,Documentos\n';
-        rows = reportData.map(item =>
-          [
-            item.ncm || '', 
-            item.quantidade_produtos || 0, 
-            (item.quantidade || 0).toFixed(2), 
-            (item.valor_total || 0).toFixed(2),
-            (item.credito_icms || 0).toFixed(2), 
-            (item.credito_pis || 0).toFixed(2), 
-            (item.credito_cofins || 0).toFixed(2), 
-            item.documentos || 0
-          ].join(',')
-        ).join('\n');
+        rows = reportData.map(item => {
+          const ncm = String(item.ncm || '');
+          const quantidade_produtos = parseInt(item.quantidade_produtos) || 0;
+          const quantidade = parseFloat(item.quantidade) || 0;
+          const valor_total = parseFloat(item.valor_total) || 0;
+          const credito_icms = parseFloat(item.credito_icms) || 0;
+          const credito_pis = parseFloat(item.credito_pis) || 0;
+          const credito_cofins = parseFloat(item.credito_cofins) || 0;
+          const documentos = parseInt(item.documentos) || 0;
+          
+          return [
+            ncm,
+            quantidade_produtos,
+            quantidade.toFixed(2),
+            valor_total.toFixed(2),
+            credito_icms.toFixed(2),
+            credito_pis.toFixed(2),
+            credito_cofins.toFixed(2),
+            documentos
+          ].join(',');
+        }).join('\n');
       }
 
       // Adicionar BOM para UTF-8
@@ -138,9 +159,11 @@ const Reports = ({ user, onLogout }) => {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      
+      console.log('CSV exported successfully');
     } catch (err) {
-      console.error('Erro ao exportar:', err);
-      alert('Erro ao exportar CSV');
+      console.error('Erro ao exportar CSV:', err);
+      alert('Erro ao exportar CSV: ' + err.message);
     }
   };
 
