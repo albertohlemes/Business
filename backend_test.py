@@ -825,7 +825,9 @@ def main():
         # Specific tests requested in review
         tester.test_relatorio_divergencias_saida,
         tester.test_delete_document_admin,
-        tester.test_delete_batch_documents_admin
+        tester.test_delete_batch_documents_admin,
+        # Cascade delete test
+        tester.test_company_cascade_delete
     ]
     
     # Run all tests
