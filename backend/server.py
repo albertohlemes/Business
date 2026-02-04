@@ -1899,7 +1899,10 @@ async def apuracao_periodo(
         
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
-            cst = str(prod.get('cst', ''))
+            # Usar CST de PIS/COFINS em vez de ICMS
+            cst_pis = str(prod.get('cst_pis', ''))
+            cst_cofins = str(prod.get('cst_cofins', ''))
+            cst = cst_pis or cst_cofins or str(prod.get('cst', ''))  # Fallback para CST ICMS se não houver
             
             # Valores do produto - usar campos corretos
             valor = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
