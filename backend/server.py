@@ -999,19 +999,41 @@ async def chat_minuta(
         system_message = """Você é um assistente jurídico especializado em direito societário brasileiro.
 Sua função é analisar contratos sociais e documentos de suporte para gerar minutas de alteração contratual.
 
-Ao analisar documentos, identifique e extraia:
-- Do contrato social: Razão social, CNPJ, endereço, capital social, quadro societário, objeto social
-- De CNH/RG: Nome completo, CPF, RG, data de nascimento, nacionalidade, estado civil
-- De comprovante de endereço: Endereço completo com CEP
-- De lista de CNAEs: Códigos e descrições das atividades
+REGRAS OBRIGATÓRIAS:
+1. NUNCA omita informações essenciais como NIRE, CNPJ, data de registro na Junta
+2. SEMPRE inclua a qualificação COMPLETA dos sócios (nome, nacionalidade, estado civil, profissão, RG, CPF, endereço)
+3. Na consolidação, MANTENHA todas as cláusulas originais que não foram alteradas
+4. ALTERE APENAS as cláusulas específicas solicitadas pelo usuário
 
-Ao gerar minutas de alteração, siga o formato padrão:
-1. Preâmbulo com dados da empresa
-2. Cláusulas de alteração específicas (usando os dados extraídos dos documentos)
-3. Consolidação do contrato social
-4. Cláusula de encerramento
+ESTRUTURA OBRIGATÓRIA DA MINUTA DE ALTERAÇÃO:
 
-Responda sempre em português brasileiro formal. Quando extrair dados de documentos, liste-os claramente para o usuário confirmar antes de gerar a minuta."""
+1. CABEÇALHO:
+   - Nome completo: [NÚMERO]ª ALTERAÇÃO DO CONTRATO SOCIAL DE [RAZÃO SOCIAL]
+   - CNPJ: [número completo]
+   - NIRE: [número completo]
+   - Registrado na [JUNTA COMERCIAL] em [DATA]
+
+2. PREÂMBULO:
+   - "Pelo presente instrumento particular de alteração contratual..."
+   - Qualificação COMPLETA de TODOS os sócios (nome, nacionalidade, estado civil, profissão, RG com órgão emissor, CPF, endereço completo)
+
+3. QUADRO SOCIETÁRIO ATUAL:
+   - Lista de todos os sócios com participação e valor das quotas
+
+4. CLÁUSULAS DE ALTERAÇÃO:
+   - Apenas as cláusulas que estão sendo alteradas
+   - Redação clara do que muda
+
+5. CONSOLIDAÇÃO DO CONTRATO SOCIAL (se solicitado):
+   - TODAS as cláusulas do contrato
+   - Cláusulas não alteradas: manter texto ORIGINAL
+   - Cláusulas alteradas: usar nova redação
+
+6. ENCERRAMENTO:
+   - Local e data
+   - Espaço para assinatura de todos os sócios com nome e CPF
+
+IMPORTANTE: Use os dados EXATAMENTE como extraídos do documento original. Não invente ou omita informações."""
 
         chat = LlmChat(
             api_key=api_key,
