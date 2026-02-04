@@ -84,6 +84,17 @@ class Company(BaseModel):
     produtos_comercializados: List[str] = []
     insumos_producao: List[str] = []
     produtos_despesa: List[str] = []
+    # Regime Tributário
+    regime_tributario: str = "lucro_presumido"  # simples_nacional, lucro_presumido, lucro_real
+    anexos_simples: List[str] = []  # I, II, III, IV, V
+    tipo_atividade: str = "comercio"  # comercio, industria, servicos, mista
+    tipos_servico: List[str] = []  # transporte, ti, consultoria, etc
+    # Presunção (Lucro Presumido)
+    percentual_presuncao_irpj: float = 8.0
+    percentual_presuncao_csll: float = 12.0
+    # Estoque (para ponto de equilíbrio - Lucro Real)
+    estoque_inicial: float = 0.0
+    estoque_final: float = 0.0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CompanyCreate(BaseModel):
@@ -102,13 +113,23 @@ class CompanyCreate(BaseModel):
     produtos_comercializados: List[str] = []
     insumos_producao: List[str] = []
     produtos_despesa: List[str] = []
+    # Regime Tributário
+    regime_tributario: str = "lucro_presumido"
+    anexos_simples: List[str] = []
+    tipo_atividade: str = "comercio"
+    tipos_servico: List[str] = []
+    percentual_presuncao_irpj: float = 8.0
+    percentual_presuncao_csll: float = 12.0
+    estoque_inicial: float = 0.0
+    estoque_final: float = 0.0
 
 class XMLDocument(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     company_id: str
     competencia: str
-    tipo: str
+    tipo: str  # entrada, saida
+    modelo: str = "nfe"  # nfe, nfce, nfse
     chave_nfe: str
     numero_nfe: str
     data_emissao: str
@@ -117,8 +138,10 @@ class XMLDocument(BaseModel):
     destinatario_cnpj: str
     destinatario_nome: str
     valor_total: float
+    valor_servicos: float = 0.0
     xml_content: str
     produtos: List[Dict[str, Any]] = []
+    servicos: List[Dict[str, Any]] = []
     status_validacao: str = "pendente"
     uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     uploaded_by: str = ""
