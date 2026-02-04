@@ -12,75 +12,94 @@ Portal para departamento societário com geração de documentos via IA.
 
 ## Implementações Concluídas
 
+### ✅ Wizard de Alteração Reformulado (05/02/2026)
+
+**Nova estrutura de 4 etapas:**
+
+**Etapa 1 - Upload do Contrato:**
+- Upload do contrato social atual
+- IA extrai: empresa, sócios, CNAEs
+
+**Etapa 2 - Tipos de Alteração (seleção múltipla):**
+- Alteração de Sócios (QSA)
+- Alteração de Endereço
+- Alteração de Atividades (CNAEs)
+- Alteração de Capital
+- Alteração de Nome
+- Alteração de Administração
+
+**Etapa 3 - Formulários específicos por tipo:**
+
+**QSA (Quadro Societário):**
+- 3 opções: Saída de sócio, Entrada de sócio, Redistribuição de cotas
+- Lista sócios atuais com checkbox para selecionar saída
+- Formulário para novos sócios com botão "✨ Preencher com IA"
+- Campo para nova participação em redistribuição
+
+**Endereço:**
+- Mostra endereço atual da empresa
+- Formulário completo de novo endereço
+- Botão "✨ Preencher com IA" 
+- Busca de CEP automática 🔍
+
+**Atividades (CNAEs):**
+- Lista CNAEs atuais com checkbox para EXCLUIR
+- Busca para ADICIONAR novos CNAEs
+- Indicadores visuais: vermelho=excluir, verde=adicionar
+
+**Capital:**
+- Mostra capital atual
+- Opções: Aumento ou Redução
+- Campo para novo valor e motivo
+
+**Nome:**
+- Mostra razão social e nome fantasia atuais
+- Campos para novos valores
+
+**Administração:**
+- Lista sócios com checkbox para selecionar administradores
+- Campo de poderes dos administradores
+
+**Etapa 4 - Resultado:**
+- Minuta gerada com todas as alterações
+- Download Word e PDF
+- Copiar para área de transferência
+
+### ✅ Dashboard Renomeado (05/02/2026)
+- "Minutas" → "Processos"
+- "Minutas Contratuais" → "Processos Societários"
+- "Nova Minuta" → "Novo Processo"
+- Descrição atualizada para incluir constituição, alteração e baixa
+
 ### ✅ Banco de CNAEs Expandido (05/02/2026)
-Expandido de ~40 para **350+ CNAEs** organizados por categorias:
-- Comércio Varejista (70+ atividades)
-- Comércio Atacadista (30+ atividades)
-- Alimentação (restaurantes, bares, lanchonetes)
-- Tecnologia e Informática
-- Serviços Profissionais (advocacia, contabilidade, engenharia)
-- Publicidade e Marketing
-- Design e Fotografia
-- Saúde (clínicas, laboratórios, profissionais)
-- Construção Civil (60+ atividades)
-- Transporte e Logística
-- Educação
-- Atividades Imobiliárias
-- Serviços Pessoais
-- Veículos e Autopeças
-- Aluguel e Locação
-- Outros Serviços
+- 350+ CNAEs organizados por categoria
 
 ### ✅ Busca de CEP Automática (05/02/2026)
+- Endpoint `/api/cep/{cep}` via ViaCEP
+- Integração com extração por IA
 
-**Endpoint de API:**
-- `GET /api/cep/{cep}` - Consulta CEP via API ViaCEP (Correios)
-- Retorna: logradouro, bairro, cidade, estado, IBGE, DDD
+### ✅ Wizard de Baixa (05/02/2026)
+- 6 etapas completas
 
-**Integração com IA:**
-- Quando a IA extrai um CEP de documento, automaticamente consulta os Correios
-- Atualiza o logradouro com a descrição oficial dos Correios
-
-**Interface:**
-- Botão 🔍 ao lado de cada campo CEP (empresa e sócios)
-- Ao clicar, busca e preenche automaticamente: logradouro, bairro, cidade, estado
-
-### ✅ Melhorias no Wizard de Baixa (05/02/2026)
-- Subtítulo "Baixas de Empresas"
-- Botão IA para endereço do sócio
-- Textos padrão pré-preenchidos
-- Responsável pela guarda: Select com sócios
-- Data de encerramento: data de hoje
-
-### ✅ Wizard de Baixa Completo (05/02/2026)
+### ✅ Wizard de Constituição (04/02/2026)
 - 6 etapas com extração por IA
 
-### ✅ Bug Fix - Categorização (05/02/2026)
-- Processos aparecem nas abas corretas
-
-### ✅ Wizard de Constituição Completo (04/02/2026)
-- 6 etapas com extração por IA
-
-## Arquivos Modificados Hoje
+## Arquivos Modificados
 ```
-/app/frontend/src/components/processos/WizardConstituicao.js
-- Banco de CNAEs expandido para 350+ atividades
-- Adicionada função buscarCep() para consulta automática
-- Botão de busca CEP nos campos de endereço (empresa e sócios)
+/app/frontend/src/components/processos/WizardAlteracao.js
+- Reformulado completamente com formulários por tipo
 
-/app/backend/server.py
-- Novo endpoint GET /api/cep/{cep}
-- Integração automática com Correios na extração de endereço por IA
+/app/frontend/src/pages/Dashboard.js
+- Nomenclatura "Minutas" → "Processos"
 ```
 
 ## Backlog
 
 ### P0 - Alta Prioridade
-- ⏳ Verificação do usuário: exportação PDF (logo/rodapé)
+- ⏳ Verificação do usuário: testar fluxo completo de alteração
 
 ### P1 - Média Prioridade
-- ✅ ~~Busca de CEP automática via API~~ CONCLUÍDO
-- ✅ ~~Adicionar mais CNAEs~~ CONCLUÍDO (350+)
+- ⏳ Validações mais rigorosas nos formulários de alteração
 
 ### P2 - Baixa Prioridade
 - ⏳ Reativar automação REDESIM
@@ -92,7 +111,8 @@ Expandido de ~40 para **350+ CNAEs** organizados por categorias:
 
 ## Status: COMPLETO ✅
 - Constituição ✅
-- Alteração ✅
+- Alteração ✅ (reformulado)
 - Baixa ✅
 - Banco de CNAEs ✅ (350+)
 - Busca de CEP ✅
+- Dashboard renomeado ✅
