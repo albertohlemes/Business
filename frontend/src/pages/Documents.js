@@ -172,7 +172,7 @@ const Documents = ({ user, onLogout }) => {
             </div>
             
             {/* Botão apagar em lote */}
-            {user.role === 'admin' && selectedCompany && selectedCompetencia && (
+            {user.role === 'admin' && ctxCompany && selectedCompetencia && (
               <button
                 onClick={handleDeleteAllCompetencia}
                 disabled={deleting}
