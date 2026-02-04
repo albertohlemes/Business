@@ -73,6 +73,11 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - **Relatório detalhado de erros** - Mostra resumo completo
 - Conversão automática de CFOP
 - **Auto-preenchimento de competência** do contexto global
+- **🆕 Barra de Progresso em Tempo Real:** (04/02/2026)
+  - Feedback visual durante o upload com SSE (Server-Sent Events)
+  - Barra fixa no topo mostrando porcentagem, arquivos processados e etapa atual
+  - Botão com spinner e porcentagem durante processamento
+  - Inputs desabilitados durante upload para segurança
 
 ### ✅ **Classificação de CFOP por IA nas Entradas** (04/02/2026) 🆕
 - **Classificação Semântica com IA (GPT-4o):** A IA analisa a descrição do produto e classifica usando inteligência semântica
