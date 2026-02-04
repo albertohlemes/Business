@@ -322,6 +322,12 @@ class TemplateManagerFiel:
                 para.paragraph_format.space_after = Pt(espacamento.get("depois_paragrafo", 6))
                 continue
             
+            # Limpar marcações Markdown
+            linha_limpa = self._limpar_markdown(linha_limpa)
+            
+            if not linha_limpa:
+                continue
+            
             # Criar parágrafo
             para = doc.add_paragraph()
             
