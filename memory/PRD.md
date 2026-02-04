@@ -11,71 +11,59 @@ Portal para departamento societário com geração de documentos via IA.
 
 ## Implementações Concluídas
 
-### ✅ Wizard de Baixa (Distrato Social) - NOVO (05/02/2026)
+### ✅ Melhorias no Wizard de Baixa (05/02/2026)
 
-**Etapa 1 - Upload do Contrato Social:**
-- Upload do último contrato social consolidado (PDF, DOCX, imagem)
-- IA extrai automaticamente: Razão Social, CNPJ, NIRE, Capital, Sócios, Endereço
-- **Opcional** - pode pular para preenchimento manual
+1. **Lista de Processos**: Subtítulo alterado de "Processos" para "Baixas de Empresas"
 
-**Etapa 2 - Dados da Empresa:**
-- Razão Social*, CNPJ*, NIRE, Capital Social
-- Junta Comercial, Data de Registro
-- Endereço completo da sede
-- Pré-preenchidos se upload foi feito na etapa 1
+2. **Etapa 3 - Qualificação dos Sócios**:
+   - Botão **"✨ Preencher com IA"** para endereço do sócio (igual Constituição)
 
-**Etapa 3 - Qualificação dos Sócios:**
-- Lista de sócios pré-preenchida (se extraída)
-- Botão **"Corrigir com IA"** para ajustar dados via upload de documento
-- Dados: Nome*, CPF*, RG*, Órgão Emissor*, Nacionalidade*, Estado Civil*, Profissão*, Endereço*, Participação
-- Adicionar/remover sócios dinamicamente
+3. **Etapa 4 - Motivo da Baixa**:
+   - Motivo padrão selecionado: "Encerramento por vontade dos sócios"
+   - Data de encerramento: **pré-preenchida com data de hoje**
+   - Destinação do acervo: **texto padrão** já preenchido
 
-**Etapa 4 - Motivo e Detalhes da Baixa:**
-- Dropdown com 8 motivos:
-  - Encerramento por vontade dos sócios
-  - Término do prazo de duração
-  - Falência
-  - Incorporação
-  - Fusão
-  - Cisão total
-  - Inatividade prolongada
-  - Outros (com campo para especificar)
-- Data de encerramento das atividades*
-- Destinação do acervo (livros e documentos)
+4. **Etapa 5 - Patrimônio**:
+   - Distribuição do patrimônio: **texto padrão** já preenchido
+   - Responsável pela guarda: **Select com lista de sócios** (não mais campo de texto)
+   - Texto explicativo sobre responsabilidade
 
-**Etapa 5 - Distribuição do Patrimônio:**
-- Declaração de quitação de débitos (checkbox)
-- Distribuição do patrimônio remanescente
-- Responsável pela guarda dos documentos*
-- Prazo de guarda (5 anos, 10 anos, Prazo legal)
+5. **Geração de Documentos**:
+   - Nome da empresa **centralizado** no título do documento (DOCX e PDF)
+   - Adicionado "DISTRATO" à lista de títulos centralizados
 
-**Etapa 6 - Resultado:**
-- Distrato Social completo gerado por IA
-- Download em Word e PDF
-- Cópia para área de transferência
+### ✅ Wizard de Baixa (Distrato Social) - (05/02/2026)
+
+**6 etapas completas:**
+1. Upload do Contrato - extração automática por IA
+2. Dados da Empresa - pré-preenchidos
+3. Qualificação dos Sócios - com botões de IA
+4. Motivo e Detalhes da Baixa
+5. Distribuição do Patrimônio
+6. Resultado - distrato gerado
 
 ### ✅ Bug Fix - Categorização de Processos (05/02/2026)
-- Processos de "Constituição" agora aparecem na aba correta
-- Migração de dados executada para documentos antigos
+- Processos aparecem nas abas corretas
 
 ### ✅ Wizard de Constituição Completo (04/02/2026)
 - 6 etapas com extração por IA
-- Capital por extenso automático
-- Banco de CNAEs com 40+ atividades
 
-## Arquivos Principais
+## Arquivos Modificados Hoje
 ```
-/app/frontend/src/components/processos/
-├── WizardBaixa.js         # NOVO - Wizard de 6 etapas para baixa
-├── WizardConstituicao.js  # Wizard de constituição
-├── WizardAlteracao.js     # Wizard de alteração
-└── ListaProcessos.js      # Lista agrupada por cliente
+/app/frontend/src/components/processos/WizardBaixa.js
+- Adicionado botão "Preencher com IA" para endereço do sócio
+- Mudado responsável pela guarda para Select com sócios
+- Adicionados textos padrão
+- Data de hoje pré-preenchida
 
-/app/backend/server.py
-├── /api/baixa/extrair-contrato   # NOVO - Extrai dados do contrato
-├── /api/baixa/gerar-distrato     # NOVO - Gera distrato social
-├── /api/constituicao/...         # Endpoints de constituição
-└── /api/minutas/...              # CRUD de processos
+/app/frontend/src/components/processos/ListaProcessos.js
+- Subtítulo "Baixas de Empresas" para tipo baixa
+
+/app/backend/gerador_formatado.py
+- Adicionado "DISTRATO" aos títulos centralizados
+
+/app/backend/jspdf_wrapper.py
+- Adicionado "DISTRATO" aos títulos centralizados
 ```
 
 ## Backlog
@@ -98,4 +86,4 @@ Portal para departamento societário com geração de documentos via IA.
 ## Status: COMPLETO ✅
 - Constituição ✅
 - Alteração ✅
-- Baixa ✅
+- Baixa ✅ (com melhorias)
