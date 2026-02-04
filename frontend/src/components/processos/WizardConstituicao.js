@@ -902,13 +902,23 @@ const SocioCard = ({ socio, index, onChange, onRemove, canRemove }) => {
                         </div>
                         <div>
                             <Label className="text-zinc-500 text-xs">CEP <span className="text-red-500">*</span></Label>
-                            <Input
-                                value={enderecoSocio.cep}
-                                onChange={(e) => onChange({ ...socio, endereco: { ...enderecoSocio, cep: e.target.value } })}
-                                placeholder="00000-000"
-                                className="bg-zinc-900 border-zinc-700 mt-1"
-                                required
-                            />
+                            <div className="flex gap-1 mt-1">
+                                <Input
+                                    value={enderecoSocio.cep}
+                                    onChange={(e) => onChange({ ...socio, endereco: { ...enderecoSocio, cep: e.target.value } })}
+                                    placeholder="00000-000"
+                                    className="bg-zinc-900 border-zinc-700"
+                                    required
+                                />
+                                <Button 
+                                    type="button" 
+                                    size="sm" 
+                                    onClick={handleBuscarCep}
+                                    className="bg-blue-600 hover:bg-blue-700 px-2"
+                                >
+                                    <Search className="w-4 h-4" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
