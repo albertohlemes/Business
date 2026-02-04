@@ -2595,6 +2595,8 @@ async def apuracao_periodo(
     if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
+    regime = company.get('regime_tributario', 'lucro_presumido')
+    
     # Buscar documentos da competência
     documents = await db.xml_documents.find({
         "company_id": company_id,
@@ -2623,8 +2625,20 @@ async def apuracao_periodo(
             # Base de cálculo de ICMS - NÃO usar valor como fallback
             bc_icms = float(prod.get('v_bc_icms', 0) or prod.get('v_bc', 0) or 0)
             v_icms = float(prod.get('v_icms', 0) or 0)
-            v_pis = float(prod.get('v_pis', 0) or 0)
-            v_cofins = float(prod.get('v_cofins', 0) or 0)
+            
+            # PIS e COFINS - CALCULAR com alíquotas corretas do regime
+            ncm = str(prod.get('ncm', ''))
+            aliq_zero = prod.get('ncm_aliq_zero', False) or cst in ['04', '05', '06', '07', '08', '09', '73']
+            
+            if aliq_zero:
+                v_pis = 0
+                v_cofins = 0
+            elif regime == 'lucro_real':
+                v_pis = round(valor * 0.0165, 2)  # PIS Lucro Real: 1,65%
+                v_cofins = round(valor * 0.076, 2)  # COFINS Lucro Real: 7,6%
+            else:
+                v_pis = round(valor * 0.0065, 2)  # PIS Lucro Presumido: 0,65%
+                v_cofins = round(valor * 0.03, 2)  # COFINS Lucro Presumido: 3%
             
             # Verificar se é CFOP de Substituição Tributária
             is_st = cfop in CFOPS_ST
