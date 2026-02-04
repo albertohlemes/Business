@@ -378,6 +378,12 @@ const UploadXML = ({ user, onLogout }) => {
                     <p className="text-2xl font-bold text-gray-700">{results.resumo.erros}</p>
                     <p className="text-xs text-gray-600">Erros</p>
                   </div>
+                  {results.resumo.alertas_cfop > 0 && (
+                    <div className="bg-amber-100 p-3 rounded-lg">
+                      <p className="text-2xl font-bold text-amber-700">{results.resumo.alertas_cfop}</p>
+                      <p className="text-xs text-amber-600">Alertas CFOP</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
