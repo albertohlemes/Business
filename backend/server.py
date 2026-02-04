@@ -917,7 +917,7 @@ async def update_company(
     
     return updated
 
-@api_router.delete("/documents/{company_id}/competencia/{competencia}")
+@api_router.delete("/documents/{company_id}/competencia/{competencia:path}")
 async def delete_documents_by_competencia(
     company_id: str,
     competencia: str,
