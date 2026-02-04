@@ -10,31 +10,26 @@ const API = BACKEND_URL + '/api';
 const Reports = ({ user, onLogout }) => {
   const { selectedCompany: ctxCompany, selectedCompetencia: ctxCompetencia } = useAppContext();
   const [companies, setCompanies] = useState([]);
-  const [selectedCompany, setSelectedCompany] = useState('');
-  const [competencia, setCompetencia] = useState('');
   const [availableCompetencias, setAvailableCompetencias] = useState([]);
   const [reportType, setReportType] = useState('product');
   const [tipoOperacao, setTipoOperacao] = useState('entrada'); // entrada, saida, todos
   const [reportData, setReportData] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // Usar valores diretamente do contexto
+  const selectedCompany = ctxCompany?.id || '';
+  const competencia = ctxCompetencia || '';
+
   useEffect(() => {
     fetchCompanies();
   }, []);
 
-  // Usar empresa/competência do contexto - SEMPRE priorizar contexto global
+  // Atualizar competências quando empresa mudar
   useEffect(() => {
     if (ctxCompany) {
-      setSelectedCompany(ctxCompany.id);
       fetchCompetencias(ctxCompany.id);
     }
   }, [ctxCompany]);
-  
-  useEffect(() => {
-    if (ctxCompetencia) {
-      setCompetencia(ctxCompetencia);
-    }
-  }, [ctxCompetencia]);
 
   const fetchCompanies = async () => {
     try {
