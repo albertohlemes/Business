@@ -248,6 +248,118 @@ class TaxValidationResult(BaseModel):
     base_legal: List[str] = []
     sugestao_correcao: Optional[str] = None
 
+# =============================================================================
+# NCMs COM ALÍQUOTA ZERO (Tabela 4.3.13 SPED - Cesta Básica, Monofásicos, etc.)
+# =============================================================================
+NCMS_ALIQUOTA_ZERO_PREFIXOS = [
+    '0105', '0206', '0210', '0302', '0405', '0506', '0510', '0511', '0713',
+    '1006', '1101', '1102', '1103', '1104', '1106', '1502', '1517', '1701',
+    '1901', '1902', '1905', '2101', '2106', '2201', '2202', '2710', '2711',
+    '3002', '3003', '3004', '3401', '3826', '4011', '4013', '4103', '4801',
+    '4802', '4810', '4818', '8443', '8469', '8470', '8471', '8472', '8502',
+    '8503', '8517', '8525', '8702', '8714', '8901', '9018', '9021'
+]
+
+NCMS_ALIQUOTA_ZERO_COMPLETOS = [
+    '02061000', '02063000', '02068000', '02102000', '02109900',
+    '03029000', '04051000', '05069000', '05100010', '05111000',
+    '05119910', '05119920', '07133319', '07133329', '07133399',
+    '11010010', '15171000', '17011400', '17019900', '19012000',
+    '19021100', '19021900', '19022000', '19023000', '19059090',
+    '21069010', '22011000', '22029000', '27101911', '27101921',
+    '27111100', '27111910', '27112100', '30029099', '30039099',
+    '30049099', '34011190', '38260000', '40115000', '40132000',
+    '48010010', '48010090', '48026191', '48026199', '48101989',
+    '48102290', '48181000', '84433222', '84690039', '84701000',
+    '84713012', '84713019', '84713090', '84715010', '84716052',
+    '84716053', '84716090', '84719014', '84721000', '85023100',
+    '85030090', '85171231', '85176241', '85176255', '85176262',
+    '85176272', '85176277', '85258019', '87021000', '87029090',
+    '87100000', '87142000', '89019000', '89061000', '90189099',
+    '90213980', '90214000', '90219019', '90219082', '90219089',
+    '90219091', '90219092', '90219099'
+]
+
+# CFOPs que geram crédito de PIS/COFINS (Lucro Real)
+CFOPS_COM_CREDITO_PIS_COFINS = [
+    '1101', '1102', '1111', '1113', '1116', '1117', '1118', '1120', '1121', '1122',
+    '1124', '1125', '1126', '1128', '1401', '1403', '1501', '1651', '1652', '1653',
+    '2101', '2102', '2111', '2113', '2116', '2117', '2118', '2120', '2121', '2122',
+    '2124', '2125', '2126', '2128', '2401', '2403', '2501', '2651', '2652', '2653',
+    '3101', '3102', '3126', '3127'
+]
+
+def is_ncm_aliquota_zero(ncm: str) -> bool:
+    """Verifica se NCM tem alíquota zero de PIS/COFINS (Tabela 4.3.13 SPED)"""
+    if not ncm:
+        return False
+    ncm_str = str(ncm).replace('.', '').strip()
+    
+    # Verificar NCM completo (8 dígitos)
+    if len(ncm_str) >= 8 and ncm_str[:8] in NCMS_ALIQUOTA_ZERO_COMPLETOS:
+        return True
+    
+    # Verificar prefixo (4 dígitos)
+    if len(ncm_str) >= 4 and ncm_str[:4] in NCMS_ALIQUOTA_ZERO_PREFIXOS:
+        return True
+        
+    return False
+
+def calcular_cst_pis_cofins(ncm: str, cfop: str, tipo_operacao: str, cst_xml: str = None, regime: str = 'lucro_real') -> dict:
+    """
+    Calcula o CST correto de PIS/COFINS baseado nas regras fiscais.
+    
+    Regras:
+    - NCM com alíquota zero: Entrada CST 73, Saída CST 06
+    - CFOP sem direito a crédito: Entrada CST 70 (sem crédito), Saída CST 06
+    - Normal (Lucro Real): Entrada CST 50 (com crédito), Saída CST 01 (tributado)
+    - Lucro Presumido: Entrada CST 70 (sem crédito), Saída CST 01 (cumulativo)
+    
+    Returns:
+        dict com 'cst_calculado', 'cst_xml', 'divergente', 'motivo'
+    """
+    primeiro_digito = cfop[0] if cfop else ''
+    is_entrada = primeiro_digito in ['1', '2', '3'] or tipo_operacao == 'entrada'
+    is_saida = primeiro_digito in ['5', '6', '7'] or tipo_operacao == 'saida'
+    
+    aliq_zero = is_ncm_aliquota_zero(ncm)
+    cfop_com_credito = cfop in CFOPS_COM_CREDITO_PIS_COFINS if cfop else True
+    
+    cst_calculado = None
+    motivo = ""
+    
+    if is_entrada:
+        if aliq_zero:
+            cst_calculado = '73'
+            motivo = 'NCM com alíquota zero (Tabela 4.3.13 SPED)'
+        elif regime == 'lucro_real' and cfop_com_credito:
+            cst_calculado = '50'
+            motivo = 'Operação com direito a crédito (Lucro Real)'
+        else:
+            cst_calculado = '70'
+            motivo = 'CFOP sem direito a crédito' if not cfop_com_credito else 'Lucro Presumido (cumulativo)'
+    elif is_saida:
+        if aliq_zero:
+            cst_calculado = '06'
+            motivo = 'NCM com alíquota zero (Tabela 4.3.13 SPED)'
+        else:
+            cst_calculado = '01'
+            motivo = 'Operação tributável - alíquota básica'
+    
+    # Verificar divergência com XML (apenas para saídas)
+    divergente = False
+    if is_saida and cst_xml and cst_calculado:
+        cst_xml_str = str(cst_xml).strip().zfill(2)
+        divergente = cst_xml_str != cst_calculado
+    
+    return {
+        'cst_calculado': cst_calculado,
+        'cst_xml': cst_xml,
+        'divergente': divergente,
+        'motivo': motivo,
+        'aliq_zero': aliq_zero
+    }
+
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
