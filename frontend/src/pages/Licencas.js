@@ -461,6 +461,39 @@ const Licencas = () => {
                     </form>
                 </DialogContent>
             </Dialog>
+
+            {/* Licença View Dialog */}
+            <Dialog open={licencaViewOpen} onOpenChange={setLicencaViewOpen}>
+                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+                    <DialogHeader className="border-b border-zinc-800 pb-4">
+                        <div className="flex items-center justify-between">
+                            <DialogTitle className="text-white flex items-center gap-2">
+                                <FileCheck className="w-5 h-5 text-emerald-500" strokeWidth={1.5} />
+                                Licença de Funcionamento
+                            </DialogTitle>
+                            <Button size="sm" onClick={() => { navigator.clipboard.writeText(licencaContent); toast.success('Copiado!'); }}
+                                className="bg-red-600 hover:bg-red-700">
+                                Copiar Tudo
+                            </Button>
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-2">
+                            Selecione e copie o texto, ou use o botão "Copiar Tudo"
+                        </p>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-y-auto p-4">
+                        <div className="bg-white text-black rounded-lg p-6">
+                            <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
+                                {licencaContent}
+                            </pre>
+                        </div>
+                    </div>
+                    <div className="flex justify-end p-4 border-t border-zinc-800">
+                        <Button variant="outline" onClick={() => setLicencaViewOpen(false)} className="border-zinc-700">
+                            Fechar
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
