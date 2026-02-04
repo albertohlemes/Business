@@ -276,3 +276,60 @@ Both requested validation scenarios are working correctly:
 
 ### Full Flow Results Summary
 **Complete company management flow**: ✅ FULLY WORKING - All steps in the requested flow (login with admin_default credentials, create company, verify exists, delete company, verify gone) are working correctly. The API handles the complete lifecycle properly with appropriate responses and data integrity.
+
+## Bulk Delete Documents Functionality Testing Results - February 4, 2026
+
+### Test Summary
+**Date**: February 4, 2026  
+**Tester**: Testing Agent  
+**Focus**: Bulk delete documents functionality with type and status filtering as requested in review
+
+### Test Performed
+
+#### ✅ Bulk Delete Documents with Filters Functionality
+- **Test**: Verify bulk delete documents functionality with different type (entrada/saida) and status (pendente/validado) filters
+- **Status**: WORKING ✅
+- **Test Steps**:
+  1. Created test company and inserted 8 documents (4 entrada, 4 saida; 4 pendente, 4 validado)
+  2. Tested deleting ONLY 'entrada' documents
+  3. Tested deleting ONLY 'pendente' documents  
+  4. Tested deleting 'entrada' AND 'pendente' documents (combined filters)
+  5. Verified proper cleanup and cascade delete functionality
+
+### Detailed Test Results
+
+#### Test 1: Delete ONLY 'entrada' Documents ✅
+- **Endpoint**: `DELETE /api/documents/{company_id}/competencia/{competencia}?tipo=entrada`
+- **Initial State**: 8 documents (4 entrada, 4 saida)
+- **Result**: Only 4 entrada documents deleted, 4 saida documents remained
+- **Verification**: ✅ PASSED - Filtering by type works correctly
+
+#### Test 2: Delete ONLY 'pendente' Documents ✅  
+- **Endpoint**: `DELETE /api/documents/{company_id}/competencia/{competencia}?status=pendente`
+- **Initial State**: 8 documents (4 pendente, 4 validado)
+- **Result**: Only 4 pendente documents deleted, 4 validado documents remained
+- **Verification**: ✅ PASSED - Filtering by status works correctly
+
+#### Test 3: Delete 'entrada' AND 'pendente' Documents ✅
+- **Endpoint**: `DELETE /api/documents/{company_id}/competencia/{competencia}?tipo=entrada&status=pendente`
+- **Initial State**: 8 documents (4 entrada, 4 saida; 4 pendente, 4 validado)
+- **Result**: Only 2 entrada+pendente documents deleted, 6 documents remained (2 entrada+validado + 4 saida)
+- **Verification**: ✅ PASSED - Combined filtering works correctly
+
+### Key Findings
+- **✅ TYPE FILTERING**: Successfully filters documents by tipo (entrada/saida)
+- **✅ STATUS FILTERING**: Successfully filters documents by status_validacao (pendente/validado)
+- **✅ COMBINED FILTERING**: Multiple filters work together correctly (AND logic)
+- **✅ PROPER RESPONSES**: API returns correct deleted_count and success messages
+- **✅ DATA INTEGRITY**: Only documents matching filter criteria are deleted
+- **✅ URL ENCODING**: Properly handles URL-encoded competencia format (12%2F2024)
+- **✅ ADMIN PERMISSIONS**: Only admin users can perform bulk delete operations
+- **✅ CASCADE CLEANUP**: Test company deletion properly removes all associated documents
+
+### Bulk Delete Filter Results Summary
+**Bulk delete documents with filtering**: ✅ FULLY WORKING - All requested filtering scenarios work correctly:
+1. **Delete ONLY 'entrada'**: ✅ WORKING - Successfully deletes only entrada documents
+2. **Delete ONLY 'pendente'**: ✅ WORKING - Successfully deletes only pendente documents  
+3. **Delete 'entrada' AND 'pendente'**: ✅ WORKING - Successfully deletes only documents that are both entrada AND pendente
+
+The bulk delete functionality properly implements filtering by document type and validation status, with correct AND logic for combined filters. All API responses include proper success messages and accurate deleted document counts.
