@@ -222,12 +222,13 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 ## Próximas Tarefas (Backlog)
 
 ### P0 - Crítica
-- [ ] **Página "Análise Tributária" congela a interface** - Refatorar para processamento assíncrono com BackgroundTasks
+- [ ] **Refatorar `server.py`** - Dividir o monolito em routers, services e models (5000+ linhas)
 
 ### P1 - Alta Prioridade
 - [x] ~~**Download via SIEG:** Implementar download e processamento automático de XMLs do SIEG~~ ✅ CONCLUÍDO
+- [x] ~~**Crédito PIS/COFINS divergente:** Dashboard vs Apuração Mensal~~ ✅ CONCLUÍDO (Iteration 31)
+- [x] ~~**Limpeza de arquivos obsoletos:** Excluir páginas antigas~~ ✅ CONCLUÍDO (Iteration 31)
 - [ ] Finalizar e testar a funcionalidade de exportação do **SPED Fiscal**
-- [ ] Melhorar análise comparativa "Lucro Presumido vs. Lucro Real" no Dashboard
 
 ### P2 - Média Prioridade
 - [ ] **Análise de Saídas e Divergências:** Agrupar por produto e filtrar itens com tributação indevida
@@ -237,8 +238,9 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - [ ] Validação de alíquota de ICMS por estado
 
 ### P3 - Baixa Prioridade
-- [ ] **Cor de fundo do logo:** Ajustar para coincidir com a página
-- [ ] Refatorar backend em módulos separados (routes, models, services) - server.py tem 3000+ linhas
+- [ ] **Página "Análise Tributária" congela a interface** - Refatorar para processamento assíncrono com BackgroundTasks
+- [ ] Tutorial de integração (Onboarding) para novos usuários
+- [ ] Histórico de alterações (Audit Log)
 
 ## Changelog
 
