@@ -292,8 +292,64 @@ const RelatorioDivergencias = ({ user, onLogout }) => {
               </div>
             ) : (
               <div className="space-y-3">
-                <h3 className="text-lg font-bold text-gray-900">Documentos com Divergência</h3>
-                {data.divergencias.map((doc) => (
+                <h3 className="text-lg font-bold text-gray-900">
+                  {grouped ? 'Produtos com Divergência (Agrupado)' : 'Documentos com Divergência'}
+                </h3>
+                
+                {grouped ? (
+                  <div className="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-red-50 text-red-900">
+                          <tr>
+                            <th className="px-4 py-3 text-left font-semibold">Produto</th>
+                            <th className="px-4 py-3 text-center font-semibold">NCM</th>
+                            <th className="px-4 py-3 text-center font-semibold">CST Atual</th>
+                            <th className="px-4 py-3 text-center font-semibold">CST Correto</th>
+                            <th className="px-4 py-3 text-center font-semibold">Qtd Docs</th>
+                            <th className="px-4 py-3 text-right font-semibold">Valor Total</th>
+                            <th className="px-4 py-3 text-right font-semibold">PIS Indevido</th>
+                            <th className="px-4 py-3 text-right font-semibold">COFINS Indevido</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {getGroupedData().map((item, idx) => (
+                            <tr key={idx} className="hover:bg-gray-50">
+                              <td className="px-4 py-3">
+                                <p className="font-medium text-gray-900">{item.produto}</p>
+                                <p className="text-xs text-gray-500">Cód: {item.codigo}</p>
+                              </td>
+                              <td className="px-4 py-3 text-center font-mono text-gray-700">{item.ncm}</td>
+                              <td className="px-4 py-3 text-center">
+                                <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-mono">
+                                  {item.cst_pis_atual}/{item.cst_cofins_atual}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-mono">
+                                  {item.cst_pis_correto}/{item.cst_cofins_correto}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-center text-gray-600">
+                                {item.quantidade_docs}
+                              </td>
+                              <td className="px-4 py-3 text-right font-medium text-gray-900">
+                                {formatCurrency(item.valor_total)}
+                              </td>
+                              <td className="px-4 py-3 text-right text-red-600 font-semibold">
+                                {formatCurrency(item.impacto_pis_total)}
+                              </td>
+                              <td className="px-4 py-3 text-right text-red-600 font-semibold">
+                                {formatCurrency(item.impacto_cofins_total)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  data.divergencias.map((doc) => (
                   <div 
                     key={doc.documento_id}
                     className="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden"
@@ -374,7 +430,8 @@ const RelatorioDivergencias = ({ user, onLogout }) => {
                       </div>
                     )}
                   </div>
-                ))}
+                ))
+                )}
               </div>
             )}
           </div>
