@@ -1990,7 +1990,7 @@ async def upload_xml_batch(
                         cfop_original = product.get('cfop', '')
                         cst = product.get('cst', '')
                         is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
-                        cfop_prefix = '2' if (emitente_uf and emitente_uf != company_uf) else '1'
+                        cfop_prefix = '2' if (emitente_uf and emitente_uf != uf_empresa) else '1'
                         cfop_novo = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
                         
                         product['cfop_original'] = cfop_original
