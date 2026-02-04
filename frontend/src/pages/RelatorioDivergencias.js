@@ -257,6 +257,28 @@ const RelatorioDivergencias = ({ user, onLogout }) => {
               </div>
             )}
 
+            {/* Header / Toggle Grouping */}
+            <div className="flex justify-end mb-4">
+              <div className="bg-gray-100 p-1 rounded-lg flex gap-1">
+                <button
+                  onClick={() => setGrouped(false)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    !grouped ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Por Documento
+                </button>
+                <button
+                  onClick={() => setGrouped(true)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    grouped ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Agrupado por Produto
+                </button>
+              </div>
+            </div>
+
             {/* Lista de Divergências */}
             {data.divergencias.length === 0 ? (
               <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
