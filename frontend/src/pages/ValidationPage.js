@@ -138,6 +138,7 @@ const ValidationPage = ({ user, onLogout }) => {
       delete newApprovals[key];
     } else {
       newApprovals[key] = { approved: true, date: new Date().toISOString() };
+      showSuccess('Produto validado com sucesso!');
     }
     
     setApprovedProducts(newApprovals);
@@ -166,6 +167,10 @@ const ValidationPage = ({ user, onLogout }) => {
         newApprovals[key] = { approved: true, date: new Date().toISOString() };
       }
     });
+    
+    if (!allApproved) {
+      showSuccess(`Produto validado em ${product.ocorrencias.length} NF(s)!`);
+    }
     
     setApprovedProducts(newApprovals);
     saveApprovals(newApprovals);
