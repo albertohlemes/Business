@@ -212,6 +212,8 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - ✅ **Competência com valor inicial**: Campo de competência no seletor agora preenche automaticamente com mês/ano atual
 - ✅ **PIS/COFINS com alíquotas do Lucro Real**: Para empresas do Lucro Real, os débitos de PIS (1.65%) e COFINS (7.6%) são calculados com as alíquotas corretas do regime não-cumulativo
 - ✅ **Detecção de divergências**: Quando o valor no XML diverge das alíquotas esperadas do Lucro Real, um alerta é exibido mostrando a alíquota do XML vs esperada e a diferença em R$
+- ✅ **Removida seção de validação do Dashboard**: Notas de saída não precisam de validação, então a seção foi removida
+- ✅ **Nova página "Apuração do Período"**: Resumo por CFOPs com entradas (em cima) e saídas (embaixo), colunas: CFOP, Valor, BC ICMS, ICMS, PIS, COFINS, com subtotais e exportação CSV
 
 ### 02/2026 - Iteration 10
 - ✅ Implementada análise comparativa Lucro Presumido vs. Lucro Real no Dashboard
