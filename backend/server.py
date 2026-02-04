@@ -336,6 +336,191 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
     except Exception as e:
         raise ValueError(f"Erro ao processar XML: {str(e)}")
 
+def parse_xml_nfce(xml_content: str) -> Dict[str, Any]:
+    """Parser para NFC-e (Nota Fiscal de Consumidor Eletrônica / Cupom Fiscal)"""
+    try:
+        data = xmltodict.parse(xml_content)
+        
+        # Tentar diferentes estruturas de NFC-e
+        nfce = data.get('nfeProc', {}).get('NFe', {}).get('infNFe', {})
+        if not nfce:
+            nfce = data.get('NFe', {}).get('infNFe', {})
+        if not nfce:
+            raise ValueError("Estrutura de XML NFC-e inválida")
+        
+        ide = nfce.get('ide', {})
+        emit = nfce.get('emit', {})
+        dest = nfce.get('dest', {}) or {}
+        total = nfce.get('total', {}).get('ICMSTot', {})
+        det = nfce.get('det', [])
+        
+        if isinstance(det, dict):
+            det = [det]
+        
+        produtos = []
+        for item in det:
+            prod = item.get('prod', {})
+            imposto = item.get('imposto', {})
+            icms = imposto.get('ICMS', {})
+            pis = imposto.get('PIS', {})
+            cofins = imposto.get('COFINS', {})
+            
+            cfop = prod.get('CFOP', '')
+            cst_icms = ""
+            v_icms = 0
+            v_pis = 0
+            v_cofins = 0
+            
+            for key in icms:
+                if isinstance(icms[key], dict):
+                    if not cfop and 'CFOP' in icms[key]:
+                        cfop = icms[key]['CFOP']
+                    if 'CST' in icms[key]:
+                        cst_icms = icms[key]['CST']
+                    elif 'CSOSN' in icms[key]:
+                        cst_icms = icms[key]['CSOSN']
+                    v_icms = float(icms[key].get('vICMS', 0))
+            
+            for key in pis:
+                if isinstance(pis[key], dict):
+                    v_pis = float(pis[key].get('vPIS', 0))
+                    break
+            
+            for key in cofins:
+                if isinstance(cofins[key], dict):
+                    v_cofins = float(cofins[key].get('vCOFINS', 0))
+                    break
+            
+            produtos.append({
+                'codigo': prod.get('cProd', ''),
+                'descricao': prod.get('xProd', ''),
+                'ncm': prod.get('NCM', ''),
+                'cfop': cfop,
+                'cst': cst_icms,
+                'quantidade': float(prod.get('qCom', 0)),
+                'valor_unitario': float(prod.get('vUnCom', 0)),
+                'valor_total': float(prod.get('vProd', 0)),
+                'unidade': prod.get('uCom', ''),
+                'v_icms': v_icms,
+                'v_pis': v_pis,
+                'v_cofins': v_cofins
+            })
+        
+        return {
+            'modelo': 'nfce',
+            'chave_nfe': nfce.get('@Id', '').replace('NFe', ''),
+            'numero_nfe': ide.get('nNF', ''),
+            'serie': ide.get('serie', ''),
+            'data_emissao': ide.get('dhEmi', ''),
+            'emitente_cnpj': emit.get('CNPJ', ''),
+            'emitente_nome': emit.get('xNome', ''),
+            'destinatario_cnpj': dest.get('CNPJ', '') or dest.get('CPF', '') or '',
+            'destinatario_nome': dest.get('xNome', '') or 'CONSUMIDOR',
+            'valor_total': float(total.get('vNF', 0)),
+            'produtos': produtos
+        }
+    except Exception as e:
+        raise ValueError(f"Erro ao processar XML NFC-e: {str(e)}")
+
+def parse_xml_nfse(xml_content: str) -> Dict[str, Any]:
+    """Parser para NFS-e (Nota Fiscal de Serviço Eletrônica)"""
+    try:
+        data = xmltodict.parse(xml_content)
+        
+        # Tentar diferentes estruturas de NFS-e (varia por município)
+        # Padrão ABRASF
+        nfse = None
+        compnfse = data.get('CompNfse', {})
+        if compnfse:
+            nfse = compnfse.get('Nfse', {}).get('InfNfse', {})
+        
+        if not nfse:
+            nfse = data.get('Nfse', {}).get('InfNfse', {})
+        if not nfse:
+            nfse = data.get('ConsultarNfseResposta', {}).get('ListaNfse', {}).get('CompNfse', {}).get('Nfse', {}).get('InfNfse', {})
+        if not nfse:
+            # Tentar formato simplificado
+            nfse = data.get('nfse', {}) or data
+        
+        if not nfse:
+            raise ValueError("Estrutura de XML NFS-e inválida")
+        
+        # Dados do prestador (quem emitiu)
+        prestador = nfse.get('PrestadorServico', {}) or nfse.get('Prestador', {})
+        id_prestador = prestador.get('IdentificacaoPrestador', {})
+        cnpj_prestador = id_prestador.get('Cnpj', '') or prestador.get('Cnpj', '')
+        nome_prestador = prestador.get('RazaoSocial', '') or prestador.get('NomeFantasia', '')
+        
+        # Dados do tomador (cliente)
+        tomador = nfse.get('TomadorServico', {}) or nfse.get('Tomador', {})
+        id_tomador = tomador.get('IdentificacaoTomador', {})
+        cpf_cnpj_tomador = id_tomador.get('CpfCnpj', {})
+        cnpj_tomador = cpf_cnpj_tomador.get('Cnpj', '') or cpf_cnpj_tomador.get('Cpf', '') or tomador.get('Cnpj', '') or tomador.get('Cpf', '')
+        nome_tomador = tomador.get('RazaoSocial', '') or tomador.get('NomeFantasia', '') or 'TOMADOR'
+        
+        # Dados do serviço
+        servico = nfse.get('Servico', {}) or nfse.get('DeclaracaoPrestacaoServico', {}).get('Servico', {})
+        valores = servico.get('Valores', {})
+        
+        valor_servicos = float(valores.get('ValorServicos', 0) or servico.get('ValorServicos', 0) or 0)
+        valor_iss = float(valores.get('ValorIss', 0) or 0)
+        aliq_iss = float(valores.get('Aliquota', 0) or 0)
+        
+        # Número e data
+        numero = nfse.get('Numero', '') or nfse.get('IdentificacaoNfse', {}).get('Numero', '')
+        data_emissao = nfse.get('DataEmissao', '') or nfse.get('DataEmissaoNfse', '')
+        codigo_verificacao = nfse.get('CodigoVerificacao', '')
+        
+        # Discriminação do serviço
+        discriminacao = servico.get('Discriminacao', '') or ''
+        codigo_servico = servico.get('ItemListaServico', '') or servico.get('CodigoTributacaoMunicipio', '')
+        
+        servicos = [{
+            'codigo': codigo_servico,
+            'descricao': discriminacao[:200] if discriminacao else 'Serviço',
+            'valor_total': valor_servicos,
+            'aliq_iss': aliq_iss,
+            'valor_iss': valor_iss,
+            'v_pis': float(valores.get('ValorPis', 0) or 0),
+            'v_cofins': float(valores.get('ValorCofins', 0) or 0),
+            'v_inss': float(valores.get('ValorInss', 0) or 0),
+            'v_ir': float(valores.get('ValorIr', 0) or 0),
+            'v_csll': float(valores.get('ValorCsll', 0) or 0)
+        }]
+        
+        return {
+            'modelo': 'nfse',
+            'chave_nfe': codigo_verificacao or str(uuid.uuid4())[:20],
+            'numero_nfe': str(numero),
+            'serie': '1',
+            'data_emissao': data_emissao,
+            'emitente_cnpj': cnpj_prestador,
+            'emitente_nome': nome_prestador,
+            'destinatario_cnpj': cnpj_tomador,
+            'destinatario_nome': nome_tomador,
+            'valor_total': valor_servicos,
+            'valor_servicos': valor_servicos,
+            'produtos': [],
+            'servicos': servicos
+        }
+    except Exception as e:
+        raise ValueError(f"Erro ao processar XML NFS-e: {str(e)}")
+
+def detect_xml_type(xml_content: str) -> str:
+    """Detecta o tipo de XML: nfe, nfce, nfse"""
+    xml_lower = xml_content.lower()
+    
+    # NFS-e tem tags específicas
+    if '<compnfse' in xml_lower or '<nfse' in xml_lower or '<infnfse' in xml_lower or '<prestadorservico' in xml_lower:
+        return 'nfse'
+    
+    # NFC-e modelo 65
+    if 'mod>65<' in xml_lower or '<mod>65</mod>' in xml_lower:
+        return 'nfce'
+    
+    # NF-e modelo 55 (padrão)
+    return 'nfe'
+
 def classify_product_category(descricao: str, ncm: str, company_products: List[str], company_insumos: List[str], company_despesas: List[str]) -> str:
     descricao_lower = descricao.lower()
     
