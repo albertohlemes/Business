@@ -242,6 +242,30 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 31 (04/02/2026)
+- ✅ **CORREÇÃO: Crédito PIS/COFINS divergente entre Dashboard e Apuração**
+  - **Problema:** O Dashboard mostrava valores de crédito diferentes da página "Apuração Mensal"
+  - **Causa raiz:** O Dashboard somava `v_pis` e `v_cofins` diretamente do XML, sem verificar:
+    - NCMs com alíquota zero (Tabela 4.3.13 SPED)
+    - CFOPs sem direito a crédito (transferências, devoluções, etc.)
+    - CST calculado do produto
+    - Regime tributário da empresa (apenas Lucro Real tem crédito)
+  - **Solução:** Refatorado `get_dashboard_stats()` para usar a mesma lógica de `apuracao_pis_cofins()`:
+    - Verifica se NCM está na lista de alíquota zero
+    - Verifica se CFOP está em `CFOPS_ENTRADA_SEM_INCIDENCIA`
+    - Verifica CST calculado (50 = com crédito, 73/98 = sem crédito)
+    - Calcula crédito com alíquotas fixas: PIS 1,65%, COFINS 7,6%
+  - **Resultado:** Valores de crédito agora são idênticos em ambas as páginas
+
+- ✅ **LIMPEZA DE CÓDIGO: Arquivos obsoletos excluídos**
+  - Removidos 6 arquivos de páginas que foram substituídas pelas novas unificadas:
+    - `ReclassificationAI.js` → `ClassificacaoPage.js`
+    - `ValidationPage.js` → `ClassificacaoPage.js`
+    - `AnaliseAliquotasSaida.js` → `AnaliseSaidas.js`
+    - `RelatorioDivergencias.js` → `AnaliseSaidas.js`
+    - `ApuracaoPeriodo.js` → `ApuracaoMensal.js`
+    - `ApuracaoPisCofins.js` → `ApuracaoMensal.js`
+
 ### 02/2026 - Iteration 30 (04/02/2026)
 - ✅ **NOVA PÁGINA UNIFICADA: "Apuração Mensal"**
   - Combinou "Apuração do Período" e "Apuração PIS/COFINS" em uma única página
