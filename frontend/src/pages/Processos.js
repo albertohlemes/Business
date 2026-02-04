@@ -166,19 +166,6 @@ const Processos = () => {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                 <TabsList className="bg-zinc-900 border border-zinc-800 p-1">
                     <TabsTrigger 
-                        value="alteracao" 
-                        className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
-                        data-testid="tab-alteracao"
-                    >
-                        <FileEdit className="w-4 h-4 mr-2" />
-                        Alteração
-                        {minutasAlteracao.length > 0 && (
-                            <span className="ml-2 bg-zinc-800 text-zinc-400 text-xs px-2 py-0.5 rounded-full">
-                                {minutasAlteracao.length}
-                            </span>
-                        )}
-                    </TabsTrigger>
-                    <TabsTrigger 
                         value="constituicao"
                         className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
                         data-testid="tab-constituicao"
@@ -188,6 +175,19 @@ const Processos = () => {
                         {minutasConstituicao.length > 0 && (
                             <span className="ml-2 bg-zinc-800 text-zinc-400 text-xs px-2 py-0.5 rounded-full">
                                 {minutasConstituicao.length}
+                            </span>
+                        )}
+                    </TabsTrigger>
+                    <TabsTrigger 
+                        value="alteracao" 
+                        className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
+                        data-testid="tab-alteracao"
+                    >
+                        <FileEdit className="w-4 h-4 mr-2" />
+                        Alteração
+                        {minutasAlteracao.length > 0 && (
+                            <span className="ml-2 bg-zinc-800 text-zinc-400 text-xs px-2 py-0.5 rounded-full">
+                                {minutasAlteracao.length}
                             </span>
                         )}
                     </TabsTrigger>
@@ -206,18 +206,6 @@ const Processos = () => {
                     </TabsTrigger>
                 </TabsList>
 
-                {/* Conteúdo de Alteração */}
-                <TabsContent value="alteracao" className="mt-6">
-                    <ListaProcessos 
-                        minutas={minutasAlteracao}
-                        loading={loading}
-                        tipoProcesso="alteracao"
-                        onRefresh={fetchData}
-                        emptyMessage="Nenhuma alteração contratual criada"
-                        emptyDescription="Clique em 'Nova Alteração' para criar uma minuta de alteração contratual"
-                    />
-                </TabsContent>
-
                 {/* Conteúdo de Constituição */}
                 <TabsContent value="constituicao" className="mt-6">
                     <ListaProcessos 
@@ -227,6 +215,18 @@ const Processos = () => {
                         onRefresh={fetchData}
                         emptyMessage="Nenhuma constituição criada"
                         emptyDescription="Clique em 'Nova Constituição' para criar um contrato social"
+                    />
+                </TabsContent>
+
+                {/* Conteúdo de Alteração */}
+                <TabsContent value="alteracao" className="mt-6">
+                    <ListaProcessos 
+                        minutas={minutasAlteracao}
+                        loading={loading}
+                        tipoProcesso="alteracao"
+                        onRefresh={fetchData}
+                        emptyMessage="Nenhuma alteração contratual criada"
+                        emptyDescription="Clique em 'Nova Alteração' para criar um processo de alteração contratual"
                     />
                 </TabsContent>
 
