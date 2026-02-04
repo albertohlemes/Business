@@ -4743,10 +4743,11 @@ def apply_classification(product, result, cfop_original, file_conversions):
     })
 
 async def get_ai_chat(session_id: str, system_message: str):
+    emergent_key = os.environ.get('EMERGENT_LLM_KEY', 'sk-emergent-bE6955669B918F9301')
     return LlmChat(
-        system_message=system_message,
+        api_key=emergent_key,
         session_id=session_id,
-        model="gpt-4o"
+        system_message=system_message
     )
 
 async def classify_products_batch_llm(products: List[Dict[str, Any]], company_data: Dict[str, Any], batch_size: int = 20) -> Dict[str, Any]:
