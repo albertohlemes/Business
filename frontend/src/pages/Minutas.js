@@ -27,21 +27,26 @@ import {
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const TIPOS_ALTERACAO = [
-    { value: 'alteracao_socios', label: 'Alteração de Sócios', docs: ['CNH/RG do novo sócio', 'Comprovante de endereço'] },
-    { value: 'alteracao_endereco', label: 'Alteração de Endereço', docs: ['Comprovante de endereço do novo local'] },
-    { value: 'alteracao_atividade', label: 'Alteração de Atividade', docs: ['Lista de CNAEs desejados'] },
-    { value: 'alteracao_capital', label: 'Alteração de Capital Social', docs: [] },
-    { value: 'alteracao_nome', label: 'Alteração de Razão Social', docs: [] },
+    { value: 'alteracao_socios', label: 'Alteração de Sócios', docs: ['CNH/RG do novo sócio', 'Comprovante de endereço', 'Certidão de casamento (se casado)'] },
+    { value: 'alteracao_endereco', label: 'Alteração de Endereço', docs: ['Comprovante de endereço do novo local', 'Contrato de locação/escritura'] },
+    { value: 'alteracao_atividade', label: 'Alteração de Atividade/Objeto Social', docs: ['Lista de CNAEs desejados'] },
+    { value: 'alteracao_capital', label: 'Alteração de Capital Social', docs: ['Comprovante de integralização'] },
+    { value: 'alteracao_nome', label: 'Alteração de Razão Social/Nome Fantasia', docs: ['Consulta de viabilidade'] },
     { value: 'alteracao_administracao', label: 'Alteração de Administração', docs: ['CNH/RG do novo administrador'] },
-    { value: 'consolidacao', label: 'Consolidação', docs: [] },
+    { value: 'consolidacao', label: 'Consolidação do Contrato Social', docs: [] },
     { value: 'outro', label: 'Outro', docs: [] },
 ];
 
 const TIPOS_DOCUMENTO = [
     { value: 'cnh', label: 'CNH' },
     { value: 'rg', label: 'RG' },
+    { value: 'cpf', label: 'CPF' },
     { value: 'comprovante_endereco', label: 'Comprovante de Endereço' },
+    { value: 'certidao_casamento', label: 'Certidão de Casamento' },
     { value: 'lista_cnaes', label: 'Lista de CNAEs' },
+    { value: 'contrato_locacao', label: 'Contrato de Locação' },
+    { value: 'escritura', label: 'Escritura' },
+    { value: 'procuracao', label: 'Procuração' },
     { value: 'outro', label: 'Outro Documento' },
 ];
 
@@ -57,228 +62,398 @@ const Minutas = () => {
     const [generating, setGenerating] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewContent, setPreviewContent] = useState('');
-    const [docsChat, setDocsChat] = useState([]);
+    const [documentosSuporteChat, setDocumentosSuporteChat] = useState([]);
 
+    // Upload form state
     const [tipoAlteracao, setTipoAlteracao] = useState('');
     const [descricao, setDescricao] = useState('');
     const [file, setFile] = useState(null);
-    const [docsSuporte, setDocsSuporte] = useState([]);
+    const [documentosSuporte, setDocumentosSuporte] = useState([]);
     const fileInputRef = useRef(null);
     const docInputRef = useRef(null);
     const chatEndRef = useRef(null);
 
-    useEffect(() => { fetchMinutas(); }, []);
-    useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+    useEffect(() => {
+        fetchMinutas();
+    }, []);
+
+    useEffect(() => {
+        if (chatEndRef.current) {
+            chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [messages]);
 
     const fetchMinutas = async () => {
         try {
-            const res = await axios.get(`${API_URL}/api/minutas`);
-            setMinutas(res.data);
-        } catch (e) { toast.error('Erro ao carregar minutas'); }
-        finally { setLoading(false); }
+            const response = await axios.get(`${API_URL}/api/minutas`);
+            setMinutas(response.data);
+        } catch (error) {
+            toast.error('Erro ao carregar minutas');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleFileChange = (e) => {
-        const f = e.target.files?.[0];
-        if (f && ['application/pdf', 'image/jpeg', 'image/png'].includes(f.type)) setFile(f);
-        else if (f) toast.error('Formato inválido');
+        const selectedFile = e.target.files?.[0];
+        if (selectedFile) {
+            const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+            if (!validTypes.includes(selectedFile.type)) {
+                toast.error('Formato inválido. Use PDF, JPG ou PNG.');
+                return;
+            }
+            setFile(selectedFile);
+        }
     };
 
-    const handleDocChange = (e) => {
-        const f = e.target.files?.[0];
-        if (f && ['application/pdf', 'image/jpeg', 'image/png'].includes(f.type)) {
-            setDocsSuporte(prev => [...prev, { file: f, tipo: 'outro', id: Date.now() }]);
-        } else if (f) toast.error('Formato inválido');
+    const handleDocumentoSuporteChange = (e) => {
+        const selectedFile = e.target.files?.[0];
+        if (selectedFile) {
+            const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+            if (!validTypes.includes(selectedFile.type)) {
+                toast.error('Formato inválido. Use PDF, JPG ou PNG.');
+                return;
+            }
+            // Add to pending documents list
+            setDocumentosSuporte(prev => [...prev, { 
+                file: selectedFile, 
+                tipo: 'outro',
+                id: Date.now()
+            }]);
+        }
         if (docInputRef.current) docInputRef.current.value = '';
+    };
+
+    const updateDocumentoTipo = (id, tipo) => {
+        setDocumentosSuporte(prev => 
+            prev.map(doc => doc.id === id ? { ...doc, tipo } : doc)
+        );
+    };
+
+    const removeDocumentoSuporte = (id) => {
+        setDocumentosSuporte(prev => prev.filter(doc => doc.id !== id));
     };
 
     const handleUpload = async (e) => {
         e.preventDefault();
-        if (!tipoAlteracao) { toast.error('Selecione o tipo'); return; }
-        if (!file && !descricao && docsSuporte.length === 0) { toast.error('Forneça dados'); return; }
+        if (!tipoAlteracao) {
+            toast.error('Selecione o tipo de alteração');
+            return;
+        }
+
+        if (!file && !descricao && documentosSuporte.length === 0) {
+            toast.error('Forneça ao menos uma descrição, contrato ou documento de suporte');
+            return;
+        }
 
         setUploading(true);
+        
         try {
+            // Step 1: Create minuta
             const formData = new FormData();
-            if (file) formData.append('file', file);
+            if (file) {
+                formData.append('file', file);
+            }
             formData.append('tipo_alteracao', tipoAlteracao);
             formData.append('descricao', descricao);
 
-            const res = await axios.post(`${API_URL}/api/minutas/upload`, formData, {
+            const response = await axios.post(`${API_URL}/api/minutas/upload`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            const minuta = res.data;
 
-            for (const doc of docsSuporte) {
-                const df = new FormData();
-                df.append('file', doc.file);
-                df.append('tipo_documento', doc.tipo);
-                await axios.post(`${API_URL}/api/minutas/${minuta.id}/documentos`, df, {
+            const minuta = response.data;
+
+            // Step 2: Upload support documents
+            for (const doc of documentosSuporte) {
+                const docFormData = new FormData();
+                docFormData.append('file', doc.file);
+                docFormData.append('tipo_documento', doc.tipo);
+                
+                await axios.post(`${API_URL}/api/minutas/${minuta.id}/documentos`, docFormData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
             }
 
-            toast.success('Minuta criada!');
+            toast.success('Minuta criada com sucesso!');
             setMinutas([minuta, ...minutas]);
-            setFile(null); setTipoAlteracao(''); setDescricao(''); setDocsSuporte([]);
+            resetForm();
+            
+            // Open chat automatically
             openChat(minuta);
-        } catch (e) { toast.error(e.response?.data?.detail || 'Erro'); }
-        finally { setUploading(false); }
+        } catch (error) {
+            toast.error(error.response?.data?.detail || 'Erro ao criar minuta');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const resetForm = () => {
+        setFile(null);
+        setTipoAlteracao('');
+        setDescricao('');
+        setDocumentosSuporte([]);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const openChat = async (minuta) => {
         setSelectedMinuta(minuta);
         setChatOpen(true);
+        
         try {
-            const [mRes, dRes] = await Promise.all([
+            const [minutaRes, docsRes] = await Promise.all([
                 axios.get(`${API_URL}/api/minutas/${minuta.id}`),
                 axios.get(`${API_URL}/api/minutas/${minuta.id}/documentos`)
             ]);
-            const msgs = mRes.data.mensagens || [];
-            setMessages(msgs.flatMap(m => [{ type: 'user', text: m.user }, { type: 'ai', text: m.assistant }]));
-            setDocsChat(dRes.data.documentos || []);
-        } catch (e) { setMessages([]); setDocsChat([]); }
+            
+            const mensagens = minutaRes.data.mensagens || [];
+            const formattedMessages = mensagens.flatMap(m => [
+                { type: 'user', text: m.user },
+                { type: 'ai', text: m.assistant }
+            ]);
+            setMessages(formattedMessages);
+            setDocumentosSuporteChat(docsRes.data.documentos || []);
+        } catch (error) {
+            setMessages([]);
+            setDocumentosSuporteChat([]);
+        }
+    };
+
+    const uploadDocumentoChat = async (e) => {
+        const selectedFile = e.target.files?.[0];
+        if (!selectedFile || !selectedMinuta) return;
+        
+        const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+        if (!validTypes.includes(selectedFile.type)) {
+            toast.error('Formato inválido. Use PDF, JPG ou PNG.');
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('tipo_documento', 'outro');
+            
+            const response = await axios.post(
+                `${API_URL}/api/minutas/${selectedMinuta.id}/documentos`, 
+                formData,
+                { headers: { 'Content-Type': 'multipart/form-data' } }
+            );
+            
+            setDocumentosSuporteChat(prev => [...prev, response.data.documento]);
+            toast.success('Documento adicionado!');
+        } catch (error) {
+            toast.error('Erro ao adicionar documento');
+        }
+    };
+
+    const removeDocumentoChat = async (docId) => {
+        if (!selectedMinuta) return;
+        
+        try {
+            await axios.delete(`${API_URL}/api/minutas/${selectedMinuta.id}/documentos/${docId}`);
+            setDocumentosSuporteChat(prev => prev.filter(d => d.id !== docId));
+            toast.success('Documento removido');
+        } catch (error) {
+            toast.error('Erro ao remover documento');
+        }
     };
 
     const sendMessage = async () => {
         if (!newMessage.trim() || !selectedMinuta) return;
-        const msg = newMessage.trim();
+
+        const userMsg = newMessage.trim();
         setNewMessage('');
-        setMessages(prev => [...prev, { type: 'user', text: msg }]);
+        setMessages(prev => [...prev, { type: 'user', text: userMsg }]);
         setSendingMessage(true);
+
         try {
-            const res = await axios.post(`${API_URL}/api/minutas/${selectedMinuta.id}/chat`, {
-                message: msg, minuta_id: selectedMinuta.id
+            const response = await axios.post(`${API_URL}/api/minutas/${selectedMinuta.id}/chat`, {
+                message: userMsg,
+                minuta_id: selectedMinuta.id
             });
-            setMessages(prev => [...prev, { type: 'ai', text: res.data.response }]);
-        } catch (e) {
-            toast.error('Erro ao processar');
-            setMessages(prev => [...prev, { type: 'ai', text: 'Erro ao processar. Tente novamente.' }]);
-        } finally { setSendingMessage(false); }
+            setMessages(prev => [...prev, { type: 'ai', text: response.data.response }]);
+        } catch (error) {
+            console.error('Chat error:', error);
+            const errorMsg = error.response?.status === 520 
+                ? 'Serviço de IA temporariamente indisponível. Tente novamente em alguns instantes.'
+                : 'Erro ao processar mensagem. Verifique sua conexão e tente novamente.';
+            toast.error(errorMsg);
+            setMessages(prev => [...prev, { 
+                type: 'ai', 
+                text: 'Desculpe, não foi possível processar sua mensagem no momento. Por favor, tente novamente.' 
+            }]);
+        } finally {
+            setSendingMessage(false);
+        }
     };
 
     const gerarMinuta = async () => {
         if (!selectedMinuta) return;
+        
         setGenerating(true);
         try {
-            const res = await axios.post(`${API_URL}/api/minutas/${selectedMinuta.id}/gerar`);
-            toast.success('Minuta gerada!');
-            setPreviewContent(res.data.conteudo);
+            const response = await axios.post(`${API_URL}/api/minutas/${selectedMinuta.id}/gerar`);
+            toast.success('Minuta gerada com sucesso!');
+            setPreviewContent(response.data.conteudo);
             setPreviewOpen(true);
             fetchMinutas();
-        } catch (e) { toast.error('Erro ao gerar'); }
-        finally { setGenerating(false); }
+        } catch (error) {
+            toast.error('Erro ao gerar minuta');
+        } finally {
+            setGenerating(false);
+        }
     };
 
     const deleteMinuta = async (id) => {
         try {
             await axios.delete(`${API_URL}/api/minutas/${id}`);
-            toast.success('Removida');
+            toast.success('Minuta removida');
             setMinutas(minutas.filter(m => m.id !== id));
-            if (selectedMinuta?.id === id) { setChatOpen(false); setSelectedMinuta(null); }
-        } catch (e) { toast.error('Erro ao remover'); }
+            if (selectedMinuta?.id === id) {
+                setChatOpen(false);
+                setSelectedMinuta(null);
+            }
+        } catch (error) {
+            toast.error('Erro ao remover minuta');
+        }
     };
 
-    const uploadDocChat = async (e) => {
-        const f = e.target.files?.[0];
-        if (!f || !selectedMinuta) return;
-        if (!['application/pdf', 'image/jpeg', 'image/png'].includes(f.type)) { toast.error('Formato inválido'); return; }
+    const viewMinuta = async (minuta) => {
         try {
-            const fd = new FormData();
-            fd.append('file', f);
-            fd.append('tipo_documento', 'outro');
-            const res = await axios.post(`${API_URL}/api/minutas/${selectedMinuta.id}/documentos`, fd, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            setDocsChat(prev => [...prev, res.data.documento]);
-            toast.success('Documento adicionado!');
-        } catch (e) { toast.error('Erro'); }
+            const response = await axios.get(`${API_URL}/api/minutas/${minuta.id}`);
+            if (response.data.conteudo_gerado) {
+                setPreviewContent(response.data.conteudo_gerado);
+                setPreviewOpen(true);
+            } else {
+                openChat(minuta);
+            }
+        } catch (error) {
+            toast.error('Erro ao carregar minuta');
+        }
     };
 
-    const removeDocChat = async (docId) => {
-        if (!selectedMinuta) return;
-        try {
-            await axios.delete(`${API_URL}/api/minutas/${selectedMinuta.id}/documentos/${docId}`);
-            setDocsChat(prev => prev.filter(d => d.id !== docId));
-            toast.success('Removido');
-        } catch (e) { toast.error('Erro'); }
+    const getStatusBadge = (status) => {
+        const styles = {
+            pendente: 'badge-pending',
+            em_analise: 'badge-warning',
+            concluida: 'badge-success'
+        };
+        const labels = {
+            pendente: 'Pendente',
+            em_analise: 'Em Análise',
+            concluida: 'Concluída'
+        };
+        return <span className={`badge ${styles[status] || 'badge-pending'}`}>{labels[status] || status}</span>;
     };
 
-    const tipoSel = TIPOS_ALTERACAO.find(t => t.value === tipoAlteracao);
-    const getStatus = (s) => {
-        const cfg = { pendente: 'badge-pending', em_analise: 'badge-warning', concluida: 'badge-success' };
-        const lbl = { pendente: 'Pendente', em_analise: 'Em Análise', concluida: 'Concluída' };
-        return <span className={`badge ${cfg[s] || 'badge-pending'}`}>{lbl[s] || s}</span>;
-    };
+    const tipoSelecionado = TIPOS_ALTERACAO.find(t => t.value === tipoAlteracao);
 
     return (
         <div className="p-8 fade-in" data-testid="minutas-page">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-white mb-2">Minutas Contratuais</h1>
-                <p className="text-zinc-500">Crie minutas com auxílio de IA - envie documentos ou descreva a alteração</p>
+                <p className="text-zinc-500">
+                    Crie minutas de alteração contratual com auxílio de inteligência artificial
+                </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Form */}
-                <div className="lg:col-span-1">
+                {/* Upload Form */}
+                <div className="lg:col-span-1 space-y-4">
                     <div className="bg-zinc-900 border border-zinc-800 rounded p-6">
                         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                             <FileUp className="w-5 h-5 text-red-500" strokeWidth={1.5} />
                             Nova Minuta
                         </h2>
+
                         <form onSubmit={handleUpload} className="space-y-4">
                             <div className="space-y-2">
-                                <Label className="text-zinc-400 text-xs uppercase">Tipo de Alteração *</Label>
+                                <Label className="text-zinc-400 text-xs uppercase tracking-wider">
+                                    Tipo de Alteração *
+                                </Label>
                                 <Select value={tipoAlteracao} onValueChange={setTipoAlteracao}>
-                                    <SelectTrigger data-testid="tipo-alteracao-select" className="bg-zinc-950 border-zinc-800">
-                                        <SelectValue placeholder="Selecione" />
+                                    <SelectTrigger 
+                                        data-testid="tipo-alteracao-select"
+                                        className="bg-zinc-950 border-zinc-800 focus:border-red-600"
+                                    >
+                                        <SelectValue placeholder="Selecione o tipo" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-zinc-900 border-zinc-800">
-                                        {TIPOS_ALTERACAO.map(t => (
-                                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                                        {TIPOS_ALTERACAO.map(tipo => (
+                                            <SelectItem 
+                                                key={tipo.value} 
+                                                value={tipo.value}
+                                                className="focus:bg-zinc-800"
+                                            >
+                                                {tipo.label}
+                                            </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             </div>
 
-                            {tipoSel?.docs?.length > 0 && (
-                                <div className="bg-zinc-950 border border-zinc-800 rounded p-3 text-xs">
-                                    <p className="text-zinc-500 uppercase mb-1">Documentos sugeridos:</p>
-                                    {tipoSel.docs.map((d, i) => (
-                                        <p key={i} className="text-zinc-400">• {d}</p>
-                                    ))}
+                            {tipoSelecionado && tipoSelecionado.docs.length > 0 && (
+                                <div className="bg-zinc-950 border border-zinc-800 rounded p-3">
+                                    <p className="text-xs text-zinc-500 uppercase mb-2">Documentos sugeridos:</p>
+                                    <ul className="text-xs text-zinc-400 space-y-1">
+                                        {tipoSelecionado.docs.map((doc, idx) => (
+                                            <li key={idx} className="flex items-center gap-2">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                                {doc}
+                                            </li>
+                                        ))}
+                                    </ul>
                                 </div>
                             )}
 
                             <div className="space-y-2">
-                                <Label className="text-zinc-400 text-xs uppercase">Descrição</Label>
+                                <Label className="text-zinc-400 text-xs uppercase tracking-wider">
+                                    Descrição da alteração
+                                </Label>
                                 <Textarea
                                     data-testid="descricao-input"
                                     value={descricao}
                                     onChange={(e) => setDescricao(e.target.value)}
-                                    placeholder="Ex: Adicionar sócio João Silva com 30%..."
-                                    className="bg-zinc-950 border-zinc-800 min-h-[80px]"
+                                    placeholder="Ex: Quero adicionar um novo sócio chamado João Silva com 30% das quotas..."
+                                    className="bg-zinc-950 border-zinc-800 focus:border-red-600 min-h-[100px]"
                                 />
+                                <p className="text-xs text-zinc-600">
+                                    Descreva a alteração ou deixe em branco e envie os documentos
+                                </p>
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-zinc-400 text-xs uppercase">Contrato Social (opcional)</Label>
-                                <div className={`drop-zone rounded p-4 text-center cursor-pointer ${file ? 'active' : ''}`}
-                                    onClick={() => fileInputRef.current?.click()}>
-                                    <input ref={fileInputRef} type="file" data-testid="file-upload-input"
-                                        onChange={handleFileChange} accept=".pdf,.jpg,.jpeg,.png" className="hidden" />
+                                <Label className="text-zinc-400 text-xs uppercase tracking-wider">
+                                    Contrato Social Atual (opcional)
+                                </Label>
+                                <div 
+                                    className={`drop-zone rounded p-4 text-center cursor-pointer ${file ? 'active' : ''}`}
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        data-testid="file-upload-input"
+                                        onChange={handleFileChange}
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        className="hidden"
+                                    />
                                     {file ? (
                                         <div className="flex items-center justify-center gap-2 text-red-500">
-                                            <FileText className="w-5 h-5" />
-                                            <span className="text-sm truncate max-w-[150px]">{file.name}</span>
-                                            <button type="button" onClick={(e) => { e.stopPropagation(); setFile(null); }}>
+                                            <FileText className="w-5 h-5" strokeWidth={1.5} />
+                                            <span className="text-sm truncate max-w-[180px]">{file.name}</span>
+                                            <button 
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                                                className="text-zinc-500 hover:text-red-500"
+                                            >
                                                 <X className="w-4 h-4" />
                                             </button>
                                         </div>
                                     ) : (
                                         <div className="text-zinc-500">
-                                            <Upload className="w-6 h-6 mx-auto mb-1" />
-                                            <p className="text-xs">PDF ou Imagem</p>
+                                            <Upload className="w-6 h-6 mx-auto mb-1" strokeWidth={1.5} />
+                                            <p className="text-xs">Contrato Social (PDF/Imagem)</p>
                                         </div>
                                     )}
                                 </div>
@@ -286,106 +461,179 @@ const Minutas = () => {
 
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <Label className="text-zinc-400 text-xs uppercase">Documentos de Suporte</Label>
-                                    <button type="button" onClick={() => docInputRef.current?.click()}
-                                        className="text-xs text-red-500 hover:text-red-400 flex items-center gap-1">
-                                        <Plus className="w-3 h-3" /> Adicionar
+                                    <Label className="text-zinc-400 text-xs uppercase tracking-wider">
+                                        Documentos de Suporte
+                                    </Label>
+                                    <button
+                                        type="button"
+                                        onClick={() => docInputRef.current?.click()}
+                                        className="text-xs text-red-500 hover:text-red-400 flex items-center gap-1"
+                                    >
+                                        <Plus className="w-3 h-3" />
+                                        Adicionar
                                     </button>
                                 </div>
-                                <input ref={docInputRef} type="file" data-testid="doc-upload-input"
-                                    onChange={handleDocChange} accept=".pdf,.jpg,.jpeg,.png" className="hidden" />
+                                <input
+                                    ref={docInputRef}
+                                    type="file"
+                                    data-testid="doc-upload-input"
+                                    onChange={handleDocumentoSuporteChange}
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    className="hidden"
+                                />
                                 
-                                {docsSuporte.length === 0 ? (
-                                    <div className="border border-dashed border-zinc-800 rounded p-3 text-center cursor-pointer hover:border-red-600/50"
-                                        onClick={() => docInputRef.current?.click()}>
-                                        <FileImage className="w-5 h-5 mx-auto mb-1 text-zinc-600" />
-                                        <p className="text-xs text-zinc-600">CNH, Comprovante, CNAEs</p>
+                                {documentosSuporte.length === 0 ? (
+                                    <div 
+                                        className="border border-dashed border-zinc-800 rounded p-4 text-center cursor-pointer hover:border-red-600/50"
+                                        onClick={() => docInputRef.current?.click()}
+                                    >
+                                        <FileImage className="w-6 h-6 mx-auto mb-1 text-zinc-600" strokeWidth={1.5} />
+                                        <p className="text-xs text-zinc-600">
+                                            CNH, Comprovante, CNAEs, etc.
+                                        </p>
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
-                                        {docsSuporte.map(doc => (
+                                        {documentosSuporte.map((doc) => (
                                             <div key={doc.id} className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded p-2">
-                                                <File className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                                <File className="w-4 h-4 text-red-500 flex-shrink-0" strokeWidth={1.5} />
                                                 <span className="text-xs text-zinc-300 truncate flex-1">{doc.file.name}</span>
-                                                <Select value={doc.tipo} onValueChange={(v) => 
-                                                    setDocsSuporte(prev => prev.map(d => d.id === doc.id ? {...d, tipo: v} : d))}>
-                                                    <SelectTrigger className="w-28 h-6 text-xs bg-zinc-900 border-zinc-700">
+                                                <Select 
+                                                    value={doc.tipo} 
+                                                    onValueChange={(v) => updateDocumentoTipo(doc.id, v)}
+                                                >
+                                                    <SelectTrigger className="w-32 h-7 text-xs bg-zinc-900 border-zinc-700">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent className="bg-zinc-900 border-zinc-800">
-                                                        {TIPOS_DOCUMENTO.map(t => (
-                                                            <SelectItem key={t.value} value={t.value} className="text-xs">{t.label}</SelectItem>
+                                                        {TIPOS_DOCUMENTO.map(tipo => (
+                                                            <SelectItem key={tipo.value} value={tipo.value} className="text-xs">
+                                                                {tipo.label}
+                                                            </SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
-                                                <button type="button" onClick={() => setDocsSuporte(prev => prev.filter(d => d.id !== doc.id))}
-                                                    className="text-zinc-500 hover:text-red-500">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeDocumentoSuporte(doc.id)}
+                                                    className="text-zinc-500 hover:text-red-500"
+                                                >
                                                     <X className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => docInputRef.current?.click()}
+                                            className="w-full border border-dashed border-zinc-800 rounded p-2 text-xs text-zinc-500 hover:border-red-600/50 hover:text-red-500"
+                                        >
+                                            <Plus className="w-3 h-3 inline mr-1" />
+                                            Mais documentos
+                                        </button>
                                     </div>
                                 )}
                             </div>
 
-                            <Button type="submit" data-testid="upload-submit-btn" disabled={uploading || !tipoAlteracao}
-                                className="w-full bg-red-600 hover:bg-red-700 btn-business">
-                                {uploading ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Criando...</> 
-                                    : <><Upload className="w-4 h-4 mr-2" />Criar Minuta</>}
+                            <Button
+                                type="submit"
+                                data-testid="upload-submit-btn"
+                                disabled={uploading || !tipoAlteracao}
+                                className="w-full bg-red-600 hover:bg-red-700 btn-business"
+                            >
+                                {uploading ? (
+                                    <>
+                                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                        Criando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Upload className="w-4 h-4 mr-2" />
+                                        Criar Minuta
+                                    </>
+                                )}
                             </Button>
                         </form>
                     </div>
                 </div>
 
-                {/* List */}
+                {/* Minutas List */}
                 <div className="lg:col-span-2">
                     <div className="bg-zinc-900 border border-zinc-800 rounded">
                         <div className="p-6 border-b border-zinc-800">
                             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <FileText className="w-5 h-5 text-red-500" />Histórico
+                                <FileText className="w-5 h-5 text-red-500" strokeWidth={1.5} />
+                                Histórico de Minutas
                             </h2>
                         </div>
+
                         {loading ? (
-                            <div className="p-12 text-center"><RefreshCw className="w-8 h-8 text-zinc-500 animate-spin mx-auto" /></div>
+                            <div className="p-12 text-center">
+                                <RefreshCw className="w-8 h-8 text-zinc-500 animate-spin mx-auto" />
+                            </div>
                         ) : minutas.length === 0 ? (
                             <div className="p-12 text-center text-zinc-500">
-                                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                                <p>Nenhuma minuta</p>
+                                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" strokeWidth={1.5} />
+                                <p>Nenhuma minuta cadastrada</p>
+                                <p className="text-sm mt-1">Crie uma nova minuta para começar</p>
                             </div>
                         ) : (
                             <div className="divide-y divide-zinc-800">
-                                {minutas.map(m => (
-                                    <div key={m.id} className="p-4 hover:bg-zinc-800/50" data-testid={`minuta-item-${m.id}`}>
+                                {minutas.map((minuta) => (
+                                    <div 
+                                        key={minuta.id} 
+                                        className="p-4 hover:bg-zinc-800/50 transition-colors"
+                                        data-testid={`minuta-item-${minuta.id}`}
+                                    >
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <span className="text-white font-medium">
-                                                        {TIPOS_ALTERACAO.find(t => t.value === m.tipo_alteracao)?.label || m.tipo_alteracao}
+                                                        {TIPOS_ALTERACAO.find(t => t.value === minuta.tipo_alteracao)?.label || minuta.tipo_alteracao}
                                                     </span>
-                                                    {getStatus(m.status)}
+                                                    {getStatusBadge(minuta.status)}
                                                 </div>
-                                                {m.descricao && <p className="text-sm text-zinc-400 truncate">{m.descricao}</p>}
-                                                <p className="text-xs text-zinc-600 flex items-center gap-1 mt-1">
-                                                    <Clock className="w-3 h-3" />
-                                                    {new Date(m.created_at).toLocaleDateString('pt-BR')}
+                                                {minuta.descricao && (
+                                                    <p className="text-sm text-zinc-400 truncate mb-1">
+                                                        {minuta.descricao}
+                                                    </p>
+                                                )}
+                                                <p className="text-xs text-zinc-600 flex items-center gap-1">
+                                                    <Clock className="w-3 h-3" strokeWidth={1.5} />
+                                                    {new Date(minuta.created_at).toLocaleDateString('pt-BR')}
+                                                    {minuta.arquivo_original && (
+                                                        <span className="ml-2 text-zinc-500">• {minuta.arquivo_original}</span>
+                                                    )}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <Button size="sm" variant="outline" data-testid={`chat-btn-${m.id}`}
-                                                    onClick={() => openChat(m)} className="border-zinc-700 hover:border-red-600">
-                                                    <MessageSquare className="w-4 h-4" />
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    data-testid={`chat-btn-${minuta.id}`}
+                                                    onClick={() => openChat(minuta)}
+                                                    className="border-zinc-700 hover:border-red-600 hover:text-red-500"
+                                                >
+                                                    <MessageSquare className="w-4 h-4" strokeWidth={1.5} />
                                                 </Button>
-                                                {m.status === 'concluida' && (
-                                                    <Button size="sm" variant="outline" onClick={async () => {
-                                                        const res = await axios.get(`${API_URL}/api/minutas/${m.id}`);
-                                                        if (res.data.conteudo_gerado) { setPreviewContent(res.data.conteudo_gerado); setPreviewOpen(true); }
-                                                    }} className="border-zinc-700 hover:border-emerald-600">
-                                                        <Download className="w-4 h-4" />
+                                                {minuta.status === 'concluida' && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        data-testid={`view-btn-${minuta.id}`}
+                                                        onClick={() => viewMinuta(minuta)}
+                                                        className="border-zinc-700 hover:border-emerald-600 hover:text-emerald-500"
+                                                    >
+                                                        <Download className="w-4 h-4" strokeWidth={1.5} />
                                                     </Button>
                                                 )}
-                                                <Button size="sm" variant="outline" data-testid={`delete-btn-${m.id}`}
-                                                    onClick={() => deleteMinuta(m.id)} className="border-zinc-700 hover:border-red-600">
-                                                    <Trash2 className="w-4 h-4" />
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    data-testid={`delete-btn-${minuta.id}`}
+                                                    onClick={() => deleteMinuta(minuta.id)}
+                                                    className="border-zinc-700 hover:border-red-600 hover:text-red-500"
+                                                >
+                                                    <Trash2 className="w-4 h-4" strokeWidth={1.5} />
                                                 </Button>
                                             </div>
                                         </div>
@@ -399,23 +647,24 @@ const Minutas = () => {
 
             {/* Chat Dialog */}
             <Dialog open={chatOpen} onOpenChange={setChatOpen}>
-                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-3xl h-[80vh] flex flex-col">
+                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-3xl h-[85vh] flex flex-col">
                     <DialogHeader className="border-b border-zinc-800 pb-4">
                         <DialogTitle className="text-white flex items-center gap-2">
-                            <MessageSquare className="w-5 h-5 text-red-500" />
+                            <MessageSquare className="w-5 h-5 text-red-500" strokeWidth={1.5} />
                             Chat - {TIPOS_ALTERACAO.find(t => t.value === selectedMinuta?.tipo_alteracao)?.label}
                         </DialogTitle>
                     </DialogHeader>
 
-                    {docsChat.length > 0 && (
+                    {/* Documents attached */}
+                    {documentosSuporteChat.length > 0 && (
                         <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-950">
-                            <p className="text-xs text-zinc-500 uppercase mb-1">Documentos:</p>
+                            <p className="text-xs text-zinc-500 uppercase mb-2">Documentos anexados:</p>
                             <div className="flex flex-wrap gap-2">
-                                {docsChat.map(d => (
-                                    <div key={d.id} className="flex items-center gap-1 bg-zinc-800 rounded px-2 py-1 text-xs text-zinc-300">
+                                {documentosSuporteChat.map(doc => (
+                                    <div key={doc.id} className="flex items-center gap-1 bg-zinc-800 rounded px-2 py-1 text-xs text-zinc-300">
                                         <File className="w-3 h-3 text-red-500" />
-                                        <span className="truncate max-w-[80px]">{d.nome}</span>
-                                        <button onClick={() => removeDocChat(d.id)} className="text-zinc-500 hover:text-red-500">
+                                        <span className="truncate max-w-[100px]">{doc.nome}</span>
+                                        <button onClick={() => removeDocumentoChat(doc.id)} className="text-zinc-500 hover:text-red-500">
                                             <X className="w-3 h-3" />
                                         </button>
                                     </div>
@@ -427,14 +676,26 @@ const Minutas = () => {
                     <div className="flex-1 overflow-y-auto p-4 space-y-4" data-testid="chat-messages">
                         {messages.length === 0 && (
                             <div className="text-center text-zinc-500 py-8">
-                                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                                <p>Descreva a alteração ou peça para extrair dados dos documentos</p>
-                                <p className="text-sm mt-2">A IA vai analisar os documentos e criar a minuta</p>
+                                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" strokeWidth={1.5} />
+                                <p>Inicie a conversa descrevendo a alteração desejada.</p>
+                                <p className="text-sm mt-2">
+                                    A IA irá analisar os documentos anexados e auxiliar na criação da minuta.
+                                </p>
+                                <p className="text-sm mt-4 text-zinc-600">
+                                    Dica: Você pode adicionar mais documentos (CNH, comprovante, etc.) durante a conversa.
+                                </p>
                             </div>
                         )}
-                        {messages.map((msg, i) => (
-                            <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[80%] p-4 ${msg.type === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'}`}>
+                        {messages.map((msg, idx) => (
+                            <div
+                                key={idx}
+                                className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                            >
+                                <div
+                                    className={`max-w-[80%] p-4 ${
+                                        msg.type === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'
+                                    }`}
+                                >
                                     <p className="text-sm text-white whitespace-pre-wrap">{msg.text}</p>
                                 </div>
                             </div>
@@ -444,7 +705,7 @@ const Minutas = () => {
                                 <div className="chat-bubble-ai p-4">
                                     <div className="flex items-center gap-2 text-zinc-400">
                                         <RefreshCw className="w-4 h-4 animate-spin" />
-                                        <span className="text-sm">Analisando...</span>
+                                        <span className="text-sm">Analisando documentos...</span>
                                     </div>
                                 </div>
                             </div>
@@ -454,45 +715,94 @@ const Minutas = () => {
 
                     <div className="border-t border-zinc-800 p-4 space-y-3">
                         <div className="flex gap-2">
-                            <input type="file" id="chat-doc" accept=".pdf,.jpg,.jpeg,.png" onChange={uploadDocChat} className="hidden" />
-                            <Button type="button" variant="outline" size="icon" title="Anexar documento"
-                                onClick={() => document.getElementById('chat-doc').click()} className="border-zinc-700">
-                                <Plus className="w-4 h-4" />
+                            <input
+                                type="file"
+                                id="chat-doc-upload"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={uploadDocumentoChat}
+                                className="hidden"
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => document.getElementById('chat-doc-upload').click()}
+                                className="border-zinc-700 hover:border-red-600"
+                                title="Anexar documento"
+                            >
+                                <Plus className="w-4 h-4" strokeWidth={1.5} />
                             </Button>
-                            <Input data-testid="chat-input" value={newMessage} onChange={(e) => setNewMessage(e.target.value)}
+                            <Input
+                                data-testid="chat-input"
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                                placeholder="Descreva ou peça para extrair dados..." className="bg-zinc-950 border-zinc-800"
-                                disabled={sendingMessage} />
-                            <Button data-testid="send-message-btn" onClick={sendMessage} disabled={sendingMessage || !newMessage.trim()}
-                                className="bg-red-600 hover:bg-red-700">
-                                <Send className="w-4 h-4" />
+                                placeholder="Descreva a alteração ou peça para extrair dados dos documentos..."
+                                className="bg-zinc-950 border-zinc-800 focus:border-red-600"
+                                disabled={sendingMessage}
+                            />
+                            <Button
+                                data-testid="send-message-btn"
+                                onClick={sendMessage}
+                                disabled={sendingMessage || !newMessage.trim()}
+                                className="bg-red-600 hover:bg-red-700"
+                            >
+                                <Send className="w-4 h-4" strokeWidth={1.5} />
                             </Button>
                         </div>
-                        <Button data-testid="gerar-minuta-btn" onClick={gerarMinuta} disabled={generating || messages.length < 2}
-                            className="w-full bg-zinc-800 hover:bg-zinc-700">
-                            {generating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Gerando...</>
-                                : <><FileText className="w-4 h-4 mr-2" />Gerar Minuta Final</>}
+                        <Button
+                            data-testid="gerar-minuta-btn"
+                            onClick={gerarMinuta}
+                            disabled={generating || messages.length < 2}
+                            className="w-full bg-zinc-800 hover:bg-zinc-700 text-white"
+                        >
+                            {generating ? (
+                                <>
+                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                    Gerando Minuta...
+                                </>
+                            ) : (
+                                <>
+                                    <FileText className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                                    Gerar Minuta Final
+                                </>
+                            )}
                         </Button>
                     </div>
                 </DialogContent>
             </Dialog>
 
-            {/* Preview */}
+            {/* Preview Dialog */}
             <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
                 <DialogContent className="bg-zinc-900 border-zinc-800 max-w-3xl max-h-[80vh] overflow-auto">
                     <DialogHeader className="border-b border-zinc-800 pb-4">
                         <DialogTitle className="text-white flex items-center gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />Minuta Gerada
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500" strokeWidth={1.5} />
+                            Minuta Gerada
                         </DialogTitle>
                     </DialogHeader>
-                    <pre className="p-4 whitespace-pre-wrap text-sm text-zinc-300 font-mono bg-zinc-950 rounded border border-zinc-800 m-4">
-                        {previewContent}
-                    </pre>
+                    <div className="p-4">
+                        <pre className="whitespace-pre-wrap text-sm text-zinc-300 font-mono bg-zinc-950 p-6 rounded border border-zinc-800">
+                            {previewContent}
+                        </pre>
+                    </div>
                     <div className="flex justify-end gap-2 p-4 border-t border-zinc-800">
-                        <Button variant="outline" onClick={() => setPreviewOpen(false)} className="border-zinc-700">Fechar</Button>
-                        <Button onClick={() => { navigator.clipboard.writeText(previewContent); toast.success('Copiado!'); }}
-                            className="bg-red-600 hover:bg-red-700">
-                            <Download className="w-4 h-4 mr-2" />Copiar
+                        <Button
+                            variant="outline"
+                            onClick={() => setPreviewOpen(false)}
+                            className="border-zinc-700"
+                        >
+                            Fechar
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                navigator.clipboard.writeText(previewContent);
+                                toast.success('Conteúdo copiado!');
+                            }}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            <Download className="w-4 h-4 mr-2" strokeWidth={1.5} />
+                            Copiar
                         </Button>
                     </div>
                 </DialogContent>
