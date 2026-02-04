@@ -246,7 +246,7 @@ def _detectar_tipo_linha(texto: str) -> str:
     texto_upper = texto.upper()
     
     # Títulos principais
-    titulos = ['ALTERAÇÃO', 'CONTRATO SOCIAL', 'CONSOLIDAÇÃO', 'ENCERRAMENTO']
+    titulos = ['ALTERAÇÃO', 'CONTRATO SOCIAL', 'CONSOLIDAÇÃO', 'ENCERRAMENTO', 'DISTRATO']
     if any(t in texto_upper for t in titulos) and len(texto) < 80:
         return 'titulo'
     
