@@ -255,6 +255,20 @@ const Reports = ({ user, onLogout }) => {
               </select>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Operação</label>
+              <select
+                data-testid="report-tipo-operacao-select"
+                value={tipoOperacao}
+                onChange={(e) => setTipoOperacao(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+              >
+                <option value="entrada">Entrada (Compras)</option>
+                <option value="saida">Saída (Vendas)</option>
+                <option value="todos">Todos</option>
+              </select>
+            </div>
+
             <div className="flex items-end">
               <button
                 data-testid="generate-report-button"
@@ -268,8 +282,26 @@ const Reports = ({ user, onLogout }) => {
             </div>
           </div>
 
+          {/* Indicador de tipo de operação */}
           {reportData.length > 0 && (
-            <div className="flex justify-end mb-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                {tipoOperacao === 'entrada' ? (
+                  <span className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-lg font-medium">
+                    <ArrowDownCircle className="w-4 h-4" />
+                    Relatório de Entrada (Compras) - Créditos
+                  </span>
+                ) : tipoOperacao === 'saida' ? (
+                  <span className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-lg font-medium">
+                    <ArrowUpCircle className="w-4 h-4" />
+                    Relatório de Saída (Vendas) - Débitos
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2 px-3 py-1 bg-gray-100 text-gray-800 rounded-lg font-medium">
+                    Todos os Documentos
+                  </span>
+                )}
+              </div>
               <button
                 data-testid="export-csv-button"
                 onClick={exportToCSV}
