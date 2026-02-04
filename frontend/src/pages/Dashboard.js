@@ -341,17 +341,21 @@ const Dashboard = ({ user, onLogout }) => {
                   </div>
                 </div>
                 
-                <TaxCard
+                <TaxCardWithDivergence
                   title="PIS"
                   credito={stats.creditos.pis}
                   debito={stats.debitos.pis}
+                  debitoXml={stats.debitos.pis_xml}
                   pagar={stats.impostos_pagar.pis}
+                  divergencia={stats.debitos.divergencias?.find(d => d.imposto === 'PIS')}
                 />
-                <TaxCard
+                <TaxCardWithDivergence
                   title="COFINS"
                   credito={stats.creditos.cofins}
                   debito={stats.debitos.cofins}
+                  debitoXml={stats.debitos.cofins_xml}
                   pagar={stats.impostos_pagar.cofins}
+                  divergencia={stats.debitos.divergencias?.find(d => d.imposto === 'COFINS')}
                 />
                 
                 {/* ISS */}
