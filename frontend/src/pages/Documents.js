@@ -248,13 +248,7 @@ const Documents = ({ user, onLogout }) => {
                             <Eye className="w-4 h-4" />
                             Ver
                           </Link>
-                          <button
-                              onClick={() => handleDeleteDocument(doc.id, doc.numero_nfe)}
-                              className="text-red-500 hover:text-red-700 p-1"
-                              title="Apagar documento"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                          {/* Botão apagar individual removido a pedido do usuário */}
                         </div>
                       </td>
                     </tr>
