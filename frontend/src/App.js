@@ -100,10 +100,6 @@ function App() {
               element={user ? <Reports user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
-              path="/analise-aliquotas-saida"
-              element={user ? <AnaliseAliquotasSaida user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
-            />
-            <Route
               path="/apuracao"
               element={user ? <ApuracaoPeriodo user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
