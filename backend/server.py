@@ -1241,6 +1241,129 @@ async def get_dashboard_stats(
         }
     }
 
+@api_router.get("/analise-aliquotas-saida/{company_id}")
+async def analise_aliquotas_saida(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Análise de alíquotas de ICMS, PIS e COFINS nas NFs de saída"""
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar apenas documentos de saída
+    query = {"company_id": company_id, "competencia": competencia, "tipo": "saida"}
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(1000)
+    
+    # Alíquotas padrão esperadas
+    ALIQ_ICMS_PADRAO = 18.0  # SP
+    ALIQ_PIS_PADRAO = 1.65
+    ALIQ_COFINS_PADRAO = 7.6
+    
+    # Analisar cada produto de cada NF de saída
+    alertas = []
+    produtos_analisados = []
+    
+    for doc in documents:
+        for prod in doc.get('produtos', []):
+            valor_total = float(prod.get('valor_total', 0) or 0)
+            v_icms = float(prod.get('v_icms', 0) or 0)
+            v_pis = float(prod.get('v_pis', 0) or 0)
+            v_cofins = float(prod.get('v_cofins', 0) or 0)
+            
+            # Calcular alíquotas efetivas
+            aliq_icms = (v_icms / valor_total * 100) if valor_total > 0 else 0
+            aliq_pis = (v_pis / valor_total * 100) if valor_total > 0 else 0
+            aliq_cofins = (v_cofins / valor_total * 100) if valor_total > 0 else 0
+            
+            produto_info = {
+                'documento': doc.get('numero_nfe'),
+                'codigo': prod.get('codigo'),
+                'descricao': prod.get('descricao'),
+                'valor_total': valor_total,
+                'aliquotas': {
+                    'icms': round(aliq_icms, 2),
+                    'pis': round(aliq_pis, 2),
+                    'cofins': round(aliq_cofins, 2)
+                },
+                'valores': {
+                    'icms': v_icms,
+                    'pis': v_pis,
+                    'cofins': v_cofins
+                },
+                'alertas': []
+            }
+            
+            # Verificar alíquotas
+            # ICMS zerado pode ser correto (isento, ST já pago, etc)
+            if aliq_icms == 0 and valor_total > 0:
+                produto_info['alertas'].append({
+                    'tipo': 'info',
+                    'imposto': 'ICMS',
+                    'mensagem': 'ICMS zerado - verificar se é isento, ST, ou erro'
+                })
+            elif aliq_icms > 0 and abs(aliq_icms - ALIQ_ICMS_PADRAO) > 1:
+                produto_info['alertas'].append({
+                    'tipo': 'atencao',
+                    'imposto': 'ICMS',
+                    'mensagem': f'Alíquota ICMS {aliq_icms:.2f}% diferente do padrão ({ALIQ_ICMS_PADRAO}%)'
+                })
+            
+            # PIS zerado pode ser alíquota zero
+            if aliq_pis == 0 and valor_total > 0:
+                produto_info['alertas'].append({
+                    'tipo': 'info',
+                    'imposto': 'PIS',
+                    'mensagem': 'PIS zerado - verificar se é alíquota zero ou monofásico'
+                })
+            elif aliq_pis > 0 and abs(aliq_pis - ALIQ_PIS_PADRAO) > 0.1:
+                produto_info['alertas'].append({
+                    'tipo': 'atencao',
+                    'imposto': 'PIS',
+                    'mensagem': f'Alíquota PIS {aliq_pis:.2f}% diferente do padrão ({ALIQ_PIS_PADRAO}%)'
+                })
+            
+            # COFINS zerado pode ser alíquota zero
+            if aliq_cofins == 0 and valor_total > 0:
+                produto_info['alertas'].append({
+                    'tipo': 'info',
+                    'imposto': 'COFINS',
+                    'mensagem': 'COFINS zerado - verificar se é alíquota zero ou monofásico'
+                })
+            elif aliq_cofins > 0 and abs(aliq_cofins - ALIQ_COFINS_PADRAO) > 0.1:
+                produto_info['alertas'].append({
+                    'tipo': 'atencao',
+                    'imposto': 'COFINS',
+                    'mensagem': f'Alíquota COFINS {aliq_cofins:.2f}% diferente do padrão ({ALIQ_COFINS_PADRAO}%)'
+                })
+            
+            produtos_analisados.append(produto_info)
+            alertas.extend(produto_info['alertas'])
+    
+    # Resumo
+    total_produtos = len(produtos_analisados)
+    produtos_com_alerta = len([p for p in produtos_analisados if p['alertas']])
+    
+    return {
+        "empresa": company['razao_social'],
+        "competencia": competencia,
+        "total_documentos_saida": len(documents),
+        "total_produtos": total_produtos,
+        "produtos_com_alerta": produtos_com_alerta,
+        "resumo_alertas": {
+            "total": len(alertas),
+            "icms": len([a for a in alertas if a['imposto'] == 'ICMS']),
+            "pis": len([a for a in alertas if a['imposto'] == 'PIS']),
+            "cofins": len([a for a in alertas if a['imposto'] == 'COFINS'])
+        },
+        "produtos": produtos_analisados
+    }
+
 @api_router.get("/reports/by-product/{company_id}")
 async def report_by_product(
     company_id: str,
