@@ -191,6 +191,7 @@ def gerar_pdf_simples(conteudo: str, dados_extraidos: Dict[str, Any] = None, for
     """
     Gera um PDF formatado da minuta com cabeçalho e rodapé em todas as páginas.
     Remove Markdown e aplica formatação igual ao Word.
+    Suporta logo no cabeçalho.
     """
     buffer = io.BytesIO()
     
@@ -215,15 +216,20 @@ def gerar_pdf_simples(conteudo: str, dados_extraidos: Dict[str, Any] = None, for
     cabecalho = cabecalho_config.get("texto", ["BUSINESS CONTABILIDADE"]) if cabecalho_config else ["BUSINESS CONTABILIDADE"]
     rodape = rodape_config.get("texto", ["Documento gerado pelo Portal Societário"]) if rodape_config else ["Documento gerado pelo Portal Societário"]
     
+    # Logo - verificar se existe na formatação
+    logo_base64 = formato.get("logo_base64") or formato.get("logoBase64")
+    
     # Criar documento com cabeçalho/rodapé
     doc = PDFComCabecalhoRodape(
         buffer,
         cabecalho_texto=cabecalho,
         rodape_texto=rodape,
+        logo_base64=logo_base64,
+        margens=margens,
         pagesize=A4,
         rightMargin=float(margens.get("direita", margens.get("right", 2)))*cm,
         leftMargin=float(margens.get("esquerda", margens.get("left", 3)))*cm,
-        topMargin=float(margens.get("superior", margens.get("top", 2.5)))*cm + 1.5*cm,
+        topMargin=float(margens.get("superior", margens.get("top", 2.5)))*cm + (2*cm if logo_base64 else 1.5*cm),
         bottomMargin=float(margens.get("inferior", margens.get("bottom", 2.5)))*cm + 1*cm
     )
     
