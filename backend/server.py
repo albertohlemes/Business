@@ -4655,10 +4655,15 @@ Seja específico e use os valores reais fornecidos."""
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro na análise: {str(e)}")
 
-def get_cfop_from_category(categoria: str, cst: str, company_uf: str, cfop_original: str) -> str:
+def get_cfop_from_category(categoria: str, cst: str, company_uf: str, cfop_original: str, emitente_uf: str = '') -> str:
     """Helper para converter categoria (IA) em CFOP"""
     is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
-    cfop_prefix = '1' if company_uf == 'SP' else '2' # Simplificação, ideal seria comparar UFs
+    
+    # Prefixo Inteligente
+    if emitente_uf and emitente_uf != company_uf:
+        cfop_prefix = '2'
+    else:
+        cfop_prefix = '1'
     
     if categoria == 'combustivel':
         return cfop_prefix + '653'
