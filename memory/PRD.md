@@ -205,6 +205,12 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 14
+- ✅ **Corrigido bug das páginas de Apuração**: Endpoints agora usam `db.xml_documents` (antes usavam `db.documents` que não existe)
+- ✅ **Corrigido campo de valor**: Agora usa `valor_total` ou `v_prod` corretamente
+- ✅ **Suporte a documentos sem CFOP**: Documentos sem CFOP são agrupados como "SEM CFOP (ENTRADA)" ou "SEM CFOP (SAIDA)"
+- ✅ **Determinação de entrada/saída**: Usa CFOP quando disponível, ou `tipo_operacao` do documento como fallback
+
 ### 02/2026 - Iteration 13
 - ✅ **Corrigido bug do menu lateral**: Agora apenas o item selecionado fica destacado (vermelho), não itens com nomes similares
 - ✅ **Corrigido bug de contabilização na Validação**: Contadores agora só consideram aprovações de documentos que ainda existem (após exclusão)
