@@ -4750,6 +4750,185 @@ async def get_ai_chat(session_id: str, system_message: str):
         system_message=system_message
     )
 
+# ============================================================================
+# CACHE DE CLASSIFICAÇÕES - Para acelerar uploads recorrentes
+# ============================================================================
+
+def normalize_product_key(descricao: str) -> str:
+    """Normaliza descrição do produto para usar como chave de cache"""
+    import unicodedata
+    # Remover acentos, converter para minúsculas, remover caracteres especiais
+    text = unicodedata.normalize('NFD', descricao.lower())
+    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+    text = re.sub(r'[^a-z0-9\s]', '', text)
+    text = ' '.join(text.split())  # Normalizar espaços
+    return text
+
+async def get_cached_classification(company_id: str, descricao: str) -> Optional[Dict]:
+    """Busca classificação no cache (learned_rules)"""
+    normalized_key = normalize_product_key(descricao)
+    
+    # Buscar por descrição normalizada similar
+    rules = await db.learned_rules.find({
+        "company_id": company_id
+    }, {"_id": 0}).to_list(1000)
+    
+    for rule in rules:
+        rule_key = normalize_product_key(rule.get('produto_descricao', ''))
+        # Match exato ou substring significativa
+        if rule_key == normalized_key or (len(rule_key) > 5 and rule_key in normalized_key) or (len(normalized_key) > 5 and normalized_key in rule_key):
+            return {
+                "categoria": rule['categoria_correta'],
+                "cfop": rule['cfop_correto'],
+                "justificativa": f"Memorizado: {rule.get('motivo', 'Classificação anterior')}"
+            }
+    return None
+
+async def save_classification_to_cache(company_id: str, product: Dict, categoria: str, cfop: str, justificativa: str, created_by: str = "system"):
+    """Salva classificação no cache para uso futuro"""
+    # Verificar se já existe
+    existing = await db.learned_rules.find_one({
+        "company_id": company_id,
+        "produto_descricao": product.get('descricao', '')
+    })
+    
+    if not existing:
+        rule = {
+            "id": str(uuid.uuid4()),
+            "company_id": company_id,
+            "produto_descricao": product.get('descricao', ''),
+            "produto_codigo": product.get('codigo', ''),
+            "ncm": product.get('ncm', ''),
+            "categoria_correta": categoria,
+            "cfop_correto": cfop,
+            "motivo": justificativa,
+            "aprendido_de": "ai_classification",
+            "created_by": created_by,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.learned_rules.insert_one(rule)
+
+async def classify_products_with_cache(products: List[Dict], company_id: str, company_data: Dict, emitente_uf: str = '') -> tuple:
+    """
+    Classifica produtos usando cache primeiro, depois IA para os não-cacheados.
+    Retorna: (resultados_classificados, stats)
+    """
+    results = {}
+    stats = {
+        "total": len(products),
+        "from_cache": 0,
+        "from_ai": 0,
+        "from_rules": 0
+    }
+    
+    products_for_ai = []
+    company_uf = company_data.get('uf', 'SP')
+    
+    for idx, product in enumerate(products):
+        product['_temp_id'] = str(idx)
+        descricao = product.get('descricao', '')
+        
+        # 1. Verificar cache primeiro
+        cached = await get_cached_classification(company_id, descricao)
+        if cached:
+            results[str(idx)] = cached
+            stats["from_cache"] += 1
+            continue
+        
+        # 2. Verificar regras diretas (keywords exatas)
+        produtos_comercializados = company_data.get('produtos_comercializados', [])
+        insumos_producao = company_data.get('insumos_producao', [])
+        produtos_despesa = company_data.get('produtos_despesa', [])
+        
+        categoria, justificativa = classify_product_category(
+            descricao,
+            product.get('ncm', ''),
+            produtos_comercializados,
+            insumos_producao,
+            produtos_despesa
+        )
+        
+        is_strong_match = "cadastrado" in justificativa.lower()
+        
+        if is_strong_match:
+            # Prefixo baseado em UF
+            cfop_prefix = '2' if (emitente_uf and emitente_uf != company_uf) else '1'
+            cst = product.get('cst', '')
+            is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+            
+            if categoria == 'revenda':
+                cfop = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
+            elif categoria == 'insumo':
+                cfop = (cfop_prefix + '401') if is_st else (cfop_prefix + '101')
+            elif categoria == 'despesa':
+                cfop = (cfop_prefix + '407') if is_st else (cfop_prefix + '556')
+            elif categoria == 'combustivel':
+                cfop = cfop_prefix + '653'
+            else:
+                cfop = cfop_prefix + '102'
+            
+            results[str(idx)] = {
+                "categoria": categoria,
+                "cfop": cfop,
+                "justificativa": justificativa
+            }
+            stats["from_rules"] += 1
+            continue
+        
+        # 3. Enviar para IA
+        products_for_ai.append(product)
+    
+    # Classificar com IA os produtos restantes
+    if products_for_ai:
+        ai_results = await classify_products_batch_llm(products_for_ai, company_data)
+        
+        for product in products_for_ai:
+            p_id = product.get('_temp_id')
+            if p_id in ai_results:
+                ai_result = ai_results[p_id]
+                categoria = ai_result['categoria']
+                
+                # Calcular CFOP
+                cfop_prefix = '2' if (emitente_uf and emitente_uf != company_uf) else '1'
+                cst = product.get('cst', '')
+                is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+                
+                if categoria == 'revenda':
+                    cfop = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
+                elif categoria == 'insumo':
+                    cfop = (cfop_prefix + '401') if is_st else (cfop_prefix + '101')
+                elif categoria == 'despesa':
+                    cfop = (cfop_prefix + '407') if is_st else (cfop_prefix + '556')
+                elif categoria == 'combustivel':
+                    cfop = cfop_prefix + '653'
+                else:
+                    cfop = cfop_prefix + '102'
+                
+                justificativa = f"IA ({categoria.upper()}): {ai_result['justificativa']}"
+                
+                results[p_id] = {
+                    "categoria": categoria,
+                    "cfop": cfop,
+                    "justificativa": justificativa
+                }
+                
+                # Salvar no cache para próximas vezes
+                await save_classification_to_cache(
+                    company_id, product, categoria, cfop, justificativa
+                )
+                
+                stats["from_ai"] += 1
+            else:
+                # Fallback
+                cfop_prefix = '2' if (emitente_uf and emitente_uf != company_uf) else '1'
+                results[p_id] = {
+                    "categoria": "revenda",
+                    "cfop": cfop_prefix + '102',
+                    "justificativa": "Classificação padrão (revenda)"
+                }
+    
+    return results, stats
+
 async def classify_products_batch_llm(products: List[Dict[str, Any]], company_data: Dict[str, Any], batch_size: int = 20) -> Dict[str, Any]:
     """
     Classifica uma lista de produtos usando LLM com base nas regras da empresa.
