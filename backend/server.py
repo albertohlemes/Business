@@ -100,6 +100,7 @@ class Company(BaseModel):
 class CompanyCreate(BaseModel):
     cnpj: str
     razao_social: str
+    codigo_empresa: Optional[str] = None  # ID customizado da empresa
     nome_fantasia: Optional[str] = None
     inscricao_estadual: Optional[str] = None
     inscricao_municipal: Optional[str] = None
@@ -122,6 +123,32 @@ class CompanyCreate(BaseModel):
     percentual_presuncao_csll: float = 12.0
     estoque_inicial: float = 0.0
     estoque_final: float = 0.0
+
+class CompanyUpdate(BaseModel):
+    """Modelo para atualização de empresa"""
+    codigo_empresa: Optional[str] = None
+    razao_social: Optional[str] = None
+    nome_fantasia: Optional[str] = None
+    inscricao_estadual: Optional[str] = None
+    inscricao_municipal: Optional[str] = None
+    endereco: Optional[str] = None
+    cidade: Optional[str] = None
+    uf: Optional[str] = None
+    cep: Optional[str] = None
+    cnae_principal: Optional[str] = None
+    cnae_principal_descricao: Optional[str] = None
+    atividade_principal: Optional[str] = None
+    produtos_comercializados: Optional[List[str]] = None
+    insumos_producao: Optional[List[str]] = None
+    produtos_despesa: Optional[List[str]] = None
+    regime_tributario: Optional[str] = None
+    anexos_simples: Optional[List[str]] = None
+    tipo_atividade: Optional[str] = None
+    tipos_servico: Optional[List[str]] = None
+    percentual_presuncao_irpj: Optional[float] = None
+    percentual_presuncao_csll: Optional[float] = None
+    estoque_inicial: Optional[float] = None
+    estoque_final: Optional[float] = None
 
 class XMLDocument(BaseModel):
     model_config = ConfigDict(extra="ignore")
