@@ -1370,12 +1370,15 @@ async def upload_xml_batch(
                 '6949': '2949', '6201': '2201', '6202': '2202', '6122': '2102',
             }
             
-            # APLICAR ANÁLISE INTELIGENTE E CONVERTER CFOP AUTOMATICAMENTE
+            # Coletar produtos que precisam de IA (não classificados por regra direta)
+            products_for_ai = []
+            
+            # 1. Primeira passada: Regras diretas (rápido) e coleta para IA
             for product in parsed_data['produtos']:
                 cfop_original = product.get('cfop', '')
                 ncm = product.get('ncm', '')
                 
-                # APLICAR CST CALCULADO DE PIS/COFINS
+                # APLICAR CST CALCULADO DE PIS/COFINS (Mantido igual)
                 cst_info = calcular_cst_pis_cofins(
                     ncm=ncm,
                     cfop=cfop_original,
@@ -1384,19 +1387,38 @@ async def upload_xml_batch(
                     regime=regime_tributario
                 )
                 
-                # Aplicar CST calculado (não o do XML)
-                product['cst_pis_calculado'] = cst_info['cst_calculado']
-                product['cst_cofins_calculado'] = cst_info['cst_calculado']  # PIS e COFINS usam mesmo CST
-                product['cst_pis'] = cst_info['cst_calculado']  # Sobrescrever com calculado
-                product['cst_cofins'] = cst_info['cst_calculado']  # Sobrescrever com calculado
-                product['cst_divergente'] = cst_info['divergente']
-                product['cst_motivo'] = cst_info['motivo']
-                product['ncm_aliq_zero'] = cst_info['aliq_zero']
-                product['cfop_sem_incidencia'] = cst_info.get('sem_incidencia', False)
-                
-                # VERIFICAR SE É CFOP DE OPERAÇÃO DISTINTA (apenas para entradas)
-                if tipo == 'entrada' and cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
-                    # Converter automaticamente para CFOP de entrada mantendo natureza
+                product.update({
+                    'cst_pis_calculado': cst_info['cst_calculado'],
+                    'cst_cofins_calculado': cst_info['cst_calculado'],
+                    'cst_pis': cst_info['cst_calculado'],
+                    'cst_cofins': cst_info['cst_calculado'],
+                    'cst_divergente': cst_info['divergente'],
+                    'cst_motivo': cst_info['motivo'],
+                    'ncm_aliq_zero': cst_info['aliq_zero'],
+                    'cfop_sem_incidencia': cst_info.get('sem_incidencia', False)
+                })
+
+                # Se for entrada e não é operação distinta, tentar classificar
+                if tipo == 'entrada' and cfop_original not in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
+                    # Tenta classificação simples primeiro
+                    classification_result = await suggest_cfop_intelligent(
+                        product, company_id, tipo, cfop_original
+                    )
+                    
+                    # Se a classificação retornou algo genérico ou queremos forçar IA para semantic match
+                    # Vamos enviar para IA se não tiver uma justificativa "forte" (ex: insumo cadastrado exato)
+                    is_strong_match = "cadastrado" in (classification_result.get('justificativa') or "").lower()
+                    
+                    if not is_strong_match:
+                        products_for_ai.append(product)
+                    else:
+                        # Aplica regra direta
+                        if classification_result['cfop_sugerido']:
+                            apply_classification(product, classification_result, cfop_original, file_conversions)
+
+                # Se for operação distinta, processar (mantido igual)
+                elif tipo == 'entrada' and cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
+                     # Converter automaticamente para CFOP de entrada mantendo natureza
                     cfop_convertido = CFOP_SAIDA_PARA_ENTRADA.get(cfop_original, cfop_original)
                     
                     # Marcar produto como pendente de revisão
@@ -1424,30 +1446,30 @@ async def upload_xml_batch(
                         'categoria': 'operacao_distinta',
                         'motivo': f"CFOP do emissor ({cfop_original} - {CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original]}) convertido para entrada ({cfop_convertido}). Pendente de revisão no menu Alertas CFOP."
                     })
-                else:
-                    # Fluxo normal de classificação inteligente
-                    suggestion = await suggest_cfop_intelligent(
-                        product, company_id, tipo, cfop_original
-                    )
-                    
-                    if suggestion['cfop_sugerido']:
-                        product['cfop_sugerido'] = suggestion['cfop_sugerido']
-                        product['cfop_original'] = cfop_original
-                        product['categoria_classificada'] = suggestion['categoria']
-                        product['justificativa_ia'] = suggestion.get('justificativa', '')
+
+            # 2. Processar Lote de IA (Inteligência Semântica)
+            if products_for_ai:
+                ai_results = await classify_products_batch_llm(products_for_ai, company)
+                
+                for product in products_for_ai:
+                    desc = product.get('descricao')
+                    if desc in ai_results:
+                        result = ai_results[desc]
+                        # Traduzir categoria (revenda/insumo/despesa) para CFOP
+                        cfop_sugerido = get_cfop_from_category(
+                            result['categoria'], 
+                            product.get('cst', ''), 
+                            company.get('uf', 'SP'),
+                            product.get('cfop', '')
+                        )
                         
-                        # APLICAR AUTOMATICAMENTE O CFOP SUGERIDO
-                        product['cfop'] = suggestion['cfop_sugerido']
-                        
-                        # Registrar conversão com justificativa detalhada
-                        file_conversions.append({
-                            'produto': product.get('descricao', ''),
-                            'codigo': product.get('codigo', ''),
-                            'cfop_original': cfop_original,
-                            'cfop_convertido': suggestion['cfop_sugerido'],
-                            'categoria': suggestion['categoria'],
-                            'motivo': suggestion.get('justificativa', f"Classificado como {suggestion['categoria'].upper()}")
-                        })
+                        if cfop_sugerido:
+                            classification_data = {
+                                "cfop_sugerido": cfop_sugerido,
+                                "categoria": result['categoria'],
+                                "justificativa": f"IA: {result['justificativa']}"
+                            }
+                            apply_classification(product, classification_data, product.get('cfop', ''), file_conversions)
             
             # Registrar alertas de CFOP para este arquivo
             if file_alertas_cfop:
