@@ -182,7 +182,17 @@ const Companies = ({ user, onLogout }) => {
       fetchCompanies();
       refreshCompanies();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Erro ao salvar empresa');
+      console.error('Erro ao salvar empresa:', err);
+      // Extrair mensagem de erro detalhada se disponível (ex: validação Pydantic)
+      let msg = 'Erro ao salvar empresa';
+      if (err.response?.data?.detail) {
+        if (Array.isArray(err.response.data.detail)) {
+          msg = err.response.data.detail.map(d => `${d.loc.join('.')}: ${d.msg}`).join('\n');
+        } else {
+          msg = err.response.data.detail;
+        }
+      }
+      alert(msg);
     }
   };
 
