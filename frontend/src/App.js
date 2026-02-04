@@ -11,11 +11,10 @@ import ClassificacaoPage from './pages/ClassificacaoPage';
 import ExportMenu from './pages/ExportMenu';
 import Reports from './pages/Reports';
 import AnaliseTributaria from './pages/AnaliseTributaria';
-import AnaliseAliquotasSaida from './pages/AnaliseAliquotasSaida';
+import AnaliseSaidas from './pages/AnaliseSaidas';
 import ApuracaoPeriodo from './pages/ApuracaoPeriodo';
 import ApuracaoPisCofins from './pages/ApuracaoPisCofins';
 import AlertasCfop from './pages/AlertasCfop';
-import RelatorioDivergencias from './pages/RelatorioDivergencias';
 import './App.css';
 
 function App() {
