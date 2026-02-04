@@ -232,12 +232,17 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ### 02/2026 - Iteration 21 (04/02/2026)
 - ✅ **Reclassificação Manual na Validação de Entrada**
-  - Novo botão "Reclassificar" nos produtos da validação
-  - Modal com seleção de categorias (REVENDA/INSUMO/DESPESA/COMBUSTÍVEL)
-  - Mostra CFOP correspondente para cada categoria
-  - Campo de justificativa opcional
-  - **Regra memorizada automaticamente** para futuras importações
-  - Novo endpoint: `POST /api/products/reclassify-manual`
+  - Botão "Reclassificar" nos produtos (visão Por NF-e)
+  - **Botão "Reclassificar (N)" na visão Por Produto** - aplica em todas as ocorrências
+  - Modal com seleção de natureza (REVENDA/INSUMO/DESPESA/COMBUSTÍVEL)
+  - **CFOP automatizado baseado na natureza selecionada:**
+    - REVENDA → 1102/2102
+    - INSUMO → 1101/2101
+    - DESPESA → 1556/2556
+    - COMBUSTÍVEL → 1653/2653
+  - **Opção "Editar manualmente"** para customizar o CFOP
+  - Regra memorizada automaticamente para futuras importações
+  - Justificativa opcional
   
 - ✅ **Apuração PIS/COFINS com Alíquotas de Lucro Real Corrigidas**
   - **DÉBITOS (Saídas):**
