@@ -474,6 +474,63 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
                 />
               </ExpandableSection>
             </div>
+
+            {/* TRANSFERÊNCIAS */}
+            {data.transferencias && data.transferencias.total > 0 && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <ArrowRightLeft className="w-6 h-6 text-amber-600" />
+                  Transferências (Não Geram Crédito/Débito)
+                </h2>
+                
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 mb-4">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-amber-800">Operações de Transferência</h4>
+                    <p className="text-sm text-amber-700">
+                      CFOPs de transferência entre estabelecimentos não geram direito a crédito nem obrigação de débito de PIS/COFINS.
+                      São exibidos separadamente para fins de conferência.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Transferências de Entrada */}
+                {data.transferencias.entrada.valor_operacoes > 0 && (
+                  <ExpandableSection
+                    title="Transferências de Entrada"
+                    subtitle={`${(viewMode === 'cfop' ? data.transferencias.entrada.por_cfop : data.transferencias.entrada.por_ncm).length} registro(s)`}
+                    icon={ArrowDownCircle}
+                    color="bg-amber-500"
+                    isExpanded={expandedSections.transferenciasEntrada}
+                    onToggle={() => toggleSection('transferenciasEntrada')}
+                    badge={formatCurrency(data.transferencias.entrada.valor_operacoes)}
+                  >
+                    <DataTable 
+                      items={viewMode === 'cfop' ? data.transferencias.entrada.por_cfop : data.transferencias.entrada.por_ncm}
+                      showTaxes={false}
+                    />
+                  </ExpandableSection>
+                )}
+                
+                {/* Transferências de Saída */}
+                {data.transferencias.saida.valor_operacoes > 0 && (
+                  <ExpandableSection
+                    title="Transferências de Saída"
+                    subtitle={`${(viewMode === 'cfop' ? data.transferencias.saida.por_cfop : data.transferencias.saida.por_ncm).length} registro(s)`}
+                    icon={ArrowUpCircle}
+                    color="bg-amber-600"
+                    isExpanded={expandedSections.transferenciasSaida}
+                    onToggle={() => toggleSection('transferenciasSaida')}
+                    badge={formatCurrency(data.transferencias.saida.valor_operacoes)}
+                  >
+                    <DataTable 
+                      items={viewMode === 'cfop' ? data.transferencias.saida.por_cfop : data.transferencias.saida.por_ncm}
+                      showTaxes={false}
+                    />
+                  </ExpandableSection>
+                )}
+              </div>
+            )}
           </div>
         ) : null}
       </div>
