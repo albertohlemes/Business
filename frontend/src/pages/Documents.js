@@ -43,18 +43,22 @@ const Documents = ({ user, onLogout }) => {
   };
 
   const handleDeleteDocument = async (docId, numeroNfe) => {
+    console.log('Attempting to delete document:', docId, numeroNfe);
     if (!window.confirm(`Tem certeza que deseja apagar a NF-e ${numeroNfe}?`)) {
       return;
     }
     
     try {
       const token = localStorage.getItem('token');
+      console.log('Sending delete request...');
       await axios.delete(`${API}/documents/${docId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('Delete successful');
       alert('Documento apagado com sucesso!');
       fetchData();
     } catch (err) {
+      console.error('Delete error:', err);
       alert(err.response?.data?.detail || 'Erro ao apagar documento');
     }
   };
