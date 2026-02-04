@@ -525,7 +525,6 @@ Responda sempre em português brasileiro formal."""
         )
         
         return ChatResponse(response=response, minuta_id=minuta_id)
-        
     except ImportError:
         # Fallback response if library not available
         response = f"""Recebi sua solicitação sobre: {chat_data.message}
@@ -549,7 +548,34 @@ Por favor, forneça mais detalhes sobre a alteração desejada."""
         return ChatResponse(response=response, minuta_id=minuta_id)
     except Exception as e:
         logger.error(f"Error in chat: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao processar mensagem: {str(e)}")
+        # Return a helpful fallback response instead of error
+        tipo_alt = minuta.get('tipo_alteracao', 'alteração contratual')
+        response = f"""Entendi sua solicitação: "{chat_data.message}"
+
+Para a {tipo_alt}, vou auxiliá-lo na elaboração da minuta. 
+
+Por favor, forneça os seguintes detalhes:
+1. Dados completos da empresa (se não constar no documento)
+2. Dados específicos da alteração que deseja realizar
+3. Qualquer informação adicional relevante
+
+Assim que tiver essas informações, poderei gerar a minuta de alteração."""
+        
+        nova_mensagem = {
+            "user": chat_data.message,
+            "assistant": response,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.minutas.update_one(
+            {"id": minuta_id},
+            {
+                "$push": {"mensagens": nova_mensagem},
+                "$set": {"status": "em_analise"}
+            }
+        )
+        
+        return ChatResponse(response=response, minuta_id=minuta_id)
 
 @api_router.post("/minutas/{minuta_id}/gerar")
 async def gerar_minuta(minuta_id: str, current_user: dict = Depends(get_current_user)):
