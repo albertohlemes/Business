@@ -1130,11 +1130,12 @@ async def delete_documents_by_competencia(
     company_id: str,
     competencia: str,
     tipo: str = None,
+    status: str = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Apagar notas da competência da empresa, opcionalmente filtrando por tipo"""
+    """Apagar notas da competência da empresa, opcionalmente filtrando por tipo e status"""
     
-    print(f"DELETE /documents request: company={company_id}, competencia={competencia}, type={tipo}, user={current_user.email}")
+    print(f"DELETE /documents request: company={company_id}, competencia={competencia}, type={tipo}, status={status}, user={current_user.email}")
     # Verificar se a empresa existe
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
@@ -1152,16 +1153,20 @@ async def delete_documents_by_competencia(
     }
     
     # Aplicar filtro de tipo se especificado
-    # O campo no banco é "tipo", não "tipo_operacao"
     if tipo and tipo in ['entrada', 'saida']:
         filter_query["tipo"] = tipo
+        
+    # Aplicar filtro de status se especificado
+    if status:
+        filter_query["status_validacao"] = status
     
     result = await db.xml_documents.delete_many(filter_query)
     
     tipo_label = f" do tipo {tipo.upper()}" if tipo else ""
+    status_label = f" com status {status.upper()}" if status else ""
     
     return {
-        "message": f"{result.deleted_count} documento(s){tipo_label} apagado(s) da competência {competencia}",
+        "message": f"{result.deleted_count} documento(s){tipo_label}{status_label} apagado(s) da competência {competencia}",
         "deleted_count": result.deleted_count
     }
 
