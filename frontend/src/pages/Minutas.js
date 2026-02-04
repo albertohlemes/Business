@@ -15,7 +15,7 @@ import {
 import { 
     FileText, Upload, Send, Download, Trash2, 
     MessageSquare, FileUp, Clock, CheckCircle2,
-    AlertCircle, RefreshCw
+    RefreshCw, Plus, X, FileImage, File
 } from 'lucide-react';
 import {
     Dialog,
@@ -27,14 +27,27 @@ import {
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const TIPOS_ALTERACAO = [
-    { value: 'alteracao_socios', label: 'Alteração de Sócios' },
-    { value: 'alteracao_endereco', label: 'Alteração de Endereço' },
-    { value: 'alteracao_atividade', label: 'Alteração de Atividade/Objeto Social' },
-    { value: 'alteracao_capital', label: 'Alteração de Capital Social' },
-    { value: 'alteracao_nome', label: 'Alteração de Razão Social/Nome Fantasia' },
-    { value: 'alteracao_administracao', label: 'Alteração de Administração' },
-    { value: 'consolidacao', label: 'Consolidação do Contrato Social' },
-    { value: 'outro', label: 'Outro' },
+    { value: 'alteracao_socios', label: 'Alteração de Sócios', docs: ['CNH/RG do novo sócio', 'Comprovante de endereço', 'Certidão de casamento (se casado)'] },
+    { value: 'alteracao_endereco', label: 'Alteração de Endereço', docs: ['Comprovante de endereço do novo local', 'Contrato de locação/escritura'] },
+    { value: 'alteracao_atividade', label: 'Alteração de Atividade/Objeto Social', docs: ['Lista de CNAEs desejados'] },
+    { value: 'alteracao_capital', label: 'Alteração de Capital Social', docs: ['Comprovante de integralização'] },
+    { value: 'alteracao_nome', label: 'Alteração de Razão Social/Nome Fantasia', docs: ['Consulta de viabilidade'] },
+    { value: 'alteracao_administracao', label: 'Alteração de Administração', docs: ['CNH/RG do novo administrador'] },
+    { value: 'consolidacao', label: 'Consolidação do Contrato Social', docs: [] },
+    { value: 'outro', label: 'Outro', docs: [] },
+];
+
+const TIPOS_DOCUMENTO = [
+    { value: 'cnh', label: 'CNH' },
+    { value: 'rg', label: 'RG' },
+    { value: 'cpf', label: 'CPF' },
+    { value: 'comprovante_endereco', label: 'Comprovante de Endereço' },
+    { value: 'certidao_casamento', label: 'Certidão de Casamento' },
+    { value: 'lista_cnaes', label: 'Lista de CNAEs' },
+    { value: 'contrato_locacao', label: 'Contrato de Locação' },
+    { value: 'escritura', label: 'Escritura' },
+    { value: 'procuracao', label: 'Procuração' },
+    { value: 'outro', label: 'Outro Documento' },
 ];
 
 const Minutas = () => {
@@ -49,12 +62,15 @@ const Minutas = () => {
     const [generating, setGenerating] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewContent, setPreviewContent] = useState('');
+    const [documentosSuporteChat, setDocumentosSuporteChat] = useState([]);
 
     // Upload form state
     const [tipoAlteracao, setTipoAlteracao] = useState('');
     const [descricao, setDescricao] = useState('');
     const [file, setFile] = useState(null);
+    const [documentosSuporte, setDocumentosSuporte] = useState([]);
     const fileInputRef = useRef(null);
+    const docInputRef = useRef(null);
     const chatEndRef = useRef(null);
 
     useEffect(() => {
@@ -90,37 +106,93 @@ const Minutas = () => {
         }
     };
 
+    const handleDocumentoSuporteChange = (e) => {
+        const selectedFile = e.target.files?.[0];
+        if (selectedFile) {
+            const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+            if (!validTypes.includes(selectedFile.type)) {
+                toast.error('Formato inválido. Use PDF, JPG ou PNG.');
+                return;
+            }
+            // Add to pending documents list
+            setDocumentosSuporte(prev => [...prev, { 
+                file: selectedFile, 
+                tipo: 'outro',
+                id: Date.now()
+            }]);
+        }
+        if (docInputRef.current) docInputRef.current.value = '';
+    };
+
+    const updateDocumentoTipo = (id, tipo) => {
+        setDocumentosSuporte(prev => 
+            prev.map(doc => doc.id === id ? { ...doc, tipo } : doc)
+        );
+    };
+
+    const removeDocumentoSuporte = (id) => {
+        setDocumentosSuporte(prev => prev.filter(doc => doc.id !== id));
+    };
+
     const handleUpload = async (e) => {
         e.preventDefault();
-        if (!file || !tipoAlteracao) {
-            toast.error('Selecione o tipo de alteração e o arquivo');
+        if (!tipoAlteracao) {
+            toast.error('Selecione o tipo de alteração');
+            return;
+        }
+
+        if (!file && !descricao && documentosSuporte.length === 0) {
+            toast.error('Forneça ao menos uma descrição, contrato ou documento de suporte');
             return;
         }
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('tipo_alteracao', tipoAlteracao);
-        formData.append('descricao', descricao);
-
+        
         try {
+            // Step 1: Create minuta
+            const formData = new FormData();
+            if (file) {
+                formData.append('file', file);
+            }
+            formData.append('tipo_alteracao', tipoAlteracao);
+            formData.append('descricao', descricao);
+
             const response = await axios.post(`${API_URL}/api/minutas/upload`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            toast.success('Documento enviado com sucesso!');
-            setMinutas([response.data, ...minutas]);
-            setFile(null);
-            setTipoAlteracao('');
-            setDescricao('');
-            if (fileInputRef.current) fileInputRef.current.value = '';
+
+            const minuta = response.data;
+
+            // Step 2: Upload support documents
+            for (const doc of documentosSuporte) {
+                const docFormData = new FormData();
+                docFormData.append('file', doc.file);
+                docFormData.append('tipo_documento', doc.tipo);
+                
+                await axios.post(`${API_URL}/api/minutas/${minuta.id}/documentos`, docFormData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            }
+
+            toast.success('Minuta criada com sucesso!');
+            setMinutas([minuta, ...minutas]);
+            resetForm();
             
             // Open chat automatically
-            openChat(response.data);
+            openChat(minuta);
         } catch (error) {
-            toast.error(error.response?.data?.detail || 'Erro ao enviar documento');
+            toast.error(error.response?.data?.detail || 'Erro ao criar minuta');
         } finally {
             setUploading(false);
         }
+    };
+
+    const resetForm = () => {
+        setFile(null);
+        setTipoAlteracao('');
+        setDescricao('');
+        setDocumentosSuporte([]);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const openChat = async (minuta) => {
@@ -128,15 +200,61 @@ const Minutas = () => {
         setChatOpen(true);
         
         try {
-            const response = await axios.get(`${API_URL}/api/minutas/${minuta.id}`);
-            const mensagens = response.data.mensagens || [];
+            const [minutaRes, docsRes] = await Promise.all([
+                axios.get(`${API_URL}/api/minutas/${minuta.id}`),
+                axios.get(`${API_URL}/api/minutas/${minuta.id}/documentos`)
+            ]);
+            
+            const mensagens = minutaRes.data.mensagens || [];
             const formattedMessages = mensagens.flatMap(m => [
                 { type: 'user', text: m.user },
                 { type: 'ai', text: m.assistant }
             ]);
             setMessages(formattedMessages);
+            setDocumentosSuporteChat(docsRes.data.documentos || []);
         } catch (error) {
             setMessages([]);
+            setDocumentosSuporteChat([]);
+        }
+    };
+
+    const uploadDocumentoChat = async (e) => {
+        const selectedFile = e.target.files?.[0];
+        if (!selectedFile || !selectedMinuta) return;
+        
+        const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+        if (!validTypes.includes(selectedFile.type)) {
+            toast.error('Formato inválido. Use PDF, JPG ou PNG.');
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('tipo_documento', 'outro');
+            
+            const response = await axios.post(
+                `${API_URL}/api/minutas/${selectedMinuta.id}/documentos`, 
+                formData,
+                { headers: { 'Content-Type': 'multipart/form-data' } }
+            );
+            
+            setDocumentosSuporteChat(prev => [...prev, response.data.documento]);
+            toast.success('Documento adicionado!');
+        } catch (error) {
+            toast.error('Erro ao adicionar documento');
+        }
+    };
+
+    const removeDocumentoChat = async (docId) => {
+        if (!selectedMinuta) return;
+        
+        try {
+            await axios.delete(`${API_URL}/api/minutas/${selectedMinuta.id}/documentos/${docId}`);
+            setDocumentosSuporteChat(prev => prev.filter(d => d.id !== docId));
+            toast.success('Documento removido');
+        } catch (error) {
+            toast.error('Erro ao remover documento');
         }
     };
 
@@ -228,6 +346,8 @@ const Minutas = () => {
         return <span className={`badge ${styles[status] || 'badge-pending'}`}>{labels[status] || status}</span>;
     };
 
+    const tipoSelecionado = TIPOS_ALTERACAO.find(t => t.value === tipoAlteracao);
+
     return (
         <div className="p-8 fade-in" data-testid="minutas-page">
             <div className="mb-8">
@@ -239,17 +359,17 @@ const Minutas = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Upload Form */}
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 space-y-4">
                     <div className="bg-zinc-900 border border-zinc-800 rounded p-6">
                         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                             <FileUp className="w-5 h-5 text-red-500" strokeWidth={1.5} />
-                            Novo Documento
+                            Nova Minuta
                         </h2>
 
                         <form onSubmit={handleUpload} className="space-y-4">
                             <div className="space-y-2">
                                 <Label className="text-zinc-400 text-xs uppercase tracking-wider">
-                                    Tipo de Alteração
+                                    Tipo de Alteração *
                                 </Label>
                                 <Select value={tipoAlteracao} onValueChange={setTipoAlteracao}>
                                     <SelectTrigger 
@@ -272,25 +392,42 @@ const Minutas = () => {
                                 </Select>
                             </div>
 
+                            {tipoSelecionado && tipoSelecionado.docs.length > 0 && (
+                                <div className="bg-zinc-950 border border-zinc-800 rounded p-3">
+                                    <p className="text-xs text-zinc-500 uppercase mb-2">Documentos sugeridos:</p>
+                                    <ul className="text-xs text-zinc-400 space-y-1">
+                                        {tipoSelecionado.docs.map((doc, idx) => (
+                                            <li key={idx} className="flex items-center gap-2">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                                {doc}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <Label className="text-zinc-400 text-xs uppercase tracking-wider">
-                                    Descrição (opcional)
+                                    Descrição da alteração
                                 </Label>
                                 <Textarea
                                     data-testid="descricao-input"
                                     value={descricao}
                                     onChange={(e) => setDescricao(e.target.value)}
-                                    placeholder="Descreva brevemente a alteração..."
-                                    className="bg-zinc-950 border-zinc-800 focus:border-red-600 min-h-[80px]"
+                                    placeholder="Ex: Quero adicionar um novo sócio chamado João Silva com 30% das quotas..."
+                                    className="bg-zinc-950 border-zinc-800 focus:border-red-600 min-h-[100px]"
                                 />
+                                <p className="text-xs text-zinc-600">
+                                    Descreva a alteração ou deixe em branco e envie os documentos
+                                </p>
                             </div>
 
                             <div className="space-y-2">
                                 <Label className="text-zinc-400 text-xs uppercase tracking-wider">
-                                    Contrato Social (PDF ou Imagem)
+                                    Contrato Social Atual (opcional)
                                 </Label>
                                 <div 
-                                    className={`drop-zone rounded p-6 text-center cursor-pointer ${file ? 'active' : ''}`}
+                                    className={`drop-zone rounded p-4 text-center cursor-pointer ${file ? 'active' : ''}`}
                                     onClick={() => fileInputRef.current?.click()}
                                 >
                                     <input
@@ -305,32 +442,113 @@ const Minutas = () => {
                                         <div className="flex items-center justify-center gap-2 text-red-500">
                                             <FileText className="w-5 h-5" strokeWidth={1.5} />
                                             <span className="text-sm truncate max-w-[180px]">{file.name}</span>
+                                            <button 
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                                                className="text-zinc-500 hover:text-red-500"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     ) : (
                                         <div className="text-zinc-500">
-                                            <Upload className="w-8 h-8 mx-auto mb-2" strokeWidth={1.5} />
-                                            <p className="text-sm">Arraste ou clique para enviar</p>
-                                            <p className="text-xs mt-1">PDF, JPG ou PNG</p>
+                                            <Upload className="w-6 h-6 mx-auto mb-1" strokeWidth={1.5} />
+                                            <p className="text-xs">Contrato Social (PDF/Imagem)</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-zinc-400 text-xs uppercase tracking-wider">
+                                        Documentos de Suporte
+                                    </Label>
+                                    <button
+                                        type="button"
+                                        onClick={() => docInputRef.current?.click()}
+                                        className="text-xs text-red-500 hover:text-red-400 flex items-center gap-1"
+                                    >
+                                        <Plus className="w-3 h-3" />
+                                        Adicionar
+                                    </button>
+                                </div>
+                                <input
+                                    ref={docInputRef}
+                                    type="file"
+                                    data-testid="doc-upload-input"
+                                    onChange={handleDocumentoSuporteChange}
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    className="hidden"
+                                />
+                                
+                                {documentosSuporte.length === 0 ? (
+                                    <div 
+                                        className="border border-dashed border-zinc-800 rounded p-4 text-center cursor-pointer hover:border-red-600/50"
+                                        onClick={() => docInputRef.current?.click()}
+                                    >
+                                        <FileImage className="w-6 h-6 mx-auto mb-1 text-zinc-600" strokeWidth={1.5} />
+                                        <p className="text-xs text-zinc-600">
+                                            CNH, Comprovante, CNAEs, etc.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {documentosSuporte.map((doc) => (
+                                            <div key={doc.id} className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded p-2">
+                                                <File className="w-4 h-4 text-red-500 flex-shrink-0" strokeWidth={1.5} />
+                                                <span className="text-xs text-zinc-300 truncate flex-1">{doc.file.name}</span>
+                                                <Select 
+                                                    value={doc.tipo} 
+                                                    onValueChange={(v) => updateDocumentoTipo(doc.id, v)}
+                                                >
+                                                    <SelectTrigger className="w-32 h-7 text-xs bg-zinc-900 border-zinc-700">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="bg-zinc-900 border-zinc-800">
+                                                        {TIPOS_DOCUMENTO.map(tipo => (
+                                                            <SelectItem key={tipo.value} value={tipo.value} className="text-xs">
+                                                                {tipo.label}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeDocumentoSuporte(doc.id)}
+                                                    className="text-zinc-500 hover:text-red-500"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => docInputRef.current?.click()}
+                                            className="w-full border border-dashed border-zinc-800 rounded p-2 text-xs text-zinc-500 hover:border-red-600/50 hover:text-red-500"
+                                        >
+                                            <Plus className="w-3 h-3 inline mr-1" />
+                                            Mais documentos
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
                             <Button
                                 type="submit"
                                 data-testid="upload-submit-btn"
-                                disabled={uploading || !file || !tipoAlteracao}
+                                disabled={uploading || !tipoAlteracao}
                                 className="w-full bg-red-600 hover:bg-red-700 btn-business"
                             >
                                 {uploading ? (
                                     <>
                                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                        Enviando...
+                                        Criando...
                                     </>
                                 ) : (
                                     <>
                                         <Upload className="w-4 h-4 mr-2" />
-                                        Enviar Documento
+                                        Criar Minuta
                                     </>
                                 )}
                             </Button>
@@ -356,7 +574,7 @@ const Minutas = () => {
                             <div className="p-12 text-center text-zinc-500">
                                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" strokeWidth={1.5} />
                                 <p>Nenhuma minuta cadastrada</p>
-                                <p className="text-sm mt-1">Envie um documento para começar</p>
+                                <p className="text-sm mt-1">Crie uma nova minuta para começar</p>
                             </div>
                         ) : (
                             <div className="divide-y divide-zinc-800">
@@ -374,12 +592,17 @@ const Minutas = () => {
                                                     </span>
                                                     {getStatusBadge(minuta.status)}
                                                 </div>
-                                                <p className="text-sm text-zinc-500 truncate">
-                                                    {minuta.arquivo_original || 'Sem arquivo'}
-                                                </p>
-                                                <p className="text-xs text-zinc-600 mt-1 flex items-center gap-1">
+                                                {minuta.descricao && (
+                                                    <p className="text-sm text-zinc-400 truncate mb-1">
+                                                        {minuta.descricao}
+                                                    </p>
+                                                )}
+                                                <p className="text-xs text-zinc-600 flex items-center gap-1">
                                                     <Clock className="w-3 h-3" strokeWidth={1.5} />
                                                     {new Date(minuta.created_at).toLocaleDateString('pt-BR')}
+                                                    {minuta.arquivo_original && (
+                                                        <span className="ml-2 text-zinc-500">• {minuta.arquivo_original}</span>
+                                                    )}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-2">
@@ -424,7 +647,7 @@ const Minutas = () => {
 
             {/* Chat Dialog */}
             <Dialog open={chatOpen} onOpenChange={setChatOpen}>
-                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-2xl h-[80vh] flex flex-col">
+                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-3xl h-[85vh] flex flex-col">
                     <DialogHeader className="border-b border-zinc-800 pb-4">
                         <DialogTitle className="text-white flex items-center gap-2">
                             <MessageSquare className="w-5 h-5 text-red-500" strokeWidth={1.5} />
@@ -432,12 +655,35 @@ const Minutas = () => {
                         </DialogTitle>
                     </DialogHeader>
 
+                    {/* Documents attached */}
+                    {documentosSuporteChat.length > 0 && (
+                        <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-950">
+                            <p className="text-xs text-zinc-500 uppercase mb-2">Documentos anexados:</p>
+                            <div className="flex flex-wrap gap-2">
+                                {documentosSuporteChat.map(doc => (
+                                    <div key={doc.id} className="flex items-center gap-1 bg-zinc-800 rounded px-2 py-1 text-xs text-zinc-300">
+                                        <File className="w-3 h-3 text-red-500" />
+                                        <span className="truncate max-w-[100px]">{doc.nome}</span>
+                                        <button onClick={() => removeDocumentoChat(doc.id)} className="text-zinc-500 hover:text-red-500">
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="flex-1 overflow-y-auto p-4 space-y-4" data-testid="chat-messages">
                         {messages.length === 0 && (
                             <div className="text-center text-zinc-500 py-8">
                                 <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" strokeWidth={1.5} />
                                 <p>Inicie a conversa descrevendo a alteração desejada.</p>
-                                <p className="text-sm mt-2">A IA irá analisar o documento e auxiliar na criação da minuta.</p>
+                                <p className="text-sm mt-2">
+                                    A IA irá analisar os documentos anexados e auxiliar na criação da minuta.
+                                </p>
+                                <p className="text-sm mt-4 text-zinc-600">
+                                    Dica: Você pode adicionar mais documentos (CNH, comprovante, etc.) durante a conversa.
+                                </p>
                             </div>
                         )}
                         {messages.map((msg, idx) => (
@@ -459,7 +705,7 @@ const Minutas = () => {
                                 <div className="chat-bubble-ai p-4">
                                     <div className="flex items-center gap-2 text-zinc-400">
                                         <RefreshCw className="w-4 h-4 animate-spin" />
-                                        <span className="text-sm">Analisando...</span>
+                                        <span className="text-sm">Analisando documentos...</span>
                                     </div>
                                 </div>
                             </div>
@@ -469,12 +715,29 @@ const Minutas = () => {
 
                     <div className="border-t border-zinc-800 p-4 space-y-3">
                         <div className="flex gap-2">
+                            <input
+                                type="file"
+                                id="chat-doc-upload"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={uploadDocumentoChat}
+                                className="hidden"
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => document.getElementById('chat-doc-upload').click()}
+                                className="border-zinc-700 hover:border-red-600"
+                                title="Anexar documento"
+                            >
+                                <Plus className="w-4 h-4" strokeWidth={1.5} />
+                            </Button>
                             <Input
                                 data-testid="chat-input"
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                                placeholder="Descreva a alteração desejada..."
+                                placeholder="Descreva a alteração ou peça para extrair dados dos documentos..."
                                 className="bg-zinc-950 border-zinc-800 focus:border-red-600"
                                 disabled={sendingMessage}
                             />
