@@ -118,7 +118,7 @@ const CompanySelector = () => {
               <img 
                 src="/logo-business.png" 
                 alt="Business Contabilidade" 
-                className="h-12 w-auto bg-black rounded-lg p-1"
+                className="h-12 w-auto"
               />
               <div>
                 <h2 className="text-xl font-bold">Selecione a Empresa</h2>
