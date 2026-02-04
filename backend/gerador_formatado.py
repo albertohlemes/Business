@@ -248,16 +248,37 @@ def _adicionar_paragrafo(
     if config.get('nomeNegrito') and config.get('id') == 'socios':
         _adicionar_texto_socio(para, texto, config)
     else:
-        # Adicionar texto normal
-        run = para.add_run(texto)
+        # Processar Markdown e adicionar texto com formatação
+        _adicionar_texto_com_markdown(para, texto, config)
+
+
+def _adicionar_texto_com_markdown(para, texto: str, config: Dict[str, Any]):
+    """Adiciona texto convertendo Markdown para formatação Word"""
+    # Extrair partes com formatação inline
+    partes = _extrair_formatacao_inline(texto)
+    
+    for parte_texto, is_bold, is_italic in partes:
+        if not parte_texto:
+            continue
+            
+        run = para.add_run(parte_texto)
         _aplicar_estilo_run(run, config)
+        
+        # Aplicar formatação do Markdown (sobrescreve config se necessário)
+        if is_bold:
+            run.bold = True
+        if is_italic:
+            run.italic = True
 
 
 def _adicionar_texto_socio(para, texto: str, config: Dict[str, Any]):
     """Adiciona texto de qualificação de sócio com nome em negrito"""
+    # Limpar markdown primeiro
+    texto_limpo = _limpar_markdown(texto)
+    
     # Tentar separar nome da qualificação
     # Padrão: "JOÃO DA SILVA, brasileiro, casado..."
-    match = re.match(r'^([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s]+),\s*(.+)$', texto)
+    match = re.match(r'^([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s]+),\s*(.+)$', texto_limpo)
     
     if match:
         nome = match.group(1)
@@ -273,7 +294,7 @@ def _adicionar_texto_socio(para, texto: str, config: Dict[str, Any]):
         _aplicar_estilo_run(run_resto, config)
     else:
         # Não conseguiu separar, usar texto completo
-        run = para.add_run(texto)
+        run = para.add_run(texto_limpo)
         _aplicar_estilo_run(run, config)
 
 
