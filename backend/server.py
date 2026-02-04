@@ -1621,6 +1621,14 @@ async def apuracao_pis_cofins(
     # Saída: 01 (tributado), 06 (alíquota zero)
     # Entrada: 50 (com crédito), 73 (alíquota zero)
     
+    # CFOPs de transferência (não geram crédito/débito)
+    CFOPS_TRANSFERENCIA = [
+        '1152', '1153', '1154', '1409', '1411', '1552', '1553', '1554', '1556',
+        '2152', '2153', '2154', '2409', '2411', '2552', '2553', '2554', '2556',
+        '5152', '5153', '5155', '5156', '5409', '5411', '5552', '5553', '5555', '5556',
+        '6152', '6153', '6155', '6156', '6409', '6411', '6552', '6553', '6555', '6556'
+    ]
+    
     # Estruturas para armazenar dados
     creditos = {
         "com_credito": {"por_cfop": {}, "por_ncm": {}, "por_cst": {}, "total": 0, "pis": 0, "cofins": 0, "cst": "50"},
@@ -1632,6 +1640,11 @@ async def apuracao_pis_cofins(
         "aliquota_zero": {"por_cfop": {}, "por_ncm": {}, "por_cst": {}, "total": 0, "cst": "06"}
     }
     
+    transferencias = {
+        "entrada": {"por_cfop": {}, "por_ncm": {}, "total": 0},
+        "saida": {"por_cfop": {}, "por_ncm": {}, "total": 0}
+    }
+    
     def is_ncm_aliquota_zero(ncm):
         """Verifica se NCM tem alíquota zero"""
         if not ncm:
@@ -1639,14 +1652,16 @@ async def apuracao_pis_cofins(
         ncm_str = str(ncm).replace('.', '')[:4]
         return ncm_str in NCMS_ALIQUOTA_ZERO_PREFIXOS
     
-    def add_to_dict(d, key, valor, pis, cofins):
+    def add_to_dict(d, key, valor, pis, cofins, cst=None):
         """Adiciona valores a um dicionário agrupador"""
         if key not in d:
-            d[key] = {"valor": 0, "pis": 0, "cofins": 0, "qtd": 0}
+            d[key] = {"valor": 0, "pis": 0, "cofins": 0, "qtd": 0, "cst": cst}
         d[key]["valor"] += valor
         d[key]["pis"] += pis
         d[key]["cofins"] += cofins
         d[key]["qtd"] += 1
+        if cst:
+            d[key]["cst"] = cst
     
     # Processar documentos
     for doc in documents:
@@ -1663,6 +1678,31 @@ async def apuracao_pis_cofins(
             
             primeiro_digito = cfop[0] if cfop else ''
             aliq_zero = is_ncm_aliquota_zero(ncm)
+            
+            # Verificar se é transferência
+            is_transferencia = cfop in CFOPS_TRANSFERENCIA
+            
+            # Determinar entrada/saída pelo CFOP ou tipo do documento
+            is_entrada = primeiro_digito in ['1', '2', '3'] if primeiro_digito else (tipo_op == 'entrada')
+            is_saida = primeiro_digito in ['5', '6', '7'] if primeiro_digito else (tipo_op == 'saida')
+            
+            # Se não tem CFOP, usar "SEM CFOP" como chave
+            cfop_key = cfop if cfop else f"SEM CFOP"
+            
+            # Transferências - tratamento especial (não geram crédito/débito)
+            if is_transferencia:
+                if is_entrada:
+                    add_to_dict(transferencias["entrada"]["por_cfop"], cfop_key, valor, 0, 0, "TRANSF")
+                    add_to_dict(transferencias["entrada"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, "TRANSF")
+                    transferencias["entrada"]["total"] += valor
+                elif is_saida:
+                    add_to_dict(transferencias["saida"]["por_cfop"], cfop_key, valor, 0, 0, "TRANSF")
+                    add_to_dict(transferencias["saida"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, "TRANSF")
+                    transferencias["saida"]["total"] += valor
+                continue  # Não processar como crédito/débito
+            
+            # Entradas (créditos)
+            if is_entrada:
             
             # Determinar entrada/saída pelo CFOP ou tipo do documento
             is_entrada = primeiro_digito in ['1', '2', '3'] if primeiro_digito else (tipo_op == 'entrada')
