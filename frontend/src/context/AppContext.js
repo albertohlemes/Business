@@ -112,22 +112,72 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const syncFromSieg = async (companyId, competencia) => {
+  const syncFromSieg = async (companyId, competencia, onProgress = null) => {
     if (!companyId || !competencia) return null;
     
     setSiegSyncing(true);
     try {
       const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('competencia', competencia);
       
-      const response = await axios.post(
-        `${API}/sieg/sync/${companyId}`,
-        formData,
+      // 1. Inicializar sessão de sync
+      const initFormData = new FormData();
+      initFormData.append('competencia', competencia);
+      
+      const initResponse = await axios.post(
+        `${API}/sieg/sync-init/${companyId}`,
+        initFormData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      
+      const syncId = initResponse.data.sync_id;
+      
+      // 2. Conectar ao SSE para progresso
+      const eventSource = new EventSource(`${API}/sieg/sync-progress/${syncId}`);
+      
+      let finalResult = null;
+      
+      await new Promise((resolve, reject) => {
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            
+            if (onProgress) {
+              onProgress(data);
+            }
+            
+            if (data.completed) {
+              finalResult = data.results;
+              eventSource.close();
+              resolve();
+            }
+            
+            if (data.error) {
+              eventSource.close();
+              reject(new Error(data.error));
+            }
+          } catch (e) {
+            console.error('Error parsing SSE data:', e);
+          }
+        };
+        
+        eventSource.onerror = (error) => {
+          console.error('SSE connection error:', error);
+          // Continue, don't reject yet
+        };
+        
+        // 3. Executar sincronização
+        axios.post(
+          `${API}/sieg/sync-execute/${syncId}`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        ).catch(err => {
+          eventSource.close();
+          reject(err);
+        });
+      });
+      
       setSiegSyncing(false);
-      return response.data;
+      return finalResult;
     } catch (err) {
       console.error('[SIEG] Erro na sincronização:', err);
       setSiegSyncing(false);
