@@ -27,6 +27,13 @@ def get_sieg_api_key() -> str:
     return os.environ.get('SIEG_API_KEY', '')
 
 
+def build_sieg_url(endpoint: str, api_key: str = None) -> str:
+    """Constrói URL com api_key como query parameter (formato SIEG)"""
+    if not api_key:
+        api_key = get_sieg_api_key()
+    return f"{SIEG_API_BASE}/{endpoint}?api_key={api_key}"
+
+
 def get_competencia_dates(competencia: str) -> tuple:
     """
     Converte competência (MM/AAAA) em datas de início e fim
