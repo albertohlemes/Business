@@ -151,14 +151,16 @@ def gerar_documento_formatado(
     
     # Processar conteúdo
     linhas = conteudo.split('\n')
+    ultimo_tipo = None
     
-    for linha in linhas:
+    for i, linha in enumerate(linhas):
         linha_limpa = linha.strip()
         
         if not linha_limpa:
             # Linha vazia
             para = doc.add_paragraph()
             para.paragraph_format.space_after = Pt(6)
+            ultimo_tipo = None
             continue
         
         # Detectar tipo da linha
@@ -166,7 +168,13 @@ def gerar_documento_formatado(
         config = secoes_config.get(tipo, _config_padrao(tipo))
         
         # Criar parágrafo com formatação
-        _adicionar_paragrafo(doc, linha_limpa, config, espacamento, dados_extraidos)
+        para = _adicionar_paragrafo(doc, linha_limpa, config, espacamento, dados_extraidos)
+        
+        # Aplicar organização inteligente de páginas
+        if organizacao_inteligente and para:
+            _aplicar_organizacao_inteligente(para, tipo, ultimo_tipo)
+        
+        ultimo_tipo = tipo
     
     # Adicionar rodapé
     rodape_config = secoes_config.get('rodape')
@@ -179,6 +187,50 @@ def gerar_documento_formatado(
     buffer.seek(0)
     
     return buffer.getvalue()
+
+
+def _aplicar_organizacao_inteligente(para, tipo: str, ultimo_tipo: str):
+    """
+    Aplica configurações para evitar quebras de página ruins.
+    
+    - keep_with_next: Mantém parágrafo junto com o próximo
+    - keep_together: Mantém parágrafo inteiro na mesma página
+    - widow_control: Evita linhas órfãs/viúvas
+    """
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+    
+    pPr = para._p.get_or_add_pPr()
+    
+    # Sempre ativar controle de viúvas/órfãs
+    widowControl = OxmlElement('w:widowControl')
+    widowControl.set(qn('w:val'), '1')
+    pPr.append(widowControl)
+    
+    # Títulos e cabeçalhos de cláusula: manter com próximo
+    tipos_titulo = ['titulo', 'clausula_titulo', 'preambulo']
+    if tipo in tipos_titulo:
+        keepNext = OxmlElement('w:keepNext')
+        keepNext.set(qn('w:val'), '1')
+        pPr.append(keepNext)
+    
+    # Nomes de sócios: manter junto
+    if tipo == 'socios':
+        keepLines = OxmlElement('w:keepLines')
+        keepLines.set(qn('w:val'), '1')
+        pPr.append(keepLines)
+    
+    # Assinaturas: manter bloco junto
+    if tipo == 'assinatura':
+        keepLines = OxmlElement('w:keepLines')
+        keepLines.set(qn('w:val'), '1')
+        pPr.append(keepLines)
+        
+        # Se o anterior também era assinatura, manter juntos
+        if ultimo_tipo == 'assinatura':
+            keepNext = OxmlElement('w:keepNext')
+            keepNext.set(qn('w:val'), '1')
+            pPr.append(keepNext)
 
 
 def _detectar_tipo_linha(texto: str) -> str:
