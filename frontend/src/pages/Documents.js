@@ -261,13 +261,24 @@ const Documents = ({ user, onLogout }) => {
                       </td>
                       <td className="px-6 py-4">{getStatusBadge(doc.status_validacao)}</td>
                       <td className="px-6 py-4">
-                        <Link
-                          to={`/validation?doc=${doc.id}`}
-                          className="text-red-600 hover:text-red-800 font-medium text-sm flex items-center gap-1"
-                        >
-                          <Eye className="w-4 h-4" />
-                          Ver
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            to={`/validation?doc=${doc.id}`}
+                            className="text-red-600 hover:text-red-800 font-medium text-sm flex items-center gap-1"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Ver
+                          </Link>
+                          {user.role === 'admin' && (
+                            <button
+                              onClick={() => handleDeleteDocument(doc.id, doc.numero_nfe)}
+                              className="text-gray-400 hover:text-red-600 p-1"
+                              title="Apagar documento"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
