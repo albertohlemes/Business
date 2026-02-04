@@ -348,9 +348,16 @@ const Licencas = () => {
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
+                                                    data-testid={`download-btn-${licenca.id}`}
+                                                    onClick={() => downloadLicenca(licenca.id)}
+                                                    disabled={baixando === licenca.id}
                                                     className="border-emerald-700 text-emerald-500 hover:bg-emerald-950"
                                                 >
-                                                    <Download className="w-4 h-4" strokeWidth={1.5} />
+                                                    {baixando === licenca.id ? (
+                                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                                    ) : (
+                                                        <Download className="w-4 h-4" strokeWidth={1.5} />
+                                                    )}
                                                 </Button>
                                             )}
 
