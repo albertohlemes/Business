@@ -2042,19 +2042,20 @@ Seja específico e use os valores reais fornecidos."""
         
         result = json.loads(response_text)
         
-        # Complementar com dados reais
-        if 'indicadores' in result:
-            result['indicadores']['total_creditos'] = round(total_credito_icms + total_credito_pis + total_credito_cofins, 2)
-            result['indicadores']['total_debitos'] = round(total_debito_icms + total_debito_pis + total_debito_cofins, 2)
-        
+        # Retornar dados calculados + análise da IA
         return {
             "success": True,
-            **result,
-            "dados_base": {
-                "total_entradas": total_entradas,
-                "total_saidas": total_saidas,
-                "notas_entrada": len(docs_entrada),
-                "notas_saida": len(docs_saida)
+            "regime_tributario": regime,
+            "dados_calculados": resumo_dados,
+            "indicadores_ia": result.get('indicadores', {}),
+            "alertas": result.get('alertas', []),
+            "recomendacoes": result.get('recomendacoes', []),
+            "markup": result.get('markup', {}),
+            "ponto_equilibrio": ponto_equilibrio,
+            "irpj_csll": resumo_dados.get('irpj_csll'),
+            "notas_processadas": {
+                "entrada": len(docs_entrada),
+                "saida": len(docs_saida)
             }
         }
         
