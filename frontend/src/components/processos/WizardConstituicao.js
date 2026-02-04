@@ -1678,7 +1678,23 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
                                     </div>
                                     <div>
                                         <Label className="text-zinc-400 text-xs uppercase mb-2 block">CEP <span className="text-red-500">*</span></Label>
-                                        <Input value={endereco.cep} onChange={(e) => setEndereco({ ...endereco, cep: e.target.value })} placeholder="00000-000" className="bg-zinc-950 border-zinc-800" required />
+                                        <div className="flex gap-2">
+                                            <Input 
+                                                value={endereco.cep} 
+                                                onChange={(e) => setEndereco({ ...endereco, cep: e.target.value })} 
+                                                placeholder="00000-000" 
+                                                className="bg-zinc-950 border-zinc-800" 
+                                                required 
+                                            />
+                                            <Button 
+                                                type="button" 
+                                                size="sm" 
+                                                onClick={() => buscarCep(endereco.cep, setEndereco)}
+                                                className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
+                                            >
+                                                <Search className="w-4 h-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
