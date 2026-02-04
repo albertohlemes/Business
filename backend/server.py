@@ -685,6 +685,7 @@ async def upload_minuta(
     minuta = {
         "id": minuta_id,
         "tipo_alteracao": tipo_alteracao,
+        "tipo_processo": "constituicao" if tipo_alteracao == "constituicao" else "alteracao",
         "descricao": descricao,
         "arquivo_original": arquivo_original,
         "arquivo_nome": arquivo_nome,
