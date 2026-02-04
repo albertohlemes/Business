@@ -1523,6 +1523,28 @@ async def sieg_sync_execute(
                                 'motivo': result_class['justificativa'],
                                 'origem': origem
                             })
+                        else:
+                            # FALLBACK: Classificação padrão como REVENDA
+                            cfop_original = product.get('cfop', '')
+                            cst = product.get('cst', '')
+                            is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+                            cfop_prefix = '1'  # Upload padrão estadual
+                            cfop_novo = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
+                            
+                            product['cfop_original'] = cfop_original
+                            product['cfop'] = cfop_novo
+                            product['cfop_sugerido'] = cfop_novo
+                            product['categoria_classificada'] = 'revenda'
+                            product['justificativa_ia'] = 'Classificação padrão: REVENDA'
+                            
+                            file_conversions.append({
+                                'produto': product.get('descricao', ''),
+                                'cfop_original': cfop_original,
+                                'cfop_convertido': cfop_novo,
+                                'categoria': 'revenda',
+                                'motivo': 'Classificação padrão (REVENDA)',
+                                'origem': 'fallback'
+                            })
                     
                     if file_conversions:
                         results["relatorio_conversoes"].append({
