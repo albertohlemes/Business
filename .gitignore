@@ -102,3 +102,4 @@ backend/browsers/chromium_headless_shell-1208/chrome-linux/headless_shell
 backend/browsers/chromium-1208/chrome-linux/chrome
 frontend/node_modules/.cache/default-development/10.pack
 frontend/node_modules/.cache/default-development/11.pack
+frontend/node_modules/.cache/default-development/12.pack
