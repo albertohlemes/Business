@@ -2191,14 +2191,23 @@ async def apuracao_pis_cofins(
                 continue  # Não processar como crédito/débito
             
             # USAR CST CALCULADO (não do XML)
-            # Entrada: 50 (com crédito), 70 (sem crédito), 73 (alíquota zero)
-            # Saída: 01 (tributado), 06 (alíquota zero)
+            # Entrada: 50 (com crédito), 70 (sem crédito), 73 (alíquota zero), 98 (sem incidência)
+            # Saída: 01 (tributado), 06 (alíquota zero), 49 (sem incidência)
+            
+            # Verificar se é CFOP sem incidência
+            cfop_sem_incidencia = prod.get('cfop_sem_incidencia', False) or cst_calculado in ['98', '49']
             
             # Entradas (créditos)
             if is_entrada:
                 cst_usado = cst_calculado or calcular_cst_pis_cofins(ncm, cfop, 'entrada', cst_xml, regime)['cst_calculado']
                 
-                if aliq_zero or cst_usado == '73':
+                if cst_usado == '98' or cfop in CFOPS_ENTRADA_SEM_INCIDENCIA:
+                    # Sem incidência - CST 98 - não gera crédito (remessa/devolução/transferência)
+                    add_to_dict(creditos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0, '98')
+                    add_to_dict(creditos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, '98')
+                    add_to_dict(creditos["aliquota_zero"]["por_cst"], '98', valor, 0, 0, '98')
+                    creditos["aliquota_zero"]["total"] += valor
+                elif aliq_zero or cst_usado == '73':
                     # Alíquota zero - CST 73 - não gera crédito
                     add_to_dict(creditos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0, '73')
                     add_to_dict(creditos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, '73')
@@ -2223,7 +2232,13 @@ async def apuracao_pis_cofins(
             elif is_saida:
                 cst_usado = cst_calculado or calcular_cst_pis_cofins(ncm, cfop, 'saida', cst_xml, regime)['cst_calculado']
                 
-                if aliq_zero or cst_usado == '06':
+                if cst_usado == '49' or cfop in CFOPS_SAIDA_SEM_INCIDENCIA:
+                    # Sem incidência - CST 49 - não gera débito (remessa/devolução/transferência)
+                    add_to_dict(debitos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0, '49')
+                    add_to_dict(debitos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, '49')
+                    add_to_dict(debitos["aliquota_zero"]["por_cst"], '49', valor, 0, 0, '49')
+                    debitos["aliquota_zero"]["total"] += valor
+                elif aliq_zero or cst_usado == '06':
                     # Alíquota zero - CST 06 - não gera débito
                     add_to_dict(debitos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0, '06')
                     add_to_dict(debitos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, '06')
