@@ -124,48 +124,52 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
   };
 
   // Componente de tabela
-  const DataTable = ({ items, showTaxes = true, title }) => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-gray-50">
-            <th className="px-4 py-3 text-left font-semibold text-gray-700">{viewMode === 'cfop' ? 'CFOP' : 'NCM'}</th>
-            <th className="px-4 py-3 text-right font-semibold text-gray-700">Valor</th>
-            {showTaxes && (
-              <>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">PIS</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-700">COFINS</th>
-              </>
-            )}
-            <th className="px-4 py-3 text-right font-semibold text-gray-700">Qtd</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.length === 0 ? (
-            <tr>
-              <td colSpan={showTaxes ? 5 : 3} className="px-4 py-8 text-center text-gray-500">
-                Nenhum registro encontrado
-              </td>
+  const DataTable = ({ items, showTaxes = true, title }) => {
+    const columnLabel = viewMode === 'cfop' ? 'CFOP' : viewMode === 'ncm' ? 'NCM' : 'CST';
+    
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-4 py-3 text-left font-semibold text-gray-700">{columnLabel}</th>
+              <th className="px-4 py-3 text-right font-semibold text-gray-700">Valor</th>
+              {showTaxes && (
+                <>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">PIS</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-700">COFINS</th>
+                </>
+              )}
+              <th className="px-4 py-3 text-right font-semibold text-gray-700">Qtd</th>
             </tr>
-          ) : (
-            items.map((item, idx) => (
-              <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="px-4 py-3 font-mono font-medium text-gray-900">{item.codigo}</td>
-                <td className="px-4 py-3 text-right">{formatCurrency(item.valor)}</td>
-                {showTaxes && (
-                  <>
-                    <td className="px-4 py-3 text-right text-blue-600">{formatCurrency(item.pis)}</td>
-                    <td className="px-4 py-3 text-right text-purple-600">{formatCurrency(item.cofins)}</td>
-                  </>
-                )}
-                <td className="px-4 py-3 text-right text-gray-500">{item.qtd}</td>
+          </thead>
+          <tbody>
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={showTaxes ? 5 : 3} className="px-4 py-8 text-center text-gray-500">
+                  Nenhum registro encontrado
+                </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
+            ) : (
+              items.map((item, idx) => (
+                <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="px-4 py-3 font-mono font-medium text-gray-900">{item.codigo}</td>
+                  <td className="px-4 py-3 text-right">{formatCurrency(item.valor)}</td>
+                  {showTaxes && (
+                    <>
+                      <td className="px-4 py-3 text-right text-blue-600">{formatCurrency(item.pis)}</td>
+                      <td className="px-4 py-3 text-right text-purple-600">{formatCurrency(item.cofins)}</td>
+                    </>
+                  )}
+                  <td className="px-4 py-3 text-right text-gray-500">{item.qtd}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   // Componente de seção expansível
   const ExpandableSection = ({ title, subtitle, icon: Icon, color, isExpanded, onToggle, children, badge }) => (
