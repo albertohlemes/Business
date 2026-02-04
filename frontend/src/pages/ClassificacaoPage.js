@@ -336,6 +336,10 @@ const ClassificacaoPage = ({ user, onLogout }) => {
       'DESPESA': prefix + '556',
       'despesa_st': prefix + '407',
       'DESPESA_ST': prefix + '407',
+      'ativo_imobilizado': prefix + '551',
+      'ATIVO_IMOBILIZADO': prefix + '551',
+      'ativo_imobilizado_st': prefix + '406',
+      'ATIVO_IMOBILIZADO_ST': prefix + '406',
       'combustivel': prefix + '653',
       'COMBUSTIVEL': prefix + '653',
     };
