@@ -1814,12 +1814,10 @@ async def apuracao_periodo(
             cfop_key = cfop if cfop else f"SEM CFOP ({tipo_operacao.upper()})"
             
             if is_entrada:
-            
-            if primeiro_digito in ['1', '2', '3']:
                 # Entrada
-                if cfop not in cfop_entradas:
-                    cfop_entradas[cfop] = {
-                        'cfop': cfop,
+                if cfop_key not in cfop_entradas:
+                    cfop_entradas[cfop_key] = {
+                        'cfop': cfop_key,
                         'valor': 0,
                         'bc_icms': 0,
                         'v_icms': 0,
@@ -1827,18 +1825,18 @@ async def apuracao_periodo(
                         'v_cofins': 0,
                         'qtd_itens': 0
                     }
-                cfop_entradas[cfop]['valor'] += valor
-                cfop_entradas[cfop]['bc_icms'] += bc_icms
-                cfop_entradas[cfop]['v_icms'] += v_icms
-                cfop_entradas[cfop]['v_pis'] += v_pis
-                cfop_entradas[cfop]['v_cofins'] += v_cofins
-                cfop_entradas[cfop]['qtd_itens'] += 1
+                cfop_entradas[cfop_key]['valor'] += valor
+                cfop_entradas[cfop_key]['bc_icms'] += bc_icms
+                cfop_entradas[cfop_key]['v_icms'] += v_icms
+                cfop_entradas[cfop_key]['v_pis'] += v_pis
+                cfop_entradas[cfop_key]['v_cofins'] += v_cofins
+                cfop_entradas[cfop_key]['qtd_itens'] += 1
                 
-            elif primeiro_digito in ['5', '6', '7']:
+            elif is_saida:
                 # Saída
-                if cfop not in cfop_saidas:
-                    cfop_saidas[cfop] = {
-                        'cfop': cfop,
+                if cfop_key not in cfop_saidas:
+                    cfop_saidas[cfop_key] = {
+                        'cfop': cfop_key,
                         'valor': 0,
                         'bc_icms': 0,
                         'v_icms': 0,
@@ -1846,12 +1844,12 @@ async def apuracao_periodo(
                         'v_cofins': 0,
                         'qtd_itens': 0
                     }
-                cfop_saidas[cfop]['valor'] += valor
-                cfop_saidas[cfop]['bc_icms'] += bc_icms
-                cfop_saidas[cfop]['v_icms'] += v_icms
-                cfop_saidas[cfop]['v_pis'] += v_pis
-                cfop_saidas[cfop]['v_cofins'] += v_cofins
-                cfop_saidas[cfop]['qtd_itens'] += 1
+                cfop_saidas[cfop_key]['valor'] += valor
+                cfop_saidas[cfop_key]['bc_icms'] += bc_icms
+                cfop_saidas[cfop_key]['v_icms'] += v_icms
+                cfop_saidas[cfop_key]['v_pis'] += v_pis
+                cfop_saidas[cfop_key]['v_cofins'] += v_cofins
+                cfop_saidas[cfop_key]['qtd_itens'] += 1
     
     # Converter para listas ordenadas por CFOP
     lista_entradas = sorted(cfop_entradas.values(), key=lambda x: x['cfop'])
