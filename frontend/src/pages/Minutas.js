@@ -499,15 +499,7 @@ Use linguagem jurídica formal e precisa. Inclua todos os dados extraídos dos d
                                 </div>
 
                                 {dadosExtraidos && (
-                                    <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <FileSearch className="w-5 h-5 text-red-500" />
-                                            <h4 className="font-semibold text-white">Dados Extraídos</h4>
-                                        </div>
-                                        <pre className="text-sm text-zinc-300 whitespace-pre-wrap max-h-64 overflow-y-auto">
-                                            {dadosExtraidos}
-                                        </pre>
-                                    </div>
+                                    <DadosExtraidos dados={dadosExtraidos} />
                                 )}
                             </div>
                         )}
