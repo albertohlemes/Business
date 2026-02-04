@@ -1,19 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { FileText, Eye, Filter, Calendar } from 'lucide-react';
+import { FileText, Eye, Filter, Calendar, Trash2, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAppContext } from '../context/AppContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const Documents = ({ user, onLogout }) => {
+  const { selectedCompany: ctxCompany, selectedCompetencia } = useAppContext();
   const [documents, setDocuments] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedTipo, setSelectedTipo] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    // Usar empresa do contexto se disponível
+    if (ctxCompany && !selectedCompany) {
+      setSelectedCompany(ctxCompany.id);
+    }
+  }, [ctxCompany]);
 
   useEffect(() => {
     fetchData();
@@ -36,6 +46,57 @@ const Documents = ({ user, onLogout }) => {
       console.error('Erro ao carregar dados:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (docId, numeroNfe) => {
+    if (!window.confirm(`Tem certeza que deseja apagar a NF-e ${numeroNfe}?`)) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API}/documents/${docId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert('Documento apagado com sucesso!');
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erro ao apagar documento');
+    }
+  };
+
+  const handleDeleteAllCompetencia = async () => {
+    if (!selectedCompany || !selectedCompetencia) {
+      alert('Selecione uma empresa e competência no header');
+      return;
+    }
+    
+    const company = companies.find(c => c.id === selectedCompany);
+    const count = documents.filter(d => d.company_id === selectedCompany && d.competencia === selectedCompetencia).length;
+    
+    if (count === 0) {
+      alert('Nenhum documento para apagar nesta competência');
+      return;
+    }
+    
+    if (!window.confirm(`Tem certeza que deseja apagar TODOS os ${count} documentos da competência ${selectedCompetencia} da empresa ${company?.razao_social}?`)) {
+      return;
+    }
+    
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.delete(
+        `${API}/documents/${selectedCompany}/competencia/${selectedCompetencia}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert(response.data.message);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erro ao apagar documentos');
+    } finally {
+      setDeleting(false);
     }
   };
 
