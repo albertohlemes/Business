@@ -242,6 +242,20 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 30 (04/02/2026)
+- ✅ **NOVA PÁGINA UNIFICADA: "Apuração Mensal"**
+  - Combinou "Apuração do Período" e "Apuração PIS/COFINS" em uma única página
+  - **Layout mais intuitivo:**
+    1. **Estoque do Mês** - Campos editáveis por competência (não mais no cadastro de empresa)
+    2. **Cards de Resumo** - Faturamento, Compras, CMV/CPV, Lucro Bruto
+    3. **Impostos a Pagar** - ICMS, PIS, COFINS, Total (layout de cards coloridos)
+    4. **Ponto de Equilíbrio** - Para empresas Lucro Real
+    5. **Detalhamento** - Por CFOP ou CST (abas colapsáveis)
+  - **Novo endpoint backend:** `/api/estoque-competencia/{company_id}` (GET/POST)
+  - **Estoque movido:** Do cadastro de empresa para a apuração mensal
+  - **Menu simplificado:** 12 itens → 10 itens
+  - **Rotas antigas redirecionam:** `/apuracao` e `/apuracao-pis-cofins` → `/apuracao-mensal`
+
 ### 02/2026 - Iteration 29 (04/02/2026)
 - ✅ **MENUS UNIFICADOS: "Análise de Saídas"**
   - **Problema:** Dois menus separados ("Análise Saída" e "Divergências Saída") tinham funcionalidades complementares
