@@ -1612,18 +1612,85 @@ async def apuracao_pis_cofins(
         '6932', '6933', '6934', '6949'
     ]
     
-    # NCMs com alíquota zero (monofásicos, isentos, etc.)
-    # Principais categorias: combustíveis, medicamentos, produtos agrícolas, etc.
+    # NCMs com alíquota zero (Tabela 4.3.13 SPED - Atualizada em 23/06/2025)
+    # Inclui monofásicos, isentos, suspensão, produtos da cesta básica, etc.
+    
+    # PREFIXOS NCM (4 dígitos) - aplicam-se a todos os NCMs que começam com esses dígitos
     NCMS_ALIQUOTA_ZERO_PREFIXOS = [
-        '2207', '2208',  # Álcool
-        '2710',  # Combustíveis
-        '3001', '3002', '3003', '3004', '3005', '3006',  # Medicamentos
-        '8703', '8704',  # Veículos (monofásico)
-        '4011',  # Pneus (monofásico)
-        '8433', '8432', '8434', '8435', '8436', '8437', '8701',  # Máquinas agrícolas
-        '0401', '0402', '0403', '0404', '0405', '0406',  # Laticínios
-        '1001', '1002', '1003', '1004', '1005', '1006', '1007', '1008',  # Cereais
-        '0201', '0202', '0203', '0204', '0205', '0206', '0207',  # Carnes
+        '0105',  # Aves vivas
+        '0206',  # Miudezas comestíveis de bovinos, suínos, etc.
+        '0210',  # Carnes e miudezas salgadas/secas/defumadas
+        '0302',  # Peixes frescos/refrigerados
+        '0405',  # Manteiga e outras gorduras do leite
+        '0506',  # Ossos e núcleos córneos
+        '0510',  # Âmbar-cinzento, castóreo, etc.
+        '0511',  # Produtos de origem animal
+        '0713',  # Legumes secos
+        '1006',  # Arroz
+        '1101',  # Farinha de trigo
+        '1102',  # Farinhas de cereais (exceto trigo)
+        '1103',  # Grumos, sêmolas e pellets de cereais
+        '1104',  # Grãos de cereais trabalhados
+        '1106',  # Farinhas de leguminosas/raízes
+        '1502',  # Gorduras de bovinos/ovinos/caprinos
+        '1517',  # Margarina
+        '1701',  # Açúcares de cana ou beterraba
+        '1901',  # Extratos de malte, preparações alimentícias
+        '1902',  # Massas alimentícias
+        '1905',  # Pão, bolachas, biscoitos
+        '2101',  # Extratos de café/chá
+        '2106',  # Preparações alimentícias
+        '2201',  # Águas minerais/gaseificadas
+        '2202',  # Outras águas/bebidas não alcoólicas
+        '2710',  # Óleos de petróleo (combustíveis)
+        '2711',  # Gás de petróleo e hidrocarbonetos
+        '3002',  # Sangue humano, antissoros, vacinas
+        '3003',  # Medicamentos não dosados
+        '3004',  # Medicamentos dosados
+        '3401',  # Sabões
+        '3826',  # Biodiesel
+        '4011',  # Pneus novos (monofásico)
+        '4013',  # Câmaras de ar
+        '4103',  # Outros couros
+        '4801',  # Papel de jornal
+        '4802',  # Papel/cartão não revestidos
+        '4810',  # Papel/cartão revestidos
+        '4818',  # Papel higiênico, fraldas, absorventes
+        '8443',  # Máquinas de impressão/impressoras
+        '8469',  # Máquinas de escrever
+        '8470',  # Máquinas de calcular
+        '8471',  # Máquinas automáticas processamento dados (computadores)
+        '8472',  # Outras máquinas de escritório
+        '8502',  # Grupos eletrogêneos
+        '8503',  # Partes para máquinas elétricas
+        '8517',  # Telefones, aparelhos de telecomunicação
+        '8525',  # Aparelhos de radiotelefonia
+        '8702',  # Veículos para transporte coletivo
+        '8714',  # Partes de veículos
+        '8901',  # Embarcações
+        '9018',  # Instrumentos médico-cirúrgicos
+        '9021',  # Artigos ortopédicos, próteses
+    ]
+    
+    # NCMs COMPLETOS (8 dígitos) com alíquota zero
+    NCMS_ALIQUOTA_ZERO_COMPLETOS = [
+        '02061000', '02063000', '02068000', '02102000', '02109900',
+        '03029000', '04051000', '05069000', '05100010', '05111000',
+        '05119910', '05119920', '07133319', '07133329', '07133399',
+        '11010010', '15171000', '17011400', '17019900', '19012000',
+        '19021100', '19021900', '19022000', '19023000', '19059090',
+        '21069010', '22011000', '22029000', '27101911', '27101921',
+        '27111100', '27111910', '27112100', '30029099', '30039099',
+        '30049099', '34011190', '38260000', '40115000', '40132000',
+        '48010010', '48010090', '48026191', '48026199', '48101989',
+        '48102290', '48181000', '84433222', '84690039', '84701000',
+        '84713012', '84713019', '84713090', '84715010', '84716052',
+        '84716053', '84716090', '84719014', '84721000', '85023100',
+        '85030090', '85171231', '85176241', '85176255', '85176262',
+        '85176272', '85176277', '85258019', '87021000', '87029090',
+        '87100000', '87142000', '89019000', '89061000', '90189099',
+        '90213980', '90214000', '90219019', '90219082', '90219089',
+        '90219091', '90219092', '90219099'
     ]
     
     # Buscar documentos
