@@ -1236,6 +1236,9 @@ async def upload_xml_batch(
     rejeitadas_competencia = []
     alertas_cfop = []  # Alertas de CFOPs de operações distintas
     
+    # Estatísticas de performance do cache
+    total_stats = {"from_cache": 0, "from_rules": 0, "from_ai": 0, "total": 0}
+    
     # CFOPs de operações distintas que precisam de alerta
     CFOPS_OPERACOES_DISTINTAS_UPLOAD = {
         '5910': 'Remessa em bonificação',
