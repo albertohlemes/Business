@@ -92,6 +92,33 @@ const Companies = ({ user, onLogout }) => {
     }
   };
 
+  const handleEdit = (company) => {
+    setEditingCompany(company);
+    setFormData({
+      ...emptyFormData,
+      ...company,
+      codigo_empresa: company.codigo_empresa || '',
+      produtos_comercializados: company.produtos_comercializados || [],
+      insumos_producao: company.insumos_producao || [],
+      produtos_despesa: company.produtos_despesa || [],
+      anexos_simples: company.anexos_simples || [],
+      tipos_servico: company.tipos_servico || []
+    });
+    setShowForm(true);
+  };
+
+  const handleNewCompany = () => {
+    setEditingCompany(null);
+    setFormData(emptyFormData);
+    setShowForm(true);
+  };
+
+  const handleCancelForm = () => {
+    setShowForm(false);
+    setEditingCompany(null);
+    setFormData(emptyFormData);
+  };
+
   const buscarCNPJ = async () => {
     const cnpjLimpo = formData.cnpj.replace(/\D/g, '');
     
