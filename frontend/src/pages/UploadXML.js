@@ -137,7 +137,7 @@ const UploadXML = ({ user, onLogout }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Operação *</label>
-              <div className="flex gap-4">
+              <div className="flex gap-4 flex-wrap">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     data-testid="tipo-entrada-radio"
@@ -147,7 +147,7 @@ const UploadXML = ({ user, onLogout }) => {
                     onChange={(e) => setTipo(e.target.value)}
                     className="w-4 h-4 text-red-600"
                   />
-                  <span className="text-gray-700">Entrada</span>
+                  <span className="text-gray-700">Entrada (Compras)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -158,9 +158,12 @@ const UploadXML = ({ user, onLogout }) => {
                     onChange={(e) => setTipo(e.target.value)}
                     className="w-4 h-4 text-red-600"
                   />
-                  <span className="text-gray-700">Saída</span>
+                  <span className="text-gray-700">Saída (Vendas)</span>
                 </label>
               </div>
+              <p className="text-xs text-gray-500 mt-2">
+                💡 O sistema detecta automaticamente se é NF-e, NFC-e (cupom) ou NFS-e (serviço)
+              </p>
             </div>
 
             <div>
