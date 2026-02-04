@@ -3,7 +3,7 @@
 ## Problema Original
 Portal para departamento societário com:
 1. Elaboração de minutas contratuais via IA
-2. Gestão de certificados digitais e automação REDESIM SP
+2. Gestão de certificados digitais e automação REDESIM SP (pausado)
 
 ## Arquitetura
 - **Frontend**: React + TailwindCSS + Shadcn/UI
@@ -13,10 +13,24 @@ Portal para departamento societário com:
 
 ## Implementações Concluídas
 
-### ✅ Conversão de Markdown para Word (04/02/2026)
-O conteúdo gerado pela IA (em Markdown) agora é convertido para formatação Word real:
+### ✅ Reestruturação da UI: "Minutas" → "Processos" (04/02/2026)
+- Menu lateral renomeado de "Minutas" para "Processos"
+- Página principal com 3 abas: **Alteração**, **Constituição**, **Baixa**
+- Rota `/minutas` redireciona automaticamente para `/processos`
+- Dashboard atualizado para navegar para `/processos`
+- Componentes refatorados em arquivos menores para melhor manutenibilidade:
+  - `ListaProcessos.js` - Lista agrupada por cliente
+  - `WizardAlteracao.js` - Wizard de 4 etapas para alteração
+  - `WizardConstituicao.js` - Placeholder para funcionalidade futura
 
-**Conversões suportadas:**
+### ✅ Correção do Bug de PDF (04/02/2026)
+- Logo agora aparece no cabeçalho do PDF
+- Rodapé corretamente alinhado com margens
+- Suporte a logo em base64 (PNG, JPG, GIF)
+- Posicionamento dinâmico baseado nas configurações de formatação
+
+### ✅ Conversão de Markdown para Word
+O conteúdo gerado pela IA (em Markdown) é convertido para formatação Word real:
 - `### Título` → Texto sem os `#`
 - `**texto**` → **Negrito** real no Word
 - `*texto*` → *Itálico* real no Word
@@ -32,13 +46,13 @@ O conteúdo gerado pela IA (em Markdown) agora é convertido para formatação W
 4. Preenche o formulário com os dados extraídos
 5. Usuário confere e salva
 
-### ✅ Listagem Agrupada por Cliente
-- Minutas organizadas por CNPJ/Razão Social
+### ✅ Organização Inteligente de Páginas
+- Títulos sempre ficam na mesma página que o texto seguinte
+- Cláusulas curtas não são divididas entre páginas
+- Controle automático de viúvas e órfãs
 
-### ✅ Minutas Contratuais
-- Wizard 4 etapas
-- Extração estruturada via IA
-- Download Word/PDF formatado
+### ✅ Listagem Agrupada por Cliente
+- Processos organizados por CNPJ/Razão Social
 
 ## Arquivos Principais
 ```
@@ -46,15 +60,40 @@ O conteúdo gerado pela IA (em Markdown) agora é convertido para formatação W
 ├── server.py                  # Endpoints FastAPI
 ├── extrator_formatacao.py     # Extrai formatação de documento Word
 ├── gerador_formatado.py       # Gera documento com conversão de Markdown
-├── template_manager.py        # Gerenciador de templates (também com conversão)
-└── jspdf_wrapper.py           # Gerador de PDF
+├── template_manager.py        # Gerenciador de templates
+└── jspdf_wrapper.py           # Gerador de PDF (CORRIGIDO)
+
+/app/frontend/src/
+├── pages/
+│   ├── Processos.js           # Nova página principal com abas
+│   └── Dashboard.js           # Dashboard atualizado
+├── components/
+│   ├── processos/
+│   │   ├── ListaProcessos.js  # Lista agrupada por cliente
+│   │   ├── WizardAlteracao.js # Wizard de alteração (4 etapas)
+│   │   └── WizardConstituicao.js # Placeholder para constituição
+│   ├── ConfiguracaoFormatacao.js
+│   └── Layout.js              # Menu lateral atualizado
+└── App.js                     # Rotas atualizadas
 ```
 
 ## Backlog
-- **P1**: Implementar IA de consolidação de minutas
-- **P2**: Finalizar automação REDESIM (pausado)
-- **P3**: Renovação automática de licenças
+
+### P0 - Alta Prioridade
+- ⏳ **Implementar wizard de Constituição**: Entrada de dados híbrida (digitar/upload), qualificação de sócios dinâmica, tabela de participação, objeto social via CNAEs
+
+### P1 - Média Prioridade
+- ⏳ Implementar processo de **Baixa** de empresas
+- ⏳ Refatorar arquivo `Minutas.js` antigo (pode ser removido, está obsoleto)
+
+### P2 - Baixa Prioridade
+- ⏳ Reativar automação REDESIM (quando solicitado pelo usuário)
 
 ## Credenciais de Teste
-- Email: teste_template@test.com
+- Email: teste2@teste.com
 - Senha: 123456
+
+## Status dos Testes
+- Backend: 100% (18/18 testes passaram)
+- Frontend: 100% (todas funcionalidades verificadas)
+- Última execução: 04/02/2026
