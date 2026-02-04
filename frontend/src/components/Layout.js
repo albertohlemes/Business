@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Building2, Home, FileText, Upload, CheckCircle, Download, LogOut, Menu, X, BarChart3, Brain, Calendar, ChevronDown, TrendingUp, Settings } from 'lucide-react';
+import { Building2, Home, FileText, Upload, CheckCircle, Download, LogOut, Menu, X, BarChart3, Brain, Calendar, ChevronDown, TrendingUp, Settings, ArrowUpCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 
@@ -15,7 +15,8 @@ const Layout = ({ user, onLogout, children }) => {
     { name: 'Upload XML', href: '/upload', icon: Upload, testId: 'nav-upload' },
     { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
     { name: 'Reclassificação IA', href: '/reclassification', icon: Brain, testId: 'nav-reclassification' },
-    { name: 'Validação', href: '/validation', icon: CheckCircle, testId: 'nav-validation' },
+    { name: 'Validação Entrada', href: '/validation', icon: CheckCircle, testId: 'nav-validation' },
+    { name: 'Análise Saída', href: '/analise-aliquotas-saida', icon: ArrowUpCircle, testId: 'nav-analise-saida' },
     { name: 'Análise Tributária', href: '/analise-tributaria', icon: TrendingUp, testId: 'nav-analise' },
     { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
     { name: 'Exportar SPED', href: '/export', icon: Download, testId: 'nav-export' },
