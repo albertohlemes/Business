@@ -2179,24 +2179,9 @@ async def apuracao_pis_cofins(
             # Se não tem CFOP, usar "SEM CFOP" como chave
             cfop_key = cfop if cfop else f"SEM CFOP"
             
-            # Transferências - tratamento especial (não geram crédito/débito)
-            if is_transferencia:
-                if is_entrada:
-                    add_to_dict(transferencias["entrada"]["por_cfop"], cfop_key, valor, 0, 0, "TRANSF")
-                    add_to_dict(transferencias["entrada"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, "TRANSF")
-                    transferencias["entrada"]["total"] += valor
-                elif is_saida:
-                    add_to_dict(transferencias["saida"]["por_cfop"], cfop_key, valor, 0, 0, "TRANSF")
-                    add_to_dict(transferencias["saida"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, "TRANSF")
-                    transferencias["saida"]["total"] += valor
-                continue  # Não processar como crédito/débito
-            
             # USAR CST CALCULADO (não do XML)
             # Entrada: 50 (com crédito), 70 (sem crédito), 73 (alíquota zero), 98 (sem incidência)
             # Saída: 01 (tributado), 06 (alíquota zero), 49 (sem incidência)
-            
-            # Verificar se é CFOP sem incidência
-            cfop_sem_incidencia = prod.get('cfop_sem_incidencia', False) or cst_calculado in ['98', '49']
             
             # Entradas (créditos)
             if is_entrada:
