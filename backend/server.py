@@ -1677,6 +1677,10 @@ async def ai_analise_tributaria(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
+    regime = company.get('regime_tributario', 'lucro_presumido')
+    tipo_atividade = company.get('tipo_atividade', 'comercio')
+    uf_empresa = company.get('uf', 'SP')
+    
     # Buscar documentos
     docs_entrada = await db.xml_documents.find({
         "company_id": request.company_id,
@@ -1693,55 +1697,244 @@ async def ai_analise_tributaria(
     if len(docs_entrada) == 0 and len(docs_saida) == 0:
         raise HTTPException(status_code=404, detail="Nenhum documento encontrado para esta competência")
     
-    # Calcular métricas
+    # ============ ANÁLISE DETALHADA DE ENTRADAS (CRÉDITOS) ============
     total_entradas = sum(d.get('valor_total', 0) for d in docs_entrada)
-    total_saidas = sum(d.get('valor_total', 0) for d in docs_saida)
     
-    # Calcular créditos e débitos
-    total_credito_icms = sum(sum(p.get('v_icms', 0) for p in d.get('produtos', [])) for d in docs_entrada)
-    total_credito_pis = sum(sum(p.get('v_pis', 0) for p in d.get('produtos', [])) for d in docs_entrada)
-    total_credito_cofins = sum(sum(p.get('v_cofins', 0) for p in d.get('produtos', [])) for d in docs_entrada)
+    # Créditos separados por imposto
+    credito_icms_tributado = 0
+    credito_icms_st = 0  # ST não dá crédito
+    credito_pis_tributado = 0
+    credito_pis_aliquota_zero = 0
+    credito_cofins_tributado = 0
+    credito_cofins_aliquota_zero = 0
     
-    total_debito_icms = sum(sum(p.get('v_icms', 0) for p in d.get('produtos', [])) for d in docs_saida)
-    total_debito_pis = sum(sum(p.get('v_pis', 0) for p in d.get('produtos', [])) for d in docs_saida)
-    total_debito_cofins = sum(sum(p.get('v_cofins', 0) for p in d.get('produtos', [])) for d in docs_saida)
-    
-    # Analisar CFOPs para identificar interestaduais
+    # Análise de CFOPs de entrada
     cfops_interestadual = 0
     cfops_interno = 0
+    valor_interestadual = 0
+    valor_interno = 0
+    
+    # NCMs de alíquota zero (cesta básica)
+    ncms_aliquota_zero = ['0201', '0202', '0203', '0204', '0206', '0207', '0401', '0402', '0403',
+                          '0701', '0702', '0703', '0713', '0901', '1001', '1006', '1101', '1501', '1507', '1701']
+    
     for doc in docs_entrada:
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
+            ncm = str(prod.get('ncm', ''))[:4]
+            cst = str(prod.get('cst', ''))
+            valor = prod.get('valor_total', 0)
+            
+            # Classificar CFOP
             if cfop.startswith('2'):
                 cfops_interestadual += 1
+                valor_interestadual += valor
             elif cfop.startswith('1'):
                 cfops_interno += 1
+                valor_interno += valor
+            
+            # ICMS - ST não dá crédito (CST 10, 30, 60, 70)
+            if cst in ['10', '30', '60', '70'] or 'ST' in cfop.upper():
+                credito_icms_st += prod.get('v_icms', 0)
+            else:
+                credito_icms_tributado += prod.get('v_icms', 0)
+            
+            # PIS/COFINS - Verificar alíquota zero
+            if ncm in ncms_aliquota_zero or prod.get('v_pis', 0) == 0:
+                credito_pis_aliquota_zero += prod.get('v_pis', 0)
+            else:
+                credito_pis_tributado += prod.get('v_pis', 0)
+            
+            if ncm in ncms_aliquota_zero or prod.get('v_cofins', 0) == 0:
+                credito_cofins_aliquota_zero += prod.get('v_cofins', 0)
+            else:
+                credito_cofins_tributado += prod.get('v_cofins', 0)
     
+    # ============ ANÁLISE DETALHADA DE SAÍDAS (DÉBITOS/FATURAMENTO) ============
+    total_saidas = sum(d.get('valor_total', 0) for d in docs_saida)
+    total_servicos = sum(d.get('valor_servicos', 0) for d in docs_saida)
+    total_vendas = total_saidas - total_servicos
+    
+    # Débitos separados por imposto
+    debito_icms_tributado = 0
+    debito_icms_st = 0
+    debito_icms_isento = 0
+    debito_pis_tributado = 0
+    debito_pis_aliquota_zero = 0
+    debito_cofins_tributado = 0
+    debito_cofins_aliquota_zero = 0
+    
+    valor_vendas_st = 0
+    valor_vendas_tributado = 0
+    valor_vendas_isento = 0
+    
+    for doc in docs_saida:
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            ncm = str(prod.get('ncm', ''))[:4]
+            cst = str(prod.get('cst', ''))
+            valor = prod.get('valor_total', 0)
+            
+            # Classificar ICMS de saída
+            if cst in ['10', '30', '60', '70'] or 'ST' in cfop.upper():
+                debito_icms_st += prod.get('v_icms', 0)
+                valor_vendas_st += valor
+            elif cst in ['40', '41', '50'] or prod.get('v_icms', 0) == 0:
+                debito_icms_isento += prod.get('v_icms', 0)
+                valor_vendas_isento += valor
+            else:
+                debito_icms_tributado += prod.get('v_icms', 0)
+                valor_vendas_tributado += valor
+            
+            # PIS/COFINS de saída
+            if ncm in ncms_aliquota_zero or prod.get('v_pis', 0) == 0:
+                debito_pis_aliquota_zero += prod.get('v_pis', 0)
+            else:
+                debito_pis_tributado += prod.get('v_pis', 0)
+            
+            if ncm in ncms_aliquota_zero or prod.get('v_cofins', 0) == 0:
+                debito_cofins_aliquota_zero += prod.get('v_cofins', 0)
+            else:
+                debito_cofins_tributado += prod.get('v_cofins', 0)
+    
+    # ============ CÁLCULOS FISCAIS ============
     total_cfops = cfops_interestadual + cfops_interno
     percentual_interestadual = (cfops_interestadual / total_cfops * 100) if total_cfops > 0 else 0
     
-    # Preparar resumo para IA
+    # Percentuais de faturamento
+    percentual_servicos = (total_servicos / total_saidas * 100) if total_saidas > 0 else 0
+    percentual_vendas = (total_vendas / total_saidas * 100) if total_saidas > 0 else 0
+    
+    # Percentuais das vendas
+    percentual_vendas_st = (valor_vendas_st / total_vendas * 100) if total_vendas > 0 else 0
+    percentual_vendas_tributado = (valor_vendas_tributado / total_vendas * 100) if total_vendas > 0 else 0
+    percentual_vendas_isento = (valor_vendas_isento / total_vendas * 100) if total_vendas > 0 else 0
+    
+    # Percentual PIS/COFINS tributado vs alíquota zero
+    total_pis_saida = debito_pis_tributado + debito_pis_aliquota_zero
+    total_cofins_saida = debito_cofins_tributado + debito_cofins_aliquota_zero
+    percentual_pis_tributado = (debito_pis_tributado / total_pis_saida * 100) if total_pis_saida > 0 else 0
+    percentual_cofins_tributado = (debito_cofins_tributado / total_cofins_saida * 100) if total_cofins_saida > 0 else 0
+    
+    # Créditos efetivos (descontando ST e alíquota zero)
+    credito_icms_efetivo = credito_icms_tributado
+    credito_pis_efetivo = credito_pis_tributado if regime == 'lucro_real' else 0
+    credito_cofins_efetivo = credito_cofins_tributado if regime == 'lucro_real' else 0
+    
+    # Débitos efetivos
+    debito_icms_efetivo = debito_icms_tributado
+    debito_pis_efetivo = debito_pis_tributado
+    debito_cofins_efetivo = debito_cofins_tributado
+    
+    # Apuração
+    icms_a_pagar = max(0, debito_icms_efetivo - credito_icms_efetivo)
+    pis_a_pagar = max(0, debito_pis_efetivo - credito_pis_efetivo)
+    cofins_a_pagar = max(0, debito_cofins_efetivo - credito_cofins_efetivo)
+    
+    # Markup
+    markup_medio = ((total_saidas / total_entradas - 1) * 100) if total_entradas > 0 else 0
+    
+    # Carga tributária efetiva
+    total_impostos = icms_a_pagar + pis_a_pagar + cofins_a_pagar
+    carga_tributaria = (total_impostos / total_saidas * 100) if total_saidas > 0 else 0
+    
+    # ============ CÁLCULO IRPJ/CSLL (Lucro Presumido) ============
+    irpj_devido = 0
+    csll_devido = 0
+    
+    if regime == 'lucro_presumido':
+        perc_irpj = company.get('percentual_presuncao_irpj', 8.0) / 100
+        perc_csll = company.get('percentual_presuncao_csll', 12.0) / 100
+        
+        base_irpj = total_saidas * perc_irpj
+        base_csll = total_saidas * perc_csll
+        
+        irpj_devido = base_irpj * 0.15  # 15%
+        if base_irpj > 20000:  # Adicional de 10% sobre excedente
+            irpj_devido += (base_irpj - 20000) * 0.10
+        csll_devido = base_csll * 0.09  # 9%
+    
+    # ============ PONTO DE EQUILÍBRIO (Lucro Real) ============
+    ponto_equilibrio = None
+    if regime == 'lucro_real':
+        estoque_inicial = company.get('estoque_inicial', 0)
+        estoque_final = company.get('estoque_final', 0)
+        cmv = total_entradas + estoque_inicial - estoque_final
+        lucro_bruto = total_saidas - cmv
+        # Despesa necessária para zerar lucro = Lucro Bruto - Impostos
+        despesa_ponto_equilibrio = lucro_bruto - total_impostos
+        
+        ponto_equilibrio = {
+            "faturamento": total_saidas,
+            "cmv": cmv,
+            "lucro_bruto": lucro_bruto,
+            "impostos_apurados": total_impostos,
+            "despesa_para_equilibrio": max(0, despesa_ponto_equilibrio),
+            "estoque_inicial": estoque_inicial,
+            "estoque_final": estoque_final
+        }
+    
+    # ============ PREPARAR DADOS PARA IA ============
     resumo_dados = {
         "empresa": company.get('razao_social', ''),
-        "uf": company.get('uf', 'SP'),
-        "cnae": company.get('cnae_principal', ''),
-        "cnae_descricao": company.get('cnae_principal_descricao', ''),
+        "regime_tributario": regime,
+        "tipo_atividade": tipo_atividade,
+        "uf": uf_empresa,
         "competencia": request.competencia,
-        "total_notas_entrada": len(docs_entrada),
-        "total_notas_saida": len(docs_saida),
-        "valor_total_entradas": total_entradas,
-        "valor_total_saidas": total_saidas,
-        "total_creditos": total_credito_icms + total_credito_pis + total_credito_cofins,
-        "total_debitos": total_debito_icms + total_debito_pis + total_debito_cofins,
-        "credito_icms": total_credito_icms,
-        "credito_pis": total_credito_pis,
-        "credito_cofins": total_credito_cofins,
-        "debito_icms": total_debito_icms,
-        "debito_pis": total_debito_pis,
-        "debito_cofins": total_debito_cofins,
-        "percentual_compras_interestaduais": percentual_interestadual,
-        "markup_medio": ((total_saidas / total_entradas - 1) * 100) if total_entradas > 0 else 0
+        "faturamento": {
+            "total": total_saidas,
+            "servicos": total_servicos,
+            "vendas": total_vendas,
+            "percentual_servicos": round(percentual_servicos, 1),
+            "percentual_vendas": round(percentual_vendas, 1)
+        },
+        "vendas_por_tributacao": {
+            "st": valor_vendas_st,
+            "tributado": valor_vendas_tributado,
+            "isento": valor_vendas_isento,
+            "percentual_st": round(percentual_vendas_st, 1),
+            "percentual_tributado": round(percentual_vendas_tributado, 1),
+            "percentual_isento": round(percentual_vendas_isento, 1)
+        },
+        "creditos": {
+            "icms_tributado": round(credito_icms_tributado, 2),
+            "icms_st_sem_credito": round(credito_icms_st, 2),
+            "pis_tributado": round(credito_pis_tributado, 2),
+            "pis_aliquota_zero": round(credito_pis_aliquota_zero, 2),
+            "cofins_tributado": round(credito_cofins_tributado, 2),
+            "cofins_aliquota_zero": round(credito_cofins_aliquota_zero, 2)
+        },
+        "debitos": {
+            "icms_tributado": round(debito_icms_tributado, 2),
+            "icms_st": round(debito_icms_st, 2),
+            "icms_isento": round(debito_icms_isento, 2),
+            "pis_tributado": round(debito_pis_tributado, 2),
+            "pis_aliquota_zero": round(debito_pis_aliquota_zero, 2),
+            "cofins_tributado": round(debito_cofins_tributado, 2),
+            "cofins_aliquota_zero": round(debito_cofins_aliquota_zero, 2)
+        },
+        "apuracao": {
+            "icms_a_pagar": round(icms_a_pagar, 2),
+            "pis_a_pagar": round(pis_a_pagar, 2),
+            "cofins_a_pagar": round(cofins_a_pagar, 2),
+            "total_impostos": round(total_impostos, 2)
+        },
+        "percentuais_pis_cofins": {
+            "pis_tributado": round(percentual_pis_tributado, 1),
+            "cofins_tributado": round(percentual_cofins_tributado, 1)
+        }
     }
+    
+    if regime == 'lucro_presumido':
+        resumo_dados["irpj_csll"] = {
+            "irpj_devido": round(irpj_devido, 2),
+            "csll_devido": round(csll_devido, 2),
+            "percentual_presuncao_irpj": company.get('percentual_presuncao_irpj', 8.0),
+            "percentual_presuncao_csll": company.get('percentual_presuncao_csll', 12.0)
+        }
+    
+    if ponto_equilibrio:
+        resumo_dados["ponto_equilibrio"] = ponto_equilibrio
     
     system_message = """Você é um consultor tributário sênior especializado em análise fiscal brasileira.
 Sua tarefa é analisar os dados fiscais de uma empresa e gerar insights estratégicos.
