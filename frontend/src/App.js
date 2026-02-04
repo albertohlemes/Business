@@ -117,6 +117,10 @@ function App() {
               path="/alertas-cfop"
               element={user ? <AlertasCfop user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/divergencias-saida"
+              element={user ? <RelatorioDivergencias user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
           </Routes>
         </AppProvider>
       </BrowserRouter>
