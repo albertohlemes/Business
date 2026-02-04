@@ -116,14 +116,18 @@ const Minutas = () => {
 
     const handleUpload = async (e) => {
         e.preventDefault();
-        if (!file || !tipoAlteracao) {
-            toast.error('Selecione o tipo de alteração e o arquivo');
+        if (!tipoAlteracao) {
+            toast.error('Selecione o tipo de alteração');
+            return;
+        }
+        if (!file && !descricao && docsSuporte.length === 0) {
+            toast.error('Forneça descrição, contrato ou documentos de suporte');
             return;
         }
 
         setUploading(true);
         const formData = new FormData();
-        formData.append('file', file);
+        if (file) formData.append('file', file);
         formData.append('tipo_alteracao', tipoAlteracao);
         formData.append('descricao', descricao);
 
@@ -131,11 +135,23 @@ const Minutas = () => {
             const response = await axios.post(`${API_URL}/api/minutas/upload`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            toast.success('Documento enviado com sucesso!');
+            
+            // Upload documentos de suporte
+            for (const doc of docsSuporte) {
+                const df = new FormData();
+                df.append('file', doc.file);
+                df.append('tipo_documento', doc.tipo);
+                await axios.post(`${API_URL}/api/minutas/${response.data.id}/documentos`, df, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            }
+            
+            toast.success('Minuta criada com sucesso!');
             setMinutas([response.data, ...minutas]);
             setFile(null);
             setTipoAlteracao('');
             setDescricao('');
+            setDocsSuporte([]);
             if (fileInputRef.current) fileInputRef.current.value = '';
             
             // Open chat automatically
