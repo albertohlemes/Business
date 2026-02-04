@@ -887,6 +887,82 @@ async def get_company(company_id: str, current_user: User = Depends(get_current_
     
     return Company(**company)
 
+@api_router.put("/companies/{company_id}")
+async def update_company(
+    company_id: str, 
+    company_data: CompanyUpdate, 
+    current_user: User = Depends(get_current_user)
+):
+    """Atualizar empresa existente"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem editar empresas")
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Atualizar apenas campos fornecidos
+    update_data = {k: v for k, v in company_data.model_dump().items() if v is not None}
+    
+    if update_data:
+        await db.companies.update_one(
+            {"id": company_id},
+            {"$set": update_data}
+        )
+    
+    updated = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if isinstance(updated['created_at'], str):
+        updated['created_at'] = datetime.fromisoformat(updated['created_at'])
+    
+    return updated
+
+@api_router.delete("/documents/{company_id}/competencia/{competencia}")
+async def delete_documents_by_competencia(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Apagar todas as notas da competência da empresa em lote"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem apagar documentos")
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    result = await db.xml_documents.delete_many({
+        "company_id": company_id,
+        "competencia": competencia
+    })
+    
+    return {
+        "message": f"{result.deleted_count} documento(s) apagado(s) da competência {competencia}",
+        "deleted_count": result.deleted_count
+    }
+
+@api_router.delete("/documents/{document_id}")
+async def delete_document(
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Apagar documento individual"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem apagar documentos")
+    
+    doc = await db.xml_documents.find_one({"id": document_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    
+    await db.xml_documents.delete_one({"id": document_id})
+    
+    return {
+        "message": "Documento apagado com sucesso",
+        "documento": {
+            "numero_nfe": doc.get('numero_nfe'),
+            "emitente": doc.get('emitente_nome')
+        }
+    }
+
 @api_router.post("/xml/upload")
 async def upload_xml_batch(
     company_id: str = Form(...),
