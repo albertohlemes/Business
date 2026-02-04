@@ -1962,6 +1962,30 @@ async def upload_xml_batch(
                             'motivo': result['justificativa'],
                             'origem': origem
                         })
+                    else:
+                        # FALLBACK: Nenhuma NF de entrada pode ficar sem classificação
+                        # Na dúvida, classificar como REVENDA
+                        cfop_original = product.get('cfop', '')
+                        cst = product.get('cst', '')
+                        is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+                        cfop_prefix = '2' if (emitente_uf and emitente_uf != company_uf) else '1'
+                        cfop_novo = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
+                        
+                        product['cfop_original'] = cfop_original
+                        product['cfop'] = cfop_novo
+                        product['cfop_sugerido'] = cfop_novo
+                        product['categoria_classificada'] = 'revenda'
+                        product['justificativa_ia'] = 'Classificação padrão: REVENDA (produto para comercialização)'
+                        
+                        file_conversions.append({
+                            'produto': product.get('descricao', ''),
+                            'codigo': product.get('codigo', ''),
+                            'cfop_original': cfop_original,
+                            'cfop_convertido': cfop_novo,
+                            'categoria': 'revenda',
+                            'motivo': 'Classificação padrão (REVENDA)',
+                            'origem': 'fallback'
+                        })
             
             # Registrar alertas de CFOP para este arquivo
             if file_alertas_cfop:
