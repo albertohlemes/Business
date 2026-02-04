@@ -16,6 +16,7 @@ import ConfiguracaoFormatacao from '../components/ConfiguracaoFormatacao';
 import ListaProcessos from '../components/processos/ListaProcessos';
 import WizardAlteracao from '../components/processos/WizardAlteracao';
 import WizardConstituicao from '../components/processos/WizardConstituicao';
+import WizardBaixa from '../components/processos/WizardBaixa';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
