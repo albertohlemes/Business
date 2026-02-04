@@ -937,8 +937,9 @@ async def delete_documents_by_competencia(
     }
     
     # Aplicar filtro de tipo se especificado
+    # O campo no banco é "tipo", não "tipo_operacao"
     if tipo and tipo in ['entrada', 'saida']:
-        filter_query["tipo_operacao"] = tipo
+        filter_query["tipo"] = tipo
     
     result = await db.xml_documents.delete_many(filter_query)
     
