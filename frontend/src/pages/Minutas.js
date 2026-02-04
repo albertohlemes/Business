@@ -540,11 +540,21 @@ Estrutura obrigatória:
                                             {new Date(m.created_at).toLocaleDateString('pt-BR')}
                                         </td>
                                         <td>
-                                            <div className="flex items-center justify-end gap-2">
-                                                <Button size="sm" variant="outline" onClick={() => viewMinuta(m)} className="border-zinc-700">
+                                            <div className="flex items-center justify-end gap-1">
+                                                {m.conteudo_gerado && (
+                                                    <>
+                                                        <Button size="sm" variant="outline" onClick={() => downloadWord(m.id)} className="border-zinc-700" title="Baixar Word">
+                                                            <FileType className="w-4 h-4" />
+                                                        </Button>
+                                                        <Button size="sm" variant="outline" onClick={() => downloadPDF(m.id)} className="border-zinc-700" title="Baixar PDF">
+                                                            <FileDown className="w-4 h-4" />
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                <Button size="sm" variant="outline" onClick={() => viewMinuta(m)} className="border-zinc-700" title="Visualizar">
                                                     <Eye className="w-4 h-4" />
                                                 </Button>
-                                                <Button size="sm" variant="outline" onClick={() => deleteMinuta(m.id)} className="border-zinc-700 hover:border-red-600">
+                                                <Button size="sm" variant="outline" onClick={() => deleteMinuta(m.id)} className="border-zinc-700 hover:border-red-600" title="Excluir">
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
                                             </div>
