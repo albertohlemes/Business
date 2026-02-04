@@ -1,88 +1,93 @@
 <analysis>**original_problem_statement:**
-O usuário, da Business Contabilidade, solicitou um portal para seu departamento societário. Inicialmente, o foco era a geração de minutas de alteração contratual com IA.
+O usuário, da Business Contabilidade, solicitou um portal para seu departamento societário. O escopo inicial de gerar minutas de alteração contratual com IA evoluiu para um portal completo de Processos com três módulos principais: Constituição (criação de empresa), Alteração (alteração de contrato) e Baixa (dissolução de empresa). As solicitações incluem wizards multi-etapas para cada processo, uso intensivo de IA para extração de dados de documentos, preenchimento automático de campos, busca em bancos de dados externos (CEP, CNPJ, CNAE) e geração de documentos formatados (DOCX, PDF).
 
 **PRODUCT REQUIREMENTS (Evolved during the session):**
-O escopo foi significativamente expandido para um módulo completo de Processos, substituindo o antigo Minutas.
-1.  **Estrutura de Processos:** O portal deve ter três abas principais, na ordem: Constituição, Alteração e Baixa. A nomenclatura Minuta deve ser substituída por Processo em toda a aplicação.
-2.  **Processo de Alteração:** Funcionalidade existente, agora migrada para sua própria aba. A geração de PDF e Word deve ser funcional.
-3.  **Processo de Constituição (Novo e de Alta Prioridade):**
-    *   Um wizard multi-etapas para criar uma nova empresa do zero.
-    *   **Entrada de Dados Híbrida:** Para os dados da empresa, sócios e endereço, o usuário pode digitar as informações ou anexar um documento (, , imagem) para que a IA extraia e preencha os campos automaticamente.
-    *   **Capital Social:** O campo de valor deve ter formatação de moeda (R$) e, ao ser preenchido, deve gerar automaticamente o valor por extenso.
-    *   **Qualificação de Sócios:** A interface deve permitir adicionar/remover sócios dinamicamente. Cada sócio terá um formulário completo, incluindo dados pessoais e um formulário de endereço completo (Logradouro, CEP, etc.), ambos com opção de preenchimento via IA.
-    *   **Obrigatoriedade:** Todos os campos do wizard devem ser marcados como obrigatórios para evitar exigências na Junta Comercial.
-    *   **Banco de CNAEs:** Uma funcionalidade para pesquisar e adicionar CNAEs, que serão usados pela IA para gerar a cláusula de Objeto Social.
-4.  **Processo de Baixa:** A ser implementado futuramente.
-5.  **Correção de Bug:** Processos do tipo Constituição concluídos estão sendo listados incorretamente na aba Alteração.
+1.  **Módulo Processos:** A aplicação deve ser centrada na página Processos, com abas para Constituição, Alteração e Baixa.
+2.  **Wizard de Constituição:** Um fluxo completo para criar empresas, com extração de dados de empresa/sócios por IA, busca de CEP, banco de CNAEs expandido, e formatação de capital social.
+3.  **Wizard de Alteração (Reformulado):** Um novo fluxo dinâmico onde o usuário primeiro seleciona os tipos de alteração (ex: Endereço, QSA, Objeto Social, Outras). A etapa seguinte apresenta formulários específicos para cada tipo selecionado, com opções de preenchimento por IA. Deve buscar os CNAEs da empresa via CNPJ.
+4.  **Wizard de Baixa:** Um fluxo para dissolver uma empresa, começando pelo upload do contrato social atual para extração de dados por IA, com cláusulas pré-preenchidas e seleção de sócios em listas.
+5.  **Dashboard:** O dashboard principal deve refletir a nomenclatura de Processos e fornecer um resumo das atividades.
+6.  **Bugs e Melhorias:**
+    *   Corrigir o erro que impede a seleção de tipos de alteração no novo wizard.
+    *   Implementar a funcionalidade de Outras Alterações que permite a substituição de cláusulas específicas do contrato.
+    - Centralizar o nome da empresa em todos os documentos gerados.
 
 **User's preferred language**: Portuguese (pt-BR)
 
 **what currently exists?**
-A aplicação full-stack (React + FastAPI) foi reestruturada. O monolítico  foi refatorado em uma nova página  com uma estrutura de componentes modulares (). A UI agora apresenta três abas: Constituição, Alteração e Baixa. O wizard de Constituição está quase completo, com 6 etapas, campos obrigatórios, formatação de moeda, geração de capital por extenso, e múltiplos endpoints de backend que usam IA para extrair dados de documentos e gerar cláusulas contratuais. O bug de exportação de PDF foi corrigido pelo agente, mas aguarda verificação do usuário.
+Uma aplicação full-stack (React + FastAPI + MongoDB) com um portal de Processos funcional. Foram implementados wizards completos e modernos para os processos de Constituição e Baixa, ambos com extração de dados por IA, validações, e geração de documentos. O wizard de Alteração foi completamente reformulado para ser um fluxo dinâmico de múltiplas etapas, e o dashboard foi atualizado para refletir a nova nomenclatura. Foram integradas APIs externas para consulta de CEP (ViaCEP) e dados de empresas (ReceitaWS). Um bug crítico de categorização de processos foi corrigido e os dados antigos foram migrados.
 
 **Last working item**:
--   **Last item agent was working:** O agente estava corrigindo um bug crítico onde processos recém-criados do tipo Constituição eram listados incorretamente na aba Alteração. A causa raiz foi identificada: o campo  não era definido no momento da criação inicial do processo (upload de documento). O agente modificou o endpoint  em  para receber e salvar o , mas não finalizou o teste da correção nem abordou a migração de dados antigos.
+-   **Last item agent was working:** O agente estava implementando novas funcionalidades no recém-reformulado  em resposta a um pedido do usuário, que também relatou um bug. As novas funcionalidades são:
+    1.  Adicionar um campo de CNPJ na primeira etapa para buscar os CNAEs da empresa na Receita Federal.
+    2.  Implementar a opção Outras Alterações, que deve extrair as cláusulas do contrato original e permitir que o usuário as substitua.
+    O agente adicionou o endpoint backend, modificou o frontend para incluir os novos estados e componentes, e atualizou a lógica de upload e geração de minutas. O trabalho foi interrompido antes do teste final.
 -   **Status:** IN PROGRESS
 -   **Agent Testing Done:** N
 -   **Which testing method agent to use?** both
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1:** (P0) Processos de Constituição são categorizados incorretamente como Alteração.
--   **Issue 2:** (P1) A exportação em PDF (logo e alinhamento do rodapé) foi corrigida, mas ainda não foi validada pelo usuário.
--   **Issue 3:** (P2) O plugin do Babel  permanece desativado em  como um paliativo para um erro de compilação anterior.
--   **Issue 4:** (P3) A automação REDESIM está quebrada e foi pausada pelo usuário.
+-   **Issue 1:** (P0) Erro impede a seleção de tipos de alteração no .
+-   **Issue 2:** (P1) Finalizar e testar as novas funcionalidades do wizard de Alteração (busca de CNPJ e Outras Alterações).
+-   **Issue 3:** (P2) A exportação em PDF (logo e alinhamento do rodapé) foi corrigida, mas ainda não foi validada pelo usuário.
+-   **Issue 4:** (P3) O plugin do Babel  permanece desativado em .
+-   **Issue 5:** (P3) A automação REDESIM está quebrada e foi pausada pelo usuário.
 
 **Issues Detail:**
--   **Issue 1: Processos de Constituição são categorizados incorretamente.**
-    -   **Attempted fixes:** O agente identificou que o endpoint de upload não salvava o . Foi feita uma edição em  no endpoint  para adicionar  e salvá-lo no banco de dados.
+-   **Issue 1: Erro ao selecionar tipo de alteração no wizard.**
+    -   **Attempted fixes:** Nenhum. O agente não investigou a fundo, apenas verificou logs genéricos do console, e pulou para a implementação de novas funcionalidades.
     -   **Next debug checklist:**
-        1.  Verificar se o frontend, especificamente em , está enviando  ao iniciar um novo processo.
-        2.  Testar o fluxo de ponta a ponta: criar um novo processo de constituição e verificar se ele aparece corretamente na lista de processos sob a aba Constituição.
-        3.  Criar e executar um script para atualizar todos os documentos existentes na coleção  que não possuem o campo , definindo um valor padrão (ex: 'alteracao') para evitar que a lista de processos quebre para dados antigos.
-    -   **Why fix this issue and what will be achieved with the fix?** Corrigirá a principal funcionalidade de listagem de processos, garantindo que cada tipo de processo apareça em sua respectiva aba.
+        1.  Revisar a função  e o estado  em .
+        2.  Usar  para rastrear o estado ao clicar nos checkboxes da Etapa 2 (Tipos de Alteração).
+        3.  Reproduzir o fluxo exato descrito pelo usuário para observar o comportamento do erro.
+    -   **Why fix this issue and what will be achieved with the fix?** A funcionalidade principal do wizard de alteração está quebrada. Sem isso, o usuário não pode prosseguir.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on other issue:** None
+
+-   **Issue 2: Finalizar novas funcionalidades do Wizard de Alteração.**
+    -   **Attempted fixes:** O agente adicionou o endpoint , atualizou  com um campo de CNPJ, um novo formulário , e modificou as funções  e .
+    -   **Next debug checklist:**
+        1.  Após corrigir o Issue 1, testar a UI da Etapa 1 para garantir que o campo CNPJ e o botão de busca funcionem.
+        2.  Testar a busca de CNPJ e verificar se os CNAEs são corretamente preenchidos no estado do componente.
+        3.  Selecionar Outras Alterações e verificar se o  é renderizado corretamente na Etapa 3.
+        4.  Testar a extração de cláusulas e a substituição de texto, gerando o documento final.
+    -   **Why fix this issue and what will be achieved with the fix?** Completa os requisitos do usuário, tornando o wizard de alteração extremamente flexível e automatizado.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None
-
--   **Issue 2: A exportação em PDF pode conter bugs.**
-    -   **Attempted fixes:** O agente reescreveu  para incluir o logo e ajustar o alinhamento do rodapé, espelhando a lógica do gerador de DOCX.
-    -   **Next debug checklist:** Requer verificação do usuário. O agente deve solicitar ao usuário que teste a funcionalidade de exportação de PDF em um processo de Alteração para confirmar a correção.
-    -   **Why fix this issue and what will be achieved with the fix?** Garante a consistência e profissionalismo dos documentos gerados pela plataforma.
-    -   **Status:** USER VERIFICATION PENDING
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** backend
-    -   **Blocked on other issue:** None
+    -   **Blocked on other issue:** Issue 1
 
 **In progress Task List**:
-Nenhum. O foco principal é a resolução do Issue 1.
+-   **Task 1: Finalizar as melhorias do Wizard de Alteração.**
+    -   **Where to resume:** Testar e depurar a implementação recente em .
+    -   **What will be achieved with this?** Implementará a busca de CNAEs por CNPJ e a alteração de cláusulas genéricas.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on something:** Issue 1.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P0) Implementar Banco de CNAEs:** Finalizar a funcionalidade de CNAE na etapa 5 do wizard de constituição, implementando uma busca em um banco de dados de CNAEs em vez do campo de texto atual.
-    -   **(P1) Implementar o wizard do processo de Baixa:** Criar a UI e os endpoints necessários para a funcionalidade de baixa de empresas.
+    -   **(P2) Validar a correção da exportação de PDF:** Solicitar ao usuário que teste a geração de PDF para confirmar que o logo e o rodapé estão corretos.
 -   **Future Tasks:**
     -   **(P2) Reativar e consertar a automação REDESIM** (quando o usuário solicitar).
-    -   **(P3) Reativar o plugin do Babel:** Após a refatoração do frontend, tentar reativar o plugin  em  e verificar se o erro de compilação foi resolvido.
+    -   **(P3) Reativar o plugin do Babel:** Tentar reativar o plugin  em .
+    -   **(P3) Histórico de versões:** Adicionar um versionamento ou histórico de alterações para os documentos gerados.
+    -   **(P3) Dashboard por CNPJ:** Criar uma visão no dashboard que agrupe todos os processos por CNPJ.
 
 **Completed work in this session**
--   **Refatoração da UI:** Renomeado o módulo Minutas para Processos, com a estrutura de abas Constituição, Alteração e Baixa. O arquivo monolítico  foi decomposto em componentes modulares.
--   **Implementação do Wizard de Constituição:**
-    -   Criado um wizard completo de 6 etapas.
-    -   Implementada a extração de dados por IA para informações da empresa, sócios e endereços a partir de upload de documentos.
-    -   Adicionada a geração automática do capital por extenso e formatação de moeda para o campo de capital social.
-    -   Implementado o formulário de endereço completo para sócios, com extração por IA.
-    -   Implementada a validação de campos obrigatórios em todo o wizard.
--   **Correção de Bug (Pendente de Verificação):** Corrigido o problema de logo e rodapé na exportação de PDF.
--   **Backend:** Criados novos endpoints para suportar todo o fluxo de constituição, incluindo geração de objeto social por IA e geração do contrato social completo.
+-   **Bug Fix:** Corrigido bug de categorização de processos, garantindo que Constituição e Alteração apareçam nas abas corretas. Incluiu uma migração de dados para documentos antigos.
+-   **Feature (Wizard de Baixa):** Implementado do zero o wizard completo de Baixa de Empresa, com 6 etapas, extração de dados por IA, e geração de distrato social.
+-   **Feature (Wizard de Alteração):** Reformulado completamente para um fluxo dinâmico de 4 etapas com formulários condicionais.
+-   **Feature (CEP e CNAE):** Implementada a busca automática de endereço por CEP (ViaCEP) e expandida a lista de CNAEs disponíveis.
+-   **Enhancements (Wizard de Baixa):** Múltiplas melhorias de usabilidade, como textos padrão, seleção de sócio em dropdown, data automática e ajuste no título da lista de processos.
+-   **UI/UX:** O dashboard foi atualizado para usar a nomenclatura Processos em vez de Minutas, melhorando a consistência da aplicação.
+-   **Backend:** Adicionados múltiplos endpoints para suportar os novos wizards e utilitários (, , ).
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Banco de CNAEs com pesquisa.**
-    -   **Debug checklist:** O usuário solicitou um banco de CNAEs. O agente implementou a etapa, mas apenas com um campo de texto livre. A implementação de um componente de busca (ex: combobox, select com pesquisa) que consulte uma lista de CNAEs ainda está pendente.
-    -   **Why to solve this issue and what will be achieved with this?** Aumenta a usabilidade e precisão na definição do objeto social da empresa.
-    -   **Should Test frontend/backend/both after fix:** frontend
-    -   **Is recurring issue?** N
+-   O único problema anterior não resolvido é o Issue 1 desta lista (erro na seleção de tipos de alteração), que foi relatado pelo usuário na sessão atual e ainda não foi depurado.
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork:** A exportação de PDF apresentava bugs recorrentes de formatação.
@@ -93,75 +98,71 @@ Nenhum. O foco principal é a resolução do Issue 1.
 
 
 **Key Technical Concepts**
--   **Frontend:** React, TailwindCSS, Shadcn/UI, Axios
--   **Backend:** FastAPI (Python), Pydantic
+-   **Frontend:** React, TailwindCSS, Shadcn/UI, Axios, Lucide React
+-   **Backend:** FastAPI (Python), Pydantic, 
 -   **Database:** MongoDB
 -   **Geração de Documentos:**  para Word,  para PDF
 -   **IA:**  para chamadas a LLMs (Gemini/OpenAI)
+-   **APIs Externas:** ViaCEP, ReceitaWS
 
 **key DB schema**
--   **minutas**: armazena os dados de cada processo. Um novo campo crucial foi adicionado:  (string: 'constituicao', 'alteracao', 'baixa'). Documentos antigos não possuem este campo.
+-   **minutas**: O campo  ('constituicao', 'alteracao', 'baixa') é agora o campo chave para filtrar processos. Todos os documentos devem possuir este campo.
 
 **All files of reference**
--   : Arquivo central do backend, modificado para adicionar os endpoints de constituição e para corrigir o bug de categorização.
--   : Nova página principal que organiza as abas e renderiza os componentes corretos.
--   : Contém toda a lógica e UI do novo wizard de constituição.
--   : Componente que exibe a lista de processos (anteriormente parte de ).
--   : Modificado para renomear o item de menu.
+-   : **Arquivo principal do trabalho atual.**
+-   : Contém a lógica de backend para as novas funcionalidades.
+-   : Integra os diferentes wizards.
+-   : Contém as atualizações de UI do dashboard.
+-   : Referência para funcionalidades de IA e CEP.
+-   : Referência para funcionalidades de IA e seleção.
 
 **Areas that need refactoring**:
--   **Migração de Dados:** É necessário criar e executar um script para popular o campo  nos documentos antigos da coleção  do MongoDB para garantir a compatibilidade com a nova lógica de listagem.
--   **Configuração do Craco:** Tentar reativar o plugin  em  para verificar se a refatoração do frontend resolveu o erro original de Maximum call stack size exceeded.
+-   **Configuração do Craco:** Tentar reativar o plugin  em .
 
 **key api endpoints**
--   : Modificado para aceitar o campo .
--   : (NOVO) Gera cláusula de objeto social com base nos CNAEs.
--   : (NOVO) Gera o contrato social completo para o processo de constituição.
--   : (NOVO) Extrai dados de um documento de sócio usando IA.
+-   : (NOVO) Consulta dados da empresa na Receita Federal.
+-   : (NOVO) Consulta endereço a partir do CEP.
+-   : (NOVO) Extrai dados de contrato para processo de baixa.
+-   : (NOVO) Gera o documento de distrato social.
 
 **Critical Info for New Agent**
--   A prioridade máxima é resolver o bug de categorização de processos (Issue 1). Sem essa correção, a funcionalidade principal da aplicação está comprometida.
--   Imediatamente após corrigir o bug, é crucial criar um script de migração para os dados antigos no MongoDB. O agente anterior pensou em fazer isso, mas não executou. Sem isso, os processos antigos não aparecerão na lista.
--   O usuário tem um ciclo de feedback rápido e adiciona requisitos detalhados de forma iterativa. Esteja preparado para implementar e validar funcionalidades rapidamente através de screenshots.
+-   **PRIORIDADE MÁXIMA:** Corrija o bug no  que impede a seleção de tipos de alteração. O usuário relatou isso, mas o agente anterior começou a implementar novos recursos em vez de depurar. A aplicação está bloqueada neste ponto.
+-   Após a correção do bug, prossiga com o teste e a finalização das novas funcionalidades solicitadas para o mesmo wizard (busca de CNPJ e Outras Alterações).
+-   O usuário tem um ciclo de feedback rápido e detalhado. Valide as correções e novas implementações com screenshots claros.
 
 **documents and test reports created in this job**
--   
--   
--    (Relatório do testing agent sobre o wizard de constituição)
+-    (Atualizado múltiplas vezes)
+-    (Relatório do testing agent sobre o wizard de baixa)
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **Usuário:** Solicita que o endereço do sócio também seja preenchido por IA, que todos os campos se tornem obrigatórios e pede por um banco de CNAEs. (FEATURE REQUEST)
-9.  **Usuário:** Aprova as melhorias e sugere uma futura melhoria (preenchimento automático de cidade/estado a partir do CEP). (FEEDBACK)
-8.  **Usuário:** Reporta que um processo de constituição concluído está indo para a lista de Alteração. (BUG REPORT - **LAST WORKING ITEM**)
-7.  **Usuário:** Pede para o agente continuar após uma pausa.
-6.  **Usuário:** Solicita que o campo de constituição seja preenchido por IA via upload de documentos, que o capital por extenso seja automático, o campo de capital seja formato moeda, a nomenclatura Minuta seja substituída por Processo e as abas sejam reordenadas. (MAJOR FEATURE REQUEST)
-5.  **Usuário:** Aprova o wizard de constituição e pede para o agente prosseguir com a implementação. (CONFIRMATION)
-4.  **Usuário:** Sinaliza para o agente implantar o wizard de constituição. (INSTRUCTION)
-3.  **Usuário:** Aprova o plano proposto pelo agente. (CONFIRMATION)
-2.  **Usuário:** Pede para o agente prosseguir com o plano. (CONFIRMATION)
-1.  **Usuário:** Fornece a mensagem inicial para o agente. (START)
+10. **Usuário:** (segue com este plano) - Confirmação para iniciar a correção do bug de categorização.
+9.  **Usuário:** (vamos fazer o processo de baixa...) - Solicita a criação do wizard de Baixa com requisitos detalhados.
+8.  **Usuário:** (pode seguir) - Confirmação para iniciar a implementação do wizard de Baixa.
+7.  **Usuário:** (no fluxo de baixa, no dash está com subtitulo de processo...) - Solicita múltiplas melhorias de usabilidade e funcionalidade no wizard de Baixa recém-criado.
+6.  **Usuário:** (agora precisamos expandir a lista de cnaes e fazer a busca do cep automatico...) - Solicita a expansão do banco de CNAEs e a busca automática de CEP.
+5.  **Usuário:** (entendo que podemos melhorar o processo de alteraçao...) - Solicita uma reformulação completa do wizard de Alteração para um fluxo dinâmico e a renomeação do card no dashboard.
+4.  **Usuário:** (esta com erro quando seleciono o tipo de alteracao...) - **Reporta um bug crítico** no novo wizard de alteração e, na mesma mensagem, solicita mais funcionalidades (busca por CNPJ e alteração de cláusulas genéricas).
+3.  **Usuário:** (pode seguir) - **Última mensagem.** Dá sinal verde para o agente, que havia planejado implementar as novas funcionalidades (sem mencionar a correção do bug).
+2.  (vazio)
+1.  (vazio)
 
 **Project Health Check:**
--   **Broken:**
-    -   A listagem de processos está quebrada devido ao bug de categorização ().
+-   **Broken:** O wizard de Alteração está funcionalmente quebrado; o usuário não pode selecionar os tipos de alteração.
 -   **Mocked:** N/A
--   **Tech Debt:**
-    -   O plugin Babel  está desativado como workaround.
-    -   Dados antigos no MongoDB não possuem o campo , exigindo uma migração.
+-   **Tech Debt:** O plugin Babel  está desativado como workaround; a automação REDESIM está pausada.
 
 **3rd Party Integrations**
--   **Emergent LLM Key:** Utilizado para integração com LLMs (OpenAI/Gemini) através da biblioteca  para extração de dados e geração de texto.
--   **python-docx:** Geração de documentos .
--   **reportlab:** Geração de documentos .
+-   **Emergent LLM Key:** Usado para integração com LLMs (OpenAI/Gemini) para extração de dados e geração de texto.
+-   **ViaCEP:** API pública para consulta de endereços por CEP.
+-   **ReceitaWS:** API pública para consulta de dados de empresas por CNPJ.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES, o agente de testes validou a refatoração da UI e a implementação inicial do wizard de constituição.
+-   **Testing agent used after significant changes:** YES, o testing agent foi usado para validar o novo wizard de Baixa e encontrou/corrigiu um bug.
 -   **Test files created:** N/A
--   **Known regressions:** A funcionalidade de listagem de processos regrediu após as mudanças para suportar múltiplos tipos de processo.
+-   **Known regressions:** A funcionalidade principal do wizard de Alteração regrediu ou foi introduzida com um bug após sua reformulação.
 
 **Credentials to test flow:**
--   As credenciais de usuário podem ser criadas através do formulário de registro na página de login (). O agente criou um usuário  com senha .
+-   Usuário:  / Senha: . Um novo usuário pode ser criado na página de login.
 
 **What agent forgot to execute**
--   O agente planejou mas não executou um script de migração para atualizar documentos antigos no MongoDB com o novo campo . Isso é crítico para a consistência dos dados.
--   O agente não implementou a funcionalidade de *busca* no Banco de CNAEs, apenas um campo de texto livre.</analysis>
+-   O agente não priorizou a correção do bug crítico reportado pelo usuário no wizard de Alteração. Em vez disso, começou a implementar novas funcionalidades.</analysis>
