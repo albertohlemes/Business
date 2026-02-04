@@ -1150,42 +1150,78 @@ async def upload_xml_batch(
             file_conversions = []
             file_alertas_cfop = []  # Alertas de CFOP para este arquivo
             
+            # Mapeamento de CFOPs de saída para entrada (mantendo natureza)
+            CFOP_SAIDA_PARA_ENTRADA = {
+                # Estadual (5xxx -> 1xxx)
+                '5910': '1910', '5911': '1911', '5912': '1912', '5913': '1913',
+                '5914': '1914', '5915': '1915', '5916': '1916', '5917': '1917',
+                '5918': '1918', '5919': '1919', '5920': '1920', '5921': '1921',
+                '5922': '1922', '5923': '1923', '5924': '1924', '5925': '1925',
+                '5949': '1949', '5201': '1201', '5202': '1202', '5208': '1208',
+                '5209': '1209', '5210': '1210', '5122': '1102', '5123': '1102',
+                # Interestadual (6xxx -> 2xxx)
+                '6910': '2910', '6911': '2911', '6912': '2912', '6913': '2913',
+                '6949': '2949', '6201': '2201', '6202': '2202', '6122': '2102',
+            }
+            
             # APLICAR ANÁLISE INTELIGENTE E CONVERTER CFOP AUTOMATICAMENTE
             for product in parsed_data['produtos']:
                 cfop_original = product.get('cfop', '')
                 
                 # VERIFICAR SE É CFOP DE OPERAÇÃO DISTINTA (apenas para entradas)
                 if tipo == 'entrada' and cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
+                    # Converter automaticamente para CFOP de entrada mantendo natureza
+                    cfop_convertido = CFOP_SAIDA_PARA_ENTRADA.get(cfop_original, cfop_original)
+                    
+                    # Marcar produto como pendente de revisão
+                    product['cfop_original_emissor'] = cfop_original
+                    product['cfop'] = cfop_convertido
+                    product['pendente_revisao_cfop'] = True
+                    product['natureza_operacao_original'] = CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original]
+                    
                     file_alertas_cfop.append({
                         'produto': product.get('descricao', ''),
                         'codigo': product.get('codigo', ''),
-                        'cfop': cfop_original,
+                        'cfop_emissor': cfop_original,
+                        'cfop_convertido': cfop_convertido,
                         'descricao_cfop': CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original],
-                        'valor': product.get('valor_total', 0)
+                        'valor': product.get('valor_total', 0),
+                        'acao_tomada': f'Convertido automaticamente de {cfop_original} para {cfop_convertido} (mantendo natureza)'
                     })
-                
-                suggestion = await suggest_cfop_intelligent(
-                    product, company_id, tipo, cfop_original
-                )
-                
-                if suggestion['cfop_sugerido']:
-                    product['cfop_sugerido'] = suggestion['cfop_sugerido']
-                    product['cfop_original'] = cfop_original
-                    product['categoria_classificada'] = suggestion['categoria']
-                    product['justificativa_ia'] = suggestion.get('justificativa', '')
                     
-                    # APLICAR AUTOMATICAMENTE O CFOP SUGERIDO
-                    product['cfop'] = suggestion['cfop_sugerido']
-                    
-                    # Registrar conversão com justificativa detalhada
+                    # Registrar conversão
                     file_conversions.append({
                         'produto': product.get('descricao', ''),
                         'codigo': product.get('codigo', ''),
                         'cfop_original': cfop_original,
-                        'cfop_convertido': suggestion['cfop_sugerido'],
-                        'categoria': suggestion['categoria'],
-                        'motivo': suggestion.get('justificativa', f"Classificado como {suggestion['categoria'].upper()}")
+                        'cfop_convertido': cfop_convertido,
+                        'categoria': 'operacao_distinta',
+                        'motivo': f"CFOP do emissor ({cfop_original} - {CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original]}) convertido para entrada ({cfop_convertido}). Pendente de revisão no menu Alertas CFOP."
                     })
+                else:
+                    # Fluxo normal de classificação inteligente
+                    suggestion = await suggest_cfop_intelligent(
+                        product, company_id, tipo, cfop_original
+                    )
+                    
+                    if suggestion['cfop_sugerido']:
+                        product['cfop_sugerido'] = suggestion['cfop_sugerido']
+                        product['cfop_original'] = cfop_original
+                        product['categoria_classificada'] = suggestion['categoria']
+                        product['justificativa_ia'] = suggestion.get('justificativa', '')
+                        
+                        # APLICAR AUTOMATICAMENTE O CFOP SUGERIDO
+                        product['cfop'] = suggestion['cfop_sugerido']
+                        
+                        # Registrar conversão com justificativa detalhada
+                        file_conversions.append({
+                            'produto': product.get('descricao', ''),
+                            'codigo': product.get('codigo', ''),
+                            'cfop_original': cfop_original,
+                            'cfop_convertido': suggestion['cfop_sugerido'],
+                            'categoria': suggestion['categoria'],
+                            'motivo': suggestion.get('justificativa', f"Classificado como {suggestion['categoria'].upper()}")
+                        })
             
             # Registrar alertas de CFOP para este arquivo
             if file_alertas_cfop:
@@ -1193,6 +1229,7 @@ async def upload_xml_batch(
                     "arquivo": file.filename,
                     "nfe": parsed_data['numero_nfe'],
                     "emitente": parsed_data.get('emitente_nome', ''),
+                    "qtd_produtos": len(file_alertas_cfop),
                     "alertas": file_alertas_cfop
                 })
             
