@@ -76,12 +76,102 @@ const Minutas = () => {
 
     const fetchMinutas = async () => {
         try {
-            const res = await axios.get(`${API_URL}/api/minutas`);
-            setMinutas(res.data);
+            const [minutasRes, templatesRes] = await Promise.all([
+                axios.get(`${API_URL}/api/minutas`),
+                axios.get(`${API_URL}/api/templates`)
+            ]);
+            setMinutas(minutasRes.data);
+            setTemplates(templatesRes.data);
         } catch (e) {
             toast.error('Erro ao carregar');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Templates
+    const handleTemplateUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        const validTypes = ['.docx', '.doc', '.pdf'];
+        const ext = '.' + file.name.split('.').pop().toLowerCase();
+        
+        if (!validTypes.includes(ext)) {
+            toast.error('Use arquivo Word (.docx) ou PDF');
+            return;
+        }
+        
+        setUploadingTemplate(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('nome', file.name.replace(/\.[^.]+$/, ''));
+            
+            await axios.post(`${API_URL}/api/templates/upload`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            
+            toast.success('Template salvo!');
+            fetchMinutas();
+            setTemplateOpen(false);
+        } catch (e) {
+            toast.error('Erro ao salvar template');
+        } finally {
+            setUploadingTemplate(false);
+        }
+    };
+    
+    const deleteTemplate = async (id) => {
+        try {
+            await axios.delete(`${API_URL}/api/templates/${id}`);
+            toast.success('Template removido');
+            setTemplates(templates.filter(t => t.id !== id));
+        } catch (e) {
+            toast.error('Erro ao remover');
+        }
+    };
+    
+    // Download funções
+    const downloadWord = async (minutaId) => {
+        try {
+            const response = await axios.get(`${API_URL}/api/minutas/${minutaId}/download/word`, {
+                responseType: 'blob'
+            });
+            
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `minuta_${minutaId}.docx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            
+            toast.success('Word baixado!');
+        } catch (e) {
+            toast.error('Erro ao baixar Word');
+        }
+    };
+    
+    const downloadPDF = async (minutaId) => {
+        try {
+            const response = await axios.get(`${API_URL}/api/minutas/${minutaId}/download/pdf`, {
+                responseType: 'blob'
+            });
+            
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `minuta_${minutaId}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            
+            toast.success('PDF baixado!');
+        } catch (e) {
+            toast.error('Erro ao baixar PDF');
         }
     };
 
