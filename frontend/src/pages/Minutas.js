@@ -27,13 +27,21 @@ import {
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const TIPOS_ALTERACAO = [
-    { value: 'alteracao_socios', label: 'Alteração de Sócios' },
-    { value: 'alteracao_endereco', label: 'Alteração de Endereço' },
-    { value: 'alteracao_atividade', label: 'Alteração de Atividade/Objeto Social' },
-    { value: 'alteracao_capital', label: 'Alteração de Capital Social' },
-    { value: 'alteracao_nome', label: 'Alteração de Razão Social/Nome Fantasia' },
-    { value: 'alteracao_administracao', label: 'Alteração de Administração' },
-    { value: 'consolidacao', label: 'Consolidação do Contrato Social' },
+    { value: 'alteracao_socios', label: 'Alteração de Sócios', docs: ['CNH/RG do novo sócio', 'Comprovante de endereço'] },
+    { value: 'alteracao_endereco', label: 'Alteração de Endereço', docs: ['Comprovante do novo endereço'] },
+    { value: 'alteracao_atividade', label: 'Alteração de Atividade/Objeto Social', docs: ['Lista de CNAEs'] },
+    { value: 'alteracao_capital', label: 'Alteração de Capital Social', docs: [] },
+    { value: 'alteracao_nome', label: 'Alteração de Razão Social/Nome Fantasia', docs: [] },
+    { value: 'alteracao_administracao', label: 'Alteração de Administração', docs: ['CNH/RG do administrador'] },
+    { value: 'consolidacao', label: 'Consolidação do Contrato Social', docs: [] },
+    { value: 'outro', label: 'Outro', docs: [] },
+];
+
+const TIPOS_DOC = [
+    { value: 'cnh', label: 'CNH' },
+    { value: 'rg', label: 'RG' },
+    { value: 'comprovante', label: 'Comprovante Endereço' },
+    { value: 'cnaes', label: 'Lista CNAEs' },
     { value: 'outro', label: 'Outro' },
 ];
 
