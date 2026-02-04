@@ -10,70 +10,70 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - Registro de novos usuários
 - Controle de acesso por role (admin/client)
 
+### ✅ **NOVO: Logo e Identidade Visual** (04/02/2026)
+- Logo da Business Contabilidade no header
+- Logo no modal de seleção de empresa
+- Cores da marca: Vermelho e Preto
+
+### ✅ **NOVO: Seletor Global de Empresa/Competência** (04/02/2026)
+- Botão no header mostrando empresa e competência selecionada
+- Modal para trocar empresa e competência a qualquer momento
+- Seleção persiste entre navegações (localStorage)
+- Formato de competência: MM/AAAA
+
 ### ✅ Gestão de Empresas
 - Listagem de empresas cadastradas
-- Cadastro de novas empresas com campos:
-  - CNPJ, Razão Social, Nome Fantasia
-  - CNAE Principal e descrição
-  - Inscrição Estadual
-  - Endereço (Cidade/UF)
-  - Produtos Comercializados (para classificação REVENDA)
-  - Insumos de Produção (para classificação INSUMO)
-  - **Produtos de Despesa** (para classificação DESPESA)
-- Busca automática de dados da Receita Federal via CNPJ (API Brasil)
+- Cadastro de novas empresas com campos completos
+- Busca automática de dados da Receita Federal via CNPJ
 - Exclusão de empresas
 
-### ✅ Upload de XML com Análise Inteligente
+### ✅ Upload de XML com Validação Inteligente
 - Upload em lote de arquivos XML de notas fiscais
-- Seletor de competência (mês/ano) - formato MM/AAAA
-- Tipo de operação (Entrada/Saída)
-- **NOVA: Validação de CNPJ** - Rejeita XMLs que não pertencem à empresa selecionada
-- **NOVA: Validação de Competência** - Rejeita XMLs com data fora da competência selecionada
-- Validação de notas duplicadas por chave NFe e competência
-- Conversão automática de CFOP baseada em:
-  - Classificação do produto (REVENDA, INSUMO, DESPESA, COMBUSTÍVEL)
-  - Substituição Tributária (ST)
-  - Operações interestaduais (prefixo 1 ou 2)
-  - Transferências entre filiais
-- **NOVO: Relatório detalhado de erros** - Mostra resumo com:
-  - Total enviados, importados, duplicados
-  - Rejeitados por CNPJ errado (com detalhes de emitente/destinatário)
-  - Rejeitados por competência diferente (com data de emissão)
-  - Erros de processamento
+- **Validação de CNPJ** - Rejeita XMLs de empresas diferentes
+- **Validação de Competência** - Rejeita XMLs com data fora do período
+- **Relatório detalhado de erros** - Mostra resumo completo
+- Conversão automática de CFOP
 
-### ✅ Relatório de Conversão de CFOP
-- Exibido automaticamente após upload
-- Mostra: CFOP Original → CFOP Convertido
-- Classificação aplicada (REVENDA, INSUMO, DESPESA)
-- Critério/motivo da conversão
+### ✅ **NOVO: Análise Tributária Inteligente por IA** (04/02/2026)
+- Página dedicada: `/analise-tributaria`
+- **Indicadores calculados:**
+  - Percentual de compras interestaduais vs internas
+  - Fornecedores do Simples Nacional (sem direito a crédito)
+  - Diferencial de alíquotas (entrada vs saída)
+  - Clientes do Simples Nacional
+  - Markup médio praticado
+  - Carga tributária efetiva
+  - Total de créditos e débitos
+- **Alertas e Pontos de Atenção:**
+  - Alertas críticos, de atenção e oportunidades
+  - Impacto estimado em valores
+  - Base legal quando aplicável
+- **Recomendações Estratégicas:**
+  - Sugestões de economia fiscal
+  - Economia potencial estimada
+  - Prazo de implementação
+- **Análise de Markup:**
+  - Markup mínimo, médio e máximo
+  - Análise da margem vs carga tributária
+- **Exportar análise em TXT**
 
 ### ✅ Reclassificação com IA
-- Página dedicada: `/reclassification`
-- Visualização por NF-e (expandível) ou por Produtos (agrupados por código)
-- Campo de comando para IA reclassificar produtos em lote
-- Edição manual com salvamento de regras aprendidas
+- Visualização por NF-e ou por Produtos agrupados
+- Comando para IA reclassificar em lote
 - Sistema de aprendizado que memoriza correções
-- **MELHORADO: Validação de PIS/COFINS/ICMS com base legal**
-  - Considera alíquota zero de PIS/COFINS para produtos da cesta básica
-  - Usa o estado da empresa (UF) para calcular alíquotas de ICMS corretas
-  - NCMs com alíquota zero são identificados e não apontados como erro
+- Validação de PIS/COFINS/ICMS com base legal (melhorado para alíquota zero)
+
+### ✅ Relatórios por Competência
+- Filtro de competência nos relatórios gerenciais
+- **Exportar CSV corrigido** - Funciona com valores undefined
+- BOM UTF-8 para caracteres especiais
 
 ### ✅ Exportação SPED por Competência
 - Seletor de competências disponíveis
 - Exporta apenas documentos da competência selecionada
 
-### ✅ Relatórios por Competência
-- Filtro de competência nos relatórios gerenciais
-- Exportação CSV com nome incluindo a competência
-
 ### ✅ Reset da Base de Dados
-- Endpoint `POST /api/db/reset` para zerar todas as tabelas (exceto usuários)
-
-### ✅ Páginas Adicionais
-- Documentos Fiscais - listagem de XMLs importados
-- Validação de CFOPs
-- Relatórios Gerenciais (por Produto e por NCM)
-- Exportar SPED Fiscal
+- Endpoint `POST /api/db/reset` para zerar todas as tabelas
 
 ## Arquitetura Técnica
 
@@ -82,72 +82,45 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - MongoDB para persistência
 - **Integração com IA**: OpenAI GPT-4o via Emergent LLM Key
 - Endpoints principais:
-  - `POST /api/auth/login` - autenticação
-  - `POST /api/auth/register` - registro
-  - `GET/POST /api/companies` - CRUD empresas
-  - `DELETE /api/companies/{id}` - excluir empresa
-  - `GET /api/cnpj/{cnpj}` - busca Receita Federal
-  - `POST /api/xml/upload` - upload com análise e validação
-  - `GET /api/xml/documents` - listagem documentos
-  - `GET /api/reports/by-product/{company_id}` - relatório por produto
-  - `GET /api/reports/by-ncm/{company_id}` - relatório por NCM
-  - `GET /api/sped/export/{company_id}` - exportação SPED
-  - `POST /api/db/reset` - zerar base de dados
-  - `GET /api/reclassification/documents/{company_id}` - docs para reclassificação
-  - `GET /api/reclassification/products/{company_id}` - produtos agrupados
-  - `POST /api/ai/reclassify` - reclassificação com IA
-  - `POST /api/ai/validate-taxes` - validação PIS/COFINS/ICMS
-  - `POST /api/manual-reclassify` - reclassificação manual
-  - `GET /api/learned-rules/{company_id}` - regras aprendidas
+  - Autenticação: `/api/auth/login`, `/api/auth/register`
+  - Empresas: `/api/companies` (GET, POST, DELETE)
+  - CNPJ: `/api/cnpj/{cnpj}`
+  - Upload XML: `/api/xml/upload` (com validação CNPJ/competência)
+  - Relatórios: `/api/reports/by-product/{id}`, `/api/reports/by-ncm/{id}`
+  - SPED: `/api/sped/export/{id}`
+  - **Análise Tributária IA**: `/api/ai/analise-tributaria`
+  - Reclassificação: `/api/ai/reclassify`, `/api/ai/validate-taxes`
+  - Reset: `/api/db/reset`
 
 ### Frontend (React)
-- `/app/frontend/src/pages/`
-  - Login.js - autenticação
-  - Companies.js - gestão de empresas
-  - UploadXML.js - upload e análise (com relatório de erros)
-  - Documents.js - listagem de documentos
-  - ReclassificationAI.js - reclassificação com IA
-  - Validation.js - validação CFOPs
-  - Reports.js - relatórios gerenciais (com filtro competência)
-  - ExportSPED.js - exportação SPED (com seletor competência)
+- Context API para estado global (empresa/competência)
+- Componentes:
+  - `Layout.js` - Header com logo e seletor
+  - `CompanySelector.js` - Modal de seleção
+  - `AppContext.js` - Contexto global
+- Páginas:
+  - Dashboard, **AnaliseTributaria**, Companies, UploadXML
+  - Documents, ReclassificationAI, Validation, Reports, ExportSPED
 
 ### Integrações
-- Brasil API (`https://brasilapi.com.br/api/cnpj/v1/{cnpj}`) - dados de empresas
-- **OpenAI GPT-4o** via Emergent LLM Key - reclassificação e validação fiscal
+- Brasil API - dados de empresas
+- **OpenAI GPT-4o** - análises tributárias e reclassificação
 
-## Status dos Issues (04/02/2026)
-
-| Issue | Status | Descrição |
-|-------|--------|-----------|
-| Botão "Excluir Empresa" | ✅ RESOLVIDO | Backend funcionando, testado via curl |
-| Validação CNPJ no upload | ✅ IMPLEMENTADO | Rejeita XMLs de outras empresas |
-| Validação competência | ✅ IMPLEMENTADO | Rejeita XMLs de outras competências |
-| Relatório de erros | ✅ IMPLEMENTADO | Resumo detalhado na tela |
-| Alíquota zero PIS/COFINS | ✅ MELHORADO | IA considera NCMs da cesta básica |
-| ICMS por estado | ✅ MELHORADO | IA usa UF da empresa para alíquotas |
-| Reset da base | ✅ IMPLEMENTADO | Endpoint /api/db/reset funcionando |
-
-## Próximas Tarefas (Backlog)
-
-### P1 - Alta Prioridade
-- [ ] Adicionar logo da Business Contabilidade (aguardando envio pelo usuário)
-- [ ] Seletor global de empresa/competência no Layout
-
-### P2 - Média Prioridade
-- [ ] Dashboard com métricas fiscais
-- [ ] Histórico de alterações de CFOP para auditoria
-- [ ] Testar exportação SPED com dados reais de produção
-
-### P3 - Baixa Prioridade
-- [ ] Refatorar backend em módulos separados
-- [ ] Implementar React Context para estado global
+## Testes (04/02/2026)
+- Backend: 100% (16/16 testes)
+- Frontend: 100% (todas funcionalidades)
 
 ## Credenciais de Teste
 - Email: admin@test.com
 - Senha: test123
-- Role: admin
 
-## Design
-- Cores da marca: Vermelho (#dc2626) e Preto
-- Estilo: Clean e profissional
-- Framework: TailwindCSS
+## Próximas Tarefas (Backlog)
+
+### P2 - Média Prioridade
+- [ ] Dashboard com resumo de análise tributária
+- [ ] Histórico de alterações para auditoria
+- [ ] Testar exportação SPED com dados reais
+
+### P3 - Baixa Prioridade
+- [ ] Refatorar backend em módulos separados
+- [ ] Melhorar UX do modal de seleção (aparecer automaticamente)
