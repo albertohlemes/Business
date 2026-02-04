@@ -1367,6 +1367,7 @@ async def upload_xml_batch(
                 product['cst_divergente'] = cst_info['divergente']
                 product['cst_motivo'] = cst_info['motivo']
                 product['ncm_aliq_zero'] = cst_info['aliq_zero']
+                product['cfop_sem_incidencia'] = cst_info.get('sem_incidencia', False)
                 
                 # VERIFICAR SE É CFOP DE OPERAÇÃO DISTINTA (apenas para entradas)
                 if tipo == 'entrada' and cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
