@@ -38,12 +38,12 @@ const UploadXML = ({ user, onLogout }) => {
     };
   }, []);
 
-  // Auto-preencher com empresa/competência do contexto global
+  // SEMPRE priorizar empresa/competência do contexto global
   useEffect(() => {
-    if (ctxCompany && !selectedCompany) {
+    if (ctxCompany) {
       setSelectedCompany(ctxCompany.id);
     }
-    if (ctxCompetencia && !competencia) {
+    if (ctxCompetencia) {
       setCompetencia(ctxCompetencia);
     } else if (!competencia) {
       // Fallback para data atual se não houver contexto
