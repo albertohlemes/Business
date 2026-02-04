@@ -125,6 +125,8 @@ const Licencas = () => {
                 setAguardandoLogin(true);
                 setInstrucoesOpen(true);
                 toast.info('Faça login no Gov.br com certificado digital');
+                // Iniciar polling automático para verificar login
+                iniciarPollingLogin(data.cnpj);
             } else if (data.consulta_realizada) {
                 toast.success('Consulta realizada!');
                 // Atualizar lista
@@ -149,11 +151,64 @@ const Licencas = () => {
         }
     };
 
+    // Polling automático para verificar se login foi feito
+    const pollingRef = useRef(null);
+    const pollingCountRef = useRef(0);
+    
+    const iniciarPollingLogin = (cnpj) => {
+        // Limpar polling anterior se existir
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+        }
+        pollingCountRef.current = 0;
+        
+        // Verificar a cada 5 segundos por até 2 minutos (24 tentativas)
+        pollingRef.current = setInterval(async () => {
+            pollingCountRef.current += 1;
+            
+            if (pollingCountRef.current > 24) {
+                clearInterval(pollingRef.current);
+                toast.error('Tempo limite excedido. Clique em "Verificar Login" manualmente.');
+                return;
+            }
+            
+            try {
+                const response = await axios.post(`${API_URL}/api/redesim/continuar-apos-login?cnpj=${encodeURIComponent(cnpj)}`);
+                
+                if (response.data.success) {
+                    clearInterval(pollingRef.current);
+                    toast.success('Login detectado! Consulta realizada automaticamente.');
+                    if (response.data.consulta?.screenshot) {
+                        setScreenshotRedesim(response.data.consulta.screenshot);
+                    }
+                    setAguardandoLogin(false);
+                    // Atualizar lista
+                    const licRes = await axios.get(`${API_URL}/api/licencas`);
+                    setLicencas(licRes.data);
+                }
+            } catch (e) {
+                // Silenciosamente continuar tentando
+            }
+        }, 5000);
+    };
+    
+    // Limpar polling ao fechar dialog
+    useEffect(() => {
+        return () => {
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+            }
+        };
+    }, []);
+
     const continuarAposLogin = async () => {
         try {
             const response = await axios.post(`${API_URL}/api/redesim/continuar-apos-login?cnpj=${encodeURIComponent(instrucoesCnpj)}`);
             
             if (response.data.success) {
+                if (pollingRef.current) {
+                    clearInterval(pollingRef.current);
+                }
                 toast.success('Consulta realizada após login!');
                 if (response.data.consulta?.screenshot) {
                     setScreenshotRedesim(response.data.consulta.screenshot);
