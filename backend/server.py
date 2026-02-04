@@ -1084,6 +1084,146 @@ async def get_document(
     
     return document
 
+@api_router.get("/dashboard/stats/{company_id}")
+async def get_dashboard_stats(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Estatísticas do dashboard por empresa e competência"""
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar todos os documentos da empresa na competência
+    query = {"company_id": company_id, "competencia": competencia}
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(1000)
+    
+    # Buscar aprovações do localStorage (persistidas no backend se houver)
+    # Por enquanto, vamos calcular baseado no status_validacao
+    
+    # Contadores por tipo
+    nfe_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', 'nfe') == 'nfe']
+    nfe_saida = [d for d in documents if d.get('tipo') == 'saida' and d.get('modelo', 'nfe') == 'nfe']
+    nfce = [d for d in documents if d.get('modelo') == 'nfce']
+    nfse = [d for d in documents if d.get('modelo') == 'nfse']
+    
+    # Valores totais
+    total_entradas = sum(d.get('valor_total', 0) for d in nfe_entrada)
+    total_vendas = sum(d.get('valor_total', 0) for d in nfe_saida)
+    total_cupons = sum(d.get('valor_total', 0) for d in nfce)
+    total_servicos = sum(d.get('valor_total', 0) for d in nfse)
+    faturamento_total = total_vendas + total_cupons + total_servicos
+    
+    # Créditos (entradas)
+    credito_icms = 0
+    credito_pis = 0
+    credito_cofins = 0
+    
+    for doc in nfe_entrada:
+        for prod in doc.get('produtos', []):
+            credito_icms += float(prod.get('v_icms', 0) or 0)
+            credito_pis += float(prod.get('v_pis', 0) or 0)
+            credito_cofins += float(prod.get('v_cofins', 0) or 0)
+    
+    # Débitos (saídas)
+    debito_icms = 0
+    debito_pis = 0
+    debito_cofins = 0
+    
+    for doc in nfe_saida + nfce:
+        for prod in doc.get('produtos', []):
+            debito_icms += float(prod.get('v_icms', 0) or 0)
+            debito_pis += float(prod.get('v_pis', 0) or 0)
+            debito_cofins += float(prod.get('v_cofins', 0) or 0)
+    
+    # ISS (serviços)
+    total_iss = 0
+    for doc in nfse:
+        for serv in doc.get('servicos', []):
+            total_iss += float(serv.get('valor_iss', 0) or 0)
+    
+    # Impostos a pagar
+    icms_pagar = max(0, debito_icms - credito_icms)
+    pis_pagar = max(0, debito_pis - credito_pis)
+    cofins_pagar = max(0, debito_cofins - credito_cofins)
+    total_impostos_pagar = icms_pagar + pis_pagar + cofins_pagar + total_iss
+    
+    # Markup médio (entradas vs saídas)
+    markup_percentual = 0
+    if total_entradas > 0:
+        markup_percentual = ((faturamento_total - total_entradas) / total_entradas) * 100
+    
+    # Validação - contar produtos pendentes de validação
+    total_produtos = 0
+    produtos_validados = 0
+    
+    for doc in documents:
+        for prod in doc.get('produtos', []):
+            total_produtos += 1
+            # Considera validado se tiver categoria classificada ou status_validacao = validado
+            if prod.get('categoria_classificada') or doc.get('status_validacao') == 'validado':
+                produtos_validados += 1
+    
+    notas_pendentes = len([d for d in documents if d.get('status_validacao') != 'validado'])
+    notas_validadas = len(documents) - notas_pendentes
+    
+    return {
+        "empresa": {
+            "id": company['id'],
+            "razao_social": company['razao_social'],
+            "cnpj": company['cnpj']
+        },
+        "competencia": competencia,
+        "quantidades": {
+            "nfe_entrada": len(nfe_entrada),
+            "nfe_saida": len(nfe_saida),
+            "nfce": len(nfce),
+            "nfse": len(nfse),
+            "total_documentos": len(documents)
+        },
+        "validacao": {
+            "notas_validadas": notas_validadas,
+            "notas_pendentes": notas_pendentes,
+            "produtos_total": total_produtos,
+            "produtos_validados": produtos_validados
+        },
+        "valores": {
+            "total_entradas": round(total_entradas, 2),
+            "total_vendas": round(total_vendas, 2),
+            "total_cupons": round(total_cupons, 2),
+            "total_servicos": round(total_servicos, 2),
+            "faturamento_total": round(faturamento_total, 2)
+        },
+        "creditos": {
+            "icms": round(credito_icms, 2),
+            "pis": round(credito_pis, 2),
+            "cofins": round(credito_cofins, 2),
+            "total": round(credito_icms + credito_pis + credito_cofins, 2)
+        },
+        "debitos": {
+            "icms": round(debito_icms, 2),
+            "pis": round(debito_pis, 2),
+            "cofins": round(debito_cofins, 2),
+            "iss": round(total_iss, 2),
+            "total": round(debito_icms + debito_pis + debito_cofins + total_iss, 2)
+        },
+        "impostos_pagar": {
+            "icms": round(icms_pagar, 2),
+            "pis": round(pis_pagar, 2),
+            "cofins": round(cofins_pagar, 2),
+            "iss": round(total_iss, 2),
+            "total": round(total_impostos_pagar, 2)
+        },
+        "indicadores": {
+            "markup_percentual": round(markup_percentual, 2)
+        }
+    }
+
 @api_router.get("/reports/by-product/{company_id}")
 async def report_by_product(
     company_id: str,
