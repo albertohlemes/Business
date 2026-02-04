@@ -518,6 +518,22 @@ Use linguagem jurídica formal e precisa. Inclua todos os dados extraídos dos d
                                     <div className="space-y-4">
                                         <div>
                                             <Label className="text-zinc-400 text-xs uppercase mb-2 block">
+                                                Data da Alteração
+                                            </Label>
+                                            <div className="relative">
+                                                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                                                <Input
+                                                    type="date"
+                                                    value={dataAlteracao}
+                                                    onChange={(e) => setDataAlteracao(e.target.value)}
+                                                    className="bg-zinc-950 border-zinc-800 pl-10"
+                                                    data-testid="data-alteracao"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <Label className="text-zinc-400 text-xs uppercase mb-2 block">
                                                 Descreva as alterações
                                             </Label>
                                             <Textarea
