@@ -24,6 +24,7 @@ const RelatorioDivergencias = ({ user, onLogout }) => {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [expandedDocs, setExpandedDocs] = useState({});
+  const [grouped, setGrouped] = useState(false);
 
   useEffect(() => {
     if (selectedCompany && selectedCompetencia) {
