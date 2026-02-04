@@ -205,6 +205,16 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 15
+- ✅ **Classificação por CST na Apuração PIS/COFINS**:
+  - Adicionado toggle "Por CST" / "Por CFOP" / "Por NCM"
+  - CSTs usados:
+    - **Saída tributada**: CST 01 (Operação Tributável com Alíquota Básica)
+    - **Saída alíquota zero**: CST 06 (Operação Tributável a Alíquota Zero)
+    - **Entrada com crédito**: CST 50 (Operação com Direito a Crédito)
+    - **Entrada alíquota zero**: CST 73 (Operação de Aquisição a Alíquota Zero)
+  - Títulos das seções mostram o CST correspondente
+
 ### 02/2026 - Iteration 14
 - ✅ **Corrigido bug das páginas de Apuração**: Endpoints agora usam `db.xml_documents` (antes usavam `db.documents` que não existe)
 - ✅ **Corrigido campo de valor**: Agora usa `valor_total` ou `v_prod` corretamente
