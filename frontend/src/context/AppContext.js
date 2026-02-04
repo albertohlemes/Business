@@ -64,14 +64,9 @@ export const AppProvider = ({ children }) => {
         // Primeira vez com empresas, mostra seletor
         setShowSelector(true);
       }
-    } else if (!loading) {
-      // Não tem empresas e já terminou de carregar
-      // Não mostra seletor, usuário precisa cadastrar empresa primeiro
-      setShowSelector(false);
+      setLoading(false);
     }
-    
-    setLoading(false);
-  }, [companies, loading]);
+  }, [companies]);
 
   const fetchCompanies = async () => {
     try {
