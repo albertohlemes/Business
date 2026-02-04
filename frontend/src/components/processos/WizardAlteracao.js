@@ -34,6 +34,7 @@ const ESTADOS = [
 ];
 
 const ESTADOS_CIVIS = ['Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)', 'União Estável'];
+const REGIMES_CASAMENTO = ['Comunhão Parcial de Bens', 'Comunhão Universal de Bens', 'Separação Total de Bens', 'Participação Final nos Aquestos'];
 
 const TIPOS_ALTERACAO = [
     { id: 'socios', label: 'Alteração de Sócios (QSA)', icon: Users, description: 'Entrada, saída ou redistribuição de cotas' },
