@@ -26,201 +26,210 @@ O usuário, proprietário do escritório Business Contabilidade, precisa de um s
 14. **Análise de Saídas e Divergências:** Adicionar opção para ver dados agrupados por produto e implementar ordenação nas colunas.
 15. **Menu de Exportação:** Criar um novo menu Exportação, mover a funcionalidade SPED Fiscal para ele, e adicionar duas novas opções de exportação em CSV (Entradas e Saídas).
 16. **Relatório de Conversão na Importação:** Após o upload, exibir um relatório detalhado de todas as conversões de CFOP realizadas e a natureza classificada para cada nota.
+17. **Otimização de Performance no Upload:** O upload deve ser rápido e não travar a interface.
+18. **Integração com SIEG:** O sistema deve buscar os XMLs diretamente da API do SIEG Soluções.
+19. **Reclassificação Manual:** Permitir que o usuário corrija a classificação de um produto (Revenda, Insumo, Despesa) na tela de validação.
+20. **Correção na Apuração:** Os cálculos de PIS/COFINS devem usar as alíquotas corretas para o regime tributário da empresa (Lucro Real).
 
 **User's preferred language**: O usuário comunica-se em **Português (Brasil)**. O próximo agente DEVE responder em Português.
 
 **what currently exists?**
-Uma aplicação full-stack (FastAPI + React) com uma base de código instável. O backend é um arquivo monolítico  com mais de 4.500 linhas, embora uma tentativa de refatoração tenha começado com a criação de . O sistema possui funcionalidades de autenticação, cadastro de empresas com palavras-chave para IA, upload de XML, e um dashboard. Recentemente, foi implementada uma nova feature para exibir um relatório de conversão de CFOP na tela de upload. No entanto, funcionalidades básicas de CRUD (criar/salvar empresa, apagar empresa, apagar documentos) estão quebradas ou não confiáveis, causando grande frustração ao usuário. A base de dados foi completamente zerada a pedido do usuário para tentar resolver problemas persistentes.
+Uma aplicação full-stack (FastAPI + React) que, após uma fase de grande instabilidade, agora possui funcionalidades mais robustas e orientadas pelo usuário. O backend ainda é majoritariamente um monolito (), mas novas integrações (SIEG) e serviços () foram modularizados.
+
+Funcionalidades principais implementadas e funcionando:
+*   **Classificação por IA Otimizada:** O upload de XML classifica produtos usando IA e um sistema de cache inteligente () que memoriza classificações, acelerando drasticamente uploads subsequentes.
+*   **Integração com SIEG:** O sistema se conecta à API do SIEG Soluções para verificar e, futuramente, baixar XMLs de entrada e saída diretamente, baseado na empresa e competência selecionadas.
+*   **Reclassificação Manual:** A tela de Validação de Entradas permite ao usuário corrigir manualmente a categoria de um produto (Revenda, Insumo, Despesa), com o sistema atualizando o CFOP e aprendendo a regra.
+*   **Exportações Corrigidas:** A geração dos relatórios SPED Fiscal e CSV (Entradas/Saídas) foi corrigida, agora apresentando os dados corretos por produto e com os períodos de competência adequados.
+*   **Cálculos de Apuração Corretos:** A apuração de PIS/COFINS foi ajustada para aplicar as alíquotas corretas do regime de Lucro Real (1,65% e 7,6%).
 
 **Last working item**:
-- **Last item agent was working:** Implementando um relatório na página de upload para mostrar as conversões de CFOP e a natureza da classificação para todas as notas importadas, conforme solicitado pelo usuário. O agente modificou o frontend () para exibir esses dados após o upload.
-- **Status**: IN PROGRESS
+- **Last item agent was working:** O usuário solicitou a implementação de uma barra de progresso fixa na tela de upload para dar feedback visual durante a importação dos arquivos XML. O agente estava se preparando para iniciar a implementação.
+- **Status**: NOT STARTED
 - **Agent Testing Done**: N
-- **Which testing method agent to use?**: both. O agente de teste de frontend deve verificar a nova interface do relatório na página de upload. O agente principal deve realizar um upload de XML para confirmar se o conteúdo do relatório está correto e completo.
+- **Which testing method agent to use?**: both. O agente de teste de frontend deve verificar se a barra de progresso aparece e é atualizada corretamente. O agente principal deve iniciar um upload para confirmar que o progresso reflete o status do backend.
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: NENHUMA funcionalidade de apagar está funcionando de forma confiável (P0 - BLOQUEADOR CRÍTICO)**
-- **Issue 2: Não é possível salvar ou criar uma empresa (P0 - BLOQUEADOR CRÍTICO)**
-- **Issue 3: Botão de apagar documentos não funciona (P1)**
-- **Issue 4: A classificação de CFOP por IA durante a importação não está funcionando como o esperado (P2)**
-- **Issue 5: A página Análise Tributária congela a interface (P3)**
+- **Issue 1: A página Análise Tributária congela a interface (P3)**
 
 **Issues Detail:**
-- **Issue 1: NENHUMA funcionalidade de apagar está funcionando de forma confiável**
-    - **Attempted fixes:** O agente anterior tentou de tudo: recodificou os endpoints, alterou o estado do frontend, e até removeu e recriou as funções do zero a pedido do usuário. Apesar disso, o usuário reporta que os botões não funcionam ou não exibem a confirmação. O problema é recorrente e a causa raiz parece ser uma combinação de bugs no backend e inconsistências no estado do frontend.
-    - **Next debug checklist:**
-        1.  Isolar e testar CADA endpoint  (, , ) com  e um token válido para garantir que o backend está 100% funcional.
-        2.  No frontend (, ), adicionar  em todos os manipuladores de clique () dos botões de apagar para verificar se as funções são acionadas.
-        3.  Inspecionar a aba Network do navegador no momento do clique para analisar a requisição enviada e verificar por erros (4xx ou 5xx).
-        4.  Confirmar que os IDs corretos estão sendo passados para as funções de apagar.
-    - **Why fix this issue?** O usuário não consegue gerenciar seus próprios dados, tornando a aplicação inútil. É a maior fonte de frustração e um bloqueador completo.
-    - **Status:** IN PROGRESS
-    - **Is recurring issue?** Y
-    - **Should Test frontend/backend/both after fix?** both
-    - **Blocked on other issue:** N/A
-
-- **Issue 2: Não é possível salvar ou criar uma empresa**
-    - **Attempted fixes:** O agente fez várias correções no backend, tratando  e valores nulos. Mesmo após as correções e um reset completo do banco de dados, o usuário relatou que o problema persiste (cara, tudo parou de funcionar. pq isso? nao consigo salvar de novo a empresa).
-    - **Next debug checklist:**
-        1.  Revisar a função  em  para ver como o  é enviado.
-        2.  Verificar a requisição  para  na aba Network.
-        3.  Analisar os endpoints  e  em  para garantir que o modelo Pydantic corresponde exatamente aos dados enviados pelo frontend.
-    - **Why fix this issue?** É a primeira e mais básica interação do usuário com o sistema. Sem isso, nada mais funciona.
-    - **Status:** IN PROGRESS
-    - **Is recurring issue?** Y
-    - **Should Test frontend/backend/both after fix?** both
-    - **Blocked on other issue:** N/A
-
-- **Issue 3: Botão de apagar documentos não funciona**
-    - **Attempted fixes:** O agente restaurou a funcionalidade de apagar documentos individuais e em lote em . No entanto, o usuário continua relatando que nenhuma funcao de apagar está funcionando.
-    - **Next debug checklist:**
-        1.  Focar especificamente no componente .
-        2.  Verificar se  e  estão sendo fornecidos corretamente pelo contexto.
-        3.  Adicionar um  ou  dentro de  e  para ter certeza absoluta de que o clique está sendo registrado.
-    - **Why fix this issue?** O usuário precisa apagar dados de teste ou errados para poder usar a nova funcionalidade de classificação de IA. Ele mencionou isso explicitamente.
-    - **Status:** IN PROGRESS
-    - **Is recurring issue?** Y
-    - **Should Test frontend/backend/both after fix?** both
-    - **Blocked on other issue:** N/A
-
-- **Issue 4: A classificação de CFOP por IA durante a importação não está funcionando como o esperado**
-    - **Attempted fixes:** O agente modificou a lógica e o prompt da função  no backend. O usuário, no entanto, continua a reportar que a classificação não usa as palavras-chave do cadastro da empresa para classificar produto a produto.
-    - **Next debug checklist:**
-        1.  Criar um script de teste em Python que chame  isoladamente.
-        2.  No script, simular os dados de um produto e as palavras-chave da empresa.
-        3.  Logar o prompt exato enviado à IA e a resposta recebida.
-        4.  Verificar se o endpoint de upload está de fato buscando as palavras-chave da empresa correta.
-    - **Why fix this issue?** Esta é a principal funcionalidade inteligente e o maior diferencial do produto.
-    - **Status:** IN PROGRESS
-    - **Is recurring issue?** Y
-    - **Should Test frontend/backend/both after fix?** backend
-    - **Blocked on other issue:** N/A
-
-- **Issue 5: A página Análise Tributária congela a interface**
-    - **Attempted fixes:** Nenhum nesta sessão.
-    - **Next debug checklist:** Implementar uma chamada assíncrona. O frontend deve iniciar a análise, o backend deve processá-la em uma tarefa de fundo ( do FastAPI), e o frontend deve usar polling para verificar o status e buscar o resultado quando estiver pronto.
-    - **Why fix this issue?** A funcionalidade está inutilizável no estado atual.
+- **Issue 1: A página Análise Tributária congela a interface**
+    - **Attempted fixes:** Nenhum.
+    - **Next debug checklist:** A página provavelmente está realizando um processamento síncrono muito pesado. A solução é refatorar a chamada para ser assíncrona.
+        1.  No backend, modificar o endpoint correspondente para usar  do FastAPI. A requisição inicial deve retornar um .
+        2.  No frontend, após iniciar a análise, usar polling para consultar um novo endpoint de status () periodicamente.
+        3.  Quando a tarefa estiver concluída, buscar o resultado final.
+    - **Why fix this issue?** A funcionalidade está completamente inutilizável e impede o usuário de realizar análises importantes.
     - **Status:** NOT STARTED
-    - **Is recurring issue?** N
+    - **Is recurring issue?** Y
     - **Should Test frontend/backend/both after fix?** both
     - **Blocked on other issue:** N/A
 
 **In progress Task List**:
-- **Task 1: Finalizar o relatório de conversão de CFOP na página de upload (P2)**
-    - **Where to resume:** . O agente já adicionou o código para exibir o relatório. Agora é preciso testar exaustivamente e garantir que a UI seja clara e que os dados do backend () sejam exibidos corretamente.
-    - **What will be achieved with this?** O usuário terá feedback imediato e detalhado sobre como a IA está classificando cada nota fiscal durante a importação.
-    - **Status:** IN PROGRESS
+- **Task 1: Implementar barra de progresso no upload de XML (P0)**
+    - **Where to resume:**
+        1.  Backend: Modificar o endpoint de upload () para usar uma arquitetura que permita streaming de status, como Server-Sent Events (SSE) ou WebSockets. Para cada etapa (leitura do arquivo, validação, classificação em cache/IA), o backend enviará uma atualização de progresso.
+        2.  Frontend: Em , implementar a lógica para se conectar ao endpoint de streaming, ouvir os eventos de progresso e atualizar uma barra de progresso na UI em tempo real.
+    - **What will be achieved with this?** Melhorar a experiência do usuário durante o upload, fornecendo feedback visual claro e evitando a percepção de que a aplicação travou.
+    - **Status:** NOT STARTED
     - **Should Test frontend/backend/both after fix?** both
-    - **Blocked on something:** A funcionalidade de apagar documentos (Issue 3) é um bloqueador indireto, pois o usuário precisa apagar dados antigos para testar novos uploads.
+    - **Blocked on something:** Não.
 
 **Upcoming and Future Tasks**
 *   **Upcoming Tasks:**
-    *   **P1:** Análise de Saídas e Divergências: Na página , permitir agrupar por produto e filtrar apenas itens com tributação indevida.
-    *   **P2:** Criar menu Exportação com layouts de CSV para Entradas e Saídas (trabalho iniciado com  mas interrompido).
-    *   **P3:** Mudar a cor de fundo do logo da Business Contabilidade para a cor do background da página.
+    *   **P1 - Download via SIEG:** Implementar a funcionalidade de download dos XMLs contados na API do SIEG e processá-los diretamente no sistema, ao invés de apenas exibir a contagem.
+    *   **P2 - Análise de Saídas e Divergências:** Na página , permitir agrupar por produto e filtrar apenas itens com tributação indevida.
+    *   **P3 - Mudar a cor de fundo do logo:** Ajustar a cor de fundo do logo da Business Contabilidade para coincidir com a cor de fundo da página onde ele é exibido.
 *   **Future Tasks:**
-    *   **Refatorar  (CRÍTICO):** Dividir o arquivo monolítico em uma estrutura modular (routers, services, models) para viabilizar a manutenção e o crescimento do projeto.
-    *   Implementar validação de alíquota de ICMS com base no estado.
-    *   Criar um histórico de alterações (audit log).
-    *   Criar um dashboard principal consolidado.
+    *   **P0 - Refatorar  (CRÍTICO):** A estabilidade e manutenibilidade do projeto dependem da divisão do arquivo monolítico em uma estrutura modular (routers, services, models).
+    *   **P2 - Validação de alíquota de ICMS:** Implementar lógica para validar a alíquota de ICMS com base no estado de origem e destino.
+    *   **P3 - Histórico de alterações (Audit Log):** Criar um log de auditoria para rastrear alterações importantes feitas pelos usuários.
 
 **Completed work in this session**
-- **Reset Total da Base de Dados:** A base de dados foi completamente apagada (incluindo usuários) duas vezes, a pedido do usuário, para tentar resolver bugs persistentes.
-- **Implementação Inicial da Classificação Semântica:** A lógica para usar palavras-chave (Revenda, Insumo, Despesa) do cadastro da empresa para guiar a IA na classificação de produtos durante o upload foi adicionada ao backend.
-- **Implementação do Relatório de Conversão:** O endpoint de upload foi modificado para retornar um relatório das conversões de CFOP, e o frontend () foi alterado para exibir esse relatório.
-- **Início da Refatoração do Backend:** A lógica de exportação começou a ser movida do  para um novo arquivo, .
+- **Otimização de Performance do Upload:** Implementado um sistema de cache () que armazena classificações da IA, reduzindo drasticamente o tempo de processamento para uploads repetidos do mesmo produto.
+- **Integração com SIEG Soluções:** Adicionada integração para consultar a quantidade de XMLs de entrada e saída disponíveis para uma empresa/competência diretamente na API do SIEG.
+- **Apuração Fiscal (Lucro Real):** Corrigido o cálculo de PIS/COFINS nos endpoints de apuração para usar as alíquotas corretas do regime de Lucro Real (1.65% e 7.6%) sobre a base de débito.
+- **Reclassificação Manual de Produtos:** Implementada funcionalidade na tela de validação para o usuário corrigir a categoria (Revenda, Insumo, Despesa) de um produto, com o sistema atualizando o CFOP e memorizando a regra.
+- **Correção de Exportações (SPED e CSV):** Ajustada a geração do SPED fiscal para usar o período de competência correto e os CSVs de entrada/saída para listar um item por produto com todos os campos necessários.
+- **Correção da Classificação por IA:** Resolvido um bug na chamada à API da  que impedia a IA de funcionar.
+- **Melhoria de UI na Validação:** Adicionada uma coluna Classificação com capacidade de ordenação na visão Por Produto da tela de validação.
 
 **Earlier issues found/mentioned but not fixed**
-- Todos os problemas relevantes foram capturados na lista de pendências acima. A instabilidade geral da aplicação é o problema central.
+- A página Análise Tributária que congela a interface do usuário nunca foi abordada.
 
 **Known issue recurrence from previous fork**
-- As funcionalidades de apagar () e salvar () são bugs extremamente recorrentes que persistiram apesar de múltiplas tentativas de correção em diferentes forks.
+- As funcionalidades de apagar e salvar/criar empresas eram cronicamente instáveis. O usuário instruiu a ignorar esses bugs e focar em novas features, mas a causa raiz (provavelmente no monolito ) nunca foi resolvida, representando um risco de regressão.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-*   **Backend:** FastAPI, Pydantic, pymongo, lxml, .
-*   **Frontend:** React, React Context, axios, TailwindCSS.
+*   **Backend:** FastAPI, Pydantic, pymongo, lxml, 
+*   **Frontend:** React, React Context, axios, TailwindCSS
 *   **IA:** GPT-4o (via Emergent LLM Key) para classificação de CFOP.
+*   **Cache:** Regras aprendidas () são usadas como cache para evitar chamadas repetidas à IA.
+*   **Integração Externa:** API REST do SIEG Soluções.
 
 **key DB schema**
-*   : Armazena usuários. Após o wipe, apenas um usuário padrão pode existir.
-*   : Armazena detalhes da empresa, incluindo os novos campos de palavras-chave (, , ).
-*   : Armazena os dados das notas fiscais.
+- : Armazena usuários da aplicação.
+- : Armazena detalhes da empresa, incluindo palavras-chave para a IA.
+- : Armazena os dados extraídos das notas fiscais.
+- : (Novo/Reaproveitado) Armazena classificações de produtos (descrição -> categoria) para funcionar como cache.
 
 **changes in tech stack**
 - Nenhuma.
 
 **All files of reference**
-*   **/app/backend/server.py**: Arquivo central, modificado extensivamente para tentar corrigir bugs e adicionar features.
-*   **/app/frontend/src/pages/Documents.js**: Componente com a funcionalidade de apagar cronicamente quebrada.
-*   **/app/frontend/src/pages/Companies.js**: Componente com a funcionalidade de salvar/criar quebrada.
-*   **/app/frontend/src/pages/UploadXML.js**: Componente modificado para exibir o novo relatório de conversão.
-*   **/app/backend/export_service.py**: Novo arquivo criado como parte de uma tentativa de refatoração.
-*   **/app/wipe_db.py**: Script usado para zerar o banco de dados.
+*   **/app/backend/server.py**: Arquivo central, modificado extensivamente para adicionar novos endpoints e corrigir lógicas de cálculo e exportação.
+*   **/app/backend/sieg_service.py**: **(Novo)** Arquivo para encapsular toda a comunicação com a API do SIEG Soluções.
+*   **/app/backend/export_service.py**: Corrigido para gerar CSVs por produto.
+*   **/app/frontend/src/pages/UploadXML.js**: Modificado para exibir estatísticas de performance do upload (cache vs. IA). É o alvo da próxima tarefa (barra de progresso).
+*   **/app/frontend/src/pages/ValidationPage.js**: Modificado extensivamente para adicionar reclassificação manual e ordenação de produtos.
+*   **/app/frontend/src/context/AppContext.js**: Modificado para adicionar estado e funções relacionadas à integração com SIEG.
+*   **/app/frontend/src/components/CompanySelector.js**: Modificado para acionar a verificação no SIEG e exibir os resultados.
 
 **Areas that need refactoring**:
-*   ****: **CRÍTICO.** A instabilidade da aplicação está diretamente ligada à complexidade e falta de estrutura deste arquivo. A refatoração é essencial para a estabilidade.
-*   ** e **: Ambos os componentes sofrem com bugs persistentes, provavelmente relacionados ao gerenciamento de estado e ciclo de vida. Precisam de uma revisão completa e possivelmente serem reescritos de forma mais simples e robusta.
+*   ****: **CRÍTICO.** O arquivo continua a crescer, aumentando a complexidade e o risco de bugs. A refatoração para uma arquitetura de serviços/roteadores é essencial para a saúde do projeto a longo prazo.
+*   ****: Este componente se tornou muito grande e complexo, gerenciando múltiplos estados, modais e lógicas de visualização. Deve ser dividido em componentes menores e mais gerenciáveis.
 
 **key api endpoints**
-*   : Para criar empresas (quebrado).
-*   : Para atualizar empresas (quebrado).
-*   : Para apagar empresas (quebrado).
-*   : Para apagar um documento (quebrado).
-*   : Para apagar documentos em lote (quebrado).
-*   : Para upload de XML, agora retorna um relatório de conversão.
+*   : Endpoint de upload de XML, agora otimizado com cache.
+*   : **(Novo)** Para reclassificação manual de um produto.
+*   : **(Novo)** Verifica se a API do SIEG está configurada.
+*   : **(Novo)** Conta XMLs disponíveis no SIEG.
+*   : **(Novo)** Endpoint para baixar XMLs do SIEG (ainda não implementado no frontend).
+*   : Exportação de SPED, agora com datas corrigidas.
+*   : Exportação de CSV de entrada, agora corrigida.
 
 **Critical Info for New Agent**
-*   **Confiança do Usuário está em Nível Mínimo:** O usuário está extremamente frustrado (poxa, decepcionante isso, nenhuma funcao de apagar está funcionando). Sua prioridade máxima é restaurar a confiança resolvendo os bugs bloqueadores.
-*   **FOCO TOTAL EM ESTABILIZAÇÃO:** **NÃO** inicie nenhuma nova feature. A tarefa é estabilizar o core da aplicação. Resolva os problemas na ordem de prioridade (P0 primeiro).
-*   **Abordagem Sistemática:** Para cada bug, primeiro valide o endpoint do backend isoladamente com . Somente após confirmar que o backend funciona, passe a depurar o frontend. Não confie que as correções anteriores funcionaram.
-*   **Comunique-se com Clareza:** Explique seu plano de depuração para o usuário. Diga que você vai focar 100% em consertar as funções de salvar e apagar antes de qualquer outra coisa.
-*   **Reinício do Zero:** O usuário já demonstrou estar disposto a zerar tudo para fazer funcionar. Use isso como um ambiente limpo para testar suas correções.
+*   **Foco na Experiência do Usuário:** O usuário está agora focado em melhorar a usabilidade e performance da aplicação (uploads mais rápidos, feedback visual com barra de progresso). Priorize essas tarefas.
+*   **Riscos do Monolito:** Apesar das novas funcionalidades, a base do backend () continua sendo um monolito. Tenha cuidado ao fazer alterações para não introduzir regressões. A refatoração é uma necessidade técnica crítica.
+*   **Integração SIEG:** A integração com SIEG está funcional para contagem. O próximo passo lógico é implementar o download e processamento automático desses arquivos, o que seria uma grande vitória para o usuário.
+*   **Confiança do Usuário Restaurada:** Ao contrário do fork anterior, o usuário agora está satisfeito com o progresso e pedindo novas funcionalidades. Mantenha o ritmo entregando valor a cada passo.
 
 **documents and test reports created in this job**
-*   /app/wipe_db.py
-*   /app/restore_admin.py
-*   /app/test_result.md
-*   Múltiplos scripts de teste pontuais, como , .
+- /app/test_reports/iteration_11.json
+- /app/backend/sieg_service.py
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User (LATEST - 404):** Pede um relatório de conversão de CFOP na importação para *todas* as notas. *Status: IN PROGRESS.*
-2.  **User (393):** Reporta que a classificação de entradas por IA não está funcionando corretamente. *Status: IN PROGRESS (Issue 4).*
-3.  **User (369):** PRECISO QUE O BOTAO DE APAGAR DOCUMENTOS FUNCIONE PARA QUE EU POSSA TESTAR. *Status: IN PROGRESS (Issue 3).*
-4.  **User (346):** Reporta que a conversão de entradas não está funcionando corretamente. *Status: IN PROGRESS.*
-5.  **User (331):** Solicita a feature de classificação por IA baseada em palavras-chave. *Status: DONE (Implementation started).*
-6.  **User (324):** ZERA A BASE TODA, INCLUSIVE USUARIOS. *Status: DONE.*
-7.  **User (313):** nao sei o que houve. ta cheio de bug agora. principalente na funcao de apagar. poxa, decepcionante isso. *Status: IN PROGRESS (Issue 1).*
-8.  **User (298):** Solicita a funcionalidade de apagar documentos por competência. *Status: IN PROGRESS.*
-9.  **User (275):** cara, tudo parou de funcionar. pq isso? nao consigo salvar de novo a empresa. *Status: IN PROGRESS (Issue 2).*
-10. **User (264):** nao funcionou. faz o seguinte, zera a base. *Status: DONE.*
+1.  **User (LATEST - 443):** Solicita uma barra de progresso na tela de upload. *Status: PENDENTE (Próxima tarefa).*
+2.  **User (386):** Reporta que as exportações (SPED e CSV) estão com erro. *Status: CONCLUÍDO.*
+3.  **User (349):** Pede uma coluna de classificação com ordenação na tela de validação por produto. *Status: CONCLUÍDO.*
+4.  **User (319):** Reporta que a reclassificação na visão por produto não está funcionando como esperado. *Status: CONCLUÍDO.*
+5.  **User (242):** Pede a funcionalidade de reclassificação manual e a correção do cálculo de PIS/COFINS para Lucro Real. *Status: CONCLUÍDO.*
+6.  **User (159):** Fornece a API key e as preferências para a integração com o SIEG. *Status: CONCLUÍDO.*
+7.  **User (156):** Solicita a integração com o SIEG para buscar XMLs automaticamente. *Status: CONCLUÍDO.*
+8.  **User (87):** Pede uma abordagem híbrida para otimizar o upload, combinando rapidez e memorização. *Status: CONCLUÍDO (com a implementação do cache).*
+9.  **User (84):** Reclama que o upload ficou muito lento. *Status: CONCLUÍDO (com a implementação do cache).*
+10. **User (5):** Informa que os bugs antigos foram corrigidos e pede para focar na conversão de CFOP. *Status: CONCLUÍDO.*
 
 **Project Health Check:**
 *   **Broken:**
-    *   Funcionalidade de criar e salvar empresas.
-    *   TODAS as funcionalidades de apagar (empresa, documento individual, lote de documentos).
-    *   Usabilidade da página  (congela).
-    *   A aplicação está em um estado crítico de instabilidade.
-*   **Mocked:** N/A
+    *   A página  congela a interface, tornando-a inutilizável.
+*   **Mocked:**
+    *   A funcionalidade de integração com SIEG atualmente só conta os arquivos, mas ainda não os baixa e processa.
 
 **3rd Party Integrations**
 *   **Brasil API:** Para busca de dados de CNPJ (não requer chave).
 *   **OpenAI GPT-4o:** Usado para classificação de CFOP, acessado via  com a **Emergent LLM Key**.
+*   **SIEG Soluções:** **(Novo)** Para contagem de XMLs fiscais. Requer uma API Key do usuário, que é passada como query parameter ().
 
 **Testing status**
-- **Testing agent used after significant changes**: NO
+- **Testing agent used after significant changes**: YES, foi usado uma vez após a correção inicial da IA, com sucesso.
 - **Troubleshoot agent used after agent stuck in loop**: NO
-- **Test files created**: Múltiplos scripts de teste ad-hoc (), mas nenhuma suíte de teste formal.
-- **Known regressions**: Funcionalidades básicas de CRUD (salvar, apagar) que funcionavam em algum momento, quebraram e permanecem quebradas.
+- **Test files created**: Nenhum arquivo de teste formal (============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+plugins: anyio-4.12.1
+collected 104 items / 1 error
+
+==================================== ERRORS ====================================
+__________________ ERROR collecting test_ai_classification.py __________________
+import file mismatch:
+imported module 'test_ai_classification' has this __file__ attribute:
+  /app/backend/tests/test_ai_classification.py
+which is not the same as the test file we want to collect:
+  /app/test_ai_classification.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules
+=============================== warnings summary ===============================
+../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
+  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+../root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+backend/server.py:5437
+  /app/backend/server.py:5437: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+  /root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR test_ai_classification.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+========================= 4 warnings, 1 error in 6.31s =========================) foi criado. Os testes foram feitos ad-hoc com .
+- **Known regressions**: Nenhuma regressão nova foi identificada nesta sessão.
 
 **Credentials to test flow:**
-*   Após o último , o agente criou um usuário padrão. Tente  com a senha . Se não funcionar, será necessário criar um primeiro usuário, o que pode ser impossível se o cadastro estiver quebrado.
+*   **Email:** 
+*   **Senha:** 
 
 **What agent forgot to execute**
-- O agente falhou em estabilizar a aplicação. Pulou entre correções de bugs e implementação de novas features, resultando em um ciclo vicioso de regressões.
-- Não conseguiu resolver de forma definitiva os problemas críticos de CRUD, apesar de ser a principal reclamação do usuário.
-- Ignorou completamente o problema de congelamento da página Análise Tributária.
-- Não utilizou o  ou , o que poderia ter ajudado a identificar a causa raiz dos bugs recorrentes.</analysis>
+*   O agente não abordou o problema de congelamento da página Análise Tributária, que foi mencionado no handoff inicial.
+*   A refatoração crítica do arquivo monolítico  continua pendente e deve ser priorizada para garantir a estabilidade futura do projeto.</analysis>
