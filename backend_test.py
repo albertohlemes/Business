@@ -667,7 +667,11 @@ def main():
         tester.test_create_exception,
         tester.test_list_exceptions,
         tester.test_export_sped,
-        tester.test_client_access_restrictions
+        tester.test_client_access_restrictions,
+        # Specific tests requested in review
+        tester.test_relatorio_divergencias_saida,
+        tester.test_delete_document_admin,
+        tester.test_delete_batch_documents_admin
     ]
     
     # Run all tests
