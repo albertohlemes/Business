@@ -11,7 +11,7 @@ import {
     Clock, CheckCircle2, RefreshCw, 
     ChevronRight, ChevronLeft, Eye, Copy, Building2,
     Users, MapPin, Briefcase, DollarSign, X,
-    Calendar, Hash, FileDown, Settings, FileType
+    Calendar, Hash, FileDown, Settings, FileType, Type
 } from 'lucide-react';
 import {
     Dialog,
@@ -21,6 +21,7 @@ import {
 } from '../components/ui/dialog';
 import DadosExtraidos from '../components/DadosExtraidos';
 import ClienteMinutas from '../components/ClienteMinutas';
+import ConfiguracaoFormatacao from '../components/ConfiguracaoFormatacao';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
