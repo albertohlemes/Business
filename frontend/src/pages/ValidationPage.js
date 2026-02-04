@@ -581,6 +581,14 @@ const ValidationPage = ({ user, onLogout }) => {
   return (
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="validation-page" className="space-y-6">
+        {/* Mensagem de Sucesso */}
+        {successMessage && (
+          <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-pulse">
+            <CheckCircle className="w-5 h-5" />
+            {successMessage}
+          </div>
+        )}
+        
         {/* Header */}
         <div className="bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-xl p-6 shadow-lg">
           <div className="flex items-center justify-between flex-wrap gap-4">
