@@ -2887,10 +2887,11 @@ Se o comando não for claro ou não se aplicar a nenhum produto, retorne {{"alte
         if json_match:
             resultado = json.loads(json_match.group())
         else:
-            return {"success": False, "message": "Não foi possível processar a resposta da IA", "alteracoes": []}
+            # Não encontrou JSON, mas pode ter uma mensagem da IA
+            return {"success": True, "message": response_text, "alteracoes": [], "total_alteracoes": 0}
         
         if resultado.get('erro'):
-            return {"success": False, "message": resultado['erro'], "alteracoes": []}
+            return {"success": True, "message": resultado['erro'], "alteracoes": [], "total_alteracoes": 0}
         
         # Aplicar alterações
         alteracoes_aplicadas = []
