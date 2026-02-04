@@ -11,7 +11,7 @@ import {
     Clock, CheckCircle2, RefreshCw, 
     ChevronRight, ChevronLeft, Eye, Copy, Building2,
     Users, MapPin, Briefcase, DollarSign, FileSearch, X,
-    Calendar, FileDown
+    Calendar, FileDown, Hash
 } from 'lucide-react';
 import {
     Dialog,
@@ -19,8 +19,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '../components/ui/dialog';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
-import { saveAs } from 'file-saver';
+import DadosExtraidos from '../components/DadosExtraidos';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
