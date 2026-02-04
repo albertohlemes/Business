@@ -1289,17 +1289,16 @@ async def sieg_count_xmls(
         raise HTTPException(status_code=500, detail=f"Erro ao consultar SIEG: {str(e)}")
 
 
-@api_router.post("/sieg/sync/{company_id}")
-async def sieg_sync_xmls(
+# ============== SIEG SYNC COM SSE ==============
+sieg_progress_store: Dict[str, Dict] = {}
+
+@api_router.post("/sieg/sync-init/{company_id}")
+async def sieg_sync_init(
     company_id: str,
     competencia: str = Form(...),
     current_user: User = Depends(get_current_user)
 ):
-    """
-    Sincroniza XMLs do SIEG para a empresa e competência.
-    Baixa os XMLs e processa automaticamente (entradas e saídas).
-    """
-    # Buscar empresa
+    """Inicializa uma sessão de sincronização SIEG e retorna um sync_id para acompanhar o progresso"""
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
@@ -1308,98 +1307,363 @@ async def sieg_sync_xmls(
     if not cnpj:
         raise HTTPException(status_code=400, detail="CNPJ da empresa não configurado")
     
-    print(f"[SIEG] Iniciando sincronização para {company.get('razao_social')} - {competencia}")
+    sync_id = str(uuid.uuid4())
+    sieg_progress_store[sync_id] = {
+        "status": "initialized",
+        "step": "Iniciando sincronização...",
+        "progress_percent": 0,
+        "company_id": company_id,
+        "competencia": competencia,
+        "user_id": current_user.id,
+        "user_email": current_user.email,
+        "cnpj": cnpj,
+        "company": company,
+        "results": None,
+        "completed": False
+    }
+    
+    return {"sync_id": sync_id}
+
+
+@api_router.get("/sieg/sync-progress/{sync_id}")
+async def stream_sieg_progress(sync_id: str):
+    """Stream de progresso da sincronização SIEG via Server-Sent Events"""
+    
+    async def event_generator():
+        last_progress = -1
+        while True:
+            if sync_id not in sieg_progress_store:
+                yield f"data: {json.dumps({'error': 'Sincronização não encontrada'})}\n\n"
+                break
+            
+            progress = sieg_progress_store[sync_id]
+            current_progress = progress.get("progress_percent", 0)
+            
+            if current_progress != last_progress or progress.get("completed"):
+                event_data = {
+                    "status": progress["status"],
+                    "step": progress["step"],
+                    "progress_percent": progress["progress_percent"],
+                    "completed": progress.get("completed", False)
+                }
+                
+                if progress.get("completed") and progress.get("results"):
+                    event_data["results"] = progress["results"]
+                    yield f"data: {json.dumps(event_data)}\n\n"
+                    await asyncio.sleep(1)
+                    if sync_id in sieg_progress_store:
+                        del sieg_progress_store[sync_id]
+                    break
+                
+                yield f"data: {json.dumps(event_data)}\n\n"
+                last_progress = current_progress
+            
+            await asyncio.sleep(0.3)
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
+@api_router.post("/sieg/sync-execute/{sync_id}")
+async def sieg_sync_execute(
+    sync_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Executa a sincronização SIEG com progresso em tempo real"""
+    
+    if sync_id not in sieg_progress_store:
+        raise HTTPException(status_code=404, detail="Sessão de sincronização não encontrada")
+    
+    progress = sieg_progress_store[sync_id]
+    company_id = progress["company_id"]
+    competencia = progress["competencia"]
+    cnpj = progress["cnpj"]
+    company = progress["company"]
+    
+    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
+    
+    results = {
+        "empresa": company.get('razao_social', ''),
+        "competencia": competencia,
+        "sieg_stats": {"entrada": 0, "saida": 0},
+        "processados": {"entrada": 0, "saida": 0},
+        "classificados": {"cache": 0, "regras": 0, "ia": 0},
+        "erros": [],
+        "duplicados": [],
+        "relatorio_conversoes": []
+    }
     
     try:
-        # Baixar XMLs do SIEG
+        # STEP 1: Baixar XMLs do SIEG
+        progress["status"] = "downloading"
+        progress["step"] = "Baixando XMLs do SIEG..."
+        progress["progress_percent"] = 5
+        
         sieg_result = await sync_from_sieg(cnpj, competencia)
         
-        results = {
-            "empresa": company.get('razao_social', ''),
-            "competencia": competencia,
-            "sieg_stats": {
-                "entrada": sieg_result.get("totais", {}).get("entrada", 0),
-                "saida": sieg_result.get("totais", {}).get("saida", 0)
-            },
-            "processados": {"entrada": 0, "saida": 0},
-            "erros": [],
-            "duplicados": []
+        entrada_xmls = sieg_result.get("entrada", {}).get("xmls", [])
+        saida_xmls = sieg_result.get("saida", {}).get("xmls", [])
+        total_xmls = len(entrada_xmls) + len(saida_xmls)
+        
+        results["sieg_stats"]["entrada"] = len(entrada_xmls)
+        results["sieg_stats"]["saida"] = len(saida_xmls)
+        
+        if total_xmls == 0:
+            progress["step"] = "Nenhum XML encontrado no SIEG"
+            progress["progress_percent"] = 100
+            progress["status"] = "completed"
+            progress["completed"] = True
+            progress["results"] = results
+            return results
+        
+        progress["step"] = f"Encontrados {total_xmls} XMLs ({len(entrada_xmls)} entradas, {len(saida_xmls)} saídas)"
+        progress["progress_percent"] = 10
+        
+        # STEP 2: Processar XMLs de ENTRADA (com classificação IA)
+        total_stats = {"from_cache": 0, "from_rules": 0, "from_ai": 0, "total": 0}
+        processed_count = 0
+        
+        for idx, xml_data in enumerate(entrada_xmls):
+            processed_count += 1
+            progress["step"] = f"Processando entrada {idx + 1}/{len(entrada_xmls)}..."
+            progress["progress_percent"] = 10 + int((processed_count / total_xmls) * 80)
+            
+            try:
+                xml_content = xml_data.get("xml", "")
+                if not xml_content:
+                    continue
+                
+                # Detectar tipo e parsear
+                xml_type = detect_xml_type(xml_content)
+                if xml_type == 'nfse':
+                    parsed_data = parse_xml_nfse(xml_content)
+                elif xml_type == 'nfce':
+                    parsed_data = parse_xml_nfce(xml_content)
+                else:
+                    parsed_data = parse_xml_nfe(xml_content)
+                
+                chave_nfe = parsed_data.get('chave_nfe', '')
+                
+                # Verificar duplicata
+                existing = await db.xml_documents.find_one({
+                    "company_id": company_id,
+                    "competencia": competencia,
+                    "chave_nfe": chave_nfe
+                }, {"_id": 0})
+                
+                if existing:
+                    results["duplicados"].append(chave_nfe[-10:])
+                    continue
+                
+                # Aplicar CST calculado em cada produto
+                for product in parsed_data.get('produtos', []):
+                    cfop = product.get('cfop', '')
+                    ncm = product.get('ncm', '')
+                    cst_info = calcular_cst_pis_cofins(
+                        ncm=ncm,
+                        cfop=cfop,
+                        tipo_operacao="entrada",
+                        cst_xml=product.get('cst_pis_xml', product.get('cst_pis', '')),
+                        regime=regime_tributario
+                    )
+                    product.update({
+                        'cst_pis_calculado': cst_info['cst_calculado'],
+                        'cst_cofins_calculado': cst_info['cst_calculado'],
+                        'cst_pis': cst_info['cst_calculado'],
+                        'cst_cofins': cst_info['cst_calculado'],
+                        'ncm_aliq_zero': cst_info['aliq_zero']
+                    })
+                
+                # Classificar produtos com IA/cache
+                produtos_para_classificar = parsed_data.get('produtos', [])
+                emitente_uf = parsed_data.get('emitente_uf', '')
+                
+                if produtos_para_classificar:
+                    file_conversions = []
+                    
+                    classifications, stats = await classify_products_with_cache(
+                        produtos_para_classificar, 
+                        company_id, 
+                        company, 
+                        emitente_uf
+                    )
+                    
+                    total_stats["from_cache"] += stats.get("from_cache", 0)
+                    total_stats["from_rules"] += stats.get("from_rules", 0)
+                    total_stats["from_ai"] += stats.get("from_ai", 0)
+                    total_stats["total"] += stats.get("total", 0)
+                    
+                    for p_idx, product in enumerate(produtos_para_classificar):
+                        p_id = str(p_idx)
+                        if p_id in classifications:
+                            result_class = classifications[p_id]
+                            cfop_original = product.get('cfop', '')
+                            cfop_novo = result_class['cfop']
+                            
+                            product['cfop_original'] = cfop_original
+                            product['cfop'] = cfop_novo
+                            product['cfop_sugerido'] = cfop_novo
+                            product['categoria_classificada'] = result_class['categoria']
+                            product['justificativa_ia'] = result_class['justificativa']
+                            
+                            origem = "cache" if "Memorizado" in result_class['justificativa'] else ("regra" if "cadastrado" in result_class['justificativa'].lower() else "ia")
+                            
+                            file_conversions.append({
+                                'produto': product.get('descricao', ''),
+                                'cfop_original': cfop_original,
+                                'cfop_convertido': cfop_novo,
+                                'categoria': result_class['categoria'],
+                                'motivo': result_class['justificativa'],
+                                'origem': origem
+                            })
+                    
+                    if file_conversions:
+                        results["relatorio_conversoes"].append({
+                            "nfe": parsed_data.get('numero_nfe', ''),
+                            "tipo": "entrada",
+                            "conversoes": file_conversions
+                        })
+                
+                # Salvar documento
+                xml_doc = XMLDocument(
+                    company_id=company_id,
+                    competencia=competencia,
+                    tipo="entrada",
+                    modelo=parsed_data.get('modelo', xml_type),
+                    xml_content=xml_content,
+                    uploaded_by=current_user.id,
+                    **{k: v for k, v in parsed_data.items() if k != 'modelo'}
+                )
+                
+                doc = xml_doc.model_dump()
+                doc['uploaded_at'] = doc['uploaded_at'].isoformat()
+                doc['origem'] = 'sieg'
+                
+                await db.xml_documents.insert_one(doc)
+                results["processados"]["entrada"] += 1
+                
+            except Exception as e:
+                results["erros"].append(f"Entrada {idx + 1}: {str(e)}")
+        
+        # STEP 3: Processar XMLs de SAÍDA (sem classificação IA)
+        for idx, xml_data in enumerate(saida_xmls):
+            processed_count += 1
+            progress["step"] = f"Processando saída {idx + 1}/{len(saida_xmls)}..."
+            progress["progress_percent"] = 10 + int((processed_count / total_xmls) * 80)
+            
+            try:
+                xml_content = xml_data.get("xml", "")
+                if not xml_content:
+                    continue
+                
+                xml_type = detect_xml_type(xml_content)
+                if xml_type == 'nfse':
+                    parsed_data = parse_xml_nfse(xml_content)
+                elif xml_type == 'nfce':
+                    parsed_data = parse_xml_nfce(xml_content)
+                else:
+                    parsed_data = parse_xml_nfe(xml_content)
+                
+                chave_nfe = parsed_data.get('chave_nfe', '')
+                
+                existing = await db.xml_documents.find_one({
+                    "company_id": company_id,
+                    "competencia": competencia,
+                    "chave_nfe": chave_nfe
+                }, {"_id": 0})
+                
+                if existing:
+                    results["duplicados"].append(chave_nfe[-10:])
+                    continue
+                
+                # Aplicar CST calculado em cada produto
+                for product in parsed_data.get('produtos', []):
+                    cfop = product.get('cfop', '')
+                    ncm = product.get('ncm', '')
+                    cst_info = calcular_cst_pis_cofins(
+                        ncm=ncm,
+                        cfop=cfop,
+                        tipo_operacao="saida",
+                        cst_xml=product.get('cst_pis_xml', product.get('cst_pis', '')),
+                        regime=regime_tributario
+                    )
+                    product.update({
+                        'cst_pis_calculado': cst_info['cst_calculado'],
+                        'cst_cofins_calculado': cst_info['cst_calculado'],
+                        'cst_pis': cst_info['cst_calculado'],
+                        'cst_cofins': cst_info['cst_calculado'],
+                        'ncm_aliq_zero': cst_info['aliq_zero']
+                    })
+                
+                xml_doc = XMLDocument(
+                    company_id=company_id,
+                    competencia=competencia,
+                    tipo="saida",
+                    modelo=parsed_data.get('modelo', xml_type),
+                    xml_content=xml_content,
+                    uploaded_by=current_user.id,
+                    **{k: v for k, v in parsed_data.items() if k != 'modelo'}
+                )
+                
+                doc = xml_doc.model_dump()
+                doc['uploaded_at'] = doc['uploaded_at'].isoformat()
+                doc['origem'] = 'sieg'
+                
+                await db.xml_documents.insert_one(doc)
+                results["processados"]["saida"] += 1
+                
+            except Exception as e:
+                results["erros"].append(f"Saída {idx + 1}: {str(e)}")
+        
+        # Finalizar
+        results["classificados"] = {
+            "cache": total_stats["from_cache"],
+            "regras": total_stats["from_rules"],
+            "ia": total_stats["from_ai"]
         }
         
-        # Processar XMLs de entrada
-        for xml_data in sieg_result.get("entrada", {}).get("xmls", []):
-            try:
-                xml_content = xml_data.get("xml", "")
-                if xml_content:
-                    # Processar usando a mesma lógica do upload
-                    parsed = parse_nfe_xml(xml_content)
-                    if parsed:
-                        # Verificar duplicata
-                        existing = await db.xml_documents.find_one({
-                            "company_id": company_id,
-                            "chave": parsed.get("chave")
-                        })
-                        
-                        if existing:
-                            results["duplicados"].append(parsed.get("chave", "")[-10:])
-                            continue
-                        
-                        # Preparar documento
-                        doc = {
-                            "id": str(uuid.uuid4()),
-                            "company_id": company_id,
-                            "tipo": "entrada",
-                            "competencia": competencia,
-                            "origem": "sieg",
-                            **parsed,
-                            "created_at": datetime.now(timezone.utc).isoformat(),
-                            "created_by": current_user.email
-                        }
-                        
-                        await db.xml_documents.insert_one(doc)
-                        results["processados"]["entrada"] += 1
-            except Exception as e:
-                results["erros"].append(f"Entrada: {str(e)}")
-        
-        # Processar XMLs de saída
-        for xml_data in sieg_result.get("saida", {}).get("xmls", []):
-            try:
-                xml_content = xml_data.get("xml", "")
-                if xml_content:
-                    parsed = parse_nfe_xml(xml_content)
-                    if parsed:
-                        # Verificar duplicata
-                        existing = await db.xml_documents.find_one({
-                            "company_id": company_id,
-                            "chave": parsed.get("chave")
-                        })
-                        
-                        if existing:
-                            results["duplicados"].append(parsed.get("chave", "")[-10:])
-                            continue
-                        
-                        doc = {
-                            "id": str(uuid.uuid4()),
-                            "company_id": company_id,
-                            "tipo": "saida",
-                            "competencia": competencia,
-                            "origem": "sieg",
-                            **parsed,
-                            "created_at": datetime.now(timezone.utc).isoformat(),
-                            "created_by": current_user.email
-                        }
-                        
-                        await db.xml_documents.insert_one(doc)
-                        results["processados"]["saida"] += 1
-            except Exception as e:
-                results["erros"].append(f"Saída: {str(e)}")
+        progress["step"] = "Sincronização concluída!"
+        progress["progress_percent"] = 100
+        progress["status"] = "completed"
+        progress["completed"] = True
+        progress["results"] = results
         
         print(f"[SIEG] Sincronização concluída: {results['processados']}")
         return results
         
     except Exception as e:
         print(f"[SIEG] Erro na sincronização: {e}")
+        progress["step"] = f"Erro: {str(e)}"
+        progress["status"] = "error"
+        progress["completed"] = True
+        progress["results"] = {"error": str(e)}
         raise HTTPException(status_code=500, detail=f"Erro ao sincronizar com SIEG: {str(e)}")
+
+
+@api_router.post("/sieg/sync/{company_id}")
+async def sieg_sync_xmls(
+    company_id: str,
+    competencia: str = Form(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Sincroniza XMLs do SIEG para a empresa e competência (versão simples sem SSE).
+    Mantido para compatibilidade com código existente.
+    """
+    # Inicializar
+    init_data = await sieg_sync_init(company_id, competencia, current_user)
+    sync_id = init_data["sync_id"]
+    
+    # Executar
+    result = await sieg_sync_execute(sync_id, current_user)
+    return result
 
 
 @api_router.get("/sieg/status")
