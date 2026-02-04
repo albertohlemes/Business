@@ -455,6 +455,7 @@ Estrutura obrigatória:
                 const lastAi = msgs.filter(m => m.assistant).pop();
                 setViewContent(lastAi?.assistant || 'Sem conteúdo');
             }
+            setViewMinutaId(minuta.id);
             setViewOpen(true);
         } catch (e) {
             toast.error('Erro');
