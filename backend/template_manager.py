@@ -371,13 +371,19 @@ class TemplateManagerFiel:
         """Remove marcações Markdown e caracteres decorativos do texto"""
         import re
         
-        # Remover linhas decorativas (======, ------, mas preservar ___ para assinaturas)
-        if re.match(r'^[=\-]{5,}$', texto.strip()):
+        texto_strip = texto.strip()
+        
+        # Remover linhas decorativas (===, ---, 3 ou mais caracteres)
+        if re.match(r'^[=\-]{3,}$', texto_strip):
+            return ''
+        
+        # Remover linhas apenas com asteriscos
+        if re.match(r'^\*{3,}$', texto_strip):
             return ''
         
         # Preservar linhas de assinatura (apenas underscores)
-        if re.match(r'^_+$', texto.strip()):
-            return texto.strip()
+        if re.match(r'^_+$', texto_strip):
+            return texto_strip
         
         # Remover cabeçalhos markdown (### Título)
         texto = re.sub(r'^#{1,6}\s*', '', texto)
