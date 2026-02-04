@@ -22,7 +22,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 const Processos = () => {
     const [minutas, setMinutas] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('alteracao');
+    const [activeTab, setActiveTab] = useState('constituicao');
     
     // Templates
     const [templates, setTemplates] = useState([]);
