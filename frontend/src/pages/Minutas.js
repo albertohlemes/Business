@@ -197,7 +197,20 @@ const Minutas = () => {
                 TIPOS_ALTERACAO.find(t => t.id === id)?.label
             ).join(', ');
             
+            // Extrair dados da empresa para o template
+            const empresa = dadosExtraidos?.empresa || {};
+            const socios = dadosExtraidos?.socios || [];
+            
             const prompt = `Com base no contrato social analisado e nos documentos de apoio anexados, gere uma MINUTA DE ALTERAÇÃO CONTRATUAL completa.
+
+DADOS DA EMPRESA:
+- Razão Social: ${empresa.razao_social || '[A IDENTIFICAR]'}
+- CNPJ: ${empresa.cnpj || '[A IDENTIFICAR]'}
+- Endereço: ${empresa.endereco || '[A IDENTIFICAR]'}
+- Capital Social: ${empresa.capital_social || '[A IDENTIFICAR]'}
+
+SÓCIOS ATUAIS:
+${socios.map(s => `- ${s.nome}, CPF ${s.cpf || 'N/A'}, ${s.participacao || 'N/A'} das quotas${s.administrador ? ' (Administrador)' : ''}`).join('\n') || '[A IDENTIFICAR DO CONTRATO]'}
 
 DATA DA ALTERAÇÃO: ${dataFormatada}
 
@@ -206,16 +219,17 @@ ALTERAÇÕES SOLICITADAS: ${tiposStr}
 DESCRIÇÃO DAS ALTERAÇÕES:
 ${descricaoAlteracao}
 
-INSTRUÇÕES:
-1. Extraia os dados necessários dos documentos de apoio (CNH, comprovantes, etc.)
-2. Use a data "${dataFormatada}" como data da alteração em todo o documento
-3. Gere a minuta no formato padrão:
-   - PREÂMBULO (dados da empresa e sócios atuais)
-   - CLÁUSULAS DE ALTERAÇÃO (cada alteração em cláusula separada)
-   - CONSOLIDAÇÃO DO CONTRATO SOCIAL (texto consolidado com as alterações)
-   - ENCERRAMENTO E ASSINATURAS
+INSTRUÇÕES OBRIGATÓRIAS:
+1. Use o seguinte FORMATO PADRÃO para a minuta:
 
-Use linguagem jurídica formal e precisa. Inclua todos os dados extraídos dos documentos.`;
+${TEMPLATE_MINUTA}
+
+2. Substitua todos os campos entre colchetes com os dados reais
+3. Extraia informações dos documentos de apoio (CNH, comprovantes) quando necessário
+4. Use a data "${dataFormatada}" em todo o documento
+5. Linguagem jurídica formal e precisa
+6. Inclua a CONSOLIDAÇÃO completa do contrato social
+7. Deixe espaço para assinaturas no final`;
 
             const chatRes = await axios.post(`${API_URL}/api/minutas/${minutaId}/chat`, {
                 message: prompt,
