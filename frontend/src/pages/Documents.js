@@ -94,7 +94,7 @@ const Documents = ({ user, onLogout }) => {
     const tipoLabel = selectedTipo === 'entrada' ? ' de ENTRADA' : 
                       selectedTipo === 'saida' ? ' de SAÍDA' : '';
     
-    if (!window.confirm(`Tem certeza que deseja apagar ${count} documento(s)${tipoLabel} da competência ${selectedCompetencia} da empresa ${company?.razao_social}?`)) {
+    if (!window.confirm(`Tem certeza que deseja apagar ${count} documento(s)${tipoLabel} da competência ${selectedCompetencia} da empresa ${ctxCompany?.razao_social}?`)) {
       return;
     }
     
@@ -104,7 +104,7 @@ const Documents = ({ user, onLogout }) => {
       // Passar o tipo como parâmetro para o backend
       const tipoParam = selectedTipo ? `?tipo=${selectedTipo}` : '';
       const response = await axios.delete(
-        `${API}/documents/${selectedCompany}/competencia/${encodeURIComponent(selectedCompetencia)}${tipoParam}`,
+        `${API}/documents/${companyId}/competencia/${encodeURIComponent(selectedCompetencia)}${tipoParam}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       alert(response.data.message);
