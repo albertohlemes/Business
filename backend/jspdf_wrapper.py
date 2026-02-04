@@ -85,7 +85,8 @@ class PDFComCabecalhoRodape(BaseDocTemplate):
 
 def gerar_pdf_simples(conteudo: str, dados_extraidos: Dict[str, Any] = None, formato: Dict[str, Any] = None) -> bytes:
     """
-    Gera um PDF formatado da minuta com cabeçalho e rodapé em todas as páginas
+    Gera um PDF formatado da minuta com cabeçalho e rodapé em todas as páginas.
+    Usa a formatação do template se fornecida.
     """
     buffer = io.BytesIO()
     
@@ -102,8 +103,13 @@ def gerar_pdf_simples(conteudo: str, dados_extraidos: Dict[str, Any] = None, for
     fonte_nome = formato.get("fonte", {}).get("nome", "Times")
     fonte_tamanho = formato.get("fonte", {}).get("tamanho", 12)
     margens = formato.get("margens", {})
-    cabecalho = formato.get("cabecalho", {}).get("texto", ["BUSINESS CONTABILIDADE"])
-    rodape = formato.get("rodape", {}).get("texto", ["Documento gerado pelo Portal Societário"])
+    
+    # Usar cabeçalho/rodapé do template se existir, senão usa padrão
+    cabecalho_config = formato.get("cabecalho")
+    rodape_config = formato.get("rodape")
+    
+    cabecalho = cabecalho_config.get("texto", ["BUSINESS CONTABILIDADE"]) if cabecalho_config else ["BUSINESS CONTABILIDADE"]
+    rodape = rodape_config.get("texto", ["Documento gerado pelo Portal Societário"]) if rodape_config else ["Documento gerado pelo Portal Societário"]
     
     # Criar documento com cabeçalho/rodapé
     doc = PDFComCabecalhoRodape(
