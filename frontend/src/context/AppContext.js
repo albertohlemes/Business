@@ -89,6 +89,52 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // SIEG Functions
+  const [siegStatus, setSiegStatus] = useState({ loading: false, count: null, error: null });
+  const [siegSyncing, setSiegSyncing] = useState(false);
+
+  const checkSiegCount = async (companyId, competencia) => {
+    if (!companyId || !competencia) return;
+    
+    setSiegStatus({ loading: true, count: null, error: null });
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/sieg/count/${companyId}?competencia=${encodeURIComponent(competencia)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setSiegStatus({ loading: false, count: response.data.contagem, error: null });
+      return response.data.contagem;
+    } catch (err) {
+      console.error('[SIEG] Erro ao contar XMLs:', err);
+      setSiegStatus({ loading: false, count: null, error: err.response?.data?.detail || 'Erro ao consultar SIEG' });
+      return null;
+    }
+  };
+
+  const syncFromSieg = async (companyId, competencia) => {
+    if (!companyId || !competencia) return null;
+    
+    setSiegSyncing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('competencia', competencia);
+      
+      const response = await axios.post(
+        `${API}/sieg/sync/${companyId}`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setSiegSyncing(false);
+      return response.data;
+    } catch (err) {
+      console.error('[SIEG] Erro na sincronização:', err);
+      setSiegSyncing(false);
+      throw err;
+    }
+  };
+
   const selectCompany = (company) => {
     setSelectedCompany(company);
     localStorage.setItem('selectedCompanyId', company.id);
