@@ -913,9 +913,10 @@ class FiscalSystemAPITester:
         print("\n🔍 Testing Bulk Delete Documents with Filters...")
         
         # Step 1: Create a test company for bulk delete testing
-        timestamp = datetime.now().strftime('%H%M%S')
+        import time
+        timestamp = str(int(time.time() * 1000000))[-6:]  # Last 6 digits of microseconds
         company_data = {
-            "cnpj": f"55.444.{timestamp[:3]}/0001-22",
+            "cnpj": f"55.{timestamp[:3]}.{timestamp[3:]}/0001-22",
             "razao_social": "Empresa Bulk Delete Test LTDA",
             "nome_fantasia": "Bulk Delete Test Corp",
             "inscricao_estadual": "555444333",
