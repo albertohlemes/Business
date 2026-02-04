@@ -1105,6 +1105,41 @@ async def initialize_cfop_rules(current_user: User = Depends(get_current_user)):
     
     return {"message": f"{inserted} regras CFOP criadas com sucesso"}
 
+@api_router.post("/db/reset")
+async def reset_database(current_user: User = Depends(get_current_user)):
+    """Zera todas as tabelas do banco de dados (exceto usuários)"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem executar esta ação")
+    
+    # Deletar todas as collections (exceto users)
+    deleted_counts = {}
+    
+    # Empresas
+    result = await db.companies.delete_many({})
+    deleted_counts['companies'] = result.deleted_count
+    
+    # Documentos XML
+    result = await db.xml_documents.delete_many({})
+    deleted_counts['xml_documents'] = result.deleted_count
+    
+    # Regras CFOP
+    result = await db.cfop_rules.delete_many({})
+    deleted_counts['cfop_rules'] = result.deleted_count
+    
+    # Exceções de validação
+    result = await db.validation_exceptions.delete_many({})
+    deleted_counts['validation_exceptions'] = result.deleted_count
+    
+    # Regras aprendidas
+    result = await db.learned_rules.delete_many({})
+    deleted_counts['learned_rules'] = result.deleted_count
+    
+    return {
+        "message": "Base de dados zerada com sucesso!",
+        "deleted": deleted_counts,
+        "nota": "Os usuários foram mantidos. Faça login novamente."
+    }
+
 # ============== NOVOS ENDPOINTS PARA IA E RECLASSIFICAÇÃO ==============
 
 async def get_ai_chat(session_id: str, system_message: str):
