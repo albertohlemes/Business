@@ -257,6 +257,74 @@ const UploadXML = ({ user, onLogout }) => {
               </div>
             )}
 
+            {results.rejeitadas_cnpj && results.rejeitadas_cnpj.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                  <h3 className="font-semibold text-red-900">Rejeitadas - CNPJ Não Corresponde ({results.rejeitadas_cnpj.length})</h3>
+                </div>
+                <div className="space-y-2">
+                  {results.rejeitadas_cnpj.map((item, index) => (
+                    <div key={index} className="bg-red-50 p-3 rounded-lg border border-red-200">
+                      <p className="text-sm font-medium text-red-900">{item.filename} - NF-e {item.numero_nfe}</p>
+                      <p className="text-xs text-red-700">{item.motivo}</p>
+                      <p className="text-xs text-gray-600 mt-1">Emitente: {item.emitente} | Destinatário: {item.destinatario}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {results.rejeitadas_competencia && results.rejeitadas_competencia.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle className="w-5 h-5 text-orange-600" />
+                  <h3 className="font-semibold text-orange-900">Rejeitadas - Competência Diferente ({results.rejeitadas_competencia.length})</h3>
+                </div>
+                <div className="space-y-2">
+                  {results.rejeitadas_competencia.map((item, index) => (
+                    <div key={index} className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                      <p className="text-sm font-medium text-orange-900">{item.filename} - NF-e {item.numero_nfe}</p>
+                      <p className="text-xs text-orange-700">{item.motivo}</p>
+                      <p className="text-xs text-gray-600 mt-1">Data de Emissão: {item.data_emissao}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {results.resumo && (
+              <div className="mb-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <h3 className="font-bold text-gray-900 mb-3">Resumo da Importação</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
+                  <div className="bg-white p-3 rounded-lg">
+                    <p className="text-2xl font-bold text-gray-900">{results.resumo.total_arquivos}</p>
+                    <p className="text-xs text-gray-600">Total Enviados</p>
+                  </div>
+                  <div className="bg-green-100 p-3 rounded-lg">
+                    <p className="text-2xl font-bold text-green-700">{results.resumo.importados}</p>
+                    <p className="text-xs text-green-600">Importados</p>
+                  </div>
+                  <div className="bg-yellow-100 p-3 rounded-lg">
+                    <p className="text-2xl font-bold text-yellow-700">{results.resumo.duplicados}</p>
+                    <p className="text-xs text-yellow-600">Duplicados</p>
+                  </div>
+                  <div className="bg-red-100 p-3 rounded-lg">
+                    <p className="text-2xl font-bold text-red-700">{results.resumo.rejeitados_cnpj}</p>
+                    <p className="text-xs text-red-600">CNPJ Errado</p>
+                  </div>
+                  <div className="bg-orange-100 p-3 rounded-lg">
+                    <p className="text-2xl font-bold text-orange-700">{results.resumo.rejeitados_competencia}</p>
+                    <p className="text-xs text-orange-600">Comp. Errada</p>
+                  </div>
+                  <div className="bg-gray-200 p-3 rounded-lg">
+                    <p className="text-2xl font-bold text-gray-700">{results.resumo.erros}</p>
+                    <p className="text-xs text-gray-600">Erros</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {results.relatorio_conversoes && results.relatorio_conversoes.length > 0 && (
               <div className="mb-4">
                 <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg p-4 mb-3">
