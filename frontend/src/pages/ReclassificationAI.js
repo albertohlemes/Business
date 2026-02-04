@@ -167,12 +167,17 @@ const ReclassificationAI = ({ user, onLogout }) => {
     setAiProcessing(true);
     try {
       const token = localStorage.getItem('token');
+      
+      // Se não houver itens selecionados, enviar array vazio para a IA analisar todos
+      // A IA vai entender pela instrução do usuário quais produtos alterar
+      const productIds = selectedItems.length > 0 ? selectedItems : [];
+      
       const response = await axios.post(
         API + '/ai/reclassify',
         {
           company_id: selectedCompany,
           competencia: competencia,
-          product_ids: selectedItems,
+          product_ids: productIds,  // Array vazio = IA decide pela instrução
           instrucao_usuario: aiCommand,
           aplicar_em_lote: true
         },
@@ -449,18 +454,51 @@ const ReclassificationAI = ({ user, onLogout }) => {
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-5 h-5 text-purple-600" />
               <h3 className="font-bold text-purple-900">Comando para IA</h3>
-              <span className="text-sm text-purple-600">
-                ({selectedItems.length} itens selecionados)
-              </span>
+              {selectedItems.length > 0 ? (
+                <span className="text-sm text-purple-600 bg-purple-100 px-2 py-1 rounded">
+                  {selectedItems.length} itens selecionados
+                </span>
+              ) : (
+                <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded">
+                  ✓ A IA vai identificar os produtos pela descrição
+                </span>
+              )}
             </div>
             
             <div className="flex gap-2 mb-3">
-              <button onClick={selectAll} className="text-sm px-3 py-1 bg-purple-100 text-purple-700 rounded">
+              <button onClick={selectAll} className="text-sm px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 flex items-center gap-1">
+                <Check className="w-3 h-3" />
                 Selecionar Todos
               </button>
-              <button onClick={clearSelection} className="text-sm px-3 py-1 bg-gray-100 text-gray-700 rounded">
+              <button onClick={clearSelection} className="text-sm px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
                 Limpar Seleção
               </button>
+            </div>
+
+            <div className="bg-white p-3 rounded-lg border border-purple-200 mb-3">
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>💡 Dica:</strong> Você não precisa selecionar itens! Basta descrever o que quer e a IA vai entender:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button 
+                  onClick={() => setAiCommand('Reclassifique todos os produtos de limpeza como DESPESA (CFOP 1556)')}
+                  className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                >
+                  "produtos de limpeza → DESPESA"
+                </button>
+                <button 
+                  onClick={() => setAiCommand('Produtos com NCM que começa com 30 são medicamentos e devem ser DESPESA')}
+                  className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                >
+                  "NCM 30* → medicamentos"
+                </button>
+                <button 
+                  onClick={() => setAiCommand('Material de escritório deve ser classificado como DESPESA (CFOP 1556)')}
+                  className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                >
+                  "material escritório → DESPESA"
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-3">
@@ -470,12 +508,12 @@ const ReclassificationAI = ({ user, onLogout }) => {
                 onChange={(e) => setAiCommand(e.target.value)}
                 className="flex-1 px-4 py-3 border border-purple-300 rounded-lg resize-none"
                 rows="2"
-                placeholder="Ex: 'Reclassifique todos os produtos de limpeza como DESPESA (CFOP 1556)' ou 'Produtos com NCM 3401 são insumos de produção'"
+                placeholder="Digite o que deseja reclassificar. Ex: 'Produtos de limpeza são despesa' ou 'Itens com código X, Y, Z são insumos'"
               />
               <button
                 data-testid="process-ai-btn"
                 onClick={processAIReclassification}
-                disabled={aiProcessing || selectedItems.length === 0}
+                disabled={aiProcessing || !aiCommand.trim()}
                 className="px-6 py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
               >
                 {aiProcessing ? (
