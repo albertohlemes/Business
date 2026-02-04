@@ -192,16 +192,17 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 ## Próximas Tarefas (Backlog)
 
 ### P1 - Alta Prioridade
-- [ ] Corrigir AppContext para re-buscar empresas após login (issue conhecido)
+- [ ] Finalizar e testar a funcionalidade de exportação do **SPED Fiscal**
+- [ ] Melhorar análise comparativa "Lucro Presumido vs. Lucro Real" no Dashboard
 
 ### P2 - Média Prioridade
 - [ ] Histórico de alterações (audit log) para reclassificações
 - [ ] Testar exportação SPED com dados reais
 - [ ] Dashboard principal com indicadores de todas as empresas
+- [ ] Validação de alíquota de ICMS por estado
 
 ### P3 - Baixa Prioridade
-- [ ] Refatorar backend em módulos separados (routes, models, services)
-- [ ] Melhorar UX do modal de seleção de empresa
+- [ ] Refatorar backend em módulos separados (routes, models, services) - server.py tem 3000+ linhas
 
 ## Changelog
 
