@@ -93,18 +93,12 @@ function App() {
               element={user ? <ClassificacaoPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
-              path="/reclassification"
-              element={user ? <Navigate to="/classificacao" /> : <Navigate to="/login" />}
-            />
+              path="/export"
               element={user ? <ExportMenu user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
               path="/reports"
               element={user ? <Reports user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
-            />
-            <Route
-              path="/reclassification"
-              element={user ? <ReclassificationAI user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
               path="/analise-aliquotas-saida"
