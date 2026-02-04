@@ -1136,6 +1136,7 @@ async def upload_xml_batch(
     # Extrair CNPJ da empresa selecionada (limpar formatação)
     cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
     uf_empresa = company.get('uf', 'SP')
+    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
     
     results = []
     errors = []
