@@ -1413,7 +1413,7 @@ async def upload_xml_batch(
                 if tipo == 'entrada' and cfop_original not in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
                     # Tenta classificação simples primeiro
                     classification_result = await suggest_cfop_intelligent(
-                        product, company_id, tipo, cfop_original
+                        product, company_id, tipo, cfop_original, emitente_uf
                     )
                     
                     # Se a classificação retornou algo genérico ou queremos forçar IA para semantic match
