@@ -71,10 +71,11 @@ const Minutas = () => {
     const [viewContent, setViewContent] = useState('');
     const [viewMinutaId, setViewMinutaId] = useState(null);
 
-    // Helper para agrupar minutas por cliente
-    const getMinutasAgrupadas = () => {
+    // Agrupar minutas por cliente usando useMemo
+    const minutasAgrupadas = useMemo(() => {
         const grupos = {};
-        minutas.forEach(m => {
+        for (let i = 0; i < minutas.length; i++) {
+            const m = minutas[i];
             const key = m.cnpj || m.razao_social || 'sem-identificacao';
             if (!grupos[key]) {
                 grupos[key] = {
@@ -84,9 +85,9 @@ const Minutas = () => {
                 };
             }
             grupos[key].alteracoes.push(m);
-        });
-        return Object.entries(grupos);
-    };
+        }
+        return Object.keys(grupos).map(k => ({ key: k, ...grupos[k] }));
+    }, [minutas]);
 
     useEffect(() => {
         fetchMinutas();
