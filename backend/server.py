@@ -1526,6 +1526,7 @@ async def report_by_product(
 async def report_by_ncm(
     company_id: str,
     competencia: Optional[str] = None,
+    tipo: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
@@ -1538,6 +1539,8 @@ async def report_by_ncm(
     query = {"company_id": company_id}
     if competencia:
         query['competencia'] = competencia
+    if tipo and tipo != 'todos':
+        query['tipo'] = tipo
     
     documents = await db.xml_documents.find(query, {"_id": 0}).to_list(10000)
     
@@ -1552,7 +1555,7 @@ async def report_by_ncm(
     })
     
     for doc in documents:
-        for prod in doc['produtos']:
+        for prod in doc.get('produtos', []):
             ncm = prod.get('ncm', '')
             ncm_summary[ncm]['quantidade_produtos'] += 1
             ncm_summary[ncm]['quantidade'] += prod.get('quantidade', 0)
