@@ -56,14 +56,6 @@ const Reports = ({ user, onLogout }) => {
     }
   };
 
-  const handleCompanyChange = (companyId) => {
-    setSelectedCompany(companyId);
-    setReportData([]);
-    if (companyId) {
-      fetchCompetencias(companyId);
-    }
-  };
-
   const generateReport = async () => {
     if (!selectedCompany) {
       alert('Selecione uma empresa');
