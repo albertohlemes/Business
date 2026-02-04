@@ -127,28 +127,14 @@ const Licencas = () => {
         setBaixando(id);
         try {
             const response = await axios.get(`${API_URL}/api/licencas/${id}/download`);
-            const { conteudo, nome_arquivo } = response.data;
+            const { conteudo } = response.data;
             
-            // Criar blob e forçar download
-            const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
-            
-            // Método alternativo mais confiável
-            const link = document.createElement('a');
-            link.href = window.URL.createObjectURL(blob);
-            link.download = nome_arquivo;
-            link.style.display = 'none';
-            document.body.appendChild(link);
-            link.click();
-            
-            // Cleanup após pequeno delay
-            setTimeout(() => {
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(link.href);
-            }, 100);
-            
-            toast.success('Licença baixada!');
+            // Exibir em tela ao invés de baixar
+            setLicencaContent(conteudo);
+            setLicencaViewOpen(true);
+            toast.success('Licença carregada!');
         } catch (error) {
-            toast.error(error.response?.data?.detail || 'Erro ao baixar licença');
+            toast.error(error.response?.data?.detail || 'Erro ao carregar licença');
         } finally {
             setBaixando(null);
         }
