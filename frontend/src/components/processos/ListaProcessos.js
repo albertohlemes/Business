@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { 
-    FileText, Trash2, Eye, Building2, Hash, FileDown, FileType, RefreshCw
+    FileText, Trash2, Eye, Building2, Hash, FileDown, FileType, RefreshCw, Copy
 } from 'lucide-react';
 import {
     Dialog,
@@ -11,7 +11,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '../ui/dialog';
-import { Copy } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -41,11 +40,59 @@ const ClienteCard = ({ cliente, onView, onDownloadWord, onDownloadPDF, onDelete 
                     {cliente.processos.length} processo{cliente.processos.length === 1 ? '' : 's'}
                 </span>
             </div>
+            
+            {/* Lista de Processos do Cliente */}
+            <div className="ml-8 space-y-2">
+                {cliente.processos.map(m => (
+                    <div 
+                        key={m.id} 
+                        className="flex items-center justify-between bg-zinc-950 border border-zinc-800 rounded p-3 hover:border-zinc-700 transition-colors"
+                        data-testid={`processo-${m.id}`}
+                    >
+                        <div className="flex items-center gap-4">
+                            <span className="flex items-center gap-1 text-red-500 font-mono font-medium text-sm">
+                                <Hash className="w-3 h-3" />
+                                {m.numero_alteracao || '-'}
+                            </span>
+                            <span className="text-zinc-300">
+                                {m.tipo_processo === 'constituicao' ? 'Constituição' : 
+                                 m.tipo_processo === 'baixa' ? 'Baixa' : 
+                                 m.tipo_alteracao || 'Alteração'}
+                            </span>
+                            {getStatus(m.status)}
+                            <span className="text-xs text-zinc-500">
+                                {new Date(m.created_at).toLocaleDateString('pt-BR')}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            {m.conteudo_gerado && (
+                                <>
+                                    <Button size="sm" variant="outline" onClick={() => onDownloadWord(m.id)} className="border-zinc-700 h-8" title="Baixar Word">
+                                        <FileType className="w-4 h-4" />
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => onDownloadPDF(m.id)} className="border-zinc-700 h-8" title="Baixar PDF">
+                                        <FileDown className="w-4 h-4" />
+                                    </Button>
+                                </>
+                            )}
+                            <Button size="sm" variant="outline" onClick={() => onView(m)} className="border-zinc-700 h-8" title="Visualizar">
+                                <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => onDelete(m.id)} className="border-zinc-700 hover:border-red-600 h-8" title="Excluir">
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, emptyMessage, emptyDescription }) => {
     const [viewOpen, setViewOpen] = useState(false);
     const [viewContent, setViewContent] = useState('');
-    const [viewMinutaId, setViewMinutaId] = useState(null);
+    const [viewProcessoId, setViewProcessoId] = useState(null);
 
     // Agrupar processos por cliente
     const processosAgrupados = useMemo(() => {
@@ -65,16 +112,16 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, emptyMessag
         return Object.keys(grupos).map(k => ({ key: k, ...grupos[k] }));
     }, [minutas]);
 
-    const downloadWord = async (minutaId) => {
+    const downloadWord = async (processoId) => {
         try {
-            const response = await axios.get(`${API_URL}/api/minutas/${minutaId}/download/word`, {
+            const response = await axios.get(`${API_URL}/api/minutas/${processoId}/download/word`, {
                 responseType: 'blob'
             });
             
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `processo_${minutaId}.docx`);
+            link.setAttribute('download', `processo_${processoId}.docx`);
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -86,16 +133,16 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, emptyMessag
         }
     };
     
-    const downloadPDF = async (minutaId) => {
+    const downloadPDF = async (processoId) => {
         try {
-            const response = await axios.get(`${API_URL}/api/minutas/${minutaId}/download/pdf`, {
+            const response = await axios.get(`${API_URL}/api/minutas/${processoId}/download/pdf`, {
                 responseType: 'blob'
             });
             
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `processo_${minutaId}.pdf`);
+            link.setAttribute('download', `processo_${processoId}.pdf`);
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -107,7 +154,7 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, emptyMessag
         }
     };
 
-    const deleteMinuta = async (id) => {
+    const deleteProcesso = async (id) => {
         try {
             await axios.delete(`${API_URL}/api/minutas/${id}`);
             toast.success('Processo removido');
@@ -117,9 +164,9 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, emptyMessag
         }
     };
 
-    const viewMinuta = async (minuta) => {
+    const viewProcesso = async (processo) => {
         try {
-            const res = await axios.get(`${API_URL}/api/minutas/${minuta.id}`);
+            const res = await axios.get(`${API_URL}/api/minutas/${processo.id}`);
             if (res.data.conteudo_gerado) {
                 setViewContent(res.data.conteudo_gerado);
             } else {
@@ -127,7 +174,7 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, emptyMessag
                 const lastAi = msgs.filter(m => m.assistant).pop();
                 setViewContent(lastAi?.assistant || 'Sem conteúdo');
             }
-            setViewMinutaId(minuta.id);
+            setViewProcessoId(processo.id);
             setViewOpen(true);
         } catch (e) {
             toast.error('Erro ao carregar');
@@ -140,8 +187,8 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, emptyMessag
                 <div className="p-6 border-b border-zinc-800">
                     <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                         <FileText className="w-5 h-5 text-red-500" />
-                        {tipoProcesso === 'alteracao' ? 'Alterações Contratuais' : 
-                         tipoProcesso === 'constituicao' ? 'Constituições de Empresas' : 'Processos'}
+                        {tipoProcesso === 'constituicao' ? 'Constituições de Empresas' : 
+                         tipoProcesso === 'alteracao' ? 'Alterações Contratuais' : 'Processos'}
                     </h2>
                 </div>
                 
@@ -161,10 +208,10 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, emptyMessag
                             <ClienteCard 
                                 key={cliente.key}
                                 cliente={cliente}
-                                onView={viewMinuta}
+                                onView={viewProcesso}
                                 onDownloadWord={downloadWord}
                                 onDownloadPDF={downloadPDF}
-                                onDelete={deleteMinuta}
+                                onDelete={deleteProcesso}
                             />
                         ))}
                     </div>
@@ -183,14 +230,14 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, emptyMessag
                             <div className="flex gap-2">
                                 <Button 
                                     size="sm" 
-                                    onClick={() => downloadWord(viewMinutaId)}
+                                    onClick={() => downloadWord(viewProcessoId)}
                                     className="bg-blue-600 hover:bg-blue-700"
                                 >
                                     <FileType className="w-4 h-4 mr-2" /> Word
                                 </Button>
                                 <Button 
                                     size="sm" 
-                                    onClick={() => downloadPDF(viewMinutaId)}
+                                    onClick={() => downloadPDF(viewProcessoId)}
                                     className="bg-red-600 hover:bg-red-700"
                                 >
                                     <FileDown className="w-4 h-4 mr-2" /> PDF
