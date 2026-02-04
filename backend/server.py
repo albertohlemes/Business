@@ -1178,6 +1178,131 @@ async def delete_minuta(minuta_id: str, current_user: dict = Depends(get_current
         raise HTTPException(status_code=404, detail="Minuta não encontrada")
     return {"message": "Minuta removida com sucesso"}
 
+# ============ TEMPLATES DE FORMATAÇÃO ============
+
+TEMPLATES_DIR = UPLOAD_DIR / "templates"
+TEMPLATES_DIR.mkdir(exist_ok=True)
+
+@api_router.post("/templates/upload")
+async def upload_template(
+    file: UploadFile = File(...),
+    nome: str = Form(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Upload de template de formatação (Word ou PDF)"""
+    valid_types = ['.docx', '.doc', '.pdf']
+    ext = '.' + file.filename.split('.')[-1].lower() if '.' in file.filename else ''
+    
+    if ext not in valid_types:
+        raise HTTPException(status_code=400, detail="Formato inválido. Use .docx, .doc ou .pdf")
+    
+    template_id = str(uuid.uuid4())
+    file_path = TEMPLATES_DIR / f"template_{template_id}{ext}"
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    template = {
+        "id": template_id,
+        "nome": nome,
+        "arquivo": str(file_path),
+        "arquivo_nome": file.filename,
+        "tipo": ext[1:],  # docx, pdf
+        "user_id": current_user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.templates.insert_one(template)
+    
+    return {"id": template_id, "nome": nome, "tipo": ext[1:], "message": "Template salvo com sucesso"}
+
+@api_router.get("/templates")
+async def list_templates(current_user: dict = Depends(get_current_user)):
+    """Lista templates do usuário"""
+    templates = await db.templates.find(
+        {"user_id": current_user["id"]},
+        {"_id": 0, "user_id": 0}
+    ).to_list(50)
+    return templates
+
+@api_router.delete("/templates/{template_id}")
+async def delete_template(template_id: str, current_user: dict = Depends(get_current_user)):
+    """Remove um template"""
+    template = await db.templates.find_one({"id": template_id, "user_id": current_user["id"]})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template não encontrado")
+    
+    # Remover arquivo
+    if os.path.exists(template["arquivo"]):
+        os.remove(template["arquivo"])
+    
+    await db.templates.delete_one({"id": template_id})
+    return {"message": "Template removido"}
+
+@api_router.get("/minutas/{minuta_id}/download/word")
+async def download_minuta_word(minuta_id: str, current_user: dict = Depends(get_current_user)):
+    """Gera e baixa a minuta em formato Word (.docx)"""
+    from template_manager import gerar_minuta_word
+    
+    minuta = await db.minutas.find_one({"id": minuta_id, "user_id": current_user["id"]})
+    if not minuta:
+        raise HTTPException(status_code=404, detail="Minuta não encontrada")
+    
+    conteudo = minuta.get("conteudo_gerado")
+    if not conteudo:
+        raise HTTPException(status_code=400, detail="Minuta ainda não foi gerada")
+    
+    dados_extraidos = minuta.get("dados_extraidos", {})
+    
+    # Verificar se usuário tem template
+    template = await db.templates.find_one({"user_id": current_user["id"]})
+    template_path = template["arquivo"] if template else None
+    
+    # Gerar documento Word
+    doc_bytes = gerar_minuta_word(conteudo, dados_extraidos, template_path)
+    
+    # Nome do arquivo
+    cnpj = minuta.get("cnpj", "").replace(".", "").replace("/", "").replace("-", "")
+    data_str = datetime.now().strftime("%Y%m%d")
+    filename = f"alteracao_contratual_{cnpj or 'minuta'}_{data_str}.docx"
+    
+    return Response(
+        content=doc_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+@api_router.get("/minutas/{minuta_id}/download/pdf")
+async def download_minuta_pdf(minuta_id: str, current_user: dict = Depends(get_current_user)):
+    """Gera e baixa a minuta em formato PDF"""
+    from template_manager import gerar_minuta_word
+    
+    minuta = await db.minutas.find_one({"id": minuta_id, "user_id": current_user["id"]})
+    if not minuta:
+        raise HTTPException(status_code=404, detail="Minuta não encontrada")
+    
+    conteudo = minuta.get("conteudo_gerado")
+    if not conteudo:
+        raise HTTPException(status_code=400, detail="Minuta ainda não foi gerada")
+    
+    dados_extraidos = minuta.get("dados_extraidos", {})
+    
+    # Por enquanto, gera Word e converte (ideal seria usar weasyprint ou similar)
+    # Como alternativa simples, retornamos o PDF gerado pelo frontend
+    from jspdf_wrapper import gerar_pdf_simples
+    
+    pdf_bytes = gerar_pdf_simples(conteudo, dados_extraidos)
+    
+    cnpj = minuta.get("cnpj", "").replace(".", "").replace("/", "").replace("-", "")
+    data_str = datetime.now().strftime("%Y%m%d")
+    filename = f"alteracao_contratual_{cnpj or 'minuta'}_{data_str}.pdf"
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
 # ============ DASHBOARD STATS ============
 
 @api_router.get("/dashboard/stats")
