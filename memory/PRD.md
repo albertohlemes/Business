@@ -49,8 +49,19 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 ### ✅ Reclassificação com IA
 - Visualização por NF-e ou por Produtos agrupados
 - Comando para IA reclassificar em lote
+- **Não precisa selecionar itens** - A IA identifica produtos pela descrição
+- Dica com exemplos clicáveis de comandos ("produtos de limpeza → DESPESA", etc.)
 - Sistema de aprendizado que memoriza correções
 - Validação de PIS/COFINS/ICMS com base legal (alíquota zero)
+
+### ✅ **Validação de Classificações** (04/02/2026)
+- Página dedicada: `/validation`
+- **Header verde com estatísticas**: Aprovados, Pendentes, Total
+- **Explicação "Como funciona?"**: Aprovar = concordar, Alterar = mudar CFOP
+- **Checkbox individual** para aprovar cada produto
+- **Botões em lote**: "Aprovar Todos" e "Limpar" por documento
+- **Filtro "Mostrar só pendentes"** para focar nos itens não revisados
+- Persistência de aprovações no localStorage por empresa/competência
 
 ### ✅ Relatórios por Competência
 - Filtro de competência nos relatórios gerenciais
