@@ -85,30 +85,30 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
     
     // Créditos
     csv += 'CRÉDITOS - OPERAÇÕES COM DIREITO A CRÉDITO\n';
-    csv += 'Código;Valor;PIS;COFINS;Qtd\n';
+    csv += 'Código;Valor;CST PIS/COFINS;PIS;COFINS;Qtd\n';
     const creditoItems = viewMode === 'cfop' ? data.creditos.com_credito.por_cfop : data.creditos.com_credito.por_ncm;
     creditoItems.forEach(item => {
-      csv += `${item.codigo};${item.valor};${item.pis};${item.cofins};${item.qtd}\n`;
+      csv += `${item.codigo};${item.valor};${item.cst || ''};${item.pis};${item.cofins};${item.qtd}\n`;
     });
-    csv += `TOTAL;${data.creditos.com_credito.valor_operacoes};${data.creditos.com_credito.pis};${data.creditos.com_credito.cofins};\n\n`;
+    csv += `TOTAL;${data.creditos.com_credito.valor_operacoes};;${data.creditos.com_credito.pis};${data.creditos.com_credito.cofins};\n\n`;
     
     // Créditos alíquota zero
     csv += 'CRÉDITOS - OPERAÇÕES ALÍQUOTA ZERO (SEM CRÉDITO)\n';
-    csv += 'Código;Valor;Qtd\n';
+    csv += 'Código;Valor;CST PIS/COFINS;Qtd\n';
     const creditoZeroItems = viewMode === 'cfop' ? data.creditos.aliquota_zero.por_cfop : data.creditos.aliquota_zero.por_ncm;
     creditoZeroItems.forEach(item => {
-      csv += `${item.codigo};${item.valor};${item.qtd}\n`;
+      csv += `${item.codigo};${item.valor};${item.cst || ''};${item.qtd}\n`;
     });
-    csv += `TOTAL;${data.creditos.aliquota_zero.valor_operacoes};\n\n`;
+    csv += `TOTAL;${data.creditos.aliquota_zero.valor_operacoes};;\n\n`;
     
     // Débitos
     csv += 'DÉBITOS - OPERAÇÕES COM DÉBITO\n';
-    csv += 'Código;Valor;PIS;COFINS;Qtd\n';
+    csv += 'Código;Valor;CST PIS/COFINS;PIS;COFINS;Qtd\n';
     const debitoItems = viewMode === 'cfop' ? data.debitos.com_debito.por_cfop : data.debitos.com_debito.por_ncm;
     debitoItems.forEach(item => {
-      csv += `${item.codigo};${item.valor};${item.pis};${item.cofins};${item.qtd}\n`;
+      csv += `${item.codigo};${item.valor};${item.cst || ''};${item.pis};${item.cofins};${item.qtd}\n`;
     });
-    csv += `TOTAL;${data.debitos.com_debito.valor_operacoes};${data.debitos.com_debito.pis};${data.debitos.com_debito.cofins};\n\n`;
+    csv += `TOTAL;${data.debitos.com_debito.valor_operacoes};;${data.debitos.com_debito.pis};${data.debitos.com_debito.cofins};\n\n`;
     
     // Apuração
     csv += 'APURAÇÃO\n';
