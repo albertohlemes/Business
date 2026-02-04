@@ -571,6 +571,13 @@ async def upload_minuta(
     arquivo_original = None
     arquivo_nome = None
     
+    # Buscar próximo número sequencial para o usuário
+    ultimo_numero = await db.minutas.find_one(
+        {"user_id": current_user["id"]},
+        sort=[("numero_alteracao", -1)]
+    )
+    numero_alteracao = (ultimo_numero.get("numero_alteracao", 0) if ultimo_numero else 0) + 1
+    
     # Contrato social é opcional agora
     if file and file.filename:
         file_ext = file.filename.split(".")[-1] if "." in file.filename else "pdf"
@@ -593,6 +600,10 @@ async def upload_minuta(
         "status": "pendente",
         "user_id": current_user["id"],
         "mensagens": [],
+        "numero_alteracao": numero_alteracao,
+        "dados_extraidos": None,  # Dados estruturados extraídos do contrato
+        "cnpj": None,
+        "razao_social": None,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.minutas.insert_one(minuta)
@@ -604,7 +615,8 @@ async def upload_minuta(
         arquivo_original=arquivo_nome or "",
         conteudo_gerado=None,
         status="pendente",
-        created_at=minuta["created_at"]
+        created_at=minuta["created_at"],
+        numero_alteracao=numero_alteracao
     )
 
 @api_router.post("/minutas/{minuta_id}/documentos")
