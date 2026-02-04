@@ -109,22 +109,47 @@ const ApuracaoPeriodo = ({ user, onLogout }) => {
               </td>
             </tr>
           ) : (
-            items.map((item, idx) => (
-              <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="px-4 py-3 font-mono font-medium text-gray-900">{item.cfop}</td>
-                <td className="px-4 py-3 text-center font-mono text-gray-600">{item.cst || '-'}</td>
-                <td className="px-4 py-3 text-right">{formatCurrency(item.valor)}</td>
-                <td className="px-4 py-3 text-right">{formatCurrency(item.bc_icms)}</td>
-                <td className="px-4 py-3 text-right">{formatCurrency(item.v_icms)}</td>
-                <td className="px-4 py-3 text-right">{formatCurrency(item.v_pis)}</td>
-                <td className="px-4 py-3 text-right">{formatCurrency(item.v_cofins)}</td>
-              </tr>
-            ))
+            items.map((item, idx) => {
+              const isST = item.sem_credito_icms || item.is_st;
+              return (
+                <tr key={idx} className={`border-b border-gray-100 hover:bg-gray-50 ${isST ? 'bg-red-50' : ''}`}>
+                  <td className="px-4 py-3 font-mono font-medium text-gray-900">
+                    {item.cfop}
+                    {isST && (
+                      <span className="ml-2 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded" title="Substituição Tributária - Sem crédito de ICMS">
+                        ST
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-center font-mono text-gray-600">{item.cst || '-'}</td>
+                  <td className="px-4 py-3 text-right">{formatCurrency(item.valor)}</td>
+                  <td className={`px-4 py-3 text-right ${isST ? 'text-red-600 line-through' : ''}`}>
+                    {formatCurrency(item.bc_icms)}
+                  </td>
+                  <td className={`px-4 py-3 text-right ${isST ? 'text-red-600 line-through' : ''}`}>
+                    {formatCurrency(item.v_icms)}
+                  </td>
+                  <td className="px-4 py-3 text-right">{formatCurrency(item.v_pis)}</td>
+                  <td className="px-4 py-3 text-right">{formatCurrency(item.v_cofins)}</td>
+                </tr>
+              );
+            })
           )}
         </tbody>
         <tfoot>
+          {/* Linha de ST desconsiderado (se houver) */}
+          {tipo === 'entrada' && subtotal.st_desconsiderado && subtotal.st_desconsiderado.v_icms > 0 && (
+            <tr className="bg-red-100 text-red-700">
+              <td className="px-4 py-2 text-sm" colSpan={3}>
+                ⚠️ ST Desconsiderado (sem crédito)
+              </td>
+              <td className="px-4 py-2 text-right text-sm line-through">{formatCurrency(subtotal.st_desconsiderado.bc_icms)}</td>
+              <td className="px-4 py-2 text-right text-sm line-through">{formatCurrency(subtotal.st_desconsiderado.v_icms)}</td>
+              <td colSpan={2}></td>
+            </tr>
+          )}
           <tr className={`${tipo === 'entrada' ? 'bg-blue-100' : 'bg-green-100'} font-bold`}>
-            <td className="px-4 py-3 text-gray-800">SUBTOTAL</td>
+            <td className="px-4 py-3 text-gray-800">SUBTOTAL {tipo === 'entrada' && subtotal.st_desconsiderado?.v_icms > 0 ? '(c/ crédito)' : ''}</td>
             <td className="px-4 py-3 text-center text-gray-600">-</td>
             <td className="px-4 py-3 text-right text-gray-900">{formatCurrency(subtotal.valor)}</td>
             <td className="px-4 py-3 text-right text-gray-900">{formatCurrency(subtotal.bc_icms)}</td>
