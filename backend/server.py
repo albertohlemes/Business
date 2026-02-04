@@ -3477,61 +3477,7 @@ async def export_sped(
 @api_router.post("/cfop/initialize")
 async def initialize_cfop_rules(current_user: User = Depends(get_current_user)):
     if current_user.role != UserRole.ADMIN:
-@api_router.get("/export/csv/saida")
-async def export_csv_saida(
-    company_id: str, 
-    competencia: str,
-    current_user: User = Depends(get_current_user)
-):
-    """Exportar CSV de Saídas (Layout Personalizado)"""
-    # Verify company access
-    if current_user.role != UserRole.ADMIN:
-        company = await db.companies.find_one({"id": company_id})
-        if not company or company['cnpj'] not in current_user.company_ids:
-             raise HTTPException(status_code=403, detail="Acesso negado")
-
-    docs = await db.xml_documents.find({
-        "company_id": company_id,
-        "competencia": competencia,
-        "tipo": "saida"
-    }, {"_id": 0, "xml_content": 0}).to_list(10000)
-    
-    csv_content = generate_csv_saida(docs)
-    
-    filename = f"saidas_{company_id}_{competencia.replace('/', '-')}.txt"
-    return StreamingResponse(
-        iter([csv_content]),
-        media_type="text/plain",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )
-
-@api_router.get("/export/csv/entrada")
-async def export_csv_entrada(
-    company_id: str, 
-    competencia: str,
-    current_user: User = Depends(get_current_user)
-):
-    """Exportar CSV de Entradas (Layout Personalizado)"""
-    # Verify company access
-    if current_user.role != UserRole.ADMIN:
-        company = await db.companies.find_one({"id": company_id})
-        if not company or company['cnpj'] not in current_user.company_ids:
-             raise HTTPException(status_code=403, detail="Acesso negado")
-
-    docs = await db.xml_documents.find({
-        "company_id": company_id,
-        "competencia": competencia,
-        "tipo": "entrada"
-    }, {"_id": 0, "xml_content": 0}).to_list(10000)
-    
-    csv_content = generate_csv_entrada(docs)
-    
-    filename = f"entradas_{company_id}_{competencia.replace('/', '-')}.txt"
-    return StreamingResponse(
-        iter([csv_content]),
-        media_type="text/plain",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )
+    # Removed misplaced export endpoints
 
         raise HTTPException(status_code=403, detail="Apenas administradores podem executar esta ação")
     
