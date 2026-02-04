@@ -124,6 +124,8 @@ class CompanyCreate(BaseModel):
     produtos_comercializados: List[str] = []
     insumos_producao: List[str] = []
     produtos_despesa: List[str] = []
+    ativo_imobilizado: List[str] = []
+    combustivel: List[str] = []
     # Regime Tributário
     regime_tributario: str = "lucro_presumido"
     anexos_simples: List[str] = []
