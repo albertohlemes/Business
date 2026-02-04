@@ -289,7 +289,8 @@ const Companies = ({ user, onLogout }) => {
 
   const filteredCompanies = companies.filter(company =>
     company.razao_social.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.cnpj.includes(searchTerm)
+    company.cnpj.includes(searchTerm) ||
+    (company.codigo_empresa && company.codigo_empresa.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -303,7 +304,7 @@ const Companies = ({ user, onLogout }) => {
           {user.role === 'admin' && (
             <button
               data-testid="add-company-button"
-              onClick={() => setShowForm(!showForm)}
+              onClick={handleNewCompany}
               className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 shadow-lg"
             >
               <Plus className="w-5 h-5" />
@@ -314,41 +315,76 @@ const Companies = ({ user, onLogout }) => {
 
         {showForm && (
           <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Cadastrar Nova Empresa</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                {editingCompany ? 'Editar Empresa' : 'Cadastrar Nova Empresa'}
+              </h2>
+              <button
+                type="button"
+                onClick={handleCancelForm}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-4 mb-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <RefreshCw className="w-5 h-5 text-green-600" />
-                  <h3 className="font-bold text-green-900">Busca Automática na Receita Federal</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="md:col-span-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">CNPJ *</label>
-                    <input
-                      data-testid="company-cnpj-input"
-                      type="text"
-                      value={formData.cnpj}
-                      onChange={(e) => setFormData({ ...formData, cnpj: formatCNPJ(e.target.value) })}
-                      className="w-full px-4 py-3 border-2 border-green-300 rounded-lg text-lg font-semibold"
-                      required
-                      placeholder="00.000.000/0000-00"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <button
-                      type="button"
-                      data-testid="buscar-cnpj-button"
-                      onClick={buscarCNPJ}
-                      disabled={loadingCNPJ}
-                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg font-bold hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg text-base"
-                    >
-                      <RefreshCw className={loadingCNPJ ? 'w-5 h-5 animate-spin' : 'w-5 h-5'} />
-                      {loadingCNPJ ? 'Consultando...' : 'Buscar Receita'}
-                    </button>
-                  </div>
-                </div>
-                <p className="text-xs text-green-700 mt-2">Digite o CNPJ e clique no botão para preencher automaticamente os dados</p>
+              {/* Campo ID da Empresa */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+                <label className="block text-sm font-medium text-blue-800 mb-2">Código/ID da Empresa (opcional)</label>
+                <input
+                  data-testid="company-codigo-input"
+                  type="text"
+                  value={formData.codigo_empresa}
+                  onChange={(e) => setFormData({ ...formData, codigo_empresa: e.target.value })}
+                  className="w-full px-4 py-2 border border-blue-300 rounded-lg"
+                  placeholder="Ex: 001, CLI-2024, etc."
+                />
+                <p className="text-xs text-blue-600 mt-1">Use para identificar a empresa no sistema (aparece ao lado do nome)</p>
               </div>
+              
+              {!editingCompany && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-4 mb-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <RefreshCw className="w-5 h-5 text-green-600" />
+                    <h3 className="font-bold text-green-900">Busca Automática na Receita Federal</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="md:col-span-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">CNPJ *</label>
+                      <input
+                        data-testid="company-cnpj-input"
+                        type="text"
+                        value={formData.cnpj}
+                        onChange={(e) => setFormData({ ...formData, cnpj: formatCNPJ(e.target.value) })}
+                        className="w-full px-4 py-3 border-2 border-green-300 rounded-lg text-lg font-semibold"
+                        required
+                        placeholder="00.000.000/0000-00"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        data-testid="buscar-cnpj-button"
+                        onClick={buscarCNPJ}
+                        disabled={loadingCNPJ}
+                        className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg font-bold hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg text-base"
+                      >
+                        <RefreshCw className={loadingCNPJ ? 'w-5 h-5 animate-spin' : 'w-5 h-5'} />
+                        {loadingCNPJ ? 'Consultando...' : 'Buscar Receita'}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-green-700 mt-2">Digite o CNPJ e clique no botão para preencher automaticamente os dados</p>
+                </div>
+              )}
+              
+              {editingCompany && (
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">CNPJ</label>
+                  <p className="text-lg font-mono text-gray-800">{formData.cnpj}</p>
+                  <p className="text-xs text-gray-500 mt-1">O CNPJ não pode ser alterado</p>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
