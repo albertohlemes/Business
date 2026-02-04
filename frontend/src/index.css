@@ -166,6 +166,102 @@ code {
     border-radius: 16px 16px 16px 4px;
 }
 
+/* Data table styles */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table thead {
+    background-color: rgba(39, 39, 42, 0.5);
+}
+
+.data-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-default);
+}
+
+.data-table td {
+    padding: 12px 16px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-default);
+}
+
+.data-table tbody tr:hover {
+    background-color: rgba(39, 39, 42, 0.5);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Badges */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.badge-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10B981;
+}
+
+.badge-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #F59E0B;
+}
+
+.badge-error {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #EF4444;
+}
+
+.badge-pending {
+    background-color: rgba(113, 113, 122, 0.1);
+    color: #71717A;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    background-color: var(--obsidian);
+    border-right: 1px solid var(--border-default);
+    flex-shrink: 0;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    color: var(--text-secondary);
+    transition: all 0.15s ease-in-out;
+}
+
+.sidebar-item:hover {
+    background-color: rgba(220, 38, 38, 0.05);
+    color: var(--text-primary);
+}
+
+.sidebar-item.active {
+    background-color: rgba(220, 38, 38, 0.1);
+    color: var(--business-red);
+    border-right: 2px solid var(--business-red);
+}
+
 @layer base {
     [data-debug-wrapper="true"] {
         display: contents !important;
