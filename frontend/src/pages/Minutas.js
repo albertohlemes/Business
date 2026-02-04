@@ -191,12 +191,21 @@ Formate de forma clara e organizada.`,
                 });
             }
             
+            // Formatar data
+            const dataFormatada = new Date(dataAlteracao).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: 'long', 
+                year: 'numeric'
+            });
+            
             // Montar prompt com alterações
             const tiposStr = alteracoesSelecionadas.map(id => 
                 TIPOS_ALTERACAO.find(t => t.id === id)?.label
             ).join(', ');
             
             const prompt = `Com base no contrato social analisado e nos documentos de apoio anexados, gere uma MINUTA DE ALTERAÇÃO CONTRATUAL completa.
+
+DATA DA ALTERAÇÃO: ${dataFormatada}
 
 ALTERAÇÕES SOLICITADAS: ${tiposStr}
 
@@ -205,7 +214,8 @@ ${descricaoAlteracao}
 
 INSTRUÇÕES:
 1. Extraia os dados necessários dos documentos de apoio (CNH, comprovantes, etc.)
-2. Gere a minuta no formato padrão:
+2. Use a data "${dataFormatada}" como data da alteração em todo o documento
+3. Gere a minuta no formato padrão:
    - PREÂMBULO (dados da empresa e sócios atuais)
    - CLÁUSULAS DE ALTERAÇÃO (cada alteração em cláusula separada)
    - CONSOLIDAÇÃO DO CONTRATO SOCIAL (texto consolidado com as alterações)
