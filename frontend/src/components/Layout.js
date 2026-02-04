@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Building2, Home, FileText, Upload, CheckCircle, Download, LogOut, Menu, X, BarChart3, Brain, Calendar, ChevronDown, TrendingUp, Settings, ArrowUpCircle, Calculator, Receipt } from 'lucide-react';
+import { Building2, Home, FileText, Upload, CheckCircle, Download, LogOut, Menu, X, BarChart3, Brain, Calendar, ChevronDown, TrendingUp, Settings, ArrowUpCircle, Calculator, Receipt, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 
@@ -14,6 +14,7 @@ const Layout = ({ user, onLogout, children }) => {
     { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
     { name: 'Upload XML', href: '/upload', icon: Upload, testId: 'nav-upload' },
     { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
+    { name: 'Alertas CFOP', href: '/alertas-cfop', icon: AlertTriangle, testId: 'nav-alertas-cfop' },
     { name: 'Reclassificação IA', href: '/reclassification', icon: Brain, testId: 'nav-reclassification' },
     { name: 'Validação Entrada', href: '/validation', icon: CheckCircle, testId: 'nav-validation' },
     { name: 'Análise Saída', href: '/analise-aliquotas-saida', icon: ArrowUpCircle, testId: 'nav-analise-saida' },
