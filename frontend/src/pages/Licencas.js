@@ -110,40 +110,33 @@ const Licencas = () => {
     };
 
     const consultarLicenca = async (id) => {
+        // Encontrar licença
+        const licenca = licencas.find(l => l.id === id);
+        if (!licenca) return;
+        
         setConsultando(id);
+        setVncCnpj(licenca.cnpj);
+        setVncStatus('Iniciando navegador...');
+        
         try {
-            // Tenta automação REDESIM
-            const redesimRes = await axios.post(`${API_URL}/api/licencas/${id}/consultar-redesim`);
-            const data = redesimRes.data;
+            // Iniciar consulta com VNC (browser visível)
+            const response = await axios.post(`${API_URL}/api/redesim-vnc/iniciar/${encodeURIComponent(licenca.cnpj)}`);
             
-            setInstrucoesCnpj(data.cnpj);
-            
-            // Verificar se tem screenshot
-            const etapas = data.etapas || [];
-            const ultimaEtapa = etapas[etapas.length - 1];
-            if (ultimaEtapa?.screenshot) {
-                setScreenshotRedesim(ultimaEtapa.screenshot);
-            } else if (data.tela_login?.screenshot) {
-                setScreenshotRedesim(data.tela_login.screenshot);
-            }
-            
-            if (data.aguardando_login) {
+            if (response.data.aguardando_login) {
+                setVncStatus('Faça login com seu certificado digital!');
                 setAguardandoLogin(true);
-                setInstrucoesOpen(true);
-                toast.info('Faça login no Gov.br com certificado digital');
-                // Iniciar polling automático para verificar login
-                iniciarPollingLogin(data.cnpj);
-            } else if (data.consulta_realizada) {
+                setVncOpen(true);
+                toast.info('Olhe a tela abaixo e faça login no Gov.br');
+                
+                // Iniciar polling
+                iniciarPollingVNC(licenca.cnpj);
+            } else if (response.data.success) {
                 toast.success('Consulta realizada!');
-                // Atualizar lista
-                const response = await axios.get(`${API_URL}/api/licencas`);
-                setLicencas(response.data);
-                setInstrucoesOpen(true);
-            } else {
-                setInstrucoesOpen(true);
+                fetchData();
             }
             
         } catch (error) {
+            console.error('Erro VNC:', error);
             // Fallback para consulta simulada
             try {
                 const response = await axios.post(`${API_URL}/api/licencas/${id}/consultar`);
@@ -157,79 +150,85 @@ const Licencas = () => {
         }
     };
 
-    // Polling automático para verificar se login foi feito
+    // Polling para verificar login VNC
     const pollingRef = useRef(null);
-    const pollingCountRef = useRef(0);
     
-    const iniciarPollingLogin = (cnpj) => {
-        // Limpar polling anterior se existir
-        if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-        }
-        pollingCountRef.current = 0;
+    const iniciarPollingVNC = (cnpjParam) => {
+        if (pollingRef.current) clearInterval(pollingRef.current);
         
-        // Verificar a cada 5 segundos por até 2 minutos (24 tentativas)
+        let tentativas = 0;
         pollingRef.current = setInterval(async () => {
-            pollingCountRef.current += 1;
+            tentativas++;
             
-            if (pollingCountRef.current > 24) {
+            if (tentativas > 60) { // 5 minutos (60 x 5s)
                 clearInterval(pollingRef.current);
-                toast.error('Tempo limite excedido. Clique em "Verificar Login" manualmente.');
+                setVncStatus('Tempo limite. Clique em "Continuar" após fazer login.');
                 return;
             }
             
             try {
-                const response = await axios.post(`${API_URL}/api/redesim/continuar-apos-login?cnpj=${encodeURIComponent(cnpj)}`);
+                const status = await axios.get(`${API_URL}/api/redesim-vnc/status`);
                 
-                if (response.data.success) {
+                if (status.data.status === 'logado' || status.data.status === 'na_consulta') {
+                    // Login detectado, continuar automação
+                    setVncStatus('Login detectado! Fazendo consulta...');
                     clearInterval(pollingRef.current);
-                    toast.success('Login detectado! Consulta realizada automaticamente.');
-                    if (response.data.consulta?.screenshot) {
-                        setScreenshotRedesim(response.data.consulta.screenshot);
+                    
+                    const resultado = await axios.post(`${API_URL}/api/redesim-vnc/continuar?cnpj=${encodeURIComponent(cnpjParam)}`);
+                    
+                    if (resultado.data.success) {
+                        toast.success('Consulta realizada com sucesso!');
+                        setVncStatus('Consulta concluída!');
+                        setAguardandoLogin(false);
+                        fetchData();
+                        
+                        // Fechar após 3 segundos
+                        setTimeout(() => {
+                            setVncOpen(false);
+                            axios.post(`${API_URL}/api/redesim-vnc/fechar`);
+                        }, 3000);
                     }
-                    setAguardandoLogin(false);
-                    // Atualizar lista
-                    const licRes = await axios.get(`${API_URL}/api/licencas`);
-                    setLicencas(licRes.data);
                 }
             } catch (e) {
-                // Silenciosamente continuar tentando
+                // Silenciosamente continua tentando
             }
         }, 5000);
     };
     
-    // Limpar polling ao fechar dialog
-    useEffect(() => {
-        return () => {
-            if (pollingRef.current) {
-                clearInterval(pollingRef.current);
-            }
-        };
-    }, []);
-
-    const continuarAposLogin = async () => {
+    const continuarVNC = async () => {
+        setVncStatus('Verificando login e continuando consulta...');
         try {
-            const response = await axios.post(`${API_URL}/api/redesim/continuar-apos-login?cnpj=${encodeURIComponent(instrucoesCnpj)}`);
+            const resultado = await axios.post(`${API_URL}/api/redesim-vnc/continuar?cnpj=${encodeURIComponent(vncCnpj)}`);
             
-            if (response.data.success) {
-                if (pollingRef.current) {
-                    clearInterval(pollingRef.current);
-                }
-                toast.success('Consulta realizada após login!');
-                if (response.data.consulta?.screenshot) {
-                    setScreenshotRedesim(response.data.consulta.screenshot);
-                }
+            if (resultado.data.success) {
+                if (pollingRef.current) clearInterval(pollingRef.current);
+                toast.success('Consulta realizada!');
                 setAguardandoLogin(false);
-                // Atualizar lista
-                const licRes = await axios.get(`${API_URL}/api/licencas`);
-                setLicencas(licRes.data);
+                fetchData();
+                setTimeout(() => setVncOpen(false), 2000);
             } else {
-                toast.error(response.data.message || 'Login não detectado ainda');
+                setVncStatus(resultado.data.message || 'Login não detectado. Continue o login no Gov.br.');
             }
         } catch (e) {
-            toast.error('Erro ao continuar consulta');
+            toast.error('Erro ao continuar');
         }
     };
+    
+    const fecharVNC = async () => {
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        try {
+            await axios.post(`${API_URL}/api/redesim-vnc/fechar`);
+        } catch (e) {}
+        setVncOpen(false);
+        setAguardandoLogin(false);
+    };
+    
+    // Cleanup ao desmontar
+    useEffect(() => {
+        return () => {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+        };
+    }, []);
 
     const abrirRedesim = (cnpj) => {
         window.open('https://vreredesim.sp.gov.br', '_blank');
