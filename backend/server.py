@@ -570,14 +570,14 @@ def classify_product_category(descricao: str, ncm: str, company_products: List[s
 async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tipo_doc: str, cfop_original: str) -> Dict[str, Any]:
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
-        return {"cfop_sugerido": None, "categoria": None}
+        return {"cfop_sugerido": None, "categoria": None, "justificativa": None}
     
     produtos_comercializados = company.get('produtos_comercializados', [])
     insumos_producao = company.get('insumos_producao', [])
     produtos_despesa = company.get('produtos_despesa', [])
     company_uf = company.get('uf', 'SP')
     
-    categoria = classify_product_category(
+    categoria, justificativa = classify_product_category(
         product.get('descricao', ''),
         product.get('ncm', ''),
         produtos_comercializados,
@@ -598,27 +598,32 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
     if tipo_doc == 'entrada':
         if is_transferencia:
             cfop_sugerido = cfop_prefix + '152'
+            justificativa = 'Transferência entre estabelecimentos'
         elif categoria == 'combustivel':
             cfop_sugerido = cfop_prefix + '653'
         elif categoria == 'revenda':
             if is_st:
                 cfop_sugerido = cfop_prefix + '403'
+                justificativa += ' (com Substituição Tributária)'
             else:
                 cfop_sugerido = cfop_prefix + '102'
         elif categoria == 'insumo':
             if is_st:
                 cfop_sugerido = cfop_prefix + '401'
+                justificativa += ' (com Substituição Tributária)'
             else:
                 cfop_sugerido = cfop_prefix + '101'
         elif categoria == 'despesa':
             if is_st:
                 cfop_sugerido = cfop_prefix + '407'
+                justificativa += ' (com Substituição Tributária)'
             else:
                 cfop_sugerido = cfop_prefix + '556'
     
     return {
         "cfop_sugerido": cfop_sugerido,
         "categoria": categoria,
+        "justificativa": justificativa,
         "is_st": is_st,
         "is_transferencia": is_transferencia
     }
