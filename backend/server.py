@@ -1640,28 +1640,28 @@ async def extrair_campo_documento(
         
         prompt = prompts_por_campo.get(campo, f'Extraia o campo "{campo}" deste documento.')
         
-        from emergentintegrations.llm.chat import chat, Message, ContentPart, ContentPartType
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
         
         emergent_api_key = os.environ.get("EMERGENT_API_KEY")
         
-        response = await chat(
+        llm = LlmChat(
             api_key=emergent_api_key,
-            model="gemini-2.5-flash",
-            messages=[
-                Message(
-                    role="user",
-                    content=[
-                        ContentPart(type=ContentPartType.TEXT, text=prompt),
-                        ContentPart(
-                            type=ContentPartType.IMAGE_URL,
-                            image_url=f"data:{mime_type};base64,{file_base64}"
-                        )
-                    ]
-                )
-            ]
+            model="gemini-2.5-flash"
         )
         
-        valor = response.content.strip()
+        response = await llm.send_message(
+            UserMessage(
+                text_content=prompt,
+                file_content=[
+                    FileContentWithMimeType(
+                        content=file_base64,
+                        mime_type=mime_type
+                    )
+                ]
+            )
+        )
+        
+        valor = response.text_content.strip()
         
         # Tentar parsear JSON se for endereco ou cnaes
         if campo in ['endereco', 'cnaes']:
