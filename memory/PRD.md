@@ -230,6 +230,21 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 19 (04/02/2026)
+- ✅ **Classificação de CFOP por IA nas Entradas FUNCIONANDO**
+  - Corrigido bug na integração com LlmChat (parâmetro `api_key` em vez de `model`)
+  - IA usa GPT-4o via Emergent LLM Key para classificação semântica
+  - Classifica produtos como REVENDA (1102), INSUMO (1101) ou DESPESA (1556)
+  - Usa palavras-chave cadastradas na empresa para guiar a classificação
+  - Match semântico: "SHOYU" → produto oriental → REVENDA
+  - Match semântico: "DETERGENTE" → limpeza → DESPESA
+- ✅ **Relatório de Conversões na Tela de Upload**
+  - Exibe lista de todos os produtos convertidos
+  - Mostra CFOP original → CFOP convertido
+  - Badge colorido com categoria (REVENDA/INSUMO/DESPESA)
+  - Justificativa da IA explicando o motivo da classificação
+- ✅ **Fallback inteligente:** Se IA falhar, usa regras diretas de keyword matching
+
 ### 02/2026 - Iteration 18
 - ✅ **Tabela NCMs Alíquota Zero atualizada (Tabela 4.3.13 SPED v1.33)**
   - Mais de 50 prefixos NCM (4 dígitos) e 80+ NCMs completos (8 dígitos)
