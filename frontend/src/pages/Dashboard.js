@@ -13,7 +13,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const Dashboard = ({ user, onLogout }) => {
-  const { selectedCompany, selectedCompetencia } = useAppContext();
+  const { selectedCompany, selectedCompetencia, openSelector } = useAppContext();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
 
