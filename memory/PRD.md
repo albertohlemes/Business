@@ -205,6 +205,18 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 12
+- ✅ **Corrigido bug na exclusão em lote**: Agora respeita o filtro de tipo (Entrada/Saída/Todos)
+- ✅ **Botão de exclusão dinâmico**: Mostra "Apagar Entradas", "Apagar Saídas" ou "Apagar Todos" conforme filtro
+- ✅ **Removido resumo de "Validados"** na página de Documentos - Substituído por contagem de Entradas/Saídas
+- ✅ **Nova página "Apuração PIS/COFINS"**: Apuração inteligente com base em CFOP e NCM
+  - Operações com direito a crédito vs. alíquota zero
+  - Operações com débito vs. alíquota zero
+  - Relatório por CFOP e por NCM
+  - Considera regime tributário (Lucro Real = direito a créditos)
+  - Resumo da apuração (Crédito, Débito, A Pagar)
+  - Exportação CSV
+
 ### 02/2026 - Iteration 11
 - ✅ **ICMS-ST desconsiderado nos créditos**: Mercadorias com ICMS Substituição Tributária (CST 10, 30, 60, 70, 201, 202, 203, 500) não geram mais crédito de ICMS no Dashboard
 - ✅ Dashboard mostra linha "ICMS-ST (sem crédito)" quando houver valor desconsiderado
