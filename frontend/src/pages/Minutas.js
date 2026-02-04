@@ -397,10 +397,55 @@ const Minutas = () => {
                                 </div>
                             </div>
 
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-zinc-400 text-xs uppercase tracking-wider">
+                                        Documentos de Suporte
+                                    </Label>
+                                    <button type="button" onClick={() => docInputRef.current?.click()}
+                                        className="text-xs text-red-500 hover:text-red-400 flex items-center gap-1">
+                                        <Plus className="w-3 h-3" /> Adicionar
+                                    </button>
+                                </div>
+                                <input ref={docInputRef} type="file" data-testid="doc-upload-input"
+                                    onChange={handleDocSuporte} accept=".pdf,.jpg,.jpeg,.png" className="hidden" />
+                                
+                                {docsSuporte.length === 0 ? (
+                                    <div className="border border-dashed border-zinc-800 rounded p-3 text-center cursor-pointer hover:border-red-600/50"
+                                        onClick={() => docInputRef.current?.click()}>
+                                        <p className="text-xs text-zinc-600">CNH, Comprovante, CNAEs, etc.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {docsSuporte.map(doc => (
+                                            <div key={doc.id} className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded p-2">
+                                                <File className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                                <span className="text-xs text-zinc-300 truncate flex-1">{doc.file.name}</span>
+                                                <Select value={doc.tipo} onValueChange={(v) => 
+                                                    setDocsSuporte(prev => prev.map(d => d.id === doc.id ? {...d, tipo: v} : d))}>
+                                                    <SelectTrigger className="w-24 h-6 text-xs bg-zinc-900 border-zinc-700">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="bg-zinc-900 border-zinc-800">
+                                                        {TIPOS_DOC.map(t => (
+                                                            <SelectItem key={t.value} value={t.value} className="text-xs">{t.label}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <button type="button" onClick={() => setDocsSuporte(prev => prev.filter(d => d.id !== doc.id))}
+                                                    className="text-zinc-500 hover:text-red-500">
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
                             <Button
                                 type="submit"
                                 data-testid="upload-submit-btn"
-                                disabled={uploading || !file || !tipoAlteracao}
+                                disabled={uploading || !tipoAlteracao}
                                 className="w-full bg-red-600 hover:bg-red-700 btn-business"
                             >
                                 {uploading ? (
