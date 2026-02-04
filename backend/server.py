@@ -961,6 +961,7 @@ async def list_minutas(current_user: dict = Depends(get_current_user)):
     return [MinutaResponse(
         id=m["id"],
         tipo_alteracao=m["tipo_alteracao"],
+        tipo_processo=m.get("tipo_processo"),
         descricao=m.get("descricao", ""),
         arquivo_original=m.get("arquivo_nome", ""),
         conteudo_gerado=m.get("conteudo_gerado"),
