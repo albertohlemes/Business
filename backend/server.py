@@ -1659,43 +1659,50 @@ async def apuracao_pis_cofins(
             primeiro_digito = cfop[0] if cfop else ''
             aliq_zero = is_ncm_aliquota_zero(ncm)
             
+            # Determinar entrada/saída pelo CFOP ou tipo do documento
+            is_entrada = primeiro_digito in ['1', '2', '3'] if primeiro_digito else (tipo_op == 'entrada')
+            is_saida = primeiro_digito in ['5', '6', '7'] if primeiro_digito else (tipo_op == 'saida')
+            
+            # Se não tem CFOP, usar "SEM CFOP" como chave
+            cfop_key = cfop if cfop else f"SEM CFOP"
+            
             # Entradas (créditos)
-            if primeiro_digito in ['1', '2', '3']:
+            if is_entrada:
                 if aliq_zero:
                     # Alíquota zero - não gera crédito
-                    add_to_dict(creditos["aliquota_zero"]["por_cfop"], cfop, valor, 0, 0)
+                    add_to_dict(creditos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0)
                     add_to_dict(creditos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0)
                     creditos["aliquota_zero"]["total"] += valor
-                elif cfop in CFOPS_CREDITO_PIS_COFINS and regime == 'lucro_real':
+                elif (cfop in CFOPS_CREDITO_PIS_COFINS or not cfop) and regime == 'lucro_real':
                     # Gera crédito (apenas Lucro Real)
-                    add_to_dict(creditos["com_credito"]["por_cfop"], cfop, valor, v_pis, v_cofins)
+                    add_to_dict(creditos["com_credito"]["por_cfop"], cfop_key, valor, v_pis, v_cofins)
                     add_to_dict(creditos["com_credito"]["por_ncm"], ncm or "SEM NCM", valor, v_pis, v_cofins)
                     creditos["com_credito"]["total"] += valor
                     creditos["com_credito"]["pis"] += v_pis
                     creditos["com_credito"]["cofins"] += v_cofins
                 else:
                     # CFOP não gera crédito ou empresa é Lucro Presumido
-                    add_to_dict(creditos["aliquota_zero"]["por_cfop"], cfop, valor, 0, 0)
+                    add_to_dict(creditos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0)
                     add_to_dict(creditos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0)
                     creditos["aliquota_zero"]["total"] += valor
             
             # Saídas (débitos)
-            elif primeiro_digito in ['5', '6', '7']:
+            elif is_saida:
                 if aliq_zero:
                     # Alíquota zero - não gera débito
-                    add_to_dict(debitos["aliquota_zero"]["por_cfop"], cfop, valor, 0, 0)
+                    add_to_dict(debitos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0)
                     add_to_dict(debitos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0)
                     debitos["aliquota_zero"]["total"] += valor
-                elif cfop in CFOPS_DEBITO_PIS_COFINS:
+                elif cfop in CFOPS_DEBITO_PIS_COFINS or not cfop:
                     # Gera débito
-                    add_to_dict(debitos["com_debito"]["por_cfop"], cfop, valor, v_pis, v_cofins)
+                    add_to_dict(debitos["com_debito"]["por_cfop"], cfop_key, valor, v_pis, v_cofins)
                     add_to_dict(debitos["com_debito"]["por_ncm"], ncm or "SEM NCM", valor, v_pis, v_cofins)
                     debitos["com_debito"]["total"] += valor
                     debitos["com_debito"]["pis"] += v_pis
                     debitos["com_debito"]["cofins"] += v_cofins
                 else:
                     # CFOP não gera débito
-                    add_to_dict(debitos["aliquota_zero"]["por_cfop"], cfop, valor, 0, 0)
+                    add_to_dict(debitos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0)
                     add_to_dict(debitos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0)
                     debitos["aliquota_zero"]["total"] += valor
     
