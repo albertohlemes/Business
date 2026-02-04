@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { Building2, Plus, Search, RefreshCw, Trash2, Settings } from 'lucide-react';
+import { Building2, Plus, Search, RefreshCw, Trash2, Edit, X } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -12,10 +12,13 @@ const Companies = ({ user, onLogout }) => {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingCompany, setEditingCompany] = useState(null); // null = novo, objeto = edição
   const [searchTerm, setSearchTerm] = useState('');
   const [loadingCNPJ, setLoadingCNPJ] = useState(false);
-  const [formData, setFormData] = useState({
+  
+  const emptyFormData = {
     cnpj: '',
+    codigo_empresa: '',
     razao_social: '',
     nome_fantasia: '',
     inscricao_estadual: '',
@@ -30,7 +33,6 @@ const Companies = ({ user, onLogout }) => {
     produtos_comercializados: [],
     insumos_producao: [],
     produtos_despesa: [],
-    // Regime Tributário
     regime_tributario: 'lucro_presumido',
     anexos_simples: [],
     tipo_atividade: 'comercio',
@@ -39,7 +41,9 @@ const Companies = ({ user, onLogout }) => {
     percentual_presuncao_csll: 12.0,
     estoque_inicial: 0,
     estoque_final: 0
-  });
+  };
+  
+  const [formData, setFormData] = useState(emptyFormData);
   const [produtoInput, setProdutoInput] = useState('');
   const [insumoInput, setInsumoInput] = useState('');
   const [despesaInput, setDespesaInput] = useState('');
