@@ -14,7 +14,7 @@ import {
 import { 
     FileCheck, Search, RefreshCw, Trash2, Plus,
     CheckCircle2, AlertTriangle, Clock, Building2,
-    Download, ArrowUpRight, ExternalLink, Info
+    Download, ExternalLink, Monitor, X
 } from 'lucide-react';
 import {
     Dialog,
@@ -25,6 +25,7 @@ import {
 } from '../components/ui/dialog';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+const VNC_PORT = 6080; // Porta do noVNC
 
 const Licencas = () => {
     const [licencas, setLicencas] = useState([]);
@@ -39,11 +40,16 @@ const Licencas = () => {
     const [licencaViewOpen, setLicencaViewOpen] = useState(false);
     const [licencaContent, setLicencaContent] = useState('');
     
-    // Instruções REDESIM
+    // VNC Dialog (browser remoto)
+    const [vncOpen, setVncOpen] = useState(false);
+    const [vncCnpj, setVncCnpj] = useState('');
+    const [vncStatus, setVncStatus] = useState('');
+    const [aguardandoLogin, setAguardandoLogin] = useState(false);
+    
+    // Instruções REDESIM (fallback)
     const [instrucoesOpen, setInstrucoesOpen] = useState(false);
     const [instrucoesCnpj, setInstrucoesCnpj] = useState('');
     const [screenshotRedesim, setScreenshotRedesim] = useState('');
-    const [aguardandoLogin, setAguardandoLogin] = useState(false);
 
     // Form state
     const [cnpj, setCnpj] = useState('');
