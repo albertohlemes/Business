@@ -1228,6 +1228,24 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
                 descricaoCompleta += `- Novos administradores: ${novosAdmins?.join(', ') || 'Não definidos'}\n`;
             }
             
+            if (alteracoesSelecionadas.includes('outras')) {
+                descricaoCompleta += `\n\nOUTRAS ALTERAÇÕES DE CLÁUSULAS:\n`;
+                if (dadosOutras.clausulasParaAlterar?.length > 0) {
+                    dadosOutras.clausulasParaAlterar.forEach(c => {
+                        if (c.textoNovo) {
+                            descricaoCompleta += `\n- Cláusula alterada:\n`;
+                            descricaoCompleta += `  Texto anterior: ${c.textoOriginal?.substring(0, 100)}...\n`;
+                            descricaoCompleta += `  Novo texto: ${c.textoNovo}\n`;
+                        }
+                    });
+                }
+                if (dadosOutras.clausulaManualTitulo || dadosOutras.clausulaManualTexto) {
+                    descricaoCompleta += `\n- Alteração manual:\n`;
+                    if (dadosOutras.clausulaManualTitulo) descricaoCompleta += `  ${dadosOutras.clausulaManualTitulo}\n`;
+                    if (dadosOutras.clausulaManualTexto) descricaoCompleta += `  ${dadosOutras.clausulaManualTexto}\n`;
+                }
+            }
+            
             const tiposStr = alteracoesSelecionadas.map(id => 
                 TIPOS_ALTERACAO.find(t => t.id === id)?.label
             ).join(', ');
