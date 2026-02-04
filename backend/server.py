@@ -1647,12 +1647,12 @@ async def apuracao_pis_cofins(
     
     # Processar documentos
     for doc in documents:
-        tipo_op = doc.get('tipo_operacao', 'entrada')
+        tipo_op = doc.get('tipo_operacao', doc.get('tipo', 'entrada'))
         
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
             ncm = str(prod.get('ncm', ''))
-            valor = float(prod.get('v_prod', 0) or 0)
+            valor = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
             v_pis = float(prod.get('v_pis', 0) or 0)
             v_cofins = float(prod.get('v_cofins', 0) or 0)
             
