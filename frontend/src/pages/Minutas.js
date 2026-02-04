@@ -761,13 +761,39 @@ ${TEMPLATE_MINUTA}
                                 <FileText className="w-5 h-5 text-red-500" />
                                 Visualizar Minuta
                             </DialogTitle>
-                            <Button size="sm" onClick={() => { navigator.clipboard.writeText(viewContent); toast.success('Copiado!'); }}
-                                className="bg-red-600 hover:bg-red-700">
-                                <Copy className="w-4 h-4 mr-2" /> Copiar Tudo
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button 
+                                    size="sm" 
+                                    onClick={() => {
+                                        visualizarPDF(viewContent, {}, null);
+                                    }}
+                                    className="bg-red-600 hover:bg-red-700"
+                                >
+                                    <Eye className="w-4 h-4 mr-2" /> Ver PDF
+                                </Button>
+                                <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => {
+                                        baixarPDF(viewContent, {}, null);
+                                        toast.success('PDF baixado!');
+                                    }}
+                                    className="border-zinc-700"
+                                >
+                                    <FileDown className="w-4 h-4 mr-2" /> Baixar
+                                </Button>
+                                <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => { navigator.clipboard.writeText(viewContent); toast.success('Copiado!'); }}
+                                    className="border-zinc-700"
+                                >
+                                    <Copy className="w-4 h-4 mr-2" /> Copiar
+                                </Button>
+                            </div>
                         </div>
                         <p className="text-xs text-zinc-500 mt-2">
-                            Selecione e copie o texto abaixo, ou use o botão "Copiar Tudo"
+                            Use "Ver PDF" para visualizar formatado e salvar, ou "Baixar" para download direto
                         </p>
                     </DialogHeader>
                     <div className="flex-1 overflow-y-auto p-4">
