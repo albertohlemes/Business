@@ -2646,6 +2646,9 @@ async def get_dashboard_stats(
     total_servicos = sum(d.get('valor_total', 0) for d in nfse)
     faturamento_total = total_vendas + total_cupons + total_servicos
     
+    # Regime tributário da empresa (definir antes do loop de créditos)
+    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
+    
     # Créditos (entradas)
     # CSTs de ICMS-ST que NÃO geram direito a crédito de ICMS
     CST_ICMS_ST = ['10', '30', '60', '70', '201', '202', '203', '500']
