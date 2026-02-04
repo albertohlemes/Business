@@ -344,22 +344,31 @@ const Minutas = () => {
                                 </Select>
                             </div>
 
+                            {tipoSel?.docs?.length > 0 && (
+                                <div className="bg-zinc-950 border border-zinc-800 rounded p-3 text-xs">
+                                    <p className="text-zinc-500 uppercase mb-1">Documentos sugeridos:</p>
+                                    {tipoSel.docs.map((d, i) => (
+                                        <p key={i} className="text-zinc-400">• {d}</p>
+                                    ))}
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <Label className="text-zinc-400 text-xs uppercase tracking-wider">
-                                    Descrição (opcional)
+                                    Descrição da alteração
                                 </Label>
                                 <Textarea
                                     data-testid="descricao-input"
                                     value={descricao}
                                     onChange={(e) => setDescricao(e.target.value)}
-                                    placeholder="Descreva brevemente a alteração..."
+                                    placeholder="Ex: Quero adicionar sócio João Silva com 30%..."
                                     className="bg-zinc-950 border-zinc-800 focus:border-red-600 min-h-[80px]"
                                 />
                             </div>
 
                             <div className="space-y-2">
                                 <Label className="text-zinc-400 text-xs uppercase tracking-wider">
-                                    Contrato Social (PDF ou Imagem)
+                                    Contrato Social (opcional)
                                 </Label>
                                 <div 
                                     className={`drop-zone rounded p-6 text-center cursor-pointer ${file ? 'active' : ''}`}
