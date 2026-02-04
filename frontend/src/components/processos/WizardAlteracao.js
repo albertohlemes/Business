@@ -9,7 +9,7 @@ import { Checkbox } from '../ui/checkbox';
 import { 
     FileText, Upload, X, RefreshCw, CheckCircle2, ChevronRight, ChevronLeft,
     Users, MapPin, Briefcase, DollarSign, Building2, Calendar, FileDown, Copy,
-    Plus, Trash2, Sparkles, Search, UserPlus, UserMinus, ArrowLeftRight
+    Plus, Trash2, Sparkles, Search, UserPlus, UserMinus, ArrowLeftRight, User
 } from 'lucide-react';
 import {
     Dialog,
