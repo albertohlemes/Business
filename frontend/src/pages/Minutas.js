@@ -11,7 +11,7 @@ import {
     Clock, CheckCircle2, RefreshCw, 
     ChevronRight, ChevronLeft, Eye, Copy, Building2,
     Users, MapPin, Briefcase, DollarSign, X,
-    Calendar, Hash, FileDown
+    Calendar, Hash, FileDown, Settings, FileType
 } from 'lucide-react';
 import {
     Dialog,
@@ -20,7 +20,6 @@ import {
     DialogTitle,
 } from '../components/ui/dialog';
 import DadosExtraidos from '../components/DadosExtraidos';
-import { baixarPDF } from '../utils/pdfGenerator';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -36,6 +35,11 @@ const TIPOS_ALTERACAO = [
 const Minutas = () => {
     const [minutas, setMinutas] = useState([]);
     const [loading, setLoading] = useState(true);
+    
+    // Templates
+    const [templates, setTemplates] = useState([]);
+    const [templateOpen, setTemplateOpen] = useState(false);
+    const [uploadingTemplate, setUploadingTemplate] = useState(false);
     
     // Wizard state
     const [wizardOpen, setWizardOpen] = useState(false);
