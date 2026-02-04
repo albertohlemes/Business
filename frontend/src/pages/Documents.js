@@ -44,6 +44,7 @@ const Documents = ({ user, onLogout }) => {
 
   const handleDeleteDocument = async (docId, numeroNfe) => {
     if (!window.confirm(`Tem certeza que deseja apagar a NF-e ${numeroNfe}?`)) {
+    console.log('Delete clicked for:', docId, numeroNfe);
       return;
     }
     
