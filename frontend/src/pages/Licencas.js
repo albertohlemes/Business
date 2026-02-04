@@ -104,14 +104,36 @@ const Licencas = () => {
     const consultarLicenca = async (id) => {
         setConsultando(id);
         try {
-            const response = await axios.post(`${API_URL}/api/licencas/${id}/consultar`);
-            toast.success('Consulta realizada com sucesso!');
-            setLicencas(licencas.map(l => l.id === id ? response.data : l));
+            // Primeiro tenta consulta automática
+            const redesimRes = await axios.post(`${API_URL}/api/licencas/${id}/consultar-redesim`);
+            
+            if (redesimRes.data.status === 'manual_required') {
+                // Mostra instruções para consulta manual
+                setInstrucoesCnpj(redesimRes.data.cnpj);
+                setInstrucoesOpen(true);
+                
+                // Atualiza com status simulado para demo
+                const response = await axios.post(`${API_URL}/api/licencas/${id}/consultar`);
+                setLicencas(licencas.map(l => l.id === id ? response.data : l));
+            }
         } catch (error) {
-            toast.error('Erro ao consultar licença');
+            // Fallback para consulta simulada
+            try {
+                const response = await axios.post(`${API_URL}/api/licencas/${id}/consultar`);
+                toast.success('Status atualizado (simulado)');
+                setLicencas(licencas.map(l => l.id === id ? response.data : l));
+            } catch (e) {
+                toast.error('Erro ao consultar licença');
+            }
         } finally {
             setConsultando(null);
         }
+    };
+
+    const abrirRedesim = (cnpj) => {
+        // Abre o portal REDESIM em nova aba
+        window.open('https://vreredesim.sp.gov.br', '_blank');
+        toast.info(`Consulte o CNPJ: ${cnpj}`);
     };
 
     const renovarLicenca = async (id) => {
