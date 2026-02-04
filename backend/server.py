@@ -1293,11 +1293,103 @@ async def get_dashboard_stats(
     notas_pendentes = len([d for d in documents if d.get('status_validacao') != 'validado'])
     notas_validadas = len(documents) - notas_pendentes
     
+    # Regime tributário da empresa
+    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
+    
+    # Análise comparativa Lucro Presumido vs. Lucro Real
+    # Para Lucro Presumido: não há crédito de PIS/COFINS
+    # Para Lucro Real: há crédito de PIS/COFINS (1.65% e 7.6%)
+    
+    analise_comparativa = None
+    
+    if regime_tributario == 'lucro_presumido' and faturamento_total > 0:
+        # Alíquotas do Lucro Presumido (cumulativo)
+        aliq_pis_presumido = 0.0065  # 0.65%
+        aliq_cofins_presumido = 0.03  # 3%
+        
+        # Alíquotas do Lucro Real (não cumulativo)
+        aliq_pis_real = 0.0165  # 1.65%
+        aliq_cofins_real = 0.076  # 7.6%
+        
+        # Cálculo para Lucro Presumido (atual)
+        pis_presumido = faturamento_total * aliq_pis_presumido
+        cofins_presumido = faturamento_total * aliq_cofins_presumido
+        total_presumido = pis_presumido + cofins_presumido
+        
+        # Cálculo hipotético para Lucro Real (com créditos)
+        debito_pis_real = faturamento_total * aliq_pis_real
+        debito_cofins_real = faturamento_total * aliq_cofins_real
+        
+        # Créditos hipotéticos (assumindo mesmas alíquotas sobre compras)
+        credito_pis_real = total_entradas * aliq_pis_real
+        credito_cofins_real = total_entradas * aliq_cofins_real
+        
+        pis_real_pagar = max(0, debito_pis_real - credito_pis_real)
+        cofins_real_pagar = max(0, debito_cofins_real - credito_cofins_real)
+        total_real = pis_real_pagar + cofins_real_pagar
+        
+        # Diferença
+        diferenca = total_presumido - total_real
+        
+        analise_comparativa = {
+            "regime_atual": "lucro_presumido",
+            "lucro_presumido": {
+                "pis": round(pis_presumido, 2),
+                "cofins": round(cofins_presumido, 2),
+                "total": round(total_presumido, 2),
+                "aliq_pis": "0.65%",
+                "aliq_cofins": "3%"
+            },
+            "lucro_real_hipotetico": {
+                "debito_pis": round(debito_pis_real, 2),
+                "debito_cofins": round(debito_cofins_real, 2),
+                "credito_pis": round(credito_pis_real, 2),
+                "credito_cofins": round(credito_cofins_real, 2),
+                "pis_pagar": round(pis_real_pagar, 2),
+                "cofins_pagar": round(cofins_real_pagar, 2),
+                "total": round(total_real, 2),
+                "aliq_pis": "1.65%",
+                "aliq_cofins": "7.6%"
+            },
+            "diferenca": round(diferenca, 2),
+            "regime_mais_vantajoso": "lucro_real" if diferenca > 0 else "lucro_presumido",
+            "economia_potencial": round(abs(diferenca), 2)
+        }
+    elif regime_tributario == 'lucro_real':
+        # Para empresas no Lucro Real, mostrar quanto seria no Presumido
+        aliq_pis_presumido = 0.0065
+        aliq_cofins_presumido = 0.03
+        
+        pis_presumido = faturamento_total * aliq_pis_presumido
+        cofins_presumido = faturamento_total * aliq_cofins_presumido
+        total_presumido = pis_presumido + cofins_presumido
+        
+        total_real = pis_pagar + cofins_pagar
+        diferenca = total_presumido - total_real
+        
+        analise_comparativa = {
+            "regime_atual": "lucro_real",
+            "lucro_presumido_hipotetico": {
+                "pis": round(pis_presumido, 2),
+                "cofins": round(cofins_presumido, 2),
+                "total": round(total_presumido, 2)
+            },
+            "lucro_real": {
+                "pis_pagar": round(pis_pagar, 2),
+                "cofins_pagar": round(cofins_pagar, 2),
+                "total": round(total_real, 2)
+            },
+            "diferenca": round(diferenca, 2),
+            "regime_mais_vantajoso": "lucro_presumido" if diferenca < 0 else "lucro_real",
+            "economia_potencial": round(abs(diferenca), 2)
+        }
+    
     return {
         "empresa": {
             "id": company['id'],
             "razao_social": company['razao_social'],
-            "cnpj": company['cnpj']
+            "cnpj": company['cnpj'],
+            "regime_tributario": regime_tributario
         },
         "competencia": competencia,
         "quantidades": {
@@ -1342,7 +1434,8 @@ async def get_dashboard_stats(
         },
         "indicadores": {
             "markup_percentual": round(markup_percentual, 2)
-        }
+        },
+        "analise_comparativa": analise_comparativa
     }
 
 @api_router.get("/analise-aliquotas-saida/{company_id}")
