@@ -120,8 +120,9 @@ const ApuracaoMensal = ({ user, onLogout }) => {
     const lucroBruto = faturamentoBruto - cmv;
     const margemBruta = faturamentoBruto > 0 ? (lucroBruto / faturamentoBruto) * 100 : 0;
     
-    // ICMS
-    const icmsCredito = data.entradas?.subtotal?.v_icms || 0;
+    // ICMS - separando crédito válido do ST desconsiderado
+    const icmsCredito = data.entradas?.subtotal?.v_icms || 0;  // Já exclui ST no backend
+    const icmsSTDesconsiderado = data.entradas?.subtotal?.st_desconsiderado?.v_icms || 0;
     const icmsDebito = data.saidas?.subtotal?.v_icms || 0;
     const icmsAPagar = Math.max(0, icmsDebito - icmsCredito);
     const icmsSaldo = icmsCredito - icmsDebito;
