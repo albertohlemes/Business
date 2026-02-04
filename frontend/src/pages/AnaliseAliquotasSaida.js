@@ -15,6 +15,7 @@ const AnaliseAliquotasSaida = ({ user, onLogout }) => {
   const [analise, setAnalise] = useState(null);
   const [loading, setLoading] = useState(false);
   const [filtroAlerta, setFiltroAlerta] = useState('todos');
+  const [grouped, setGrouped] = useState(false);
   
   // Estado de ordenação
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
