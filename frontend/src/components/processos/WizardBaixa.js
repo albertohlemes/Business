@@ -163,6 +163,7 @@ const SocioBaixaCard = ({ socio, index, onChange, onRemove, canRemove }) => {
             </div>
             
             <input ref={docInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleDocUpload} />
+            <input ref={enderecoInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleEnderecoUpload} />
             
             {/* Dados Pessoais */}
             <div className="grid grid-cols-2 gap-3">
