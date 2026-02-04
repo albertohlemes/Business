@@ -115,6 +115,67 @@ const ReclassificationAI = ({ user, onLogout }) => {
     }
   };
 
+  // Editar regra
+  const handleEditRule = (rule) => {
+    setEditingRule(rule.id);
+    setRuleEdit({
+      categoria: rule.categoria_correta || rule.categoria,
+      cfop: rule.cfop_correto || rule.cfop
+    });
+  };
+
+  const handleSaveRule = async (ruleId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `${API}/ai/learned-rules/${ruleId}?categoria=${ruleEdit.categoria}&cfop=${ruleEdit.cfop}`,
+        {},
+        { headers: { Authorization: 'Bearer ' + token } }
+      );
+      setEditingRule(null);
+      fetchLearnedRules();
+      alert('Regra atualizada com sucesso!');
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erro ao atualizar regra');
+    }
+  };
+
+  // Excluir regra
+  const handleDeleteRule = async (ruleId) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta regra?')) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API}/ai/learned-rules/${ruleId}`, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      fetchLearnedRules();
+      alert('Regra excluída com sucesso!');
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erro ao excluir regra');
+    }
+  };
+
+  // Excluir todas as regras
+  const handleDeleteAllRules = async () => {
+    if (!window.confirm(`Tem certeza que deseja excluir TODAS as ${learnedRules.length} regras memorizadas?`)) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API}/ai/learned-rules/company/${selectedCompany}`, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      fetchLearnedRules();
+      alert('Todas as regras foram excluídas!');
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erro ao excluir regras');
+    }
+  };
+
   const fetchData = async () => {
     if (!selectedCompany || !competencia) {
       alert('Selecione empresa e competência');
