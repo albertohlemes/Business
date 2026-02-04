@@ -510,7 +510,7 @@ const Companies = ({ user, onLogout }) => {
                         type="number"
                         step="0.1"
                         value={formData.percentual_presuncao_csll}
-                        onChange={(e) => setFormData({ ...formData, percentual_presuncao_csll: parseFloat(e.target.value) })}
+                        onChange={(e) => setFormData({ ...formData, percentual_presuncao_csll: parseFloat(e.target.value) || 0 })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       />
                       <p className="text-xs text-gray-500 mt-1">Comércio: 12% | Serviços: 32%</p>
