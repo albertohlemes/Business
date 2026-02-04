@@ -993,9 +993,10 @@ async def upload_xml_batch(
                 company_id=company_id,
                 competencia=competencia,
                 tipo=tipo,
+                modelo=modelo,
                 xml_content=xml_str,
                 uploaded_by=current_user.id,
-                **parsed_data
+                **{k: v for k, v in parsed_data.items() if k != 'modelo'}
             )
             
             doc = xml_doc.model_dump()
