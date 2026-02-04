@@ -232,6 +232,7 @@ const ValidationPage = ({ user, onLogout }) => {
         product.ocorrencias.forEach(occ => {
           const key = `${occ.doc_id}_${code}`;
           newApprovals[key] = { approved: true, date: new Date().toISOString() };
+          totalAprovados++;
         });
       }
     });
@@ -239,6 +240,7 @@ const ValidationPage = ({ user, onLogout }) => {
     setApprovedProducts(newApprovals);
     saveApprovals(newApprovals);
     setSelectedProductCodes([]);
+    showSuccess(`${totalAprovados} ocorrências validadas com sucesso!`);
   };
 
   // Verificar se produto está aprovado
