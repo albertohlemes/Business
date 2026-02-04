@@ -1408,6 +1408,7 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
         setMinutaGerada('');
         setMinutaId(null);
         setCnpjInput('');
+        setTextoContratoOriginal('');
     };
 
     const handleClose = () => {
