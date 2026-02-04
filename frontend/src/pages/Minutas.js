@@ -69,6 +69,7 @@ const Minutas = () => {
     // View minuta
     const [viewOpen, setViewOpen] = useState(false);
     const [viewContent, setViewContent] = useState('');
+    const [viewMinutaId, setViewMinutaId] = useState(null);
 
     useEffect(() => {
         fetchMinutas();
