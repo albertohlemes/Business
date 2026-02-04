@@ -628,6 +628,28 @@ async def fechar_vnc(current_user: dict = Depends(get_current_user)):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+# Proxy para noVNC (porta 6080)
+@api_router.get("/novnc/{path:path}")
+async def proxy_novnc(path: str, request: Request):
+    """Proxy para acessar noVNC através da API"""
+    try:
+        async with httpx.AsyncClient() as client:
+            url = f"http://localhost:6080/{path}"
+            if request.query_params:
+                url += f"?{request.query_params}"
+            
+            response = await client.get(url, timeout=10.0)
+            
+            content_type = response.headers.get("content-type", "text/html")
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                media_type=content_type
+            )
+    except Exception as e:
+        logger.error(f"Proxy VNC error: {e}")
+        return Response(content=f"VNC não disponível: {e}", status_code=502)
+
 # ============ MINUTAS ROUTES ============
 
 @api_router.post("/minutas/upload")
