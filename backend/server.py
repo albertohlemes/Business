@@ -1543,6 +1543,12 @@ async def upload_xml_batch(
         "alertas_cfop": alertas_cfop,
         "total_conversoes": sum(len(r['conversoes']) for r in conversion_report),
         "total_alertas_cfop": sum(len(a['alertas']) for a in alertas_cfop),
+        "performance": {
+            "produtos_do_cache": total_stats["from_cache"],
+            "produtos_de_regras": total_stats["from_rules"],
+            "produtos_da_ia": total_stats["from_ai"],
+            "total_classificados": total_stats["total"]
+        },
         "resumo": {
             "total_arquivos": len(files),
             "importados": len(results),
