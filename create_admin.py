@@ -16,7 +16,7 @@ async def create_admin():
     user = {
         "id": "debug_admin_id",
         "email": "admin_debug@test.com",
-        "password": hashed_password,
+        "hashed_password": hashed_password,
         "name": "Debug Admin",
         "role": "admin",
         "company_ids": []
