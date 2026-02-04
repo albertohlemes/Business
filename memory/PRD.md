@@ -230,6 +230,20 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 20 (04/02/2026)
+- ✅ **Integração com SIEG Soluções Implementada**
+  - Nova seção "SIEG - Cofre de XMLs" no modal de seleção de empresa
+  - Consulta automática ao selecionar empresa + competência
+  - Mostra contagem de XMLs disponíveis (Entradas e Saídas)
+  - Checkbox "Importar automaticamente ao confirmar"
+  - Botão "Importar Agora" para sincronização manual
+  - API Key configurada via variável de ambiente SIEG_API_KEY
+  - Novos endpoints:
+    - `GET /api/sieg/count/{company_id}` - Conta XMLs disponíveis
+    - `POST /api/sieg/sync/{company_id}` - Baixa e importa XMLs
+    - `GET /api/sieg/status` - Verifica configuração da API
+  - Arquivo `sieg_service.py` criado para isolamento da integração
+
 ### 02/2026 - Iteration 19 (04/02/2026)
 - ✅ **Classificação de CFOP por IA nas Entradas FUNCIONANDO**
   - Corrigido bug na integração com LlmChat (parâmetro `api_key` em vez de `model`)
