@@ -1,0 +1,138 @@
+{
+  "design_system": {
+    "identity": {
+      "name": "Business Contabilidade Portal",
+      "archetype": "The Performance Pro (Elite & Precise)",
+      "vibe": "Tactical, Authoritative, High-Contrast, Secure",
+      "theme_strategy": "Dark Mode First (Bloomberg Terminal Aesthetic)"
+    },
+    "typography": {
+      "headings": {
+        "family": "Barlow Condensed, sans-serif",
+        "weights": ["600", "700"],
+        "usage": "All page titles, card headers, and metric values. Use uppercase for labels.",
+        "import_url": "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Manrope:wght@400;500;600&display=swap"
+      },
+      "body": {
+        "family": "Manrope, sans-serif",
+        "weights": ["400", "500"],
+        "usage": "Paragraphs, table data, inputs, and small labels."
+      }
+    },
+    "colors": {
+      "primary": {
+        "name": "Business Red",
+        "hex": "#DC2626",
+        "tailwind": "bg-red-600",
+        "usage": "Primary buttons, active states, critical alerts, progress bars."
+      },
+      "background": {
+        "name": "Obsidian",
+        "hex": "#09090B",
+        "tailwind": "bg-zinc-950",
+        "usage": "Main app background."
+      },
+      "surface": {
+        "name": "Gunmetal",
+        "hex": "#18181B",
+        "tailwind": "bg-zinc-900",
+        "usage": "Cards, sidebars, modals."
+      },
+      "text": {
+        "primary": "#FAFAFA",
+        "secondary": "#A1A1AA",
+        "muted": "#52525B"
+      },
+      "border": {
+        "default": "#27272A",
+        "active": "#DC2626"
+      },
+      "status": {
+        "success": "#10B981",
+        "warning": "#F59E0B",
+        "error": "#EF4444"
+      }
+    },
+    "layout": {
+      "grid_system": "Bento Grid Mode B (High Density)",
+      "spacing": "Compact but breathable. Use p-6 for cards, gap-4 for grids.",
+      "radius": "rounded-sm (2px) or rounded-md (4px). Avoid large rounded corners.",
+      "sidebar": "Fixed left, w-64, dark zinc-900 background with red active indicators."
+    },
+    "components": {
+      "buttons": {
+        "style": "Sharp edges or minimal radius (rounded-sm). Uppercase text for primary actions.",
+        "hover": "Brightness-110 and slight lift."
+      },
+      "cards": {
+        "style": "Flat background (zinc-900), 1px border (zinc-800). No shadow in dark mode.",
+        "header": "Border-b border-zinc-800 pb-4 mb-4."
+      },
+      "inputs": {
+        "style": "Bg-zinc-950, border-zinc-800, focus:border-red-600 focus:ring-1 focus:ring-red-600."
+      },
+      "tables": {
+        "style": "Dense. Header: uppercase, text-xs, text-zinc-500. Rows: hover:bg-zinc-800/50 transition-colors."
+      }
+    },
+    "motion": {
+      "micro_interactions": "Fast (150ms). Buttons scale down slightly on click (0.98).",
+      "page_transition": "Fade in (opacity 0 to 1) over 300ms.",
+      "alerts": "Pulse animation for expiring certificates."
+    }
+  },
+  "assets": {
+    "images": [
+      {
+        "category": "Login Hero",
+        "url": "https://images.unsplash.com/photo-1765366417030-16d9765d920a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBjb3Jwb3JhdGUlMjBvZmZpY2UlMjBpbnRlcmlvciUyMGJsYWNrJTIwYW5kJTIwcmVkJTIwYWNjZW50c3xlbnwwfHx8fDE3NzAyMDczOTF8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Modern corporate office with black/red accents. Use with a heavy black gradient overlay for text readability."
+      },
+      {
+        "category": "Contract/Minutes",
+        "url": "https://images.unsplash.com/photo-1564846824194-346b7871b855?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzh8MHwxfHNlYXJjaHwyfHxsZWdhbCUyMGRvY3VtZW50cyUyMGNvbnRyYWN0JTIwc2lnbmluZyUyMGNsb3NlJTIwdXB8ZW58MHx8fHwxNzcwMjA3Mzk2fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Close up of signing documents. Use for the 'Minutas' section header or empty state."
+      },
+      {
+        "category": "Security/Certificates",
+        "url": "https://images.unsplash.com/photo-1608411197659-136d2926de6e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA0MTJ8MHwxfHNlYXJjaHwxfHxkaWdpdGFsJTIwc2VjdXJpdHklMjBsb2NrJTIwdGVjaG5vbG9neSUyMGFic3RyYWN0fGVufDB8fHx8MTc3MDIwNzQwMHww&ixlib=rb-4.1.0&q=85",
+        "description": "Digital padlock. Use for the 'Certificados Digitais' section."
+      }
+    ],
+    "icons": {
+      "library": "lucide-react",
+      "style": "Stroke width 1.5px (thin and precise)."
+    }
+  },
+  "pages": {
+    "login": {
+      "layout": "Split Screen. Left: Form (30%), Right: Image (70%).",
+      "elements": ["Email Input", "Password Input", "Forgot Password Link", "Login Button (Full Width Red)"]
+    },
+    "dashboard": {
+      "layout": "Bento Grid. Top row: Key Metrics (Certificates Expiring, Pending Minutes). Middle: Recent Activity List. Right: Quick Actions.",
+      "widgets": ["Expiring Certificates Counter (Red Alert)", "Active Licenses (Green)", "Recent Minute Requests"]
+    },
+    "minutas": {
+      "layout": "Two Column. Left: Upload & Chat (Interaction). Right: Preview/History.",
+      "features": ["Drag & Drop Zone (Dotted Red Border)", "Chat Interface (WhatsApp style but corporate)", "Document List"]
+    },
+    "certificados": {
+      "layout": "Data Table with Filters.",
+      "features": ["Status Badge (Active/Expired)", "Download Action", "Auto-Renew Toggle"]
+    }
+  },
+  "instructions_to_main_agent": [
+    "Implement the 'Barlow Condensed' font for all headings immediately.",
+    "Force Dark Mode by adding 'dark' class to the html/body tag or using a ThemeProvider.",
+    "Use the specific hex codes provided for the 'Business Red' (#DC2626) - do not use default Tailwind red.",
+    "Ensure all interactive elements have data-testid attributes.",
+    "Do not use gradients for backgrounds. Use solid #09090B.",
+    "For the 'Minutas' chat, make the user bubbles Red (#DC2626) and AI bubbles Zinc-800.",
+    "Use 'sonner' for all notifications (success/error)."
+  ],
+  "universal_guidelines": {
+    "avoid": ["Rounded buttons (use pill or sharp)", "Gradients on text", "Centered layouts for dashboards"],
+    "must_do": ["Use 24px+ padding inside cards", "Add hover states to table rows", "Use Lucide icons"]
+  }
+}
