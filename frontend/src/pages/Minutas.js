@@ -245,13 +245,39 @@ Use linguagem jurídica formal e precisa. Inclua todos os dados extraídos dos d
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(minutaGerada);
-        toast.success('Copiado!');
+        toast.success('Texto copiado para área de transferência!');
+    };
+
+    const forcarDownload = (blob, nomeArquivo) => {
+        // Método 1: file-saver
+        try {
+            saveAs(blob, nomeArquivo);
+        } catch (e) {
+            // Método 2: link manual
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = nomeArquivo;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => {
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+        }
     };
 
     const exportarTxt = () => {
-        const blob = new Blob([minutaGerada], { type: 'text/plain;charset=utf-8' });
-        saveAs(blob, `minuta_alteracao_${dataAlteracao}.txt`);
-        toast.success('TXT exportado!');
+        try {
+            const blob = new Blob([minutaGerada], { type: 'text/plain;charset=utf-8' });
+            forcarDownload(blob, `minuta_alteracao_${dataAlteracao}.txt`);
+            toast.success('Arquivo TXT salvo na pasta Downloads!');
+        } catch (e) {
+            // Fallback: copiar para clipboard
+            navigator.clipboard.writeText(minutaGerada);
+            toast.info('Não foi possível baixar. Texto copiado para clipboard!');
+        }
     };
 
     const exportarWord = async () => {
@@ -288,11 +314,11 @@ Use linguagem jurídica formal e precisa. Inclua todos os dados extraídos dos d
             });
 
             const blob = await Packer.toBlob(doc);
-            saveAs(blob, `minuta_alteracao_${dataAlteracao}.docx`);
-            toast.success('Word exportado!');
+            forcarDownload(blob, `minuta_alteracao_${dataAlteracao}.docx`);
+            toast.success('Arquivo Word salvo na pasta Downloads!');
         } catch (e) {
             console.error(e);
-            toast.error('Erro ao exportar Word');
+            toast.error('Erro ao gerar Word. Use a opção Copiar.');
         }
     };
 
