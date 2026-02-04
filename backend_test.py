@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 
 class FiscalSystemAPITester:
-    def __init__(self, base_url="https://taxfusion.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://bizcontab.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.admin_token = None
         self.client_token = None

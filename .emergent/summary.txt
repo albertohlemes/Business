@@ -1,0 +1,189 @@
+<analysis>**original_problem_statement:**
+O usuário, proprietário do escritório Business Contabilidade, precisa de um site para otimizar o processo de fechamento fiscal.
+
+**PRODUCT REQUIREMENTS:**
+1.  **Autenticação:** Clientes ou funcionários devem fazer login.
+2.  **Upload de Documentos Fiscais:** Permitir upload em lote de XML (NF-e), e posteriormente NFC-e e NFS-e.
+3.  **Validação Inteligente de CFOP:** Classificar produtos em **REVENDA**, **INSUMO**, ou **DESPESA** com base na atividade da empresa, com aprendizado contínuo.
+4.  **Reclassificação Manual com IA:** Permitir que o usuário corrija uma classificação e a IA memorize a regra para o futuro.
+5.  **Cadastro de Empresas com Busca Automática:** Buscar dados da empresa via API da Receita ao digitar o CNPJ. O cadastro deve incluir campos detalhados como **regime tributário** (Simples Nacional, Presumido, Lucro Real), atividades e anexos.
+6.  **Gerenciamento por Competência:** Trabalhar com dados separados por empresa e competência (mês/ano). Um seletor global deve estar presente no cabeçalho.
+7.  **Validação de Dados no Upload:** Impedir upload de notas de CNPJ ou competência diferentes da selecionada e gerar um relatório de erros.
+8.  **Análise Tributária Avançada com IA:**
+    *   Fornecer um dashboard com análises sobre a carga tributária, separando créditos e débitos de ICMS, PIS e COFINS.
+    *   Analisar a composição do faturamento (vendas, serviços, ST, tributado, isento).
+    *   Calcular indicadores como markup e o ponto de equilíbrio de despesas para empresas do Lucro Real.
+    *   Apresentar alertas e oportunidades de economia fiscal.
+9.  **Relatórios e Exportação:** Gerar relatórios por produto/NCM e exportá-los para CSV. A exportação do arquivo SPED Fiscal por competência também é um requisito.
+10. **UI/UX:** Design com as cores da marca (vermelho e preto), logo da empresa no header e um menu de navegação com ordem lógica.
+
+**User's preferred language**: O usuário comunica-se em **Português (Brasil)**. O próximo agente DEVE responder em Português.
+
+**what currently exists?**
+Uma aplicação full-stack (FastAPI + React) que inclui:
+*   **Backend:** Um arquivo  monolítico com endpoints para autenticação, CRUD de empresas, upload de XML, e múltiplos endpoints de IA para reclassificação, validação de impostos e análise tributária avançada. Foi adicionada integração com  para usar o modelo GPT-4o.
+*   **Frontend:** Uma SPA React com um sistema de roteamento, contexto global () para gerenciar a empresa e competência selecionadas, e as seguintes páginas: Login, Empresas, Upload de XML, Reclassificação IA, Análise Tributária, Relatórios e Exportação SPED. O design inclui a logo do cliente e as cores da marca.
+*   **Funcionalidades:** Login, cadastro de empresas com busca de CNPJ, upload de XML com validação de CNPJ/competência, um seletor global de empresa/competência no cabeçalho e páginas dedicadas para análise e reclassificação com IA.
+
+**Last working item**:
+*   **Last item agent was working:** O agente estava no meio de uma grande implementação de recursos solicitada pelo usuário (mensagens 242 e 245), focada em tornar a análise fiscal mais profissional e precisa. O agente atualizou o backend () para incluir novos campos no modelo da empresa (, , etc.) e reescreveu o endpoint de análise tributária para fazer cálculos mais detalhados. No frontend, o agente adicionou os novos campos ao formulário  e sobrescreveu a página  para exibir os novos indicadores. A última ação foi iniciar a reorganização do menu no .
+*   **Status**: IN PROGRESS
+*   **Agent Testing Done**: N
+*   **Which testing method agent to use?**: both
+*   **User Testing Done**: N
+
+**All Pending/In progress Issue list**:
+*   **Issue 1 (P1):** O botão de excluir empresa não está funcionando, conforme relatado pelo usuário na mensagem 117.
+*   **Issue 2 (P2):** O botão de exportar para CSV nos relatórios não está funcionando, conforme relatado na mensagem 184.
+
+**Issues Detail:**
+*   **Issue 1: Botão de excluir empresa não funciona**
+    *   **Attempted fixes:** O agente verificou que o endpoint do backend () funciona corretamente via . Adicionou um  ao botão no frontend (), mas a funcionalidade não foi confirmada com um teste de ponta a ponta ou pelo usuário.
+    *   **Next debug checklist:**
+        1.  Inspecionar o console do navegador e a aba de rede ao clicar no botão Excluir na página de Empresas.
+        2.  Verificar se a função  em  está sendo chamada corretamente e se o  está correto.
+        3.  Confirmar que o token de autenticação está sendo enviado no header da requisição .
+    *   **Why fix this issue?** É uma funcionalidade básica de gerenciamento que precisa funcionar.
+    *   **Status:** NOT STARTED (nesta sessão, pois foi apenas reportado)
+    *   **Is recurring issue?** N
+    *   **Should Test frontend/backend/both after fix?** frontend
+    *   **Blocked on other issue:** none
+
+*   **Issue 2: Botão de exportar CSV não funciona**
+    *   **Attempted fixes:** O agente analisou o código em  e adicionou tratamento para valores  para evitar que a biblioteca CSV falhe. A correção não foi testada.
+    *   **Next debug checklist:**
+        1.  Gerar dados de relatório e clicar no botão Exportar CSV.
+        2.  Verificar o console do navegador em busca de erros.
+        3.  Adicionar  para inspecionar os dados () que estão sendo passados para a função .
+    *   **Why fix this issue?** Exportar relatórios é um requisito do usuário.
+    *   **Status:** NOT STARTED (nesta sessão, pois foi apenas reportado)
+    *   **Is recurring issue?** N
+    *   **Should Test frontend/backend/both after fix?** frontend
+    *   **Blocked on other issue:** none
+
+**In progress Task List**:
+*   **Task 1: Concluir implementação de análise fiscal avançada e novos campos de empresa**
+    *   **Where to resume:** O agente acabou de sobrescrever  e estava prestes a reorganizar o menu em .
+    *   **Next Steps:**
+        1.  Finalizar a reorganização do menu de navegação no  para ter uma ordem lógica.
+        2.  Garantir que a nova página  exiba corretamente os dados complexos calculados pelo backend (créditos/débitos separados, análise de faturamento, ponto de equilíbrio, etc.).
+        3.  Testar o fluxo completo: cadastrar uma empresa com o novo formulário (incluindo regime tributário), fazer upload de notas, e verificar se a página de análise tributária exibe os dados corretos.
+    *   **What will be achieved with this?** A aplicação passará de uma ferramenta de classificação para um sistema de análise fiscal profissional, atendendo aos principais requisitos do usuário.
+    *   **Status:** IN PROGRESS
+    *   **Should Test frontend/backend/both after fix?** both
+    *   **Blocked on something:** none
+
+**Upcoming and Future Tasks**
+*   **Upcoming Tasks:**
+    *   **P1:** Implementar upload de **NFC-e (cupom fiscal)** e **NFS-e (nota de serviço)**, conforme solicitado na mensagem 245. Isso exigirá modificações no endpoint de upload e possivelmente no parser de XML.
+    *   **P2:** No relatório de erros de importação, garantir que o **nome do arquivo** que falhou seja exibido claramente para o usuário.
+*   **Future Tasks:**
+    *   Finalizar e testar a funcionalidade de exportação do arquivo **SPED Fiscal**.
+    *   Criar um dashboard principal com os indicadores mais importantes.
+    *   Implementar um histórico de alterações (audit log) para as reclassificações feitas pela IA.
+
+**Completed work in this session**
+- **Correção de Bugs Críticos:** Consertado o botão Salvar Empresa e a funcionalidade de busca de CNPJ.
+- **Gerenciamento de Estado Global:** Implementado um seletor global de empresa e competência no cabeçalho usando React Context, que persiste entre as páginas.
+- **Novas Funcionalidades de IA:**
+    - Criada a página Reclassificação com IA para corrigir e ensinar a IA.
+    - Criada a página Análise Tributária (versão inicial).
+- **Validação de Upload Aprimorada:** O backend agora rejeita XMLs que não correspondem ao CNPJ ou à competência selecionada e retorna um relatório de erros.
+- **Melhorias de UI:** Adicionada a logo da empresa no cabeçalho.
+- **Endpoint de Reset:** Adicionado um endpoint  para facilitar os testes.
+- **Início da Análise Avançada:** O backend foi significativamente atualizado para suportar cálculos fiscais baseados no regime tributário da empresa.
+
+**Earlier issues found/mentioned but not fixed**
+*   **Issue 1:** O botão de excluir empresa não funciona (reportado pelo usuário na mensagem 117).
+*   **Issue 2:** O botão de exportar CSV nos relatórios não funciona (reportado pelo usuário na mensagem 184).
+
+**Known issue recurrence from previous fork**
+- N/A
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+*   **Backend:** FastAPI, Pydantic, pymongo, lxml, xmltodict, emergentintegrations.
+*   **Frontend:** React, React Context, axios, react-router-dom, TailwindCSS.
+*   **IA:** GPT-4o via Emergent LLM Key para análise e classificação.
+*   **Arquitetura:** Backend monolítico e frontend SPA.
+
+**key DB schema**
+*   : 
+*   : 
+*   : 
+*   : 
+
+**changes in tech stack**
+*   Adicionada a biblioteca  para interagir com a API de IA da Emergent.
+
+**All files of reference**
+*   **/app/backend/server.py**: Arquivo principal do backend, massivamente modificado para adicionar novos endpoints de IA, novos modelos Pydantic e lógica de cálculo tributário complexa.
+*   **/app/frontend/src/pages/Companies.js**: Atualizado para incluir os novos campos do formulário de empresa (regime tributário, etc.).
+*   **/app/frontend/src/pages/AnaliseTributaria.js**: Sobrescrito para acomodar a nova estrutura de dados da análise tributária avançada.
+*   **/app/frontend/src/components/Layout.js**: Modificado para incluir o seletor global, a logo e está pendente de reorganização do menu.
+*   **/app/frontend/src/App.js**: Envolvido pelo  para o contexto global.
+*   **/app/frontend/src/context/AppContext.js**: Novo arquivo que gerencia o estado global da aplicação (empresa e competência ativas).
+
+**Areas that need refactoring**
+*   ****: O arquivo continua a crescer e se tornou muito complexo. A separação em módulos (rotas, modelos, serviços) é altamente recomendada.
+*   ****: O menu de navegação precisa ser reorganizado para seguir uma ordem mais lógica, conforme solicitado pelo usuário.
+
+**key api endpoints**
+*   : Login de usuário.
+*   : Gerenciar empresas.
+*   : Upload de XML com validações.
+*   : Limpar o banco de dados.
+*   : Endpoint para a IA reclassificar um documento.
+*   : Endpoint para a IA validar impostos de um documento.
+*   : Novo endpoint para a análise tributária avançada.
+
+**Critical Info for New Agent**
+*   **Prioridade Máxima:** A prioridade é concluir a implementação da análise fiscal avançada (Task 1). O backend já foi alterado, agora o foco é o frontend () e a reorganização do menu ().
+*   **Feedback do Usuário:** O usuário é engajado e fornece requisitos detalhados e técnicos. Siga suas instruções cuidadosamente (mensagens 242, 245, 262).
+*   **Bugs Pendentes:** Não se esqueça de corrigir os dois bugs reportados: o botão de excluir empresa e o de exportar CSV.
+*   **Próximos Passos Claros:** Após finalizar a tarefa atual, os próximos passos são implementar o upload de NFC-e/NFS-e e melhorar o relatório de erros de importação.
+
+**documents and test reports created in this job**
+*   /app/memory/PRD.md
+*   /app/test_reports/iteration_2.json
+*   /app/test_reports/iteration_3.json
+*   /app/test_reports/iteration_4.json
+
+**Last 10 User Messages and any pending HUMAN messages**
+1.  **User (LATEST - 262):** pode seguir (pode seguir) - *Status: APROVADO. Aprovação para o agente continuar a implementação em andamento.*
+2.  **User (245):** Detalha requisitos para o regime tributário, permite alterar a sugestão da IA, confirma que o menu pode ser visto depois, e solicita suporte para upload de NFC-e e NFS-e. Também pede para o relatório de erro informar o nome do arquivo e define o cálculo do ponto de equilíbrio para Lucro Real. - *Status: IN PROGRESS.*
+3.  **Agent (244):** Pede esclarecimentos sobre os novos requisitos complexos. - *Status: RESPONDIDO.*
+4.  **User (242):** Solicita uma grande refatoração: reorganizar o menu, tornar a análise de indicadores mais inteligente (separando impostos, considerando ST e alíquota zero), adicionar regime tributário no cadastro da empresa, calcular ponto de equilíbrio, e detalhar o faturamento por tipo/imposto. - *Status: IN PROGRESS. Esta é a tarefa principal atual.*
+5.  **Agent (241):** Finaliza a implementação do seletor global e da página de análise tributária (v1). - *Status: FEITO.*
+6.  **User (187):** Aprova a abordagem de análise, pede para colocar o seletor no header, solicita mais indicadores tributários, e envia a logo da empresa. - *Status: FEITO.*
+7.  **Agent (186):** Pergunta sobre onde colocar o seletor de empresa/competência e que tipo de análises/indicadores adicionar. - *Status: RESPONDIDO.*
+8.  **User (184):** Sugere que ao logar, o usuário selecione a empresa/competência, que os botões de exportar CSV não funcionam, e solicita análises tributárias sênior (compras fora do estado, markup, etc.). - *Status: PARCIALMENTE FEITO. Seletor foi implementado; análise está sendo refeita; exportar CSV é um bug pendente.*
+9.  **Agent (183):** Finaliza as correções de validação de upload e o endpoint de reset. - *Status: FEITO.*
+10. **User (117):** Reporta que o botão de excluir empresa não funciona, pede validação para não importar XML de outra empresa/competência, e solicita melhorias na IA para PIS/COFINS (alíquota zero) e ICMS (baseado no estado da empresa). Pede para zerar a base. - *Status: PARCIALMENTE FEITO. Validações e melhoria da IA foram feitas, base zerada, mas o botão de excluir continua como bug pendente.*
+
+**Project Health Check:**
+*   **Broken:**
+    *   O botão de excluir empresas ().
+    *   O botão de exportar para CSV ().
+    *   A funcionalidade de análise tributária avançada está no meio da implementação e, portanto, não funcional.
+*   **Mocked:** N/A
+
+**3rd Party Integrations**
+*   **Brasil API:** Endpoint público () para buscar dados de empresas. Não requer chave.
+*   **OpenAI GPT-4o:** Usado para todas as funcionalidades de IA (classificação, validação, análise). Acessado via  e utiliza a **Emergent LLM Key**.
+
+**Testing status**
+*   **Testing agent used after significant changes**: YES (a última vez foi na , antes do início da implementação da análise tributária avançada).
+*   **Troubleshoot agent used after agent stuck in loop**: NO
+*   **Test files created**: []
+*   **Known regressions**: Nenhuma regressão conhecida desde o último teste bem-sucedido.
+
+**Credentials to test flow:**
+*   A aplicação possui um formulário de registro. Crie um novo usuário com qualquer e-mail/senha para testar.
+
+**What agent forgot to execute**
+*   O agente não concluiu a reorganização do menu do .
+*   O agente não iniciou a implementação do upload de NFC-e e NFS-e.
+*   O agente não testou ou verificou as correções para os bugs do botão Excluir Empresa e Exportar CSV após as tentativas de correção.</analysis>
