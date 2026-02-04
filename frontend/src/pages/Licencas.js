@@ -33,6 +33,7 @@ const Licencas = () => {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [consultando, setConsultando] = useState(null);
     const [renovando, setRenovando] = useState(null);
+    const [baixando, setBaixando] = useState(null);
 
     // Form state
     const [cnpj, setCnpj] = useState('');
