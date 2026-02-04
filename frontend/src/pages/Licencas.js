@@ -708,7 +708,7 @@ const Licencas = () => {
 
             {/* VNC Browser Dialog - Automação Visível */}
             <Dialog open={vncOpen} onOpenChange={(open) => { if (!open) fecharVNC(); }}>
-                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-6xl h-[90vh] overflow-hidden flex flex-col p-0">
+                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-5xl h-[85vh] overflow-hidden flex flex-col p-0">
                     <DialogHeader className="border-b border-zinc-800 p-4">
                         <div className="flex items-center justify-between">
                             <DialogTitle className="text-white flex items-center gap-2">
@@ -740,27 +740,40 @@ const Licencas = () => {
                         {aguardandoLogin && (
                             <div className="mt-2 bg-amber-950/50 border border-amber-800 rounded p-3">
                                 <p className="text-amber-400 text-sm">
-                                    <strong>⚠️ Faça login com seu certificado digital na tela abaixo!</strong>
+                                    <strong>⚠️ O navegador está aberto no servidor.</strong>
                                     <br/>
-                                    Após fazer login no Gov.br, o sistema continuará automaticamente.
+                                    Infelizmente, o portal REDESIM requer login via Gov.br com certificado digital, que não pode ser automatizado.
+                                    <br/><br/>
+                                    <strong>Por favor, abra o portal REDESIM manualmente em outra aba e faça a consulta:</strong>
                                 </p>
+                                <Button 
+                                    className="mt-3 bg-red-600 hover:bg-red-700"
+                                    onClick={() => window.open('https://vreredesim.sp.gov.br', '_blank')}
+                                >
+                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                    Abrir Portal REDESIM SP
+                                </Button>
                             </div>
                         )}
                     </DialogHeader>
-                    <div className="flex-1 bg-black">
-                        <iframe 
-                            src={`${API_URL}/api/novnc/vnc.html?autoconnect=true&resize=scale&quality=6`}
-                            className="w-full h-full border-0"
-                            title="Navegador Remoto - REDESIM"
-                            allow="clipboard-write"
-                        />
+                    <div className="flex-1 bg-zinc-950 flex items-center justify-center p-4">
+                        <div className="text-center">
+                            <Monitor className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
+                            <p className="text-zinc-500 mb-4">
+                                O navegador foi aberto no servidor e está na página do REDESIM.
+                            </p>
+                            <p className="text-sm text-zinc-600">
+                                O portal REDESIM exige autenticação via Gov.br com certificado digital,
+                                <br/>que precisa ser feita diretamente no seu computador.
+                            </p>
+                        </div>
                     </div>
                     <div className="border-t border-zinc-800 p-3 flex items-center justify-between bg-zinc-950">
                         <span className="text-xs text-zinc-500">
                             CNPJ: <span className="font-mono text-zinc-400">{vncCnpj}</span>
                         </span>
                         <span className="text-xs text-zinc-500">
-                            Use o navegador acima para fazer login no Gov.br. A consulta será feita automaticamente.
+                            Faça login no portal REDESIM e consulte a licença manualmente.
                         </span>
                     </div>
                 </DialogContent>
