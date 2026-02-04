@@ -98,12 +98,19 @@ const CompanySelector = () => {
                         : 'border-gray-200 hover:border-red-300 hover:bg-gray-50'
                     }`}
                   >
-                    <div>
-                      <p className="font-semibold text-gray-900">{company.razao_social}</p>
-                      <p className="text-sm text-gray-500">{company.cnpj}</p>
-                      {company.cidade && (
-                        <p className="text-xs text-gray-400">{company.cidade}/{company.uf}</p>
+                    <div className="flex items-center gap-3">
+                      {company.codigo_empresa && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded font-bold text-sm">
+                          #{company.codigo_empresa}
+                        </span>
                       )}
+                      <div>
+                        <p className="font-semibold text-gray-900">{company.razao_social}</p>
+                        <p className="text-sm text-gray-500">{company.cnpj}</p>
+                        {company.cidade && (
+                          <p className="text-xs text-gray-400">{company.cidade}/{company.uf}</p>
+                        )}
+                      </div>
                     </div>
                     {tempCompany?.id === company.id && (
                       <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
