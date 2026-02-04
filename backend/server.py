@@ -2295,6 +2295,29 @@ Se algum campo não for encontrado, use null."""
             else:
                 dados = {}
         
+        # Consultar CEP nos Correios para atualizar endereço da empresa
+        if dados.get('empresa') and dados['empresa'].get('endereco'):
+            endereco = dados['empresa']['endereco']
+            cep = endereco.get('cep') if isinstance(endereco, dict) else None
+            if cep:
+                import httpx
+                cep_limpo = ''.join(filter(str.isdigit, str(cep)))
+                if len(cep_limpo) == 8:
+                    try:
+                        async with httpx.AsyncClient() as client:
+                            cep_response = await client.get(f"https://viacep.com.br/ws/{cep_limpo}/json/", timeout=5.0)
+                            if cep_response.status_code == 200:
+                                dados_correios = cep_response.json()
+                                if not dados_correios.get("erro"):
+                                    endereco['logradouro'] = dados_correios.get('logradouro', endereco.get('logradouro', ''))
+                                    endereco['bairro'] = dados_correios.get('bairro', endereco.get('bairro', ''))
+                                    endereco['cidade'] = dados_correios.get('localidade', endereco.get('cidade', ''))
+                                    endereco['estado'] = dados_correios.get('uf', endereco.get('estado', ''))
+                                    endereco['cep'] = dados_correios.get('cep', endereco.get('cep', '')).replace('-', '')
+                                    logger.info(f"Endereço da empresa atualizado via Correios")
+                    except Exception as e:
+                        logger.warning(f"Não foi possível consultar CEP nos Correios: {str(e)}")
+        
         return {"success": True, "dados": dados}
         
     except Exception as e:
