@@ -42,6 +42,7 @@ const TIPOS_ALTERACAO = [
     { id: 'capital', label: 'Alteração de Capital', icon: DollarSign, description: 'Aumento ou redução do capital social' },
     { id: 'nome', label: 'Alteração de Nome', icon: Building2, description: 'Mudança de razão social ou nome fantasia' },
     { id: 'administracao', label: 'Alteração de Administração', icon: Users, description: 'Mudança nos administradores' },
+    { id: 'outras', label: 'Outras Alterações', icon: FileText, description: 'Alterar cláusulas específicas do contrato' },
 ];
 
 // Banco de CNAEs simplificado para busca
