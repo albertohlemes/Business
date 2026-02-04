@@ -941,6 +941,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                     { id: 'revenda', label: 'REVENDA', desc: 'Comercialização' },
                     { id: 'insumo', label: 'INSUMO', desc: 'Produção' },
                     { id: 'despesa', label: 'DESPESA', desc: 'Uso e consumo' },
+                    { id: 'ativo_imobilizado', label: 'ATIVO IMOB.', desc: 'Bens permanentes' },
                     { id: 'combustivel', label: 'COMBUSTÍVEL', desc: 'Energia' },
                   ].map(cat => (
                     <button
