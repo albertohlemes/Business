@@ -131,6 +131,7 @@ const Companies = ({ user, onLogout }) => {
         razao_social: '',
         nome_fantasia: '',
         inscricao_estadual: '',
+        inscricao_municipal: '',
         endereco: '',
         cidade: '',
         uf: 'SP',
@@ -140,9 +141,18 @@ const Companies = ({ user, onLogout }) => {
         atividade_principal: '',
         produtos_comercializados: [],
         insumos_producao: [],
-        produtos_despesa: []
+        produtos_despesa: [],
+        regime_tributario: 'lucro_presumido',
+        anexos_simples: [],
+        tipo_atividade: 'comercio',
+        tipos_servico: [],
+        percentual_presuncao_irpj: 8.0,
+        percentual_presuncao_csll: 12.0,
+        estoque_inicial: 0,
+        estoque_final: 0
       });
       fetchCompanies();
+      refreshCompanies();
       alert('Empresa cadastrada com sucesso!');
     } catch (err) {
       alert(err.response?.data?.detail || 'Erro ao cadastrar empresa');
@@ -157,6 +167,52 @@ const Companies = ({ user, onLogout }) => {
       .replace(/(\d{3})(\d)/, '$1/$2')
       .replace(/(\d{4})(\d)/, '$1-$2')
       .substring(0, 18);
+  };
+
+  // Atualizar presunção baseado na atividade
+  const atualizarPresuncao = (atividade) => {
+    let irpj = 8.0;
+    let csll = 12.0;
+    
+    if (atividade === 'servicos') {
+      irpj = 32.0;
+      csll = 32.0;
+    } else if (atividade === 'industria') {
+      irpj = 8.0;
+      csll = 12.0;
+    } else if (atividade === 'mista') {
+      irpj = 16.0; // Média entre comércio e serviços
+      csll = 20.0;
+    }
+    
+    setFormData({
+      ...formData,
+      tipo_atividade: atividade,
+      percentual_presuncao_irpj: irpj,
+      percentual_presuncao_csll: csll
+    });
+  };
+
+  const toggleAnexoSimples = (anexo) => {
+    const anexos = formData.anexos_simples.includes(anexo)
+      ? formData.anexos_simples.filter(a => a !== anexo)
+      : [...formData.anexos_simples, anexo];
+    setFormData({ ...formData, anexos_simples: anexos });
+  };
+
+  const adicionarServico = () => {
+    if (servicoInput.trim()) {
+      setFormData({
+        ...formData,
+        tipos_servico: [...formData.tipos_servico, servicoInput.trim()]
+      });
+      setServicoInput('');
+    }
+  };
+
+  const removerServico = (index) => {
+    const novosServicos = formData.tipos_servico.filter((_, i) => i !== index);
+    setFormData({ ...formData, tipos_servico: novosServicos });
   };
 
   const adicionarProduto = () => {
