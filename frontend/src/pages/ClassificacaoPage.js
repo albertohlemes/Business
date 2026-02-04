@@ -319,7 +319,35 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     }
   };
 
-  // Regras aprendidas
+  // Regras aprendidas - Calcular CFOP automaticamente ao mudar categoria
+  const getCfopForCategoria = (categoria, isInterestadual = false) => {
+    const prefix = isInterestadual ? '2' : '1';
+    const cfops = {
+      'revenda': prefix + '102',
+      'REVENDA': prefix + '102',
+      'revenda_st': prefix + '403',
+      'REVENDA_ST': prefix + '403',
+      'insumo': prefix + '101',
+      'INSUMO': prefix + '101',
+      'insumo_st': prefix + '401',
+      'INSUMO_ST': prefix + '401',
+      'despesa': prefix + '556',
+      'DESPESA': prefix + '556',
+      'despesa_st': prefix + '407',
+      'DESPESA_ST': prefix + '407',
+      'combustivel': prefix + '653',
+      'COMBUSTIVEL': prefix + '653',
+    };
+    return cfops[categoria] || prefix + '102';
+  };
+
+  const handleCategoriaChange = (newCategoria) => {
+    // Detectar se é interestadual pelo CFOP atual
+    const isInterestadual = ruleEdit.cfop?.startsWith('2');
+    const newCfop = getCfopForCategoria(newCategoria, isInterestadual);
+    setRuleEdit({ categoria: newCategoria, cfop: newCfop });
+  };
+
   const handleSaveRule = async (ruleId) => {
     try {
       const token = localStorage.getItem('token');
