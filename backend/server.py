@@ -4264,21 +4264,37 @@ async def ai_analise_tributaria(
     percentual_vendas_tributado = (valor_vendas_tributado / total_vendas * 100) if total_vendas > 0 else 0
     percentual_vendas_isento = (valor_vendas_isento / total_vendas * 100) if total_vendas > 0 else 0
     
-    # Percentual PIS/COFINS tributado vs alíquota zero
-    total_pis_saida = debito_pis_tributado + debito_pis_aliquota_zero
-    total_cofins_saida = debito_cofins_tributado + debito_cofins_aliquota_zero
-    percentual_pis_tributado = (debito_pis_tributado / total_pis_saida * 100) if total_pis_saida > 0 else 0
-    percentual_cofins_tributado = (debito_cofins_tributado / total_cofins_saida * 100) if total_cofins_saida > 0 else 0
+    # Percentual PIS/COFINS tributado vs alíquota zero/sem incidência
+    total_pis_saida_base = debito_pis_tributado + debito_pis_aliquota_zero + debito_pis_sem_incidencia
+    total_cofins_saida_base = debito_cofins_tributado + debito_cofins_aliquota_zero + debito_cofins_sem_incidencia
+    percentual_pis_tributado = (debito_pis_tributado / total_pis_saida_base * 100) if total_pis_saida_base > 0 else 0
+    percentual_cofins_tributado = (debito_cofins_tributado / total_cofins_saida_base * 100) if total_cofins_saida_base > 0 else 0
+    
+    # Alíquotas de PIS/COFINS conforme regime
+    if regime == 'lucro_real':
+        aliq_pis = 0.0165  # 1.65%
+        aliq_cofins = 0.076  # 7.6%
+    else:
+        aliq_pis = 0.0065  # 0.65%
+        aliq_cofins = 0.03  # 3%
+    
+    # Calcular débitos de PIS/COFINS sobre a base tributada
+    debito_pis_calculado = base_debito_pis_cofins * aliq_pis
+    debito_cofins_calculado = base_debito_pis_cofins * aliq_cofins
+    
+    # Calcular créditos de PIS/COFINS sobre a base com crédito (apenas Lucro Real)
+    credito_pis_calculado = base_credito_pis_cofins * aliq_pis if regime == 'lucro_real' else 0
+    credito_cofins_calculado = base_credito_pis_cofins * aliq_cofins if regime == 'lucro_real' else 0
     
     # Créditos efetivos (descontando ST e alíquota zero)
     credito_icms_efetivo = credito_icms_tributado
-    credito_pis_efetivo = credito_pis_tributado if regime == 'lucro_real' else 0
-    credito_cofins_efetivo = credito_cofins_tributado if regime == 'lucro_real' else 0
+    credito_pis_efetivo = credito_pis_calculado
+    credito_cofins_efetivo = credito_cofins_calculado
     
     # Débitos efetivos
     debito_icms_efetivo = debito_icms_tributado
-    debito_pis_efetivo = debito_pis_tributado
-    debito_cofins_efetivo = debito_cofins_tributado
+    debito_pis_efetivo = debito_pis_calculado
+    debito_cofins_efetivo = debito_cofins_calculado
     
     # Apuração
     icms_a_pagar = max(0, debito_icms_efetivo - credito_icms_efetivo)
