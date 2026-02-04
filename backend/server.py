@@ -305,18 +305,60 @@ def is_ncm_aliquota_zero(ncm: str) -> bool:
         
     return False
 
+# CFOPs de ENTRADA que NÃO têm incidência de PIS/COFINS (CST 98)
+CFOPS_ENTRADA_SEM_INCIDENCIA = [
+    # Devoluções de venda (não geram crédito pois são anulação de receita)
+    '1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209', '1210',
+    '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209', '2210',
+    # Transferências (operação interna)
+    '1151', '1152', '1153', '1154', '1408', '1409', '1410',
+    '2151', '2152', '2153', '2154', '2408', '2409', '2410',
+    # Remessas/Retornos (não são compras)
+    '1901', '1902', '1903', '1904', '1905', '1906', '1907', '1908', '1909',
+    '1910', '1911', '1912', '1913', '1914', '1915', '1916', '1917', '1918',
+    '1919', '1920', '1921', '1922', '1923', '1924', '1925', '1926', '1949',
+    '2901', '2902', '2903', '2904', '2905', '2906', '2907', '2908', '2909',
+    '2910', '2911', '2912', '2913', '2914', '2915', '2916', '2917', '2918',
+    '2919', '2920', '2921', '2922', '2923', '2924', '2925', '2926', '2949',
+    # Importações com tratamento especial
+    '3201', '3202', '3205', '3206', '3207', '3211', '3949'
+]
+
+# CFOPs de SAÍDA que NÃO têm incidência de PIS/COFINS (CST 49)
+CFOPS_SAIDA_SEM_INCIDENCIA = [
+    # Devoluções (não geram receita)
+    '5201', '5202', '5205', '5206', '5207', '5208', '5209', '5210',
+    '6201', '6202', '6205', '6206', '6207', '6208', '6209', '6210',
+    # Transferências (operação interna, não gera receita)
+    '5151', '5152', '5153', '5155', '5156', '5408', '5409', '5410',
+    '6151', '6152', '6153', '6155', '6156', '6408', '6409', '6410',
+    # Remessas (não são vendas)
+    '5901', '5902', '5903', '5904', '5905', '5906', '5907', '5908', '5909',
+    '5910', '5911', '5912', '5913', '5914', '5915', '5916', '5917', '5918',
+    '5919', '5920', '5921', '5922', '5923', '5924', '5925', '5926', '5927',
+    '5928', '5929', '5931', '5932', '5933', '5934', '5949',
+    '6901', '6902', '6903', '6904', '6905', '6906', '6907', '6908', '6909',
+    '6910', '6911', '6912', '6913', '6914', '6915', '6916', '6917', '6918',
+    '6919', '6920', '6921', '6922', '6923', '6924', '6925', '6929', '6931',
+    '6932', '6933', '6934', '6949',
+    # Exportações (alíquota zero por operação)
+    '7101', '7102', '7105', '7106', '7127', '7501', '7551', '7553', '7556',
+    '7651', '7654', '7667', '7930', '7949'
+]
+
 def calcular_cst_pis_cofins(ncm: str, cfop: str, tipo_operacao: str, cst_xml: str = None, regime: str = 'lucro_real') -> dict:
     """
     Calcula o CST correto de PIS/COFINS baseado nas regras fiscais.
     
     Regras:
+    - CFOP sem incidência: Entrada CST 98, Saída CST 49
     - NCM com alíquota zero: Entrada CST 73, Saída CST 06
-    - CFOP sem direito a crédito: Entrada CST 70 (sem crédito), Saída CST 06
+    - CFOP sem direito a crédito: Entrada CST 70 (sem crédito)
     - Normal (Lucro Real): Entrada CST 50 (com crédito), Saída CST 01 (tributado)
     - Lucro Presumido: Entrada CST 70 (sem crédito), Saída CST 01 (cumulativo)
     
     Returns:
-        dict com 'cst_calculado', 'cst_xml', 'divergente', 'motivo'
+        dict com 'cst_calculado', 'cst_xml', 'divergente', 'motivo', 'sem_incidencia'
     """
     primeiro_digito = cfop[0] if cfop else ''
     is_entrada = primeiro_digito in ['1', '2', '3'] or tipo_operacao == 'entrada'
@@ -325,11 +367,20 @@ def calcular_cst_pis_cofins(ncm: str, cfop: str, tipo_operacao: str, cst_xml: st
     aliq_zero = is_ncm_aliquota_zero(ncm)
     cfop_com_credito = cfop in CFOPS_COM_CREDITO_PIS_COFINS if cfop else True
     
+    # Verificar se é CFOP sem incidência de PIS/COFINS
+    cfop_sem_incidencia_entrada = cfop in CFOPS_ENTRADA_SEM_INCIDENCIA
+    cfop_sem_incidencia_saida = cfop in CFOPS_SAIDA_SEM_INCIDENCIA
+    
     cst_calculado = None
     motivo = ""
+    sem_incidencia = False
     
     if is_entrada:
-        if aliq_zero:
+        if cfop_sem_incidencia_entrada:
+            cst_calculado = '98'
+            motivo = 'CFOP sem incidência de PIS/COFINS (remessa/devolução/transferência)'
+            sem_incidencia = True
+        elif aliq_zero:
             cst_calculado = '73'
             motivo = 'NCM com alíquota zero (Tabela 4.3.13 SPED)'
         elif regime == 'lucro_real' and cfop_com_credito:
@@ -339,7 +390,11 @@ def calcular_cst_pis_cofins(ncm: str, cfop: str, tipo_operacao: str, cst_xml: st
             cst_calculado = '70'
             motivo = 'CFOP sem direito a crédito' if not cfop_com_credito else 'Lucro Presumido (cumulativo)'
     elif is_saida:
-        if aliq_zero:
+        if cfop_sem_incidencia_saida:
+            cst_calculado = '49'
+            motivo = 'CFOP sem incidência de PIS/COFINS (remessa/devolução/transferência)'
+            sem_incidencia = True
+        elif aliq_zero:
             cst_calculado = '06'
             motivo = 'NCM com alíquota zero (Tabela 4.3.13 SPED)'
         else:
@@ -357,7 +412,8 @@ def calcular_cst_pis_cofins(ncm: str, cfop: str, tipo_operacao: str, cst_xml: st
         'cst_xml': cst_xml,
         'divergente': divergente,
         'motivo': motivo,
-        'aliq_zero': aliq_zero
+        'aliq_zero': aliq_zero,
+        'sem_incidencia': sem_incidencia
     }
 
 def verify_password(plain_password, hashed_password):
