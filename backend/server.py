@@ -2873,7 +2873,7 @@ Se o comando não for claro ou não se aplicar a nenhum produto, retorne {{"alte
 """
 
     try:
-        llm = LlmChat(api_key=os.environ.get('EMERGENT_API_KEY'))
+        llm = LlmChat(api_key=os.environ.get('EMERGENT_LLM_KEY'))
         response = await llm.chat(
             messages=[UserMessage(content=prompt)],
             model="gpt-4o"
