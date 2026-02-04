@@ -92,6 +92,8 @@ class Company(BaseModel):
     produtos_comercializados: List[str] = []
     insumos_producao: List[str] = []
     produtos_despesa: List[str] = []
+    ativo_imobilizado: List[str] = []  # Palavras-chave para Ativo Imobilizado
+    combustivel: List[str] = []  # Palavras-chave para Combustível
     # Regime Tributário
     regime_tributario: str = "lucro_presumido"  # simples_nacional, lucro_presumido, lucro_real
     anexos_simples: List[str] = []  # I, II, III, IV, V
