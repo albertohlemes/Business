@@ -23,9 +23,11 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ### ✅ Gestão de Empresas
 - Listagem de empresas cadastradas
-- Cadastro de novas empresas com campos completos (regime tributário, atividades, etc.)
+- **Cadastro e Edição** de empresas
+- **Campo Código/ID da Empresa** - Identificador customizado (#001, CLI-2024, etc.)
 - Busca automática de dados da Receita Federal via CNPJ
 - **Exclusão de empresas** - Funcionando (apenas empresas sem documentos)
+- Badge com código da empresa exibido no card e no header
 
 ### ✅ **Dashboard Completo** (04/02/2026)
 - Estatísticas por **empresa e competência selecionada**
