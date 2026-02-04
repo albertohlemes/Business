@@ -1427,6 +1427,7 @@ async def get_dashboard_stats(
         },
         "creditos": {
             "icms": round(credito_icms, 2),
+            "icms_st_desconsiderado": round(credito_icms_st_desconsiderado, 2),
             "pis": round(credito_pis, 2),
             "cofins": round(credito_cofins, 2),
             "total": round(credito_icms + credito_pis + credito_cofins, 2)
