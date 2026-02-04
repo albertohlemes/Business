@@ -453,14 +453,20 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                     cst_cofins = cofins[key].get('CST', '')
                     break
             
+            # NCM para verificar alíquota zero
+            ncm = prod.get('NCM', '')
+            
             produtos.append({
                 'codigo': prod.get('cProd', ''),
                 'descricao': prod.get('xProd', ''),
-                'ncm': prod.get('NCM', ''),
+                'ncm': ncm,
                 'cfop': cfop,
                 'cst': cst_icms,
-                'cst_pis': cst_pis,
-                'cst_cofins': cst_cofins,
+                'cst_pis_xml': cst_pis,  # CST original do XML
+                'cst_cofins_xml': cst_cofins,  # CST original do XML
+                'cst_pis': cst_pis,  # Será atualizado após determinar tipo de operação
+                'cst_cofins': cst_cofins,  # Será atualizado após determinar tipo de operação
+                'ncm_aliq_zero': is_ncm_aliquota_zero(ncm),  # Flag de alíquota zero pelo NCM
                 'quantidade': float(prod.get('qCom', 0) or 0),
                 'valor_unitario': float(prod.get('vUnCom', 0) or 0),
                 'valor_total': float(prod.get('vProd', 0) or 0),
