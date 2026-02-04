@@ -94,8 +94,8 @@ const Processos = () => {
             setWizardConstituicaoOpen(true);
         } else if (activeTab === 'alteracao') {
             setWizardAlteracaoOpen(true);
-        } else {
-            toast.info('Funcionalidade de Baixa em desenvolvimento');
+        } else if (activeTab === 'baixa') {
+            setWizardBaixaOpen(true);
         }
     };
 
