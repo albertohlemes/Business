@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { Building2, Plus, Search, RefreshCw, Trash2 } from 'lucide-react';
+import { Building2, Plus, Search, RefreshCw, Trash2, Settings } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL + '/api';
 
 const Companies = ({ user, onLogout }) => {
+  const { refreshCompanies } = useAppContext();
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -17,6 +19,7 @@ const Companies = ({ user, onLogout }) => {
     razao_social: '',
     nome_fantasia: '',
     inscricao_estadual: '',
+    inscricao_municipal: '',
     endereco: '',
     cidade: '',
     uf: 'SP',
@@ -26,11 +29,21 @@ const Companies = ({ user, onLogout }) => {
     atividade_principal: '',
     produtos_comercializados: [],
     insumos_producao: [],
-    produtos_despesa: []
+    produtos_despesa: [],
+    // Regime Tributário
+    regime_tributario: 'lucro_presumido',
+    anexos_simples: [],
+    tipo_atividade: 'comercio',
+    tipos_servico: [],
+    percentual_presuncao_irpj: 8.0,
+    percentual_presuncao_csll: 12.0,
+    estoque_inicial: 0,
+    estoque_final: 0
   });
   const [produtoInput, setProdutoInput] = useState('');
   const [insumoInput, setInsumoInput] = useState('');
   const [despesaInput, setDespesaInput] = useState('');
+  const [servicoInput, setServicoInput] = useState('');
 
   useEffect(() => {
     fetchCompanies();
