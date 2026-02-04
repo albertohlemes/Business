@@ -1092,12 +1092,12 @@ const ValidationPage = ({ user, onLogout }) => {
                 <div className="p-6 text-center">
                   <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
                 </div>
-              ) : groupedProducts.length === 0 ? (
+              ) : sortedProducts.length === 0 ? (
                 <div className="p-6 text-center text-gray-500 text-sm">
                   {selectedCompany ? 'Nenhum produto encontrado' : 'Selecione uma empresa no header'}
                 </div>
               ) : (
-                groupedProducts.map((product) => (
+                sortedProducts.map((product) => (
                   <GroupedProductItem key={product.codigo} product={product} />
                 ))
               )}
