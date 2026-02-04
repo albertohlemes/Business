@@ -4555,6 +4555,33 @@ Seja específico e use os valores reais fornecidos."""
         raise HTTPException(status_code=500, detail=f"Erro na análise: {str(e)}")
 
 @api_router.post("/manual-reclassify")
+async def run_analise_task_wrapper(task_id: str, request: AnaliseTributariaRequest):
+    try:
+        tasks_store[task_id] = {"status": "processing", "progress": 0}
+        result = await internal_analise_tributaria(request)
+        tasks_store[task_id] = {"status": "completed", "result": result}
+    except Exception as e:
+        tasks_store[task_id] = {"status": "error", "error": str(e)}
+
+@api_router.post("/ai/analise-tributaria")
+async def ai_analise_tributaria(
+    request: AnaliseTributariaRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
+    """Inicia análise tributária em background"""
+    task_id = str(uuid.uuid4())
+    tasks_store[task_id] = {"status": "pending"}
+    background_tasks.add_task(run_analise_task_wrapper, task_id, request)
+    return {"task_id": task_id, "status": "pending"}
+
+@api_router.get("/ai/tasks/{task_id}")
+async def get_task_status(task_id: str):
+    task = tasks_store.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
 async def manual_reclassify_product(
     doc_id: str,
     produto_codigo: str,
