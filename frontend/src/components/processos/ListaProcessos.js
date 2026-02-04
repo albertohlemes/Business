@@ -188,7 +188,8 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, emptyMessag
                     <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                         <FileText className="w-5 h-5 text-red-500" />
                         {tipoProcesso === 'constituicao' ? 'Constituições de Empresas' : 
-                         tipoProcesso === 'alteracao' ? 'Alterações Contratuais' : 'Processos'}
+                         tipoProcesso === 'alteracao' ? 'Alterações Contratuais' : 
+                         tipoProcesso === 'baixa' ? 'Baixas de Empresas' : 'Processos'}
                     </h2>
                 </div>
                 
