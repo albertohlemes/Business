@@ -1269,9 +1269,18 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
             
             if (alteracoesSelecionadas.includes('socios')) {
                 descricaoCompleta += `\n\nALTERAÇÃO DE SÓCIOS (QSA):\n`;
-                if (dadosQSA.tipoQSA === 'saida' && dadosQSA.sociosSaindo?.length > 0) {
-                    const sociosSaindo = dadosQSA.sociosSaindo.map(idx => socios[idx]?.nome || `Sócio ${idx+1}`);
-                    descricaoCompleta += `- Sócios retirantes: ${sociosSaindo.join(', ')}\n`;
+                if (dadosQSA.tipoQSA === 'saida') {
+                    // Sócios selecionados da lista extraída
+                    if (dadosQSA.sociosSaindo?.length > 0) {
+                        const sociosSaindo = dadosQSA.sociosSaindo.map(idx => socios[idx]?.nome || `Sócio ${idx+1}`);
+                        descricaoCompleta += `- Sócios retirantes: ${sociosSaindo.join(', ')}\n`;
+                    }
+                    // Sócios adicionados manualmente
+                    if (dadosQSA.sociosRetirantes?.length > 0) {
+                        dadosQSA.sociosRetirantes.forEach(s => {
+                            descricaoCompleta += `- Sócio retirante: ${s.nome}, CPF ${s.cpf}, participação ${s.participacao}%\n`;
+                        });
+                    }
                 }
                 if (dadosQSA.tipoQSA === 'entrada' && dadosQSA.sociosEntrando?.length > 0) {
                     dadosQSA.sociosEntrando.forEach(s => {
