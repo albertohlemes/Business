@@ -524,21 +524,7 @@ Estrutura obrigatória:
                     </div>
                 ) : (
                     <div className="divide-y divide-zinc-800">
-                        {/* Agrupar minutas por cliente (CNPJ) */}
-                        {Object.entries(
-                            minutas.reduce((acc, m) => {
-                                const key = m.cnpj || m.razao_social || 'sem-identificacao';
-                                if (!acc[key]) {
-                                    acc[key] = {
-                                        cnpj: m.cnpj,
-                                        razao_social: m.razao_social,
-                                        alteracoes: []
-                                    };
-                                }
-                                acc[key].alteracoes.push(m);
-                                return acc;
-                            }, {})
-                        ).map(([key, cliente]) => (
+                        {getMinutasAgrupadas().map(([key, cliente]) => (
                             <div key={key} className="p-4" data-testid={`cliente-${key}`}>
                                 {/* Cabeçalho do Cliente */}
                                 <div className="flex items-center justify-between mb-3">
