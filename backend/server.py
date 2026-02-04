@@ -875,8 +875,19 @@ async def upload_xml_batch(
             content = await file.read()
             xml_str = content.decode('utf-8')
             
-            parsed_data = parse_xml_nfe(xml_str)
+            # Detectar tipo de XML automaticamente
+            xml_type = detect_xml_type(xml_str)
+            
+            # Parser apropriado para cada tipo
+            if xml_type == 'nfse':
+                parsed_data = parse_xml_nfse(xml_str)
+            elif xml_type == 'nfce':
+                parsed_data = parse_xml_nfce(xml_str)
+            else:
+                parsed_data = parse_xml_nfe(xml_str)
+            
             chave_nfe = parsed_data['chave_nfe']
+            modelo = parsed_data.get('modelo', xml_type)
             
             # VALIDAR CNPJ - Verificar se a NF-e pertence à empresa selecionada
             # Para ENTRADA: o destinatário deve ser a empresa
