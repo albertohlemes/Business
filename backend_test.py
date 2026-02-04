@@ -649,6 +649,152 @@ class FiscalSystemAPITester:
         
         return success, response
 
+    def test_company_cascade_delete(self):
+        """Test company deletion with cascade delete of associated XML documents"""
+        if not self.admin_token:
+            return False, {}
+        
+        print("\n🔍 Testing Company Cascade Delete...")
+        
+        # Step 1: Create a company for cascade delete testing
+        company_data = {
+            "cnpj": "11.222.333/0001-44",
+            "razao_social": "Empresa Cascade Test LTDA",
+            "nome_fantasia": "Cascade Test Corp",
+            "inscricao_estadual": "987654321",
+            "endereco": "Rua Cascade, 456",
+            "cidade": "São Paulo",
+            "uf": "SP",
+            "cep": "01234-567"
+        }
+        
+        headers = {'Authorization': f'Bearer {self.admin_token}'}
+        success, response = self.run_test(
+            "Create Company for Cascade Test",
+            "POST",
+            "companies",
+            200,
+            data=company_data,
+            headers=headers
+        )
+        
+        if not success or 'id' not in response:
+            print("❌ Failed to create company for cascade test")
+            return False, {}
+        
+        self.cascade_test_company_id = response['id']
+        print(f"✅ Created company with ID: {self.cascade_test_company_id}")
+        
+        # Step 2: Insert a dummy XML document directly into the database
+        document_id = str(uuid.uuid4())
+        self.cascade_test_document_id = document_id
+        
+        dummy_document = {
+            "id": document_id,
+            "company_id": self.cascade_test_company_id,
+            "competencia": "12/2024",
+            "tipo": "entrada",
+            "modelo": "nfe",
+            "chave_nfe": "35202411222333000144550010000000011234567890",
+            "numero_nfe": "123456",
+            "data_emissao": "2024-12-15T10:30:00-03:00",
+            "emitente_cnpj": "11.222.333/0001-44",
+            "emitente_nome": "Fornecedor Teste LTDA",
+            "destinatario_cnpj": "11.222.333/0001-44",
+            "destinatario_nome": "Empresa Cascade Test LTDA",
+            "valor_total": 1500.00,
+            "valor_servicos": 0.0,
+            "xml_content": "<?xml version='1.0'?><nfe>dummy content</nfe>",
+            "produtos": [
+                {
+                    "codigo": "PROD123",
+                    "descricao": "Produto Teste Cascade",
+                    "ncm": "12345678",
+                    "cfop": "1102",
+                    "quantidade": 10.0,
+                    "valor_unitario": 150.0,
+                    "valor_total": 1500.0,
+                    "unidade": "UN"
+                }
+            ],
+            "servicos": [],
+            "status_validacao": "pendente",
+            "uploaded_at": datetime.now().isoformat(),
+            "uploaded_by": "test_user"
+        }
+        
+        try:
+            # Insert document directly into MongoDB
+            result = self.db.xml_documents.insert_one(dummy_document)
+            print(f"✅ Inserted dummy document directly to DB: {document_id}")
+        except Exception as e:
+            print(f"❌ Failed to insert dummy document: {str(e)}")
+            self.errors.append(f"Cascade Delete Test: Failed to insert dummy document - {str(e)}")
+            return False, {}
+        
+        # Step 3: Verify both company and document exist before deletion
+        # Check company exists
+        company_check = self.db.companies.find_one({"id": self.cascade_test_company_id})
+        if not company_check:
+            print("❌ Company not found before deletion")
+            self.errors.append("Cascade Delete Test: Company not found before deletion")
+            return False, {}
+        
+        # Check document exists
+        document_check = self.db.xml_documents.find_one({"id": document_id})
+        if not document_check:
+            print("❌ Document not found before deletion")
+            self.errors.append("Cascade Delete Test: Document not found before deletion")
+            return False, {}
+        
+        print("✅ Verified both company and document exist before deletion")
+        
+        # Step 4: Call DELETE /companies/{id}
+        success, response = self.run_test(
+            "Delete Company with Cascade",
+            "DELETE",
+            f"companies/{self.cascade_test_company_id}",
+            200,
+            headers=headers
+        )
+        
+        if not success:
+            print("❌ Company deletion API call failed")
+            return False, {}
+        
+        # Verify response message mentions document deletion
+        if 'message' not in response:
+            print("❌ Missing message in delete response")
+            self.errors.append("Cascade Delete Test: Missing message in response")
+            return False, response
+        
+        message = response['message']
+        if 'documento(s) excluídos' not in message:
+            print(f"❌ Response message doesn't mention document deletion: {message}")
+            self.errors.append(f"Cascade Delete Test: Response doesn't mention document deletion - {message}")
+            return False, response
+        
+        print(f"✅ Delete response: {message}")
+        
+        # Step 5: Verify both company and document are gone
+        # Check company is deleted
+        company_check_after = self.db.companies.find_one({"id": self.cascade_test_company_id})
+        if company_check_after:
+            print("❌ Company still exists after deletion")
+            self.errors.append("Cascade Delete Test: Company still exists after deletion")
+            return False, {}
+        
+        # Check document is deleted
+        document_check_after = self.db.xml_documents.find_one({"id": document_id})
+        if document_check_after:
+            print("❌ Document still exists after deletion")
+            self.errors.append("Cascade Delete Test: Document still exists after deletion")
+            return False, {}
+        
+        print("✅ Verified both company and document are deleted (cascade delete working)")
+        
+        return True, response
+
 def main():
     print("🚀 Starting Business Contabilidade Fiscal System API Tests")
     print("=" * 60)
