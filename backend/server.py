@@ -1768,6 +1768,439 @@ async def upload_xml_batch(
         }
     }
 
+
+# ============== UPLOAD COM PROGRESSO (SSE) ==============
+upload_progress_store: Dict[str, Dict] = {}
+
+@api_router.post("/xml/upload-init")
+async def init_upload(
+    company_id: str = Form(...),
+    competencia: str = Form(...),
+    tipo: str = Form(...),
+    total_files: int = Form(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Inicializa uma sessão de upload e retorna um upload_id para acompanhar o progresso"""
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    upload_id = str(uuid.uuid4())
+    upload_progress_store[upload_id] = {
+        "status": "initialized",
+        "total_files": total_files,
+        "processed_files": 0,
+        "current_file": "",
+        "current_step": "Aguardando arquivos...",
+        "progress_percent": 0,
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": tipo,
+        "user_id": current_user.id,
+        "results": None,
+        "completed": False
+    }
+    
+    return {"upload_id": upload_id}
+
+
+@api_router.get("/xml/upload-progress/{upload_id}")
+async def stream_upload_progress(upload_id: str):
+    """Stream de progresso do upload via Server-Sent Events"""
+    
+    async def event_generator():
+        last_progress = -1
+        while True:
+            if upload_id not in upload_progress_store:
+                yield f"data: {json.dumps({'error': 'Upload não encontrado'})}\n\n"
+                break
+            
+            progress = upload_progress_store[upload_id]
+            current_progress = progress.get("progress_percent", 0)
+            
+            # Enviar atualização apenas se houver mudança
+            if current_progress != last_progress or progress.get("completed"):
+                event_data = {
+                    "status": progress["status"],
+                    "total_files": progress["total_files"],
+                    "processed_files": progress["processed_files"],
+                    "current_file": progress["current_file"],
+                    "current_step": progress["current_step"],
+                    "progress_percent": progress["progress_percent"],
+                    "completed": progress.get("completed", False)
+                }
+                
+                if progress.get("completed") and progress.get("results"):
+                    event_data["results"] = progress["results"]
+                    yield f"data: {json.dumps(event_data)}\n\n"
+                    # Limpar dados após enviar resultados
+                    await asyncio.sleep(1)
+                    if upload_id in upload_progress_store:
+                        del upload_progress_store[upload_id]
+                    break
+                
+                yield f"data: {json.dumps(event_data)}\n\n"
+                last_progress = current_progress
+            
+            await asyncio.sleep(0.3)  # Verificar a cada 300ms
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
+@api_router.post("/xml/upload-stream")
+async def upload_xml_with_progress(
+    upload_id: str = Form(...),
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Upload de XMLs com progresso em tempo real"""
+    
+    if upload_id not in upload_progress_store:
+        raise HTTPException(status_code=404, detail="Sessão de upload não encontrada")
+    
+    progress = upload_progress_store[upload_id]
+    company_id = progress["company_id"]
+    competencia = progress["competencia"]
+    tipo = progress["tipo"]
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+    uf_empresa = company.get('uf', 'SP')
+    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
+    
+    results = []
+    errors = []
+    conversion_report = []
+    duplicadas = []
+    rejeitadas_cnpj = []
+    rejeitadas_competencia = []
+    alertas_cfop = []
+    
+    total_stats = {"from_cache": 0, "from_rules": 0, "from_ai": 0, "total": 0}
+    
+    CFOPS_OPERACOES_DISTINTAS_UPLOAD = {
+        '5910': 'Remessa em bonificação', '5911': 'Remessa de amostra grátis',
+        '5912': 'Remessa de mercadoria para demonstração', '5913': 'Retorno de mercadoria para demonstração',
+        '5914': 'Remessa de mercadoria para exposição/feira', '5915': 'Remessa de mercadoria para consignação',
+        '5916': 'Retorno de mercadoria de consignação', '5917': 'Remessa de mercadoria em consignação simbólica',
+        '5918': 'Devolução de mercadoria de consignação simbólica', '5919': 'Devolução simbólica por venda em consignação',
+        '5920': 'Remessa de vasilhame/sacaria', '5921': 'Devolução de vasilhame/sacaria',
+        '5922': 'Lançamento para simples faturamento', '5923': 'Remessa de mercadoria por conta e ordem',
+        '5924': 'Remessa para industrialização por conta e ordem', '5925': 'Retorno de mercadoria de depósito',
+        '5949': 'Outra saída não especificada', '5201': 'Devolução de compra - indústria',
+        '5202': 'Devolução de compra - comercialização', '5208': 'Devolução de mercadoria em transferência',
+        '5209': 'Devolução de mercadoria para uso/consumo', '5210': 'Devolução de compra para industrialização',
+        '5122': 'Venda com entrega futura', '5123': 'Venda de mercadoria em consignação mercantil',
+        '6910': 'Remessa em bonificação (interestadual)', '6911': 'Remessa de amostra grátis (interestadual)',
+        '6912': 'Remessa para demonstração (interestadual)', '6949': 'Outra saída não especificada (interestadual)',
+        '6201': 'Devolução de compra - indústria (interestadual)', '6202': 'Devolução de compra - comercialização (interestadual)',
+        '6122': 'Venda com entrega futura (interestadual)',
+    }
+    
+    CFOP_SAIDA_PARA_ENTRADA = {
+        '5910': '1910', '5911': '1911', '5912': '1912', '5913': '1913',
+        '5914': '1914', '5915': '1915', '5916': '1916', '5917': '1917',
+        '5918': '1918', '5919': '1919', '5920': '1920', '5921': '1921',
+        '5922': '1922', '5923': '1923', '5924': '1924', '5925': '1925',
+        '5949': '1949', '5201': '1201', '5202': '1202', '5208': '1208',
+        '5209': '1209', '5210': '1210', '5122': '1102', '5123': '1102',
+        '6910': '2910', '6911': '2911', '6912': '2912', '6913': '2913',
+        '6949': '2949', '6201': '2201', '6202': '2202', '6122': '2102',
+    }
+    
+    total_files = len(files)
+    
+    for file_idx, file in enumerate(files):
+        # Atualizar progresso: lendo arquivo
+        progress["processed_files"] = file_idx
+        progress["current_file"] = file.filename
+        progress["current_step"] = f"Lendo arquivo {file_idx + 1}/{total_files}..."
+        progress["progress_percent"] = int((file_idx / total_files) * 100)
+        progress["status"] = "processing"
+        
+        try:
+            content = await file.read()
+            xml_str = content.decode('utf-8')
+            
+            # Atualizar progresso: validando
+            progress["current_step"] = f"Validando {file.filename}..."
+            
+            xml_type = detect_xml_type(xml_str)
+            
+            if xml_type == 'nfse':
+                parsed_data = parse_xml_nfse(xml_str)
+            elif xml_type == 'nfce':
+                parsed_data = parse_xml_nfce(xml_str)
+            else:
+                parsed_data = parse_xml_nfe(xml_str)
+            
+            chave_nfe = parsed_data['chave_nfe']
+            modelo = parsed_data.get('modelo', xml_type)
+            
+            cnpj_emitente = parsed_data.get('emitente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+            cnpj_destinatario = parsed_data.get('destinatario_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+            
+            cnpj_valido = False
+            if tipo == 'entrada':
+                cnpj_valido = cnpj_destinatario == cnpj_empresa
+                if not cnpj_valido:
+                    rejeitadas_cnpj.append({
+                        "filename": file.filename,
+                        "numero_nfe": parsed_data.get('numero_nfe', ''),
+                        "motivo": f"CNPJ do destinatário ({cnpj_destinatario}) não corresponde à empresa selecionada ({cnpj_empresa})",
+                        "emitente": parsed_data.get('emitente_nome', ''),
+                        "destinatario": parsed_data.get('destinatario_nome', '')
+                    })
+                    continue
+            else:
+                cnpj_valido = cnpj_emitente == cnpj_empresa
+                if not cnpj_valido:
+                    rejeitadas_cnpj.append({
+                        "filename": file.filename,
+                        "numero_nfe": parsed_data.get('numero_nfe', ''),
+                        "motivo": f"CNPJ do emitente ({cnpj_emitente}) não corresponde à empresa selecionada ({cnpj_empresa})",
+                        "emitente": parsed_data.get('emitente_nome', ''),
+                        "destinatario": parsed_data.get('destinatario_nome', '')
+                    })
+                    continue
+            
+            data_emissao = parsed_data.get('data_emissao', '')
+            if data_emissao:
+                try:
+                    if 'T' in data_emissao:
+                        data_emissao_dt = datetime.fromisoformat(data_emissao.replace('Z', '+00:00'))
+                    else:
+                        data_emissao_dt = datetime.strptime(data_emissao[:10], '%Y-%m-%d')
+                    
+                    mes_nfe = str(data_emissao_dt.month).zfill(2)
+                    ano_nfe = str(data_emissao_dt.year)
+                    competencia_nfe = f"{mes_nfe}/{ano_nfe}"
+                    
+                    if competencia_nfe != competencia:
+                        rejeitadas_competencia.append({
+                            "filename": file.filename,
+                            "numero_nfe": parsed_data.get('numero_nfe', ''),
+                            "motivo": f"Data da NF-e ({competencia_nfe}) não corresponde à competência selecionada ({competencia})",
+                            "data_emissao": data_emissao[:10]
+                        })
+                        continue
+                except Exception:
+                    pass
+            
+            existing_doc = await db.xml_documents.find_one({
+                "company_id": company_id,
+                "competencia": competencia,
+                "chave_nfe": chave_nfe
+            }, {"_id": 0})
+            
+            if existing_doc:
+                duplicadas.append({
+                    "filename": file.filename,
+                    "chave": chave_nfe,
+                    "numero_nfe": parsed_data['numero_nfe']
+                })
+                continue
+            
+            file_conversions = []
+            file_alertas_cfop = []
+            
+            emitente_uf = parsed_data.get('emitente_uf', '')
+            
+            produtos_para_classificar = []
+            produtos_operacao_distinta = []
+            
+            for product in parsed_data['produtos']:
+                cfop_original = product.get('cfop', '')
+                ncm = product.get('ncm', '')
+                
+                cst_info = calcular_cst_pis_cofins(
+                    ncm=ncm,
+                    cfop=cfop_original,
+                    tipo_operacao=tipo,
+                    cst_xml=product.get('cst_pis_xml', product.get('cst_pis', '')),
+                    regime=regime_tributario
+                )
+                
+                product.update({
+                    'cst_pis_calculado': cst_info['cst_calculado'],
+                    'cst_cofins_calculado': cst_info['cst_calculado'],
+                    'cst_pis': cst_info['cst_calculado'],
+                    'cst_cofins': cst_info['cst_calculado'],
+                    'cst_divergente': cst_info['divergente'],
+                    'cst_motivo': cst_info['motivo'],
+                    'ncm_aliq_zero': cst_info['aliq_zero'],
+                    'cfop_sem_incidencia': cst_info.get('sem_incidencia', False)
+                })
+
+                if tipo == 'entrada':
+                    if cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
+                        produtos_operacao_distinta.append((product, cfop_original))
+                    else:
+                        produtos_para_classificar.append(product)
+            
+            for product, cfop_original in produtos_operacao_distinta:
+                cfop_convertido = CFOP_SAIDA_PARA_ENTRADA.get(cfop_original, cfop_original)
+                product['cfop_original_emissor'] = cfop_original
+                product['cfop'] = cfop_convertido
+                product['pendente_revisao_cfop'] = True
+                product['natureza_operacao_original'] = CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original]
+                
+                file_alertas_cfop.append({
+                    'produto': product.get('descricao', ''),
+                    'codigo': product.get('codigo', ''),
+                    'cfop_emissor': cfop_original,
+                    'cfop_convertido': cfop_convertido,
+                    'descricao_cfop': CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original],
+                    'valor': product.get('valor_total', 0),
+                    'acao_tomada': f'Convertido para {cfop_convertido} (pendente revisão)'
+                })
+                
+                file_conversions.append({
+                    'produto': product.get('descricao', ''),
+                    'codigo': product.get('codigo', ''),
+                    'cfop_original': cfop_original,
+                    'cfop_convertido': cfop_convertido,
+                    'categoria': 'operacao_distinta',
+                    'motivo': f"CFOP {cfop_original} ({CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original]}) → {cfop_convertido}"
+                })
+            
+            # Atualizar progresso: classificando
+            if produtos_para_classificar and tipo == 'entrada':
+                progress["current_step"] = f"Classificando produtos de {file.filename}..."
+                
+                classifications, stats = await classify_products_with_cache(
+                    produtos_para_classificar, 
+                    company_id, 
+                    company, 
+                    emitente_uf
+                )
+                
+                total_stats["from_cache"] += stats.get("from_cache", 0)
+                total_stats["from_rules"] += stats.get("from_rules", 0)
+                total_stats["from_ai"] += stats.get("from_ai", 0)
+                total_stats["total"] += stats.get("total", 0)
+                
+                for idx, product in enumerate(produtos_para_classificar):
+                    p_id = str(idx)
+                    if p_id in classifications:
+                        result = classifications[p_id]
+                        cfop_original = product.get('cfop', '')
+                        cfop_novo = result['cfop']
+                        
+                        product['cfop_original'] = cfop_original
+                        product['cfop'] = cfop_novo
+                        product['cfop_sugerido'] = cfop_novo
+                        product['categoria_classificada'] = result['categoria']
+                        product['justificativa_ia'] = result['justificativa']
+                        
+                        origem = "cache" if "Memorizado" in result['justificativa'] else ("regra" if "cadastrado" in result['justificativa'].lower() else "ia")
+                        
+                        file_conversions.append({
+                            'produto': product.get('descricao', ''),
+                            'codigo': product.get('codigo', ''),
+                            'cfop_original': cfop_original,
+                            'cfop_convertido': cfop_novo,
+                            'categoria': result['categoria'],
+                            'motivo': result['justificativa'],
+                            'origem': origem
+                        })
+            
+            if file_alertas_cfop:
+                alertas_cfop.append({
+                    "arquivo": file.filename,
+                    "nfe": parsed_data['numero_nfe'],
+                    "emitente": parsed_data.get('emitente_nome', ''),
+                    "qtd_produtos": len(file_alertas_cfop),
+                    "alertas": file_alertas_cfop
+                })
+            
+            # Atualizar progresso: salvando
+            progress["current_step"] = f"Salvando {file.filename}..."
+            
+            xml_doc = XMLDocument(
+                company_id=company_id,
+                competencia=competencia,
+                tipo=tipo,
+                modelo=modelo,
+                xml_content=xml_str,
+                uploaded_by=current_user.id,
+                **{k: v for k, v in parsed_data.items() if k != 'modelo'}
+            )
+            
+            doc = xml_doc.model_dump()
+            doc['uploaded_at'] = doc['uploaded_at'].isoformat()
+            
+            await db.xml_documents.insert_one(doc)
+            
+            results.append({
+                "filename": file.filename,
+                "status": "success",
+                "chave": parsed_data['chave_nfe'],
+                "conversoes": len(file_conversions)
+            })
+            
+            if file_conversions:
+                conversion_report.append({
+                    "arquivo": file.filename,
+                    "nfe": parsed_data['numero_nfe'],
+                    "conversoes": file_conversions
+                })
+            
+        except Exception as e:
+            errors.append({"filename": file.filename, "error": str(e)})
+    
+    # Upload concluído
+    final_results = {
+        "success": results,
+        "errors": errors,
+        "duplicadas": duplicadas,
+        "rejeitadas_cnpj": rejeitadas_cnpj,
+        "rejeitadas_competencia": rejeitadas_competencia,
+        "relatorio_conversoes": conversion_report,
+        "alertas_cfop": alertas_cfop,
+        "total_conversoes": sum(len(r['conversoes']) for r in conversion_report),
+        "total_alertas_cfop": sum(len(a['alertas']) for a in alertas_cfop),
+        "performance": {
+            "produtos_do_cache": total_stats["from_cache"],
+            "produtos_de_regras": total_stats["from_rules"],
+            "produtos_da_ia": total_stats["from_ai"],
+            "total_classificados": total_stats["total"]
+        },
+        "resumo": {
+            "total_arquivos": len(files),
+            "importados": len(results),
+            "duplicados": len(duplicadas),
+            "rejeitados_cnpj": len(rejeitadas_cnpj),
+            "rejeitados_competencia": len(rejeitadas_competencia),
+            "erros": len(errors),
+            "alertas_cfop": len(alertas_cfop)
+        }
+    }
+    
+    progress["processed_files"] = total_files
+    progress["progress_percent"] = 100
+    progress["current_step"] = "Upload concluído!"
+    progress["status"] = "completed"
+    progress["completed"] = True
+    progress["results"] = final_results
+    
+    return final_results
+
+
 @api_router.get("/xml/documents")
 async def list_documents(
     company_id: Optional[str] = None,
