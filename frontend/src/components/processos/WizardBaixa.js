@@ -523,7 +523,8 @@ const WizardBaixa = ({ open, onClose, onComplete }) => {
     const canProceed = () => {
         switch (step) {
             case 1:
-                return arquivoContrato !== null || (razaoSocial && cnpj);
+                // Step 1 allows proceeding without file (user can fill data manually in step 2)
+                return true;
             case 2:
                 return razaoSocial.trim() && cnpj.trim();
             case 3:
