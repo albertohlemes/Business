@@ -120,7 +120,7 @@ const Licencas = () => {
         
         try {
             // Iniciar consulta com VNC (browser visível)
-            const response = await axios.post(`${API_URL}/api/redesim-vnc/iniciar/${encodeURIComponent(licenca.cnpj)}`);
+            const response = await axios.post(`${API_URL}/api/redesim-vnc/iniciar?cnpj=${encodeURIComponent(licenca.cnpj)}`);
             
             if (response.data.aguardando_login) {
                 setVncStatus('Faça login com seu certificado digital!');
@@ -133,6 +133,8 @@ const Licencas = () => {
             } else if (response.data.success) {
                 toast.success('Consulta realizada!');
                 fetchData();
+            } else if (response.data.error) {
+                toast.error(`Erro: ${response.data.error}`);
             }
             
         } catch (error) {
