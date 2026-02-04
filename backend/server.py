@@ -1241,13 +1241,26 @@ async def get_dashboard_stats(
     faturamento_total = total_vendas + total_cupons + total_servicos
     
     # Créditos (entradas)
+    # CSTs de ICMS-ST que NÃO geram direito a crédito de ICMS
+    CST_ICMS_ST = ['10', '30', '60', '70', '201', '202', '203', '500']
+    
     credito_icms = 0
+    credito_icms_st_desconsiderado = 0  # Para mostrar quanto foi desconsiderado
     credito_pis = 0
     credito_cofins = 0
     
     for doc in nfe_entrada:
         for prod in doc.get('produtos', []):
-            credito_icms += float(prod.get('v_icms', 0) or 0)
+            cst = str(prod.get('cst', ''))
+            v_icms = float(prod.get('v_icms', 0) or 0)
+            
+            # ICMS-ST não gera crédito - mercadoria já teve imposto retido na fonte
+            if cst in CST_ICMS_ST:
+                credito_icms_st_desconsiderado += v_icms
+            else:
+                credito_icms += v_icms
+            
+            # PIS e COFINS mantém cálculo normal
             credito_pis += float(prod.get('v_pis', 0) or 0)
             credito_cofins += float(prod.get('v_cofins', 0) or 0)
     
