@@ -1637,7 +1637,9 @@ def main():
     # Test sequence - focusing on the specific review request
     tests = [
         tester.test_admin_default_login,
-        # PRIORITY TEST: AI batch classification integration as requested in review
+        # PRIORITY TEST: Single document delete verification as requested in review
+        tester.test_single_document_delete_verification,
+        # Additional tests: AI batch classification integration
         tester.test_ai_batch_classification_integration,
         # Additional tests: Bulk delete documents functionality
         tester.test_bulk_delete_documents_with_filters,
