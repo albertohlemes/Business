@@ -21,6 +21,7 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - Seleção persiste entre navegações (localStorage)
 - Formato de competência: MM/AAAA
 - **Auto-preenchimento**: Páginas de Upload, Reclassificação e SPED usam o contexto global
+- **🆕 Persistência completa**: Todas as páginas (Dashboard, Relatórios, Documentos, Validação, etc.) refletem automaticamente a seleção do contexto global
 
 ### ✅ Gestão de Empresas
 - Listagem de empresas cadastradas
