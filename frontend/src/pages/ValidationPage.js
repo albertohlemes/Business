@@ -699,10 +699,26 @@ const ValidationPage = ({ user, onLogout }) => {
     
     if (showOnlyPending && allApproved) return null;
     
+    // Badge de classificação
+    const getCategoriaBadge = (cat) => {
+      const config = {
+        'revenda': { bg: 'bg-purple-100', text: 'text-purple-700', label: 'REVENDA' },
+        'insumo': { bg: 'bg-blue-100', text: 'text-blue-700', label: 'INSUMO' },
+        'despesa': { bg: 'bg-orange-100', text: 'text-orange-700', label: 'DESPESA' },
+        'combustivel': { bg: 'bg-green-100', text: 'text-green-700', label: 'COMBUSTÍVEL' },
+      };
+      const c = config[cat?.toLowerCase()] || { bg: 'bg-gray-100', text: 'text-gray-600', label: cat?.toUpperCase() || 'NÃO CLASSIF.' };
+      return (
+        <span className={`px-2 py-1 rounded-lg text-xs font-bold ${c.bg} ${c.text}`}>
+          {c.label}
+        </span>
+      );
+    };
+    
     return (
-      <div className={'p-4 border-b ' + (allApproved ? 'bg-green-50' : 'bg-white')}>
-        <div className="flex items-start gap-3">
-          {/* Checkbox de seleção */}
+      <div className={'grid grid-cols-12 gap-2 items-center px-4 py-3 border-b hover:bg-gray-50 transition-colors ' + (allApproved ? 'bg-green-50' : '')}>
+        {/* Checkbox seleção */}
+        <div className="col-span-1 flex items-center justify-center gap-2">
           <button
             onClick={() => {
               if (isSelected) {
@@ -711,17 +727,16 @@ const ValidationPage = ({ user, onLogout }) => {
                 setSelectedProductCodes(prev => [...prev, product.codigo]);
               }
             }}
-            className={'w-6 h-6 rounded border-2 flex items-center justify-center flex-shrink-0 ' +
+            className={'w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ' +
               (isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300 hover:border-blue-500')
             }
           >
-            {isSelected && <Check className="w-4 h-4" />}
+            {isSelected && <Check className="w-3 h-3" />}
           </button>
           
-          {/* Checkbox de aprovação */}
           <button
             onClick={() => toggleApproveProductAll(product.codigo)}
-            className={'w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-colors flex-shrink-0 ' +
+            className={'w-6 h-6 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0 ' +
               (allApproved 
                 ? 'bg-green-600 border-green-600 text-white' 
                 : approved > 0 
@@ -731,62 +746,56 @@ const ValidationPage = ({ user, onLogout }) => {
             }
             title={allApproved ? 'Remover aprovação' : 'Aprovar em todas as NFs'}
           >
-            {allApproved ? <Check className="w-5 h-5" /> : approved > 0 ? <span className="text-xs font-bold text-yellow-700">{approved}</span> : null}
+            {allApproved ? <Check className="w-4 h-4" /> : approved > 0 ? <span className="text-xs font-bold text-yellow-700">{approved}</span> : null}
           </button>
-          
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-semibold text-gray-900">{product.descricao}</p>
-                {product.categoria && getCategoryBadge(product.categoria)}
-                {allApproved && <span className="text-xs text-green-600 font-medium">✓ Aprovado</span>}
-              </div>
-              <p className="font-semibold text-gray-900">
-                R$ {product.valor_total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-            
-            <p className="text-sm text-gray-600 mb-2">
-              Código: {product.codigo} | NCM: {product.ncm} | Qtd Total: {product.quantidade_total?.toFixed(2)}
-            </p>
-            
-            <div className="flex items-center gap-3 flex-wrap mb-2">
-              <span className="text-sm text-gray-600">CFOP:</span>
-              <span className="px-3 py-1 rounded-lg font-mono font-semibold bg-gray-100 text-gray-800">
-                {product.cfop}
-              </span>
-              {product.cfop_sugerido && product.cfop_sugerido !== product.cfop && (
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-purple-600" />
-                  <span className="px-3 py-1 rounded-lg font-mono font-semibold bg-purple-100 text-purple-800">
-                    {product.cfop_sugerido}
-                  </span>
-                </div>
-              )}
-              
-              {/* Botão Reclassificar */}
-              {!allApproved && (
-                <button
-                  onClick={() => openGroupedReclassifyModal(product)}
-                  className="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 flex items-center gap-1 ml-auto"
-                  title="Reclassificar este produto em todas as NFs"
-                >
-                  <Layers className="w-3 h-3" />
-                  Reclassificar ({product.ocorrencias.length})
-                </button>
-              )}
-            </div>
-            
-            {/* Lista de ocorrências */}
-            <div className="text-xs text-gray-500">
-              <span className="font-medium">Aparece em {product.ocorrencias.length} NF(s):</span>
-              <span className="ml-2">
-                {product.ocorrencias.slice(0, 3).map(o => o.numero_nfe).join(', ')}
-                {product.ocorrencias.length > 3 && ` e mais ${product.ocorrencias.length - 3}...`}
-              </span>
-              <span className="ml-2 text-green-600">({approved}/{total} aprovadas)</span>
-            </div>
-          </div>
+        </div>
+        
+        {/* Produto */}
+        <div className="col-span-4">
+          <p className="font-semibold text-gray-900 text-sm truncate" title={product.descricao}>
+            {product.descricao}
+          </p>
+          <p className="text-xs text-gray-500">
+            Cód: {product.codigo} | NCM: {product.ncm}
+          </p>
+        </div>
+        
+        {/* Classificação */}
+        <div className="col-span-2 flex items-center gap-2">
+          {getCategoriaBadge(product.categoria)}
+          {!allApproved && (
+            <button
+              onClick={() => openGroupedReclassifyModal(product)}
+              className="p-1 text-purple-600 hover:bg-purple-100 rounded transition-colors"
+              title="Reclassificar"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        
+        {/* CFOP */}
+        <div className="col-span-1">
+          <span className="px-2 py-1 rounded font-mono text-sm font-semibold bg-gray-100 text-gray-800">
+            {product.cfop}
+          </span>
+        </div>
+        
+        {/* Valor Total */}
+        <div className="col-span-2 text-right">
+          <p className="font-semibold text-gray-900">
+            R$ {product.valor_total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+        
+        {/* Ocorrências */}
+        <div className="col-span-2 text-right">
+          <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
+            {product.ocorrencias?.length || 0} NF(s)
+          </span>
+          {allApproved && (
+            <span className="ml-2 text-green-600 text-xs">✓</span>
+          )}
         </div>
       </div>
     );
