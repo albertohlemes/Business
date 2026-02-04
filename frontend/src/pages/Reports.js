@@ -182,47 +182,26 @@ const Reports = ({ user, onLogout }) => {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Empresa</label>
-              <select
+              <div 
                 data-testid="report-company-select"
-                value={selectedCompany}
-                onChange={(e) => handleCompanyChange(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
               >
-                <option value="">Selecione</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.codigo_empresa ? `#${company.codigo_empresa} - ` : ''}{company.razao_social}
-                  </option>
-                ))}
-              </select>
+                {ctxCompany ? (
+                  <span>{ctxCompany.codigo_empresa ? `#${ctxCompany.codigo_empresa} - ` : ''}{ctxCompany.razao_social}</span>
+                ) : (
+                  <span className="text-gray-500">Selecione no header</span>
+                )}
+              </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Competência</label>
-              {availableCompetencias.length > 0 ? (
-                <select
-                  data-testid="report-competencia-select"
-                  value={competencia}
-                  onChange={(e) => setCompetencia(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                >
-                  <option value="">Todas</option>
-                  {availableCompetencias.map((comp) => (
-                    <option key={comp} value={comp}>{comp}</option>
-                  ))}
-                </select>
-              ) : (
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    value={competencia}
-                    onChange={(e) => setCompetencia(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg"
-                    placeholder="MM/AAAA"
-                  />
-                </div>
-              )}
+              <div 
+                data-testid="report-competencia-select"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
+              >
+                {competencia || <span className="text-gray-500">Selecione no header</span>}
+              </div>
             </div>
 
             <div>
