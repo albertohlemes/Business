@@ -678,16 +678,7 @@ const Licencas = () => {
                                 <p className="text-sm text-zinc-400 mb-3">
                                     O sistema navegou até a tela de login. Faça login com seu certificado digital no Gov.br.
                                     <br/><br/>
-                                    <strong className="text-amber-300">A consulta será feita automaticamente após você fazer o login!</strong>
-                                </p>
-                                <div className="flex gap-2">
-                                    <Button onClick={continuarAposLogin} className="bg-amber-600 hover:bg-amber-700">
-                                        <RefreshCw className="w-4 h-4 mr-2" />
-                                        Verificar Login Manualmente
-                                    </Button>
-                                </div>
-                                <p className="text-xs text-zinc-500 mt-2">
-                                    Verificando automaticamente a cada 5 segundos...
+                                    <strong className="text-amber-300">Use o novo botão de consulta que abre o navegador remoto!</strong>
                                 </p>
                             </div>
                         )}
