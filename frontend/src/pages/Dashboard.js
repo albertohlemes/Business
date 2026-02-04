@@ -132,10 +132,7 @@ const Dashboard = ({ user, onLogout }) => {
               Clique no botão abaixo ou no header para selecionar a empresa e competência
             </p>
             <button
-              onClick={() => {
-                // Importar openSelector do contexto e chamar
-                const { openSelector } = require('../context/AppContext');
-              }}
+              onClick={openSelector}
               data-testid="open-selector-from-dashboard"
               className="px-6 py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700"
             >
