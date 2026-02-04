@@ -238,12 +238,22 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
   - Usa palavras-chave cadastradas na empresa para guiar a classificação
   - Match semântico: "SHOYU" → produto oriental → REVENDA
   - Match semântico: "DETERGENTE" → limpeza → DESPESA
+- ✅ **SISTEMA DE CACHE INTELIGENTE IMPLEMENTADO**
+  - **Cache de classificações:** Produtos já classificados são memorizados na collection `learned_rules`
+  - **Performance otimizada:** 
+    - Primeiro upload: Usa IA para produtos novos
+    - Uploads seguintes: Usa cache (instantâneo, sem chamada IA)
+  - **Estatísticas de performance no relatório:**
+    - ⚡ X do cache (produtos memorizados)
+    - 📋 Y de regras (keywords exatas)
+    - 🤖 Z da IA (novos produtos)
+  - **Normalização inteligente:** Cache funciona mesmo com variações na descrição
 - ✅ **Relatório de Conversões na Tela de Upload**
   - Exibe lista de todos os produtos convertidos
   - Mostra CFOP original → CFOP convertido
   - Badge colorido com categoria (REVENDA/INSUMO/DESPESA)
-  - Justificativa da IA explicando o motivo da classificação
-- ✅ **Fallback inteligente:** Se IA falhar, usa regras diretas de keyword matching
+  - Indicador de origem: ⚡ Cache | 📋 Regra | 🤖 IA
+  - Justificativa explicando o motivo da classificação
 
 ### 02/2026 - Iteration 18
 - ✅ **Tabela NCMs Alíquota Zero atualizada (Tabela 4.3.13 SPED v1.33)**
