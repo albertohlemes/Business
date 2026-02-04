@@ -1437,6 +1437,24 @@ async def upload_xml_batch(
                     product['cfop'] = cfop_convertido
                     product['pendente_revisao_cfop'] = True
                     product['natureza_operacao_original'] = CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original]
+                    # Se a classificação retornou algo genérico ou queremos forçar IA para semantic match
+                    # Vamos enviar para IA se não tiver uma justificativa "forte" (ex: insumo cadastrado exato)
+                    is_strong_match = "cadastrado" in (classification_result.get('justificativa') or "").lower()
+                    
+                    if not is_strong_match:
+                        # Add temp id for AI tracking if not present
+                        if '_temp_id' not in product:
+                            product['_temp_id'] = str(len(products_for_ai))
+                        products_for_ai.append(product)
+                    else:
+                        # Aplica regra direta
+                        if classification_result['cfop_sugerido']:
+                            apply_classification(product, classification_result, cfop_original, file_conversions)
+                        else:
+                            # Caso raro: strong match mas sem cfop (ex: bug), manda pra IA
+                            if '_temp_id' not in product:
+                                product['_temp_id'] = str(len(products_for_ai))
+                            products_for_ai.append(product)
                     
                     file_alertas_cfop.append({
                         'produto': product.get('descricao', ''),
