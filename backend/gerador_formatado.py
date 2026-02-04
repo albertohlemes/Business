@@ -1,13 +1,14 @@
 """
 Gerador de Documentos com Formatação Manual
 Usa as configurações definidas pelo usuário no formulário
+Converte Markdown para formatação Word real
 """
 import os
 import io
 import re
 import base64
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from docx import Document
 from docx.shared import Pt, Cm, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -23,6 +24,71 @@ ALINHAMENTO_MAP = {
     'justify': WD_ALIGN_PARAGRAPH.JUSTIFY,
     'right': WD_ALIGN_PARAGRAPH.RIGHT
 }
+
+
+def _limpar_markdown(texto: str) -> str:
+    """Remove marcações Markdown simples do texto"""
+    # Remover cabeçalhos markdown (### Título)
+    texto = re.sub(r'^#{1,6}\s*', '', texto)
+    
+    # Remover marcadores de lista
+    texto = re.sub(r'^[\-\*\+]\s+', '', texto)
+    texto = re.sub(r'^\d+\.\s+', '', texto)
+    
+    # Remover ** e * (negrito e itálico) - serão tratados separadamente
+    # texto = re.sub(r'\*\*([^*]+)\*\*', r'\1', texto)
+    # texto = re.sub(r'\*([^*]+)\*', r'\1', texto)
+    
+    # Remover underscores de ênfase
+    texto = re.sub(r'__([^_]+)__', r'\1', texto)
+    texto = re.sub(r'(?<!\w)_([^_]+)_(?!\w)', r'\1', texto)
+    
+    # Remover backticks (código)
+    texto = re.sub(r'`([^`]+)`', r'\1', texto)
+    
+    return texto.strip()
+
+
+def _extrair_formatacao_inline(texto: str) -> List[Tuple[str, bool, bool]]:
+    """
+    Extrai partes do texto com suas formatações (negrito, itálico).
+    Retorna lista de tuplas: (texto, is_bold, is_italic)
+    """
+    partes = []
+    
+    # Limpar marcações de lista primeiro
+    texto = re.sub(r'^[\-\*\+]\s+', '', texto)
+    texto = re.sub(r'^\d+\.\s+', '', texto)
+    texto = re.sub(r'^#{1,6}\s*', '', texto)
+    
+    # Padrão para encontrar **negrito**, *itálico* ou texto normal
+    # Ordem: negrito+itálico, negrito, itálico, texto normal
+    pattern = r'(\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|\*[^*]+\*|[^*]+)'
+    
+    matches = re.findall(pattern, texto)
+    
+    for match in matches:
+        if match.startswith('***') and match.endswith('***'):
+            # Negrito e itálico
+            partes.append((match[3:-3], True, True))
+        elif match.startswith('**') and match.endswith('**'):
+            # Negrito
+            partes.append((match[2:-2], True, False))
+        elif match.startswith('*') and match.endswith('*') and len(match) > 2:
+            # Itálico
+            partes.append((match[1:-1], False, True))
+        else:
+            # Texto normal
+            if match.strip():
+                partes.append((match, False, False))
+    
+    # Se não encontrou nada, retorna o texto original limpo
+    if not partes:
+        texto_limpo = _limpar_markdown(texto)
+        if texto_limpo:
+            partes.append((texto_limpo, False, False))
+    
+    return partes
 
 
 def gerar_documento_formatado(
