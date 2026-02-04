@@ -107,6 +107,8 @@ const Companies = ({ user, onLogout }) => {
       produtos_comercializados: company.produtos_comercializados || [],
       insumos_producao: company.insumos_producao || [],
       produtos_despesa: company.produtos_despesa || [],
+      ativo_imobilizado: company.ativo_imobilizado || [],
+      combustivel: company.combustivel || [],
       anexos_simples: company.anexos_simples || [],
       tipos_servico: company.tipos_servico || []
     });
