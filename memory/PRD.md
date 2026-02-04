@@ -205,6 +205,15 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 13
+- ✅ **Corrigido bug do menu lateral**: Agora apenas o item selecionado fica destacado (vermelho), não itens com nomes similares
+- ✅ **Corrigido bug de contabilização na Validação**: Contadores agora só consideram aprovações de documentos que ainda existem (após exclusão)
+- ✅ **Editar/Excluir Memorizações da IA**: Nova interface para gerenciar regras aprendidas
+  - Botão "Limpar Tudo" para excluir todas as regras de uma empresa
+  - Botão de editar em cada regra (alterar categoria e CFOP)
+  - Botão de excluir em cada regra
+  - Modo de edição inline com campos de categoria e CFOP
+
 ### 02/2026 - Iteration 12
 - ✅ **Corrigido bug na exclusão em lote**: Agora respeita o filtro de tipo (Entrada/Saída/Todos)
 - ✅ **Botão de exclusão dinâmico**: Mostra "Apagar Entradas", "Apagar Saídas" ou "Apagar Todos" conforme filtro
