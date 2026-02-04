@@ -447,7 +447,8 @@ const ClassificacaoPage = ({ user, onLogout }) => {
       'revenda': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'REVENDA' },
       'insumo': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'INSUMO' },
       'despesa': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'DESPESA' },
-      'combustivel': { bg: 'bg-green-100', text: 'text-green-800', label: 'COMBUSTÍVEL' },
+      'ativo_imobilizado': { bg: 'bg-green-100', text: 'text-green-800', label: 'ATIVO IMOB.' },
+      'combustivel': { bg: 'bg-amber-100', text: 'text-amber-800', label: 'COMBUSTÍVEL' },
     };
     const badge = badges[categoria?.toLowerCase()] || { bg: 'bg-gray-100', text: 'text-gray-800', label: categoria?.toUpperCase() || 'N/A' };
     return (
