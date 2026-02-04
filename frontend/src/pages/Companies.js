@@ -712,6 +712,70 @@ const Companies = ({ user, onLogout }) => {
                 </div>
               </div>
 
+              {/* Ativo Imobilizado */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <span className="text-green-600">Ativo Imobilizado</span> (Palavras-chave: máquinas, equipamentos, veículos)
+                </label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={ativoInput}
+                    onChange={(e) => setAtivoInput(e.target.value)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Ex: empilhadeira, computador, ar condicionado"
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), adicionarAtivo())}
+                  />
+                  <button
+                    type="button"
+                    onClick={adicionarAtivo}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.ativo_imobilizado.map((ativo, index) => (
+                    <span key={index} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm flex items-center gap-2">
+                      {ativo}
+                      <button type="button" onClick={() => removerAtivo(index)} className="hover:text-green-600">×</button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Combustível */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <span className="text-amber-600">Combustível</span> (Palavras-chave: gasolina, diesel, etanol)
+                </label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={combustivelInput}
+                    onChange={(e) => setCombustivelInput(e.target.value)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Ex: gasolina, diesel, etanol, GNV"
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), adicionarCombustivel())}
+                  />
+                  <button
+                    type="button"
+                    onClick={adicionarCombustivel}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.combustivel.map((comb, index) => (
+                    <span key={index} className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm flex items-center gap-2">
+                      {comb}
+                      <button type="button" onClick={() => removerCombustivel(index)} className="hover:text-amber-600">×</button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Inscrição Estadual</label>
