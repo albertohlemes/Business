@@ -11,81 +11,71 @@ Portal para departamento societário com geração de documentos via IA.
 
 ## Implementações Concluídas
 
-### ✅ Bug Fix - Categorização de Processos (05/02/2026)
-- Corrigido bug onde processos de "Constituição" apareciam na aba "Alteração"
-- Adicionado campo `tipo_processo` ao modelo `MinutaResponse` no backend
-- Atualizado endpoint `/api/minutas` para retornar `tipo_processo`
-- Executada migração de dados para documentos antigos no MongoDB
+### ✅ Wizard de Baixa (Distrato Social) - NOVO (05/02/2026)
 
-### ✅ Wizard de Constituição Completo (04/02/2026)
+**Etapa 1 - Upload do Contrato Social:**
+- Upload do último contrato social consolidado (PDF, DOCX, imagem)
+- IA extrai automaticamente: Razão Social, CNPJ, NIRE, Capital, Sócios, Endereço
+- **Opcional** - pode pular para preenchimento manual
 
-**Etapa 1 - Dados da Empresa:**
-- Razão Social (maiúsculas automático) *
-- Nome Fantasia
-- Capital Social formatado como moeda (R$ 0,00) *
-- Capital por Extenso **gerado automaticamente**
+**Etapa 2 - Dados da Empresa:**
+- Razão Social*, CNPJ*, NIRE, Capital Social
+- Junta Comercial, Data de Registro
+- Endereço completo da sede
+- Pré-preenchidos se upload foi feito na etapa 1
 
-**Etapa 2 - Qualificação dos Sócios (TODOS CAMPOS OBRIGATÓRIOS):**
-- Botão **"✨ Preencher Dados com IA"** para extração de CNH/RG
-- Botão **"✨ Preencher Endereço com IA"** para extração de comprovante
-- Dados pessoais: Nome*, CPF*, RG*, Órgão Emissor*, Nacionalidade*, Estado Civil*, Profissão*
-- **Endereço Residencial completo** (mesmo padrão da empresa):
-  - Logradouro*, Número*, Complemento, Bairro*, Cidade*, Estado*, CEP*
+**Etapa 3 - Qualificação dos Sócios:**
+- Lista de sócios pré-preenchida (se extraída)
+- Botão **"Corrigir com IA"** para ajustar dados via upload de documento
+- Dados: Nome*, CPF*, RG*, Órgão Emissor*, Nacionalidade*, Estado Civil*, Profissão*, Endereço*, Participação
+- Adicionar/remover sócios dinamicamente
 
-**Etapa 3 - Participação Societária:**
-- Tabela interativa com cálculo automático
-- Validação de 100% total
-- Checkbox de administrador
+**Etapa 4 - Motivo e Detalhes da Baixa:**
+- Dropdown com 8 motivos:
+  - Encerramento por vontade dos sócios
+  - Término do prazo de duração
+  - Falência
+  - Incorporação
+  - Fusão
+  - Cisão total
+  - Inatividade prolongada
+  - Outros (com campo para especificar)
+- Data de encerramento das atividades*
+- Destinação do acervo (livros e documentos)
 
-**Etapa 4 - Endereço da Empresa (TODOS CAMPOS OBRIGATÓRIOS):**
-- Botão **"✨ Preencher com IA"**
-- Logradouro*, Número*, Complemento, Bairro*, Cidade*, Estado*, CEP*
-
-**Etapa 5 - CNAEs e Objeto Social:**
-- **Banco de CNAEs** com 40+ atividades mais comuns
-- Busca por código ou descrição
-- Adição manual de CNAEs não listados
-- Botão **"✨ Gerar com IA"** para objeto social
+**Etapa 5 - Distribuição do Patrimônio:**
+- Declaração de quitação de débitos (checkbox)
+- Distribuição do patrimônio remanescente
+- Responsável pela guarda dos documentos*
+- Prazo de guarda (5 anos, 10 anos, Prazo legal)
 
 **Etapa 6 - Resultado:**
-- Contrato social completo
+- Distrato Social completo gerado por IA
 - Download em Word e PDF
 - Cópia para área de transferência
 
-### ✅ Estrutura de Abas (04/02/2026)
-- Ordem: **Constituição** → **Alteração** → **Baixa**
-- Nomenclatura: "Minuta" → "Processo"
+### ✅ Bug Fix - Categorização de Processos (05/02/2026)
+- Processos de "Constituição" agora aparecem na aba correta
+- Migração de dados executada para documentos antigos
 
-### ✅ Correção do Bug de PDF (04/02/2026)
-- Logo no cabeçalho
-- Rodapé alinhado
-- **Status: Aguardando verificação do usuário**
-
-## Banco de CNAEs Incluídos
-- Desenvolvimento de software (62.01, 62.02, 62.03)
-- Consultoria em TI (62.04)
-- Contabilidade (69.20)
-- Advocacia (69.11)
-- Consultoria empresarial (70.20)
-- Publicidade e marketing (73.11, 73.19)
-- Design (74.10)
-- Comércio varejista (47.xx)
-- Restaurantes e lanchonetes (56.11)
-- Construção civil (41.20, 43.xx)
-- E mais 30+ atividades comuns
+### ✅ Wizard de Constituição Completo (04/02/2026)
+- 6 etapas com extração por IA
+- Capital por extenso automático
+- Banco de CNAEs com 40+ atividades
 
 ## Arquivos Principais
 ```
 /app/frontend/src/components/processos/
-├── WizardConstituicao.js  # Wizard de 6 etapas com banco de CNAEs
+├── WizardBaixa.js         # NOVO - Wizard de 6 etapas para baixa
+├── WizardConstituicao.js  # Wizard de constituição
 ├── WizardAlteracao.js     # Wizard de alteração
 └── ListaProcessos.js      # Lista agrupada por cliente
 
 /app/backend/server.py
-├── /api/constituicao/extrair-campo     # Extrai campo de documento
-├── /api/constituicao/extrair-socio     # Extrai dados de sócio
-├── /api/constituicao/gerar-objeto-social
-└── /api/constituicao/gerar-contrato
+├── /api/baixa/extrair-contrato   # NOVO - Extrai dados do contrato
+├── /api/baixa/gerar-distrato     # NOVO - Gera distrato social
+├── /api/constituicao/...         # Endpoints de constituição
+└── /api/minutas/...              # CRUD de processos
 ```
 
 ## Backlog
@@ -94,9 +84,8 @@ Portal para departamento societário com geração de documentos via IA.
 - ⏳ Verificação do usuário: exportação PDF (logo/rodapé)
 
 ### P1 - Média Prioridade
-- ⏳ Implementar processo de **Baixa**
-- ⏳ Adicionar mais CNAEs ao banco de dados
 - ⏳ Busca de CEP automática via API
+- ⏳ Adicionar mais CNAEs ao banco de dados
 
 ### P2 - Baixa Prioridade
 - ⏳ Reativar automação REDESIM
@@ -106,5 +95,7 @@ Portal para departamento societário com geração de documentos via IA.
 - Email: teste2@teste.com
 - Senha: 123456
 
-## Status: MVP Constituição COMPLETO ✅
-- Bug de categorização de processos CORRIGIDO ✅
+## Status: COMPLETO ✅
+- Constituição ✅
+- Alteração ✅
+- Baixa ✅
