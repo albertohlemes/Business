@@ -38,6 +38,10 @@ const Licencas = () => {
     // Visualização licença
     const [licencaViewOpen, setLicencaViewOpen] = useState(false);
     const [licencaContent, setLicencaContent] = useState('');
+    
+    // Instruções REDESIM
+    const [instrucoesOpen, setInstrucoesOpen] = useState(false);
+    const [instrucoesCnpj, setInstrucoesCnpj] = useState('');
 
     // Form state
     const [cnpj, setCnpj] = useState('');
