@@ -2616,9 +2616,9 @@ async def alertas_cfop_operacoes_distintas(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Detecta documentos de entrada com CFOPs de operações distintas de venda.
-    Quando o fornecedor emite NF com CFOPs como 5910, 5949, 5122, etc.,
-    alerta o usuário para decidir se mantém a natureza ou converte para CFOP de compra.
+    Busca documentos de entrada com produtos pendentes de revisão de CFOP.
+    Estes são produtos que foram convertidos automaticamente durante o upload
+    (CFOPs de operações distintas como bonificação, remessa, etc.)
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
@@ -2627,7 +2627,7 @@ async def alertas_cfop_operacoes_distintas(
     if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    # Buscar documentos de entrada
+    # Buscar documentos de entrada que tenham produtos pendentes de revisão
     documents = await db.xml_documents.find({
         "company_id": company_id,
         "competencia": competencia,
@@ -2635,25 +2635,46 @@ async def alertas_cfop_operacoes_distintas(
     }, {"_id": 0}).to_list(10000)
     
     alertas = []
+    total_pendentes = 0
     
     for doc in documents:
         doc_alertas = []
         
-        for prod in doc.get('produtos', []):
-            cfop = str(prod.get('cfop', ''))
-            
-            # Verificar se o CFOP está na lista de operações distintas
-            if cfop in CFOPS_OPERACOES_DISTINTAS_GLOBAL:
-                info = CFOPS_OPERACOES_DISTINTAS_GLOBAL[cfop]
+        for idx, prod in enumerate(doc.get('produtos', [])):
+            # Verificar se produto está pendente de revisão
+            if prod.get('pendente_revisao_cfop'):
+                cfop_atual = str(prod.get('cfop', ''))
+                cfop_original = str(prod.get('cfop_original_emissor', ''))
+                natureza = prod.get('natureza_operacao_original', '')
+                
+                # Sugestões de conversão
+                cfop_compra = cfop_atual.replace('9', '0') if '9' in cfop_atual else cfop_atual[:2] + '02'
+                if cfop_atual.startswith('1'):
+                    cfop_compra = '1102'  # Compra estadual
+                elif cfop_atual.startswith('2'):
+                    cfop_compra = '2102'  # Compra interestadual
+                
                 doc_alertas.append({
+                    'produto_idx': idx,
                     'produto_codigo': prod.get('codigo', ''),
                     'produto_descricao': prod.get('descricao', ''),
-                    'cfop_atual': cfop,
-                    'cfop_descricao': info['descricao'],
-                    'sugestao_manter_natureza': info.get('sugestao_entrada', ''),
-                    'sugestao_converter_compra': info.get('sugestao_compra', info.get('sugestao_entrada', '').replace('9', '1') if info.get('sugestao_entrada', '').startswith('1') or info.get('sugestao_entrada', '').startswith('2') else ''),
-                    'valor': prod.get('valor_total', 0)
+                    'ncm': prod.get('ncm', ''),
+                    'valor': prod.get('valor_total', 0),
+                    'cfop_original_emissor': cfop_original,
+                    'cfop_atual': cfop_atual,
+                    'natureza_operacao': natureza,
+                    'opcoes': {
+                        'manter_natureza': {
+                            'cfop': cfop_atual,
+                            'descricao': f'Manter como {natureza}'
+                        },
+                        'converter_compra': {
+                            'cfop': cfop_compra,
+                            'descricao': f'Converter para compra ({cfop_compra})'
+                        }
+                    }
                 })
+                total_pendentes += 1
         
         if doc_alertas:
             alertas.append({
@@ -2662,7 +2683,8 @@ async def alertas_cfop_operacoes_distintas(
                 'emitente': doc.get('emitente_nome', ''),
                 'data_emissao': doc.get('data_emissao', ''),
                 'valor_total': doc.get('valor_total', 0),
-                'produtos_com_alerta': doc_alertas
+                'qtd_pendentes': len(doc_alertas),
+                'produtos': doc_alertas
             })
     
     return {
@@ -2670,8 +2692,248 @@ async def alertas_cfop_operacoes_distintas(
         "competencia": competencia,
         "total_documentos_entrada": len(documents),
         "documentos_com_alerta": len(alertas),
+        "total_produtos_pendentes": total_pendentes,
         "alertas": alertas
     }
+
+@api_router.post("/alertas-cfop/resolver-individual")
+async def resolver_alerta_cfop_individual(
+    documento_id: str,
+    produto_idx: int,
+    novo_cfop: str,
+    salvar_regra: bool = False,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Resolve um alerta de CFOP individual.
+    """
+    doc = await db.xml_documents.find_one({"id": documento_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    
+    produtos = doc.get('produtos', [])
+    if produto_idx >= len(produtos):
+        raise HTTPException(status_code=404, detail="Produto não encontrado")
+    
+    produto = produtos[produto_idx]
+    cfop_anterior = produto.get('cfop', '')
+    
+    # Atualizar produto
+    produtos[produto_idx]['cfop'] = novo_cfop
+    produtos[produto_idx]['pendente_revisao_cfop'] = False
+    produtos[produto_idx]['cfop_revisado_por'] = current_user.id
+    produtos[produto_idx]['cfop_revisado_em'] = datetime.now(timezone.utc).isoformat()
+    
+    await db.xml_documents.update_one(
+        {"id": documento_id},
+        {"$set": {"produtos": produtos}}
+    )
+    
+    # Salvar regra se solicitado
+    if salvar_regra:
+        await db.learned_rules.insert_one({
+            "id": str(uuid.uuid4()),
+            "company_id": doc.get('company_id'),
+            "produto_descricao": produto.get('descricao', ''),
+            "produto_codigo": produto.get('codigo', ''),
+            "ncm": produto.get('ncm', ''),
+            "cfop_original": produto.get('cfop_original_emissor', cfop_anterior),
+            "cfop_correto": novo_cfop,
+            "categoria_correta": "conversao_cfop",
+            "motivo": f"Conversão manual de {cfop_anterior} para {novo_cfop}",
+            "aprendido_de": "user_correction",
+            "created_by": current_user.id,
+            "created_at": datetime.now(timezone.utc)
+        })
+    
+    return {"success": True, "message": f"CFOP alterado de {cfop_anterior} para {novo_cfop}"}
+
+@api_router.post("/alertas-cfop/resolver-lote")
+async def resolver_alerta_cfop_lote(
+    company_id: str,
+    competencia: str,
+    acao: str,  # 'manter_natureza' ou 'converter_compra'
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Resolve todos os alertas de CFOP em lote.
+    acao: 'manter_natureza' mantém o CFOP convertido, 'converter_compra' converte para CFOP de compra
+    """
+    documents = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "entrada"
+    }).to_list(10000)
+    
+    total_resolvidos = 0
+    
+    for doc in documents:
+        produtos = doc.get('produtos', [])
+        atualizado = False
+        
+        for idx, prod in enumerate(produtos):
+            if prod.get('pendente_revisao_cfop'):
+                cfop_atual = prod.get('cfop', '')
+                
+                if acao == 'converter_compra':
+                    # Converter para CFOP de compra
+                    if cfop_atual.startswith('1'):
+                        novo_cfop = '1102'
+                    elif cfop_atual.startswith('2'):
+                        novo_cfop = '2102'
+                    else:
+                        novo_cfop = cfop_atual
+                    produtos[idx]['cfop'] = novo_cfop
+                # Se 'manter_natureza', mantém o CFOP atual
+                
+                produtos[idx]['pendente_revisao_cfop'] = False
+                produtos[idx]['cfop_revisado_por'] = current_user.id
+                produtos[idx]['cfop_revisado_em'] = datetime.now(timezone.utc).isoformat()
+                produtos[idx]['acao_lote'] = acao
+                atualizado = True
+                total_resolvidos += 1
+        
+        if atualizado:
+            await db.xml_documents.update_one(
+                {"id": doc['id']},
+                {"$set": {"produtos": produtos}}
+            )
+    
+    return {
+        "success": True, 
+        "total_resolvidos": total_resolvidos,
+        "acao": acao,
+        "message": f"{total_resolvidos} produtos atualizados com ação '{acao}'"
+    }
+
+@api_router.post("/alertas-cfop/resolver-ia")
+async def resolver_alerta_cfop_ia(
+    company_id: str,
+    competencia: str,
+    comando: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Resolve alertas de CFOP usando comando de IA.
+    Ex: "classificar bonificações como 1910", "converter todas remessas para compra"
+    """
+    from emergentintegrations.llm.chat import chat, UserMessage
+    
+    # Buscar produtos pendentes
+    documents = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "entrada"
+    }).to_list(10000)
+    
+    produtos_pendentes = []
+    for doc in documents:
+        for idx, prod in enumerate(doc.get('produtos', [])):
+            if prod.get('pendente_revisao_cfop'):
+                produtos_pendentes.append({
+                    'doc_id': doc['id'],
+                    'idx': idx,
+                    'descricao': prod.get('descricao', ''),
+                    'codigo': prod.get('codigo', ''),
+                    'ncm': prod.get('ncm', ''),
+                    'cfop_atual': prod.get('cfop', ''),
+                    'cfop_original': prod.get('cfop_original_emissor', ''),
+                    'natureza': prod.get('natureza_operacao_original', ''),
+                    'valor': prod.get('valor_total', 0)
+                })
+    
+    if not produtos_pendentes:
+        return {"success": True, "message": "Nenhum produto pendente de revisão", "alteracoes": []}
+    
+    # Preparar contexto para IA
+    produtos_texto = "\n".join([
+        f"- {p['descricao']} (NCM: {p['ncm']}, CFOP atual: {p['cfop_atual']}, Original emissor: {p['cfop_original']}, Natureza: {p['natureza']})"
+        for p in produtos_pendentes[:50]  # Limitar para não estourar contexto
+    ])
+    
+    prompt = f"""Você é um assistente fiscal especializado. O usuário quer aplicar uma regra para classificar CFOPs.
+
+Comando do usuário: "{comando}"
+
+Produtos pendentes de classificação:
+{produtos_texto}
+
+CFOPs de entrada comuns:
+- 1102: Compra para comercialização (estadual)
+- 2102: Compra para comercialização (interestadual)
+- 1910: Entrada de bonificação (estadual)
+- 2910: Entrada de bonificação (interestadual)
+- 1949: Outra entrada não especificada (estadual)
+- 2949: Outra entrada não especificada (interestadual)
+
+Com base no comando do usuário, retorne um JSON com as alterações a serem feitas.
+Formato: {{"alteracoes": [{{"descricao_produto": "...", "cfop_atual": "...", "novo_cfop": "...", "motivo": "..."}}]}}
+
+Se o comando não for claro ou não se aplicar a nenhum produto, retorne {{"alteracoes": [], "erro": "mensagem explicativa"}}
+"""
+
+    try:
+        response = await chat(
+            api_key=os.environ.get('EMERGENT_API_KEY'),
+            messages=[UserMessage(content=prompt)],
+            model="gpt-4o"
+        )
+        
+        # Extrair JSON da resposta
+        import json
+        import re
+        
+        response_text = response.content if hasattr(response, 'content') else str(response)
+        json_match = re.search(r'\{[\s\S]*\}', response_text)
+        
+        if json_match:
+            resultado = json.loads(json_match.group())
+        else:
+            return {"success": False, "message": "Não foi possível processar a resposta da IA", "alteracoes": []}
+        
+        if resultado.get('erro'):
+            return {"success": False, "message": resultado['erro'], "alteracoes": []}
+        
+        # Aplicar alterações
+        alteracoes_aplicadas = []
+        for alt in resultado.get('alteracoes', []):
+            # Encontrar o produto correspondente
+            for p in produtos_pendentes:
+                if (p['descricao'] == alt.get('descricao_produto') or 
+                    p['cfop_atual'] == alt.get('cfop_atual')):
+                    
+                    # Atualizar no banco
+                    doc = await db.xml_documents.find_one({"id": p['doc_id']})
+                    if doc:
+                        produtos = doc.get('produtos', [])
+                        produtos[p['idx']]['cfop'] = alt['novo_cfop']
+                        produtos[p['idx']]['pendente_revisao_cfop'] = False
+                        produtos[p['idx']]['cfop_revisado_por'] = current_user.id
+                        produtos[p['idx']]['cfop_revisado_por_ia'] = True
+                        produtos[p['idx']]['motivo_ia'] = alt.get('motivo', '')
+                        
+                        await db.xml_documents.update_one(
+                            {"id": p['doc_id']},
+                            {"$set": {"produtos": produtos}}
+                        )
+                        
+                        alteracoes_aplicadas.append({
+                            'produto': p['descricao'],
+                            'cfop_anterior': p['cfop_atual'],
+                            'cfop_novo': alt['novo_cfop'],
+                            'motivo': alt.get('motivo', '')
+                        })
+                    break
+        
+        return {
+            "success": True,
+            "total_alteracoes": len(alteracoes_aplicadas),
+            "alteracoes": alteracoes_aplicadas,
+            "comando_original": comando
+        }
+        
+    except Exception as e:
+        return {"success": False, "message": f"Erro ao processar com IA: {str(e)}", "alteracoes": []}
 
 @api_router.post("/converter-cfop")
 async def converter_cfop_documento(
