@@ -30,7 +30,7 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - **Exclusão de empresas** - Funcionando (apenas empresas sem documentos)
 - Badge com código da empresa exibido no card e no header
 
-### ✅ **Dashboard Completo** (Atualizado 02/2026)
+### ✅ **Dashboard Completo** (Atualizado 04/02/2026)
 - Estatísticas por **empresa e competência selecionada**
 - **Quantidade por tipo de documento:**
   - NF-e Entrada (compras)
