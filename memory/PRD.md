@@ -206,6 +206,27 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 18
+- ✅ **Tabela NCMs Alíquota Zero atualizada (Tabela 4.3.13 SPED v1.33)**
+  - Mais de 50 prefixos NCM (4 dígitos) e 80+ NCMs completos (8 dígitos)
+  - Inclui: carnes, cereais, farinhas, medicamentos, combustíveis, papel, informática, etc.
+- ✅ **CST PIS/COFINS extraído corretamente do XML**
+  - Extração das tags `<PIS>` e `<COFINS>` em vez do ICMS
+  - Usado nas entradas (CST 50/73) e saídas (CST 01/06)
+- ✅ **Coluna CST PIS/COFINS na Apuração PIS/COFINS**
+  - Inserida após coluna Valor, com badge visual destacado
+  - Ordenável por clique no cabeçalho
+  - Incluída na exportação CSV
+- ✅ **Alertas de CFOP no Upload de Entradas**
+  - Detecta CFOPs de operações distintas (5910 bonificação, 5949, 5122, etc.)
+  - Exibe lista detalhada após o upload
+  - Indica quantos arquivos/produtos têm alertas
+- ✅ **Nova página "Divergências Saída"**
+  - Relatório de produtos de saída com NCM alíquota zero mas tributados
+  - Calcula impacto fiscal (PIS/COFINS cobrados indevidamente)
+  - Exportação para CSV
+  - Endpoint `/api/relatorio-divergencias-saida/{company_id}`
+
 ### 02/2026 - Iteration 17
 - ✅ **Ordenação nas tabelas da Apuração PIS/COFINS**
   - Clique na coluna para ordenar crescente/decrescente
