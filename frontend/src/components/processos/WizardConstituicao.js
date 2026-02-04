@@ -644,6 +644,37 @@ const SocioCard = ({ socio, index, onChange, onRemove, canRemove }) => {
         }
     };
 
+    // Função para buscar CEP nos Correios
+    const handleBuscarCep = async () => {
+        const cepLimpo = enderecoSocio.cep?.replace(/\D/g, '') || '';
+        if (cepLimpo.length !== 8) {
+            toast.error('CEP deve ter 8 dígitos');
+            return;
+        }
+        
+        try {
+            const response = await axios.get(`${API_URL}/api/cep/${cepLimpo}`);
+            if (response.data.success && response.data.endereco) {
+                const dados = response.data.endereco;
+                onChange({
+                    ...socio,
+                    endereco: {
+                        ...enderecoSocio,
+                        logradouro: dados.logradouro || enderecoSocio.logradouro,
+                        bairro: dados.bairro || enderecoSocio.bairro,
+                        cidade: dados.cidade || enderecoSocio.cidade,
+                        estado: dados.estado || enderecoSocio.estado,
+                        cep: dados.cep || enderecoSocio.cep
+                    }
+                });
+                toast.success('Endereço atualizado via Correios!');
+            }
+        } catch (error) {
+            console.error('Erro ao buscar CEP:', error);
+            toast.error('CEP não encontrado');
+        }
+    };
+
     // Inicializar endereço como objeto se não existir
     const enderecoSocio = socio.endereco && typeof socio.endereco === 'object' 
         ? socio.endereco 
