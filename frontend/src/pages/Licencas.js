@@ -524,6 +524,48 @@ const Licencas = () => {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Instruções REDESIM Dialog */}
+            <Dialog open={instrucoesOpen} onOpenChange={setInstrucoesOpen}>
+                <DialogContent className="bg-zinc-900 border-zinc-800 max-w-lg">
+                    <DialogHeader className="border-b border-zinc-800 pb-4">
+                        <DialogTitle className="text-white flex items-center gap-2">
+                            <Info className="w-5 h-5 text-red-500" strokeWidth={1.5} />
+                            Consulta no Portal REDESIM
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="p-4 space-y-4">
+                        <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
+                            <p className="text-sm text-zinc-400 mb-2">CNPJ para consultar:</p>
+                            <p className="text-lg font-mono text-white">{instrucoesCnpj}</p>
+                            <Button size="sm" variant="outline" className="mt-2 border-zinc-700"
+                                onClick={() => { navigator.clipboard.writeText(instrucoesCnpj); toast.success('CNPJ copiado!'); }}>
+                                Copiar CNPJ
+                            </Button>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <p className="text-sm text-zinc-400">Instruções:</p>
+                            <ol className="text-sm text-zinc-300 space-y-2 list-decimal list-inside">
+                                <li>Clique no botão abaixo para abrir o portal</li>
+                                <li>Faça login com seu <strong>Gov.br</strong> (certificado digital)</li>
+                                <li>Acesse "Consultar Licenças" ou "Meu Espaço"</li>
+                                <li>Pesquise pelo CNPJ acima</li>
+                                <li>Verifique status e vencimento da licença</li>
+                            </ol>
+                        </div>
+
+                        <Button onClick={() => abrirRedesim(instrucoesCnpj)} className="w-full bg-red-600 hover:bg-red-700">
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Abrir Portal REDESIM SP
+                        </Button>
+                        
+                        <p className="text-xs text-zinc-500 text-center">
+                            O portal requer login via Gov.br com certificado digital
+                        </p>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
