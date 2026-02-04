@@ -1374,6 +1374,7 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
     const [dadosExtraidos, setDadosExtraidos] = useState(null);
     const [minutaId, setMinutaId] = useState(null);
     const [cnpjInput, setCnpjInput] = useState('');
+    const [textoContratoOriginal, setTextoContratoOriginal] = useState(''); // Texto completo do contrato original
     
     // Step 2 - Tipos de alteração
     const [alteracoesSelecionadas, setAlteracoesSelecionadas] = useState([]);
