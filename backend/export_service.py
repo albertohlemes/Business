@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Dict, Any
 
 def format_date(date_str: str) -> str:
-    """Format YYYY-MM-DD to YYYYMMDD"""
+    """Format date to YYYYMMDD"""
     try:
         if not date_str: return ""
         if 'T' in date_str:
@@ -19,136 +19,330 @@ def format_number(val, decimals=2):
     if val is None: val = 0.0
     return f"{float(val):.{decimals}f}"
 
-def format_bool(val):
-    return "Sim" if val else "Não"
+def clean_cnpj(cnpj):
+    """Remove formatação do CNPJ"""
+    if not cnpj:
+        return ""
+    return str(cnpj).replace('.', '').replace('/', '').replace('-', '').strip()
 
-def get_doc_value(doc, field, default=""):
-    return doc.get(field, default)
+def get_modelo_especie(doc):
+    """Determina espécie do documento baseado no modelo"""
+    modelo = str(doc.get('modelo', '')).lower()
+    if modelo in ['55', 'nfe', 'nf-e']:
+        return 'NF', '55'
+    elif modelo in ['65', 'nfce', 'nfc-e']:
+        return 'NFC', '65'
+    elif modelo in ['nfse', 'nfs-e']:
+        return 'NFS', '99'
+    else:
+        return 'NF', '55'
 
 def generate_csv_saida(documents: List[Dict[str, Any]]) -> str:
-    output = StringIO()
-    # Using quoting=csv.QUOTE_NONE and handling quotes manually to match the strict layout
-    # "Alphanumeric fields (A) must be enclosed in double quotes"
-    # "Numeric fields (N) use a period"
-    
-    # We will build the string manually line by line to ensure exact format compliance
+    """
+    Gera CSV de Saídas - Uma linha por PRODUTO
+    Layout personalizado para importação em sistemas contábeis
+    """
     lines = []
+    item_count = 0
     
-    for idx, doc in enumerate(documents):
-        row = []
+    for doc in documents:
+        produtos = doc.get('produtos', [])
+        if not produtos:
+            continue
+            
+        especie, modelo = get_modelo_especie(doc)
+        serie = doc.get('serie', '1') or '1'
+        data_emissao = format_date(doc.get('data_emissao', ''))
+        numero_nfe = str(doc.get('numero_nfe', ''))
+        chave = doc.get('chave', doc.get('chave_nfe', ''))
         
-        # 01: Importação Chave Number (6)
-        row.append(str(idx + 1).zfill(6))
+        # Para saídas: emitente = nossa empresa, destinatário = cliente
+        emitente_cnpj = clean_cnpj(doc.get('emitente_cnpj', ''))
+        destinatario_cnpj = clean_cnpj(doc.get('destinatario_cnpj', ''))
+        emitente_uf = doc.get('emitente_uf', 'SP') or 'SP'
         
-        # 02: CNPJ/CPF/Client Alias (20) - Destinatário para saídas
-        dest_cnpj = doc.get('destinatario_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
-        row.append(f'"{dest_cnpj}"')
-        
-        # 03: Issuer State (2) - Emitente (Nós) UF
-        # We don't have UF in document root usually, need to check if we store it or extract from XML content
-        # For now use "SP" or empty
-        row.append('"SP"') 
-        
-        # 04: Entry Date (8)
-        row.append(f'"{format_date(doc.get("data_emissao"))}"')
-        
-        # 05: Issue Date (8)
-        row.append(f'"{format_date(doc.get("data_emissao"))}"')
-        
-        # 06: Note Number (9)
-        row.append(str(doc.get('numero_nfe', '0')))
-        
-        # 07: Document Species (4)
-        modelo = doc.get('modelo', '55')
-        especie = "NF" if modelo == '55' else "NFC" if modelo == '65' else "NFS"
-        row.append(f'"{especie}"')
-        
-        # 08: Document Series (3)
-        serie = doc.get('serie', '1') # We might not have serie in root, check XML parsing
-        row.append(f'"{serie}"')
-        
-        # 09: Operation Nature Code (6 or 7) - CFOP of first product?
-        # Use first product CFOP
-        prods = doc.get('produtos', [])
-        cfop = prods[0].get('cfop', '') if prods else ""
-        row.append(f'"{cfop}"')
-        
-        # 10: Note Book Value (15.2) - Valor Total
-        row.append(format_number(doc.get('valor_total', 0)))
-        
-        # 11: Tax Situation Code A (1) - 0 Nacional
-        row.append('"0"')
-        
-        # 12: Tax Situation Code B (2) - CST ICMS
-        # Use first product CST
-        cst = prods[0].get('cst', '00') if prods else "00"
-        row.append(f'"{cst}"')
-        
-        # 13: Redução Base ICMS (8.4)
-        row.append(format_number(0, 4))
-        
-        # 14: Base ICMS (15.2)
-        base_icms = sum(float(p.get('v_bc_icms', 0) or 0) for p in prods)
-        row.append(format_number(base_icms))
-        
-        # 15: Alíquota ICMS (8.4)
-        aliq_icms = float(prods[0].get('p_icms', 0) or 0) if prods else 0
-        row.append(format_number(aliq_icms, 4))
-        
-        # 16: Valor ICMS (15.2)
-        val_icms = sum(float(p.get('v_icms', 0) or 0) for p in prods)
-        row.append(format_number(val_icms))
-        
-        # 17: Isentas ICMS
-        row.append(format_number(0))
-        
-        # 18: Outras ICMS
-        row.append(format_number(0))
-        
-        # 19: ICMS ST (S/N)
-        row.append('"N"')
-        
-        # 20: Base ST
-        base_st = sum(float(p.get('v_bc_icms_st', 0) or 0) for p in prods)
-        row.append(format_number(base_st))
-        
-        # 21: Aliq ST
-        row.append(format_number(0, 4))
-        
-        # 22: Valor ST
-        val_st = sum(float(p.get('v_icms_st', 0) or 0) for p in prods)
-        row.append(format_number(val_st))
-        
-        # 23: Base IPI
-        base_ipi = sum(float(p.get('v_bc_ipi', 0) or 0) for p in prods)
-        row.append(format_number(base_ipi))
-        
-        # 24: Valor IPI
-        val_ipi = sum(float(p.get('v_ipi', 0) or 0) for p in prods)
-        row.append(format_number(val_ipi))
-        
-        # 25: Isentas IPI
-        row.append(format_number(0))
-        
-        # 26: Outras IPI
-        row.append(format_number(0))
-        
-        # 27: Obs
-        row.append('""')
-        
-        # Fill the rest with defaults up to 300+ columns?
-        # I'll fill the remaining critical ones and let others be empty/zero
-        
-        # For now, join what we have. If the system expects EXACTLY 309 columns, this will fail import.
-        # But constructing 309 columns blindly is error prone. 
-        # I will pad with empty values if I knew the count.
-        # The prompt output listed ~309 fields.
-        
-        lines.append(",".join(row))
-        
-    return "\n".join(lines)
+        for prod in produtos:
+            item_count += 1
+            row = []
+            
+            # 01: Sequencial (6 dígitos)
+            row.append(str(item_count).zfill(6))
+            
+            # 02: CNPJ Destinatário (para saídas)
+            row.append(f'"{destinatario_cnpj}"')
+            
+            # 03: UF Emitente
+            row.append(f'"{emitente_uf}"')
+            
+            # 04: Data Entrada/Saída
+            row.append(f'"{data_emissao}"')
+            
+            # 05: Data Emissão
+            row.append(f'"{data_emissao}"')
+            
+            # 06: Número NF
+            row.append(numero_nfe)
+            
+            # 07: Espécie
+            row.append(f'"{especie}"')
+            
+            # 08: Série
+            row.append(f'"{serie}"')
+            
+            # 09: CFOP
+            cfop = str(prod.get('cfop', ''))
+            row.append(f'"{cfop}"')
+            
+            # 10: Código Produto
+            codigo = str(prod.get('codigo', ''))
+            row.append(f'"{codigo}"')
+            
+            # 11: Descrição Produto
+            descricao = str(prod.get('descricao', ''))[:60]
+            row.append(f'"{descricao}"')
+            
+            # 12: NCM
+            ncm = str(prod.get('ncm', ''))
+            row.append(f'"{ncm}"')
+            
+            # 13: Unidade
+            unidade = str(prod.get('unidade', prod.get('uCom', 'UN')))
+            row.append(f'"{unidade}"')
+            
+            # 14: Quantidade
+            qtd = float(prod.get('quantidade', 0) or 0)
+            row.append(format_number(qtd, 4))
+            
+            # 15: Valor Unitário
+            valor_unit = float(prod.get('valor_unitario', 0) or 0)
+            row.append(format_number(valor_unit, 4))
+            
+            # 16: Valor Total Produto
+            valor_total = float(prod.get('valor_total', 0) or 0)
+            row.append(format_number(valor_total))
+            
+            # 17: CST ICMS
+            cst = str(prod.get('cst', '00'))
+            row.append(f'"{cst}"')
+            
+            # 18: Base ICMS
+            bc_icms = float(prod.get('v_bc_icms', 0) or prod.get('v_bc', 0) or 0)
+            row.append(format_number(bc_icms))
+            
+            # 19: Alíquota ICMS
+            aliq_icms = float(prod.get('p_icms', 0) or 0)
+            row.append(format_number(aliq_icms, 2))
+            
+            # 20: Valor ICMS
+            v_icms = float(prod.get('v_icms', 0) or 0)
+            row.append(format_number(v_icms))
+            
+            # 21: CST PIS
+            cst_pis = str(prod.get('cst_pis', '01'))
+            row.append(f'"{cst_pis}"')
+            
+            # 22: Base PIS
+            bc_pis = valor_total if cst_pis in ['01', '02', '50'] else 0
+            row.append(format_number(bc_pis))
+            
+            # 23: Alíquota PIS
+            aliq_pis = 1.65  # Lucro Real
+            row.append(format_number(aliq_pis, 2))
+            
+            # 24: Valor PIS
+            v_pis = float(prod.get('v_pis', 0) or 0)
+            row.append(format_number(v_pis))
+            
+            # 25: CST COFINS
+            cst_cofins = str(prod.get('cst_cofins', '01'))
+            row.append(f'"{cst_cofins}"')
+            
+            # 26: Base COFINS
+            bc_cofins = valor_total if cst_cofins in ['01', '02', '50'] else 0
+            row.append(format_number(bc_cofins))
+            
+            # 27: Alíquota COFINS
+            aliq_cofins = 7.6  # Lucro Real
+            row.append(format_number(aliq_cofins, 2))
+            
+            # 28: Valor COFINS
+            v_cofins = float(prod.get('v_cofins', 0) or 0)
+            row.append(format_number(v_cofins))
+            
+            # 29: Chave NFe
+            row.append(f'"{chave}"')
+            
+            # 30: Categoria (REVENDA/INSUMO/DESPESA)
+            categoria = str(prod.get('categoria_classificada', ''))
+            row.append(f'"{categoria.upper()}"')
+            
+            lines.append(",".join(row))
+    
+    # Cabeçalho
+    header = [
+        "SEQ", "CNPJ_DEST", "UF_EMIT", "DT_ENTRADA", "DT_EMISSAO", "NUM_NF",
+        "ESPECIE", "SERIE", "CFOP", "COD_PROD", "DESC_PROD", "NCM", "UNID",
+        "QTD", "VL_UNIT", "VL_TOTAL", "CST_ICMS", "BC_ICMS", "ALIQ_ICMS", "VL_ICMS",
+        "CST_PIS", "BC_PIS", "ALIQ_PIS", "VL_PIS",
+        "CST_COFINS", "BC_COFINS", "ALIQ_COFINS", "VL_COFINS",
+        "CHAVE_NFE", "CATEGORIA"
+    ]
+    
+    return ",".join(header) + "\n" + "\n".join(lines)
+
 
 def generate_csv_entrada(documents: List[Dict[str, Any]]) -> str:
-    # Similar logic for entradas
-    # Reuse the same structure for now as a MVP
-    return generate_csv_saida(documents)
+    """
+    Gera CSV de Entradas - Uma linha por PRODUTO
+    Layout personalizado para importação em sistemas contábeis
+    """
+    lines = []
+    item_count = 0
+    
+    for doc in documents:
+        produtos = doc.get('produtos', [])
+        if not produtos:
+            continue
+            
+        especie, modelo = get_modelo_especie(doc)
+        serie = doc.get('serie', '1') or '1'
+        data_emissao = format_date(doc.get('data_emissao', ''))
+        numero_nfe = str(doc.get('numero_nfe', ''))
+        chave = doc.get('chave', doc.get('chave_nfe', ''))
+        
+        # Para entradas: emitente = fornecedor, destinatário = nossa empresa
+        emitente_cnpj = clean_cnpj(doc.get('emitente_cnpj', ''))
+        emitente_nome = str(doc.get('emitente_nome', ''))[:60]
+        emitente_uf = doc.get('emitente_uf', 'SP') or 'SP'
+        
+        for prod in produtos:
+            item_count += 1
+            row = []
+            
+            # 01: Sequencial (6 dígitos)
+            row.append(str(item_count).zfill(6))
+            
+            # 02: CNPJ Emitente (fornecedor)
+            row.append(f'"{emitente_cnpj}"')
+            
+            # 03: Nome Emitente
+            row.append(f'"{emitente_nome}"')
+            
+            # 04: UF Emitente
+            row.append(f'"{emitente_uf}"')
+            
+            # 05: Data Entrada
+            row.append(f'"{data_emissao}"')
+            
+            # 06: Data Emissão
+            row.append(f'"{data_emissao}"')
+            
+            # 07: Número NF
+            row.append(numero_nfe)
+            
+            # 08: Espécie
+            row.append(f'"{especie}"')
+            
+            # 09: Série
+            row.append(f'"{serie}"')
+            
+            # 10: CFOP
+            cfop = str(prod.get('cfop', ''))
+            row.append(f'"{cfop}"')
+            
+            # 11: Código Produto
+            codigo = str(prod.get('codigo', ''))
+            row.append(f'"{codigo}"')
+            
+            # 12: Descrição Produto
+            descricao = str(prod.get('descricao', ''))[:60]
+            row.append(f'"{descricao}"')
+            
+            # 13: NCM
+            ncm = str(prod.get('ncm', ''))
+            row.append(f'"{ncm}"')
+            
+            # 14: Unidade
+            unidade = str(prod.get('unidade', prod.get('uCom', 'UN')))
+            row.append(f'"{unidade}"')
+            
+            # 15: Quantidade
+            qtd = float(prod.get('quantidade', 0) or 0)
+            row.append(format_number(qtd, 4))
+            
+            # 16: Valor Unitário
+            valor_unit = float(prod.get('valor_unitario', 0) or 0)
+            row.append(format_number(valor_unit, 4))
+            
+            # 17: Valor Total Produto
+            valor_total = float(prod.get('valor_total', 0) or 0)
+            row.append(format_number(valor_total))
+            
+            # 18: CST ICMS
+            cst = str(prod.get('cst', '00'))
+            row.append(f'"{cst}"')
+            
+            # 19: Base ICMS
+            bc_icms = float(prod.get('v_bc_icms', 0) or prod.get('v_bc', 0) or 0)
+            row.append(format_number(bc_icms))
+            
+            # 20: Alíquota ICMS
+            aliq_icms = float(prod.get('p_icms', 0) or 0)
+            row.append(format_number(aliq_icms, 2))
+            
+            # 21: Valor ICMS
+            v_icms = float(prod.get('v_icms', 0) or 0)
+            row.append(format_number(v_icms))
+            
+            # 22: CST PIS
+            cst_pis = str(prod.get('cst_pis', prod.get('cst_pis_calculado', '50')))
+            row.append(f'"{cst_pis}"')
+            
+            # 23: Base PIS (para crédito)
+            bc_pis = valor_total if cst_pis in ['50', '51', '52', '53', '54', '55', '56'] else 0
+            row.append(format_number(bc_pis))
+            
+            # 24: Alíquota PIS
+            aliq_pis = 1.65 if bc_pis > 0 else 0  # Lucro Real
+            row.append(format_number(aliq_pis, 2))
+            
+            # 25: Valor PIS (Crédito)
+            v_pis = round(bc_pis * 0.0165, 2) if bc_pis > 0 else 0
+            row.append(format_number(v_pis))
+            
+            # 26: CST COFINS
+            cst_cofins = str(prod.get('cst_cofins', prod.get('cst_cofins_calculado', '50')))
+            row.append(f'"{cst_cofins}"')
+            
+            # 27: Base COFINS (para crédito)
+            bc_cofins = valor_total if cst_cofins in ['50', '51', '52', '53', '54', '55', '56'] else 0
+            row.append(format_number(bc_cofins))
+            
+            # 28: Alíquota COFINS
+            aliq_cofins = 7.6 if bc_cofins > 0 else 0  # Lucro Real
+            row.append(format_number(aliq_cofins, 2))
+            
+            # 29: Valor COFINS (Crédito)
+            v_cofins = round(bc_cofins * 0.076, 2) if bc_cofins > 0 else 0
+            row.append(format_number(v_cofins))
+            
+            # 30: Chave NFe
+            row.append(f'"{chave}"')
+            
+            # 31: Categoria (REVENDA/INSUMO/DESPESA)
+            categoria = str(prod.get('categoria_classificada', ''))
+            row.append(f'"{categoria.upper()}"')
+            
+            lines.append(",".join(row))
+    
+    # Cabeçalho
+    header = [
+        "SEQ", "CNPJ_EMIT", "NOME_EMIT", "UF_EMIT", "DT_ENTRADA", "DT_EMISSAO", "NUM_NF",
+        "ESPECIE", "SERIE", "CFOP", "COD_PROD", "DESC_PROD", "NCM", "UNID",
+        "QTD", "VL_UNIT", "VL_TOTAL", "CST_ICMS", "BC_ICMS", "ALIQ_ICMS", "VL_ICMS",
+        "CST_PIS", "BC_PIS", "ALIQ_PIS", "VL_PIS",
+        "CST_COFINS", "BC_COFINS", "ALIQ_COFINS", "VL_COFINS",
+        "CHAVE_NFE", "CATEGORIA"
+    ]
+    
+    return ",".join(header) + "\n" + "\n".join(lines)
