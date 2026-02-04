@@ -196,7 +196,7 @@ const Reports = ({ user, onLogout }) => {
         </div>
 
         <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Empresa</label>
               <select
@@ -208,7 +208,7 @@ const Reports = ({ user, onLogout }) => {
                 <option value="">Selecione</option>
                 {companies.map((company) => (
                   <option key={company.id} value={company.id}>
-                    {company.razao_social}
+                    {company.codigo_empresa ? `#${company.codigo_empresa} - ` : ''}{company.razao_social}
                   </option>
                 ))}
               </select>
