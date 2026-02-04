@@ -1,0 +1,165 @@
+<analysis>**original_problem_statement:**
+O usuário, da Business Contabilidade, deseja um portal para seu departamento societário.
+Os requisitos iniciais eram:
+1.  **Geração de Minutas de Alteração com IA:** Fazer upload de contratos, extrair dados-chave (como NIRE), permitir que o usuário descreva as alterações, fazer upload de documentos de apoio e gerar uma minuta de alteração consolidada, mantendo as cláusulas não alteradas do documento original.
+2.  **Gerenciamento de Licenças (REDESIM SP):** Funcionalidade pausada pelo usuário.
+
+**PRODUCT REQUIREMENTS (adicionados durante a sessão):**
+O projeto evoluiu significativamente, e o escopo agora é muito maior:
+1.  **Módulo Processos:** O antigo menu Minutas deve ser renomeado para Processos e segmentado em três abas: Alteração, Constituição e Baixa.
+2.  **Processo de Alteração (Maior parte concluída):**
+    *   Deve extrair dados essenciais (NIRE, data de registro, etc.) do contrato original.
+    *   Deve permitir a definição manual da formatação do documento final através de um formulário detalhado, com a opção de pré-preencher este formulário importando um documento  modelo.
+    *   Deve ter uma Organização Inteligente para evitar quebras de página ruins (títulos separados do texto, cláusulas divididas).
+    *   A geração de documentos (Word e PDF) deve converter a saída da IA (em Markdown) para a formatação correta (negrito, itálico) e limpar caracteres desnecessários (, , etc.), preservando linhas de assinatura ().
+3.  **Processo de Constituição (Novo e de alta prioridade):**
+    *   Um novo wizard com entrada de dados híbrida: o usuário pode digitar as informações ou anexar documentos (word, pdf, imagem) para a IA extrair os dados.
+    *   Campos a serem preenchidos: razão social, nome fantasia, capital social.
+    *   Qualificação de sócios dinâmica: a interface deve gerar campos para cada sócio com base em um número informado. A qualificação de cada sócio também é híbrida (digitar ou subir documentos como CNH, RG, comprovante de endereço, certidão de casamento).
+    *   Definição da participação de cada sócio em percentual, com uma prévia da tabela de participação societária.
+    *   Endereço da empresa (híbrido).
+    *   CNAEs (híbrido), que devem ser usados pela IA para gerar automaticamente a cláusula de objeto social.
+    *   Utilização de um template padrão para as demais cláusulas, com as mesmas opções de formatação do processo de Alteração.
+4.  **Processo de Baixa (Futuro):** A ser implementado após a Constituição.
+
+**User's preferred language**: Portuguese (pt-BR)
+
+**what currently exists?**
+Um portal full-stack (React + FastAPI) com autenticação.
+-   **Frontend:** A página Minutas (a ser renomeada para Processos) contém toda a lógica para o processo de Alteração. Isso inclui um wizard de múltiplas etapas, um modal complexo para configurar a formatação do documento manualmente, a funcionalidade de importar a formatação de um , e a lista de minutas agrupada por cliente. O arquivo  tornou-se muito grande e complexo. Um plugin do Babel () foi desativado em  para contornar um erro de compilação.
+-   **Backend:** Possui endpoints para gerenciar todo o fluxo de Alteração: extração de dados de documentos, geração de minutas com formatação manual () ou baseada em template (), e conversão de Markdown para formatação de documento. O endpoint para a automação REDESIM existe, mas a funcionalidade está quebrada e foi despriorizada pelo usuário. A geração de PDF é feita pelo , mas apresenta bugs.
+
+**Last working item**:
+-   **Last item agent was working:** O agente estava no início do planejamento para implementar a grande reestruturação solicitada pelo usuário: renomear Minutas para Processos, criar as abas de Alteração, Constituição e Baixa, e corrigir os bugs remanescentes na exportação de PDF.
+-   **Status:** NOT STARTED
+-   **Agent Testing Done:** N
+-   **Which testing method agent to use?** both
+-   **User Testing Done:** N
+
+**All Pending/In progress Issue list**:
+-   **Issue 1:** (P0) A exportação em PDF está com bugs: o logo não aparece e o rodapé fica desalinhado. O PDF deve ser idêntico ao Word gerado.
+-   **Issue 2:** (P1) O arquivo  é excessivamente grande e causou erros de compilação, exigindo a desativação de um plugin do Babel como paliativo. Ele precisa ser refatorado em componentes menores para garantir a estabilidade e manutenibilidade do projeto.
+-   **Issue 3:** (P2) A automação REDESIM está quebrada (provavelmente um problema de proxy com WebSockets) e foi explicitamente pausada pelo usuário.
+
+**Issues Detail:**
+-   **Issue 1: A exportação em PDF está com bugs.**
+    -   **Attempted fixes:** O agente reescreveu o arquivo  para espelhar a lógica de geração do Word, incluindo a limpeza de Markdown. No entanto, o usuário reportou que o logo e o alinhamento do rodapé ainda estão incorretos.
+    -   **Next debug checklist:**
+        1.  Revisar o código em .
+        2.  Verificar a lógica de adição do logo (se está recebendo o base64 corretamente e o  está o desenhando).
+        3.  Analisar a lógica de posicionamento do rodapé no canvas do  para garantir o alinhamento correto.
+        4.  Garantir que todas as configurações de formatação (margens, fontes, etc.) estão sendo aplicadas ao PDF.
+    -   **Why fix this issue and what will be achieved with the fix?** Atenderá a um requisito direto do usuário e garantirá consistência entre os formatos de exportação.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** backend
+    -   **Blocked on other issue:** None
+
+-   **Issue 2: O arquivo  precisa de refatoração.**
+    -   **Attempted fixes:** O agente contornou um erro de Maximum call stack size exceeded desativando o plugin  no arquivo . Esta não é uma solução permanente.
+    -   **Next debug checklist:**
+        1.  Criar um plano para quebrar  em componentes menores (ex: , , ).
+        2.  Mover os estados () e lógica (, handlers) relevantes para os componentes filhos.
+        3.  Simplificar o JSX do componente principal para orquestrar os componentes menores.
+        4.  Após a refatoração, tentar reativar o plugin do Babel em  para ver se o problema foi resolvido.
+    -   **Why fix this issue and what will be achieved with the fix?** Melhorará drasticamente a performance do frontend em modo de desenvolvimento, a manutenibilidade do código e a estabilidade geral da aplicação.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on other issue:** None
+
+**In progress Task List**:
+-   **Task 1: Reestruturar a UI para o módulo Processos**
+    -   **Where to resume:** No arquivo  e .
+    -   **What will be achieved with this?** O menu Minutas será renomeado para Processos, e a página principal conterá três abas: Alteração, Constituição e Baixa, preparando o terreno para as novas funcionalidades.
+    -   **Status:** NOT STARTED
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on something:** None
+
+**Upcoming and Future Tasks**
+-   **Upcoming Tasks:**
+    -   **(P0) Implementar o wizard do processo de Constituição:** Esta é a próxima grande funcionalidade solicitada. Requer a criação de uma nova UI no frontend e novos endpoints/lógica no backend para lidar com a entrada de dados híbrida (digitação/upload), geração de objeto social a partir de CNAEs e a montagem do contrato de constituição.
+-   **Future Tasks:**
+    -   **(P1) Implementar o wizard do processo de Baixa.**
+    -   **(P2) Reativar e consertar a automação REDESIM** (quando o usuário solicitar).
+
+**Completed work in this session**
+-   Implementada a listagem de minutas agrupada por cliente.
+-   Criado um formulário completo para o usuário definir manualmente a formatação dos documentos.
+-   Adicionada a funcionalidade de importar a formatação de um arquivo  para pré-preencher o formulário.
+-   Implementada a conversão robusta de Markdown (saída da IA) para formatação Word/PDF, limpando caracteres indesejados (, , ) e preservando linhas de assinatura.
+-   Implementada a funcionalidade de Organização Inteligente de páginas (keep with next, widow/orphan control) para os documentos gerados.
+-   Melhorados os prompts de IA para extrair dados mais completos (como NIRE) e para consolidar contratos de forma mais fiel.
+-   Refatorado o gerador de PDF () para tentar alinhar sua saída com a do gerador de Word.
+-   Contornado um erro crítico de compilação do frontend desativando um plugin do Babel.
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+-   **Frontend:** React, TailwindCSS, Shadcn/UI, Axios, Craco (para override da config do Webpack)
+-   **Backend:** FastAPI (Python), Pydantic
+-   **Database:** MongoDB
+-   **Geração de Documentos:**  para Word,  para PDF
+
+**key DB schema**
+-   **users**: armazena informações de login.
+-   **minutas**: armazena os dados de cada processo, incluindo , , etc.
+-   **formatacao**: armazena a configuração de formatação manual definida pelo usuário (um documento por usuário).
+
+**All files of reference**
+-   : **Arquivo mais crítico.** Contém a maior parte da lógica do frontend. Precisa ser renomeado e refatorado.
+-   : UI do novo recurso de formatação manual.
+-   : Contém todos os endpoints, incluindo a lógica e os prompts de IA.
+-   : Lógica principal para a geração de documentos com a nova formatação manual.
+-   : Lógica de geração de PDF que precisa de correção.
+-   : Onde o plugin do Babel foi desativado.
+
+**Critical Info for New Agent**
+-   A prioridade máxima é seguir o novo plano do usuário: corrigir o bug do PDF, renomear Minutas para Processos com as 3 abas, e então iniciar o desenvolvimento massivo do processo de Constituição.
+-   O frontend está em um estado frágil. O arquivo  é um monolito e a solução para o erro de compilação foi um paliativo. A refatoração deste arquivo deve ser priorizada para evitar problemas futuros.
+-   O usuário tem um ritmo de feedback rápido e adiciona novas funcionalidades de forma iterativa. Esteja preparado para implementar e receber feedback rapidamente.
+-   A funcionalidade REDESIM está oficialmente em espera. Não trabalhe nela a menos que o usuário mude de ideia.
+
+**documents and test reports created in this job**
+-    (atualizado constantemente)
+-    (desatualizado, não reflete o estado atual)
+
+**Last 10 User Messages and any pending HUMAN messages**
+10. **Usuário:** A exportação do Word está com traços e o PDF está desconfigurado. (BUG REPORT)
+9.  **Usuário:** É de extrema importância que a IA preserve dados chave como o NIRE e só altere as cláusulas especificadas na consolidação. (CRITICAL REQUIREMENT)
+8.  **Usuário:** Pede uma organização inteligente para evitar quebras de página ruins nos documentos. (FEATURE REQUEST)
+7.  **Usuário:** Reporta com screenshots que caracteres estranhos (linhas de  e ) estão aparecendo no documento gerado. (BUG REPORT)
+6.  **Usuário:** Pede para arrumar traços e asteriscos que estão saindo no Word em vez da formatação correta. (BUG REPORT)
+5.  **Usuário:** Sugere que em vez de um formulário vazio, o usuário possa subir um  e o sistema preencha o formulário de formatação automaticamente. (FEATURE REQUEST)
+4.  **Usuário:** Vendo que a extração de formatação do template não era fiel, sugere uma nova abordagem: um formulário para descrever manualmente toda a formatação. (MAJOR PIVOT)
+3.  **Usuário:** Ainda insatisfeito com a fidelidade do template, pede para focar em melhorá-la. (BUG REPORT)
+2.  **Usuário:** Clarifica que a lista de minutas deve ser agrupada por cliente. (CLARIFICATION)
+1.  **Usuário:** Define as prioridades: 1º Fidelidade do template, 2º Agrupar lista de minutas por cliente. Pausa o trabalho na automação REDESIM. (PLANNING)
+
+**Project Health Check:**
+-   **Broken:**
+    -   Geração de PDF (faltando logo e com rodapé desalinhado).
+    -   Automação REDESIM (conexão VNC/WebSocket não funciona, funcionalidade pausada).
+-   **Tech Debt:**
+    -    é um monolito que precisa urgentemente de refatoração.
+    -   O plugin Babel  está desativado em  como um workaround para um erro de compilação, o que pode ocultar outros problemas.
+
+**3rd Party Integrations**
+-   **OpenAI/Gemini:** Usado para extração de dados e geração de conteúdo via . (Aparentemente o modelo  foi usado em uma chamada).
+-   **Playwright:** Para automação de navegador (na funcionalidade pausada).
+-   **noVNC/websockify:** Para visualização do navegador remoto (na funcionalidade pausada).
+-   **python-docx:** Para geração de documentos .
+-   **reportlab:** Para geração de documentos .
+
+**Testing status**
+-   **Testing agent used after significant changes:** YES, mas o relatório está desatualizado.
+-   **Test files created:** N/A. O agente usou scripts inline para testes de backend.
+-   **Known regressions:** A geração de PDF regrediu (perdeu o logo/alinhamento) após a reescrita para espelhar a lógica do Word.
+
+**Credentials to test flow:**
+-   As credenciais de usuário podem ser criadas através do formulário de registro na página de login.
+
+**What agent forgot to execute**
+-   O agente não corrigiu o bug final reportado pelo usuário sobre o logo e o rodapé desalinhado no PDF.
+-   O agente não iniciou a reestruturação da UI (Minutas -> Processos com abas), que foi a primeira parte do último grande pedido do usuário.</analysis>
