@@ -98,7 +98,13 @@ Portal para departamento societário com geração de documentos via IA.
 
 ## Testes Realizados (05/02/2026)
 
-### Bug Reportado: Seleção de Tipos no Wizard de Alteração
+### Bug Corrigido: Formulário QSA sem sócios extraídos
+- **Status**: CORRIGIDO
+- **Problema**: Quando não havia sócios extraídos do contrato, o formulário de QSA ficava vazio sem opção de preenchimento manual
+- **Solução**: Adicionada seção "Sócio(s) Retirante(s)" com botão "Adicionar Retirante" para inserção manual dos dados
+- **Arquivos alterados**: `/app/frontend/src/components/processos/WizardAlteracao.js`
+
+### Bug Anterior: Seleção de Tipos no Wizard de Alteração
 - **Status**: BUG NÃO REPRODUZÍVEL
 - **Investigação**: A função `toggleAlteracao` (linha 1147) foi testada extensivamente
 - **Cenários testados**:
@@ -107,7 +113,7 @@ Portal para departamento societário com geração de documentos via IA.
   - Toggle de desseleção ✅
   - Feedback visual (destaque vermelho) ✅
   - Botão "Próximo" habilitado quando tipos selecionados ✅
-- **Conclusão**: O código está funcionando corretamente. O usuário pode ter ficado preso na Etapa 1 (requer upload de arquivo).
+- **Conclusão**: O código está funcionando corretamente.
 
 ### Taxa de Sucesso dos Testes
 - Backend: 100% (10/10 testes)
