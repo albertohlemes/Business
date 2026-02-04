@@ -20,6 +20,7 @@ import {
     DialogTitle,
 } from '../components/ui/dialog';
 import DadosExtraidos from '../components/DadosExtraidos';
+import ClienteMinutas from '../components/ClienteMinutas';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
