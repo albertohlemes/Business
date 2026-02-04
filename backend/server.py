@@ -1124,12 +1124,16 @@ async def delete_documents_by_competencia(
     current_user: User = Depends(get_current_user)
 ):
     """Apagar notas da competência da empresa, opcionalmente filtrando por tipo"""
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Apenas administradores podem apagar documentos")
     
+    # Verificar se a empresa existe
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Verificar permissão: Admin ou dono da empresa
+    if current_user.role != UserRole.ADMIN:
+        if company['cnpj'] not in current_user.company_ids:
+            raise HTTPException(status_code=403, detail="Acesso negado: Você não tem permissão para esta empresa")
     
     # Construir filtro
     filter_query = {
