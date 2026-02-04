@@ -230,6 +230,25 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 21 (04/02/2026)
+- ✅ **Reclassificação Manual na Validação de Entrada**
+  - Novo botão "Reclassificar" nos produtos da validação
+  - Modal com seleção de categorias (REVENDA/INSUMO/DESPESA/COMBUSTÍVEL)
+  - Mostra CFOP correspondente para cada categoria
+  - Campo de justificativa opcional
+  - **Regra memorizada automaticamente** para futuras importações
+  - Novo endpoint: `POST /api/products/reclassify-manual`
+  
+- ✅ **Apuração PIS/COFINS com Alíquotas de Lucro Real Corrigidas**
+  - **DÉBITOS (Saídas):**
+    - Lucro Real: PIS 1,65% | COFINS 7,6%
+    - Lucro Presumido: PIS 0,65% | COFINS 3%
+  - **CRÉDITOS (Entradas):**
+    - Calculados com alíquotas de 1,65% (PIS) e 7,6% (COFINS)
+  - Correção aplicada em:
+    - Endpoint `/api/apuracao-pis-cofins/{company_id}`
+    - Endpoint `/api/apuracao-periodo/{company_id}`
+
 ### 02/2026 - Iteration 20 (04/02/2026)
 - ✅ **Integração com SIEG Soluções Implementada**
   - Nova seção "SIEG - Cofre de XMLs" no modal de seleção de empresa
