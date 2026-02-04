@@ -149,9 +149,23 @@ const Documents = ({ user, onLogout }) => {
 
         {/* Filters */}
         <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="w-5 h-5 text-gray-600" />
-            <h2 className="font-semibold text-gray-900">Filtros</h2>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-gray-600" />
+              <h2 className="font-semibold text-gray-900">Filtros</h2>
+            </div>
+            
+            {/* Botão apagar em lote */}
+            {user.role === 'admin' && selectedCompany && selectedCompetencia && (
+              <button
+                onClick={handleDeleteAllCompetencia}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 flex items-center gap-2 disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4" />
+                {deleting ? 'Apagando...' : `Apagar Competência ${selectedCompetencia}`}
+              </button>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -165,7 +179,7 @@ const Documents = ({ user, onLogout }) => {
                 <option value="">Todas</option>
                 {companies.map((company) => (
                   <option key={company.id} value={company.id}>
-                    {company.razao_social}
+                    {company.codigo_empresa ? `#${company.codigo_empresa} - ` : ''}{company.razao_social}
                   </option>
                 ))}
               </select>
