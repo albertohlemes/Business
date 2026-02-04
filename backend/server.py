@@ -1,5 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form, status
-, BackgroundTasks
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form, status, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from .export_service import generate_csv_saida, generate_csv_entrada
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
