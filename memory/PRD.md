@@ -74,6 +74,21 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - Conversão automática de CFOP
 - **Auto-preenchimento de competência** do contexto global
 
+### ✅ **Classificação de CFOP por IA nas Entradas** (04/02/2026) 🆕
+- **Classificação Semântica com IA (GPT-4o):** A IA analisa a descrição do produto e classifica usando inteligência semântica
+- **Palavras-chave da Empresa:** Usa as listas cadastradas (produtos_comercializados, insumos_producao, produtos_despesa) para guiar a classificação
+- **Categorias e CFOPs:**
+  - **REVENDA** → CFOP 1102 (ou 2102 interestadual)
+  - **INSUMO** → CFOP 1101 (ou 2101 interestadual)
+  - **DESPESA** → CFOP 1556 (ou 2556 interestadual)
+- **Match Semântico:** A IA entende que "SHOYU" é um produto oriental, "DETERGENTE" é limpeza, etc.
+- **Relatório de Conversões:** Após o upload, exibe relatório detalhado com:
+  - Produto convertido
+  - CFOP Original → CFOP Convertido
+  - Categoria (REVENDA/INSUMO/DESPESA)
+  - Justificativa da IA explicando o motivo da classificação
+- **Fallback Inteligente:** Se a IA não classificar, usa regras diretas (keywords exatas)
+
 ### ✅ Análise Tributária Inteligente por IA
 - Página dedicada: `/analise-tributaria`
 - **Composição do Faturamento:** Total, Serviços, Vendas com percentuais
