@@ -242,6 +242,15 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 24 (04/02/2026)
+- ✅ **COR DE FUNDO DO LOGO AJUSTADA**
+  - **Problema:** O logo (com fundo preto sólido na imagem) destoava quando exibido em fundos brancos (header) ou vermelhos (modal de seleção de empresa).
+  - **Solução:** Adicionado um container com fundo cinza escuro (`bg-gray-900`) e bordas arredondadas (`rounded-lg`) ao redor do logo em ambos os locais.
+  - **Resultado:** O logo agora tem uma aparência consistente e profissional em todas as páginas, independente do fundo.
+  - **Arquivos modificados:**
+    - `/app/frontend/src/components/Layout.js`
+    - `/app/frontend/src/components/CompanySelector.js`
+
 ### 02/2026 - Iteration 23 (04/02/2026)
 - ✅ **PERSISTÊNCIA DO CONTEXTO DE EMPRESA/COMPETÊNCIA CORRIGIDA**
   - **Problema:** A seleção de empresa e competência feita no seletor global não persistia ao navegar entre as páginas. O usuário precisava selecionar novamente a empresa em cada página.
