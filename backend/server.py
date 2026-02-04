@@ -1832,6 +1832,19 @@ async def apuracao_pis_cofins(
                 "a_pagar": cofins_pagar
             },
             "total_a_pagar": round(pis_pagar + cofins_pagar, 2)
+        },
+        "transferencias": {
+            "entrada": {
+                "valor_operacoes": round(transferencias["entrada"]["total"], 2),
+                "por_cfop": dict_to_list(transferencias["entrada"]["por_cfop"]),
+                "por_ncm": dict_to_list(transferencias["entrada"]["por_ncm"])
+            },
+            "saida": {
+                "valor_operacoes": round(transferencias["saida"]["total"], 2),
+                "por_cfop": dict_to_list(transferencias["saida"]["por_cfop"]),
+                "por_ncm": dict_to_list(transferencias["saida"]["por_ncm"])
+            },
+            "total": round(transferencias["entrada"]["total"] + transferencias["saida"]["total"], 2)
         }
     }
 
