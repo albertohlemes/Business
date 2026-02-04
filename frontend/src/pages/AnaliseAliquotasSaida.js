@@ -73,16 +73,52 @@ const AnaliseAliquotasSaida = ({ user, onLogout }) => {
     setSortConfig({ key, direction });
   };
 
-  // Filtrar e ordenar produtos
+  // Filtrar, Agrupar e Ordenar produtos
   const sortedProducts = useMemo(() => {
-    let filtered = analise?.produtos?.filter(p => {
+    let list = analise?.produtos || [];
+
+    // 1. Agrupamento
+    if (grouped) {
+      const groups = {};
+      list.forEach(p => {
+        const key = `${p.codigo}|${p.ncm}`;
+        if (!groups[key]) {
+          groups[key] = {
+            ...p,
+            valor_total: 0,
+            valores: { icms: 0, pis: 0, cofins: 0 },
+            alertas: [],
+            documento: 'Vários',
+            count: 0
+          };
+        }
+        const g = groups[key];
+        g.count += 1;
+        g.valor_total += p.valor_total || 0;
+        g.valores.icms += p.valores?.icms || 0;
+        g.valores.pis += p.valores?.pis || 0;
+        g.valores.cofins += p.valores?.cofins || 0;
+        
+        // Unificar alertas
+        p.alertas.forEach(a => {
+          if (!g.alertas.some(ea => ea.mensagem === a.mensagem && ea.imposto === a.imposto)) {
+            g.alertas.push(a);
+          }
+        });
+      });
+      list = Object.values(groups);
+    }
+
+    // 2. Filtro
+    list = list.filter(p => {
       if (filtroAlerta === 'com_alerta') return p.alertas.length > 0;
       if (filtroAlerta === 'sem_alerta') return p.alertas.length === 0;
       return true;
-    }) || [];
+    });
 
+    // 3. Ordenação
     if (sortConfig.key) {
-      filtered.sort((a, b) => {
+      list.sort((a, b) => {
         let aVal, bVal;
         
         // Acessar valores aninhados
@@ -110,8 +146,8 @@ const AnaliseAliquotasSaida = ({ user, onLogout }) => {
       });
     }
 
-    return filtered;
-  }, [analise?.produtos, filtroAlerta, sortConfig]);
+    return list;
+  }, [analise?.produtos, filtroAlerta, sortConfig, grouped]);
 
   // Componente de cabeçalho ordenável
   const SortableHeader = ({ label, sortKey, className = '' }) => {
