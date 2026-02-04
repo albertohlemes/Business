@@ -557,6 +557,80 @@ const ValidationPage = ({ user, onLogout }) => {
   };
 
   // Componente: Item de produto agrupado (modo produto)
+  // Estado para reclassificação de produto agrupado
+  const [reclassifyingGrouped, setReclassifyingGrouped] = useState(null); // {product, occurrences}
+  const [groupedCategoria, setGroupedCategoria] = useState('');
+  const [groupedCfop, setGroupedCfop] = useState('');
+  const [groupedMotivo, setGroupedMotivo] = useState('');
+  const [customCfopMode, setCustomCfopMode] = useState(false);
+
+  // Mapear categoria para CFOP
+  const getCfopForCategoria = (categoria, cfopPrefix = '1') => {
+    const map = {
+      'revenda': cfopPrefix + '102',
+      'insumo': cfopPrefix + '101',
+      'despesa': cfopPrefix + '556',
+      'combustivel': cfopPrefix + '653'
+    };
+    return map[categoria] || cfopPrefix + '102';
+  };
+
+  // Reclassificar produto agrupado (todas as ocorrências)
+  const handleReclassifyGrouped = async () => {
+    if (!reclassifyingGrouped || !groupedCategoria) {
+      alert('Selecione uma categoria');
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      let successCount = 0;
+      let errorCount = 0;
+      
+      // Reclassificar cada ocorrência
+      for (const occ of reclassifyingGrouped.occurrences) {
+        try {
+          await axios.post(`${API}/products/reclassify-manual`, {
+            document_id: occ.doc_id,
+            product_index: occ.product_index,
+            nova_categoria: groupedCategoria,
+            motivo: groupedMotivo || `Reclassificado em lote para ${groupedCategoria.toUpperCase()}`
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          successCount++;
+        } catch (err) {
+          errorCount++;
+          console.error('Erro ao reclassificar:', err);
+        }
+      }
+      
+      showSuccess(`${successCount} ocorrência(s) reclassificada(s) para ${groupedCategoria.toUpperCase()}!`);
+      setReclassifyingGrouped(null);
+      setGroupedCategoria('');
+      setGroupedCfop('');
+      setGroupedMotivo('');
+      setCustomCfopMode(false);
+      
+      // Recarregar dados
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Erro ao reclassificar produto');
+    }
+  };
+
+  // Abrir modal de reclassificação agrupada
+  const openGroupedReclassifyModal = (product) => {
+    setReclassifyingGrouped({
+      product: product,
+      occurrences: product.ocorrencias
+    });
+    setGroupedCategoria(product.categoria || '');
+    setGroupedCfop(product.cfop || '');
+    setGroupedMotivo('');
+    setCustomCfopMode(false);
+  };
+
   const GroupedProductItem = ({ product }) => {
     const { approved, total } = countProductApprovals(product.codigo);
     const allApproved = approved === total;
