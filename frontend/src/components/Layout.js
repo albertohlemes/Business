@@ -68,8 +68,13 @@ const Layout = ({ user, onLogout, children }) => {
                   onClick={openSelector}
                   className="flex items-center gap-3 px-4 py-2 bg-red-50 hover:bg-red-100 rounded-xl border border-red-200 transition-colors"
                 >
+                  {selectedCompany.codigo_empresa && (
+                    <span className="px-2 py-1 bg-blue-600 text-white rounded font-bold text-sm">
+                      #{selectedCompany.codigo_empresa}
+                    </span>
+                  )}
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-red-900 truncate max-w-[200px]">
+                    <p className="text-sm font-semibold text-red-900 truncate max-w-[180px]">
                       {selectedCompany.razao_social}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-red-700">
