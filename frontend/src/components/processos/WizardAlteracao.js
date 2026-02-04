@@ -1544,8 +1544,14 @@ Use linguagem jurídica formal. O documento deve estar pronto para registro na J
                             )}
                             
                             {alteracoesSelecionadas.includes('administracao') && (
-                                <div>
+                                <div className="border-b border-zinc-800 pb-6">
                                     <FormularioAdministracao dados={dadosAdministracao} onChange={setDadosAdministracao} dadosExtraidos={dadosExtraidos} />
+                                </div>
+                            )}
+                            
+                            {alteracoesSelecionadas.includes('outras') && (
+                                <div>
+                                    <FormularioOutras dados={dadosOutras} onChange={setDadosOutras} dadosExtraidos={dadosExtraidos} />
                                 </div>
                             )}
                         </div>
