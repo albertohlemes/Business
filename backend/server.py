@@ -1965,14 +1965,15 @@ INSTRUÇÕES:
 5. NÃO use Markdown. Use texto simples com linhas de = e - para separação
 6. O contrato deve estar pronto para impressão e assinatura"""
 
-        llm = LlmChat(
+        chat = LlmChat(
             api_key=emergent_api_key,
-            model="gemini-2.5-flash"
-        )
+            session_id=f"contrato-{request.minuta_id}",
+            system_message=system_message
+        ).with_model("gemini", "gemini-2.5-flash")
         
-        response = await llm.send_message(UserMessage(text_content=prompt))
+        response = await chat.send_message(UserMessage(text=prompt))
         
-        contrato = response.text_content.strip()
+        contrato = response.strip()
         
         # Salvar na minuta
         await db.minutas.update_one(
