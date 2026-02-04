@@ -1791,16 +1791,16 @@ async def apuracao_periodo(
     cfop_saidas = {}    # CFOPs de saída (5xxx, 6xxx, 7xxx)
     
     for doc in documents:
-        tipo_operacao = doc.get('tipo_operacao', 'entrada')
+        tipo_operacao = doc.get('tipo_operacao', doc.get('tipo', 'entrada'))
         
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
             if not cfop:
                 continue
             
-            # Valores do produto
-            valor = float(prod.get('v_prod', 0) or 0)
-            bc_icms = float(prod.get('v_bc_icms', 0) or prod.get('v_bc', 0) or 0)
+            # Valores do produto - usar campos corretos
+            valor = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
+            bc_icms = float(prod.get('v_bc_icms', 0) or prod.get('v_bc', 0) or valor or 0)
             v_icms = float(prod.get('v_icms', 0) or 0)
             v_pis = float(prod.get('v_pis', 0) or 0)
             v_cofins = float(prod.get('v_cofins', 0) or 0)
