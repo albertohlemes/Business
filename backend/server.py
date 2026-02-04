@@ -236,6 +236,13 @@ class ReclassificationRequest(BaseModel):
     instrucao_usuario: str  # Comando do usuário para a IA
     aplicar_em_lote: bool = True
 
+class ManualReclassificationRequest(BaseModel):
+    """Request para reclassificar um produto manualmente"""
+    document_id: str
+    product_index: int  # Índice do produto na lista
+    nova_categoria: str  # revenda, insumo, despesa
+    motivo: Optional[str] = None  # Justificativa opcional
+
 class TaxValidationRequest(BaseModel):
     """Request para validar impostos com IA"""
     company_id: str
