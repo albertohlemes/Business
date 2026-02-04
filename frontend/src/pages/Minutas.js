@@ -656,7 +656,9 @@ ${TEMPLATE_MINUTA}
                                             size="sm" 
                                             onClick={() => {
                                                 const empresa = dadosExtraidos?.empresa || {};
-                                                visualizarPDF(minutaGerada, empresa, dataAlteracao);
+                                                const url = gerarPDFBlobUrl(minutaGerada, empresa, dataAlteracao);
+                                                setPdfUrl(url);
+                                                setPdfViewOpen(true);
                                             }}
                                             className="bg-red-600 hover:bg-red-700"
                                             data-testid="visualizar-pdf-btn"
@@ -688,7 +690,7 @@ ${TEMPLATE_MINUTA}
                                 </div>
                                 
                                 <p className="text-xs text-zinc-500">
-                                    Clique em "Visualizar PDF" para ver o documento formatado e salvar onde quiser, ou "Baixar PDF" para download direto.
+                                    Clique em "Visualizar PDF" para ver o documento formatado, ou "Baixar PDF" para download direto.
                                 </p>
                                 
                                 <div className="bg-white text-black rounded-lg p-6 max-h-[450px] overflow-y-auto border">
