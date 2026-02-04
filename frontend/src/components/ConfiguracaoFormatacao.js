@@ -248,6 +248,7 @@ const ConfiguracaoFormatacao = ({ open, onClose, onSave, configuracaoAtual }) =>
         direita: '2.0'
     });
     const [espacamento, setEspacamento] = useState('1.5');
+    const [organizacaoInteligente, setOrganizacaoInteligente] = useState(true);
     const [importando, setImportando] = useState(false);
     const importInputRef = useRef(null);
 
