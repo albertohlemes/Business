@@ -1013,6 +1013,42 @@ async def upload_xml_batch(
     duplicadas = []
     rejeitadas_cnpj = []
     rejeitadas_competencia = []
+    alertas_cfop = []  # Alertas de CFOPs de operações distintas
+    
+    # CFOPs de operações distintas que precisam de alerta
+    CFOPS_OPERACOES_DISTINTAS_UPLOAD = {
+        '5910': 'Remessa em bonificação',
+        '5911': 'Remessa de amostra grátis',
+        '5912': 'Remessa de mercadoria para demonstração',
+        '5913': 'Retorno de mercadoria para demonstração',
+        '5914': 'Remessa de mercadoria para exposição/feira',
+        '5915': 'Remessa de mercadoria para consignação',
+        '5916': 'Retorno de mercadoria de consignação',
+        '5917': 'Remessa de mercadoria em consignação simbólica',
+        '5918': 'Devolução de mercadoria de consignação simbólica',
+        '5919': 'Devolução simbólica por venda em consignação',
+        '5920': 'Remessa de vasilhame/sacaria',
+        '5921': 'Devolução de vasilhame/sacaria',
+        '5922': 'Lançamento para simples faturamento',
+        '5923': 'Remessa de mercadoria por conta e ordem',
+        '5924': 'Remessa para industrialização por conta e ordem',
+        '5925': 'Retorno de mercadoria de depósito',
+        '5949': 'Outra saída não especificada',
+        '5201': 'Devolução de compra - indústria',
+        '5202': 'Devolução de compra - comercialização',
+        '5208': 'Devolução de mercadoria em transferência',
+        '5209': 'Devolução de mercadoria para uso/consumo',
+        '5210': 'Devolução de compra para industrialização',
+        '5122': 'Venda com entrega futura',
+        '5123': 'Venda de mercadoria em consignação mercantil',
+        '6910': 'Remessa em bonificação (interestadual)',
+        '6911': 'Remessa de amostra grátis (interestadual)',
+        '6912': 'Remessa para demonstração (interestadual)',
+        '6949': 'Outra saída não especificada (interestadual)',
+        '6201': 'Devolução de compra - indústria (interestadual)',
+        '6202': 'Devolução de compra - comercialização (interestadual)',
+        '6122': 'Venda com entrega futura (interestadual)',
+    }
     
     for file in files:
         try:
