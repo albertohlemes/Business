@@ -61,7 +61,8 @@ const AnaliseTributaria = ({ user, onLogout }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(
+      // Iniciar tarefa em background
+      const startResponse = await axios.post(
         `${API}/ai/analise-tributaria`,
         {
           company_id: selectedCompany.id,
@@ -69,9 +70,34 @@ const AnaliseTributaria = ({ user, onLogout }) => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setAnalysis(response.data);
+      
+      const { task_id } = startResponse.data;
+      
+      // Polling de status
+      while (true) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const statusRes = await axios.get(`${API}/ai/tasks/${task_id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        const { status, result, error } = statusRes.data;
+        
+        if (status === 'completed') {
+          setAnalysis(result);
+          break;
+        }
+        
+        if (status === 'error') {
+          throw new Error(error || 'Erro desconhecido na análise');
+        }
+        
+        // Se estiver pending ou processing, continua o loop
+      }
+      
     } catch (err) {
-      alert(err.response?.data?.detail || 'Erro ao gerar análise');
+      console.error('Erro na análise:', err);
+      alert(err.message || err.response?.data?.detail || 'Erro ao gerar análise');
     } finally {
       setLoading(false);
     }
