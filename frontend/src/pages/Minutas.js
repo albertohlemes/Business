@@ -125,6 +125,34 @@ const Minutas = () => {
             setLoading(false);
         }
     };
+    
+    // Salvar formatação manual
+    const handleSalvarFormatacao = async (config) => {
+        try {
+            // Se tem logo, fazer upload primeiro
+            if (config.logo) {
+                const formData = new FormData();
+                formData.append('file', config.logo);
+                await axios.post(`${API_URL}/api/formatacao/logo`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            }
+            
+            // Salvar configuração
+            await axios.post(`${API_URL}/api/formatacao/salvar`, {
+                secoes: config.secoes,
+                margens: config.margens,
+                espacamento: config.espacamento,
+                logoBase64: config.logoPreview || null
+            });
+            
+            setFormatacaoSalva(config);
+            toast.success('Formatação salva com sucesso!');
+        } catch (e) {
+            toast.error('Erro ao salvar formatação');
+            console.error(e);
+        }
+    };
 
     // Templates
     const handleTemplateUpload = async (e) => {
