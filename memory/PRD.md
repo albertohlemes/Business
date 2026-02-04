@@ -30,6 +30,15 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - **Exclusão de empresas** - Funcionando (apenas empresas sem documentos)
 - Badge com código da empresa exibido no card e no header
 
+### ✅ **Apuração PIS/COFINS Reformulada** (04/02/2026)
+- **CST Calculado na Importação:** O sistema agora aplica automaticamente o CST correto durante o upload do XML:
+  - **Entrada:** CST 50 (com direito a crédito) ou CST 73 (alíquota zero pelo NCM)
+  - **Saída:** CST 01 (tributado) ou CST 06 (alíquota zero pelo NCM)
+- **NCMs com Alíquota Zero:** Produtos com NCM na lista oficial (Tabela 4.3.13 SPED) são automaticamente classificados
+- **Relatório de Divergências de Saída:** Identifica produtos que no XML vieram tributados mas deveriam ter alíquota zero
+- **Coluna CST Única:** Removida duplicação da coluna CST quando visualização é "Por CST"
+- **CFOPs com/sem Crédito:** Separação correta entre operações que geram ou não crédito de PIS/COFINS
+
 ### ✅ **Dashboard Completo** (Atualizado 04/02/2026)
 - Estatísticas por **empresa e competência selecionada**
 - **Quantidade por tipo de documento:**
