@@ -595,7 +595,7 @@ const WizardBaixa = ({ open, onClose, onComplete }) => {
             case 4:
                 return motivoBaixa && dataEncerramentoAtividades;
             case 5:
-                return responsavelGuarda.trim();
+                return socios.length > 0 && responsavelGuardaIndex >= 0;
             default:
                 return true;
         }
