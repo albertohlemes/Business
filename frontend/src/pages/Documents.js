@@ -179,7 +179,7 @@ const Documents = ({ user, onLogout }) => {
                 className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 flex items-center gap-2 disabled:opacity-50"
               >
                 <Trash2 className="w-4 h-4" />
-                {deleting ? 'Apagando...' : `Apagar Competência ${selectedCompetencia}`}
+                {deleting ? 'Apagando...' : `Apagar ${selectedTipo === 'entrada' ? 'Entradas' : selectedTipo === 'saida' ? 'Saídas' : 'Todos'} - ${selectedCompetencia}`}
               </button>
             )}
           </div>
