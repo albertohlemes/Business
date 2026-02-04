@@ -1165,6 +1165,7 @@ async def delete_document(
     current_user: User = Depends(get_current_user)
 ):
     """Apagar documento individual"""
+    print(f"DELETE /documents/id request: doc_id={document_id}, user={current_user.email}")
     
     doc = await db.xml_documents.find_one({"id": document_id}, {"_id": 0})
     if not doc:
