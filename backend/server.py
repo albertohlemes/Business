@@ -1797,7 +1797,7 @@ async def gerar_contrato_constituicao(
         
         from emergentintegrations.llm.chat import LlmChat, UserMessage
         
-        emergent_api_key = os.environ.get("EMERGENT_API_KEY")
+        emergent_api_key = os.environ.get("EMERGENT_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")
         
         data_atual = datetime.now().strftime("%d de %B de %Y").replace(
             'January', 'janeiro').replace('February', 'fevereiro').replace('March', 'março'
@@ -1805,8 +1805,12 @@ async def gerar_contrato_constituicao(
         ).replace('July', 'julho').replace('August', 'agosto').replace('September', 'setembro'
         ).replace('October', 'outubro').replace('November', 'novembro').replace('December', 'dezembro')
         
-        prompt = f"""Você é um advogado especialista em direito societário brasileiro. 
-Elabore um CONTRATO SOCIAL completo e profissional para constituição de uma SOCIEDADE LIMITADA.
+        system_message = """Você é um advogado especialista em direito societário brasileiro.
+Sua tarefa é elaborar contratos sociais completos e profissionais para constituição de sociedades limitadas.
+Use linguagem jurídica formal e adequada para registro em Junta Comercial.
+NÃO use Markdown. Use texto simples com linhas de = e - para separação visual."""
+
+        prompt = f"""Elabore um CONTRATO SOCIAL completo e profissional para constituição de uma SOCIEDADE LIMITADA.
 
 DADOS DA EMPRESA:
 - Razão Social: {empresa.razao_social}
