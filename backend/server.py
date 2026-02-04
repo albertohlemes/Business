@@ -921,9 +921,10 @@ async def update_company(
 async def delete_documents_by_competencia(
     company_id: str,
     competencia: str,
+    tipo: str = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Apagar todas as notas da competência da empresa em lote"""
+    """Apagar notas da competência da empresa, opcionalmente filtrando por tipo"""
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Apenas administradores podem apagar documentos")
     
@@ -931,13 +932,22 @@ async def delete_documents_by_competencia(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    result = await db.xml_documents.delete_many({
+    # Construir filtro
+    filter_query = {
         "company_id": company_id,
         "competencia": competencia
-    })
+    }
+    
+    # Aplicar filtro de tipo se especificado
+    if tipo and tipo in ['entrada', 'saida']:
+        filter_query["tipo_operacao"] = tipo
+    
+    result = await db.xml_documents.delete_many(filter_query)
+    
+    tipo_label = f" do tipo {tipo.upper()}" if tipo else ""
     
     return {
-        "message": f"{result.deleted_count} documento(s) apagado(s) da competência {competencia}",
+        "message": f"{result.deleted_count} documento(s){tipo_label} apagado(s) da competência {competencia}",
         "deleted_count": result.deleted_count
     }
 
