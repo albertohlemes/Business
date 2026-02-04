@@ -877,6 +877,95 @@ const ValidationPage = ({ user, onLogout }) => {
           </div>
         )}
       </div>
+
+      {/* Modal de Reclassificação */}
+      {reclassifyingProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4 text-white">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <Layers className="w-5 h-5" />
+                Reclassificar Produto
+              </h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="font-semibold text-gray-900">{reclassifyingProduct.product.descricao}</p>
+                <p className="text-sm text-gray-600">NCM: {reclassifyingProduct.product.ncm} | CFOP atual: {reclassifyingProduct.product.cfop}</p>
+                {reclassifyingProduct.product.categoria_classificada && (
+                  <p className="text-sm text-purple-700 mt-1">
+                    Categoria atual: {reclassifyingProduct.product.categoria_classificada.toUpperCase()}
+                  </p>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Nova Categoria</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { id: 'revenda', label: 'REVENDA', cfop: '1102', bg: 'purple', desc: 'Produto para comercialização' },
+                    { id: 'insumo', label: 'INSUMO', cfop: '1101', bg: 'blue', desc: 'Matéria-prima/Produção' },
+                    { id: 'despesa', label: 'DESPESA', cfop: '1556', bg: 'orange', desc: 'Uso e consumo' },
+                    { id: 'combustivel', label: 'COMBUSTÍVEL', cfop: '1653', bg: 'yellow', desc: 'Combustível' },
+                  ].map(cat => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setNewCategoria(cat.id)}
+                      className={`p-3 rounded-lg border-2 text-left transition-all ${
+                        newCategoria === cat.id 
+                          ? `border-${cat.bg}-500 bg-${cat.bg}-50` 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className={`font-bold text-sm ${newCategoria === cat.id ? `text-${cat.bg}-700` : 'text-gray-800'}`}>
+                        {cat.label}
+                      </span>
+                      <p className="text-xs text-gray-500">{cat.desc}</p>
+                      <p className="text-xs text-gray-400 mt-1">CFOP: {cat.cfop}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Justificativa (opcional)</label>
+                <textarea
+                  value={reclassifyMotivo}
+                  onChange={(e) => setReclassifyMotivo(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
+                  rows="2"
+                  placeholder="Ex: Produto usado na produção"
+                />
+              </div>
+              
+              <div className="bg-blue-50 rounded-lg p-3 text-sm text-blue-800">
+                <strong>💡 Dica:</strong> A reclassificação será memorizada automaticamente para futuras importações deste produto.
+              </div>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setReclassifyingProduct(null);
+                  setNewCategoria('');
+                  setReclassifyMotivo('');
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleReclassifyProduct}
+                disabled={!newCategoria}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                Salvar Reclassificação
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
