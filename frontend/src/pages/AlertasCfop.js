@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
@@ -15,8 +15,10 @@ import {
   RefreshCw,
   Wand2,
   CheckCircle2,
-  XCircle,
-  Send
+  Send,
+  Package,
+  BarChart3,
+  Layers
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -31,7 +33,8 @@ const AlertasCfop = ({ user, onLogout }) => {
   const [processing, setProcessing] = useState({});
   const [comandoIA, setComandoIA] = useState('');
   const [processandoIA, setProcessandoIA] = useState(false);
-  const [processandoLote, setProcessandoLote] = useState(false);
+  const [processandoLote, setProcessandoLote] = useState({});
+  const [viewMode, setViewMode] = useState('resumo'); // 'resumo' | 'documentos'
 
   useEffect(() => {
     if (selectedCompany && selectedCompetencia) {
@@ -52,13 +55,6 @@ const AlertasCfop = ({ user, onLogout }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setData(response.data);
-      
-      // Expandir automaticamente se houver poucos alertas
-      if (response.data.alertas.length <= 3) {
-        const expanded = {};
-        response.data.alertas.forEach(a => expanded[a.documento_id] = true);
-        setExpandedDocs(expanded);
-      }
     } catch (err) {
       console.error('Erro ao carregar alertas:', err);
       setError('Erro ao carregar alertas de CFOP');
@@ -66,6 +62,46 @@ const AlertasCfop = ({ user, onLogout }) => {
       setLoading(false);
     }
   };
+
+  // Agrupar por CFOP para o painel de resumo
+  const resumoPorCfop = useMemo(() => {
+    if (!data || !data.alertas) return [];
+    
+    const agrupado = {};
+    
+    data.alertas.forEach(alerta => {
+      alerta.produtos.forEach(prod => {
+        const cfopOriginal = prod.cfop_original_emissor || prod.cfop_atual;
+        const cfopAtual = prod.cfop_atual;
+        const natureza = prod.natureza_operacao || 'Não identificada';
+        
+        const key = cfopOriginal;
+        
+        if (!agrupado[key]) {
+          agrupado[key] = {
+            cfop_original: cfopOriginal,
+            cfop_atual: cfopAtual,
+            natureza: natureza,
+            quantidade: 0,
+            valor_total: 0,
+            produtos: [],
+            sugestao_compra: prod.opcoes?.converter_compra?.cfop || '1102',
+            sugestao_manter: prod.opcoes?.manter_natureza?.cfop || cfopAtual
+          };
+        }
+        
+        agrupado[key].quantidade += 1;
+        agrupado[key].valor_total += prod.valor || 0;
+        agrupado[key].produtos.push({
+          ...prod,
+          documento_id: alerta.documento_id,
+          numero_nfe: alerta.numero_nfe
+        });
+      });
+    });
+    
+    return Object.values(agrupado).sort((a, b) => b.quantidade - a.quantidade);
+  }, [data]);
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -104,11 +140,50 @@ const AlertasCfop = ({ user, onLogout }) => {
     }
   };
 
-  // Resolver em lote
-  const resolverLote = async (acao) => {
+  // Resolver em lote por CFOP específico
+  const resolverLotePorCfop = async (cfopOriginal, acao, novoCfop) => {
     if (!selectedCompany || !selectedCompetencia) return;
     
-    setProcessandoLote(true);
+    const key = `${cfopOriginal}_${acao}`;
+    setProcessandoLote(prev => ({ ...prev, [key]: true }));
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Encontrar todos os produtos com esse CFOP
+      const grupo = resumoPorCfop.find(g => g.cfop_original === cfopOriginal);
+      if (!grupo) return;
+      
+      // Processar cada produto do grupo
+      let processados = 0;
+      for (const prod of grupo.produtos) {
+        try {
+          await axios.post(
+            `${API}/alertas-cfop/resolver-individual?documento_id=${prod.documento_id}&produto_idx=${prod.produto_idx}&novo_cfop=${novoCfop}&salvar_regra=false`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          processados++;
+        } catch (e) {
+          console.error('Erro ao processar produto:', e);
+        }
+      }
+      
+      toast.success(`${processados} produtos do CFOP ${cfopOriginal} atualizados para ${novoCfop}!`);
+      fetchAlertas();
+    } catch (err) {
+      console.error('Erro ao resolver em lote:', err);
+      toast.error('Erro ao resolver em lote');
+    } finally {
+      setProcessandoLote(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  // Resolver todos em lote
+  const resolverTodosLote = async (acao) => {
+    if (!selectedCompany || !selectedCompetencia) return;
+    
+    setProcessandoLote(prev => ({ ...prev, todos: true }));
     
     try {
       const token = localStorage.getItem('token');
@@ -124,7 +199,7 @@ const AlertasCfop = ({ user, onLogout }) => {
       console.error('Erro ao resolver em lote:', err);
       toast.error('Erro ao resolver em lote');
     } finally {
-      setProcessandoLote(false);
+      setProcessandoLote(prev => ({ ...prev, todos: false }));
     }
   };
 
@@ -147,7 +222,7 @@ const AlertasCfop = ({ user, onLogout }) => {
         setComandoIA('');
         fetchAlertas();
       } else {
-        toast.error(response.data.message || 'Erro ao processar comando');
+        toast.info(response.data.message || 'Nenhuma alteração necessária');
       }
     } catch (err) {
       console.error('Erro ao resolver por IA:', err);
@@ -155,6 +230,31 @@ const AlertasCfop = ({ user, onLogout }) => {
     } finally {
       setProcessandoIA(false);
     }
+  };
+
+  // Descrição do CFOP
+  const getCfopDescricao = (cfop) => {
+    const descricoes = {
+      '1910': 'Entrada de bonificação, doação ou brinde',
+      '1911': 'Entrada de amostra grátis',
+      '1912': 'Entrada de mercadoria/bem em demonstração',
+      '1913': 'Retorno de mercadoria/bem em demonstração',
+      '1914': 'Retorno de mercadoria/bem em consignação',
+      '1915': 'Entrada de mercadoria/bem em consignação',
+      '1916': 'Retorno de mercadoria/bem em comodato',
+      '1917': 'Entrada de mercadoria em consignação mercantil',
+      '1918': 'Devolução de venda em consignação',
+      '1919': 'Devolução de remessa para industrialização',
+      '1920': 'Entrada de vasilhame/sacaria',
+      '1921': 'Retorno de vasilhame/sacaria',
+      '1949': 'Outra entrada não especificada',
+      '2910': 'Entrada de bonificação (interestadual)',
+      '2911': 'Entrada de amostra grátis (interestadual)',
+      '2949': 'Outra entrada não especificada (interestadual)',
+      '1102': 'Compra para comercialização',
+      '2102': 'Compra para comercialização (interestadual)'
+    };
+    return descricoes[cfop] || `CFOP ${cfop}`;
   };
 
   return (
@@ -166,7 +266,7 @@ const AlertasCfop = ({ user, onLogout }) => {
             <div className="flex items-center gap-4">
               <AlertTriangle className="w-10 h-10" />
               <div>
-                <h1 className="text-2xl font-bold">Alertas de CFOP</h1>
+                <h1 className="text-2xl font-bold">Classificação Inteligente de CFOPs</h1>
                 {selectedCompany ? (
                   <p className="text-amber-100">
                     {selectedCompany.razao_social} - Competência: {selectedCompetencia}
@@ -187,75 +287,31 @@ const AlertasCfop = ({ user, onLogout }) => {
           </div>
         </div>
 
-        {/* Info Card */}
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-          <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <h4 className="font-semibold text-amber-800">Produtos Pendentes de Revisão</h4>
-            <p className="text-sm text-amber-700">
-              Durante o upload, CFOPs de <strong>operações distintas de venda</strong> 
-              (bonificação, remessa, devolução) foram automaticamente convertidos para entrada.
-              Revise cada produto e decida: <strong>manter a natureza</strong> original ou 
-              <strong>converter para compra</strong>.
-            </p>
-          </div>
-        </div>
-
-        {/* Ações em Lote */}
+        {/* Toggle de Visualização */}
         {data && data.total_produtos_pendentes > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
-              Ações em Lote ({data.total_produtos_pendentes} produtos pendentes)
-            </h3>
-            
-            <div className="flex flex-wrap gap-3 mb-4">
-              <button
-                onClick={() => resolverLote('manter_natureza')}
-                disabled={processandoLote}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {processandoLote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                Manter Natureza em Todos
-              </button>
-              <button
-                onClick={() => resolverLote('converter_compra')}
-                disabled={processandoLote}
-                className="flex items-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {processandoLote ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-                Converter Todos para Compra
-              </button>
-            </div>
-
-            {/* Comando por IA */}
-            <div className="border-t border-gray-200 pt-4">
-              <h4 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
-                <Wand2 className="w-4 h-4 text-purple-600" />
-                Comando por IA
-              </h4>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={comandoIA}
-                  onChange={(e) => setComandoIA(e.target.value)}
-                  placeholder="Ex: 'classificar bonificações como 1910' ou 'converter remessas para compra'"
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  onKeyPress={(e) => e.key === 'Enter' && resolverIA()}
-                />
-                <button
-                  onClick={resolverIA}
-                  disabled={processandoIA || !comandoIA.trim()}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {processandoIA ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  Executar
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Use linguagem natural para classificar produtos. A IA interpretará seu comando.
-              </p>
-            </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setViewMode('resumo')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                viewMode === 'resumo' 
+                  ? 'bg-amber-600 text-white' 
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <BarChart3 className="w-5 h-5" />
+              Resumo por CFOP
+            </button>
+            <button
+              onClick={() => setViewMode('documentos')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                viewMode === 'documentos' 
+                  ? 'bg-amber-600 text-white' 
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <FileText className="w-5 h-5" />
+              Por Documento
+            </button>
           </div>
         )}
 
@@ -285,10 +341,10 @@ const AlertasCfop = ({ user, onLogout }) => {
         {/* Resultados */}
         {data && !loading && (
           <div className="space-y-4">
-            {/* Resumo */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Resumo Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-                <p className="text-sm text-gray-500">Total de Documentos Entrada</p>
+                <p className="text-sm text-gray-500">Total de Documentos</p>
                 <p className="text-2xl font-bold text-gray-900">{data.total_documentos_entrada}</p>
               </div>
               <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-200 bg-amber-50">
@@ -299,10 +355,14 @@ const AlertasCfop = ({ user, onLogout }) => {
                 <p className="text-sm text-orange-700">Produtos Pendentes</p>
                 <p className="text-2xl font-bold text-orange-600">{data.total_produtos_pendentes || 0}</p>
               </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-purple-200 bg-purple-50">
+                <p className="text-sm text-purple-700">CFOPs Diferentes</p>
+                <p className="text-2xl font-bold text-purple-600">{resumoPorCfop.length}</p>
+              </div>
             </div>
 
-            {/* Lista de Alertas */}
-            {data.alertas.length === 0 ? (
+            {/* Nenhum pendente */}
+            {data.total_produtos_pendentes === 0 && (
               <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
                 <Check className="w-12 h-12 mx-auto text-green-500 mb-3" />
                 <p className="text-green-700 font-semibold">
@@ -312,7 +372,155 @@ const AlertasCfop = ({ user, onLogout }) => {
                   Todos os CFOPs foram revisados ou não há operações distintas.
                 </p>
               </div>
-            ) : (
+            )}
+
+            {/* PAINEL DE RESUMO POR CFOP */}
+            {viewMode === 'resumo' && resumoPorCfop.length > 0 && (
+              <div className="space-y-4">
+                {/* Ações Globais */}
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
+                  <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-gray-600" />
+                    Ações Globais (Todos os CFOPs)
+                  </h3>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => resolverTodosLote('manter_natureza')}
+                      disabled={processandoLote.todos}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {processandoLote.todos ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                      Manter Natureza em TODOS
+                    </button>
+                    <button
+                      onClick={() => resolverTodosLote('converter_compra')}
+                      disabled={processandoLote.todos}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {processandoLote.todos ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                      Converter TODOS para Compra
+                    </button>
+                  </div>
+                  
+                  {/* Comando IA */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <Wand2 className="w-4 h-4 text-purple-600" />
+                      Comando por IA
+                    </h4>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={comandoIA}
+                        onChange={(e) => setComandoIA(e.target.value)}
+                        placeholder="Ex: 'bonificações manter como 1910' ou 'converter remessas para 1102'"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        onKeyPress={(e) => e.key === 'Enter' && resolverIA()}
+                      />
+                      <button
+                        onClick={resolverIA}
+                        disabled={processandoIA || !comandoIA.trim()}
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {processandoIA ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Executar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cards por CFOP */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {resumoPorCfop.map((grupo) => (
+                    <div 
+                      key={grupo.cfop_original}
+                      className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden"
+                    >
+                      {/* Header do CFOP */}
+                      <div className="bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 border-b border-amber-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-amber-500 text-white px-3 py-2 rounded-lg font-mono font-bold text-lg">
+                              {grupo.cfop_original}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900">{grupo.natureza}</p>
+                              <p className="text-xs text-gray-600">{getCfopDescricao(grupo.cfop_original)}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-amber-600">{grupo.quantidade}</p>
+                            <p className="text-xs text-gray-500">produtos</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-sm text-gray-600">
+                          Valor Total: <span className="font-semibold">{formatCurrency(grupo.valor_total)}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Ações do CFOP */}
+                      <div className="p-4 space-y-3">
+                        <p className="text-sm text-gray-600 font-medium">Ação em lote para este CFOP:</p>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Manter Natureza */}
+                          <button
+                            onClick={() => resolverLotePorCfop(grupo.cfop_original, 'manter', grupo.sugestao_manter)}
+                            disabled={processandoLote[`${grupo.cfop_original}_manter`]}
+                            className="flex flex-col items-center gap-1 p-3 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 hover:border-blue-400 rounded-lg transition-all disabled:opacity-50"
+                          >
+                            {processandoLote[`${grupo.cfop_original}_manter`] ? (
+                              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                            ) : (
+                              <Check className="w-6 h-6 text-blue-600" />
+                            )}
+                            <span className="font-semibold text-blue-700">Manter Natureza</span>
+                            <span className="text-xs text-blue-600 font-mono bg-blue-100 px-2 py-0.5 rounded">
+                              → {grupo.sugestao_manter}
+                            </span>
+                          </button>
+                          
+                          {/* Converter para Compra */}
+                          <button
+                            onClick={() => resolverLotePorCfop(grupo.cfop_original, 'compra', grupo.sugestao_compra)}
+                            disabled={processandoLote[`${grupo.cfop_original}_compra`]}
+                            className="flex flex-col items-center gap-1 p-3 bg-green-50 hover:bg-green-100 border-2 border-green-200 hover:border-green-400 rounded-lg transition-all disabled:opacity-50"
+                          >
+                            {processandoLote[`${grupo.cfop_original}_compra`] ? (
+                              <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+                            ) : (
+                              <ArrowRight className="w-6 h-6 text-green-600" />
+                            )}
+                            <span className="font-semibold text-green-700">Converter p/ Compra</span>
+                            <span className="text-xs text-green-600 font-mono bg-green-100 px-2 py-0.5 rounded">
+                              → {grupo.sugestao_compra}
+                            </span>
+                          </button>
+                        </div>
+                        
+                        {/* Lista resumida de produtos */}
+                        <details className="mt-3">
+                          <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
+                            Ver {grupo.quantidade} produto(s) afetado(s)
+                          </summary>
+                          <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
+                            {grupo.produtos.map((prod, idx) => (
+                              <div key={idx} className="text-xs bg-gray-50 p-2 rounded flex justify-between">
+                                <span className="truncate flex-1">{prod.produto_descricao || prod.produto_codigo}</span>
+                                <span className="text-gray-500 ml-2">NF {prod.numero_nfe}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* VISÃO POR DOCUMENTO */}
+            {viewMode === 'documentos' && data.alertas.length > 0 && (
               <div className="space-y-3">
                 {data.alertas.map((alerta) => (
                   <div 
@@ -383,7 +591,6 @@ const AlertasCfop = ({ user, onLogout }) => {
                                 </div>
 
                                 <div className="flex flex-col gap-2">
-                                  {/* Manter Natureza */}
                                   <button
                                     onClick={() => resolverIndividual(
                                       alerta.documento_id, 
@@ -399,16 +606,14 @@ const AlertasCfop = ({ user, onLogout }) => {
                                     ) : (
                                       <Check className="w-4 h-4" />
                                     )}
-                                    Manter → {prod.opcoes.manter_natureza.cfop}
+                                    Manter ({prod.opcoes.manter_natureza.cfop})
                                   </button>
-
-                                  {/* Converter para Compra */}
                                   <button
                                     onClick={() => resolverIndividual(
                                       alerta.documento_id, 
                                       prod.produto_idx, 
                                       prod.opcoes.converter_compra.cfop,
-                                      true
+                                      false
                                     )}
                                     disabled={isProcessing}
                                     className="flex items-center gap-2 px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm transition-colors disabled:opacity-50 whitespace-nowrap"
@@ -418,7 +623,7 @@ const AlertasCfop = ({ user, onLogout }) => {
                                     ) : (
                                       <ArrowRight className="w-4 h-4" />
                                     )}
-                                    Compra → {prod.opcoes.converter_compra.cfop}
+                                    Compra ({prod.opcoes.converter_compra.cfop})
                                   </button>
                                 </div>
                               </div>
