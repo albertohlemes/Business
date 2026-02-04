@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { Search, AlertTriangle, CheckCircle, Edit2, Save, Sparkles, Check, CheckCheck, X, Filter, Calendar } from 'lucide-react';
+import { Search, AlertTriangle, CheckCircle, Edit2, Save, Sparkles, Check, CheckCheck, X, Filter, Layers, FileText, Package } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -18,9 +18,15 @@ const ValidationPage = ({ user, onLogout }) => {
   const [newCfop, setNewCfop] = useState('');
   const [motivo, setMotivo] = useState('');
   
+  // Modo de visualização: 'nf' ou 'produto'
+  const [viewMode, setViewMode] = useState('nf');
+  
   // Estado para aprovação em lote
   const [approvedProducts, setApprovedProducts] = useState({});
   const [showOnlyPending, setShowOnlyPending] = useState(false);
+  
+  // Seleção para modo produto
+  const [selectedProductCodes, setSelectedProductCodes] = useState([]);
 
   useEffect(() => {
     if (selectedCompany && selectedCompetencia) {
@@ -41,7 +47,10 @@ const ValidationPage = ({ user, onLogout }) => {
       const rulesRes = await axios.get(API + '/cfop/rules', {
         headers: { Authorization: 'Bearer ' + token }
       });
-      setDocuments(docsRes.data);
+      
+      // Filtrar apenas documentos de entrada (saída não precisa validação de CFOP)
+      const entradas = docsRes.data.filter(d => d.tipo === 'entrada');
+      setDocuments(entradas);
       setCfopRules(rulesRes.data);
       
       // Carregar aprovações salvas do localStorage
@@ -57,6 +66,43 @@ const ValidationPage = ({ user, onLogout }) => {
       setLoading(false);
     }
   };
+
+  // Agrupar produtos por código
+  const groupedProducts = useMemo(() => {
+    const groups = {};
+    
+    documents.forEach(doc => {
+      (doc.produtos || []).forEach(prod => {
+        const code = prod.codigo || 'SEM_CODIGO';
+        if (!groups[code]) {
+          groups[code] = {
+            codigo: code,
+            descricao: prod.descricao,
+            ncm: prod.ncm,
+            categoria: prod.categoria_classificada,
+            cfop: prod.cfop,
+            cfop_sugerido: prod.cfop_sugerido,
+            ocorrencias: [],
+            quantidade_total: 0,
+            valor_total: 0
+          };
+        }
+        groups[code].ocorrencias.push({
+          doc_id: doc.id,
+          numero_nfe: doc.numero_nfe,
+          emitente: doc.emitente_nome,
+          quantidade: prod.quantidade,
+          valor: prod.valor_total,
+          cfop: prod.cfop,
+          cfop_sugerido: prod.cfop_sugerido
+        });
+        groups[code].quantidade_total += prod.quantidade || 0;
+        groups[code].valor_total += prod.valor_total || 0;
+      });
+    });
+    
+    return Object.values(groups).sort((a, b) => a.descricao?.localeCompare(b.descricao || ''));
+  }, [documents]);
 
   const selectDocument = async (docId) => {
     try {
@@ -86,12 +132,41 @@ const ValidationPage = ({ user, onLogout }) => {
     }
     
     setApprovedProducts(newApprovals);
+    saveApprovals(newApprovals);
+  };
+
+  // Aprovar produto em todas as NFs (modo produto)
+  const toggleApproveProductAll = (productCode) => {
+    const newApprovals = { ...approvedProducts };
+    const product = groupedProducts.find(p => p.codigo === productCode);
     
-    // Salvar no localStorage
+    if (!product) return;
+    
+    // Verificar se todas as ocorrências já estão aprovadas
+    const allApproved = product.ocorrencias.every(occ => {
+      const key = `${occ.doc_id}_${productCode}`;
+      return !!newApprovals[key];
+    });
+    
+    // Se todas aprovadas, remover aprovação; senão, aprovar todas
+    product.ocorrencias.forEach(occ => {
+      const key = `${occ.doc_id}_${productCode}`;
+      if (allApproved) {
+        delete newApprovals[key];
+      } else {
+        newApprovals[key] = { approved: true, date: new Date().toISOString() };
+      }
+    });
+    
+    setApprovedProducts(newApprovals);
+    saveApprovals(newApprovals);
+  };
+
+  const saveApprovals = (approvals) => {
     if (selectedCompany && selectedCompetencia) {
       localStorage.setItem(
         `approvals_${selectedCompany.id}_${selectedCompetencia}`,
-        JSON.stringify(newApprovals)
+        JSON.stringify(approvals)
       );
     }
   };
@@ -106,13 +181,7 @@ const ValidationPage = ({ user, onLogout }) => {
     });
     
     setApprovedProducts(newApprovals);
-    
-    if (selectedCompany && selectedCompetencia) {
-      localStorage.setItem(
-        `approvals_${selectedCompany.id}_${selectedCompetencia}`,
-        JSON.stringify(newApprovals)
-      );
-    }
+    saveApprovals(newApprovals);
   };
 
   // Remover aprovação de todos do documento
@@ -125,19 +194,53 @@ const ValidationPage = ({ user, onLogout }) => {
     });
     
     setApprovedProducts(newApprovals);
-    
-    if (selectedCompany && selectedCompetencia) {
-      localStorage.setItem(
-        `approvals_${selectedCompany.id}_${selectedCompetencia}`,
-        JSON.stringify(newApprovals)
-      );
+    saveApprovals(newApprovals);
+  };
+
+  // Selecionar/deselecionar todos os produtos (modo produto)
+  const toggleSelectAllProducts = () => {
+    if (selectedProductCodes.length === groupedProducts.length) {
+      setSelectedProductCodes([]);
+    } else {
+      setSelectedProductCodes(groupedProducts.map(p => p.codigo));
     }
+  };
+
+  // Aprovar todos os produtos selecionados (modo produto)
+  const approveSelectedProducts = () => {
+    const newApprovals = { ...approvedProducts };
+    
+    selectedProductCodes.forEach(code => {
+      const product = groupedProducts.find(p => p.codigo === code);
+      if (product) {
+        product.ocorrencias.forEach(occ => {
+          const key = `${occ.doc_id}_${code}`;
+          newApprovals[key] = { approved: true, date: new Date().toISOString() };
+        });
+      }
+    });
+    
+    setApprovedProducts(newApprovals);
+    saveApprovals(newApprovals);
+    setSelectedProductCodes([]);
   };
 
   // Verificar se produto está aprovado
   const isProductApproved = (docId, productCode) => {
     const key = `${docId}_${productCode}`;
     return !!approvedProducts[key];
+  };
+
+  // Contar aprovações do produto (modo produto)
+  const countProductApprovals = (productCode) => {
+    const product = groupedProducts.find(p => p.codigo === productCode);
+    if (!product) return { approved: 0, total: 0 };
+    
+    const approved = product.ocorrencias.filter(occ => 
+      isProductApproved(occ.doc_id, productCode)
+    ).length;
+    
+    return { approved, total: product.ocorrencias.length };
   };
 
   // Contar aprovações do documento
@@ -174,28 +277,16 @@ const ValidationPage = ({ user, onLogout }) => {
     }
   };
 
-  const validateCfop = (cfop, tipo) => {
-    const rule = cfopRules.find(r => r.cfop === cfop);
-    if (!rule) return { valid: false, message: 'CFOP não cadastrado' };
-    if (rule.tipo_operacao !== tipo) {
-      return { valid: false, message: 'CFOP de ' + rule.tipo_operacao + ', documento é de ' + tipo };
-    }
-    return { valid: true, message: 'Válido' };
-  };
-
   const getCategoryBadge = (categoria) => {
     const badges = {
       'revenda': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'REVENDA' },
       'insumo': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'INSUMO' },
       'despesa': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'DESPESA' },
       'combustivel': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'COMBUSTÍVEL' },
-      'revenda_st': { bg: 'bg-purple-200', text: 'text-purple-900', label: 'REVENDA (ST)' },
-      'insumo_st': { bg: 'bg-blue-200', text: 'text-blue-900', label: 'INSUMO (ST)' },
-      'despesa_st': { bg: 'bg-orange-200', text: 'text-orange-900', label: 'DESPESA (ST)' },
     };
     const badge = badges[categoria] || { bg: 'bg-gray-100', text: 'text-gray-800', label: categoria?.toUpperCase() || 'N/A' };
     return (
-      <span className={'px-3 py-1 rounded-full text-xs font-bold ' + badge.bg + ' ' + badge.text}>
+      <span className={'px-2 py-0.5 rounded-full text-xs font-bold ' + badge.bg + ' ' + badge.text}>
         {badge.label}
       </span>
     );
@@ -206,6 +297,7 @@ const ValidationPage = ({ user, onLogout }) => {
   const totalApproved = Object.keys(approvedProducts).length;
   const totalPending = totalProducts - totalApproved;
 
+  // Componente: Item de documento na lista
   const DocumentListItem = ({ doc }) => {
     const approved = countApprovedInDoc(doc);
     const total = doc.produtos.length;
@@ -222,9 +314,7 @@ const ValidationPage = ({ user, onLogout }) => {
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-gray-900 text-sm truncate">NF-e {doc.numero_nfe}</p>
             <p className="text-xs text-gray-600 truncate">{doc.emitente_nome}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              {approved}/{total} aprovados
-            </p>
+            <p className="text-xs text-gray-500 mt-1">{approved}/{total} aprovados</p>
           </div>
           {allApproved ? (
             <CheckCheck className="w-5 h-5 text-green-500 flex-shrink-0" />
@@ -240,6 +330,7 @@ const ValidationPage = ({ user, onLogout }) => {
     );
   };
 
+  // Componente: Item de produto na lista (modo NF)
   const ProductItem = ({ product, index }) => {
     const exception = exceptions.find(e => e.product_code === product.codigo);
     const isEditing = editingProduct === index;
@@ -247,13 +338,11 @@ const ValidationPage = ({ user, onLogout }) => {
     const cfopSugerido = product.cfop_sugerido;
     const isApproved = isProductApproved(selectedDoc.id, product.codigo);
     
-    // Se mostrar apenas pendentes e produto está aprovado, não mostrar
     if (showOnlyPending && isApproved) return null;
     
     return (
       <div key={index} className={'p-4 ' + (isApproved ? 'bg-green-50' : 'bg-white')}>
         <div className="flex items-start gap-3">
-          {/* Checkbox de aprovação */}
           <button
             onClick={() => toggleApproveProduct(selectedDoc.id, product.codigo)}
             className={'w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-colors flex-shrink-0 ' +
@@ -262,19 +351,17 @@ const ValidationPage = ({ user, onLogout }) => {
                 : 'border-gray-300 hover:border-green-500'
               )
             }
-            title={isApproved ? 'Clique para remover aprovação' : 'Clique para aprovar classificação'}
+            title={isApproved ? 'Remover aprovação' : 'Aprovar'}
           >
             {isApproved && <Check className="w-5 h-5" />}
           </button>
           
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <p className="font-semibold text-gray-900">{product.descricao}</p>
                 {categoria && getCategoryBadge(categoria)}
-                {isApproved && (
-                  <span className="text-xs text-green-600 font-medium">✓ Aprovado</span>
-                )}
+                {isApproved && <span className="text-xs text-green-600 font-medium">✓ Aprovado</span>}
               </div>
               <p className="font-semibold text-gray-900">
                 R$ {product.valor_total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -364,11 +451,7 @@ const ValidationPage = ({ user, onLogout }) => {
                 Salvar
               </button>
               <button
-                onClick={() => {
-                  setEditingProduct(null);
-                  setNewCfop('');
-                  setMotivo('');
-                }}
+                onClick={() => { setEditingProduct(null); setNewCfop(''); setMotivo(''); }}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-300"
               >
                 Cancelar
@@ -376,6 +459,95 @@ const ValidationPage = ({ user, onLogout }) => {
             </div>
           </div>
         )}
+      </div>
+    );
+  };
+
+  // Componente: Item de produto agrupado (modo produto)
+  const GroupedProductItem = ({ product }) => {
+    const { approved, total } = countProductApprovals(product.codigo);
+    const allApproved = approved === total;
+    const isSelected = selectedProductCodes.includes(product.codigo);
+    
+    if (showOnlyPending && allApproved) return null;
+    
+    return (
+      <div className={'p-4 border-b ' + (allApproved ? 'bg-green-50' : 'bg-white')}>
+        <div className="flex items-start gap-3">
+          {/* Checkbox de seleção */}
+          <button
+            onClick={() => {
+              if (isSelected) {
+                setSelectedProductCodes(prev => prev.filter(c => c !== product.codigo));
+              } else {
+                setSelectedProductCodes(prev => [...prev, product.codigo]);
+              }
+            }}
+            className={'w-6 h-6 rounded border-2 flex items-center justify-center flex-shrink-0 ' +
+              (isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300 hover:border-blue-500')
+            }
+          >
+            {isSelected && <Check className="w-4 h-4" />}
+          </button>
+          
+          {/* Checkbox de aprovação */}
+          <button
+            onClick={() => toggleApproveProductAll(product.codigo)}
+            className={'w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-colors flex-shrink-0 ' +
+              (allApproved 
+                ? 'bg-green-600 border-green-600 text-white' 
+                : approved > 0 
+                  ? 'bg-yellow-100 border-yellow-400'
+                  : 'border-gray-300 hover:border-green-500'
+              )
+            }
+            title={allApproved ? 'Remover aprovação' : 'Aprovar em todas as NFs'}
+          >
+            {allApproved ? <Check className="w-5 h-5" /> : approved > 0 ? <span className="text-xs font-bold text-yellow-700">{approved}</span> : null}
+          </button>
+          
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-semibold text-gray-900">{product.descricao}</p>
+                {product.categoria && getCategoryBadge(product.categoria)}
+                {allApproved && <span className="text-xs text-green-600 font-medium">✓ Aprovado</span>}
+              </div>
+              <p className="font-semibold text-gray-900">
+                R$ {product.valor_total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-2">
+              Código: {product.codigo} | NCM: {product.ncm} | Qtd Total: {product.quantidade_total?.toFixed(2)}
+            </p>
+            
+            <div className="flex items-center gap-3 flex-wrap mb-2">
+              <span className="text-sm text-gray-600">CFOP:</span>
+              <span className="px-3 py-1 rounded-lg font-mono font-semibold bg-gray-100 text-gray-800">
+                {product.cfop}
+              </span>
+              {product.cfop_sugerido && product.cfop_sugerido !== product.cfop && (
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  <span className="px-3 py-1 rounded-lg font-mono font-semibold bg-purple-100 text-purple-800">
+                    {product.cfop_sugerido}
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {/* Lista de ocorrências */}
+            <div className="text-xs text-gray-500">
+              <span className="font-medium">Aparece em {product.ocorrencias.length} NF(s):</span>
+              <span className="ml-2">
+                {product.ocorrencias.slice(0, 3).map(o => o.numero_nfe).join(', ')}
+                {product.ocorrencias.length > 3 && ` e mais ${product.ocorrencias.length - 3}...`}
+              </span>
+              <span className="ml-2 text-green-600">({approved}/{total} aprovadas)</span>
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
@@ -392,7 +564,7 @@ const ValidationPage = ({ user, onLogout }) => {
                 Validação de Classificações
               </h1>
               <p className="text-green-100 mt-1">
-                Revise e aprove as classificações de CFOP dos produtos importados
+                Revise e aprove as classificações de CFOP dos produtos de entrada
               </p>
             </div>
             
@@ -414,24 +586,47 @@ const ValidationPage = ({ user, onLogout }) => {
           </div>
         </div>
 
-        {/* Explicação */}
+        {/* Explicação + Controles */}
         <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-          <div className="flex items-start gap-3">
-            <Sparkles className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-bold text-blue-900">Como funciona?</h3>
-              <p className="text-sm text-blue-700 mt-1">
-                Após importar as notas fiscais, a IA classifica automaticamente os produtos (REVENDA, INSUMO, DESPESA).
-                <br />
-                <strong>✓ Aprovar</strong> = Você concorda com a classificação
-                <br />
-                <strong>Alterar</strong> = Você quer mudar o CFOP/classificação
-              </p>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-start gap-3">
+              <Sparkles className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-bold text-blue-900">Como funciona?</h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  Apenas notas de <strong>entrada</strong> precisam de validação de CFOP.
+                  <br />
+                  <strong>✓ Aprovar</strong> = Você concorda com a classificação
+                  <strong className="ml-3">Alterar</strong> = Você quer mudar o CFOP
+                </p>
+              </div>
+            </div>
+            
+            {/* Modo de visualização */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('nf')}
+                className={'px-4 py-2 rounded-lg font-medium flex items-center gap-2 ' +
+                  (viewMode === 'nf' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300')
+                }
+              >
+                <FileText className="w-4 h-4" />
+                Por NF-e
+              </button>
+              <button
+                onClick={() => setViewMode('produto')}
+                className={'px-4 py-2 rounded-lg font-medium flex items-center gap-2 ' +
+                  (viewMode === 'produto' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border border-gray-300')
+                }
+              >
+                <Package className="w-4 h-4" />
+                Por Produto
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Informação da empresa selecionada */}
+        {/* Info empresa + Filtro */}
         {selectedCompany && (
           <div className="bg-white rounded-xl p-4 shadow-md border border-gray-100 flex items-center justify-between flex-wrap gap-4">
             <div>
@@ -440,7 +635,6 @@ const ValidationPage = ({ user, onLogout }) => {
               <p className="text-sm text-gray-500">Competência: {selectedCompetencia}</p>
             </div>
             
-            {/* Filtro */}
             <button
               onClick={() => setShowOnlyPending(!showOnlyPending)}
               className={'px-4 py-2 rounded-lg font-medium flex items-center gap-2 ' +
@@ -453,93 +647,134 @@ const ValidationPage = ({ user, onLogout }) => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Lista de Documentos */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                <h2 className="font-semibold text-gray-900">Documentos ({documents.length})</h2>
+        {/* Conteúdo baseado no modo */}
+        {viewMode === 'nf' ? (
+          /* MODO NF-e */
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Lista de Documentos */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                  <h2 className="font-semibold text-gray-900">NF-e de Entrada ({documents.length})</h2>
+                </div>
+                <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+                  {loading ? (
+                    <div className="p-6 text-center">
+                      <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
+                    </div>
+                  ) : documents.length === 0 ? (
+                    <div className="p-6 text-center text-gray-500 text-sm">
+                      {selectedCompany ? 'Nenhuma NF-e de entrada nesta competência' : 'Selecione uma empresa no header'}
+                    </div>
+                  ) : (
+                    documents.map((doc) => <DocumentListItem key={doc.id} doc={doc} />)
+                  )}
+                </div>
               </div>
-              <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
-                {loading ? (
-                  <div className="p-6 text-center">
-                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
+            </div>
+
+            {/* Detalhe do Documento */}
+            <div className="lg:col-span-2">
+              {selectedDoc ? (
+                <div className="space-y-4">
+                  <div className="bg-white rounded-xl p-4 shadow-md border border-gray-100">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900">NF-e {selectedDoc.numero_nfe}</h2>
+                        <p className="text-sm text-gray-600">{selectedDoc.emitente_nome}</p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(selectedDoc.data_emissao).toLocaleDateString('pt-BR')} • 
+                          R$ {selectedDoc.valor_total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => approveAllInDocument(selectedDoc)}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center gap-2"
+                        >
+                          <CheckCheck className="w-4 h-4" />
+                          Aprovar Todos
+                        </button>
+                        <button
+                          onClick={() => unapproveAllInDocument(selectedDoc)}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 flex items-center gap-2"
+                        >
+                          <X className="w-4 h-4" />
+                          Limpar
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                ) : documents.length === 0 ? (
-                  <div className="p-6 text-center text-gray-500 text-sm">
-                    {selectedCompany ? 'Nenhum documento nesta competência' : 'Selecione uma empresa no header'}
+
+                  <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+                    <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-900">Produtos ({selectedDoc.produtos.length})</h3>
+                      <span className="text-sm text-gray-600">
+                        {countApprovedInDoc(selectedDoc)}/{selectedDoc.produtos.length} aprovados
+                      </span>
+                    </div>
+                    <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
+                      {selectedDoc.produtos.map((product, index) => (
+                        <ProductItem key={index} product={product} index={index} />
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  documents.map((doc) => <DocumentListItem key={doc.id} doc={doc} />)
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl p-12 shadow-md border border-gray-100 text-center">
+                  <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Selecione um documento</h3>
+                  <p className="text-gray-600">Clique em uma NF-e à esquerda para revisar</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* MODO PRODUTO */
+          <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between flex-wrap gap-4">
+              <h3 className="font-semibold text-gray-900">
+                Produtos Agrupados ({groupedProducts.length})
+              </h3>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={toggleSelectAllProducts}
+                  className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 flex items-center gap-2"
+                >
+                  <Layers className="w-4 h-4" />
+                  {selectedProductCodes.length === groupedProducts.length ? 'Limpar Seleção' : 'Selecionar Todos'}
+                </button>
+                {selectedProductCodes.length > 0 && (
+                  <button
+                    onClick={approveSelectedProducts}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center gap-2"
+                  >
+                    <CheckCheck className="w-4 h-4" />
+                    Aprovar {selectedProductCodes.length} Selecionados
+                  </button>
                 )}
               </div>
             </div>
-          </div>
-
-          {/* Detalhe do Documento */}
-          <div className="lg:col-span-2">
-            {selectedDoc ? (
-              <div className="space-y-4">
-                {/* Cabeçalho do documento */}
-                <div className="bg-white rounded-xl p-4 shadow-md border border-gray-100">
-                  <div className="flex items-center justify-between flex-wrap gap-4">
-                    <div>
-                      <h2 className="text-xl font-bold text-gray-900">NF-e {selectedDoc.numero_nfe}</h2>
-                      <p className="text-sm text-gray-600">{selectedDoc.emitente_nome}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(selectedDoc.data_emissao).toLocaleDateString('pt-BR')} • 
-                        R$ {selectedDoc.valor_total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                    
-                    {/* Botões de aprovação em lote */}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => approveAllInDocument(selectedDoc)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center gap-2"
-                      >
-                        <CheckCheck className="w-4 h-4" />
-                        Aprovar Todos
-                      </button>
-                      <button
-                        onClick={() => unapproveAllInDocument(selectedDoc)}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 flex items-center gap-2"
-                      >
-                        <X className="w-4 h-4" />
-                        Limpar
-                      </button>
-                    </div>
-                  </div>
+            
+            <div className="max-h-[600px] overflow-y-auto">
+              {loading ? (
+                <div className="p-6 text-center">
+                  <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
                 </div>
-
-                {/* Lista de produtos */}
-                <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900">
-                      Produtos ({selectedDoc.produtos.length})
-                    </h3>
-                    <span className="text-sm text-gray-600">
-                      {countApprovedInDoc(selectedDoc)}/{selectedDoc.produtos.length} aprovados
-                    </span>
-                  </div>
-                  <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
-                    {selectedDoc.produtos.map((product, index) => (
-                      <ProductItem key={index} product={product} index={index} />
-                    ))}
-                  </div>
+              ) : groupedProducts.length === 0 ? (
+                <div className="p-6 text-center text-gray-500 text-sm">
+                  {selectedCompany ? 'Nenhum produto encontrado' : 'Selecione uma empresa no header'}
                 </div>
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl p-12 shadow-md border border-gray-100 text-center">
-                <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Selecione um documento</h3>
-                <p className="text-gray-600">
-                  Clique em uma NF-e à esquerda para revisar e aprovar as classificações
-                </p>
-              </div>
-            )}
+              ) : (
+                groupedProducts.map((product) => (
+                  <GroupedProductItem key={product.codigo} product={product} />
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </Layout>
   );
