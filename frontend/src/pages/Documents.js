@@ -67,16 +67,16 @@ const Documents = ({ user, onLogout }) => {
   };
 
   const handleDeleteAllCompetencia = async () => {
-    if (!selectedCompany || !selectedCompetencia) {
+    if (!ctxCompany || !selectedCompetencia) {
       alert('Selecione uma empresa e competência no header');
       return;
     }
     
-    const company = companies.find(c => c.id === selectedCompany);
+    const companyId = ctxCompany.id;
     
     // Filtrar documentos considerando o tipo selecionado
     let docsToDelete = documents.filter(d => 
-      d.company_id === selectedCompany && d.competencia === selectedCompetencia
+      d.company_id === companyId && d.competencia === selectedCompetencia
     );
     
     // Aplicar filtro de tipo se selecionado
