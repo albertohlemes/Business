@@ -593,14 +593,17 @@ Use linguagem jurídica formal e precisa. Inclua todos os dados extraídos dos d
                         {/* Step 4: Resultado */}
                         {step === 4 && (
                             <div className="space-y-4">
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between flex-wrap gap-2">
                                     <h3 className="text-lg font-semibold text-white">Minuta Gerada</h3>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 flex-wrap">
                                         <Button size="sm" variant="outline" onClick={copyToClipboard} className="border-zinc-700">
                                             <Copy className="w-4 h-4 mr-1" /> Copiar
                                         </Button>
-                                        <Button size="sm" onClick={exportarMinuta} className="bg-red-600 hover:bg-red-700">
-                                            <Download className="w-4 h-4 mr-1" /> Exportar
+                                        <Button size="sm" variant="outline" onClick={exportarTxt} className="border-zinc-700">
+                                            <FileDown className="w-4 h-4 mr-1" /> TXT
+                                        </Button>
+                                        <Button size="sm" onClick={exportarWord} className="bg-red-600 hover:bg-red-700">
+                                            <Download className="w-4 h-4 mr-1" /> Word
                                         </Button>
                                     </div>
                                 </div>
