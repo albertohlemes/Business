@@ -20,6 +20,7 @@ export const AppProvider = ({ children }) => {
   const [companies, setCompanies] = useState([]);
   const [showSelector, setShowSelector] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
