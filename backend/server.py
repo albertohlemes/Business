@@ -1696,12 +1696,15 @@ async def gerar_objeto_social(
         
         from emergentintegrations.llm.chat import LlmChat, UserMessage
         
-        emergent_api_key = os.environ.get("EMERGENT_API_KEY")
+        emergent_api_key = os.environ.get("EMERGENT_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")
         
         cnaes_texto = "\n".join([f"- {cnae}" for cnae in cnaes])
         
-        prompt = f"""Você é um especialista em direito societário brasileiro. 
-Com base nos seguintes CNAEs, elabore um OBJETO SOCIAL completo e profissional para o contrato social de uma empresa:
+        system_message = """Você é um especialista em direito societário brasileiro. 
+Sua tarefa é elaborar objetos sociais completos e profissionais para contratos sociais de empresas.
+Use linguagem jurídica formal e adequada para registro em Junta Comercial."""
+
+        prompt = f"""Com base nos seguintes CNAEs, elabore um OBJETO SOCIAL completo e profissional:
 
 CNAEs:
 {cnaes_texto}
@@ -1716,14 +1719,15 @@ REGRAS:
 
 Retorne APENAS o texto do objeto social, sem explicações ou comentários."""
 
-        llm = LlmChat(
+        chat = LlmChat(
             api_key=emergent_api_key,
-            model="gemini-2.5-flash"
-        )
+            session_id=f"objeto-social-{current_user['id']}",
+            system_message=system_message
+        ).with_model("gemini", "gemini-2.5-flash")
         
-        response = await llm.send_message(UserMessage(text_content=prompt))
+        response = await chat.send_message(UserMessage(text=prompt))
         
-        return {"success": True, "objeto_social": response.text_content.strip()}
+        return {"success": True, "objeto_social": response.strip()}
         
     except Exception as e:
         logger.error(f"Erro ao gerar objeto social: {str(e)}")
