@@ -12,7 +12,11 @@ import {
   Check,
   ArrowRight,
   Info,
-  RefreshCw
+  RefreshCw,
+  Wand2,
+  CheckCircle2,
+  XCircle,
+  Send
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -24,7 +28,10 @@ const AlertasCfop = ({ user, onLogout }) => {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [expandedDocs, setExpandedDocs] = useState({});
-  const [converting, setConverting] = useState({});
+  const [processing, setProcessing] = useState({});
+  const [comandoIA, setComandoIA] = useState('');
+  const [processandoIA, setProcessandoIA] = useState(false);
+  const [processandoLote, setProcessandoLote] = useState(false);
 
   useEffect(() => {
     if (selectedCompany && selectedCompetencia) {
@@ -74,25 +81,79 @@ const AlertasCfop = ({ user, onLogout }) => {
     }));
   };
 
-  const converterCfop = async (docId, prodCodigo, novoCfop, aplicarRegra = false) => {
-    const key = `${docId}_${prodCodigo}`;
-    setConverting(prev => ({ ...prev, [key]: true }));
+  // Resolver individual
+  const resolverIndividual = async (docId, prodIdx, novoCfop, salvarRegra = false) => {
+    const key = `${docId}_${prodIdx}`;
+    setProcessing(prev => ({ ...prev, [key]: true }));
     
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `${API}/converter-cfop?documento_id=${docId}&produto_codigo=${encodeURIComponent(prodCodigo)}&novo_cfop=${novoCfop}&aplicar_regra=${aplicarRegra}`,
+        `${API}/alertas-cfop/resolver-individual?documento_id=${docId}&produto_idx=${prodIdx}&novo_cfop=${novoCfop}&salvar_regra=${salvarRegra}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      toast.success(`CFOP convertido para ${novoCfop}`);
-      fetchAlertas(); // Recarregar dados
+      toast.success(`CFOP alterado para ${novoCfop}`);
+      fetchAlertas();
     } catch (err) {
-      console.error('Erro ao converter CFOP:', err);
-      toast.error('Erro ao converter CFOP');
+      console.error('Erro ao resolver alerta:', err);
+      toast.error('Erro ao resolver alerta');
     } finally {
-      setConverting(prev => ({ ...prev, [key]: false }));
+      setProcessing(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  // Resolver em lote
+  const resolverLote = async (acao) => {
+    if (!selectedCompany || !selectedCompetencia) return;
+    
+    setProcessandoLote(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${API}/alertas-cfop/resolver-lote?company_id=${selectedCompany.id}&competencia=${encodeURIComponent(selectedCompetencia)}&acao=${acao}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      toast.success(`${response.data.total_resolvidos} produtos atualizados!`);
+      fetchAlertas();
+    } catch (err) {
+      console.error('Erro ao resolver em lote:', err);
+      toast.error('Erro ao resolver em lote');
+    } finally {
+      setProcessandoLote(false);
+    }
+  };
+
+  // Resolver por IA
+  const resolverIA = async () => {
+    if (!comandoIA.trim() || !selectedCompany || !selectedCompetencia) return;
+    
+    setProcessandoIA(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${API}/alertas-cfop/resolver-ia?company_id=${selectedCompany.id}&competencia=${encodeURIComponent(selectedCompetencia)}&comando=${encodeURIComponent(comandoIA)}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        toast.success(`${response.data.total_alteracoes} alterações aplicadas pela IA!`);
+        setComandoIA('');
+        fetchAlertas();
+      } else {
+        toast.error(response.data.message || 'Erro ao processar comando');
+      }
+    } catch (err) {
+      console.error('Erro ao resolver por IA:', err);
+      toast.error('Erro ao processar comando de IA');
+    } finally {
+      setProcessandoIA(false);
     }
   };
 
@@ -130,15 +191,73 @@ const AlertasCfop = ({ user, onLogout }) => {
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
           <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="font-semibold text-amber-800">O que são esses alertas?</h4>
+            <h4 className="font-semibold text-amber-800">Produtos Pendentes de Revisão</h4>
             <p className="text-sm text-amber-700">
-              Quando um fornecedor emite uma NF com CFOPs de <strong>operações distintas de venda</strong> 
-              (como remessas, bonificações, devoluções, consignações), você precisa decidir como tratar 
-              essa entrada. Você pode <strong>manter a natureza original</strong> (reclassificando apenas 
-              para CFOP de entrada) ou <strong>converter para CFOP de compra</strong>.
+              Durante o upload, CFOPs de <strong>operações distintas de venda</strong> 
+              (bonificação, remessa, devolução) foram automaticamente convertidos para entrada.
+              Revise cada produto e decida: <strong>manter a natureza</strong> original ou 
+              <strong>converter para compra</strong>.
             </p>
           </div>
         </div>
+
+        {/* Ações em Lote */}
+        {data && data.total_produtos_pendentes > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              Ações em Lote ({data.total_produtos_pendentes} produtos pendentes)
+            </h3>
+            
+            <div className="flex flex-wrap gap-3 mb-4">
+              <button
+                onClick={() => resolverLote('manter_natureza')}
+                disabled={processandoLote}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {processandoLote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                Manter Natureza em Todos
+              </button>
+              <button
+                onClick={() => resolverLote('converter_compra')}
+                disabled={processandoLote}
+                className="flex items-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {processandoLote ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                Converter Todos para Compra
+              </button>
+            </div>
+
+            {/* Comando por IA */}
+            <div className="border-t border-gray-200 pt-4">
+              <h4 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                <Wand2 className="w-4 h-4 text-purple-600" />
+                Comando por IA
+              </h4>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={comandoIA}
+                  onChange={(e) => setComandoIA(e.target.value)}
+                  placeholder="Ex: 'classificar bonificações como 1910' ou 'converter remessas para compra'"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  onKeyPress={(e) => e.key === 'Enter' && resolverIA()}
+                />
+                <button
+                  onClick={resolverIA}
+                  disabled={processandoIA || !comandoIA.trim()}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {processandoIA ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Executar
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Use linguagem natural para classificar produtos. A IA interpretará seu comando.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Loading */}
         {loading && (
@@ -173,14 +292,12 @@ const AlertasCfop = ({ user, onLogout }) => {
                 <p className="text-2xl font-bold text-gray-900">{data.total_documentos_entrada}</p>
               </div>
               <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-200 bg-amber-50">
-                <p className="text-sm text-amber-700">Documentos com Alerta</p>
+                <p className="text-sm text-amber-700">Docs com Pendências</p>
                 <p className="text-2xl font-bold text-amber-600">{data.documentos_com_alerta}</p>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-green-200 bg-green-50">
-                <p className="text-sm text-green-700">Documentos OK</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {data.total_documentos_entrada - data.documentos_com_alerta}
-                </p>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-orange-200 bg-orange-50">
+                <p className="text-sm text-orange-700">Produtos Pendentes</p>
+                <p className="text-2xl font-bold text-orange-600">{data.total_produtos_pendentes || 0}</p>
               </div>
             </div>
 
@@ -189,10 +306,10 @@ const AlertasCfop = ({ user, onLogout }) => {
               <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
                 <Check className="w-12 h-12 mx-auto text-green-500 mb-3" />
                 <p className="text-green-700 font-semibold">
-                  Nenhum alerta de CFOP encontrado!
+                  Nenhum produto pendente de revisão!
                 </p>
                 <p className="text-green-600 text-sm">
-                  Todos os documentos de entrada possuem CFOPs regulares.
+                  Todos os CFOPs foram revisados ou não há operações distintas.
                 </p>
               </div>
             ) : (
@@ -220,7 +337,7 @@ const AlertasCfop = ({ user, onLogout }) => {
                         <div className="text-right">
                           <p className="font-bold text-gray-900">{formatCurrency(alerta.valor_total)}</p>
                           <p className="text-sm text-amber-600">
-                            {alerta.produtos_com_alerta.length} produto(s) com alerta
+                            {alerta.qtd_pendentes} produto(s) pendente(s)
                           </p>
                         </div>
                         {expandedDocs[alerta.documento_id] ? (
@@ -231,78 +348,78 @@ const AlertasCfop = ({ user, onLogout }) => {
                       </div>
                     </button>
 
-                    {/* Produtos com alerta */}
+                    {/* Produtos pendentes */}
                     {expandedDocs[alerta.documento_id] && (
                       <div className="p-4 space-y-3">
-                        {alerta.produtos_com_alerta.map((prod, idx) => {
-                          const key = `${alerta.documento_id}_${prod.produto_codigo}`;
-                          const isConverting = converting[key];
+                        {alerta.produtos.map((prod) => {
+                          const key = `${alerta.documento_id}_${prod.produto_idx}`;
+                          const isProcessing = processing[key];
                           
                           return (
                             <div 
-                              key={idx}
+                              key={prod.produto_idx}
                               className="border border-gray-200 rounded-lg p-4 bg-gray-50"
                             >
-                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div>
+                              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                <div className="flex-1">
                                   <p className="font-medium text-gray-900">
                                     {prod.produto_descricao || prod.produto_codigo}
                                   </p>
                                   <p className="text-sm text-gray-500">
-                                    Código: {prod.produto_codigo} | Valor: {formatCurrency(prod.valor)}
+                                    Código: {prod.produto_codigo} | NCM: {prod.ncm} | Valor: {formatCurrency(prod.valor)}
                                   </p>
-                                  <div className="mt-2 flex items-center gap-2">
-                                    <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded text-sm font-mono">
-                                      CFOP {prod.cfop_atual}
+                                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                                    <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-mono">
+                                      Emissor: {prod.cfop_original_emissor}
                                     </span>
-                                    <span className="text-sm text-gray-600">
-                                      {prod.cfop_descricao}
+                                    <ArrowRight className="w-4 h-4 text-gray-400" />
+                                    <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded text-sm font-mono">
+                                      Atual: {prod.cfop_atual}
+                                    </span>
+                                    <span className="text-sm text-gray-600 ml-2">
+                                      ({prod.natureza_operacao})
                                     </span>
                                   </div>
                                 </div>
 
                                 <div className="flex flex-col gap-2">
-                                  {/* Opção 1: Manter natureza */}
-                                  {prod.sugestao_manter_natureza && (
-                                    <button
-                                      onClick={() => converterCfop(
-                                        alerta.documento_id, 
-                                        prod.produto_codigo, 
-                                        prod.sugestao_manter_natureza,
-                                        false
-                                      )}
-                                      disabled={isConverting}
-                                      className="flex items-center gap-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm transition-colors disabled:opacity-50"
-                                    >
-                                      {isConverting ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                      ) : (
-                                        <ArrowRight className="w-4 h-4" />
-                                      )}
-                                      Manter natureza → {prod.sugestao_manter_natureza}
-                                    </button>
-                                  )}
+                                  {/* Manter Natureza */}
+                                  <button
+                                    onClick={() => resolverIndividual(
+                                      alerta.documento_id, 
+                                      prod.produto_idx, 
+                                      prod.opcoes.manter_natureza.cfop,
+                                      false
+                                    )}
+                                    disabled={isProcessing}
+                                    className="flex items-center gap-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm transition-colors disabled:opacity-50 whitespace-nowrap"
+                                  >
+                                    {isProcessing ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Check className="w-4 h-4" />
+                                    )}
+                                    Manter → {prod.opcoes.manter_natureza.cfop}
+                                  </button>
 
-                                  {/* Opção 2: Converter para compra */}
-                                  {prod.sugestao_converter_compra && prod.sugestao_converter_compra !== prod.sugestao_manter_natureza && (
-                                    <button
-                                      onClick={() => converterCfop(
-                                        alerta.documento_id, 
-                                        prod.produto_codigo, 
-                                        prod.sugestao_converter_compra,
-                                        true
-                                      )}
-                                      disabled={isConverting}
-                                      className="flex items-center gap-2 px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm transition-colors disabled:opacity-50"
-                                    >
-                                      {isConverting ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                      ) : (
-                                        <Check className="w-4 h-4" />
-                                      )}
-                                      Converter p/ compra → {prod.sugestao_converter_compra}
-                                    </button>
-                                  )}
+                                  {/* Converter para Compra */}
+                                  <button
+                                    onClick={() => resolverIndividual(
+                                      alerta.documento_id, 
+                                      prod.produto_idx, 
+                                      prod.opcoes.converter_compra.cfop,
+                                      true
+                                    )}
+                                    disabled={isProcessing}
+                                    className="flex items-center gap-2 px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm transition-colors disabled:opacity-50 whitespace-nowrap"
+                                  >
+                                    {isProcessing ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <ArrowRight className="w-4 h-4" />
+                                    )}
+                                    Compra → {prod.opcoes.converter_compra.cfop}
+                                  </button>
                                 </div>
                               </div>
                             </div>
