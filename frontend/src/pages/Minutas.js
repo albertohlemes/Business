@@ -619,23 +619,19 @@ Use linguagem jurídica formal e precisa. Inclua todos os dados extraídos dos d
                         {/* Step 4: Resultado */}
                         {step === 4 && (
                             <div className="space-y-4">
-                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                <div className="flex items-center justify-between">
                                     <h3 className="text-lg font-semibold text-white">Minuta Gerada</h3>
-                                    <div className="flex gap-2 flex-wrap">
-                                        <Button size="sm" variant="outline" onClick={copyToClipboard} className="border-zinc-700">
-                                            <Copy className="w-4 h-4 mr-1" /> Copiar
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={exportarTxt} className="border-zinc-700">
-                                            <FileDown className="w-4 h-4 mr-1" /> TXT
-                                        </Button>
-                                        <Button size="sm" onClick={exportarWord} className="bg-red-600 hover:bg-red-700">
-                                            <Download className="w-4 h-4 mr-1" /> Word
-                                        </Button>
-                                    </div>
+                                    <Button size="sm" onClick={copyToClipboard} className="bg-red-600 hover:bg-red-700">
+                                        <Copy className="w-4 h-4 mr-2" /> Copiar Tudo
+                                    </Button>
                                 </div>
                                 
-                                <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4 max-h-[400px] overflow-y-auto">
-                                    <pre className="text-sm text-zinc-300 whitespace-pre-wrap font-mono">
+                                <p className="text-xs text-zinc-500">
+                                    Selecione o texto abaixo e copie (Ctrl+C) ou use o botão "Copiar Tudo". Cole no Word para formatar.
+                                </p>
+                                
+                                <div className="bg-white text-black rounded-lg p-6 max-h-[450px] overflow-y-auto border">
+                                    <pre className="text-sm whitespace-pre-wrap font-serif leading-relaxed" style={{fontFamily: 'Times New Roman, serif'}}>
                                         {minutaGerada}
                                     </pre>
                                 </div>
