@@ -4041,6 +4041,124 @@ async def delete_all_learned_rules(
     
     return {"message": f"{result.deleted_count} regra(s) excluída(s) com sucesso"}
 
+@api_router.post("/products/reclassify-manual")
+async def reclassify_product_manual(
+    request: ManualReclassificationRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Reclassifica manualmente um produto em um documento.
+    Atualiza a categoria (REVENDA/INSUMO/DESPESA) e o CFOP correspondente.
+    Salva a reclassificação como regra aprendida para futuras importações.
+    """
+    # Buscar documento
+    doc = await db.xml_documents.find_one({"id": request.document_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    
+    # Verificar se o índice é válido
+    produtos = doc.get('produtos', [])
+    if request.product_index < 0 or request.product_index >= len(produtos):
+        raise HTTPException(status_code=400, detail=f"Índice de produto inválido. O documento tem {len(produtos)} produtos.")
+    
+    produto = produtos[request.product_index]
+    categoria = request.nova_categoria.lower()
+    
+    if categoria not in ['revenda', 'insumo', 'despesa', 'combustivel']:
+        raise HTTPException(status_code=400, detail="Categoria deve ser: revenda, insumo, despesa ou combustivel")
+    
+    # Buscar empresa para determinar UF
+    company = await db.companies.find_one({"id": doc['company_id']}, {"_id": 0})
+    company_uf = company.get('uf', 'SP') if company else 'SP'
+    
+    # Determinar prefixo do CFOP (1=estadual, 2=interestadual)
+    cfop_original = str(produto.get('cfop', ''))
+    cfop_prefix = cfop_original[0] if cfop_original else '1'
+    
+    # Verificar se é ST
+    cst = str(produto.get('cst', ''))
+    is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+    
+    # Mapear categoria para CFOP
+    if categoria == 'revenda':
+        novo_cfop = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
+    elif categoria == 'insumo':
+        novo_cfop = (cfop_prefix + '401') if is_st else (cfop_prefix + '101')
+    elif categoria == 'despesa':
+        novo_cfop = (cfop_prefix + '407') if is_st else (cfop_prefix + '556')
+    elif categoria == 'combustivel':
+        novo_cfop = cfop_prefix + '653'
+    else:
+        novo_cfop = cfop_prefix + '102'
+    
+    cfop_anterior = produto.get('cfop', '')
+    categoria_anterior = produto.get('categoria_classificada', 'não classificado')
+    
+    # Atualizar produto no documento
+    produtos[request.product_index]['cfop'] = novo_cfop
+    produtos[request.product_index]['cfop_anterior'] = cfop_anterior
+    produtos[request.product_index]['categoria_classificada'] = categoria
+    produtos[request.product_index]['reclassificado_por'] = current_user.email
+    produtos[request.product_index]['reclassificado_em'] = datetime.now(timezone.utc).isoformat()
+    produtos[request.product_index]['justificativa_reclassificacao'] = request.motivo or f"Reclassificado manualmente de {categoria_anterior} para {categoria}"
+    
+    # Atualizar documento no banco
+    await db.xml_documents.update_one(
+        {"id": request.document_id},
+        {"$set": {"produtos": produtos}}
+    )
+    
+    # Salvar como regra aprendida para futuras importações
+    descricao = produto.get('descricao', '')
+    if descricao:
+        existing_rule = await db.learned_rules.find_one({
+            "company_id": doc['company_id'],
+            "produto_descricao": descricao
+        })
+        
+        if existing_rule:
+            # Atualizar regra existente
+            await db.learned_rules.update_one(
+                {"id": existing_rule['id']},
+                {"$set": {
+                    "categoria_correta": categoria,
+                    "cfop_correto": novo_cfop,
+                    "motivo": request.motivo or f"Reclassificado manualmente por {current_user.email}",
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_by": current_user.email
+                }}
+            )
+        else:
+            # Criar nova regra
+            rule = {
+                "id": str(uuid.uuid4()),
+                "company_id": doc['company_id'],
+                "produto_descricao": descricao,
+                "produto_codigo": produto.get('codigo', ''),
+                "ncm": produto.get('ncm', ''),
+                "categoria_correta": categoria,
+                "cfop_correto": novo_cfop,
+                "motivo": request.motivo or f"Reclassificado manualmente por {current_user.email}",
+                "aprendido_de": "manual_reclassification",
+                "created_by": current_user.email,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.learned_rules.insert_one(rule)
+    
+    return {
+        "success": True,
+        "produto": {
+            "descricao": descricao,
+            "codigo": produto.get('codigo', ''),
+            "categoria_anterior": categoria_anterior,
+            "categoria_nova": categoria,
+            "cfop_anterior": cfop_anterior,
+            "cfop_novo": novo_cfop
+        },
+        "regra_aprendida": bool(descricao),
+        "message": f"Produto reclassificado de {categoria_anterior.upper()} para {categoria.upper()}"
+    }
+
 @api_router.post("/ai/reclassify")
 async def ai_reclassify_products(
     request: ReclassificationRequest,
