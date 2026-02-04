@@ -776,14 +776,7 @@ const Companies = ({ user, onLogout }) => {
                       >
                         <Edit className="w-5 h-5" />
                       </button>
-                      <button
-                        data-testid={'delete-company-btn-' + company.id}
-                        onClick={() => handleDelete(company.id, company.razao_social)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Excluir empresa"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      {/* Botão excluir removido a pedido do usuário */}
                     </div>
                   )}
                 </div>
