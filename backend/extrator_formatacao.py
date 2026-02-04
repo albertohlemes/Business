@@ -121,10 +121,15 @@ def _classificar_paragrafo(texto: str, formato: Dict[str, Any]) -> str:
     alinhamento = formato.get("alinhamento", "justify")
     
     # Título principal - geralmente centralizado, negrito, tamanho maior
-    titulos_keywords = ['ALTERAÇÃO', 'CONTRATO SOCIAL', 'CONSOLIDAÇÃO', 'ATA', 'INSTRUMENTO']
-    if any(k in texto_upper for k in titulos_keywords) and len(texto) < 100:
-        if alinhamento == 'center' or negrito or tamanho >= 14:
-            return 'titulo'
+    # Deve ser verificado ANTES de cláusulas
+    titulos_keywords = ['CONTRATO SOCIAL', 'CONSOLIDAÇÃO', 'ATA DE', 'INSTRUMENTO DE']
+    titulo_alteracao = 'ALTERAÇÃO' in texto_upper and 'CONTRATO' in texto_upper
+    
+    if (any(k in texto_upper for k in titulos_keywords) or titulo_alteracao) and len(texto) < 100:
+        # Não deve conter CLÁUSULA
+        if 'CLÁUSULA' not in texto_upper:
+            if alinhamento == 'center' or tamanho >= 14:
+                return 'titulo'
     
     # Preâmbulo
     preambulo_keywords = ['PELO PRESENTE', 'INSTRUMENTO PARTICULAR', 'ABAIXO ASSINADOS', 'COMPARECERAM']
@@ -137,10 +142,10 @@ def _classificar_paragrafo(texto: str, formato: Dict[str, Any]) -> str:
         return 'socios'
     
     # Título de cláusula
-    clausula_keywords = ['CLÁUSULA', 'ARTIGO', 'PARÁGRAFO', '§']
+    clausula_keywords = ['CLÁUSULA', 'ARTIGO', 'PARÁGRAFO ÚNICO', '§']
     clausula_numerais = ['PRIMEIRA', 'SEGUNDA', 'TERCEIRA', 'QUARTA', 'QUINTA', 'SEXTA', 'SÉTIMA', 'OITAVA', 'NONA', 'DÉCIMA']
     if any(k in texto_upper for k in clausula_keywords) or any(n in texto_upper for n in clausula_numerais):
-        if negrito or len(texto) < 80:
+        if negrito or len(texto) < 100:
             return 'clausula_titulo'
     
     # Assinatura
