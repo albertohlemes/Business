@@ -305,6 +305,12 @@ const WizardBaixa = ({ open, onClose, onComplete }) => {
     const [extraindoContrato, setExtraindoContrato] = useState(false);
     const contratoInputRef = useRef(null);
     
+    // Função para obter data de hoje formatada
+    const getDataHoje = () => {
+        const hoje = new Date();
+        return hoje.toISOString().split('T')[0];
+    };
+    
     // Step 1 - Upload do Contrato
     const [arquivoContrato, setArquivoContrato] = useState(null);
     const [dadosExtraidos, setDadosExtraidos] = useState(null);
@@ -322,15 +328,15 @@ const WizardBaixa = ({ open, onClose, onComplete }) => {
     const [socios, setSocios] = useState([]);
     
     // Step 4 - Motivo da Baixa
-    const [motivoBaixa, setMotivoBaixa] = useState('');
+    const [motivoBaixa, setMotivoBaixa] = useState('vontade_socios');
     const [motivoDetalhado, setMotivoDetalhado] = useState('');
-    const [dataEncerramentoAtividades, setDataEncerramentoAtividades] = useState('');
-    const [destinacaoAcervo, setDestinacaoAcervo] = useState('');
+    const [dataEncerramentoAtividades, setDataEncerramentoAtividades] = useState(getDataHoje());
+    const [destinacaoAcervo, setDestinacaoAcervo] = useState('Os livros e documentos contábeis da sociedade ficarão sob a guarda do sócio responsável, pelo prazo legal, no endereço da sede.');
     
     // Step 5 - Patrimônio
     const [declaracaoQuitacao, setDeclaracaoQuitacao] = useState(true);
-    const [distribuicaoPatrimonio, setDistribuicaoPatrimonio] = useState('');
-    const [responsavelGuarda, setResponsavelGuarda] = useState('');
+    const [distribuicaoPatrimonio, setDistribuicaoPatrimonio] = useState('O patrimônio líquido remanescente, se houver, será dividido entre os sócios na proporção de suas quotas de capital social, após a quitação de todas as obrigações.');
+    const [responsavelGuardaIndex, setResponsavelGuardaIndex] = useState(0);
     const [prazoGuarda, setPrazoGuarda] = useState('5 anos');
     
     // Step 6 - Resultado
