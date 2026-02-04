@@ -702,6 +702,18 @@ const ValidationPage = ({ user, onLogout }) => {
                   </span>
                 </div>
               )}
+              
+              {/* Botão Reclassificar */}
+              {!allApproved && (
+                <button
+                  onClick={() => openGroupedReclassifyModal(product)}
+                  className="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 flex items-center gap-1 ml-auto"
+                  title="Reclassificar este produto em todas as NFs"
+                >
+                  <Layers className="w-3 h-3" />
+                  Reclassificar ({product.ocorrencias.length})
+                </button>
+              )}
             </div>
             
             {/* Lista de ocorrências */}
