@@ -802,7 +802,7 @@ def classify_product_category(descricao: str, ncm: str, company_products: List[s
     # Padrão: revenda (produto do escopo da empresa)
     return ('revenda', 'Produto presumido para revenda (escopo comercial da empresa)')
 
-async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tipo_doc: str, cfop_original: str) -> Dict[str, Any]:
+async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tipo_doc: str, cfop_original: str, emitente_uf: str = '') -> Dict[str, Any]:
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         return {"cfop_sugerido": None, "categoria": None, "justificativa": None}
@@ -826,7 +826,11 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
     is_transferencia = cfop_original.startswith('5152') or cfop_original.startswith('6152') or \
                        cfop_original.startswith('5552') or cfop_original.startswith('6552')
     
-    cfop_prefix = '1' if company_uf == 'SP' else '2'
+    # Prefixo Inteligente: 1 (Estadual) ou 2 (Interestadual)
+    if emitente_uf and emitente_uf != company_uf:
+        cfop_prefix = '2'
+    else:
+        cfop_prefix = '1'
     
     cfop_sugerido = None
     
