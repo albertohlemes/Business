@@ -153,6 +153,8 @@ class CompanyUpdate(BaseModel):
     produtos_comercializados: Optional[List[str]] = None
     insumos_producao: Optional[List[str]] = None
     produtos_despesa: Optional[List[str]] = None
+    ativo_imobilizado: Optional[List[str]] = None
+    combustivel: Optional[List[str]] = None
     regime_tributario: Optional[str] = None
     anexos_simples: Optional[List[str]] = None
     tipo_atividade: Optional[str] = None
