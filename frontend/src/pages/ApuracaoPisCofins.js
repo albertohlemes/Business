@@ -373,8 +373,8 @@ const ApuracaoPisCofins = ({ user, onLogout }) => {
               
               {/* Operações com direito a crédito */}
               <ExpandableSection
-                title="Operações com Direito a Crédito"
-                subtitle={`${(viewMode === 'cfop' ? data.creditos.com_credito.por_cfop : data.creditos.com_credito.por_ncm).length} ${viewMode === 'cfop' ? 'CFOP(s)' : 'NCM(s)'}`}
+                title={`Operações com Direito a Crédito (CST ${data.creditos.com_credito.cst})`}
+                subtitle={`${(viewMode === 'cst' ? data.creditos.com_credito.por_cst : viewMode === 'cfop' ? data.creditos.com_credito.por_cfop : data.creditos.com_credito.por_ncm).length} registro(s)`}
                 icon={CheckCircle}
                 color="bg-green-600"
                 isExpanded={expandedSections.creditoComCredito}
