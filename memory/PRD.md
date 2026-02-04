@@ -224,7 +224,7 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - [ ] **Página "Análise Tributária" congela a interface** - Refatorar para processamento assíncrono com BackgroundTasks
 
 ### P1 - Alta Prioridade
-- [ ] **Download via SIEG:** Implementar download e processamento automático de XMLs do SIEG (atualmente só conta)
+- [x] ~~**Download via SIEG:** Implementar download e processamento automático de XMLs do SIEG~~ ✅ CONCLUÍDO
 - [ ] Finalizar e testar a funcionalidade de exportação do **SPED Fiscal**
 - [ ] Melhorar análise comparativa "Lucro Presumido vs. Lucro Real" no Dashboard
 
