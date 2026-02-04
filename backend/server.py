@@ -5836,6 +5836,8 @@ def get_cfop_from_category(categoria: str, cst: str, company_uf: str, cfop_origi
     
     if categoria == 'combustivel':
         return cfop_prefix + '653'
+    elif categoria == 'ativo_imobilizado':
+        return (cfop_prefix + '406') if is_st else (cfop_prefix + '551')
     elif categoria == 'revenda':
         return (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
     elif categoria == 'insumo':
