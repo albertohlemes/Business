@@ -1397,7 +1397,7 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
         setContratoFile(null);
         setDadosExtraidos(null);
         setAlteracoesSelecionadas([]);
-        setDadosQSA({ tipoQSA: '', sociosSaindo: [], sociosEntrando: [], sociosRetirantes: [], novasParticipacoes: {} });
+        setDadosQSA({ tiposQSA: [], sociosSaindo: [], sociosEntrando: [], sociosRetirantes: [], novasParticipacoes: {} });
         setDadosEndereco({});
         setDadosAtividades({ cnaesExcluir: [], cnaesAdicionar: [] });
         setDadosCapital({ tipoCapital: 'aumento', novoCapital: '', motivoCapital: '' });
