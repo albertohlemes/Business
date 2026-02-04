@@ -432,48 +432,101 @@ async def consultar_redesim_automatico(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Consulta automática no portal REDESIM SP usando certificado digital
+    Inicia automação para consulta no portal REDESIM SP
+    Navega até a tela de login ou consulta automaticamente se já logado
     """
     licenca = await db.licencas.find_one({"id": licenca_id, "user_id": current_user["id"]})
     if not licenca:
         raise HTTPException(status_code=404, detail="Licença não encontrada")
     
-    # Buscar certificado
-    cert = await db.certificados.find_one({"id": licenca["certificado_id"], "user_id": current_user["id"]})
-    if not cert:
-        raise HTTPException(status_code=404, detail="Certificado não encontrado")
-    
-    cert_path = cert.get("arquivo")
-    if not cert_path or not os.path.exists(cert_path):
-        raise HTTPException(status_code=400, detail="Arquivo de certificado não encontrado")
-    
     try:
-        from redesim_automation import consultar_redesim
-        import asyncio
+        from redesim_automation import executar_consulta_completa
         
-        # A senha está hasheada, precisamos da original
-        # Por segurança, vamos retornar instruções ao invés de tentar automatizar
+        resultado = await executar_consulta_completa(
+            cnpj=licenca["cnpj"],
+            session_id=current_user["id"]
+        )
+        
+        # Se conseguiu consultar, atualizar status
+        if resultado.get("consulta_realizada"):
+            etapa_consulta = next((e for e in resultado.get("etapas", []) if e.get("etapa") == "consultar_cnpj"), {})
+            dados = etapa_consulta.get("dados_extraidos", {})
+            
+            if dados.get("status"):
+                await db.licencas.update_one(
+                    {"id": licenca_id},
+                    {"$set": {
+                        "status": dados["status"],
+                        "ultima_consulta": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
         
         return {
-            "status": "manual_required",
-            "message": "A consulta automática no REDESIM requer login manual no Gov.br",
             "cnpj": licenca["cnpj"],
             "razao_social": licenca["razao_social"],
-            "portal_url": "https://vreredesim.sp.gov.br",
-            "instrucoes": [
-                "1. Acesse o portal REDESIM SP pelo link acima",
-                "2. Clique em 'Entrar' e faça login com Gov.br",
-                "3. Use seu certificado digital para autenticação",
-                "4. Na área logada, acesse 'Consultar Licenças'",
-                "5. Pesquise pelo CNPJ: " + licenca["cnpj"],
-                "6. Verifique o status da licença e data de vencimento",
-            ],
-            "certificado_nome": cert["nome"],
+            **resultado
         }
         
     except Exception as e:
-        logger.error(f"Erro na consulta REDESIM: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro na consulta: {str(e)}")
+        logger.error(f"Erro na automação REDESIM: {str(e)}")
+        return {
+            "status": "erro",
+            "error": str(e),
+            "cnpj": licenca["cnpj"],
+            "portal_url": "https://vreredesim.sp.gov.br",
+            "mensagem": "Erro na automação. Acesse o portal manualmente.",
+        }
+
+@api_router.post("/redesim/capturar-tela")
+async def capturar_tela_redesim(current_user: dict = Depends(get_current_user)):
+    """Captura tela atual do navegador REDESIM"""
+    try:
+        from redesim_automation import get_consulta_instance
+        
+        consulta = await get_consulta_instance()
+        resultado = await consulta.capturar_tela()
+        return resultado
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@api_router.post("/redesim/continuar-apos-login")
+async def continuar_apos_login(
+    cnpj: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Continua a automação após o usuário fazer login manualmente
+    """
+    try:
+        from redesim_automation import get_consulta_instance
+        
+        consulta = await get_consulta_instance()
+        
+        # Verificar se está logado agora
+        login_status = await consulta.verificar_login()
+        
+        if not login_status.get("logged_in"):
+            return {
+                "success": False,
+                "message": "Ainda não detectamos o login. Faça login no Gov.br com certificado.",
+                "login_status": login_status
+            }
+        
+        # Navegar para consulta
+        nav_result = await consulta.navegar_consulta_licenca()
+        
+        # Consultar CNPJ
+        consulta_result = await consulta.consultar_cnpj(cnpj)
+        
+        return {
+            "success": True,
+            "navegacao": nav_result,
+            "consulta": consulta_result
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 # ============ MINUTAS ROUTES ============
 
