@@ -1460,12 +1460,15 @@ async def upload_xml_batch(
 
             # 2. Processar Lote de IA (Inteligência Semântica)
             if products_for_ai:
+                print(f"Enviando {len(products_for_ai)} produtos para classificação IA...")
                 ai_results = await classify_products_batch_llm(products_for_ai, company)
+                print(f"IA retornou {len(ai_results)} classificações.")
                 
                 for product in products_for_ai:
-                    desc = product.get('descricao')
-                    if desc in ai_results:
-                        result = ai_results[desc]
+                    p_id = product.get('_temp_id')
+                    if p_id in ai_results:
+                        result = ai_results[p_id]
+                        
                         # Traduzir categoria (revenda/insumo/despesa) para CFOP
                         cfop_sugerido = get_cfop_from_category(
                             result['categoria'], 
@@ -1479,9 +1482,32 @@ async def upload_xml_batch(
                             classification_data = {
                                 "cfop_sugerido": cfop_sugerido,
                                 "categoria": result['categoria'],
-                                "justificativa": f"IA: {result['justificativa']}"
+                                "justificativa": f"IA ({result['categoria'].upper()}): {result['justificativa']}"
                             }
                             apply_classification(product, classification_data, product.get('cfop', ''), file_conversions)
+                    else:
+                        # Fallback: Se IA falhar ou não retornar, aplicar conversão padrão de entrada (5102 -> 1102)
+                        # Isso garante que não fique 5102 na entrada
+                        print(f"Fallback para produto {product.get('descricao')}: aplicando conversão padrão.")
+                        cfop_original = product.get('cfop', '')
+                        cfop_padrao = CFOP_SAIDA_PARA_ENTRADA.get(cfop_original, cfop_original)
+                        
+                        # Ajustar prefixo se interestadual
+                        if emitente_uf and emitente_uf != uf_empresa:
+                            if cfop_padrao.startswith('1'):
+                                cfop_padrao = '2' + cfop_padrao[1:]
+                        
+                        if cfop_padrao != cfop_original:
+                            classification_data = {
+                                "cfop_sugerido": cfop_padrao,
+                                "categoria": "revenda", # Default
+                                "justificativa": "Conversão padrão de entrada (IA não classificou)"
+                            }
+                            apply_classification(product, classification_data, cfop_original, file_conversions)
+                            
+                    # Remove temp id
+                    if '_temp_id' in product:
+                        del product['_temp_id']
             
             # Registrar alertas de CFOP para este arquivo
             if file_alertas_cfop:
