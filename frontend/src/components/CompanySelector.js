@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Calendar, ChevronRight, X, Cloud, CloudDownload, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { Building2, Calendar, ChevronRight, X, Cloud, CloudDownload, CheckCircle, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const CompanySelector = () => {
@@ -31,6 +31,13 @@ const CompanySelector = () => {
   const [tempCompetencia, setTempCompetencia] = useState(getInitialCompetencia());
   const [syncResult, setSyncResult] = useState(null);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  
+  // Progress state para SSE
+  const [syncProgress, setSyncProgress] = useState({
+    active: false,
+    step: '',
+    percent: 0
+  });
 
   // Verificar SIEG quando empresa e competência mudarem
   useEffect(() => {
@@ -59,11 +66,22 @@ const CompanySelector = () => {
   const handleSyncNow = async () => {
     if (!tempCompany || !tempCompetencia) return;
     
+    setSyncProgress({ active: true, step: 'Iniciando...', percent: 0 });
+    setSyncResult(null);
+    
     try {
-      const result = await syncFromSieg(tempCompany.id, tempCompetencia);
+      const result = await syncFromSieg(tempCompany.id, tempCompetencia, (progressData) => {
+        setSyncProgress({
+          active: !progressData.completed,
+          step: progressData.step || '',
+          percent: progressData.progress_percent || 0
+        });
+      });
       setSyncResult(result);
     } catch (err) {
-      setSyncResult({ error: err.response?.data?.detail || 'Erro na sincronização' });
+      setSyncResult({ error: err.response?.data?.detail || err.message || 'Erro na sincronização' });
+    } finally {
+      setSyncProgress({ active: false, step: '', percent: 0 });
     }
   };
 
