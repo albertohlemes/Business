@@ -753,6 +753,8 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                         <option value="INSUMO_ST">INSUMO (ST)</option>
                         <option value="DESPESA">DESPESA</option>
                         <option value="DESPESA_ST">DESPESA (ST)</option>
+                        <option value="ATIVO_IMOBILIZADO">ATIVO IMOB.</option>
+                        <option value="ATIVO_IMOBILIZADO_ST">ATIVO IMOB. (ST)</option>
                         <option value="COMBUSTIVEL">COMBUSTÍVEL</option>
                       </select>
                       <input
