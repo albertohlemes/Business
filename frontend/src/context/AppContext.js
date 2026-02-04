@@ -49,6 +49,9 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    // Este efeito só deve rodar na carga inicial, não quando o usuário abre o seletor manualmente
+    if (initialLoadDone) return;
+    
     const savedCompanyId = localStorage.getItem('selectedCompanyId');
     
     if (companies.length > 0) {
@@ -56,7 +59,7 @@ export const AppProvider = ({ children }) => {
         const company = companies.find(c => c.id === savedCompanyId);
         if (company) {
           setSelectedCompany(company);
-          setShowSelector(false);
+          // Não fecha o seletor automaticamente se já está aberto pelo usuário
         } else {
           // Se não encontrou a empresa salva, mostra seletor
           setShowSelector(true);
@@ -66,8 +69,9 @@ export const AppProvider = ({ children }) => {
         setShowSelector(true);
       }
       setLoading(false);
+      setInitialLoadDone(true);
     }
-  }, [companies]);
+  }, [companies, initialLoadDone]);
 
   const fetchCompanies = async () => {
     try {
