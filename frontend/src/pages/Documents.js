@@ -165,10 +165,6 @@ const Documents = ({ user, onLogout }) => {
               <button
                 data-testid="btn-apagar-lote"
                 onClick={() => {
-                  if (user.role !== 'admin') {
-                    alert('Apenas administradores podem apagar documentos');
-                    return;
-                  }
                   handleDeleteAllCompetencia();
                 }}
                 disabled={deleting}
