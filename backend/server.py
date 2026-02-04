@@ -1071,8 +1071,11 @@ async def list_companies(current_user: User = Depends(get_current_user)):
         companies = await db.companies.find({"cnpj": {"$in": current_user.company_ids}}, {"_id": 0}).to_list(1000)
     
     for c in companies:
-        if isinstance(c['created_at'], str):
-            c['created_at'] = datetime.fromisoformat(c['created_at'])
+        if 'created_at' in c:
+            if isinstance(c['created_at'], str):
+                c['created_at'] = datetime.fromisoformat(c['created_at'])
+        else:
+            c['created_at'] = datetime.now(timezone.utc) # Fallback for old records
     
     return companies
 
