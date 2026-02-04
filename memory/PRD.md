@@ -1,9 +1,7 @@
 # Portal Societário Business Contabilidade - PRD
 
 ## Problema Original
-Portal para departamento societário com:
-1. Elaboração de minutas contratuais via IA
-2. Gestão de certificados digitais e automação REDESIM SP (pausado)
+Portal para departamento societário com geração de documentos via IA.
 
 ## Arquitetura
 - **Frontend**: React + TailwindCSS + Shadcn/UI
@@ -13,87 +11,85 @@ Portal para departamento societário com:
 
 ## Implementações Concluídas
 
-### ✅ Reestruturação da UI: "Minutas" → "Processos" (04/02/2026)
-- Menu lateral renomeado de "Minutas" para "Processos"
-- Página principal com 3 abas: **Alteração**, **Constituição**, **Baixa**
-- Rota `/minutas` redireciona automaticamente para `/processos`
-- Dashboard atualizado para navegar para `/processos`
-- Componentes refatorados em arquivos menores para melhor manutenibilidade:
-  - `ListaProcessos.js` - Lista agrupada por cliente
-  - `WizardAlteracao.js` - Wizard de 4 etapas para alteração
-  - `WizardConstituicao.js` - Placeholder para funcionalidade futura
+### ✅ Wizard de Constituição Completo (04/02/2026)
+Wizard de 6 etapas para criação de contratos sociais:
+
+**Etapa 1 - Dados da Empresa:**
+- Razão Social (em maiúsculas automático)
+- Nome Fantasia
+- Capital Social formatado como moeda (R$ 0,00)
+- Capital por Extenso **gerado automaticamente por IA**
+
+**Etapa 2 - Qualificação dos Sócios:**
+- Número dinâmico de sócios (+ / -)
+- Botão **"Preencher com IA"** em cada sócio
+- Extração automática de dados de CNH, RG, comprovantes
+- Campos: Nome, CPF, RG, Órgão Emissor, Nacionalidade, Estado Civil, Regime Casamento, Profissão, Endereço
+
+**Etapa 3 - Participação Societária:**
+- Tabela interativa com cálculo automático
+- Valor em R$ calculado por participação %
+- Validação de 100% total
+- Checkbox de administrador
+
+**Etapa 4 - Endereço da Empresa:**
+- Botão **"Preencher com IA"** para extração de documentos
+- Campos: Logradouro, Número, Complemento, Bairro, Cidade, Estado, CEP
+
+**Etapa 5 - CNAEs e Objeto Social:**
+- Adição de múltiplos CNAEs
+- Botão **"Gerar com IA"** para objeto social automático
+- Geração jurídica baseada nos CNAEs
+
+**Etapa 6 - Resultado:**
+- Contrato social completo gerado por IA
+- Download em Word e PDF
+- Cópia para área de transferência
+
+### ✅ Reestruturação de Nomenclatura (04/02/2026)
+- "Minuta" → "Processo" em toda a aplicação
+- Ordem das abas: **Constituição** → **Alteração** → **Baixa**
+- Lista de processos agrupada por cliente
 
 ### ✅ Correção do Bug de PDF (04/02/2026)
-- Logo agora aparece no cabeçalho do PDF
-- Rodapé corretamente alinhado com margens
-- Suporte a logo em base64 (PNG, JPG, GIF)
-- Posicionamento dinâmico baseado nas configurações de formatação
-
-### ✅ Conversão de Markdown para Word
-O conteúdo gerado pela IA (em Markdown) é convertido para formatação Word real:
-- `### Título` → Texto sem os `#`
-- `**texto**` → **Negrito** real no Word
-- `*texto*` → *Itálico* real no Word
-- `***texto***` → ***Negrito e Itálico***
-- `- item` → Texto sem o traço
-- `1. item` → Texto sem a numeração
-
-### ✅ Sistema de Formatação Manual com Importação
-**Fluxo:**
-1. Usuário clica em "Importar Documento"
-2. Sobe um documento Word modelo
-3. Sistema analisa e extrai automaticamente a formatação
-4. Preenche o formulário com os dados extraídos
-5. Usuário confere e salva
-
-### ✅ Organização Inteligente de Páginas
-- Títulos sempre ficam na mesma página que o texto seguinte
-- Cláusulas curtas não são divididas entre páginas
-- Controle automático de viúvas e órfãs
-
-### ✅ Listagem Agrupada por Cliente
-- Processos organizados por CNPJ/Razão Social
+- Logo no cabeçalho do PDF
+- Rodapé corretamente alinhado
 
 ## Arquivos Principais
 ```
 /app/backend/
 ├── server.py                  # Endpoints FastAPI
-├── extrator_formatacao.py     # Extrai formatação de documento Word
-├── gerador_formatado.py       # Gera documento com conversão de Markdown
-├── template_manager.py        # Gerenciador de templates
-└── jspdf_wrapper.py           # Gerador de PDF (CORRIGIDO)
+│   ├── /api/constituicao/extrair-campo     # Extrai campo de documento
+│   ├── /api/constituicao/extrair-socio     # Extrai dados de sócio (CNH, RG)
+│   ├── /api/constituicao/gerar-objeto-social  # Gera objeto social via IA
+│   └── /api/constituicao/gerar-contrato    # Gera contrato completo
+├── jspdf_wrapper.py           # Gerador de PDF com logo
+└── gerador_formatado.py       # Gerador de Word
 
 /app/frontend/src/
 ├── pages/
-│   ├── Processos.js           # Nova página principal com abas
-│   └── Dashboard.js           # Dashboard atualizado
-├── components/
-│   ├── processos/
-│   │   ├── ListaProcessos.js  # Lista agrupada por cliente
-│   │   ├── WizardAlteracao.js # Wizard de alteração (4 etapas)
-│   │   └── WizardConstituicao.js # Placeholder para constituição
-│   ├── ConfiguracaoFormatacao.js
-│   └── Layout.js              # Menu lateral atualizado
-└── App.js                     # Rotas atualizadas
+│   └── Processos.js           # Página principal com abas
+├── components/processos/
+│   ├── ListaProcessos.js      # Lista agrupada por cliente
+│   ├── WizardAlteracao.js     # Wizard de alteração (4 etapas)
+│   └── WizardConstituicao.js  # Wizard de constituição (6 etapas)
+└── App.js                     # Rotas
 ```
 
 ## Backlog
 
 ### P0 - Alta Prioridade
-- ⏳ **Implementar wizard de Constituição**: Entrada de dados híbrida (digitar/upload), qualificação de sócios dinâmica, tabela de participação, objeto social via CNAEs
+- ✅ COMPLETO: Wizard de Constituição
 
 ### P1 - Média Prioridade
 - ⏳ Implementar processo de **Baixa** de empresas
-- ⏳ Refatorar arquivo `Minutas.js` antigo (pode ser removido, está obsoleto)
+- ⏳ Melhorar extração de dados de documentos (OCR mais preciso)
 
 ### P2 - Baixa Prioridade
-- ⏳ Reativar automação REDESIM (quando solicitado pelo usuário)
+- ⏳ Reativar automação REDESIM
 
 ## Credenciais de Teste
 - Email: teste2@teste.com
 - Senha: 123456
 
-## Status dos Testes
-- Backend: 100% (18/18 testes passaram)
-- Frontend: 100% (todas funcionalidades verificadas)
-- Última execução: 04/02/2026
+## Status: MVP Constituição COMPLETO ✅
