@@ -1,0 +1,98 @@
+{
+  "timestamp": "2026-02-04T12:26:26.911424",
+  "total_tests": 15,
+  "passed_tests": 14,
+  "success_rate": 93.33333333333333,
+  "test_details": [
+    {
+      "name": "Health Check",
+      "success": true,
+      "details": "Status: 200",
+      "endpoint": "GET /api/health"
+    },
+    {
+      "name": "User Registration",
+      "success": true,
+      "details": "",
+      "endpoint": "POST /api/auth/register"
+    },
+    {
+      "name": "Get User Profile",
+      "success": true,
+      "details": "",
+      "endpoint": "GET /api/auth/me"
+    },
+    {
+      "name": "Dashboard Stats",
+      "success": true,
+      "details": "",
+      "endpoint": "GET /api/dashboard/stats"
+    },
+    {
+      "name": "List Certificates",
+      "success": true,
+      "details": "Found 0 certificates",
+      "endpoint": "GET /api/certificados"
+    },
+    {
+      "name": "Certificate Upload",
+      "success": true,
+      "details": "",
+      "endpoint": "POST /api/certificados/upload"
+    },
+    {
+      "name": "List Licenses",
+      "success": true,
+      "details": "Found 0 licenses",
+      "endpoint": "GET /api/licencas"
+    },
+    {
+      "name": "Add CNPJ to Certificate",
+      "success": true,
+      "details": "",
+      "endpoint": "POST /api/certificados/7b93aaaf-c1e1-48ef-b72e-cdf66c8f48d9/cnpjs"
+    },
+    {
+      "name": "Consult License (REDESIM)",
+      "success": true,
+      "details": "Status: proxima_vencimento",
+      "endpoint": "POST /api/licencas/b23ac1b5-b262-433b-ba46-fe00add13696/consultar"
+    },
+    {
+      "name": "Renew License",
+      "success": true,
+      "details": "Status: ativa",
+      "endpoint": "POST /api/licencas/b23ac1b5-b262-433b-ba46-fe00add13696/renovar"
+    },
+    {
+      "name": "List Minutas",
+      "success": true,
+      "details": "Found 0 minutas",
+      "endpoint": "GET /api/minutas"
+    },
+    {
+      "name": "Contract Upload (Minuta)",
+      "success": true,
+      "details": "",
+      "endpoint": "POST /api/minutas/upload"
+    },
+    {
+      "name": "Get Minuta Details",
+      "success": true,
+      "details": "",
+      "endpoint": "GET /api/minutas/8f68badb-245e-436a-b93b-14b55fe16710"
+    },
+    {
+      "name": "AI Chat (Minuta)",
+      "success": false,
+      "details": "Status: 520, Data: {}",
+      "endpoint": "POST /api/minutas/8f68badb-245e-436a-b93b-14b55fe16710/chat"
+    },
+    {
+      "name": "Generate Final Minuta",
+      "success": true,
+      "details": "Minuta generated",
+      "endpoint": "POST /api/minutas/8f68badb-245e-436a-b93b-14b55fe16710/gerar"
+    }
+  ]
+}
