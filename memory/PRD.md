@@ -205,6 +205,12 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 11
+- ✅ **ICMS-ST desconsiderado nos créditos**: Mercadorias com ICMS Substituição Tributária (CST 10, 30, 60, 70, 201, 202, 203, 500) não geram mais crédito de ICMS no Dashboard
+- ✅ Dashboard mostra linha "ICMS-ST (sem crédito)" quando houver valor desconsiderado
+- ✅ **Corrigido bug do AppContext**: Modal de seleção de empresa agora recarrega empresas ao abrir
+- ✅ **Competência com valor inicial**: Campo de competência no seletor agora preenche automaticamente com mês/ano atual
+
 ### 02/2026 - Iteration 10
 - ✅ Implementada análise comparativa Lucro Presumido vs. Lucro Real no Dashboard
 - ✅ Auto-preenchimento de competência nas páginas Upload XML, Reclassificação IA e Exportar SPED
