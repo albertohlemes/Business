@@ -34,51 +34,47 @@ O usuário, proprietário do escritório Business Contabilidade, precisa de um s
 **User's preferred language**: O usuário comunica-se em **Português (Brasil)**. O próximo agente DEVE responder em Português.
 
 **what currently exists?**
-Uma aplicação full-stack (FastAPI + React) que, após uma fase de grande instabilidade, agora possui funcionalidades mais robustas e orientadas pelo usuário. O backend ainda é majoritariamente um monolito (), mas novas integrações (SIEG) e serviços () foram modularizados.
-
-Funcionalidades principais implementadas e funcionando:
-*   **Classificação por IA Otimizada:** O upload de XML classifica produtos usando IA e um sistema de cache inteligente () que memoriza classificações, acelerando drasticamente uploads subsequentes.
-*   **Integração com SIEG:** O sistema se conecta à API do SIEG Soluções para verificar e, futuramente, baixar XMLs de entrada e saída diretamente, baseado na empresa e competência selecionadas.
-*   **Reclassificação Manual:** A tela de Validação de Entradas permite ao usuário corrigir manualmente a categoria de um produto (Revenda, Insumo, Despesa), com o sistema atualizando o CFOP e aprendendo a regra.
-*   **Exportações Corrigidas:** A geração dos relatórios SPED Fiscal e CSV (Entradas/Saídas) foi corrigida, agora apresentando os dados corretos por produto e com os períodos de competência adequados.
-*   **Cálculos de Apuração Corretos:** A apuração de PIS/COFINS foi ajustada para aplicar as alíquotas corretas do regime de Lucro Real (1,65% e 7,6%).
+Uma aplicação full-stack (FastAPI + React) que permite o upload e processamento de documentos fiscais XML. As principais funcionalidades são a classificação de produtos assistida por IA (com cache), integração com a API SIEG para contagem e download automático de notas, reclassificação manual, apuração de impostos (PIS/COFINS) e exportação de relatórios (SPED/CSV). Recentemente, foram implementadas barras de progresso em tempo real (via SSE) para o upload de arquivos e para a sincronização com o SIEG, melhorando significativamente a experiência do usuário. O backend, no entanto, ainda é um monolito () que cresceu em complexidade.
 
 **Last working item**:
-- **Last item agent was working:** O usuário solicitou a implementação de uma barra de progresso fixa na tela de upload para dar feedback visual durante a importação dos arquivos XML. O agente estava se preparando para iniciar a implementação.
-- **Status**: NOT STARTED
+- **Last item agent was working:** Atendendo a um pedido do usuário, o agente estava corrigindo o comportamento da aplicação para garantir que a empresa e a competência (mês/ano) selecionadas no seletor global persistissem em todas as páginas. O agente identificou que várias páginas não atualizavam seu estado quando o contexto global mudava, devido a uma lógica incorreta no . O trabalho consiste em refatorar essas páginas para que sempre reflitam a seleção global.
+- **Status**: IN PROGRESS
 - **Agent Testing Done**: N
-- **Which testing method agent to use?**: both. O agente de teste de frontend deve verificar se a barra de progresso aparece e é atualizada corretamente. O agente principal deve iniciar um upload para confirmar que o progresso reflete o status do backend.
+- **Which testing method agent to use?**: frontend testing agent. O agente deve verificar se, após selecionar uma empresa e competência, a navegação para diferentes páginas (Dashboard, Documentos, Validação, etc.) mantém essa seleção visível e funcional sem a necessidade de uma nova seleção manual.
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: A página Análise Tributária congela a interface (P3)**
+- **Issue 1: A seleção de empresa/competência não persiste entre as páginas (P0)**
+- **Issue 2: A página Análise Tributária congela a interface (P3)**
 
 **Issues Detail:**
-- **Issue 1: A página Análise Tributária congela a interface**
+- **Issue 1: A seleção de empresa/competência não persiste entre as páginas**
+    - **Attempted fixes:** O agente identificou o padrão de código problemático nos componentes de página: . Este padrão impede que a página atualize a empresa se uma já estiver selecionada localmente.
+    - **Next debug checklist:**
+        1.  Listar todos os arquivos de página afetados: , , , , , , .
+        2.  Para cada arquivo, modificar o hook  para remover a condição . A lógica correta deve ser: .
+        3.  Após a correção, usar o  para validar o fluxo de ponta a ponta.
+    - **Why fix this issue and what will be achieved with the fix?** Atende a uma solicitação explícita do usuário para melhorar a usabilidade, criando uma experiência consistente e eliminando a necessidade de selecionar repetidamente a empresa e competência.
+    - **Status:** IN PROGRESS
+    - **Is recurring issue?** N
+    - **Should Test frontend/backend/both after fix?** frontend
+    - **Blocked on other issue:** N/A
+- **Issue 2: A página Análise Tributária congela a interface**
     - **Attempted fixes:** Nenhum.
-    - **Next debug checklist:** A página provavelmente está realizando um processamento síncrono muito pesado. A solução é refatorar a chamada para ser assíncrona.
-        1.  No backend, modificar o endpoint correspondente para usar  do FastAPI. A requisição inicial deve retornar um .
-        2.  No frontend, após iniciar a análise, usar polling para consultar um novo endpoint de status () periodicamente.
-        3.  Quando a tarefa estiver concluída, buscar o resultado final.
-    - **Why fix this issue?** A funcionalidade está completamente inutilizável e impede o usuário de realizar análises importantes.
+    - **Next debug checklist:** A página provavelmente está realizando um processamento síncrono pesado. A solução é refatorar a chamada para ser assíncrona, seguindo o padrão já implementado para uploads.
+        1.  **Backend:** Modificar o endpoint correspondente para usar  do FastAPI e retornar um .
+        2.  **Frontend:** Implementar polling para consultar um novo endpoint de status () e exibir o resultado apenas quando a tarefa estiver concluída.
+    - **Why fix this issue and what will be achieved with the fix?** A funcionalidade está atualmente inutilizável. A correção tornará a análise tributária viável para o usuário.
     - **Status:** NOT STARTED
     - **Is recurring issue?** Y
     - **Should Test frontend/backend/both after fix?** both
     - **Blocked on other issue:** N/A
 
 **In progress Task List**:
-- **Task 1: Implementar barra de progresso no upload de XML (P0)**
-    - **Where to resume:**
-        1.  Backend: Modificar o endpoint de upload () para usar uma arquitetura que permita streaming de status, como Server-Sent Events (SSE) ou WebSockets. Para cada etapa (leitura do arquivo, validação, classificação em cache/IA), o backend enviará uma atualização de progresso.
-        2.  Frontend: Em , implementar a lógica para se conectar ao endpoint de streaming, ouvir os eventos de progresso e atualizar uma barra de progresso na UI em tempo real.
-    - **What will be achieved with this?** Melhorar a experiência do usuário durante o upload, fornecendo feedback visual claro e evitando a percepção de que a aplicação travou.
-    - **Status:** NOT STARTED
-    - **Should Test frontend/backend/both after fix?** both
-    - **Blocked on something:** Não.
+N/A (O trabalho atual é considerado uma correção de bug).
 
 **Upcoming and Future Tasks**
 *   **Upcoming Tasks:**
-    *   **P1 - Download via SIEG:** Implementar a funcionalidade de download dos XMLs contados na API do SIEG e processá-los diretamente no sistema, ao invés de apenas exibir a contagem.
     *   **P2 - Análise de Saídas e Divergências:** Na página , permitir agrupar por produto e filtrar apenas itens com tributação indevida.
     *   **P3 - Mudar a cor de fundo do logo:** Ajustar a cor de fundo do logo da Business Contabilidade para coincidir com a cor de fundo da página onde ele é exibido.
 *   **Future Tasks:**
@@ -87,19 +83,15 @@ Funcionalidades principais implementadas e funcionando:
     *   **P3 - Histórico de alterações (Audit Log):** Criar um log de auditoria para rastrear alterações importantes feitas pelos usuários.
 
 **Completed work in this session**
-- **Otimização de Performance do Upload:** Implementado um sistema de cache () que armazena classificações da IA, reduzindo drasticamente o tempo de processamento para uploads repetidos do mesmo produto.
-- **Integração com SIEG Soluções:** Adicionada integração para consultar a quantidade de XMLs de entrada e saída disponíveis para uma empresa/competência diretamente na API do SIEG.
-- **Apuração Fiscal (Lucro Real):** Corrigido o cálculo de PIS/COFINS nos endpoints de apuração para usar as alíquotas corretas do regime de Lucro Real (1.65% e 7.6%) sobre a base de débito.
-- **Reclassificação Manual de Produtos:** Implementada funcionalidade na tela de validação para o usuário corrigir a categoria (Revenda, Insumo, Despesa) de um produto, com o sistema atualizando o CFOP e memorizando a regra.
-- **Correção de Exportações (SPED e CSV):** Ajustada a geração do SPED fiscal para usar o período de competência correto e os CSVs de entrada/saída para listar um item por produto com todos os campos necessários.
-- **Correção da Classificação por IA:** Resolvido um bug na chamada à API da  que impedia a IA de funcionar.
-- **Melhoria de UI na Validação:** Adicionada uma coluna Classificação com capacidade de ordenação na visão Por Produto da tela de validação.
+- **Barra de Progresso para Upload de XML:** Implementada uma barra de progresso em tempo real usando Server-Sent Events (SSE), que fornece feedback visual detalhado (percentual, arquivos processados, etapa atual) durante o upload de arquivos.
+- **Download Automático via SIEG:** Implementada a funcionalidade de baixar e processar automaticamente os XMLs da API do SIEG. O processo reutiliza toda a lógica robusta do upload manual, incluindo classificação por IA, cache e uma barra de progresso via SSE para a sincronização.
+- **Atualização do PRD.md:** O documento de requisitos do produto foi atualizado para refletir as novas funcionalidades concluídas e o backlog priorizado.
 
 **Earlier issues found/mentioned but not fixed**
-- A página Análise Tributária que congela a interface do usuário nunca foi abordada.
+- A página Análise Tributária, que congela a interface do usuário, nunca foi abordada até agora e permanece como um bug pendente.
 
 **Known issue recurrence from previous fork**
-- As funcionalidades de apagar e salvar/criar empresas eram cronicamente instáveis. O usuário instruiu a ignorar esses bugs e focar em novas features, mas a causa raiz (provavelmente no monolito ) nunca foi resolvida, representando um risco de regressão.
+- A instabilidade crônica nas funcionalidades de salvar, criar e apagar empresas não foi resolvida na sua causa raiz (provavelmente no monolito ), representando um risco contínuo de regressão.
 
 **Code Architecture**
 
@@ -107,82 +99,75 @@ Funcionalidades principais implementadas e funcionando:
 **Key Technical Concepts**
 *   **Backend:** FastAPI, Pydantic, pymongo, lxml, 
 *   **Frontend:** React, React Context, axios, TailwindCSS
+*   **Comunicação em tempo real:** Server-Sent Events (SSE) para feedback de progresso.
 *   **IA:** GPT-4o (via Emergent LLM Key) para classificação de CFOP.
-*   **Cache:** Regras aprendidas () são usadas como cache para evitar chamadas repetidas à IA.
+*   **Cache:** Regras aprendidas () para evitar chamadas repetidas à IA.
 *   **Integração Externa:** API REST do SIEG Soluções.
 
 **key DB schema**
 - : Armazena usuários da aplicação.
 - : Armazena detalhes da empresa, incluindo palavras-chave para a IA.
 - : Armazena os dados extraídos das notas fiscais.
-- : (Novo/Reaproveitado) Armazena classificações de produtos (descrição -> categoria) para funcionar como cache.
+- : Armazena classificações de produtos (descrição -> categoria) para funcionar como cache.
 
 **changes in tech stack**
 - Nenhuma.
 
 **All files of reference**
-*   **/app/backend/server.py**: Arquivo central, modificado extensivamente para adicionar novos endpoints e corrigir lógicas de cálculo e exportação.
-*   **/app/backend/sieg_service.py**: **(Novo)** Arquivo para encapsular toda a comunicação com a API do SIEG Soluções.
-*   **/app/backend/export_service.py**: Corrigido para gerar CSVs por produto.
-*   **/app/frontend/src/pages/UploadXML.js**: Modificado para exibir estatísticas de performance do upload (cache vs. IA). É o alvo da próxima tarefa (barra de progresso).
-*   **/app/frontend/src/pages/ValidationPage.js**: Modificado extensivamente para adicionar reclassificação manual e ordenação de produtos.
-*   **/app/frontend/src/context/AppContext.js**: Modificado para adicionar estado e funções relacionadas à integração com SIEG.
-*   **/app/frontend/src/components/CompanySelector.js**: Modificado para acionar a verificação no SIEG e exibir os resultados.
+*   **/app/backend/server.py**: Modificado extensivamente para adicionar múltiplos endpoints SSE (, ) e refatorar a lógica de sincronização do SIEG para equipará-la ao upload manual.
+*   **/app/frontend/src/pages/UploadXML.js**: Refatorado para usar os endpoints SSE e renderizar a barra de progresso.
+*   **/app/frontend/src/context/AppContext.js**: Atualizado com novas funções de estado para gerenciar o processo de sincronização com o SIEG.
+*   **/app/frontend/src/components/CompanySelector.js**: Modificado para acionar a sincronização com o SIEG e exibir a barra de progresso no modal.
+*   **/app/memory/PRD.md**: Atualizado com as funcionalidades concluídas.
+*   **Arquivos a serem corrigidos:** , , , , , , .
 
 **Areas that need refactoring**:
-*   ****: **CRÍTICO.** O arquivo continua a crescer, aumentando a complexidade e o risco de bugs. A refatoração para uma arquitetura de serviços/roteadores é essencial para a saúde do projeto a longo prazo.
-*   ****: Este componente se tornou muito grande e complexo, gerenciando múltiplos estados, modais e lógicas de visualização. Deve ser dividido em componentes menores e mais gerenciáveis.
+*   ****: **CRÍTICO.** O arquivo continua a crescer, aumentando a complexidade e o risco de bugs. A refatoração para uma arquitetura de serviços/roteadores é essencial.
+*   ****: Este componente é muito grande e complexo. Deve ser dividido em componentes menores.
 
 **key api endpoints**
-*   : Endpoint de upload de XML, agora otimizado com cache.
-*   : **(Novo)** Para reclassificação manual de um produto.
-*   : **(Novo)** Verifica se a API do SIEG está configurada.
-*   : **(Novo)** Conta XMLs disponíveis no SIEG.
-*   : **(Novo)** Endpoint para baixar XMLs do SIEG (ainda não implementado no frontend).
-*   : Exportação de SPED, agora com datas corrigidas.
-*   : Exportação de CSV de entrada, agora corrigida.
+*   : (Novo) Inicia uma sessão de upload.
+*   : (Novo) Processa o upload dos arquivos para a sessão.
+*   : (Novo) Endpoint SSE para streaming de progresso do upload.
+*   : (Novo) Inicia uma sessão de sincronização com o SIEG.
+*   : (Novo) Endpoint SSE para streaming de progresso da sincronização com o SIEG.
+*   : (Refatorado) Agora inicia um processo assíncrono.
 
 **Critical Info for New Agent**
-*   **Foco na Experiência do Usuário:** O usuário está agora focado em melhorar a usabilidade e performance da aplicação (uploads mais rápidos, feedback visual com barra de progresso). Priorize essas tarefas.
-*   **Riscos do Monolito:** Apesar das novas funcionalidades, a base do backend () continua sendo um monolito. Tenha cuidado ao fazer alterações para não introduzir regressões. A refatoração é uma necessidade técnica crítica.
-*   **Integração SIEG:** A integração com SIEG está funcional para contagem. O próximo passo lógico é implementar o download e processamento automático desses arquivos, o que seria uma grande vitória para o usuário.
-*   **Confiança do Usuário Restaurada:** Ao contrário do fork anterior, o usuário agora está satisfeito com o progresso e pedindo novas funcionalidades. Mantenha o ritmo entregando valor a cada passo.
+*   **Prioridade Máxima:** A tarefa atual é corrigir a persistência do contexto de empresa/competência em todas as páginas, conforme solicitado pelo usuário. Esta é uma correção de UX fundamental.
+*   **Padrão SSE:** O uso de Server-Sent Events (SSE) foi bem-sucedido para tarefas de longa duração (upload e sync). Este padrão deve ser a abordagem preferencial para resolver o congelamento da página Análise Tributária.
+*   **Risco Técnico:** O monolito  é o maior risco técnico do projeto. Qualquer nova funcionalidade ou correção aumenta o débito técnico. A refatoração deve ser planejada e executada assim que possível.
 
 **documents and test reports created in this job**
-- /app/test_reports/iteration_11.json
-- /app/backend/sieg_service.py
+- /app/test_reports/iteration_12.json
+- /app/memory/PRD.md (atualizado)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User (LATEST - 443):** Solicita uma barra de progresso na tela de upload. *Status: PENDENTE (Próxima tarefa).*
-2.  **User (386):** Reporta que as exportações (SPED e CSV) estão com erro. *Status: CONCLUÍDO.*
-3.  **User (349):** Pede uma coluna de classificação com ordenação na tela de validação por produto. *Status: CONCLUÍDO.*
-4.  **User (319):** Reporta que a reclassificação na visão por produto não está funcionando como esperado. *Status: CONCLUÍDO.*
-5.  **User (242):** Pede a funcionalidade de reclassificação manual e a correção do cálculo de PIS/COFINS para Lucro Real. *Status: CONCLUÍDO.*
-6.  **User (159):** Fornece a API key e as preferências para a integração com o SIEG. *Status: CONCLUÍDO.*
-7.  **User (156):** Solicita a integração com o SIEG para buscar XMLs automaticamente. *Status: CONCLUÍDO.*
-8.  **User (87):** Pede uma abordagem híbrida para otimizar o upload, combinando rapidez e memorização. *Status: CONCLUÍDO (com a implementação do cache).*
-9.  **User (84):** Reclama que o upload ficou muito lento. *Status: CONCLUÍDO (com a implementação do cache).*
-10. **User (5):** Informa que os bugs antigos foram corrigidos e pede para focar na conversão de CFOP. *Status: CONCLUÍDO.*
+1.  **User (LATEST):** SEMPRE QUE TIVER QUE SELECIONAR EMPRESA PARA ALGUMA ACÁO, PRIORIZAR EMPRESA SETADA, ASSIM COMO A COMPETENCIA SETADA - *Status: EM ANDAMENTO (é a tarefa atual).*
+2.  **User:** quero implementar download automatico do sieg - *Status: CONCLUÍDO.*
+3.  **User:** pode iniciar pela barra de progresso - *Status: CONCLUÍDO.*
+
+*As mensagens anteriores foram tratadas e concluídas em sessões passadas.*
 
 **Project Health Check:**
 *   **Broken:**
-    *   A página  congela a interface, tornando-a inutilizável.
+    *   A página  congela a interface, tornando a funcionalidade inutilizável.
 *   **Mocked:**
-    *   A funcionalidade de integração com SIEG atualmente só conta os arquivos, mas ainda não os baixa e processa.
+    *   Nenhum. A funcionalidade do SIEG agora executa o download e processamento.
 
 **3rd Party Integrations**
 *   **Brasil API:** Para busca de dados de CNPJ (não requer chave).
 *   **OpenAI GPT-4o:** Usado para classificação de CFOP, acessado via  com a **Emergent LLM Key**.
-*   **SIEG Soluções:** **(Novo)** Para contagem de XMLs fiscais. Requer uma API Key do usuário, que é passada como query parameter ().
+*   **SIEG Soluções:** Para contagem e download de XMLs fiscais. Requer uma API Key do usuário.
 
 **Testing status**
-- **Testing agent used after significant changes**: YES, foi usado uma vez após a correção inicial da IA, com sucesso.
+- **Testing agent used after significant changes**: YES, o agente de teste foi usado com sucesso para validar a implementação da barra de progresso.
 - **Troubleshoot agent used after agent stuck in loop**: NO
 - **Test files created**: Nenhum arquivo de teste formal (============================= test session starts ==============================
 platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
 rootdir: /app
 plugins: anyio-4.12.1
-collected 104 items / 1 error
+collected 111 items / 1 error
 
 ==================================== ERRORS ====================================
 __________________ ERROR collecting test_ai_classification.py __________________
@@ -201,8 +186,8 @@ HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test
   /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
     from crypt import crypt as _crypt
 
-backend/server.py:5437
-  /app/backend/server.py:5437: DeprecationWarning: 
+backend/server.py:6135
+  /app/backend/server.py:6135: DeprecationWarning: 
           on_event is deprecated, use lifespan event handlers instead.
   
           Read more about it in the
@@ -223,7 +208,7 @@ backend/server.py:5437
 =========================== short test summary info ============================
 ERROR test_ai_classification.py
 !!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-========================= 4 warnings, 1 error in 6.31s =========================) foi criado. Os testes foram feitos ad-hoc com .
+========================= 4 warnings, 1 error in 6.15s =========================) foi criado.
 - **Known regressions**: Nenhuma regressão nova foi identificada nesta sessão.
 
 **Credentials to test flow:**
@@ -231,5 +216,4 @@ ERROR test_ai_classification.py
 *   **Senha:** 
 
 **What agent forgot to execute**
-*   O agente não abordou o problema de congelamento da página Análise Tributária, que foi mencionado no handoff inicial.
-*   A refatoração crítica do arquivo monolítico  continua pendente e deve ser priorizada para garantir a estabilidade futura do projeto.</analysis>
+*   O agente seguiu as instruções do usuário e priorizou as tarefas solicitadas. A correção do bug da Análise Tributária e a refatoração do  permanecem como débitos técnicos importantes a serem abordados.</analysis>
