@@ -66,12 +66,339 @@ const BANCO_CNAES = [
     { codigo: '85.99-6-04', descricao: 'Treinamento em desenvolvimento profissional e gerencial' },
 ];
 
-// Componente para formulário de alteração de sócios (QSA)
+// Componente para formulário de alteração de sócios (QSA) - Multi-opção
 const FormularioQSA = ({ dados, onChange, dadosExtraidos, onExtrairIA }) => {
-    const docInputRef = useRef(null);
-    const [extraindo, setExtraindo] = useState(false);
+    const sociosAtuais = dadosExtraidos?.socios || [];
     
-    const handleFileUpload = async (e, tipo) => {
+    // Toggle de tipos de QSA (permite múltiplos)
+    const toggleTipoQSA = (tipo) => {
+        const tipos = dados.tiposQSA || [];
+        const novos = tipos.includes(tipo) 
+            ? tipos.filter(t => t !== tipo)
+            : [...tipos, tipo];
+        onChange({...dados, tiposQSA: novos});
+    };
+    
+    const tiposSelecionados = dados.tiposQSA || [];
+    
+    return (
+        <div className="space-y-6">
+            <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
+                <h4 className="text-white font-medium mb-4 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-red-500" />
+                    Tipos de Alteração no QSA
+                </h4>
+                <p className="text-zinc-500 text-xs mb-4">Selecione uma ou mais opções:</p>
+                
+                <div className="grid grid-cols-3 gap-3">
+                    <button 
+                        type="button"
+                        onClick={() => toggleTipoQSA('saida')}
+                        className={`flex flex-col items-center gap-2 p-4 rounded-lg cursor-pointer border transition-all ${
+                            tiposSelecionados.includes('saida') 
+                                ? 'border-red-500 bg-red-500/10' 
+                                : 'border-zinc-700 hover:border-zinc-600'
+                        }`}
+                    >
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                            tiposSelecionados.includes('saida') ? 'border-red-500 bg-red-500' : 'border-zinc-600'
+                        }`}>
+                            {tiposSelecionados.includes('saida') && <CheckCircle2 className="w-4 h-4 text-white" />}
+                        </div>
+                        <UserMinus className="w-6 h-6 text-red-500" />
+                        <span className="text-white text-sm font-medium">Saída de Sócio</span>
+                    </button>
+                    
+                    <button 
+                        type="button"
+                        onClick={() => toggleTipoQSA('entrada')}
+                        className={`flex flex-col items-center gap-2 p-4 rounded-lg cursor-pointer border transition-all ${
+                            tiposSelecionados.includes('entrada') 
+                                ? 'border-green-500 bg-green-500/10' 
+                                : 'border-zinc-700 hover:border-zinc-600'
+                        }`}
+                    >
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                            tiposSelecionados.includes('entrada') ? 'border-green-500 bg-green-500' : 'border-zinc-600'
+                        }`}>
+                            {tiposSelecionados.includes('entrada') && <CheckCircle2 className="w-4 h-4 text-white" />}
+                        </div>
+                        <UserPlus className="w-6 h-6 text-green-500" />
+                        <span className="text-white text-sm font-medium">Entrada de Sócio</span>
+                    </button>
+                    
+                    <button 
+                        type="button"
+                        onClick={() => toggleTipoQSA('redistribuicao')}
+                        className={`flex flex-col items-center gap-2 p-4 rounded-lg cursor-pointer border transition-all ${
+                            tiposSelecionados.includes('redistribuicao') 
+                                ? 'border-blue-500 bg-blue-500/10' 
+                                : 'border-zinc-700 hover:border-zinc-600'
+                        }`}
+                    >
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                            tiposSelecionados.includes('redistribuicao') ? 'border-blue-500 bg-blue-500' : 'border-zinc-600'
+                        }`}>
+                            {tiposSelecionados.includes('redistribuicao') && <CheckCircle2 className="w-4 h-4 text-white" />}
+                        </div>
+                        <ArrowLeftRight className="w-6 h-6 text-blue-500" />
+                        <span className="text-white text-sm font-medium">Redistribuição</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Seção de Saída de Sócios */}
+            {tiposSelecionados.includes('saida') && (
+                <SociosRetirantes dados={dados} onChange={onChange} sociosAtuais={sociosAtuais} />
+            )}
+
+            {/* Seção de Entrada de Sócios */}
+            {tiposSelecionados.includes('entrada') && (
+                <SociosEntrando dados={dados} onChange={onChange} />
+            )}
+
+            {/* Seção de Redistribuição */}
+            {tiposSelecionados.includes('redistribuicao') && (
+                <RedistribuicaoCotas dados={dados} onChange={onChange} sociosAtuais={sociosAtuais} />
+            )}
+        </div>
+    );
+};
+
+// Sub-componente para sócios retirantes
+const SociosRetirantes = ({ dados, onChange, sociosAtuais }) => {
+    return (
+        <div className="bg-zinc-950 border border-red-500/30 rounded-lg p-4">
+            <h4 className="text-white font-medium mb-4 flex items-center gap-2">
+                <UserMinus className="w-4 h-4 text-red-500" />
+                Sócios Retirantes
+            </h4>
+            
+            {sociosAtuais.length > 0 ? (
+                <div className="space-y-2 mb-4">
+                    <p className="text-zinc-500 text-xs mb-2">Selecione os sócios que estão saindo:</p>
+                    {sociosAtuais.map((socio, idx) => (
+                        <div key={idx} className="flex items-center gap-3 p-3 bg-zinc-900 rounded-lg">
+                            <Checkbox 
+                                checked={dados.sociosSaindo?.includes(idx)}
+                                onCheckedChange={(checked) => {
+                                    const novos = checked 
+                                        ? [...(dados.sociosSaindo || []), idx]
+                                        : (dados.sociosSaindo || []).filter(i => i !== idx);
+                                    onChange({...dados, sociosSaindo: novos});
+                                }}
+                            />
+                            <div className="flex-1">
+                                <p className="text-white font-medium">{socio.nome || `Sócio ${idx + 1}`}</p>
+                                <p className="text-zinc-500 text-xs">CPF: {socio.cpf || 'N/I'} | Participação: {socio.participacao || 'N/A'}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="mb-4">
+                    <div className="text-center py-4 border border-dashed border-zinc-700 rounded-lg mb-4">
+                        <Users className="w-8 h-8 mx-auto text-zinc-600 mb-2" />
+                        <p className="text-zinc-400 text-sm">Nenhum sócio identificado no contrato</p>
+                        <p className="text-zinc-500 text-xs">Adicione os sócios retirantes manualmente</p>
+                    </div>
+                </div>
+            )}
+            
+            {/* Formulário manual para retirantes */}
+            <div className="border-t border-zinc-800 pt-4">
+                <div className="flex items-center justify-between mb-3">
+                    <span className="text-zinc-400 text-sm">Adicionar retirante manualmente:</span>
+                    <Button 
+                        type="button" 
+                        size="sm" 
+                        variant="outline" 
+                        className="border-red-500/50 text-red-500 hover:bg-red-500/10"
+                        onClick={() => onChange({
+                            ...dados,
+                            sociosRetirantes: [...(dados.sociosRetirantes || []), { nome: '', cpf: '', participacao: '' }]
+                        })}
+                    >
+                        <Plus className="w-4 h-4 mr-1" /> Adicionar Retirante
+                    </Button>
+                </div>
+                
+                {(dados.sociosRetirantes || []).map((socio, idx) => (
+                    <div key={idx} className="bg-zinc-900 rounded-lg p-4 space-y-3 mb-3">
+                        <div className="flex items-center justify-between">
+                            <span className="text-red-400 font-medium text-sm">Sócio Retirante {idx + 1}</span>
+                            <Button 
+                                type="button" 
+                                size="sm" 
+                                variant="ghost" 
+                                className="text-zinc-500 hover:text-red-500 h-8 w-8 p-0"
+                                onClick={() => onChange({
+                                    ...dados,
+                                    sociosRetirantes: dados.sociosRetirantes.filter((_, i) => i !== idx)
+                                })}
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="col-span-2">
+                                <Label className="text-zinc-500 text-xs">Nome Completo *</Label>
+                                <Input 
+                                    value={socio.nome} 
+                                    onChange={(e) => {
+                                        const novos = [...dados.sociosRetirantes];
+                                        novos[idx] = {...novos[idx], nome: e.target.value.toUpperCase()};
+                                        onChange({...dados, sociosRetirantes: novos});
+                                    }}
+                                    placeholder="NOME COMPLETO"
+                                    className="bg-zinc-800 border-zinc-700 mt-1"
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-zinc-500 text-xs">Participação (%)</Label>
+                                <Input 
+                                    value={socio.participacao} 
+                                    onChange={(e) => {
+                                        const novos = [...dados.sociosRetirantes];
+                                        novos[idx] = {...novos[idx], participacao: e.target.value};
+                                        onChange({...dados, sociosRetirantes: novos});
+                                    }}
+                                    placeholder="50"
+                                    className="bg-zinc-800 border-zinc-700 mt-1"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <Label className="text-zinc-500 text-xs">CPF *</Label>
+                            <Input 
+                                value={socio.cpf} 
+                                onChange={(e) => {
+                                    const novos = [...dados.sociosRetirantes];
+                                    novos[idx] = {...novos[idx], cpf: e.target.value};
+                                    onChange({...dados, sociosRetirantes: novos});
+                                }}
+                                placeholder="000.000.000-00"
+                                className="bg-zinc-800 border-zinc-700 mt-1 w-48"
+                            />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// Sub-componente para redistribuição de cotas
+const RedistribuicaoCotas = ({ dados, onChange, sociosAtuais }) => {
+    return (
+        <div className="bg-zinc-950 border border-blue-500/30 rounded-lg p-4">
+            <h4 className="text-white font-medium mb-4 flex items-center gap-2">
+                <ArrowLeftRight className="w-4 h-4 text-blue-500" />
+                Redistribuição de Cotas
+            </h4>
+            
+            {sociosAtuais.length > 0 ? (
+                <div className="space-y-2">
+                    <p className="text-zinc-500 text-xs mb-2">Informe a nova participação de cada sócio:</p>
+                    {sociosAtuais.map((socio, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-zinc-900 rounded-lg">
+                            <div className="flex-1">
+                                <p className="text-white font-medium">{socio.nome || `Sócio ${idx + 1}`}</p>
+                                <p className="text-zinc-500 text-xs">Participação atual: {socio.participacao || 'N/A'}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-zinc-500 text-sm">Nova %:</span>
+                                <Input 
+                                    className="w-20 bg-zinc-800 border-zinc-700 text-center"
+                                    placeholder="50"
+                                    value={dados.novasParticipacoes?.[idx] || ''}
+                                    onChange={(e) => {
+                                        const novas = {...(dados.novasParticipacoes || {})};
+                                        novas[idx] = e.target.value;
+                                        onChange({...dados, novasParticipacoes: novas});
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-6 border border-dashed border-zinc-700 rounded-lg">
+                    <Users className="w-10 h-10 mx-auto text-zinc-600 mb-3" />
+                    <p className="text-zinc-400 text-sm">Nenhum sócio identificado</p>
+                    <p className="text-zinc-500 text-xs">Faça upload de um contrato válido na Etapa 1</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// Sub-componente para novos sócios - igual ao da Constituição
+const SociosEntrando = ({ dados, onChange }) => {
+    return (
+        <div className="bg-zinc-950 border border-green-500/30 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+                <h4 className="text-white font-medium flex items-center gap-2">
+                    <UserPlus className="w-4 h-4 text-green-500" />
+                    Novos Sócios
+                </h4>
+                <Button 
+                    type="button" 
+                    size="sm" 
+                    variant="outline" 
+                    className="border-green-500/50 text-green-500 hover:bg-green-500/10"
+                    onClick={() => onChange({
+                        ...dados,
+                        sociosEntrando: [...(dados.sociosEntrando || []), {
+                            nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)',
+                            estadoCivil: '', regimeCasamento: '', profissao: '', participacao: '',
+                            endereco: { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' }
+                        }]
+                    })}
+                >
+                    <Plus className="w-4 h-4 mr-1" /> Adicionar Sócio
+                </Button>
+            </div>
+            
+            {(dados.sociosEntrando || []).length === 0 ? (
+                <div className="text-center py-6 border border-dashed border-zinc-700 rounded-lg">
+                    <UserPlus className="w-10 h-10 mx-auto text-zinc-600 mb-3" />
+                    <p className="text-zinc-400 text-sm">Nenhum sócio adicionado</p>
+                    <p className="text-zinc-500 text-xs">Clique em "Adicionar Sócio" para incluir novos sócios</p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {(dados.sociosEntrando || []).map((socio, idx) => (
+                        <SocioCardAlteracao 
+                            key={idx}
+                            socio={socio}
+                            index={idx}
+                            onChange={(novoSocio) => {
+                                const novos = [...dados.sociosEntrando];
+                                novos[idx] = novoSocio;
+                                onChange({...dados, sociosEntrando: novos});
+                            }}
+                            onRemove={() => onChange({
+                                ...dados,
+                                sociosEntrando: dados.sociosEntrando.filter((_, i) => i !== idx)
+                            })}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// Componente de card de sócio - igual ao da Constituição
+const SocioCardAlteracao = ({ socio, index, onChange, onRemove }) => {
+    const docInputRef = useRef(null);
+    const enderecoInputRef = useRef(null);
+    const [extraindo, setExtraindo] = useState(false);
+    const [extraindoEndereco, setExtraindoEndereco] = useState(false);
+    const [buscandoCep, setBuscandoCep] = useState(false);
+    
+    const handleDocUpload = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
         
@@ -87,413 +414,357 @@ const FormularioQSA = ({ dados, onChange, dadosExtraidos, onExtrairIA }) => {
             });
             
             if (response.data.success && response.data.dados) {
-                const socioData = response.data.dados;
-                if (tipo === 'entrada') {
-                    onChange({
-                        ...dados,
-                        sociosEntrando: dados.sociosEntrando.map((s, i) => 
-                            i === dados.sociosEntrando.length - 1 ? {
-                                ...s,
-                                nome: socioData.nome || s.nome,
-                                cpf: socioData.cpf || s.cpf,
-                                rg: socioData.rg || s.rg,
-                                orgaoEmissor: socioData.orgao_emissor || s.orgaoEmissor,
-                                nacionalidade: socioData.nacionalidade || s.nacionalidade,
-                                estadoCivil: socioData.estado_civil || s.estadoCivil,
-                                profissao: socioData.profissao || s.profissao,
-                            } : s
-                        )
-                    });
-                }
-                toast.success('Dados extraídos!');
+                const dados = response.data.dados;
+                onChange({
+                    ...socio,
+                    nome: dados.nome || socio.nome,
+                    cpf: dados.cpf || socio.cpf,
+                    rg: dados.rg || socio.rg,
+                    orgaoEmissor: dados.orgao_emissor || socio.orgaoEmissor,
+                    nacionalidade: dados.nacionalidade || socio.nacionalidade,
+                    estadoCivil: dados.estado_civil || socio.estadoCivil,
+                    profissao: dados.profissao || socio.profissao,
+                });
+                toast.success('Dados pessoais extraídos!');
+            } else {
+                toast.info('Documento anexado');
             }
         } catch (error) {
-            toast.error('Erro ao extrair dados');
+            console.error('Erro na extração:', error);
+            toast.warning('Extração indisponível');
         } finally {
             setExtraindo(false);
             if (docInputRef.current) docInputRef.current.value = '';
         }
     };
 
-    const sociosAtuais = dadosExtraidos?.socios || [];
+    const handleEnderecoUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        setExtraindoEndereco(true);
+        toast.info('Extraindo endereço do documento...');
+        
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('campo', 'endereco');
+            
+            const response = await axios.post(`${API_URL}/api/constituicao/extrair-campo`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            
+            if (response.data.success && response.data.valor) {
+                const dados = response.data.valor;
+                if (typeof dados === 'object') {
+                    onChange({
+                        ...socio,
+                        endereco: {
+                            ...socio.endereco,
+                            logradouro: dados.logradouro || socio.endereco?.logradouro || '',
+                            numero: dados.numero || socio.endereco?.numero || '',
+                            complemento: dados.complemento || socio.endereco?.complemento || '',
+                            bairro: dados.bairro || socio.endereco?.bairro || '',
+                            cidade: dados.cidade || socio.endereco?.cidade || '',
+                            estado: dados.estado || socio.endereco?.estado || 'SP',
+                            cep: dados.cep || socio.endereco?.cep || ''
+                        }
+                    });
+                    toast.success('Endereço extraído!');
+                }
+            }
+        } catch (error) {
+            console.error('Erro na extração:', error);
+            toast.error('Erro ao extrair endereço');
+        } finally {
+            setExtraindoEndereco(false);
+            if (enderecoInputRef.current) enderecoInputRef.current.value = '';
+        }
+    };
+
+    const handleBuscarCep = async () => {
+        const cepLimpo = enderecoSocio.cep?.replace(/\D/g, '') || '';
+        if (cepLimpo.length !== 8) {
+            toast.error('CEP deve ter 8 dígitos');
+            return;
+        }
+        
+        setBuscandoCep(true);
+        try {
+            const response = await axios.get(`${API_URL}/api/cep/${cepLimpo}`);
+            if (response.data.success && response.data.endereco) {
+                const dados = response.data.endereco;
+                onChange({
+                    ...socio,
+                    endereco: {
+                        ...enderecoSocio,
+                        logradouro: dados.logradouro || enderecoSocio.logradouro,
+                        bairro: dados.bairro || enderecoSocio.bairro,
+                        cidade: dados.cidade || enderecoSocio.cidade,
+                        estado: dados.estado || enderecoSocio.estado,
+                        cep: dados.cep || enderecoSocio.cep
+                    }
+                });
+                toast.success('Endereço atualizado via Correios!');
+            }
+        } catch (error) {
+            console.error('Erro ao buscar CEP:', error);
+            toast.error('CEP não encontrado');
+        } finally {
+            setBuscandoCep(false);
+        }
+    };
+
+    const enderecoSocio = socio.endereco && typeof socio.endereco === 'object' 
+        ? socio.endereco 
+        : { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' };
     
     return (
-        <div className="space-y-6">
-            <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
-                <h4 className="text-white font-medium mb-4 flex items-center gap-2">
-                    <Users className="w-4 h-4 text-red-500" />
-                    Tipo de Alteração no QSA
-                </h4>
-                
-                <div className="grid grid-cols-3 gap-3">
-                    <label className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer border ${dados.tipoQSA === 'saida' ? 'border-red-500 bg-red-500/10' : 'border-zinc-700 hover:border-zinc-600'}`}>
-                        <input type="radio" name="tipoQSA" value="saida" checked={dados.tipoQSA === 'saida'} onChange={(e) => onChange({...dados, tipoQSA: e.target.value})} className="accent-red-500" />
-                        <div>
-                            <UserMinus className="w-5 h-5 text-red-500 mb-1" />
-                            <span className="text-white text-sm">Saída de Sócio</span>
-                        </div>
-                    </label>
-                    
-                    <label className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer border ${dados.tipoQSA === 'entrada' ? 'border-green-500 bg-green-500/10' : 'border-zinc-700 hover:border-zinc-600'}`}>
-                        <input type="radio" name="tipoQSA" value="entrada" checked={dados.tipoQSA === 'entrada'} onChange={(e) => onChange({...dados, tipoQSA: e.target.value})} className="accent-green-500" />
-                        <div>
-                            <UserPlus className="w-5 h-5 text-green-500 mb-1" />
-                            <span className="text-white text-sm">Entrada de Sócio</span>
-                        </div>
-                    </label>
-                    
-                    <label className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer border ${dados.tipoQSA === 'redistribuicao' ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-700 hover:border-zinc-600'}`}>
-                        <input type="radio" name="tipoQSA" value="redistribuicao" checked={dados.tipoQSA === 'redistribuicao'} onChange={(e) => onChange({...dados, tipoQSA: e.target.value})} className="accent-blue-500" />
-                        <div>
-                            <ArrowLeftRight className="w-5 h-5 text-blue-500 mb-1" />
-                            <span className="text-white text-sm">Redistribuição</span>
-                        </div>
-                    </label>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-4">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-green-600/20 flex items-center justify-center">
+                        <User className="w-4 h-4 text-green-500" />
+                    </div>
+                    <span className="font-medium text-white">Novo Sócio {index + 1}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button 
+                        type="button"
+                        onClick={() => docInputRef.current?.click()}
+                        disabled={extraindo}
+                        className="text-xs bg-green-600/20 text-green-500 hover:bg-green-600/30 px-3 py-1.5 rounded flex items-center gap-1"
+                    >
+                        {extraindo ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                        Preencher com IA
+                    </button>
+                    <button onClick={onRemove} className="text-zinc-500 hover:text-red-500">
+                        <Trash2 className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
-
-            {/* Sócios atuais da empresa */}
-            {(dados.tipoQSA === 'saida' || dados.tipoQSA === 'redistribuicao') && (
-                <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
-                    <h4 className="text-white font-medium mb-3">Quadro Societário Atual</h4>
-                    {sociosAtuais.length > 0 ? (
-                        <div className="space-y-2">
-                            {sociosAtuais.map((socio, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-3 bg-zinc-900 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                        <Checkbox 
-                                            checked={dados.sociosSaindo?.includes(idx)}
-                                            onCheckedChange={(checked) => {
-                                                const novos = checked 
-                                                    ? [...(dados.sociosSaindo || []), idx]
-                                                    : (dados.sociosSaindo || []).filter(i => i !== idx);
-                                                onChange({...dados, sociosSaindo: novos});
-                                            }}
-                                        />
-                                        <div>
-                                            <p className="text-white font-medium">{socio.nome || `Sócio ${idx + 1}`}</p>
-                                            <p className="text-zinc-500 text-xs">CPF: {socio.cpf || 'Não informado'} | Participação: {socio.participacao || 'N/A'}</p>
-                                        </div>
-                                    </div>
-                                    {dados.tipoQSA === 'redistribuicao' && (
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-zinc-500 text-sm">Nova %:</span>
-                                            <Input 
-                                                className="w-20 bg-zinc-800 border-zinc-700 text-center"
-                                                placeholder="50"
-                                                value={dados.novasParticipacoes?.[idx] || ''}
-                                                onChange={(e) => {
-                                                    const novas = {...(dados.novasParticipacoes || {})};
-                                                    novas[idx] = e.target.value;
-                                                    onChange({...dados, novasParticipacoes: novas});
-                                                }}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                            <p className="text-zinc-500 text-xs mt-2">
-                                ✓ Marque os sócios que {dados.tipoQSA === 'saida' ? 'estão saindo da empresa' : 'terão participação alterada'}
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="text-center py-6 border border-dashed border-zinc-700 rounded-lg">
-                            <Users className="w-10 h-10 mx-auto text-zinc-600 mb-3" />
-                            <p className="text-zinc-400 text-sm mb-2">Nenhum sócio identificado no contrato</p>
-                            <p className="text-zinc-500 text-xs">
-                                Faça upload de um contrato social na Etapa 1 ou adicione os sócios manualmente abaixo
-                            </p>
-                        </div>
-                    )}
-                </div>
-            )}
             
-            {/* Adicionar sócio retirante manualmente (quando não há dados extraídos) */}
-            {dados.tipoQSA === 'saida' && sociosAtuais.length === 0 && (
-                <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-white font-medium flex items-center gap-2">
-                            <UserMinus className="w-4 h-4 text-red-500" />
-                            Sócio(s) Retirante(s)
-                        </h4>
-                        <Button 
-                            type="button" 
-                            size="sm" 
-                            variant="outline" 
-                            className="border-zinc-700"
-                            onClick={() => onChange({
-                                ...dados,
-                                sociosRetirantes: [...(dados.sociosRetirantes || []), {
-                                    nome: '', cpf: '', participacao: ''
-                                }]
-                            })}
-                        >
-                            <Plus className="w-4 h-4 mr-1" /> Adicionar Retirante
-                        </Button>
-                    </div>
-                    
-                    {(dados.sociosRetirantes || []).length === 0 ? (
-                        <p className="text-zinc-500 text-sm text-center py-4">
-                            Clique em "Adicionar Retirante" para informar os dados do sócio que está saindo
-                        </p>
-                    ) : (
-                        <div className="space-y-3">
-                            {(dados.sociosRetirantes || []).map((socio, idx) => (
-                                <div key={idx} className="bg-zinc-900 rounded-lg p-4 space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-white font-medium text-sm">Sócio Retirante {idx + 1}</span>
-                                        <Button 
-                                            type="button" 
-                                            size="sm" 
-                                            variant="ghost" 
-                                            className="text-zinc-500 hover:text-red-500"
-                                            onClick={() => onChange({
-                                                ...dados,
-                                                sociosRetirantes: dados.sociosRetirantes.filter((_, i) => i !== idx)
-                                            })}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <div className="col-span-2">
-                                            <Label className="text-zinc-500 text-xs">Nome Completo *</Label>
-                                            <Input 
-                                                value={socio.nome} 
-                                                onChange={(e) => {
-                                                    const novos = [...dados.sociosRetirantes];
-                                                    novos[idx] = {...novos[idx], nome: e.target.value.toUpperCase()};
-                                                    onChange({...dados, sociosRetirantes: novos});
-                                                }}
-                                                placeholder="NOME COMPLETO DO SÓCIO"
-                                                className="bg-zinc-800 border-zinc-700 mt-1"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-zinc-500 text-xs">CPF *</Label>
-                                            <Input 
-                                                value={socio.cpf} 
-                                                onChange={(e) => {
-                                                    const novos = [...dados.sociosRetirantes];
-                                                    novos[idx] = {...novos[idx], cpf: e.target.value};
-                                                    onChange({...dados, sociosRetirantes: novos});
-                                                }}
-                                                placeholder="000.000.000-00"
-                                                className="bg-zinc-800 border-zinc-700 mt-1"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <Label className="text-zinc-500 text-xs">Participação Atual (%)</Label>
-                                        <Input 
-                                            value={socio.participacao} 
-                                            onChange={(e) => {
-                                                const novos = [...dados.sociosRetirantes];
-                                                novos[idx] = {...novos[idx], participacao: e.target.value};
-                                                onChange({...dados, sociosRetirantes: novos});
-                                            }}
-                                            placeholder="50"
-                                            className="bg-zinc-800 border-zinc-700 mt-1 w-32"
-                                        />
-                                    </div>
-                                </div>
+            <input ref={docInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleDocUpload} />
+            <input ref={enderecoInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleEnderecoUpload} />
+            
+            <p className="text-xs text-zinc-500">
+                Anexe CNH ou RG para preenchimento automático dos dados pessoais
+            </p>
+            
+            {/* Dados Pessoais */}
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <Label className="text-zinc-500 text-xs">Nome Completo <span className="text-red-500">*</span></Label>
+                    <Input
+                        value={socio.nome}
+                        onChange={(e) => onChange({ ...socio, nome: e.target.value.toUpperCase() })}
+                        placeholder="NOME COMPLETO EM MAIÚSCULAS"
+                        className="bg-zinc-800 border-zinc-700 mt-1"
+                    />
+                </div>
+                <div>
+                    <Label className="text-zinc-500 text-xs">CPF <span className="text-red-500">*</span></Label>
+                    <Input
+                        value={socio.cpf}
+                        onChange={(e) => onChange({ ...socio, cpf: e.target.value })}
+                        placeholder="000.000.000-00"
+                        className="bg-zinc-800 border-zinc-700 mt-1"
+                    />
+                </div>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-3">
+                <div>
+                    <Label className="text-zinc-500 text-xs">RG <span className="text-red-500">*</span></Label>
+                    <Input
+                        value={socio.rg}
+                        onChange={(e) => onChange({ ...socio, rg: e.target.value })}
+                        placeholder="00.000.000-0"
+                        className="bg-zinc-800 border-zinc-700 mt-1"
+                    />
+                </div>
+                <div>
+                    <Label className="text-zinc-500 text-xs">Órgão Emissor <span className="text-red-500">*</span></Label>
+                    <Input
+                        value={socio.orgaoEmissor}
+                        onChange={(e) => onChange({ ...socio, orgaoEmissor: e.target.value })}
+                        placeholder="SSP/SP"
+                        className="bg-zinc-800 border-zinc-700 mt-1"
+                    />
+                </div>
+                <div>
+                    <Label className="text-zinc-500 text-xs">Nacionalidade <span className="text-red-500">*</span></Label>
+                    <Input
+                        value={socio.nacionalidade}
+                        onChange={(e) => onChange({ ...socio, nacionalidade: e.target.value })}
+                        placeholder="Brasileiro(a)"
+                        className="bg-zinc-800 border-zinc-700 mt-1"
+                    />
+                </div>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-3">
+                <div>
+                    <Label className="text-zinc-500 text-xs">Estado Civil <span className="text-red-500">*</span></Label>
+                    <Select value={socio.estadoCivil} onValueChange={(v) => onChange({ ...socio, estadoCivil: v })}>
+                        <SelectTrigger className="bg-zinc-800 border-zinc-700 mt-1">
+                            <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-900 border-zinc-700">
+                            {ESTADOS_CIVIS.map(ec => (
+                                <SelectItem key={ec} value={ec}>{ec}</SelectItem>
                             ))}
-                        </div>
-                    )}
+                        </SelectContent>
+                    </Select>
                 </div>
-            )}
-
-            {/* Formulário para novos sócios */}
-            {(dados.tipoQSA === 'entrada' || dados.tipoQSA === 'redistribuicao') && (
-                <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-white font-medium flex items-center gap-2">
-                            <UserPlus className="w-4 h-4 text-green-500" />
-                            Novos Sócios
-                        </h4>
-                        <Button 
-                            type="button" 
-                            size="sm" 
-                            variant="outline" 
-                            className="border-zinc-700"
-                            onClick={() => onChange({
-                                ...dados,
-                                sociosEntrando: [...(dados.sociosEntrando || []), {
-                                    nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)',
-                                    estadoCivil: '', profissao: '', endereco: '', participacao: ''
-                                }]
-                            })}
-                        >
-                            <Plus className="w-4 h-4 mr-1" /> Adicionar
-                        </Button>
+                {socio.estadoCivil === 'Casado(a)' && (
+                    <div className="col-span-2">
+                        <Label className="text-zinc-500 text-xs">Regime de Casamento <span className="text-red-500">*</span></Label>
+                        <Select value={socio.regimeCasamento} onValueChange={(v) => onChange({ ...socio, regimeCasamento: v })}>
+                            <SelectTrigger className="bg-zinc-800 border-zinc-700 mt-1">
+                                <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-zinc-900 border-zinc-700">
+                                {REGIMES_CASAMENTO.map(rc => (
+                                    <SelectItem key={rc} value={rc}>{rc}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+                <div className={socio.estadoCivil === 'Casado(a)' ? '' : 'col-span-2'}>
+                    <Label className="text-zinc-500 text-xs">Profissão <span className="text-red-500">*</span></Label>
+                    <Input
+                        value={socio.profissao}
+                        onChange={(e) => onChange({ ...socio, profissao: e.target.value })}
+                        placeholder="Empresário(a)"
+                        className="bg-zinc-800 border-zinc-700 mt-1"
+                    />
+                </div>
+            </div>
+            
+            {/* Participação */}
+            <div className="w-32">
+                <Label className="text-zinc-500 text-xs">Participação (%) <span className="text-red-500">*</span></Label>
+                <Input
+                    value={socio.participacao}
+                    onChange={(e) => onChange({ ...socio, participacao: e.target.value })}
+                    placeholder="50"
+                    className="bg-zinc-800 border-zinc-700 mt-1"
+                />
+            </div>
+            
+            {/* Endereço do Sócio */}
+            <div className="pt-4 border-t border-zinc-800">
+                <div className="flex items-center justify-between mb-3">
+                    <Label className="text-zinc-400 text-sm font-medium flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-green-500" />
+                        Endereço Residencial
+                    </Label>
+                    <button 
+                        type="button"
+                        onClick={() => enderecoInputRef.current?.click()}
+                        disabled={extraindoEndereco}
+                        className="text-xs bg-green-600/20 text-green-500 hover:bg-green-600/30 px-3 py-1.5 rounded flex items-center gap-1"
+                    >
+                        {extraindoEndereco ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                        Preencher Endereço com IA
+                    </button>
+                </div>
+                
+                <div className="space-y-3">
+                    <div className="grid grid-cols-4 gap-3">
+                        <div className="col-span-2">
+                            <Label className="text-zinc-500 text-xs">Logradouro <span className="text-red-500">*</span></Label>
+                            <Input
+                                value={enderecoSocio.logradouro}
+                                onChange={(e) => onChange({ ...socio, endereco: { ...enderecoSocio, logradouro: e.target.value } })}
+                                placeholder="Rua, Avenida, etc."
+                                className="bg-zinc-800 border-zinc-700 mt-1"
+                            />
+                        </div>
+                        <div>
+                            <Label className="text-zinc-500 text-xs">Número <span className="text-red-500">*</span></Label>
+                            <Input
+                                value={enderecoSocio.numero}
+                                onChange={(e) => onChange({ ...socio, endereco: { ...enderecoSocio, numero: e.target.value } })}
+                                placeholder="123"
+                                className="bg-zinc-800 border-zinc-700 mt-1"
+                            />
+                        </div>
+                        <div>
+                            <Label className="text-zinc-500 text-xs">Complemento</Label>
+                            <Input
+                                value={enderecoSocio.complemento}
+                                onChange={(e) => onChange({ ...socio, endereco: { ...enderecoSocio, complemento: e.target.value } })}
+                                placeholder="Apto, Sala"
+                                className="bg-zinc-800 border-zinc-700 mt-1"
+                            />
+                        </div>
                     </div>
                     
-                    {(dados.sociosEntrando || []).map((socio, idx) => (
-                        <div key={idx} className="bg-zinc-900 rounded-lg p-4 mb-3 space-y-3">
-                            <div className="flex items-center justify-between">
-                                <span className="text-white font-medium">Novo Sócio {idx + 1}</span>
-                                <div className="flex gap-2">
-                                    <input ref={docInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" 
-                                        onChange={(e) => handleFileUpload(e, 'entrada')} />
-                                    <Button 
-                                        type="button" 
-                                        size="sm" 
-                                        className="bg-red-600/20 text-red-500 hover:bg-red-600/30"
-                                        onClick={() => docInputRef.current?.click()}
-                                        disabled={extraindo}
-                                    >
-                                        {extraindo ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
-                                        Preencher com IA
-                                    </Button>
-                                    {(dados.sociosEntrando || []).length > 1 && (
-                                        <Button 
-                                            type="button" 
-                                            size="sm" 
-                                            variant="ghost" 
-                                            className="text-zinc-500 hover:text-red-500"
-                                            onClick={() => onChange({
-                                                ...dados,
-                                                sociosEntrando: dados.sociosEntrando.filter((_, i) => i !== idx)
-                                            })}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <Label className="text-zinc-500 text-xs">Nome Completo *</Label>
-                                    <Input 
-                                        value={socio.nome} 
-                                        onChange={(e) => {
-                                            const novos = [...dados.sociosEntrando];
-                                            novos[idx] = {...novos[idx], nome: e.target.value.toUpperCase()};
-                                            onChange({...dados, sociosEntrando: novos});
-                                        }}
-                                        placeholder="NOME COMPLETO"
-                                        className="bg-zinc-800 border-zinc-700 mt-1"
-                                    />
-                                </div>
-                                <div>
-                                    <Label className="text-zinc-500 text-xs">CPF *</Label>
-                                    <Input 
-                                        value={socio.cpf} 
-                                        onChange={(e) => {
-                                            const novos = [...dados.sociosEntrando];
-                                            novos[idx] = {...novos[idx], cpf: e.target.value};
-                                            onChange({...dados, sociosEntrando: novos});
-                                        }}
-                                        placeholder="000.000.000-00"
-                                        className="bg-zinc-800 border-zinc-700 mt-1"
-                                    />
-                                </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-4 gap-3">
-                                <div>
-                                    <Label className="text-zinc-500 text-xs">RG</Label>
-                                    <Input 
-                                        value={socio.rg} 
-                                        onChange={(e) => {
-                                            const novos = [...dados.sociosEntrando];
-                                            novos[idx] = {...novos[idx], rg: e.target.value};
-                                            onChange({...dados, sociosEntrando: novos});
-                                        }}
-                                        placeholder="00.000.000-0"
-                                        className="bg-zinc-800 border-zinc-700 mt-1"
-                                    />
-                                </div>
-                                <div>
-                                    <Label className="text-zinc-500 text-xs">Órgão Emissor</Label>
-                                    <Input 
-                                        value={socio.orgaoEmissor} 
-                                        onChange={(e) => {
-                                            const novos = [...dados.sociosEntrando];
-                                            novos[idx] = {...novos[idx], orgaoEmissor: e.target.value};
-                                            onChange({...dados, sociosEntrando: novos});
-                                        }}
-                                        placeholder="SSP/SP"
-                                        className="bg-zinc-800 border-zinc-700 mt-1"
-                                    />
-                                </div>
-                                <div>
-                                    <Label className="text-zinc-500 text-xs">Estado Civil</Label>
-                                    <Select 
-                                        value={socio.estadoCivil} 
-                                        onValueChange={(v) => {
-                                            const novos = [...dados.sociosEntrando];
-                                            novos[idx] = {...novos[idx], estadoCivil: v};
-                                            onChange({...dados, sociosEntrando: novos});
-                                        }}
-                                    >
-                                        <SelectTrigger className="bg-zinc-800 border-zinc-700 mt-1">
-                                            <SelectValue placeholder="Selecione" />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-zinc-900 border-zinc-700">
-                                            {ESTADOS_CIVIS.map(ec => (
-                                                <SelectItem key={ec} value={ec}>{ec}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div>
-                                    <Label className="text-zinc-500 text-xs">Participação %</Label>
-                                    <Input 
-                                        value={socio.participacao} 
-                                        onChange={(e) => {
-                                            const novos = [...dados.sociosEntrando];
-                                            novos[idx] = {...novos[idx], participacao: e.target.value};
-                                            onChange({...dados, sociosEntrando: novos});
-                                        }}
-                                        placeholder="50"
-                                        className="bg-zinc-800 border-zinc-700 mt-1"
-                                    />
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <Label className="text-zinc-500 text-xs">Profissão</Label>
-                                <Input 
-                                    value={socio.profissao} 
-                                    onChange={(e) => {
-                                        const novos = [...dados.sociosEntrando];
-                                        novos[idx] = {...novos[idx], profissao: e.target.value};
-                                        onChange({...dados, sociosEntrando: novos});
-                                    }}
-                                    placeholder="Empresário(a)"
-                                    className="bg-zinc-800 border-zinc-700 mt-1"
+                    <div className="grid grid-cols-4 gap-3">
+                        <div>
+                            <Label className="text-zinc-500 text-xs">Bairro <span className="text-red-500">*</span></Label>
+                            <Input
+                                value={enderecoSocio.bairro}
+                                onChange={(e) => onChange({ ...socio, endereco: { ...enderecoSocio, bairro: e.target.value } })}
+                                placeholder="Bairro"
+                                className="bg-zinc-800 border-zinc-700 mt-1"
+                            />
+                        </div>
+                        <div>
+                            <Label className="text-zinc-500 text-xs">Cidade <span className="text-red-500">*</span></Label>
+                            <Input
+                                value={enderecoSocio.cidade}
+                                onChange={(e) => onChange({ ...socio, endereco: { ...enderecoSocio, cidade: e.target.value } })}
+                                placeholder="Cidade"
+                                className="bg-zinc-800 border-zinc-700 mt-1"
+                            />
+                        </div>
+                        <div>
+                            <Label className="text-zinc-500 text-xs">Estado <span className="text-red-500">*</span></Label>
+                            <Select 
+                                value={enderecoSocio.estado} 
+                                onValueChange={(v) => onChange({ ...socio, endereco: { ...enderecoSocio, estado: v } })}
+                            >
+                                <SelectTrigger className="bg-zinc-800 border-zinc-700 mt-1">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-zinc-900 border-zinc-700">
+                                    {ESTADOS.map(uf => (
+                                        <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label className="text-zinc-500 text-xs">CEP <span className="text-red-500">*</span></Label>
+                            <div className="flex gap-2 mt-1">
+                                <Input
+                                    value={enderecoSocio.cep}
+                                    onChange={(e) => onChange({ ...socio, endereco: { ...enderecoSocio, cep: e.target.value } })}
+                                    placeholder="00000-000"
+                                    className="bg-zinc-800 border-zinc-700"
                                 />
-                            </div>
-                            
-                            <div>
-                                <Label className="text-zinc-500 text-xs">Endereço Completo</Label>
-                                <Input 
-                                    value={socio.endereco} 
-                                    onChange={(e) => {
-                                        const novos = [...dados.sociosEntrando];
-                                        novos[idx] = {...novos[idx], endereco: e.target.value};
-                                        onChange({...dados, sociosEntrando: novos});
-                                    }}
-                                    placeholder="Rua, número, bairro, cidade-UF, CEP"
-                                    className="bg-zinc-800 border-zinc-700 mt-1"
-                                />
+                                <Button 
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-zinc-700 px-2"
+                                    onClick={handleBuscarCep}
+                                    disabled={buscandoCep}
+                                >
+                                    {buscandoCep ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                                </Button>
                             </div>
                         </div>
-                    ))}
-                    
-                    {(!dados.sociosEntrando || dados.sociosEntrando.length === 0) && (
-                        <p className="text-zinc-500 text-sm text-center py-4">
-                            Clique em "Adicionar" para incluir novos sócios
-                        </p>
-                    )}
+                    </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 };
-
 // Componente para alteração de endereço
 const FormularioEndereco = ({ dados, onChange, dadosExtraidos }) => {
     const docInputRef = useRef(null);
