@@ -1688,6 +1688,87 @@ async def extrair_campo_documento(
         logger.error(f"Erro ao extrair campo: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.post("/constituicao/extrair-socio")
+async def extrair_dados_socio(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Extrai dados do sócio de um documento (CNH, RG, etc) usando IA"""
+    try:
+        file_content = await file.read()
+        file_base64 = base64.b64encode(file_content).decode('utf-8')
+        
+        # Determinar tipo de arquivo
+        content_type = file.content_type or ''
+        if 'pdf' in content_type:
+            mime_type = 'application/pdf'
+        elif 'image' in content_type:
+            mime_type = content_type
+        else:
+            mime_type = 'application/octet-stream'
+        
+        prompt = """Analise este documento (CNH, RG, comprovante de endereço ou certidão) e extraia os dados pessoais.
+
+Retorne APENAS um JSON válido no seguinte formato:
+{
+    "nome": "NOME COMPLETO EM MAIÚSCULAS",
+    "cpf": "000.000.000-00",
+    "rg": "00.000.000-0",
+    "orgao_emissor": "SSP/UF",
+    "nacionalidade": "Brasileiro(a)",
+    "estado_civil": "Solteiro(a)/Casado(a)/Divorciado(a)/Viúvo(a)",
+    "profissao": "Profissão se disponível",
+    "endereco": "Endereço completo se disponível"
+}
+
+Se algum campo não for encontrado no documento, use null.
+NÃO inclua explicações, apenas o JSON."""
+        
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        
+        emergent_api_key = os.environ.get("EMERGENT_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")
+        
+        # Salvar arquivo temporariamente
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{mime_type.split('/')[-1]}") as tmp:
+            tmp.write(base64.b64decode(file_base64))
+            tmp_path = tmp.name
+        
+        chat = LlmChat(
+            api_key=emergent_api_key,
+            session_id=f"extract-socio-{current_user['id']}",
+            system_message="Você é um extrator de dados de documentos pessoais. Extraia as informações e retorne apenas JSON."
+        ).with_model("gemini", "gemini-2.5-flash")
+        
+        user_message = UserMessage(
+            text=prompt,
+            file_contents=[FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)]
+        )
+        
+        response = await chat.send_message(user_message)
+        
+        # Limpar arquivo temporário
+        import os as os_module
+        os_module.unlink(tmp_path)
+        
+        # Parsear JSON
+        valor = response.strip()
+        try:
+            import json
+            # Remover markdown se houver
+            if '```' in valor:
+                valor = valor.split('```')[1]
+                if valor.startswith('json'):
+                    valor = valor[4:]
+            dados = json.loads(valor.strip())
+            return {"success": True, "dados": dados}
+        except:
+            return {"success": False, "error": "Não foi possível extrair os dados"}
+        
+    except Exception as e:
+        logger.error(f"Erro ao extrair dados do sócio: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/constituicao/gerar-objeto-social")
 async def gerar_objeto_social(
     request: dict,
