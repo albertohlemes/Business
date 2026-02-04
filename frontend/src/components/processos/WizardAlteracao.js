@@ -850,6 +850,141 @@ const FormularioAdministracao = ({ dados, onChange, dadosExtraidos }) => {
     );
 };
 
+// Componente para outras alterações (cláusulas específicas)
+const FormularioOutras = ({ dados, onChange, dadosExtraidos }) => {
+    const clausulas = dadosExtraidos?.clausulas || [];
+    
+    const toggleClausula = (idx) => {
+        const clausulasParaAlterar = dados.clausulasParaAlterar || [];
+        const existe = clausulasParaAlterar.find(c => c.indice === idx);
+        if (existe) {
+            onChange({
+                ...dados, 
+                clausulasParaAlterar: clausulasParaAlterar.filter(c => c.indice !== idx)
+            });
+        } else {
+            onChange({
+                ...dados, 
+                clausulasParaAlterar: [...clausulasParaAlterar, { 
+                    indice: idx, 
+                    textoOriginal: clausulas[idx]?.texto || clausulas[idx],
+                    textoNovo: '' 
+                }]
+            });
+        }
+    };
+    
+    const atualizarTextoNovo = (idx, texto) => {
+        const clausulasParaAlterar = dados.clausulasParaAlterar || [];
+        onChange({
+            ...dados,
+            clausulasParaAlterar: clausulasParaAlterar.map(c => 
+                c.indice === idx ? { ...c, textoNovo: texto } : c
+            )
+        });
+    };
+    
+    return (
+        <div className="space-y-6">
+            <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
+                <h4 className="text-white font-medium mb-4 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-red-500" />
+                    Cláusulas do Contrato
+                </h4>
+                <p className="text-zinc-500 text-sm mb-4">
+                    Selecione as cláusulas que deseja alterar e insira o novo texto.
+                </p>
+                
+                {clausulas.length > 0 ? (
+                    <div className="space-y-3">
+                        {clausulas.map((clausula, idx) => {
+                            const texto = typeof clausula === 'string' ? clausula : clausula.texto;
+                            const titulo = typeof clausula === 'object' ? clausula.titulo : `Cláusula ${idx + 1}`;
+                            const selecionada = dados.clausulasParaAlterar?.find(c => c.indice === idx);
+                            
+                            return (
+                                <div key={idx} className={`rounded-lg border ${selecionada ? 'border-red-500 bg-red-500/5' : 'border-zinc-800'}`}>
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleClausula(idx)}
+                                        className="w-full p-3 flex items-start gap-3 text-left"
+                                    >
+                                        <Checkbox checked={!!selecionada} />
+                                        <div className="flex-1">
+                                            <p className="text-white font-medium text-sm">{titulo}</p>
+                                            <p className="text-zinc-500 text-xs mt-1 line-clamp-2">{texto?.substring(0, 150)}...</p>
+                                        </div>
+                                    </button>
+                                    
+                                    {selecionada && (
+                                        <div className="p-3 pt-0 space-y-3 border-t border-zinc-800">
+                                            <div>
+                                                <Label className="text-zinc-500 text-xs">Texto Original</Label>
+                                                <div className="bg-zinc-900 p-2 rounded text-xs text-zinc-400 max-h-24 overflow-y-auto mt-1">
+                                                    {selecionada.textoOriginal}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <Label className="text-zinc-400 text-xs">Novo Texto da Cláusula *</Label>
+                                                <Textarea
+                                                    value={selecionada.textoNovo}
+                                                    onChange={(e) => atualizarTextoNovo(idx, e.target.value)}
+                                                    placeholder="Digite o novo texto para esta cláusula..."
+                                                    className="bg-zinc-900 border-zinc-700 mt-1"
+                                                    rows={4}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="text-center py-8">
+                        <FileText className="w-12 h-12 mx-auto text-zinc-600 mb-3" />
+                        <p className="text-zinc-500 text-sm">
+                            Nenhuma cláusula identificada no contrato.
+                        </p>
+                        <p className="text-zinc-600 text-xs mt-1">
+                            Faça o upload do contrato na etapa 1 para extrair as cláusulas.
+                        </p>
+                    </div>
+                )}
+            </div>
+            
+            {/* Campo para adicionar cláusula manualmente */}
+            <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
+                <h4 className="text-white font-medium mb-4 flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-green-500" />
+                    Adicionar Alteração Manual
+                </h4>
+                <div className="space-y-3">
+                    <div>
+                        <Label className="text-zinc-400 text-xs">Identificação da Cláusula</Label>
+                        <Input
+                            value={dados.clausulaManualTitulo || ''}
+                            onChange={(e) => onChange({...dados, clausulaManualTitulo: e.target.value})}
+                            placeholder="Ex: Cláusula 5ª - Do Objeto Social"
+                            className="bg-zinc-900 border-zinc-700 mt-1"
+                        />
+                    </div>
+                    <div>
+                        <Label className="text-zinc-400 text-xs">Novo Texto</Label>
+                        <Textarea
+                            value={dados.clausulaManualTexto || ''}
+                            onChange={(e) => onChange({...dados, clausulaManualTexto: e.target.value})}
+                            placeholder="Digite o novo texto que deve constar na cláusula..."
+                            className="bg-zinc-900 border-zinc-700 mt-1"
+                            rows={4}
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // Componente principal do Wizard
 const WizardAlteracao = ({ open, onClose, onComplete }) => {
     const [step, setStep] = useState(1);
