@@ -368,8 +368,12 @@ class TemplateManagerFiel:
                 para.paragraph_format.line_spacing = linha_spacing
     
     def _limpar_markdown(self, texto: str) -> str:
-        """Remove marcações Markdown do texto"""
+        """Remove marcações Markdown e caracteres decorativos do texto"""
         import re
+        
+        # Remover linhas decorativas (======, ------, ******, etc)
+        if re.match(r'^[=\-*_]{3,}$', texto.strip()):
+            return ''
         
         # Remover cabeçalhos markdown (### Título)
         texto = re.sub(r'^#{1,6}\s*', '', texto)
