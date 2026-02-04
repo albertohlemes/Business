@@ -298,6 +298,8 @@ const Minutas = () => {
         return <span className={`badge ${styles[status] || 'badge-pending'}`}>{labels[status] || status}</span>;
     };
 
+    const tipoSel = TIPOS_ALTERACAO.find(t => t.value === tipoAlteracao);
+
     return (
         <div className="p-8 fade-in" data-testid="minutas-page">
             <div className="mb-8">
