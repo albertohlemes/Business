@@ -3735,7 +3735,6 @@ async def list_exceptions(
 async def export_sped(
     company_id: str,
     competencia: Optional[str] = None,
-    periodo: str = "012024",
     current_user: User = Depends(get_current_user)
 ):
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
@@ -3762,6 +3761,8 @@ async def export_sped(
     
     company_obj = Company(**company)
     
+    # Usar competência para gerar o período correto
+    periodo = competencia or "01/2024"
     sped_content = generate_sped_fiscal(company_obj, xml_docs, periodo)
     
     return {
