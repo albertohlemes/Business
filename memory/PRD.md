@@ -12,78 +12,81 @@ Portal para departamento societário com geração de documentos via IA.
 ## Implementações Concluídas
 
 ### ✅ Wizard de Constituição Completo (04/02/2026)
-Wizard de 6 etapas para criação de contratos sociais:
 
 **Etapa 1 - Dados da Empresa:**
-- Razão Social (em maiúsculas automático)
+- Razão Social (maiúsculas automático) *
 - Nome Fantasia
-- Capital Social formatado como moeda (R$ 0,00)
-- Capital por Extenso **gerado automaticamente por IA**
+- Capital Social formatado como moeda (R$ 0,00) *
+- Capital por Extenso **gerado automaticamente**
 
-**Etapa 2 - Qualificação dos Sócios:**
-- Número dinâmico de sócios (+ / -)
-- Botão **"Preencher com IA"** em cada sócio
-- Extração automática de dados de CNH, RG, comprovantes
-- Campos: Nome, CPF, RG, Órgão Emissor, Nacionalidade, Estado Civil, Regime Casamento, Profissão, Endereço
+**Etapa 2 - Qualificação dos Sócios (TODOS CAMPOS OBRIGATÓRIOS):**
+- Botão **"✨ Preencher Dados com IA"** para extração de CNH/RG
+- Botão **"✨ Preencher Endereço com IA"** para extração de comprovante
+- Dados pessoais: Nome*, CPF*, RG*, Órgão Emissor*, Nacionalidade*, Estado Civil*, Profissão*
+- **Endereço Residencial completo** (mesmo padrão da empresa):
+  - Logradouro*, Número*, Complemento, Bairro*, Cidade*, Estado*, CEP*
 
 **Etapa 3 - Participação Societária:**
 - Tabela interativa com cálculo automático
-- Valor em R$ calculado por participação %
 - Validação de 100% total
 - Checkbox de administrador
 
-**Etapa 4 - Endereço da Empresa:**
-- Botão **"Preencher com IA"** para extração de documentos
-- Campos: Logradouro, Número, Complemento, Bairro, Cidade, Estado, CEP
+**Etapa 4 - Endereço da Empresa (TODOS CAMPOS OBRIGATÓRIOS):**
+- Botão **"✨ Preencher com IA"**
+- Logradouro*, Número*, Complemento, Bairro*, Cidade*, Estado*, CEP*
 
 **Etapa 5 - CNAEs e Objeto Social:**
-- Adição de múltiplos CNAEs
-- Botão **"Gerar com IA"** para objeto social automático
-- Geração jurídica baseada nos CNAEs
+- **Banco de CNAEs** com 40+ atividades mais comuns
+- Busca por código ou descrição
+- Adição manual de CNAEs não listados
+- Botão **"✨ Gerar com IA"** para objeto social
 
 **Etapa 6 - Resultado:**
-- Contrato social completo gerado por IA
+- Contrato social completo
 - Download em Word e PDF
 - Cópia para área de transferência
 
-### ✅ Reestruturação de Nomenclatura (04/02/2026)
-- "Minuta" → "Processo" em toda a aplicação
-- Ordem das abas: **Constituição** → **Alteração** → **Baixa**
-- Lista de processos agrupada por cliente
+### ✅ Estrutura de Abas (04/02/2026)
+- Ordem: **Constituição** → **Alteração** → **Baixa**
+- Nomenclatura: "Minuta" → "Processo"
 
 ### ✅ Correção do Bug de PDF (04/02/2026)
-- Logo no cabeçalho do PDF
-- Rodapé corretamente alinhado
+- Logo no cabeçalho
+- Rodapé alinhado
+
+## Banco de CNAEs Incluídos
+- Desenvolvimento de software (62.01, 62.02, 62.03)
+- Consultoria em TI (62.04)
+- Contabilidade (69.20)
+- Advocacia (69.11)
+- Consultoria empresarial (70.20)
+- Publicidade e marketing (73.11, 73.19)
+- Design (74.10)
+- Comércio varejista (47.xx)
+- Restaurantes e lanchonetes (56.11)
+- Construção civil (41.20, 43.xx)
+- E mais 30+ atividades comuns
 
 ## Arquivos Principais
 ```
-/app/backend/
-├── server.py                  # Endpoints FastAPI
-│   ├── /api/constituicao/extrair-campo     # Extrai campo de documento
-│   ├── /api/constituicao/extrair-socio     # Extrai dados de sócio (CNH, RG)
-│   ├── /api/constituicao/gerar-objeto-social  # Gera objeto social via IA
-│   └── /api/constituicao/gerar-contrato    # Gera contrato completo
-├── jspdf_wrapper.py           # Gerador de PDF com logo
-└── gerador_formatado.py       # Gerador de Word
+/app/frontend/src/components/processos/
+├── WizardConstituicao.js  # Wizard de 6 etapas com banco de CNAEs
+├── WizardAlteracao.js     # Wizard de alteração
+└── ListaProcessos.js      # Lista agrupada por cliente
 
-/app/frontend/src/
-├── pages/
-│   └── Processos.js           # Página principal com abas
-├── components/processos/
-│   ├── ListaProcessos.js      # Lista agrupada por cliente
-│   ├── WizardAlteracao.js     # Wizard de alteração (4 etapas)
-│   └── WizardConstituicao.js  # Wizard de constituição (6 etapas)
-└── App.js                     # Rotas
+/app/backend/server.py
+├── /api/constituicao/extrair-campo     # Extrai campo de documento
+├── /api/constituicao/extrair-socio     # Extrai dados de sócio
+├── /api/constituicao/gerar-objeto-social
+└── /api/constituicao/gerar-contrato
 ```
 
 ## Backlog
 
-### P0 - Alta Prioridade
-- ✅ COMPLETO: Wizard de Constituição
-
 ### P1 - Média Prioridade
-- ⏳ Implementar processo de **Baixa** de empresas
-- ⏳ Melhorar extração de dados de documentos (OCR mais preciso)
+- ⏳ Implementar processo de **Baixa**
+- ⏳ Adicionar mais CNAEs ao banco de dados
+- ⏳ Busca de CEP automática via API
 
 ### P2 - Baixa Prioridade
 - ⏳ Reativar automação REDESIM
