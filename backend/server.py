@@ -1547,15 +1547,28 @@ async def get_dashboard_stats(
     debito_icms = 0
     debito_pis_xml = 0  # Valor que veio no XML
     debito_cofins_xml = 0  # Valor que veio no XML
-    total_base_pis_cofins = 0  # Base de cálculo para PIS/COFINS
+    total_base_pis_cofins = 0  # Base de cálculo para PIS/COFINS (apenas produtos TRIBUTADOS)
+    total_aliquota_zero = 0  # Total de produtos com alíquota zero (não geram débito)
     
     for doc in nfe_saida + nfce:
         for prod in doc.get('produtos', []):
             debito_icms += float(prod.get('v_icms', 0) or 0)
             debito_pis_xml += float(prod.get('v_pis', 0) or 0)
             debito_cofins_xml += float(prod.get('v_cofins', 0) or 0)
-            # Base de cálculo (valor do produto) - usa valor_total que é o campo correto
-            total_base_pis_cofins += float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
+            
+            valor_prod = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
+            ncm = prod.get('ncm', '')
+            
+            # Verificar se o produto é de alíquota zero pelo NCM ou pelo CST calculado
+            ncm_aliq_zero = prod.get('ncm_aliq_zero', is_ncm_aliquota_zero(ncm))
+            cst_calculado = str(prod.get('cst_pis_calculado', prod.get('cst_pis', ''))).strip()
+            
+            # Produto é alíquota zero se: NCM está na lista OU CST é 06 (calculado)
+            if ncm_aliq_zero or cst_calculado == '06':
+                total_aliquota_zero += valor_prod
+            else:
+                # Apenas produtos TRIBUTADOS entram na base de cálculo do débito
+                total_base_pis_cofins += valor_prod
     
     # Para Lucro Real, usar alíquotas corretas e verificar divergências
     divergencias_pis_cofins = []
