@@ -17,7 +17,7 @@ const Layout = ({ children }) => {
 
     const navItems = [
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/minutas', label: 'Minutas', icon: FileText },
+        { path: '/processos', label: 'Processos', icon: FileText },
         { path: '/certificados', label: 'Certificados', icon: Shield },
         { path: '/licencas', label: 'Licenças', icon: FileCheck },
     ];
