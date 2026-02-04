@@ -2111,32 +2111,22 @@ async def apuracao_pis_cofins(
             
             # Saídas (débitos)
             elif is_saida:
-                # Usar CST do PIS do XML quando disponível, senão calcular
-                cst_real = cst_pis if cst_pis else None
+                cst_usado = cst_calculado or calcular_cst_pis_cofins(ncm, cfop, 'saida', cst_xml, regime)['cst_calculado']
                 
-                if aliq_zero:
+                if aliq_zero or cst_usado == '06':
                     # Alíquota zero - CST 06 - não gera débito
-                    cst_usado = cst_real or "06"
-                    add_to_dict(debitos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0, cst_usado)
-                    add_to_dict(debitos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, cst_usado)
-                    add_to_dict(debitos["aliquota_zero"]["por_cst"], cst_usado, valor, 0, 0, cst_usado)
+                    add_to_dict(debitos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0, '06')
+                    add_to_dict(debitos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, '06')
+                    add_to_dict(debitos["aliquota_zero"]["por_cst"], '06', valor, 0, 0, '06')
                     debitos["aliquota_zero"]["total"] += valor
-                elif cfop in CFOPS_DEBITO_PIS_COFINS or not cfop:
+                else:
                     # Gera débito - CST 01
-                    cst_usado = cst_real or "01"
-                    add_to_dict(debitos["com_debito"]["por_cfop"], cfop_key, valor, v_pis, v_cofins, cst_usado)
-                    add_to_dict(debitos["com_debito"]["por_ncm"], ncm or "SEM NCM", valor, v_pis, v_cofins, cst_usado)
-                    add_to_dict(debitos["com_debito"]["por_cst"], cst_usado, valor, v_pis, v_cofins, cst_usado)
+                    add_to_dict(debitos["com_debito"]["por_cfop"], cfop_key, valor, v_pis, v_cofins, '01')
+                    add_to_dict(debitos["com_debito"]["por_ncm"], ncm or "SEM NCM", valor, v_pis, v_cofins, '01')
+                    add_to_dict(debitos["com_debito"]["por_cst"], '01', valor, v_pis, v_cofins, '01')
                     debitos["com_debito"]["total"] += valor
                     debitos["com_debito"]["pis"] += v_pis
                     debitos["com_debito"]["cofins"] += v_cofins
-                else:
-                    # CFOP não gera débito - CST 06
-                    cst_usado = cst_real or "06"
-                    add_to_dict(debitos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0, cst_usado)
-                    add_to_dict(debitos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, cst_usado)
-                    add_to_dict(debitos["aliquota_zero"]["por_cst"], cst_usado, valor, 0, 0, cst_usado)
-                    debitos["aliquota_zero"]["total"] += valor
     
     # Converter dicionários para listas ordenadas
     def dict_to_list(d):
