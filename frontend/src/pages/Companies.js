@@ -564,29 +564,13 @@ const Companies = ({ user, onLogout }) => {
                   </div>
                 )}
 
-                {/* Estoque para Lucro Real */}
+                {/* Aviso sobre Estoque (Lucro Real) */}
                 {formData.regime_tributario === 'lucro_real' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Estoque Inicial (R$)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={formData.estoque_inicial}
-                        onChange={(e) => setFormData({ ...formData, estoque_inicial: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Estoque Final (R$)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={formData.estoque_final}
-                        onChange={(e) => setFormData({ ...formData, estoque_final: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                      />
-                    </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-blue-700">
+                      <strong>Nota:</strong> O estoque (inicial e final) é informado na página de <strong>Apuração Mensal</strong>, 
+                      pois varia a cada competência e é usado para calcular o CMV/CPV.
+                    </p>
                   </div>
                 )}
 
