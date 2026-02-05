@@ -11,27 +11,6 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Componente de ícone de ordenação
-const SortIcon = ({ active, direction }) => {
-  if (!active) return <ChevronUp className="w-3 h-3 opacity-30" />;
-  return direction === 'asc' 
-    ? <ChevronUp className="w-3 h-3" /> 
-    : <ChevronDown className="w-3 h-3" />;
-};
-
-// Header de coluna ordenável
-const SortableHeader = ({ label, sortKey, sortConfig, onSort, className = '' }) => (
-  <th className={`px-2 py-2 text-xs font-semibold text-gray-600 whitespace-nowrap ${className}`}>
-    <button 
-      onClick={() => onSort(sortKey)} 
-      className="flex items-center gap-1 hover:text-gray-900 transition"
-    >
-      {label}
-      <SortIcon active={sortConfig.key === sortKey} direction={sortConfig.direction} />
-    </button>
-  </th>
-);
-
 const AnalisePisCofins = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia } = useAppContext();
   const [dados, setDados] = useState(null);
@@ -67,16 +46,59 @@ const AnalisePisCofins = ({ user, onLogout }) => {
   const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   const formatPercent = (value) => `${(value || 0).toFixed(2)}%`;
 
-  const requestSort = (key) => {
+  // Função de ordenação - alterna entre asc/desc
+  const handleSort = (key) => {
     setSortConfig(prev => ({
       key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
     }));
   };
 
-  const renderSortableHeader = (label, sortKey, className = '') => (
-    <SortableHeader label={label} sortKey={sortKey} sortConfig={sortConfig} onSort={requestSort} className={className} />
+  // Componente de header ordenável inline
+  const SortHeader = ({ label, sortKey, className = '' }) => (
+    <th 
+      className={`px-2 py-2 text-xs font-semibold text-gray-600 cursor-pointer hover:bg-gray-200 select-none ${className}`}
+      onClick={() => handleSort(sortKey)}
+    >
+      <div className="flex items-center gap-1 justify-center">
+        <span>{label}</span>
+        {sortConfig.key === sortKey ? (
+          sortConfig.direction === 'asc' ? 
+            <ChevronUp className="w-3 h-3 text-red-600" /> : 
+            <ChevronDown className="w-3 h-3 text-red-600" />
+        ) : (
+          <ChevronUp className="w-3 h-3 opacity-20" />
+        )}
+      </div>
+    </th>
   );
+
+  // Função genérica de ordenação
+  const sortData = (data) => {
+    if (!data || !sortConfig.key) return data;
+    
+    return [...data].sort((a, b) => {
+      let aVal = a[sortConfig.key];
+      let bVal = b[sortConfig.key];
+      
+      // Handle null/undefined
+      if (aVal == null) aVal = '';
+      if (bVal == null) bVal = '';
+      
+      // Numeric comparison
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      
+      // String comparison
+      const aStr = String(aVal).toLowerCase();
+      const bStr = String(bVal).toLowerCase();
+      
+      if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
 
   // Lista plana de produtos divergentes
   const produtosDivergentes = useMemo(() => {
@@ -104,13 +126,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
       );
     }
     
-    lista.sort((a, b) => {
-      let aVal = a[sortConfig.key] ?? 0, bVal = b[sortConfig.key] ?? 0;
-      if (typeof aVal === 'number') return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
-      if (typeof aVal === 'string') { aVal = aVal.toLowerCase(); bVal = (bVal || '').toLowerCase(); }
-      return sortConfig.direction === 'asc' ? (aVal < bVal ? -1 : 1) : (aVal > bVal ? -1 : 1);
-    });
-    return lista;
+    return sortData(lista);
   }, [dados, filtroTipo, busca, sortConfig]);
 
   // Agrupamentos
@@ -122,12 +138,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
       const s = busca.toLowerCase();
       lista = lista.filter(p => p.descricao?.toLowerCase().includes(s) || p.ncm?.includes(busca));
     }
-    lista.sort((a, b) => {
-      let aVal = a[sortConfig.key] ?? 0, bVal = b[sortConfig.key] ?? 0;
-      if (typeof aVal === 'number') return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
-      return 0;
-    });
-    return lista;
+    return sortData(lista);
   }, [dados, filtroTipo, busca, sortConfig]);
 
   const agrupadoPorNCM = useMemo(() => {
@@ -135,12 +146,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
     let lista = [...dados.agrupamentos.por_ncm];
     if (filtroTipo !== 'todos') lista = lista.filter(p => p.tipo_divergencia === filtroTipo);
     if (busca) lista = lista.filter(p => p.ncm?.includes(busca));
-    lista.sort((a, b) => {
-      let aVal = a[sortConfig.key] ?? 0, bVal = b[sortConfig.key] ?? 0;
-      if (typeof aVal === 'number') return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
-      return 0;
-    });
-    return lista;
+    return sortData(lista);
   }, [dados, filtroTipo, busca, sortConfig]);
 
   // CSV Export
@@ -294,6 +300,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                   ))}
                 </div>
               </div>
+              <p className="text-[10px] text-gray-400 mt-2">Clique no cabeçalho de qualquer coluna para ordenar ↑↓</p>
             </div>
 
             {/* Tabela Por NF */}
@@ -303,51 +310,47 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                   <table className="w-full text-xs">
                     <thead className="bg-gray-100">
                       <tr>
-                        {renderSortableHeader("NF", "numero_nfe", "text-left")}
-                        {renderSortableHeader("Produto", "descricao", "text-left")}
-                        {renderSortableHeader("NCM", "ncm", "text-left")}
-                        {renderSortableHeader("Valor", "valor_produto", "text-right")}
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>CST PIS</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>Alíq PIS</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>Valor PIS</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>CST COF</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>Alíq COF</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>Valor COF</th>
-                        {renderSortableHeader("Impacto", "impacto_total", "text-right")}
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600">Tipo</th>
-                      </tr>
-                      <tr className="bg-gray-50 text-[10px] text-gray-500">
-                        <th colSpan={4}></th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th colSpan={2}></th>
+                        <SortHeader label="NF" sortKey="numero_nfe" />
+                        <SortHeader label="Produto" sortKey="descricao" />
+                        <SortHeader label="NCM" sortKey="ncm" />
+                        <SortHeader label="Valor" sortKey="valor_produto" />
+                        <SortHeader label="CST PIS XML" sortKey="cst_pis_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="CST PIS OK" sortKey="cst_pis_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="Alíq PIS XML" sortKey="aliq_pis_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="Alíq PIS OK" sortKey="aliq_pis_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="PIS XML" sortKey="v_pis_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="PIS OK" sortKey="v_pis_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="CST COF XML" sortKey="cst_cofins_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="CST COF OK" sortKey="cst_cofins_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="Alíq COF XML" sortKey="aliq_cofins_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="Alíq COF OK" sortKey="aliq_cofins_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="COF XML" sortKey="v_cofins_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="COF OK" sortKey="v_cofins_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="Impacto" sortKey="impacto_total" className="bg-amber-50" />
+                        <SortHeader label="Tipo" sortKey="tipo_divergencia" />
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {produtosDivergentes.map((p, i) => (
                         <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-2 py-1.5"><div className="font-medium">{p.numero_nfe}</div><div className="text-[10px] text-gray-400 truncate max-w-[80px]">{p.cliente}</div></td>
-                          <td className="px-2 py-1.5"><div className="truncate max-w-[150px]" title={p.descricao}>{p.descricao}</div></td>
-                          <td className="px-2 py-1.5 font-mono">{p.ncm}</td>
+                          <td className="px-2 py-1.5 text-center">{p.numero_nfe}</td>
+                          <td className="px-2 py-1.5"><div className="truncate max-w-[120px]" title={p.descricao}>{p.descricao}</div></td>
+                          <td className="px-2 py-1.5 font-mono text-center">{p.ncm}</td>
                           <td className="px-2 py-1.5 text-right">{formatCurrency(p.valor_produto)}</td>
-                          <td className="px-1 py-1.5 text-center text-red-600">{p.cst_pis_atual || '-'}</td>
-                          <td className="px-1 py-1.5 text-center text-green-600">{p.cst_pis_correto || '-'}</td>
-                          <td className="px-1 py-1.5 text-center text-red-600">{formatPercent(p.aliq_pis_atual)}</td>
-                          <td className="px-1 py-1.5 text-center text-green-600">{formatPercent(p.aliq_pis_correto)}</td>
-                          <td className="px-1 py-1.5 text-right text-red-600">{formatCurrency(p.v_pis_atual)}</td>
-                          <td className="px-1 py-1.5 text-right text-green-600">{formatCurrency(p.v_pis_correto)}</td>
-                          <td className="px-1 py-1.5 text-center text-red-600">{p.cst_cofins_atual || '-'}</td>
-                          <td className="px-1 py-1.5 text-center text-green-600">{p.cst_cofins_correto || '-'}</td>
-                          <td className="px-1 py-1.5 text-center text-red-600">{formatPercent(p.aliq_cofins_atual)}</td>
-                          <td className="px-1 py-1.5 text-center text-green-600">{formatPercent(p.aliq_cofins_correto)}</td>
-                          <td className="px-1 py-1.5 text-right text-red-600">{formatCurrency(p.v_cofins_atual)}</td>
-                          <td className="px-1 py-1.5 text-right text-green-600">{formatCurrency(p.v_cofins_correto)}</td>
-                          <td className="px-2 py-1.5 text-right font-bold text-amber-600">{formatCurrency(p.impacto_total)}</td>
-                          <td className="px-2 py-1.5"><span className={`px-1.5 py-0.5 rounded text-[10px] ${getTipoDivergenciaColor(p.tipo_divergencia)}`}>{getTipoDivergenciaLabel(p.tipo_divergencia)}</span></td>
+                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{p.cst_pis_atual || '-'}</td>
+                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{p.cst_pis_correto || '-'}</td>
+                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{formatPercent(p.aliq_pis_atual)}</td>
+                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{formatPercent(p.aliq_pis_correto)}</td>
+                          <td className="px-2 py-1.5 text-right text-red-600 bg-red-50/50">{formatCurrency(p.v_pis_atual)}</td>
+                          <td className="px-2 py-1.5 text-right text-green-600 bg-green-50/50">{formatCurrency(p.v_pis_correto)}</td>
+                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{p.cst_cofins_atual || '-'}</td>
+                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{p.cst_cofins_correto || '-'}</td>
+                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{formatPercent(p.aliq_cofins_atual)}</td>
+                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{formatPercent(p.aliq_cofins_correto)}</td>
+                          <td className="px-2 py-1.5 text-right text-red-600 bg-red-50/50">{formatCurrency(p.v_cofins_atual)}</td>
+                          <td className="px-2 py-1.5 text-right text-green-600 bg-green-50/50">{formatCurrency(p.v_cofins_correto)}</td>
+                          <td className="px-2 py-1.5 text-right font-bold text-amber-600 bg-amber-50/50">{formatCurrency(p.impacto_total)}</td>
+                          <td className="px-2 py-1.5"><span className={`px-1 py-0.5 rounded text-[9px] ${getTipoDivergenciaColor(p.tipo_divergencia)}`}>{getTipoDivergenciaLabel(p.tipo_divergencia)}</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -363,51 +366,47 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                   <table className="w-full text-xs">
                     <thead className="bg-gray-100">
                       <tr>
-                        {renderSortableHeader("Produto", "descricao", "text-left")}
-                        {renderSortableHeader("NCM", "ncm", "text-left")}
-                        {renderSortableHeader("Qtd", "qtd_ocorrencias", "text-center")}
-                        {renderSortableHeader("Valor Total", "valor_total", "text-right")}
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>CST PIS</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>Alíq PIS</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>Valor PIS</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>CST COF</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>Alíq COF</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>Valor COF</th>
-                        {renderSortableHeader("Impacto", "impacto_total", "text-right")}
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600">Tipo</th>
-                      </tr>
-                      <tr className="bg-gray-50 text-[10px] text-gray-500">
-                        <th colSpan={4}></th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th colSpan={2}></th>
+                        <SortHeader label="Produto" sortKey="descricao" />
+                        <SortHeader label="NCM" sortKey="ncm" />
+                        <SortHeader label="Qtd" sortKey="qtd_ocorrencias" />
+                        <SortHeader label="Valor Total" sortKey="valor_total" />
+                        <SortHeader label="CST PIS XML" sortKey="cst_pis_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="CST PIS OK" sortKey="cst_pis_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="Alíq PIS XML" sortKey="aliq_pis_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="Alíq PIS OK" sortKey="aliq_pis_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="PIS XML" sortKey="v_pis_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="PIS OK" sortKey="v_pis_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="CST COF XML" sortKey="cst_cofins_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="CST COF OK" sortKey="cst_cofins_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="Alíq COF XML" sortKey="aliq_cofins_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="Alíq COF OK" sortKey="aliq_cofins_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="COF XML" sortKey="v_cofins_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="COF OK" sortKey="v_cofins_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="Impacto" sortKey="impacto_total" className="bg-amber-50" />
+                        <SortHeader label="Tipo" sortKey="tipo_divergencia" />
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {agrupadoPorProduto.map((p, i) => (
                         <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-2 py-1.5"><div className="truncate max-w-[180px] font-medium" title={p.descricao}>{p.descricao}</div></td>
-                          <td className="px-2 py-1.5 font-mono">{p.ncm}</td>
+                          <td className="px-2 py-1.5"><div className="truncate max-w-[140px] font-medium" title={p.descricao}>{p.descricao}</div></td>
+                          <td className="px-2 py-1.5 font-mono text-center">{p.ncm}</td>
                           <td className="px-2 py-1.5 text-center">{p.qtd_ocorrencias}</td>
                           <td className="px-2 py-1.5 text-right">{formatCurrency(p.valor_total)}</td>
-                          <td className="px-1 py-1.5 text-center text-red-600">{p.cst_pis_atual || '-'}</td>
-                          <td className="px-1 py-1.5 text-center text-green-600">{p.cst_pis_correto || '-'}</td>
-                          <td className="px-1 py-1.5 text-center text-red-600">{formatPercent(p.aliq_pis_atual)}</td>
-                          <td className="px-1 py-1.5 text-center text-green-600">{formatPercent(p.aliq_pis_correto)}</td>
-                          <td className="px-1 py-1.5 text-right text-red-600">{formatCurrency(p.v_pis_atual)}</td>
-                          <td className="px-1 py-1.5 text-right text-green-600">{formatCurrency(p.v_pis_correto)}</td>
-                          <td className="px-1 py-1.5 text-center text-red-600">{p.cst_cofins_atual || '-'}</td>
-                          <td className="px-1 py-1.5 text-center text-green-600">{p.cst_cofins_correto || '-'}</td>
-                          <td className="px-1 py-1.5 text-center text-red-600">{formatPercent(p.aliq_cofins_atual)}</td>
-                          <td className="px-1 py-1.5 text-center text-green-600">{formatPercent(p.aliq_cofins_correto)}</td>
-                          <td className="px-1 py-1.5 text-right text-red-600">{formatCurrency(p.v_cofins_atual)}</td>
-                          <td className="px-1 py-1.5 text-right text-green-600">{formatCurrency(p.v_cofins_correto)}</td>
-                          <td className="px-2 py-1.5 text-right font-bold text-amber-600">{formatCurrency(p.impacto_total)}</td>
-                          <td className="px-2 py-1.5"><span className={`px-1.5 py-0.5 rounded text-[10px] ${getTipoDivergenciaColor(p.tipo_divergencia)}`}>{getTipoDivergenciaLabel(p.tipo_divergencia)}</span></td>
+                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{p.cst_pis_atual || '-'}</td>
+                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{p.cst_pis_correto || '-'}</td>
+                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{formatPercent(p.aliq_pis_atual)}</td>
+                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{formatPercent(p.aliq_pis_correto)}</td>
+                          <td className="px-2 py-1.5 text-right text-red-600 bg-red-50/50">{formatCurrency(p.v_pis_atual)}</td>
+                          <td className="px-2 py-1.5 text-right text-green-600 bg-green-50/50">{formatCurrency(p.v_pis_correto)}</td>
+                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{p.cst_cofins_atual || '-'}</td>
+                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{p.cst_cofins_correto || '-'}</td>
+                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{formatPercent(p.aliq_cofins_atual)}</td>
+                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{formatPercent(p.aliq_cofins_correto)}</td>
+                          <td className="px-2 py-1.5 text-right text-red-600 bg-red-50/50">{formatCurrency(p.v_cofins_atual)}</td>
+                          <td className="px-2 py-1.5 text-right text-green-600 bg-green-50/50">{formatCurrency(p.v_cofins_correto)}</td>
+                          <td className="px-2 py-1.5 text-right font-bold text-amber-600 bg-amber-50/50">{formatCurrency(p.impacto_total)}</td>
+                          <td className="px-2 py-1.5"><span className={`px-1 py-0.5 rounded text-[9px] ${getTipoDivergenciaColor(p.tipo_divergencia)}`}>{getTipoDivergenciaLabel(p.tipo_divergencia)}</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -423,51 +422,47 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                   <table className="w-full text-xs">
                     <thead className="bg-gray-100">
                       <tr>
-                        {renderSortableHeader("NCM", "ncm", "text-left")}
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-left">Produtos</th>
-                        {renderSortableHeader("Qtd", "qtd_ocorrencias", "text-center")}
-                        {renderSortableHeader("Valor Total", "valor_total", "text-right")}
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>CST PIS</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>Alíq PIS</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>Valor PIS</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>CST COF</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>Alíq COF</th>
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600 text-center" colSpan={2}>Valor COF</th>
-                        {renderSortableHeader("Impacto", "impacto_total", "text-right")}
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600">Tipo</th>
-                      </tr>
-                      <tr className="bg-gray-50 text-[10px] text-gray-500">
-                        <th colSpan={4}></th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th className="px-1 py-0.5 text-red-600">XML</th><th className="px-1 py-0.5 text-green-600">OK</th>
-                        <th colSpan={2}></th>
+                        <SortHeader label="NCM" sortKey="ncm" />
+                        <th className="px-2 py-2 text-xs font-semibold text-gray-600">Produtos</th>
+                        <SortHeader label="Qtd" sortKey="qtd_ocorrencias" />
+                        <SortHeader label="Valor Total" sortKey="valor_total" />
+                        <SortHeader label="CST PIS XML" sortKey="cst_pis_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="CST PIS OK" sortKey="cst_pis_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="Alíq PIS XML" sortKey="aliq_pis_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="Alíq PIS OK" sortKey="aliq_pis_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="PIS XML" sortKey="v_pis_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="PIS OK" sortKey="v_pis_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="CST COF XML" sortKey="cst_cofins_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="CST COF OK" sortKey="cst_cofins_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="Alíq COF XML" sortKey="aliq_cofins_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="Alíq COF OK" sortKey="aliq_cofins_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="COF XML" sortKey="v_cofins_atual" className="text-red-600 bg-red-50" />
+                        <SortHeader label="COF OK" sortKey="v_cofins_correto" className="text-green-600 bg-green-50" />
+                        <SortHeader label="Impacto" sortKey="impacto_total" className="bg-amber-50" />
+                        <SortHeader label="Tipo" sortKey="tipo_divergencia" />
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {agrupadoPorNCM.map((p, i) => (
                         <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-2 py-1.5 font-mono font-bold">{p.ncm}</td>
-                          <td className="px-2 py-1.5"><div className="text-[10px] text-gray-500 truncate max-w-[150px]" title={p.produtos?.join(', ')}>{p.produtos?.slice(0,2).join(', ')}</div></td>
+                          <td className="px-2 py-1.5 font-mono font-bold text-center">{p.ncm}</td>
+                          <td className="px-2 py-1.5"><div className="text-[10px] text-gray-500 truncate max-w-[100px]" title={p.produtos?.join(', ')}>{p.produtos?.slice(0,2).join(', ')}</div></td>
                           <td className="px-2 py-1.5 text-center">{p.qtd_ocorrencias}</td>
                           <td className="px-2 py-1.5 text-right">{formatCurrency(p.valor_total)}</td>
-                          <td className="px-1 py-1.5 text-center text-red-600">{p.cst_pis_atual || '-'}</td>
-                          <td className="px-1 py-1.5 text-center text-green-600">{p.cst_pis_correto || '-'}</td>
-                          <td className="px-1 py-1.5 text-center text-red-600">{formatPercent(p.aliq_pis_atual)}</td>
-                          <td className="px-1 py-1.5 text-center text-green-600">{formatPercent(p.aliq_pis_correto)}</td>
-                          <td className="px-1 py-1.5 text-right text-red-600">{formatCurrency(p.v_pis_atual)}</td>
-                          <td className="px-1 py-1.5 text-right text-green-600">{formatCurrency(p.v_pis_correto)}</td>
-                          <td className="px-1 py-1.5 text-center text-red-600">{p.cst_cofins_atual || '-'}</td>
-                          <td className="px-1 py-1.5 text-center text-green-600">{p.cst_cofins_correto || '-'}</td>
-                          <td className="px-1 py-1.5 text-center text-red-600">{formatPercent(p.aliq_cofins_atual)}</td>
-                          <td className="px-1 py-1.5 text-center text-green-600">{formatPercent(p.aliq_cofins_correto)}</td>
-                          <td className="px-1 py-1.5 text-right text-red-600">{formatCurrency(p.v_cofins_atual)}</td>
-                          <td className="px-1 py-1.5 text-right text-green-600">{formatCurrency(p.v_cofins_correto)}</td>
-                          <td className="px-2 py-1.5 text-right font-bold text-amber-600">{formatCurrency(p.impacto_total)}</td>
-                          <td className="px-2 py-1.5"><span className={`px-1.5 py-0.5 rounded text-[10px] ${getTipoDivergenciaColor(p.tipo_divergencia)}`}>{getTipoDivergenciaLabel(p.tipo_divergencia)}</span></td>
+                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{p.cst_pis_atual || '-'}</td>
+                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{p.cst_pis_correto || '-'}</td>
+                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{formatPercent(p.aliq_pis_atual)}</td>
+                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{formatPercent(p.aliq_pis_correto)}</td>
+                          <td className="px-2 py-1.5 text-right text-red-600 bg-red-50/50">{formatCurrency(p.v_pis_atual)}</td>
+                          <td className="px-2 py-1.5 text-right text-green-600 bg-green-50/50">{formatCurrency(p.v_pis_correto)}</td>
+                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{p.cst_cofins_atual || '-'}</td>
+                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{p.cst_cofins_correto || '-'}</td>
+                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{formatPercent(p.aliq_cofins_atual)}</td>
+                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{formatPercent(p.aliq_cofins_correto)}</td>
+                          <td className="px-2 py-1.5 text-right text-red-600 bg-red-50/50">{formatCurrency(p.v_cofins_atual)}</td>
+                          <td className="px-2 py-1.5 text-right text-green-600 bg-green-50/50">{formatCurrency(p.v_cofins_correto)}</td>
+                          <td className="px-2 py-1.5 text-right font-bold text-amber-600 bg-amber-50/50">{formatCurrency(p.impacto_total)}</td>
+                          <td className="px-2 py-1.5"><span className={`px-1 py-0.5 rounded text-[9px] ${getTipoDivergenciaColor(p.tipo_divergencia)}`}>{getTipoDivergenciaLabel(p.tipo_divergencia)}</span></td>
                         </tr>
                       ))}
                     </tbody>
