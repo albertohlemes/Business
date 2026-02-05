@@ -560,7 +560,7 @@ const Documents = ({ user, onLogout }) => {
                       <tr>
                         <td className="px-3 py-2">TOTAL</td>
                         <td className="px-3 py-2 text-center">{produtos.length}</td>
-                        <td className="px-3 py-2 text-right">{formatCurrency(itemsSum.valor)}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(itemsSum.valor_total)}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(itemsSum.bc_icms)}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(itemsSum.v_icms)}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(itemsSum.bc_st)}</td>
