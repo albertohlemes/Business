@@ -1536,64 +1536,54 @@ async def validacao_completa(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Validação unificada de folha de pagamento.
+    Validação unificada de folha de pagamento usando OCR local.
     - holerite_atual: Holerite do mês atual (OBRIGATÓRIO)
     - holerite_anterior: Holerite do mês anterior (OPCIONAL)
     - apoio_files: Lista de arquivos de apoio para comparação (OPCIONAL, múltiplos)
     
-    A análise compara o holerite atual com todos os documentos enviados.
-    Usa OCR local primeiro (gratuito), IA apenas se necessário.
+    Usa OCR local (Tesseract) para extração - gratuito e rápido.
     """
     try:
         from document_processor import doc_processor
-        import asyncio
         
-        # Verify cliente exists
+        # Verificar cliente
         cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
         if not cliente:
             raise HTTPException(status_code=404, detail="Empresa não encontrada")
         
-        # Read all files and save to temp
         temp_files = []
-        file_info = []
-        extracted_texts = {}
-        
-        # Helper to save temp file and get mime type
-        def get_mime_type(suffix):
-            mime_types = {
-                ".pdf": "application/pdf",
-                ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                ".xls": "application/vnd.ms-excel",
-                ".csv": "text/csv",
-                ".jpg": "image/jpeg",
-                ".jpeg": "image/jpeg",
-                ".png": "image/png",
-                ".gif": "image/gif",
-                ".webp": "image/webp",
-                ".txt": "text/plain",
-                ".eml": "message/rfc822",
-                ".msg": "application/vnd.ms-outlook"
-            }
-            mime = mime_types.get(suffix.lower())
-            if not mime:
-                mime = "application/pdf"
-            return mime
+        extracted_data = {
+            "atual": None,
+            "anterior": None,
+            "apoio": []
+        }
+        arquivos_info = {
+            "holerite_atual": None,
+            "holerite_anterior": None,
+            "apoio": []
+        }
         
         try:
-            # Save holerite atual
+            # 1. Processar holerite atual (obrigatório)
             holerite_atual_content = await holerite_atual.read()
             holerite_atual_suffix = Path(holerite_atual.filename).suffix
             with tempfile.NamedTemporaryFile(delete=False, suffix=holerite_atual_suffix) as tmp:
                 tmp.write(holerite_atual_content)
                 temp_files.append(tmp.name)
-                file_info.append({
-                    "path": tmp.name,
-                    "filename": holerite_atual.filename,
-                    "tipo": "holerite_atual",
-                    "mime": get_mime_type(holerite_atual_suffix)
-                })
+                arquivos_info["holerite_atual"] = holerite_atual.filename
+                
+                # Extrair texto com OCR
+                logger.info(f"Extraindo texto de {holerite_atual.filename}...")
+                texto_atual = doc_processor.extract_text(tmp.name)
+                dados_atual = doc_processor.parse_holerite_from_text(texto_atual)
+                extracted_data["atual"] = {
+                    "texto": texto_atual,
+                    "dados": dados_atual,
+                    "filename": holerite_atual.filename
+                }
+                logger.info(f"Extraídos {len(texto_atual)} caracteres, funcionário: {dados_atual.get('funcionario', 'N/I')}")
             
-            # Save holerite anterior if provided
+            # 2. Processar holerite anterior (opcional)
             has_anterior = False
             if holerite_anterior and holerite_anterior.filename:
                 holerite_anterior_content = await holerite_anterior.read()
@@ -1603,35 +1593,39 @@ async def validacao_completa(
                     with tempfile.NamedTemporaryFile(delete=False, suffix=holerite_anterior_suffix) as tmp:
                         tmp.write(holerite_anterior_content)
                         temp_files.append(tmp.name)
-                        file_info.append({
-                            "path": tmp.name,
-                            "filename": holerite_anterior.filename,
-                            "tipo": "holerite_anterior",
-                            "mime": get_mime_type(holerite_anterior_suffix)
-                        })
+                        arquivos_info["holerite_anterior"] = holerite_anterior.filename
+                        
+                        logger.info(f"Extraindo texto de {holerite_anterior.filename}...")
+                        texto_anterior = doc_processor.extract_text(tmp.name)
+                        dados_anterior = doc_processor.parse_holerite_from_text(texto_anterior)
+                        extracted_data["anterior"] = {
+                            "texto": texto_anterior,
+                            "dados": dados_anterior,
+                            "filename": holerite_anterior.filename
+                        }
             
-            # Save apoio files if provided
-            apoio_filenames = []
+            # 3. Processar arquivos de apoio (opcional)
+            has_apoio = False
             if apoio_files:
                 for apoio in apoio_files:
                     if apoio and apoio.filename:
                         apoio_content = await apoio.read()
                         if apoio_content:
+                            has_apoio = True
                             apoio_suffix = Path(apoio.filename).suffix
                             with tempfile.NamedTemporaryFile(delete=False, suffix=apoio_suffix) as tmp:
                                 tmp.write(apoio_content)
                                 temp_files.append(tmp.name)
-                                file_info.append({
-                                    "path": tmp.name,
-                                    "filename": apoio.filename,
-                                    "tipo": "apoio",
-                                    "mime": get_mime_type(apoio_suffix)
+                                arquivos_info["apoio"].append(apoio.filename)
+                                
+                                logger.info(f"Extraindo texto de {apoio.filename}...")
+                                texto_apoio = doc_processor.extract_text(tmp.name)
+                                extracted_data["apoio"].append({
+                                    "texto": texto_apoio,
+                                    "filename": apoio.filename
                                 })
-                                apoio_filenames.append(apoio.filename)
             
-            has_apoio = len(apoio_filenames) > 0
-            
-            # Determine analysis type
+            # Determinar tipo de análise
             if has_anterior and has_apoio:
                 tipo_analise = "completa"
             elif has_anterior:
@@ -1641,28 +1635,17 @@ async def validacao_completa(
             else:
                 tipo_analise = "analise_isolada"
             
-            # EXTRAIR TEXTO COM OCR LOCAL (gratuito e rápido)
-            logger.info("Extraindo texto dos documentos com OCR local...")
-            for f in file_info:
-                try:
-                    text = doc_processor.extract_text(f["path"])
-                    extracted_texts[f["tipo"]] = {
-                        "filename": f["filename"],
-                        "text": text,
-                        "dados": doc_processor.parse_holerite_from_text(text) if text else {}
-                    }
-                    logger.info(f"Extraído {len(text)} caracteres de {f['filename']}")
-                except Exception as e:
-                    logger.error(f"Erro ao extrair {f['filename']}: {e}")
-                    extracted_texts[f["tipo"]] = {"filename": f["filename"], "text": "", "dados": {}}
+            # 4. Construir resultado da análise
+            dados_atual = extracted_data["atual"]["dados"]
             
-            # Analisar dados extraídos
             resultado = {
                 "tipo_analise": tipo_analise,
                 "empresa": cliente.get("nome_fantasia") or cliente.get("razao_social"),
                 "competencia": f"{mes_referencia}/{ano_referencia}",
-                "funcionarios_analisados": 0,
-                "dados_extraidos": {},
+                "funcionarios_analisados": 1 if dados_atual.get("funcionario") else 0,
+                "dados_extraidos": {
+                    "holerite_atual": dados_atual
+                },
                 "comparacoes": {"com_mes_anterior": [], "com_apoio": []},
                 "divergencias": [],
                 "campos_conferidos": [],
@@ -1671,302 +1654,219 @@ async def validacao_completa(
                 "recomendacoes": []
             }
             
-            # Processar holerite atual
-            atual_data = extracted_texts.get("holerite_atual", {}).get("dados", {})
-            if atual_data:
-                resultado["dados_extraidos"]["holerite_atual"] = atual_data
-                resultado["funcionarios_analisados"] = 1 if atual_data.get("funcionario") else 0
-                
-                # Adicionar campos conferidos
-                if atual_data.get("total_proventos"):
-                    resultado["campos_conferidos"].append({
-                        "campo": "Total Proventos",
-                        "valor": atual_data["total_proventos"],
-                        "status": "ok"
-                    })
-                if atual_data.get("total_descontos"):
-                    resultado["campos_conferidos"].append({
-                        "campo": "Total Descontos", 
-                        "valor": atual_data["total_descontos"],
-                        "status": "ok"
-                    })
-                if atual_data.get("liquido"):
-                    resultado["campos_conferidos"].append({
-                        "campo": "Líquido",
-                        "valor": atual_data["liquido"],
-                        "status": "ok"
-                    })
+            # Campos conferidos do holerite atual
+            funcionario_nome = dados_atual.get("funcionario", "Funcionário")
+            if dados_atual.get("total_proventos"):
+                resultado["campos_conferidos"].append({
+                    "campo": "Total Proventos",
+                    "funcionario": funcionario_nome,
+                    "valor": dados_atual["total_proventos"],
+                    "status": "ok"
+                })
+            if dados_atual.get("total_descontos"):
+                resultado["campos_conferidos"].append({
+                    "campo": "Total Descontos",
+                    "funcionario": funcionario_nome,
+                    "valor": dados_atual["total_descontos"],
+                    "status": "ok"
+                })
+            if dados_atual.get("liquido"):
+                resultado["campos_conferidos"].append({
+                    "campo": "Líquido",
+                    "funcionario": funcionario_nome,
+                    "valor": dados_atual["liquido"],
+                    "status": "ok"
+                })
             
-            # Comparar com mês anterior se disponível
-            if has_anterior:
-                anterior_data = extracted_texts.get("holerite_anterior", {}).get("dados", {})
-                if anterior_data and atual_data:
-                    resultado["dados_extraidos"]["holerite_anterior"] = anterior_data
+            # Adicionar proventos e descontos individuais
+            for p in dados_atual.get("proventos", []):
+                resultado["campos_conferidos"].append({
+                    "campo": p.get("descricao", "Provento"),
+                    "funcionario": funcionario_nome,
+                    "valor": p.get("valor", 0),
+                    "status": "ok"
+                })
+            for d in dados_atual.get("descontos", []):
+                resultado["campos_conferidos"].append({
+                    "campo": d.get("descricao", "Desconto"),
+                    "funcionario": funcionario_nome,
+                    "valor": d.get("valor", 0),
+                    "status": "ok"
+                })
+            
+            # 5. Comparar com mês anterior
+            if has_anterior and extracted_data["anterior"]:
+                dados_anterior = extracted_data["anterior"]["dados"]
+                resultado["dados_extraidos"]["holerite_anterior"] = dados_anterior
+                
+                campos_comparar = [
+                    ("total_proventos", "Total Proventos"),
+                    ("total_descontos", "Total Descontos"),
+                    ("liquido", "Líquido")
+                ]
+                
+                impacto_total = 0
+                for campo, nome in campos_comparar:
+                    val_atual = dados_atual.get(campo, 0) or 0
+                    val_anterior = dados_anterior.get(campo, 0) or 0
                     
-                    # Comparar valores
-                    campos_comparar = [
-                        ("total_proventos", "Total Proventos"),
-                        ("total_descontos", "Total Descontos"),
-                        ("liquido", "Líquido")
-                    ]
-                    
-                    for campo, nome in campos_comparar:
-                        val_atual = atual_data.get(campo, 0)
-                        val_anterior = anterior_data.get(campo, 0)
-                        if val_atual and val_anterior:
-                            diferenca = val_atual - val_anterior
-                            percentual = ((val_atual / val_anterior) - 1) * 100 if val_anterior else 0
-                            
-                            resultado["comparacoes"]["com_mes_anterior"].append({
-                                "funcionario": atual_data.get("funcionario", ""),
+                    if val_atual or val_anterior:
+                        diferenca = val_atual - val_anterior
+                        percentual = ((val_atual / val_anterior) - 1) * 100 if val_anterior else 0
+                        
+                        resultado["comparacoes"]["com_mes_anterior"].append({
+                            "funcionario": funcionario_nome,
+                            "campo": nome,
+                            "valor_anterior": val_anterior,
+                            "valor_atual": val_atual,
+                            "diferenca": round(diferenca, 2),
+                            "percentual": round(percentual, 2)
+                        })
+                        
+                        # Detectar divergências significativas
+                        if abs(percentual) > 10 and abs(diferenca) > 50:
+                            severidade = "alta" if abs(percentual) > 20 or abs(diferenca) > 200 else "media"
+                            resultado["divergencias"].append({
+                                "funcionario": funcionario_nome,
+                                "tipo": "variacao_significativa",
                                 "campo": nome,
-                                "valor_anterior": val_anterior,
-                                "valor_atual": val_atual,
-                                "diferenca": diferenca,
-                                "percentual": round(percentual, 2)
+                                "valor_esperado": f"R$ {val_anterior:.2f}",
+                                "valor_encontrado": f"R$ {val_atual:.2f}",
+                                "fonte_referencia": "holerite_anterior",
+                                "severidade": severidade,
+                                "descricao": f"{nome} variou {percentual:.1f}% ({'+' if diferenca > 0 else ''}{diferenca:.2f})",
+                                "impacto_financeiro": abs(diferenca)
                             })
-                            
-                            # Alertar se variação > 10%
-                            if abs(percentual) > 10:
-                                resultado["alertas"].append({
-                                    "tipo": "atencao",
-                                    "mensagem": f"{nome} variou {percentual:.1f}% em relação ao mês anterior"
+                            impacto_total += abs(diferenca)
+                        elif abs(percentual) > 5:
+                            resultado["alertas"].append({
+                                "tipo": "atencao",
+                                "mensagem": f"{nome} variou {percentual:.1f}% em relação ao mês anterior"
+                            })
+                
+                resultado["impacto_financeiro_total"] = round(impacto_total, 2)
+            
+            # 6. Análise de arquivos de apoio
+            if has_apoio:
+                resultado["dados_extraidos"]["apoio"] = []
+                for apoio_data in extracted_data["apoio"]:
+                    texto_apoio = apoio_data["texto"]
+                    filename = apoio_data["filename"]
+                    
+                    resultado["dados_extraidos"]["apoio"].append({
+                        "arquivo": filename,
+                        "texto_extraido": texto_apoio[:500] + "..." if len(texto_apoio) > 500 else texto_apoio
+                    })
+                    
+                    # Procurar valores monetários no texto de apoio
+                    import re
+                    valores_apoio = re.findall(r'R\$\s*([\d.,]+)|(\d{1,3}(?:\.\d{3})*(?:,\d{2}))', texto_apoio)
+                    valores_encontrados = []
+                    for val in valores_apoio:
+                        val_str = val[0] or val[1]
+                        if val_str:
+                            try:
+                                val_clean = val_str.replace('.', '').replace(',', '.')
+                                val_float = float(val_clean)
+                                if 10 < val_float < 50000:
+                                    valores_encontrados.append(val_float)
+                            except:
+                                pass
+                    
+                    if valores_encontrados:
+                        resultado["alertas"].append({
+                            "tipo": "informativo",
+                            "mensagem": f"Encontrados {len(valores_encontrados)} valores em {filename}: {', '.join([f'R$ {v:.2f}' for v in valores_encontrados[:3]])}"
+                        })
+                        
+                        # Comparar com valores do holerite
+                        holerite_valores = [
+                            dados_atual.get("total_proventos", 0),
+                            dados_atual.get("total_descontos", 0),
+                            dados_atual.get("liquido", 0)
+                        ]
+                        holerite_valores += [p.get("valor", 0) for p in dados_atual.get("proventos", [])]
+                        holerite_valores += [d.get("valor", 0) for d in dados_atual.get("descontos", [])]
+                        
+                        for val_apoio in valores_encontrados:
+                            # Verificar se valor existe no holerite
+                            encontrado = any(abs(val_apoio - hv) < 0.05 for hv in holerite_valores if hv)
+                            if encontrado:
+                                resultado["comparacoes"]["com_apoio"].append({
+                                    "funcionario": funcionario_nome,
+                                    "arquivo_apoio": filename,
+                                    "campo": "Valor identificado",
+                                    "valor_apoio": val_apoio,
+                                    "valor_holerite": val_apoio,
+                                    "diferenca": 0,
+                                    "status": "conferido",
+                                    "observacao": "Valor encontrado no holerite"
                                 })
             
-            # Gerar resumo
-            resumo_parts = [f"Análise {tipo_analise.replace('_', ' ')} realizada com sucesso."]
-            if atual_data.get("funcionario"):
-                resumo_parts.append(f"Funcionário: {atual_data['funcionario']}")
-            if atual_data.get("liquido"):
-                resumo_parts.append(f"Valor líquido: R$ {atual_data['liquido']:.2f}")
+            # 7. Validações básicas do holerite
+            if dados_atual.get("total_proventos") and dados_atual.get("total_descontos") and dados_atual.get("liquido"):
+                liquido_calculado = dados_atual["total_proventos"] - dados_atual["total_descontos"]
+                diferenca_liquido = abs(dados_atual["liquido"] - liquido_calculado)
+                
+                if diferenca_liquido > 1:  # Tolerância de R$ 1 para arredondamento
+                    resultado["divergencias"].append({
+                        "funcionario": funcionario_nome,
+                        "tipo": "calculo_errado",
+                        "campo": "Líquido",
+                        "valor_esperado": f"R$ {liquido_calculado:.2f}",
+                        "valor_encontrado": f"R$ {dados_atual['liquido']:.2f}",
+                        "fonte_referencia": "calculo_interno",
+                        "severidade": "alta" if diferenca_liquido > 10 else "baixa",
+                        "descricao": f"Líquido não confere: Proventos ({dados_atual['total_proventos']:.2f}) - Descontos ({dados_atual['total_descontos']:.2f}) = {liquido_calculado:.2f}",
+                        "impacto_financeiro": diferenca_liquido
+                    })
+            
+            # 8. Gerar resumo executivo
+            resumo_parts = []
+            resumo_parts.append(f"Validação {tipo_analise.replace('_', ' ')} concluída com sucesso.")
+            
+            if dados_atual.get("funcionario"):
+                resumo_parts.append(f"Funcionário: {dados_atual['funcionario']}.")
+            
+            if dados_atual.get("competencia"):
+                resumo_parts.append(f"Competência do holerite: {dados_atual['competencia']}.")
+            
+            if dados_atual.get("liquido"):
+                resumo_parts.append(f"Valor líquido: R$ {dados_atual['liquido']:.2f}.")
+            
             if has_anterior:
-                resumo_parts.append("Comparação com mês anterior realizada.")
+                comparacoes_mensal = len(resultado["comparacoes"]["com_mes_anterior"])
+                resumo_parts.append(f"Comparação com mês anterior: {comparacoes_mensal} campo(s) analisado(s).")
+            
             if has_apoio:
-                resumo_parts.append(f"Analisados {len(apoio_filenames)} documento(s) de apoio.")
+                resumo_parts.append(f"Analisado(s) {len(arquivos_info['apoio'])} documento(s) de apoio.")
+            
+            total_div = len(resultado["divergencias"])
+            total_conf = len(resultado["campos_conferidos"])
+            
+            if total_div > 0:
+                resumo_parts.append(f"⚠️ Encontrada(s) {total_div} divergência(s) que requerem atenção.")
+            else:
+                resumo_parts.append(f"✅ Nenhuma divergência encontrada. {total_conf} campo(s) conferido(s).")
             
             resultado["resumo_executivo"] = " ".join(resumo_parts)
+            
+            # 9. Gerar recomendações
+            if len(resultado["divergencias"]) > 0:
+                resultado["recomendacoes"].append("Revisar as divergências identificadas antes de fechar a folha.")
+            if has_anterior and len(resultado["comparacoes"]["com_mes_anterior"]) > 0:
+                variacoes = [c for c in resultado["comparacoes"]["com_mes_anterior"] if abs(c.get("percentual", 0)) > 5]
+                if variacoes:
+                    resultado["recomendacoes"].append("Verificar justificativas para as variações significativas em relação ao mês anterior.")
+            if not dados_atual.get("funcionario"):
+                resultado["recomendacoes"].append("Não foi possível identificar o funcionário no documento. Verifique a qualidade do scan.")
+            
+            # Totais
             resultado["total_divergencias"] = len(resultado["divergencias"])
             resultado["total_conferidos"] = len(resultado["campos_conferidos"])
             resultado["total_alertas"] = len(resultado["alertas"])
             
-            system_parts.append("""
-
-SUA ANÁLISE DEVE SER CIRÚRGICA E PRECISA:
-
-1. **EXTRAÇÃO DE DADOS**: Para cada documento, extraia TODOS os valores numéricos encontrados:
-   - Salário base, adicionais (noturno, insalubridade, periculosidade)
-   - Horas extras (50%, 100%), DSR sobre horas extras
-   - Comissões, gratificações, bonificações
-   - Descontos: INSS, IRRF, faltas, atrasos, VT, pensão alimentícia
-   - Benefícios: VR, VA, VT (valor e desconto)
-   - FGTS (base e valor)
-   - Totais: proventos, descontos, líquido
-
-2. **COMPARAÇÕES OBRIGATÓRIAS**:""")
-            
-            if has_anterior:
-                system_parts.append("""
-   COM MÊS ANTERIOR:
-   - Variação salarial (reajustes, promoções)
-   - Mudanças em benefícios
-   - Diferenças em horas extras/comissões
-   - Alterações em descontos fixos
-   - Qualquer valor que mudou significativamente""")
-            
-            if has_apoio:
-                system_parts.append("""
-   COM DOCUMENTOS DE APOIO:
-   - Cruze CADA valor encontrado nos documentos de apoio com o holerite
-   - Horas extras informadas vs horas extras pagas
-   - Comissões calculadas vs comissões no holerite
-   - Faltas/atrasos registrados vs descontos aplicados
-   - Qualquer referência numérica deve ser validada""")
-            
-            if not has_anterior and not has_apoio:
-                system_parts.append("""
-   ANÁLISE ISOLADA DO HOLERITE:
-   - Verificar consistência dos cálculos (base INSS, base IRRF)
-   - Conferir alíquotas aplicadas
-   - Validar somas de proventos e descontos
-   - Identificar valores atípicos ou zerados incorretamente""")
-            
-            system_parts.append("""
-
-3. **FORMATO DE RESPOSTA JSON**:
-{
-    "tipo_analise": "completa|comparacao_mensal|comparacao_apoio|analise_isolada",
-    "empresa": "nome da empresa se identificado",
-    "competencia": "MM/AAAA",
-    "funcionarios_analisados": número,
-    
-    "dados_extraidos": {
-        "holerite_atual": {
-            "funcionarios": [
-                {
-                    "nome": "...",
-                    "matricula": "...",
-                    "cargo": "...",
-                    "salario_base": 0.00,
-                    "proventos": [{"descricao": "...", "referencia": "...", "valor": 0.00}],
-                    "descontos": [{"descricao": "...", "referencia": "...", "valor": 0.00}],
-                    "total_proventos": 0.00,
-                    "total_descontos": 0.00,
-                    "liquido": 0.00,
-                    "base_inss": 0.00,
-                    "base_irrf": 0.00,
-                    "base_fgts": 0.00,
-                    "fgts": 0.00
-                }
-            ]
-        },
-        "holerite_anterior": { ... },  // se fornecido
-        "apoio": [ { "arquivo": "...", "dados_extraidos": {...} } ]  // se fornecido
-    },
-    
-    "comparacoes": {
-        "com_mes_anterior": [
-            {
-                "funcionario": "...",
-                "campo": "...",
-                "valor_anterior": 0.00,
-                "valor_atual": 0.00,
-                "diferenca": 0.00,
-                "percentual": 0.00,
-                "observacao": "..."
-            }
-        ],
-        "com_apoio": [
-            {
-                "funcionario": "...",
-                "arquivo_apoio": "...",
-                "campo": "...",
-                "valor_apoio": 0.00,
-                "valor_holerite": 0.00,
-                "diferenca": 0.00,
-                "status": "conferido|divergente",
-                "observacao": "..."
-            }
-        ]
-    },
-    
-    "divergencias": [
-        {
-            "funcionario": "...",
-            "tipo": "valor_incorreto|falta_lancamento|calculo_errado|diferenca_referencia",
-            "campo": "...",
-            "valor_esperado": "...",
-            "valor_encontrado": "...",
-            "fonte_referencia": "holerite_anterior|apoio:nome_arquivo",
-            "severidade": "alta|media|baixa",
-            "descricao": "descrição detalhada",
-            "impacto_financeiro": 0.00
-        }
-    ],
-    
-    "campos_conferidos": [
-        {
-            "campo": "...",
-            "funcionario": "...",
-            "valor": 0.00,
-            "fonte": "...",
-            "status": "ok"
-        }
-    ],
-    
-    "alertas": [
-        {
-            "tipo": "atencao|verificar|informativo",
-            "mensagem": "..."
-        }
-    ],
-    
-    "resumo_executivo": "Resumo em texto da análise realizada",
-    "total_divergencias": 0,
-    "total_conferidos": 0,
-    "total_alertas": 0,
-    "impacto_financeiro_total": 0.00,
-    
-    "recomendacoes": ["Lista de ações recomendadas"]
-}
-
-REGRAS IMPORTANTES:
-- Sempre extraia valores com 2 casas decimais
-- Identifique o funcionário sempre que possível
-- Se um valor aparecer em múltiplos documentos, COMPARE-OS
-- Calcule o impacto financeiro das divergências
-- Severidade ALTA: diferença > 5% ou > R$100, ou erro de cálculo
-- Severidade MÉDIA: diferença 1-5% ou R$10-100
-- Severidade BAIXA: diferença < 1% ou < R$10, ou diferença de arredondamento
-- Mesmo que os valores estejam corretos, LISTE-OS em campos_conferidos""")
-            
-            api_key = os.environ.get('EMERGENT_LLM_KEY')
-            chat = LlmChat(
-                api_key=api_key,
-                session_id=f"validacao-completa-{uuid.uuid4()}",
-                system_message="\n".join(system_parts)
-            ).with_model("gemini", "gemini-2.5-flash")
-            
-            # Prepare file contents
-            file_contents = []
-            for f in file_info:
-                file_contents.append(FileContentWithMimeType(file_path=f["path"], mime_type=f["mime"]))
-            
-            # Build user message
-            docs_list = "\n".join([f"- {f['tipo'].upper()}: {f['filename']}" for f in file_info])
-            user_message = f"""Analise os seguintes documentos e realize uma validação completa:
-
-{docs_list}
-
-Extraia todos os dados, compare os valores entre os documentos e identifique todas as divergências.
-Seja cirúrgico e preciso na análise."""
-            
-            # Send to LLM with retry
-            max_retries = 3
-            last_error = None
-            for attempt in range(max_retries):
-                try:
-                    response = await chat.send_message(UserMessage(
-                        text=user_message,
-                        file_contents=file_contents
-                    ))
-                    break
-                except Exception as e:
-                    last_error = e
-                    error_str = str(e)
-                    if "502" in error_str or "503" in error_str or "BadGateway" in error_str:
-                        if attempt < max_retries - 1:
-                            logger.warning(f"Tentativa {attempt + 1} falhou, tentando novamente...")
-                            await asyncio.sleep(2 ** attempt)
-                            continue
-                    raise e
-            else:
-                raise last_error if last_error else Exception("Falha após todas as tentativas")
-            
-            # Parse response
-            try:
-                response_text = response.strip()
-                if response_text.startswith("```json"):
-                    response_text = response_text[7:]
-                if response_text.startswith("```"):
-                    response_text = response_text[3:]
-                if response_text.endswith("```"):
-                    response_text = response_text[:-3]
-                
-                resultado = json.loads(response_text.strip())
-            except json.JSONDecodeError:
-                resultado = {
-                    "tipo_analise": tipo_analise,
-                    "funcionarios_analisados": 0,
-                    "divergencias": [],
-                    "campos_conferidos": [],
-                    "alertas": [],
-                    "resumo_executivo": response,
-                    "total_divergencias": 0,
-                    "total_conferidos": 0,
-                    "parsing_error": True
-                }
-            
-            # Save validation record
+            # 10. Salvar no banco de dados
             validacao_id = str(uuid.uuid4())
             now = datetime.now(timezone.utc).isoformat()
             
@@ -1974,39 +1874,29 @@ Seja cirúrgico e preciso na análise."""
                 "id": validacao_id,
                 "cliente_id": cliente_id,
                 "cliente_nome": cliente.get("nome_fantasia") or cliente.get("razao_social"),
-                "mes_referencia": mes_referencia or datetime.now().strftime("%m"),
-                "ano_referencia": ano_referencia or datetime.now().year,
+                "mes_referencia": mes_referencia,
+                "ano_referencia": ano_referencia,
                 "tipo_validacao": tipo_analise,
                 "status": "concluido",
-                
-                # Files info
-                "arquivos": {
-                    "holerite_atual": holerite_atual.filename,
-                    "holerite_anterior": file_info[1]["filename"] if has_anterior else None,
-                    "apoio": apoio_filenames if has_apoio else []
-                },
-                
-                # Results
-                "funcionarios_analisados": resultado.get("funcionarios_analisados", 0),
-                "dados_extraidos": resultado.get("dados_extraidos", {}),
-                "comparacoes": resultado.get("comparacoes", {}),
-                "divergencias": resultado.get("divergencias", []),
-                "campos_conferidos": resultado.get("campos_conferidos", []),
-                "alertas": resultado.get("alertas", []),
-                "resumo_executivo": resultado.get("resumo_executivo", ""),
-                "recomendacoes": resultado.get("recomendacoes", []),
-                
-                # Totals
-                "total_divergencias": resultado.get("total_divergencias", len(resultado.get("divergencias", []))),
-                "total_conferidos": resultado.get("total_conferidos", len(resultado.get("campos_conferidos", []))),
-                "total_alertas": resultado.get("total_alertas", len(resultado.get("alertas", []))),
+                "arquivos": arquivos_info,
+                "funcionarios_analisados": resultado["funcionarios_analisados"],
+                "dados_extraidos": resultado["dados_extraidos"],
+                "comparacoes": resultado["comparacoes"],
+                "divergencias": resultado["divergencias"],
+                "campos_conferidos": resultado["campos_conferidos"],
+                "alertas": resultado["alertas"],
+                "resumo_executivo": resultado["resumo_executivo"],
+                "recomendacoes": resultado["recomendacoes"],
+                "total_divergencias": resultado["total_divergencias"],
+                "total_conferidos": resultado["total_conferidos"],
+                "total_alertas": resultado["total_alertas"],
                 "impacto_financeiro_total": resultado.get("impacto_financeiro_total", 0),
-                
                 "created_at": now,
                 "user_id": current_user["id"]
             }
             
             await db.validacoes.insert_one(validacao_doc)
+            logger.info(f"Validação {validacao_id} salva com sucesso")
             
             return {
                 "id": validacao_id,
@@ -2016,7 +1906,7 @@ Seja cirúrgico e preciso na análise."""
             }
             
         finally:
-            # Cleanup temp files
+            # Limpar arquivos temporários
             for tmp_path in temp_files:
                 try:
                     os.unlink(tmp_path)
@@ -2026,7 +1916,7 @@ Seja cirúrgico e preciso na análise."""
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Erro na validação completa: {str(e)}")
+        logger.error(f"Erro na validação completa: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erro ao validar folha: {str(e)}")
 
 
