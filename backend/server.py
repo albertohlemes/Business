@@ -1622,9 +1622,9 @@ async def validacao_completa(
     holerite_atual: UploadFile = File(...),
     holerite_anterior: UploadFile = File(None),
     apoio_files: List[UploadFile] = File(default=[]),
-    cliente_id: str = None,
-    mes_referencia: str = None,
-    ano_referencia: int = None,
+    cliente_id: str = Form(...),
+    mes_referencia: str = Form(...),
+    ano_referencia: int = Form(...),
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -1638,10 +1638,6 @@ async def validacao_completa(
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
         import asyncio
-        
-        # Validate required fields
-        if not cliente_id:
-            raise HTTPException(status_code=400, detail="cliente_id é obrigatório")
         
         # Verify cliente exists
         cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
