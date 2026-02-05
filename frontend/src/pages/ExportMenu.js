@@ -71,10 +71,20 @@ const ExportMenu = ({ user, onLogout }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      const competencias = [...new Set(response.data.map(d => d.competencia))].filter(Boolean).sort();
+      // Ordenar competências cronologicamente (mais recente primeiro)
+      const competencias = [...new Set(response.data.map(d => d.competencia))]
+        .filter(Boolean)
+        .sort((a, b) => {
+          const [mesA, anoA] = a.split('/').map(Number);
+          const [mesB, anoB] = b.split('/').map(Number);
+          // Ordenar por ano decrescente, depois por mês decrescente
+          if (anoA !== anoB) return anoB - anoA;
+          return mesB - mesA;
+        });
       setAvailableCompetencias(competencias);
       setDocumentsCount(response.data.length);
       
+      // Se a competência atual não existe na lista, selecionar a primeira (mais recente)
       if (competencias.length > 0 && !competencias.includes(competencia)) {
         setCompetencia(competencias[0]);
       }
