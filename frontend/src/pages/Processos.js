@@ -104,6 +104,35 @@ const Processos = () => {
 
     const handleMinutaCriada = () => {
         fetchData();
+        setProcessoEditando(null);
+    };
+    
+    // Função para editar um processo existente
+    const handleEditProcesso = async (processo) => {
+        try {
+            // Carregar dados completos do processo
+            const res = await axios.get(`${API_URL}/api/minutas/${processo.id}`);
+            const dadosCompletos = res.data;
+            setProcessoEditando(dadosCompletos);
+            
+            // Abrir o wizard correspondente
+            if (dadosCompletos.tipo_processo === 'constituicao') {
+                setWizardConstituicaoOpen(true);
+            } else if (dadosCompletos.tipo_processo === 'baixa') {
+                setWizardBaixaOpen(true);
+            } else {
+                setWizardAlteracaoOpen(true);
+            }
+        } catch (e) {
+            toast.error('Erro ao carregar processo para edição');
+            console.error(e);
+        }
+    };
+    
+    // Fechar wizard e limpar edição
+    const handleCloseWizard = (setOpen) => {
+        setOpen(false);
+        setProcessoEditando(null);
     };
 
     // Filtrar processos por tipo
