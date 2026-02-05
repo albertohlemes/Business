@@ -1709,7 +1709,14 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
             }
         } catch (e) {
             console.error('Erro ao analisar:', e);
-            toast.error('Erro ao analisar contrato');
+            toast.error('Erro ao analisar contrato. Você pode preencher os dados manualmente.');
+            // Mesmo com erro, permite continuar com dados vazios
+            setDadosExtraidos({
+                empresa: {},
+                socios: [],
+                clausulas: [],
+                cnaes: []
+            });
         } finally {
             setProcessing(false);
         }
