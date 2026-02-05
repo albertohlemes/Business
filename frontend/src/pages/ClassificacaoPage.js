@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
+import { Link } from 'react-router-dom';
 import { 
   Brain, CheckCircle, Search, Edit2, Save, Sparkles, Check, CheckCheck, X, 
   Filter, Layers, FileText, Package, Info, ArrowUpDown, ArrowUp, ArrowDown,
