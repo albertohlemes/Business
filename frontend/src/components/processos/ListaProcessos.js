@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { 
-    FileText, Trash2, Eye, Building2, Hash, FileDown, FileType, RefreshCw, Copy, Edit
+    FileText, Trash2, Eye, Building2, Hash, FileDown, FileType, RefreshCw, Copy, Edit, Send, CheckCircle
 } from 'lucide-react';
 import {
     Dialog,
@@ -14,7 +14,7 @@ import {
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-const ClienteCard = ({ cliente, onView, onEdit, onDownloadWord, onDownloadPDF, onDelete }) => {
+const ClienteCard = ({ cliente, onView, onEdit, onDownloadWord, onDownloadPDF, onDelete, onEnviarGClick }) => {
     const getStatus = (s) => {
         const cfg = { pendente: 'badge-pending', em_analise: 'badge-warning', concluida: 'badge-success' };
         const lbl = { pendente: 'Pendente', em_analise: 'Em Análise', concluida: 'Concluída' };
