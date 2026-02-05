@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import { toast } from 'sonner';
 import { FileSpreadsheet, Upload, Loader2, FileUp, AlertTriangle, CheckCircle2, XCircle, Download, History, ArrowLeftRight } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
+import { InformesProgress } from '../components/ProcessingBar';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
