@@ -1,0 +1,69 @@
+{
+  "summary": "Completed testing of iteration 23 - All 5 features verified successfully for bug fixes in Apuração Mensal and Análise Tributária IA",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Apuração Mensal: ICMS Crédito totalizador correctly shows R$ 34.460,20 (excludes ST R$ 15.589,73)",
+    "Apuração Mensal: ICMS-ST (sem crédito) element displayed in TaxCard with red styling",
+    "Apuração Mensal: DetailTable TOTAL row shows '(ICMS s/ crédito: R$ 15.589,73)' indication",
+    "Análise Tributária IA: Crédito ICMS no resumo shows R$ 34.460,20 (excludes ST)",
+    "Análise Tributária IA: NCM 21031090 found in Vilões with alíquotas 12% → 18% (+6%)",
+    "Análise Tributária IA: Vilões tab shows 11 produtos with R$ 18.599,24 impacto negativo",
+    "Análise Tributária IA: Por NCM tab has columns 'Alíq. Entr.' and 'Alíq. Saída' (no 'Descrição' column)",
+    "Análise Tributária IA: NCM table headers are ['NCM', 'Alíq. Entr.', 'Alíq. Saída', 'Entrada (R$)', 'Créd. ICMS', 'Saída (R$)', 'Déb. ICMS', 'Saldo']",
+    "Backend API /api/analise-tributaria-ia returns correct vilões with diferença de alíquota",
+    "Backend API /api/apuracao-periodo returns st_desconsiderado.v_icms = 15589.73"
+  ],
+
+  "test_report_links": [
+    "/app/test_reports/iteration_23.json"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "DetailTable component correctly calculates totals excluding ST/Despesa ICMS for entradas",
+    "TaxCard component correctly displays ICMS-ST and ICMS Despesa desconsiderados with appropriate styling",
+    "Backend analise-tributaria-ia endpoint correctly groups by NCM and detects alíquota differences",
+    "Frontend NCM table correctly shows Alíq. Entr. and Alíq. Saída columns instead of Descrição",
+    "Crédito ICMS in resumo correctly uses total_icms_creditavel (excludes ST/Despesa)"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+
+  "seed_data_creation": "None - used existing ANZEN DISTRIBUIDORA data with competência 12/2025",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "All bug fixes verified for iteration 23. ANZEN company (72da3296-b8fa-42a4-8eaf-86e9ea8902f9) with 12/2025 competência has: 535 documents (109 entradas, 426 saídas). ICMS Crédito = R$ 34.460,20 (excludes ST R$ 15.589,73). Análise Tributária IA shows 11 vilões with R$ 18.599,24 impacto negativo. NCM 21031090 correctly identified as vilão with 12% entrada → 18% saída (+6% diferença). NCM table no longer has 'Descrição' column, now shows 'Alíq. Entr.' and 'Alíq. Saída'.",
+
+  "features_verified": {
+    "apuracao_mensal_totalizador_exclui_st_despesa": "PASSED - ICMS Crédito R$ 34.460,20 (ST R$ 15.589,73 excluded)",
+    "apuracao_mensal_total_row_icms_sem_credito": "PASSED - Shows '(ICMS s/ crédito: R$ 15.589,73)'",
+    "analise_tributaria_viloes_diferenca_aliquota": "PASSED - NCM 21031090 shows 12% → 18% (+6%)",
+    "analise_tributaria_ncm_table_aliquotas": "PASSED - Columns 'Alíq. Entr.' and 'Alíq. Saída' present, no 'Descrição'",
+    "analise_tributaria_credito_icms_exclui_st": "PASSED - Crédito ICMS R$ 34.460,20 (excludes ST)"
+  }
+}
