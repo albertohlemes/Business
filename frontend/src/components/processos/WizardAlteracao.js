@@ -323,10 +323,117 @@ const RedistribuicaoCotas = ({ dados, onChange, sociosAtuais }) => {
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-6 border border-dashed border-zinc-700 rounded-lg">
-                    <Users className="w-10 h-10 mx-auto text-zinc-600 mb-3" />
-                    <p className="text-zinc-400 text-sm">Nenhum sócio identificado</p>
-                    <p className="text-zinc-500 text-xs">Faça upload de um contrato válido na Etapa 1</p>
+                <div className="space-y-4">
+                    <div className="text-center py-4 border border-dashed border-zinc-700 rounded-lg">
+                        <Users className="w-8 h-8 mx-auto text-zinc-600 mb-2" />
+                        <p className="text-zinc-400 text-sm">Nenhum sócio identificado no contrato</p>
+                        <p className="text-zinc-500 text-xs">Adicione os sócios manualmente para redistribuição</p>
+                    </div>
+                    
+                    {/* Formulário manual para redistribuição */}
+                    <div className="border-t border-zinc-800 pt-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-zinc-400 text-sm">Sócios para redistribuição:</span>
+                            <Button 
+                                type="button" 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-blue-500/50 text-blue-500 hover:bg-blue-500/10"
+                                onClick={() => onChange({
+                                    ...dados,
+                                    sociosRedistribuicao: [...(dados.sociosRedistribuicao || []), { 
+                                        nome: '', cpf: '', participacaoAtual: '', novaParticipacao: '' 
+                                    }]
+                                })}
+                            >
+                                <Plus className="w-4 h-4 mr-1" /> Adicionar Sócio
+                            </Button>
+                        </div>
+                        
+                        {(dados.sociosRedistribuicao || []).length === 0 ? (
+                            <p className="text-zinc-500 text-sm text-center py-2">
+                                Clique em "Adicionar Sócio" para informar os dados
+                            </p>
+                        ) : (
+                            <div className="space-y-3">
+                                {(dados.sociosRedistribuicao || []).map((socio, idx) => (
+                                    <div key={idx} className="bg-zinc-900 rounded-lg p-4 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-blue-400 font-medium text-sm">Sócio {idx + 1}</span>
+                                            <Button 
+                                                type="button" 
+                                                size="sm" 
+                                                variant="ghost" 
+                                                className="text-zinc-500 hover:text-red-500 h-8 w-8 p-0"
+                                                onClick={() => onChange({
+                                                    ...dados,
+                                                    sociosRedistribuicao: dados.sociosRedistribuicao.filter((_, i) => i !== idx)
+                                                })}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <Label className="text-zinc-500 text-xs">Nome Completo *</Label>
+                                                <Input 
+                                                    value={socio.nome} 
+                                                    onChange={(e) => {
+                                                        const novos = [...dados.sociosRedistribuicao];
+                                                        novos[idx] = {...novos[idx], nome: e.target.value.toUpperCase()};
+                                                        onChange({...dados, sociosRedistribuicao: novos});
+                                                    }}
+                                                    placeholder="NOME COMPLETO"
+                                                    className="bg-zinc-800 border-zinc-700 mt-1"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label className="text-zinc-500 text-xs">CPF</Label>
+                                                <Input 
+                                                    value={socio.cpf} 
+                                                    onChange={(e) => {
+                                                        const novos = [...dados.sociosRedistribuicao];
+                                                        novos[idx] = {...novos[idx], cpf: e.target.value};
+                                                        onChange({...dados, sociosRedistribuicao: novos});
+                                                    }}
+                                                    placeholder="000.000.000-00"
+                                                    className="bg-zinc-800 border-zinc-700 mt-1"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <Label className="text-zinc-500 text-xs">Participação Atual (%)</Label>
+                                                <Input 
+                                                    value={socio.participacaoAtual} 
+                                                    onChange={(e) => {
+                                                        const novos = [...dados.sociosRedistribuicao];
+                                                        novos[idx] = {...novos[idx], participacaoAtual: e.target.value};
+                                                        onChange({...dados, sociosRedistribuicao: novos});
+                                                    }}
+                                                    placeholder="50"
+                                                    className="bg-zinc-800 border-zinc-700 mt-1"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label className="text-zinc-500 text-xs">Nova Participação (%) *</Label>
+                                                <Input 
+                                                    value={socio.novaParticipacao} 
+                                                    onChange={(e) => {
+                                                        const novos = [...dados.sociosRedistribuicao];
+                                                        novos[idx] = {...novos[idx], novaParticipacao: e.target.value};
+                                                        onChange({...dados, sociosRedistribuicao: novos});
+                                                    }}
+                                                    placeholder="60"
+                                                    className="bg-zinc-800 border-zinc-700 mt-1"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
