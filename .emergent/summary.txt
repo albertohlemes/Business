@@ -8,13 +8,8 @@ O usuário, proprietário do escritório Business Contabilidade, precisa de um s
 4.  **Reclassificação Manual com IA:** Permitir que o usuário corrija uma classificação e a IA memorize a regra.
 5.  **Gerenciamento de Empresas:** Cadastro com busca de CNPJ, campos detalhados e funcionalidade para **editar** empresas.
 6.  **Gerenciamento por Competência:** Trabalhar com dados separados por empresa e competência (mês/ano).
-7.  **Validação de Dados e Análise de Alíquotas:**
-    *   Impedir uploads de CNPJ/competência errados.
-    *   Analisar alíquotas de PIS/COFINS em notas de saída, sinalizando divergências.
-    *   Identificar operações com direito a crédito, isentas, ou com alíquota zero.
-8.  **Dashboard e Apuração:**
-    *   Dashboard com indicadores, totais, e impostos a pagar.
-    *   **Estoque na Apuração Mensal:** Calcular CMV/CPV com base no estoque inicial e final da competência.
+7.  **Validação de Dados e Análise de Alíquotas:** Impedir uploads de CNPJ/competência errados, analisar alíquotas de PIS/COFINS e identificar operações com direito a crédito.
+8.  **Dashboard e Apuração:** Dashboard com indicadores e cálculo de CMV/CPV com base no estoque.
 9.  **Relatórios e Funções:** Gerar relatórios, exportar para CSV e apagar notas/regras.
 10. **UI/UX:** Design com as cores da marca (vermelho e preto) e menus intuitivos.
 11. **Alertas para CFOPs de Entrada:** Converter CFOPs de não-compra para entrada e marcar como pendente.
@@ -22,96 +17,85 @@ O usuário, proprietário do escritório Business Contabilidade, precisa de um s
 13. **Relatório de Divergências:** Unificado na nova página Análise de Saídas.
 14. **Otimização de Performance:** Usar tarefas em background para operações pesadas.
 15. **Integração com SIEG:** O sistema deve buscar os XMLs diretamente da API do SIEG.
-16. **Excluir Memória da IA:** Permitir exclusão de regras de IA em lote.
-17. **Dados de Participantes no SPED:** Extrair e incluir o endereço completo dos participantes (fornecedores/clientes) na exportação do SPED.
-18. **Validação de Integridade de Valores:** Garantir que os valores da NF (total, itens, impostos) sejam preservados após a importação e classificação, com indicadores visuais (✓/✗) de divergência.
-19. **Reprocessamento com Preservação de IA:** A funcionalidade de reprocessar XMLs deve manter as classificações de produtos já realizadas pela IA.
+16. **Reprocessamento com Preservação de IA:** A funcionalidade de reprocessar XMLs deve manter as classificações de produtos já realizadas pela IA.
+17. **Validação Pós-Exportação do SPED:** Confrontar o arquivo  gerado com os dados do sistema para garantir a integridade.
+18. **Análise Tributária com IA:** Uma nova página para identificar vilões tributários (ex: produto entra com crédito de ICMS de 12% e sai com débito de 18%), oportunidades e fornecer insights estratégicos por competência.
 
 **User's preferred language**: O usuário comunica-se em **Português (Brasil)**. O próximo agente DEVE responder em Português.
 
 **what currently exists?**
-Uma aplicação full-stack (FastAPI + React). O trabalho recente se concentrou em corrigir criticamente a geração do SPED Fiscal e um bug de inconsistência de dados. A refatoração do backend monolítico () foi pausada para lidar com essas questões urgentes a pedido do usuário. A estrutura de refatoração (models, routers, services) existe, mas a maior parte da lógica ainda reside no .
+Uma aplicação full-stack (FastAPI + React) com autenticação e funcionalidades para upload e classificação de documentos fiscais. A sessão atual focou na implementação de duas novas funcionalidades solicitadas pelo usuário: uma **página de Análise Tributária IA** e um **mecanismo de validação pós-exportação do SPED Fiscal**. Foram corrigidos múltiplos bugs críticos relacionados ao cálculo e exibição do ICMS, e a lógica foi alinhada para usar os valores do XML, sinalizando inconsistências em vez de recalcular automaticamente. A refatoração do backend () continua pausada.
 
 **Last working item**:
-- **Last item agent was working**: Implementação de uma funcionalidade de validação para o SPED Fiscal, solicitada pelo usuário. O agente criou um endpoint no backend () que compara os totais do SPED gerado com a apuração interna do sistema e adicionou uma seção na UI () para exibir esses resultados.
+- **Last item agent was working**: O agente estava corrigindo um bug reportado pelo usuário onde o crédito de ICMS de despesas e Substituição Tributária (ST) ainda era considerado nos totalizadores em dois locais: na página **Apuração Mensal** e no **relatório da página de Exportação (Validação SPED)**.
 - **Status**: IN PROGRESS
-- **Agent Testing Done**: Y (Backend via curl, Frontend via screenshot)
-- **Which testing method agent to use?**: frontend testing agent. O screenshot revelou que a UI de validação não está sendo exibida, provavelmente devido a um problema de gerenciamento de estado no componente . O agente de teste de frontend deve ser usado para garantir que a seleção de empresa/competência no formulário de exportação esteja sincronizada e que a validação seja acionada e exibida corretamente.
+- **Agent Testing Done**: Y (Backend via ), N (Frontend)
+- **Which testing method agent to use?**: frontend testing agent. O agente precisa verificar o componente  para garantir que o totalizador de crédito de ICMS exibe o valor correto (já calculado no backend). Adicionalmente, deve verificar o relatório de validação em  para assegurar que a exibição do ICMS está clara para o usuário, diferenciando o total por CFOP do total de crédito apurado.
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: A UI de Validação do SPED não exibe os resultados (P0)**
-- **Issue 2: Correções no SPED Fiscal aguardam validação final do usuário (P1)**
-- **Issue 3: A página Análise Tributária (antiga) congela a interface (P4)**
+- **Issue 1: ICMS de despesa/ST é exibido incorretamente na UI (P0)**
+- **Issue 2: Seletor de competências não exibe todas as opções disponíveis (P1)**
 
 **Issues Detail:**
-- **Issue 1: A UI de Validação do SPED não exibe os resultados**
-    - **Attempted fixes:** O agente adicionou o estado  e a função  em , junto com o JSX para renderizar os resultados.
-    - **Next debug checklist:**
-        1.  Verificar o componente .
-        2.  Analisar por que o estado local do formulário (empresa/competência) não está sincronizado com o contexto global da aplicação (), o que impede a chamada de validação de usar os parâmetros corretos.
-        3.  Corrigir o componente para usar o estado do contexto global ou garantir que o estado local seja atualizado corretamente.
-        4.  Garantir que, após o clique no botão Validar SPED, a chamada à API seja feita e os resultados sejam renderizados na tela.
-    - **Why fix this issue and what will be achieved with the fix?** Atende a um requisito direto do usuário para ter uma camada extra de confiança, garantindo que o SPED gerado reflita com precisão os dados do sistema.
-    - **Status:** IN PROGRESS
-    - **Is recurring issue?** N
+- **Issue 1: ICMS de despesa/ST é exibido incorretamente na UI**
+    - **Attempted fixes**: O agente confirmou que o backend ( e ) já calcula e retorna os valores de crédito de ICMS corretamente, excluindo despesas/ST quando a flag está ativa. O bug persiste na camada de visualização.
+    - **Next debug checklist**:
+        1.  **Apuração Mensal:** Investigue . Verifique como o valor  é renderizado nos cards de totalizadores para garantir que não há uma soma incorreta no frontend.
+        2.  **Relatório de Exportação:** Investigue . O relatório de validação mostra o valor total por CFOP, o que pode confundir o usuário. Adicione um indicador visual ou uma nota de texto para clarificar que, embora o valor do CFOP seja exibido, ele foi excluído do cálculo do crédito total de ICMS.
+    - **Why fix this issue and what will be achieved with the fix?** A precisão fiscal é crítica. A correção garantirá que os usuários confiem nos números apresentados nas telas de apuração e validação.
+    - **Status**: IN PROGRESS
+    - **Is recurring issue?** Y (A lógica de ICMS é complexa e tem sido um tema recorrente).
     - **Should Test frontend/backend/both after fix?** frontend
     - **Blocked on other issue:** N/A
 
-- **Issue 2: Correções no SPED Fiscal aguardam validação final do usuário**
-    - **Attempted fixes:** O agente reescreveu extensivamente a função  para:
-        1.  Corrigir a estrutura e a ordem dos campos dos registros  e .
-        2.  Usar alíquotas fiscais padronizadas (ICMS, PIS, COFINS) com base no regime tributário da empresa, em vez dos valores do XML.
-        3.  Adicionar um  () para controlar a inclusão de créditos de ICMS de despesas e ST na apuração ().
-    - **Next debug checklist:** Após a conclusão e teste da UI de validação (Issue 1), o usuário precisa testar a geração do SPED e a nova funcionalidade de validação para confirmar que todos os problemas foram resolvidos.
-    - **Why fix this issue and what will be achieved with the fix?** A geração correta do SPED é uma funcionalidade central e crítica da aplicação.
-    - **Status:** USER VERIFICATION PENDING
-    - **Is recurring issue?** Y
-    - **Should Test frontend/backend/both after fix?** N/A (Aguardando verificação do usuário)
-    - **Blocked on other issue:** Issue 1: A UI de Validação do SPED não exibe os resultados
-
-- **Issue 3: A página Análise Tributária (antiga) congela a interface**
-    - **Attempted fixes:** Nenhum.
-    - **Next debug checklist:** A recomendação é remover a rota () do frontend e o link do menu em  para evitar que os usuários acessem uma página quebrada.
-    - **Why fix this issue and what will be achieved with the fix?** Melhora a experiência do usuário ao remover uma funcionalidade obsoleta e que não funciona.
-    - **Status:** NOT STARTED
-    - **Is recurring issue?** Y
-    - **Should Test frontend/backend/both after fix?** frontend
+- **Issue 2: Seletor de competências não exibe todas as opções disponíveis**
+    - **Attempted fixes**: Nenhum. O agente observou que a competência , que possui dados, não aparece nos dropdowns, impedindo os testes.
+    - **Next debug checklist**:
+        1.  Identifique o endpoint do backend responsável por fornecer a lista de competências para a UI.
+        2.  Verifique por que este endpoint não está retornando todas as competências que contêm documentos ( está faltando).
+        3.  Garanta que a UI em páginas como  e  renderize a lista completa recebida.
+    - **Why fix this issue and what will be achieved with the fix?** Desbloqueia a capacidade do usuário de trabalhar e testar a aplicação em diferentes períodos fiscais.
+    - **Status**: NOT STARTED
+    - **Is recurring issue?** N
+    - **Should Test frontend/backend/both after fix?** both
     - **Blocked on other issue:** N/A
 
 **In progress Task List**:
 - **Task 1: Refatorar  (P1)**
-    - **Where to resume:** A estrutura de pastas (, , ) foi criada e alguns arquivos iniciais foram populados. O próximo passo é mover sistematicamente os endpoints e a lógica de negócios de  para os novos módulos, começando pelos domínios de ,  e .
-    - **What will be achieved with this?** Aumento drástico da manutenibilidade, escalabilidade e estabilidade do backend. Facilitará a implementação de novas funcionalidades e a correção de bugs.
-    - **Status:** IN PROGRESS
+    - **Where to resume:** Mover sistematicamente os endpoints e a lógica de negócios de  para os módulos  e , começando pelos domínios de ,  e . A estrutura de pastas já existe.
+    - **What will be achieved with this?** Aumentar a manutenibilidade, escalabilidade e estabilidade do backend.
+    - **Status**: IN PROGRESS (Pausado para atender a bugs críticos).
     - **Should Test frontend/backend/both after fix?** both
-    - **Blocked on something:** A tarefa foi pausada para atender aos pedidos urgentes do usuário, mas deve ser retomada assim que as questões do SPED forem validadas.
+    - **Blocked on something:** Aguardando a resolução dos bugs de alta prioridade (P0).
 
 **Upcoming and Future Tasks**
 *   **Upcoming Tasks:**
-    *   **P1 - Adicionar barras de pesquisa nos menus:** Adicionar um campo de busca funcional nas páginas Documentos e Validação ().
-    *   **P1 - Hiperlink na NF deve abrir o documento específico:** O link na NF na página de Validação deve abrir a página Documentos e destacar/abrir automaticamente a NF clicada.
-    *   **P2 - Validação de alíquota de ICMS:** Implementar lógica para validar a alíquota de ICMS com base no estado de origem e destino.
+    *   **P1 - Adicionar barras de pesquisa funcionais:** Implementar busca nas páginas Documentos e Validação ().
+    *   **P1 - Hiperlink na NF deve abrir o documento específico:** Na página de Validação, o link em uma NF deve levar à página Documentos e focar na nota fiscal correspondente.
+    *   **P2 - Validação de alíquota de ICMS por estado:** Implementar lógica para validar a alíquota de ICMS com base nos estados de origem e destino.
 *   **Future Tasks:**
     *   **P3 - Histórico de alterações (Audit Log):** Criar um log de auditoria para rastrear alterações importantes.
     *   **P3 - Tutorial de integração (Onboarding):** Adicionar um guia ou tour rápido para novos usuários.
 
 **Completed work in this session**
-- **Bug Crítico Corrigido: Inconsistência de Dados na Página de Validação:**
-    - **Problema:** Produtos (ex: TONER) existentes em NFs não apareciam na página Validação.
-    - **Causa Raiz:** Códigos de produtos idênticos de fornecedores diferentes causavam colisões no agrupamento ().
-    - **Solução:** A chave de agrupamento em  foi alterada de  para  para garantir a unicidade.
-- **Bug Crítico Corrigido: Geração do SPED Fiscal:**
-    - A estrutura dos registros  e  foi totalmente corrigida para seguir o layout oficial.
-    - A lógica foi alterada para usar as alíquotas fiscais padronizadas do regime tributário da empresa (Lucro Real/Presumido), em vez dos valores brutos do XML.
-    - Adicionada uma  () na API e um checkbox na UI para permitir que o usuário escolha se os créditos de ICMS de despesas e ST devem ser excluídos da apuração (registro E110).
-- **Correção de Erros de Lint:** Foram corrigidos múltiplos erros de componentes aninhados instáveis nos arquivos  e .
+- **Nova Funcionalidade: Análise Tributária por IA:**
+  - Implementada uma nova página () que usa GPT-4o para identificar vilões tributários, oportunidades e fornecer insights estratégicos. A página inclui filtros por NCM/produto e colunas ordenáveis.
+- **Nova Funcionalidade: Validação Pós-Exportação do SPED:**
+  - O fluxo de exportação agora valida o arquivo  gerado, comparando os totais do sistema com os totais do SPED e exibindo divergências por CFOP.
+- **Bug Crítico Corrigido: Lógica de Cálculo do ICMS:**
+  - Alinhada a lógica de geração e validação do SPED para **usar o valor de ICMS do XML original**, conforme solicitado pelo usuário.
+  - Implementada uma sinalização para **Itens Pendentes**, que alerta o usuário sobre produtos com CST tributável mas com ICMS zerado no XML, permitindo correção manual.
+- **Bug Crítico Corrigido: Flag :**
+  - Corrigida a lógica no backend para que a flag que exclui créditos de despesa e ST seja aplicada corretamente tanto na geração do SPED (registro ) quanto na validação dos totais.
+- **Melhoria de UX: Remoção de Página Quebrada:**
+  - A antiga página Análise Tributária, que congelava a UI, foi completamente removida do menu e das rotas da aplicação.
 
 **Earlier issues found/mentioned but not fixed**
-- **Issue 1: A página Análise Tributária (antiga) congela a interface.** Foi substituída pela Auditoria PIS/COFINS, mas o link e a rota antigos ainda existem e quebram a aplicação. A recomendação é remover a página.
+- N/A
 
 **Known issue recurrence from previous fork**
-- O arquivo monolítico  continua sendo o principal débito técnico. A refatoração foi iniciada, mas pausada.
+- A dívida técnica do arquivo monolítico  persiste. A refatoração foi iniciada, mas continua pausada.
 
 **Code Architecture**
 
@@ -119,65 +103,67 @@ Uma aplicação full-stack (FastAPI + React). O trabalho recente se concentrou e
 **Key Technical Concepts**
 *   **Backend:** FastAPI, Pydantic, pymongo, lxml
 *   **Frontend:** React, React Context, , , axios, TailwindCSS
-*   **Arquitetura:** Mudando de um backend monolítico para uma arquitetura modular (Router-Service).
+*   **IA:**  para chamadas ao GPT-4o.
+*   **Arquitetura:** Backend monolítico com uma estrutura modular parcialmente implementada (não utilizada ativamente).
 
 **key DB schema**
-- Nenhuma alteração no esquema do banco de dados.
-
-**changes in tech stack**
-- Nenhuma.
+- Nenhuma alteração no esquema do banco de dados nesta sessão.
 
 **All files of reference**
+*   **Criados:**
+    *   : Nova página para a funcionalidade de análise de vilões tributários com IA.
 *   **Fortemente Modificados:**
-    *   : Recebeu uma refatoração massiva na função  e um novo endpoint .
-    *   : Adicionado o checkbox para controle de crédito de ICMS e a UI para a nova funcionalidade de validação do SPED.
-    *   : Alterada a lógica de agrupamento de produtos para corrigir o bug de inconsistência de dados.
+    *   : Adicionados endpoints  e . A lógica de geração e validação do SPED foi extensivamente modificada para alinhar com os requisitos do usuário sobre ICMS.
+    *   : UI reescrita para suportar a validação pós-exportação, exibir o comparativo Sistema vs SPED e listar itens pendentes.
 *   **Modificados:**
-    *   : Corrigidos erros de lint.
+    *   : Adicionada a rota para a nova página e removida a rota antiga.
+    *   : Adicionado o link no menu para a nova página e removido o link antigo.
 
 **Areas that need refactoring**:
-*   ****: **CRÍTICO.** A refatoração deve ser a principal prioridade após a validação das correções do SPED pelo usuário.
-*   ****: O gerenciamento de estado precisa ser refatorado para usar o contexto global () em vez de estados locais para empresa e competência, resolvendo o bug atual da UI.
+*   ****: **CRÍTICO.** A refatoração é a principal prioridade após a resolução dos bugs atuais para garantir a sustentabilidade do projeto.
+*   **Gerenciamento de Estado do Frontend**: O estado global (empresa/competência selecionada) é gerenciado de forma inconsistente, causando bugs como seletores que não atualizam. É necessário um refatoramento para usar o  de forma consistente em todas as páginas.
 
 **key api endpoints**
-*   : Modificado para aceitar o novo parâmetro .
-*   : **NOVO ENDPOINT** criado para validar os totais do SPED gerado.
-*   : Endpoint que fornece dados para as páginas de Documentos e Validação.
+*   : **NOVO**. Gera o SPED, valida e retorna o comparativo e itens pendentes.
+*   : **NOVO**. Realiza a análise tributária com IA.
+*   : Usado pela página Apuração Mensal. O backend foi verificado e está correto.
 
 **Critical Info for New Agent**
-*   **PRIORIDADE MÁXIMA:** Finalize a funcionalidade de validação do SPED. Corrija o bug na UI de  para que os resultados da validação sejam exibidos corretamente.
-*   **Validação do Usuário é Crucial:** O usuário fez solicitações muito específicas sobre a lógica fiscal do SPED. Após corrigir a UI de validação, é imperativo confirmar com o usuário que todas as correções (estrutura, alíquotas, flag de crédito) estão de acordo com o esperado.
-*   **Retomar a Refatoração:** Assim que as questões do SPED forem resolvidas e aprovadas, a refatoração do  deve ser retomada. Esta é uma dívida técnica crítica.
-*   **O usuário é técnico:** O usuário entende de regras fiscais e SPED. As implementações devem ser precisas e justificadas.
+*   **PRIORIDADE MÁXIMA:** Corrija o bug de exibição do ICMS na UI (**Issue 1**). O backend já está retornando os dados corretos; o problema está na forma como as páginas  e  estão renderizando esses dados.
+*   **SEGUNDA PRIORIDADE:** Corrija o bug no seletor de competências (**Issue 2**). Isso é essencial para que o usuário possa testar e usar a aplicação em diferentes períodos.
+*   **LÓGICA DO ICMS DEFINIDA:** Após várias iterações, a regra é: o sistema deve sempre usar o valor de ICMS () do arquivo XML. Casos onde o ICMS é zero em um item que deveria ser tributado são sinalizados como pendentes para revisão do usuário, mas o sistema **não** deve recalcular o valor por conta própria.
+*   **FLAG DE EXCLUSÃO:** A flag  está funcionando no backend. O desafio é garantir que a UI reflita seu estado de forma clara e precisa.
 
 **documents and test reports created in this job**
--  (atualizado)
+*    (atualizado)
+*   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User (LATEST):**  - Solicitou a nova funcionalidade de validação do SPED. *Status: IN PROGRESS.*
-2.  **User:**  - Solicitou a flag para controlar os créditos de ICMS. *Status: CONCLUÍDO.*
-3.  **User:**  - Solicitou o uso de alíquotas fiscais padronizadas em vez dos valores do XML. *Status: CONCLUÍDO.*
-4.  **User:**  - Reportou bugs estruturais no SPED Fiscal gerado (CST, alíquotas, valores incorretos). *Status: CONCLUÍDO (correções implementadas).*
-5.  **User:**  (com imagens) - Reportou o bug de inconsistência de dados entre as páginas Documentos e Validação. *Status: CONCLUÍDO (bug corrigido).*
-6.  **Agent:** Tentativa de finalizar a tarefa, que foi interrompida pelo usuário.
-7.  **Agent:** Atualização do .
-8.  **Agent:** Screenshot da aplicação funcionando após correção de lint.
-9.  **User:**  - Aprovou o plano inicial do agente.
-10. **Agent:** Apresentou o plano de trabalho inicial.
+1.  **User (LATEST):**  - Reporta que o ICMS de despesa/ST ainda aparece somado na UI. **Status: IN PROGRESS.**
+2.  **User:**  - Escolheu a opção 3 para lidar com ICMS zerado no XML: sinalizar como pendente em vez de recalcular. **Status: CONCLUÍDO.**
+3.  **User:**  - Clarificou a regra de negócio para o cálculo de ICMS. **Status: CONCLUÍDO (lógica implementada).**
+4.  **User:**  - Forneceu dados para reproduzir o bug do ICMS. **Status: CONCLUÍDO (bug reproduzido).**
+5.  **User:**  - Reportou a divergência inicial no ICMS. **Status: CONCLUÍDO (causa raiz encontrada).**
+6.  **User:**  - Aprovou a sugestão, mas reportou bugs e pediu melhorias. **Status: CONCLUÍDO.**
+7.  **User:**  - Refinou o requisito da página de Análise Tributária IA. **Status: CONCLUÍDO.**
+8.  **User:**  - Solicitou as duas principais funcionalidades da sessão. **Status: CONCLUÍDO.**
+9.  **User:**  - Aprovou o plano inicial do agente. **Status: CONCLUÍDO.**
 
 **Project Health Check:**
-*   **Broken:** A página Análise Tributária (antiga) que congela a UI.
+*   **Broken:**
+    *   A exibição dos totalizadores de ICMS na página Apuração Mensal.
+    *   O seletor de competências que não carrega todas as opções disponíveis, bloqueando testes em certos períodos.
 *   **In Progress:**
-    *   Funcionalidade de Validação do SPED (UI precisa de correção).
+    *   Correção do bug de exibição do ICMS na UI.
     *   Refatoração do  (pausada).
 
 **3rd Party Integrations**
 *   **Brasil API:** Para busca de dados de CNPJ.
-*   **OpenAI GPT-4o:** Usado para classificação de CFOP, acessado via  com a **Emergent LLM Key**.
+*   **OpenAI GPT-4o:** Usado para a funcionalidade Análise Tributária IA, acessado via  com a **Emergent LLM Key**.
 *   **SIEG Soluções:** Para contagem e download de XMLs fiscais.
 
 **Testing status**
-- **Testing agent used after significant changes**: NO
+- **Testing agent used after significant changes**: YES. O relatório está em . No entanto, o usuário encontrou bugs adicionais após os testes, que agora são a prioridade.
 - **Troubleshoot agent used after agent stuck in loop**: NO
 - **Test files created**: N/A
 - **Known regressions**: N/A
@@ -187,4 +173,5 @@ Uma aplicação full-stack (FastAPI + React). O trabalho recente se concentrou e
 *   **Senha:** 
 
 **What agent forgot to execute**
-- O agente não depurou completamente a UI de validação em . Embora o backend esteja pronto e a UI tenha sido adicionada, ela não funciona como esperado devido a um problema de sincronização de estado, que impede a exibição dos resultados da validação.</analysis>
+*   O agente identificou o bug do seletor de competências não carregar todas as opções, mas não o priorizou ou agendou para correção, apesar de ser um bloqueador de usabilidade.
+*   O agente confirmou que o backend para a Apuração Mensal está correto, mas não prosseguiu para a depuração do frontend () para resolver o problema de exibição relatado pelo usuário.</analysis>
