@@ -464,10 +464,14 @@ class DocumentProcessor:
             colab['cpf'] = f"{cpf_match.group(1)}.{cpf_match.group(2)}.{cpf_match.group(3)}-{cpf_match.group(4)}"
         
         # Extrair função
-        funcao_match = re.search(r'Fun[çc][aã]o[:\s]*([A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ\s\-]+)', block, re.IGNORECASE)
+        funcao_match = re.search(r'Fun[çc][aã]o[:\s]*([A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ\s\(\)\-]+)', block, re.IGNORECASE)
         if funcao_match:
-            colab['funcao'] = funcao_match.group(1).strip()
-            colab['cargo'] = colab['funcao']
+            funcao = funcao_match.group(1).strip()
+            # Limpar função (remover endereço se colado)
+            if 'rua' in funcao.lower():
+                funcao = funcao.split('RUA')[0].strip()
+            colab['funcao'] = funcao
+            colab['cargo'] = funcao
         
         # Extrair salário líquido (formato: "SALÁRIO LÍQUIDO\nR$ 1.926,00")
         liquido_match = re.search(r'SAL[AÁ]RIO\s+L[IÍ]QUIDO\s*\n?\s*R\$\s*([\d.,]+)', block, re.IGNORECASE)
