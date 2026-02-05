@@ -643,31 +643,103 @@ async def delete_colaborador(colaborador_id: str, current_user: dict = Depends(g
         raise HTTPException(status_code=404, detail="Colaborador não encontrado")
     return {"message": "Colaborador excluído com sucesso"}
 
+
 @api_router.post("/colaboradores/importar")
 async def importar_colaborador_documento(
     file: UploadFile = File(...),
     cliente_id: str = None,
     tipo_documento: str = "auto",  # auto, ficha_registro, holerite, ficha_esocial
+    use_ai: bool = True,  # Se False, usa apenas OCR local
     current_user: dict = Depends(get_current_user)
 ):
-    """Importa colaboradores a partir de ficha de registro (multi-vínculos), holerite ou ficha eSocial usando IA"""
+    """Importa colaboradores usando OCR local + IA opcional (híbrido)"""
+    from document_processor import doc_processor, GoogleAIProcessor
+    
+    # Validate cliente
+    if cliente_id:
+        cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    content = await file.read()
+    suffix = Path(file.filename).suffix
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(content)
+        tmp_path = tmp.name
+    
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        # 1. PRIMEIRO: Tenta OCR local (rápido e gratuito)
+        logger.info(f"Extraindo texto com OCR local de {file.filename}")
+        extracted_text = doc_processor.extract_text(tmp_path)
         
-        # Validate cliente
-        if cliente_id:
-            cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
-            if not cliente:
-                raise HTTPException(status_code=404, detail="Empresa não encontrada")
+        colaboradores = []
+        confianca = "baixa"
         
-        content = await file.read()
-        suffix = Path(file.filename).suffix
+        if extracted_text and len(extracted_text) > 100:
+            # Tenta extrair colaboradores do texto com regex
+            colaboradores = doc_processor.parse_colaboradores_from_text(extracted_text)
+            
+            if colaboradores and len(colaboradores) > 0:
+                # Se encontrou colaboradores com OCR local
+                confianca = "media"
+                logger.info(f"OCR local extraiu {len(colaboradores)} colaborador(es)")
         
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(content)
-            tmp_path = tmp.name
+        # 2. Se OCR local não funcionou bem e IA está habilitada, tenta IA
+        google_ai_key = os.environ.get('GOOGLE_AI_API_KEY')
+        emergent_key = os.environ.get('EMERGENT_LLM_KEY')
         
+        if use_ai and (not colaboradores or all(not c.get('nome') for c in colaboradores)):
+            logger.info("OCR insuficiente, tentando IA...")
+            
+            # Tenta Google AI Studio primeiro (gratuito)
+            if google_ai_key:
+                try:
+                    google_ai = GoogleAIProcessor(google_ai_key)
+                    if google_ai.is_available():
+                        ai_colaboradores = await google_ai.extract_colaboradores(extracted_text)
+                        if ai_colaboradores:
+                            colaboradores = ai_colaboradores
+                            confianca = "alta"
+                            logger.info(f"Google AI extraiu {len(colaboradores)} colaborador(es)")
+                except Exception as e:
+                    logger.warning(f"Google AI falhou: {e}")
+            
+            # Se Google AI não disponível/falhou, tenta Emergent (pago)
+            if (not colaboradores or all(not c.get('nome') for c in colaboradores)) and emergent_key:
+                try:
+                    colaboradores = await _extract_with_emergent_ai(tmp_path, suffix, tipo_documento, emergent_key)
+                    if colaboradores:
+                        confianca = "alta"
+                        logger.info(f"Emergent AI extraiu {len(colaboradores)} colaborador(es)")
+                except Exception as e:
+                    logger.error(f"Emergent AI falhou: {e}")
+                    # Retorna o que OCR conseguiu
+        
+        # Prepara resposta
+        if not colaboradores:
+            colaboradores = [{"nome": "", "cpf": "", "cargo": "", "salario_base": 0}]
+            confianca = "baixa"
+        
+        return {
+            "tipo_documento_detectado": tipo_documento,
+            "confianca": confianca,
+            "total_colaboradores": len(colaboradores),
+            "colaboradores": colaboradores,
+            "metodo_extracao": "ocr_local" if confianca != "alta" else "ia",
+            "texto_extraido_preview": extracted_text[:500] if extracted_text else ""
+        }
+        
+    finally:
         try:
+            os.unlink(tmp_path)
+        except:
+            pass
+
+
+async def _extract_with_emergent_ai(tmp_path: str, suffix: str, tipo_documento: str, api_key: str) -> List[Dict]:
+    """Extração usando Emergent AI (pago) - chamada interna"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
             api_key = os.environ.get('EMERGENT_LLM_KEY')
             
             # Determine document type for better extraction
