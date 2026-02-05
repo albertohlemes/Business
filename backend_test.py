@@ -259,6 +259,91 @@ class PortalDPAPITester:
 
         return success1 and success2 and success3 and success4
 
+    def test_colaborador_import(self):
+        """Test colaborador import functionality"""
+        print("\n" + "="*50)
+        print("TESTING COLABORADOR IMPORT")
+        print("="*50)
+        
+        if not self.token or not self.cliente_id:
+            print("❌ No token or cliente_id available for import tests")
+            return False
+
+        import tempfile
+        import os
+
+        # Test 1: Import endpoint exists (should return 422 for missing file)
+        success1, _ = self.run_test(
+            "Import Endpoint Exists",
+            "POST",
+            "api/colaboradores/importar",
+            422  # Expected because no file is provided
+        )
+
+        # Test 2: Import with mock PDF file
+        mock_pdf_content = b"%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 44\n>>\nstream\nBT\n/F1 12 Tf\n72 720 Td\n(Nome: João da Silva) Tj\n0 -20 Td\n(CPF: 123.456.789-00) Tj\n0 -20 Td\n(Cargo: Desenvolvedor) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000206 00000 n \ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n299\n%%EOF"
+        
+        success2 = False
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
+            tmp_file.write(mock_pdf_content)
+            tmp_file_path = tmp_file.name
+
+        try:
+            with open(tmp_file_path, 'rb') as f:
+                files = {'file': ('test_ficha_registro.pdf', f, 'application/pdf')}
+                data = {
+                    'cliente_id': self.cliente_id,
+                    'tipo_documento': 'ficha_registro'
+                }
+                
+                success2, response = self.run_test(
+                    "Import with Mock PDF",
+                    "POST",
+                    "api/colaboradores/importar",
+                    200,
+                    data=data,
+                    files=files
+                )
+                
+                if success2:
+                    print(f"   Import response keys: {list(response.keys()) if isinstance(response, dict) else 'Not a dict'}")
+                    if isinstance(response, dict):
+                        print(f"   Success: {response.get('success', 'N/A')}")
+                        print(f"   Document type: {response.get('tipo_documento', 'N/A')}")
+                        print(f"   Confidence: {response.get('confianca', 'N/A')}")
+                        print(f"   Message: {response.get('message', 'N/A')}")
+        finally:
+            os.unlink(tmp_file_path)
+
+        # Test 3: Import with different document types
+        success3 = True
+        for doc_type in ['auto', 'holerite']:
+            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
+                tmp_file.write(mock_pdf_content)
+                tmp_file_path = tmp_file.name
+
+            try:
+                with open(tmp_file_path, 'rb') as f:
+                    files = {'file': (f'test_{doc_type}.pdf', f, 'application/pdf')}
+                    data = {
+                        'cliente_id': self.cliente_id,
+                        'tipo_documento': doc_type
+                    }
+                    
+                    success_temp, _ = self.run_test(
+                        f"Import with {doc_type} type",
+                        "POST",
+                        "api/colaboradores/importar",
+                        200,
+                        data=data,
+                        files=files
+                    )
+                    success3 = success3 and success_temp
+            finally:
+                os.unlink(tmp_file_path)
+
+        return success1 and success2 and success3
+
     def test_dashboard(self):
         """Test dashboard endpoint"""
         print("\n" + "="*50)
