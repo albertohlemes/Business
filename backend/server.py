@@ -2286,6 +2286,7 @@ class DadosEmpresaBaixa(BaseModel):
     data_registro: Optional[str] = None
     junta_comercial: Optional[str] = None
     endereco: Optional[str] = None
+    cep: Optional[str] = None
 
 class SocioBaixa(BaseModel):
     nome: str
@@ -2298,6 +2299,10 @@ class SocioBaixa(BaseModel):
     profissao: Optional[str] = None
     endereco: Optional[str] = None
     participacao: Optional[str] = None
+    naturalidade: Optional[str] = None
+    uf_nascimento: Optional[str] = None
+    data_nascimento: Optional[str] = None
+    administrador: Optional[bool] = False
 
 class BaixaRequest(BaseModel):
     minuta_id: str
