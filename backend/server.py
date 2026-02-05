@@ -2432,64 +2432,88 @@ async def gerar_distrato_social(
                 qualif += f", residente e domiciliado(a) em {s.endereco}"
             socios_qualificados.append(qualif)
         
-        prompt = f"""Gere um DISTRATO SOCIAL completo e formal para a empresa abaixo.
+        # Data atual formatada
+        data_atual = datetime.now().strftime("%d de %B de %Y").replace(
+            'January', 'janeiro').replace('February', 'fevereiro').replace('March', 'março'
+        ).replace('April', 'abril').replace('May', 'maio').replace('June', 'junho'
+        ).replace('July', 'julho').replace('August', 'agosto').replace('September', 'setembro'
+        ).replace('October', 'outubro').replace('November', 'novembro').replace('December', 'dezembro')
+        
+        # Gerar qualificação completa de cada sócio
+        qualificacao_socios = ""
+        for i, s in enumerate(socios, 1):
+            qualif = f"{i}) {s.nome.upper()}, nacionalidade: {s.nacionalidade or 'brasileira'}"
+            if s.estado_civil:
+                qualif += f", {s.estado_civil.lower()}"
+                if s.regime_casamento and 'casado' in s.estado_civil.lower():
+                    qualif += f" sob o Regime de {s.regime_casamento}"
+            if s.profissao:
+                qualif += f", {s.profissao.lower()}"
+            if s.data_nascimento:
+                qualif += f", nascido em {s.data_nascimento}"
+            if s.rg:
+                qualif += f", documento de identidade RG sob nº {s.rg}"
+                if s.orgao_emissor:
+                    qualif += f" Órgão Emissor: {s.orgao_emissor}"
+            qualif += f" e CPF {s.cpf}"
+            if s.endereco:
+                qualif += f", residente e domiciliado na {s.endereco}"
+            qualif += ";\n"
+            qualificacao_socios += qualif
+        
+        # Assinaturas
+        assinaturas = ""
+        for s in socios:
+            assinaturas += f"\n______________________________\n{s.nome.upper()}\nCPF : {s.cpf}\n"
+        
+        # Calcular patrimônio por sócio se houver
+        patrimonio_distribuicao = ""
+        if baixa.distribuicao_patrimonio:
+            patrimonio_distribuicao = baixa.distribuicao_patrimonio
+        else:
+            for s in socios:
+                if hasattr(s, 'participacao') and s.participacao:
+                    patrimonio_distribuicao += f"{s.nome.upper()} - {s.participacao}%\n"
+        
+        prompt = f"""Gere um DISTRATO SOCIAL seguindo EXATAMENTE este modelo:
 
-DADOS DA EMPRESA:
-- Razão Social: {empresa.razao_social}
-- CNPJ: {empresa.cnpj}
-- NIRE: {empresa.nire or 'Não informado'}
-- Capital Social: {empresa.capital_social or 'Não informado'}
-- Data de Registro: {empresa.data_registro or 'Não informada'}
-- Junta Comercial: {empresa.junta_comercial or 'Não informada'}
-- Endereço: {empresa.endereco or 'Não informado'}
+DISTRATO SOCIAL
+{empresa.razao_social.upper()}
 
-SÓCIOS:
-{chr(10).join([f'{i+1}. {q}' for i, q in enumerate(socios_qualificados)])}
+{qualificacao_socios}
+Únicos componentes da sociedade empresária limitada denominada {empresa.razao_social.upper()}, com sede na {empresa.endereco or '[ENDEREÇO]'}, inscrita no CNPJ/MF sob o nº {empresa.cnpj}, e registrada na Junta Comercial {empresa.junta_comercial or 'do Estado'} sob o nº {empresa.nire or '[NIRE]'}, em {empresa.data_registro or '[DATA]'}, resolvem de comum acordo, dar por desfeita a sociedade que mantêm, declarando o que segue:
 
-DETALHES DA BAIXA:
-- Motivo: {motivo_texto}
-- Data de encerramento das atividades: {data_formatada}
-- Destinação do acervo: {baixa.destinacao_acervo or 'Os livros e documentos da sociedade ficarão sob a guarda do sócio responsável'}
-- Declaração de quitação: {'Sim' if baixa.declaracao_quitacao else 'Não'}
-- Distribuição do patrimônio: {baixa.distribuicao_patrimonio or 'O patrimônio líquido remanescente será dividido entre os sócios na proporção de suas quotas'}
-- Responsável pela guarda: {baixa.responsavel_guarda}
-- Prazo de guarda: {baixa.prazo_guarda}
+CLÁUSULA PRIMEIRA – DA DISSOLUÇÃO DA SOCIEDADE
+Os sócios, por livre e espontânea vontade, resolvem {motivo_texto}, na forma do art. 1.033, inciso II, combinado com os arts. 1.087 do Código Civil brasileiro (Lei nº 10.406/2002), encerrando-se, dessa maneira, toda a atividade.
 
-ESTRUTURA OBRIGATÓRIA DO DISTRATO:
+CLÁUSULA SEGUNDA – DA CESSAÇÃO DAS ATIVIDADES
+A cessação das atividades ocorreu em {data_formatada}.
 
-1. TÍTULO: DISTRATO SOCIAL DE [RAZÃO SOCIAL] - CENTRALIZADO
+CLÁUSULA TERCEIRA – DO ACERVO CONTÁBIL
+{baixa.destinacao_acervo or 'Os livros e documentos contábeis ficarão sob a guarda e responsabilidade do sócio indicado, pelo prazo legal.'}
 
-2. Identificação do instrumento, CNPJ, NIRE, registro na Junta (NÃO usar o título "Preâmbulo")
+CLÁUSULA QUARTA – DO PASSIVO SOCIAL
+{"Os sócios declaram, sob as penas da lei, que a sociedade não possui qualquer débito ou obrigação pendente de pagamento perante terceiros, trabalhadores, fornecedores, instituições financeiras, Fazenda Pública Federal, Estadual ou Municipal, INSS e FGTS, assumindo a responsabilidade por eventuais débitos que venham a ser apurados posteriormente." if baixa.declaracao_quitacao else "Eventuais débitos existentes serão quitados pelos sócios na proporção de suas participações societárias."}
 
-3. QUALIFICAÇÃO DOS SÓCIOS: Dados completos de cada sócio
+CLÁUSULA QUINTA – DO PATRIMÔNIO REMANESCENTE
+{patrimonio_distribuicao if patrimonio_distribuicao else "O patrimônio líquido remanescente, se houver, será dividido entre os sócios na proporção de suas quotas."}
 
-4. CLÁUSULAS:
-   - Cláusula 1ª: DA DISSOLUÇÃO (motivo)
-   - Cláusula 2ª: DA CESSAÇÃO DAS ATIVIDADES (data)
-   - Cláusula 3ª: DO ACERVO CONTÁBIL (destinação dos livros)
-   - Cláusula 4ª: DO PASSIVO SOCIAL (declaração de quitação)
-   - Cláusula 5ª: DO PATRIMÔNIO REMANESCENTE (distribuição)
-   - Cláusula 6ª: DA RESPONSABILIDADE DOS SÓCIOS
-   - Cláusula 7ª: DA GUARDA DOS DOCUMENTOS
+CLÁUSULA SEXTA – DA RESPONSABILIDADE DOS SÓCIOS
+Os sócios assumem a responsabilidade solidária por quaisquer obrigações que porventura venham a ser identificadas e que sejam de responsabilidade da sociedade ora extinta, respondendo cada qual na proporção de sua participação no capital social.
 
-5. ENCERRAMENTO COM ASSINATURAS:
-   - Local e data
-   - Espaço para assinatura de TODOS os sócios, no formato:
-     _______________________________________
-     NOME COMPLETO DO SÓCIO
-     CPF: XXX.XXX.XXX-XX
-   - NÃO incluir testemunhas
+CLÁUSULA SÉTIMA – DA GUARDA DOS DOCUMENTOS
+Os livros e documentos da sociedade ficarão sob a guarda de {baixa.responsavel_guarda or 'sócio indicado'}, pelo prazo de {baixa.prazo_guarda or '5 (cinco) anos'}, conforme exigência legal, podendo ser requisitados a qualquer tempo por autoridades competentes.
 
-REGRAS DE FORMATAÇÃO:
-- O título e nome da empresa devem estar CENTRALIZADOS
-- NÃO usar o título "PREÂMBULO" no documento
-- NÃO incluir espaço para testemunhas
-- Use formatação clara com espaçamento adequado
-- O documento deve estar pronto para registro na Junta Comercial."""
+E, por estarem assim justos e contratados, assinam o presente instrumento particular de distrato em 02 (duas) vias de igual teor e forma, para um só efeito.
+
+{empresa.endereco.split(',')[-2].strip() if empresa.endereco and ',' in empresa.endereco else 'Local'}, {data_atual}.
+{assinaturas}
+
+IMPORTANTE: Gere o documento EXATAMENTE neste formato. NÃO adicione testemunhas. O título e nome da empresa devem estar CENTRALIZADOS."""
 
         system_message = """Você é um advogado societário especialista em dissolução de empresas.
 Gere documentos formais, completos e prontos para registro na Junta Comercial.
-Use linguagem jurídica adequada e siga rigorosamente a estrutura solicitada."""
+Use linguagem jurídica adequada. NÃO use Markdown."""
 
         chat = LlmChat(
             api_key=emergent_api_key,
