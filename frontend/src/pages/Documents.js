@@ -16,10 +16,36 @@ const Documents = ({ user, onLogout }) => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedTipo, setSelectedTipo] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [integritySummary, setIntegritySummary] = useState(null);
+  const [loadingIntegrity, setLoadingIntegrity] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, [ctxCompany]);
+
+  useEffect(() => {
+    // Buscar resumo de integridade quando mudar empresa/competência
+    if (ctxCompany && selectedCompetencia) {
+      fetchIntegritySummary();
+    }
+  }, [ctxCompany, selectedCompetencia]);
+
+  const fetchIntegritySummary = async () => {
+    if (!ctxCompany || !selectedCompetencia) return;
+    setLoadingIntegrity(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(
+        `${API}/xml/integrity-summary/${ctxCompany.id}?competencia=${selectedCompetencia}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setIntegritySummary(res.data);
+    } catch (err) {
+      console.error('Erro ao buscar integridade:', err);
+    } finally {
+      setLoadingIntegrity(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
