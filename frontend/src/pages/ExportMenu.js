@@ -111,21 +111,32 @@ const ExportMenu = ({ user, onLogout }) => {
     }
 
     setLoading(true);
+    setValidacao(null); // Limpar validação anterior
     try {
       const token = localStorage.getItem('token');
       
-      let url, filename, response;
+      let filename, response;
       
       if (activeTab === 'sped') {
-          const periodoFormatado = competencia.replace('/', '');
-          response = await axios.get(
-            `${API}/sped/export/${selectedCompany}?competencia=${competencia}&periodo=${periodoFormatado}&excluir_creditos_despesa_st=${excluirCreditosDespesaST}`,
+          // Usar novo endpoint que exporta e valida automaticamente
+          response = await axios.post(
+            `${API}/sped/exportar-e-validar/${selectedCompany}?competencia=${encodeURIComponent(competencia)}&excluir_creditos_despesa_st=${excluirCreditosDespesaST}`,
+            {},
             { headers: { Authorization: `Bearer ${token}` } }
           );
+          
           filename = response.data.filename;
           const blob = new Blob([response.data.content], { type: 'text/plain' });
           downloadBlob(blob, filename);
-          alert('SPED Fiscal exportado com sucesso!');
+          
+          // Exibir resultado da validação automática
+          setValidacao(response.data.validacao);
+          
+          if (response.data.validacao?.status === 'OK') {
+            alert('✅ SPED Fiscal exportado e validado com sucesso!');
+          } else {
+            alert('⚠️ SPED exportado, mas foram encontradas divergências. Verifique o relatório abaixo.');
+          }
       } else {
           // CSV Export
           const endpoint = activeTab === 'entrada' ? 'csv/entrada' : 'csv/saida';
