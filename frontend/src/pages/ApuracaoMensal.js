@@ -5,7 +5,8 @@ import { useAppContext } from '../context/AppContext';
 import { 
   Calculator, TrendingUp, TrendingDown, Package, DollarSign, Receipt,
   ArrowDownCircle, ArrowUpCircle, ChevronDown, ChevronRight, Download,
-  Loader2, Save, AlertCircle, CheckCircle, Target, FileText
+  Loader2, Save, AlertCircle, CheckCircle, Target, FileText,
+  ArrowUp, ArrowDown, ArrowUpDown
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
