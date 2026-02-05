@@ -1676,17 +1676,31 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
                             </div>
                             
                             <div className="space-y-4">
-                                <div>
-                                    <Label className="text-zinc-400 text-xs uppercase mb-2 block">
-                                        Razão Social <span className="text-red-500">*</span>
-                                    </Label>
-                                    <Input
-                                        value={razaoSocial}
-                                        onChange={(e) => setRazaoSocial(e.target.value.toUpperCase())}
-                                        placeholder="EMPRESA EXEMPLO LTDA"
-                                        className="bg-zinc-950 border-zinc-800"
-                                        required
-                                    />
+                                {/* Código do Cliente para GClick */}
+                                <div className="grid grid-cols-4 gap-4">
+                                    <div>
+                                        <Label className="text-zinc-400 text-xs uppercase mb-2 block">
+                                            ID/Código Cliente
+                                        </Label>
+                                        <Input
+                                            value={codigoCliente}
+                                            onChange={(e) => setCodigoCliente(e.target.value)}
+                                            placeholder="0000"
+                                            className="bg-zinc-950 border-zinc-800"
+                                        />
+                                    </div>
+                                    <div className="col-span-3">
+                                        <Label className="text-zinc-400 text-xs uppercase mb-2 block">
+                                            Razão Social <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Input
+                                            value={razaoSocial}
+                                            onChange={(e) => setRazaoSocial(e.target.value.toUpperCase())}
+                                            placeholder="EMPRESA EXEMPLO LTDA"
+                                            className="bg-zinc-950 border-zinc-800"
+                                            required
+                                        />
+                                    </div>
                                 </div>
                                 
                                 <div>
