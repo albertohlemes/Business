@@ -2,8 +2,9 @@ import { useState, useMemo } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
+import { Checkbox } from '../ui/checkbox';
 import { 
-    FileText, Trash2, Eye, Building2, Hash, FileDown, FileType, RefreshCw, Copy, Edit, Send, CheckCircle
+    FileText, Trash2, Eye, Building2, Hash, FileDown, FileType, RefreshCw, Copy, Edit, Send, CheckCircle, Undo2, AlertTriangle
 } from 'lucide-react';
 import {
     Dialog,
@@ -14,11 +15,32 @@ import {
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-const ClienteCard = ({ cliente, onView, onEdit, onDownloadWord, onDownloadPDF, onDelete, onEnviarGClick }) => {
+const ClienteCard = ({ cliente, onView, onEdit, onDownloadWord, onDownloadPDF, onDelete, onEnviarGClick, selectedIds, onToggleSelect, isLixeira, onRestore }) => {
     const getStatus = (s) => {
         const cfg = { pendente: 'badge-pending', em_analise: 'badge-warning', concluida: 'badge-success' };
         const lbl = { pendente: 'Pendente', em_analise: 'Em Análise', concluida: 'Concluída' };
         return <span className={`badge ${cfg[s] || 'badge-pending'}`}>{lbl[s] || s}</span>;
+    };
+
+    const allSelected = cliente.processos.every(p => selectedIds.includes(p.id));
+    const someSelected = cliente.processos.some(p => selectedIds.includes(p.id));
+
+    const toggleAllCliente = () => {
+        if (allSelected) {
+            // Desmarcar todos
+            cliente.processos.forEach(p => {
+                if (selectedIds.includes(p.id)) {
+                    onToggleSelect(p.id);
+                }
+            });
+        } else {
+            // Marcar todos
+            cliente.processos.forEach(p => {
+                if (!selectedIds.includes(p.id)) {
+                    onToggleSelect(p.id);
+                }
+            });
+        }
     };
 
     return (
@@ -26,6 +48,11 @@ const ClienteCard = ({ cliente, onView, onEdit, onDownloadWord, onDownloadPDF, o
             {/* Cabeçalho do Cliente */}
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
+                    <Checkbox 
+                        checked={allSelected}
+                        className={someSelected && !allSelected ? 'data-[state=checked]:bg-zinc-600' : ''}
+                        onCheckedChange={toggleAllCliente}
+                    />
                     <Building2 className="w-5 h-5 text-red-500" />
                     <div>
                         <p className="font-medium text-white">
@@ -46,10 +73,16 @@ const ClienteCard = ({ cliente, onView, onEdit, onDownloadWord, onDownloadPDF, o
                 {cliente.processos.map(m => (
                     <div 
                         key={m.id} 
-                        className="flex items-center justify-between bg-zinc-950 border border-zinc-800 rounded p-3 hover:border-zinc-700 transition-colors"
+                        className={`flex items-center justify-between bg-zinc-950 border rounded p-3 transition-colors ${
+                            selectedIds.includes(m.id) ? 'border-red-600 bg-red-950/20' : 'border-zinc-800 hover:border-zinc-700'
+                        }`}
                         data-testid={`processo-${m.id}`}
                     >
                         <div className="flex items-center gap-4">
+                            <Checkbox 
+                                checked={selectedIds.includes(m.id)}
+                                onCheckedChange={() => onToggleSelect(m.id)}
+                            />
                             <span className="flex items-center gap-1 text-red-500 font-mono font-medium text-sm">
                                 <Hash className="w-3 h-3" />
                                 {m.numero_alteracao || '-'}
@@ -63,39 +96,57 @@ const ClienteCard = ({ cliente, onView, onEdit, onDownloadWord, onDownloadPDF, o
                             <span className="text-xs text-zinc-500">
                                 {new Date(m.created_at).toLocaleDateString('pt-BR')}
                             </span>
+                            {isLixeira && m.deleted_at && (
+                                <span className="text-xs text-red-400">
+                                    Excluído em {new Date(m.deleted_at).toLocaleDateString('pt-BR')}
+                                </span>
+                            )}
                         </div>
                         <div className="flex items-center gap-1">
-                            {m.conteudo_gerado && (
+                            {isLixeira ? (
                                 <>
-                                    <Button size="sm" variant="outline" onClick={() => onDownloadWord(m.id)} className="border-zinc-700 h-8" title="Baixar Word">
-                                        <FileType className="w-4 h-4" />
+                                    <Button size="sm" variant="outline" onClick={() => onRestore(m.id)} className="border-green-700 hover:border-green-600 text-green-500 h-8" title="Restaurar">
+                                        <Undo2 className="w-4 h-4" />
                                     </Button>
-                                    <Button size="sm" variant="outline" onClick={() => onDownloadPDF(m.id)} className="border-zinc-700 h-8" title="Baixar PDF">
-                                        <FileDown className="w-4 h-4" />
+                                    <Button size="sm" variant="outline" onClick={() => onDelete(m.id)} className="border-red-700 hover:border-red-600 text-red-500 h-8" title="Excluir Permanentemente">
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    {m.conteudo_gerado && (
+                                        <>
+                                            <Button size="sm" variant="outline" onClick={() => onDownloadWord(m.id)} className="border-zinc-700 h-8" title="Baixar Word">
+                                                <FileType className="w-4 h-4" />
+                                            </Button>
+                                            <Button size="sm" variant="outline" onClick={() => onDownloadPDF(m.id)} className="border-zinc-700 h-8" title="Baixar PDF">
+                                                <FileDown className="w-4 h-4" />
+                                            </Button>
+                                        </>
+                                    )}
+                                    {/* Botão GClick - apenas para processos concluídos */}
+                                    {m.status === 'concluida' && (
+                                        <Button 
+                                            size="sm" 
+                                            variant="outline" 
+                                            onClick={() => onEnviarGClick(m.id)} 
+                                            className={`border-zinc-700 h-8 ${m.gclick_enviado ? 'text-green-500 border-green-600' : 'hover:border-green-600 hover:text-green-500'}`}
+                                            title={m.gclick_enviado ? 'Enviado para GClick' : 'Enviar para GClick'}
+                                        >
+                                            {m.gclick_enviado ? <CheckCircle className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                                        </Button>
+                                    )}
+                                    <Button size="sm" variant="outline" onClick={() => onView(m)} className="border-zinc-700 h-8" title="Visualizar">
+                                        <Eye className="w-4 h-4" />
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => onEdit(m)} className="border-zinc-700 hover:border-blue-600 h-8" title="Editar">
+                                        <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => onDelete(m.id)} className="border-zinc-700 hover:border-red-600 h-8" title="Mover para Lixeira">
+                                        <Trash2 className="w-4 h-4" />
                                     </Button>
                                 </>
                             )}
-                            {/* Botão GClick - apenas para processos concluídos */}
-                            {m.status === 'concluida' && (
-                                <Button 
-                                    size="sm" 
-                                    variant="outline" 
-                                    onClick={() => onEnviarGClick(m.id)} 
-                                    className={`border-zinc-700 h-8 ${m.gclick_enviado ? 'text-green-500 border-green-600' : 'hover:border-green-600 hover:text-green-500'}`}
-                                    title={m.gclick_enviado ? 'Enviado para GClick' : 'Enviar para GClick'}
-                                >
-                                    {m.gclick_enviado ? <CheckCircle className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-                                </Button>
-                            )}
-                            <Button size="sm" variant="outline" onClick={() => onView(m)} className="border-zinc-700 h-8" title="Visualizar">
-                                <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => onEdit(m)} className="border-zinc-700 hover:border-blue-600 h-8" title="Editar">
-                                <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => onDelete(m.id)} className="border-zinc-700 hover:border-red-600 h-8" title="Excluir">
-                                <Trash2 className="w-4 h-4" />
-                            </Button>
                         </div>
                     </div>
                 ))}
@@ -104,11 +155,12 @@ const ClienteCard = ({ cliente, onView, onEdit, onDownloadWord, onDownloadPDF, o
     );
 };
 
-const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, onEdit, emptyMessage, emptyDescription }) => {
+const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, onEdit, emptyMessage, emptyDescription, isLixeira = false }) => {
     const [viewOpen, setViewOpen] = useState(false);
     const [viewContent, setViewContent] = useState('');
     const [viewProcessoId, setViewProcessoId] = useState(null);
     const [enviandoGClick, setEnviandoGClick] = useState(null);
+    const [selectedIds, setSelectedIds] = useState([]);
 
     // Agrupar processos por cliente
     const processosAgrupados = useMemo(() => {
@@ -128,6 +180,20 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, onEdit, emp
         }
         return Object.keys(grupos).map(k => ({ key: k, ...grupos[k] }));
     }, [minutas]);
+
+    const toggleSelect = (id) => {
+        setSelectedIds(prev => 
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+    };
+
+    const selectAll = () => {
+        if (selectedIds.length === minutas.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(minutas.map(m => m.id));
+        }
+    };
 
     const downloadWord = async (processoId) => {
         try {
@@ -172,16 +238,86 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, onEdit, emp
     };
 
     const deleteProcesso = async (id) => {
-        if (!window.confirm('Tem certeza que deseja excluir este processo? Esta ação não pode ser desfeita.')) {
+        const msg = isLixeira 
+            ? 'Tem certeza que deseja EXCLUIR PERMANENTEMENTE este processo? Esta ação NÃO pode ser desfeita.'
+            : 'Deseja mover este processo para a lixeira?';
+        
+        if (!window.confirm(msg)) {
             return;
         }
         try {
-            await axios.delete(`${API_URL}/api/minutas/${id}`);
-            toast.success('Processo removido');
+            if (isLixeira) {
+                await axios.delete(`${API_URL}/api/lixeira/${id}/permanente`);
+                toast.success('Processo excluído permanentemente');
+            } else {
+                await axios.delete(`${API_URL}/api/minutas/${id}`);
+                toast.success('Processo movido para a lixeira');
+            }
+            setSelectedIds(prev => prev.filter(x => x !== id));
             onRefresh();
         } catch (e) {
             console.error('Erro ao deletar:', e);
             toast.error('Erro ao remover processo');
+        }
+    };
+
+    const restaurarProcesso = async (id) => {
+        try {
+            await axios.post(`${API_URL}/api/lixeira/${id}/restaurar`);
+            toast.success('Processo restaurado com sucesso!');
+            setSelectedIds(prev => prev.filter(x => x !== id));
+            onRefresh();
+        } catch (e) {
+            console.error('Erro ao restaurar:', e);
+            toast.error('Erro ao restaurar processo');
+        }
+    };
+
+    // Ações em lote
+    const deletarSelecionados = async () => {
+        if (selectedIds.length === 0) {
+            toast.warning('Selecione pelo menos um processo');
+            return;
+        }
+        
+        const msg = isLixeira 
+            ? `Tem certeza que deseja EXCLUIR PERMANENTEMENTE ${selectedIds.length} processo(s)? Esta ação NÃO pode ser desfeita.`
+            : `Deseja mover ${selectedIds.length} processo(s) para a lixeira?`;
+        
+        if (!window.confirm(msg)) {
+            return;
+        }
+        
+        try {
+            if (isLixeira) {
+                await axios.post(`${API_URL}/api/lixeira/deletar-permanente-multiplos`, { ids: selectedIds });
+                toast.success(`${selectedIds.length} processo(s) excluído(s) permanentemente`);
+            } else {
+                await axios.post(`${API_URL}/api/minutas/deletar-multiplos`, { ids: selectedIds });
+                toast.success(`${selectedIds.length} processo(s) movido(s) para a lixeira`);
+            }
+            setSelectedIds([]);
+            onRefresh();
+        } catch (e) {
+            console.error('Erro ao deletar múltiplos:', e);
+            toast.error('Erro ao remover processos');
+        }
+    };
+
+    const restaurarSelecionados = async () => {
+        if (selectedIds.length === 0) {
+            toast.warning('Selecione pelo menos um processo');
+            return;
+        }
+        
+        try {
+            await axios.post(`${API_URL}/api/lixeira/restaurar-multiplos`, { ids: selectedIds });
+            toast.success(`${selectedIds.length} processo(s) restaurado(s)`);
+            setSelectedIds([]);
+            onRefresh();
+        } catch (e) {
+            console.error('Erro ao restaurar múltiplos:', e);
+            toast.error('Erro ao restaurar processos');
         }
     };
 
@@ -228,16 +364,82 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, onEdit, emp
         }
     };
 
+    const getTitulo = () => {
+        if (isLixeira) return 'Lixeira';
+        if (tipoProcesso === 'constituicao') return 'Constituições de Empresas';
+        if (tipoProcesso === 'alteracao') return 'Alterações Contratuais';
+        if (tipoProcesso === 'baixa') return 'Baixas de Empresas';
+        return 'Processos';
+    };
+
     return (
         <>
             <div className="bg-zinc-900 border border-zinc-800 rounded-lg">
                 <div className="p-6 border-b border-zinc-800">
-                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-red-500" />
-                        {tipoProcesso === 'constituicao' ? 'Constituições de Empresas' : 
-                         tipoProcesso === 'alteracao' ? 'Alterações Contratuais' : 
-                         tipoProcesso === 'baixa' ? 'Baixas de Empresas' : 'Processos'}
-                    </h2>
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                            {isLixeira ? (
+                                <Trash2 className="w-5 h-5 text-red-500" />
+                            ) : (
+                                <FileText className="w-5 h-5 text-red-500" />
+                            )}
+                            {getTitulo()}
+                            {minutas.length > 0 && (
+                                <span className="text-sm font-normal text-zinc-500">
+                                    ({minutas.length})
+                                </span>
+                            )}
+                        </h2>
+                        
+                        {/* Barra de ações em lote */}
+                        {minutas.length > 0 && (
+                            <div className="flex items-center gap-2">
+                                <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    onClick={selectAll}
+                                    className="border-zinc-700 h-8"
+                                >
+                                    {selectedIds.length === minutas.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                                </Button>
+                                
+                                {selectedIds.length > 0 && (
+                                    <>
+                                        <span className="text-sm text-zinc-400">
+                                            {selectedIds.length} selecionado(s)
+                                        </span>
+                                        
+                                        {isLixeira && (
+                                            <Button 
+                                                size="sm" 
+                                                onClick={restaurarSelecionados}
+                                                className="bg-green-600 hover:bg-green-700 h-8"
+                                            >
+                                                <Undo2 className="w-4 h-4 mr-1" />
+                                                Restaurar
+                                            </Button>
+                                        )}
+                                        
+                                        <Button 
+                                            size="sm" 
+                                            onClick={deletarSelecionados}
+                                            className="bg-red-600 hover:bg-red-700 h-8"
+                                        >
+                                            <Trash2 className="w-4 h-4 mr-1" />
+                                            {isLixeira ? 'Excluir Permanente' : 'Mover para Lixeira'}
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    
+                    {isLixeira && minutas.length > 0 && (
+                        <p className="text-xs text-zinc-500 mt-2 flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" />
+                            Os itens na lixeira podem ser restaurados ou excluídos permanentemente.
+                        </p>
+                    )}
                 </div>
                 
                 {loading ? (
@@ -246,9 +448,19 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, onEdit, emp
                     </div>
                 ) : minutas.length === 0 ? (
                     <div className="p-12 text-center text-zinc-500">
-                        <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <p className="font-medium">{emptyMessage}</p>
-                        <p className="text-sm mt-1">{emptyDescription}</p>
+                        {isLixeira ? (
+                            <>
+                                <Trash2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                                <p className="font-medium">Lixeira vazia</p>
+                                <p className="text-sm mt-1">Nenhum processo na lixeira</p>
+                            </>
+                        ) : (
+                            <>
+                                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                                <p className="font-medium">{emptyMessage}</p>
+                                <p className="text-sm mt-1">{emptyDescription}</p>
+                            </>
+                        )}
                     </div>
                 ) : (
                     <div className="divide-y divide-zinc-800">
@@ -262,6 +474,10 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, onEdit, emp
                                 onDownloadPDF={downloadPDF}
                                 onDelete={deleteProcesso}
                                 onEnviarGClick={enviarParaGClick}
+                                selectedIds={selectedIds}
+                                onToggleSelect={toggleSelect}
+                                isLixeira={isLixeira}
+                                onRestore={restaurarProcesso}
                             />
                         ))}
                     </div>
