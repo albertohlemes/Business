@@ -261,11 +261,23 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
   - **Resultado:** Registro 0150 agora inclui endereço completo dos participantes
   - **Nota:** Documentos importados antes desta alteração não terão os novos campos. Apenas novos uploads terão os dados completos.
 
-- ✅ **TESTES: 12/12 testes passaram**
-  - Verificado: thefuzz instalado e funcionando
-  - Verificado: Extração de endereço do emitente e destinatário
-  - Verificado: SPED registro 0150 com dados completos
-  - Arquivo de teste: `/app/backend/tests/test_iteration14_features.py`
+- ✅ **VALIDAÇÃO DE INTEGRIDADE DOS VALORES**
+  - **Problema:** O usuário precisava garantir que os valores das NFs (total e itens) correspondem fielmente ao XML original
+  - **Solução:**
+    1. Criado endpoint `GET /api/xml/integrity-summary/{company_id}?competencia=XX/XXXX` - resumo de integridade da competência
+    2. Criado endpoint `GET /api/xml/validate-integrity/{document_id}` - validação individual com detalhes de divergências
+    3. Frontend: Card discreto na página de Documentos mostrando:
+       - ✓ Verde: "Todas as X notas com valores íntegros"
+       - ⚠ Âmbar: "X de Y notas OK (Z com divergência)" + botão "Ver detalhes"
+  - **Resultado:** Validação em tempo real garante fidelidade dos valores para exportação SPED
+  - **Arquivos modificados:**
+    - `/app/backend/server.py` - 2 novos endpoints de validação
+    - `/app/frontend/src/pages/Documents.js` - Card de integridade
+
+- ✅ **TESTES: 15/15 testes passaram (Iteration 15)**
+  - Verificado: Endpoints de integridade funcionam corretamente
+  - Verificado: Card de integridade exibe corretamente
+  - Verificado: 535 documentos ANZEN 12/2025 passam validação de integridade
 
 ### 02/2026 - Iteration 31 (04/02/2026)
 - ✅ **CORREÇÃO: Crédito PIS/COFINS divergente entre Dashboard e Apuração**
