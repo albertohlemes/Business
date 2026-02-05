@@ -2019,51 +2019,55 @@ async def gerar_contrato_constituicao(
         
         # Formatar endereço
         end = empresa.endereco
-        endereco_completo = f"{end.get('logradouro', '')}, {end.get('numero', '')}"
+        endereco_completo = f"{end.get('logradouro', '').upper()}, Nº {end.get('numero', '')}"
         if end.get('complemento'):
-            endereco_completo += f", {end['complemento']}"
-        endereco_completo += f", {end.get('bairro', '')}, {end.get('cidade', '')}-{end.get('estado', '')}"
+            endereco_completo += f", {end['complemento'].upper()}"
+        endereco_completo += f", {end.get('bairro', '').upper()}, {end.get('cidade', '').upper()}/{end.get('estado', '').upper()}"
         if end.get('cep'):
-            endereco_completo += f", CEP {end['cep']}"
+            endereco_completo += f", CEP: {end['cep']}"
         
-        # Formatar sócios
-        socios_texto = ""
-        for i, socio in enumerate(socios, 1):
-            socio_info = f"{socio.nome}, {socio.nacionalidade or 'brasileiro(a)'}"
+        # Formatar qualificação de cada sócio
+        socios_qualificacao = ""
+        for socio in socios:
+            qualif = f"{socio.nome.upper()}, nacionalidade: {socio.nacionalidade or 'brasileira'}"
             if socio.estado_civil:
-                socio_info += f", {socio.estado_civil.lower()}"
+                qualif += f", {socio.estado_civil.lower()}"
                 if socio.regime_casamento and 'casado' in socio.estado_civil.lower():
-                    socio_info += f" pelo regime de {socio.regime_casamento}"
+                    qualif += f" sob o Regime de {socio.regime_casamento}"
+            if socio.data_nascimento:
+                qualif += f", nascido em: {socio.data_nascimento}"
             if socio.profissao:
-                socio_info += f", {socio.profissao}"
+                qualif += f", {socio.profissao.lower()}"
             if socio.rg:
-                socio_info += f", portador(a) da Cédula de Identidade RG nº {socio.rg}"
+                qualif += f", documento de identidade RG sob nº {socio.rg}"
                 if socio.orgao_emissor:
-                    socio_info += f" {socio.orgao_emissor}"
-            socio_info += f", inscrito(a) no CPF sob nº {socio.cpf}"
+                    qualif += f" Órgão Emissor: {socio.orgao_emissor}"
+            qualif += f" e CPF {socio.cpf}"
             if socio.endereco:
-                socio_info += f", residente e domiciliado(a) em {socio.endereco}"
-            
-            socios_texto += f"{i}. {socio_info}\n\n"
+                qualif += f", residente e domiciliado na {socio.endereco}"
+            qualif += ".\n\n"
+            socios_qualificacao += qualif
         
         # Determinar administradores
         administradores = [s for s in socios if s.administrador]
         if not administradores:
             administradores = [socios[0]]
         
-        admin_texto = ", ".join([a.nome for a in administradores])
-        
-        # Calcular quotas - formato mais claro para o documento
+        # Calcular capital e quotas
         capital_valor = float(empresa.capital_social.replace('.', '').replace(',', '.'))
-        quadro_quotas = ""
-        for i, socio in enumerate(socios):
+        qtd_quotas_total = int(capital_valor)
+        
+        # Tabela de quotas
+        tabela_quotas = ""
+        for socio in socios:
             perc = float(socio.participacao)
-            valor_quotas = capital_valor * perc / 100
-            qtd_quotas = int(valor_quotas)  # 1 quota = R$ 1,00
-            quadro_quotas += f"   {socio.nome.upper()}\n"
-            quadro_quotas += f"   {qtd_quotas:,} ({int(qtd_quotas)} por extenso) quotas\n"
-            quadro_quotas += f"   {perc:.0f}% ({perc:.0f} por cento) do capital social\n"
-            quadro_quotas += f"   R$ {valor_quotas:,.2f} ({valor_quotas:.2f} por extenso)\n\n"
+            valor = capital_valor * perc / 100
+            tabela_quotas += f"{socio.nome.upper()} | {perc:.0f}% | R$ {valor:,.2f}\n"
+        
+        # Assinaturas
+        assinaturas = ""
+        for socio in socios:
+            assinaturas += f"\n______________________________\n{socio.nome.upper()}\n"
         
         from emergentintegrations.llm.chat import LlmChat, UserMessage
         
@@ -2075,49 +2079,97 @@ async def gerar_contrato_constituicao(
         ).replace('July', 'julho').replace('August', 'agosto').replace('September', 'setembro'
         ).replace('October', 'outubro').replace('November', 'novembro').replace('December', 'dezembro')
         
+        # Verificar se é sociedade unipessoal ou com múltiplos sócios
+        eh_unipessoal = len(socios) == 1
+        
+        if eh_unipessoal:
+            admin_texto = f"ao sócio {administradores[0].nome.upper()}"
+            admin_plural = "sócio administrador"
+            sócio_plural = "O sócio declara"
+            assinatura_plural = "assina o presente instrumento"
+        else:
+            if len(administradores) == len(socios):
+                admin_texto = "AMBOS OS SÓCIOS"
+            else:
+                admin_texto = ", ".join([a.nome.upper() for a in administradores])
+            admin_plural = "sócios administradores"
+            sócio_plural = "Os sócios declaram"
+            assinatura_plural = "assinam o presente instrumento"
+        
         system_message = """Você é um advogado especialista em direito societário brasileiro.
-Sua tarefa é elaborar contratos sociais completos e profissionais para constituição de sociedades limitadas.
-Use linguagem jurídica formal e adequada para registro em Junta Comercial.
-NÃO use Markdown. Use texto simples com linhas de = e - para separação visual."""
+Gere contratos sociais completos e profissionais para registro em Junta Comercial.
+Use linguagem jurídica formal. NÃO use Markdown."""
 
-        prompt = f"""Elabore um CONTRATO SOCIAL completo e profissional para constituição de uma SOCIEDADE LIMITADA.
+        prompt = f"""Gere um ATO CONSTITUTIVO DE SOCIEDADE EMPRESÁRIA LIMITADA seguindo EXATAMENTE este modelo:
 
-DADOS DA EMPRESA:
-- Razão Social: {empresa.razao_social}
-- Nome Fantasia: {empresa.nome_fantasia or 'não possui'}
-- Capital Social: R$ {empresa.capital_social} ({empresa.capital_extenso or 'por extenso'})
-- Endereço: {endereco_completo}
-- Objeto Social: {empresa.objeto_social}
+ATO CONSTITUTIVO DE SOCIEDADE EMPRESÁRIA LIMITADA
 
-SÓCIOS:
-{socios_texto}
+{empresa.razao_social.upper()}
 
-QUADRO DE QUOTAS:
-{quadro_quotas}
+{socios_qualificacao}
+Pelo presente instrumento particular tem entre si justo e contratado a Constituição de uma Sociedade Empresária Limitada que se regerá pelas cláusulas e condições seguintes e nas omissões pela legislação específica que disciplina essa forma societária.
 
-ADMINISTRADOR(ES): {admin_texto}
+CLÁUSULA PRIMEIRA – DA DENOMINAÇÃO
+A sociedade, constituída sob a forma de sociedade empresária limitada, adotará o nome empresarial de {empresa.razao_social.upper()} que será regida por este instrumento de constituição.
 
-DATA: {data_atual}
+CLÁUSULA SEGUNDA – DA SEDE SOCIAL
+A sociedade empresária limitada terá sua sede na {endereco_completo}.
 
-MODELO DO CONTRATO (siga esta estrutura EXATAMENTE):
+CLÁUSULA TERCEIRA – DO OBJETO SOCIAL
+A empresa tem como objeto social: {empresa.objeto_social}
 
-================================================================================
-                           CONTRATO SOCIAL
+Parágrafo Único – {sócio_plural} expressamente que explora{"" if eh_unipessoal else "m"} atividade econômica organizada sendo, portanto, uma sociedade limitada nos termos do Art. 966 do Código Civil.
 
-                    {empresa.razao_social}
-================================================================================
+CLÁUSULA QUARTA – DA DURAÇÃO
+A empresa iniciará suas atividades na data da assinatura deste contrato e seu prazo de duração é indeterminado.
 
-Pelo presente instrumento particular e na melhor forma de direito, os abaixo assinados:
+CLÁUSULA QUINTA – DO CAPITAL SOCIAL
+O capital social é na importância de R$ {empresa.capital_social} ({empresa.capital_extenso or 'por extenso'}) divididos em {qtd_quotas_total:,} ({empresa.capital_extenso or 'por extenso'}) quotas de valor unitário de R$ 1,00 (Um Real) cada, totalmente subscritas e integralizadas em moeda corrente nacional do país, assim distribuído entre os sócios:
 
-[LISTAR QUALIFICAÇÃO COMPLETA DE CADA SÓCIO CONFORME DADOS ACIMA]
+{tabela_quotas}
 
-Resolvem constituir uma sociedade empresária limitada, que se regerá pelas cláusulas e condições seguintes:
+Parágrafo Primeiro – A responsabilidade do{"s sócios é" if not eh_unipessoal else " sócio é"} restrita ao valor de suas quotas, não havendo responsabilidade solidária pelas obrigações sociais, respondendo, no entanto, pela integralização do capital social.
 
---------------------------------------------------------------------------------
-                    CLÁUSULA PRIMEIRA - DA DENOMINAÇÃO SOCIAL
---------------------------------------------------------------------------------
+Parágrafo Segundo – Sobre as quotas acima, pesa a cláusula restritiva de incomunicabilidade e impenhorabilidade.
 
-A sociedade girará sob a denominação social de "{empresa.razao_social}".
+CLÁUSULA SEXTA – DA ADMINISTRAÇÃO
+A administração da sociedade limitada{"" if not eh_unipessoal else " unipessoal"} cabe {admin_texto}, com poderes e atribuições de representá-lo ativa e passivamente, com juízo ou fora dele, em todos os atos e termos da via mercantil, autorizado o uso do nome empresarial, vedada, no entanto, em atividades estranhas ao interesse social ou assumir obrigações seja em favor de qualquer dos quotistas ou de terceiros, bem como onerar ou alienar bens imóveis da sociedade, sem autorização.
+
+Parágrafo Primeiro – Ao{"s" if not eh_unipessoal else ""} {admin_plural} compete{"m" if not eh_unipessoal else ""} o uso da firma e a representação da sociedade, podendo para tanto realizar {"em conjunto ou isoladamente " if not eh_unipessoal else "individualmente "}todos os atos necessários ou convenientes para gerenciar, dirigir e orientar os negócios da sociedade e os assuntos relacionados à mesma, podendo abrir, encerrar e movimentar contas bancárias, assumir obrigações, assinar e celebrar contratos, firmar compromissos profissionais de âmbito nacional ou internacional, confessar dívidas, fazer acordos, transigir, renunciar, desistir, adquirir, alienar e onerar bens imóveis, representar a sociedade perante terceiros, no Brasil ou no exterior e perante repartições públicas federais, estaduais, e municipais, autarquias, sociedades de economia mista, estabelecimentos bancários, instituições financeiras, Caixas Econômicas, e respectivas agências, filiais, sucursais ou correspondentes, bem como para representar a sociedade ativa e passivamente, em juízo e fora dele, podendo ainda, constituir mandatários e outorgar procurações com poderes específicos.
+
+Parágrafo Segundo – Faculta-se ao{"s" if not eh_unipessoal else ""} {admin_plural}, nos limites de seus poderes, constituir procuradores em nome da sociedade, devendo ser especificados no instrumento de mandado, os atos e operações que poderão praticar e a duração do mandado, que, no caso de mandado judicial, poderá ser por prazo indeterminado.
+
+CLÁUSULA SÉTIMA – DO PRÓ-LABORE
+O{"s" if not eh_unipessoal else ""} {admin_plural} poderá{"ão" if not eh_unipessoal else ""} fixar uma retirada mensal, a título de "Pró-Labore", observadas as disposições regulamentares pertinentes.
+
+CLÁUSULA OITAVA – DO DESIMPEDIMENTO
+O{"s" if not eh_unipessoal else ""} {admin_plural} declara{"m" if not eh_unipessoal else ""} sob as penas da lei, não estar incurso em nenhum dos crimes previstos em lei que o{"s" if not eh_unipessoal else ""} impeça de exercer a administração da sociedade em virtude de condenação criminal, nem está sendo processado nem condenado em crime falimentar, de prevaricação, peita ou suborno, concussão, peculato, contra o sistema financeiro nacional, contra as normas de defesa da concorrência, contra as relações de consumo e a fé pública ou a propriedade.
+
+CLÁUSULA NONA – DA ABERTURA DE FILIAIS
+Esta sociedade poderá a qualquer tempo, abrir e encerrar filiais, agências e escritórios, em qualquer parte do território nacional ou no exterior mediante alteração contratual assinada pelo{"s sócios" if not eh_unipessoal else " sócio"}.
+
+CLÁUSULA DÉCIMA – DO EXERCÍCIO SOCIAL E BALANÇO PATRIMONIAL
+Ao término de cada exercício social, em 31 de dezembro, será procedido à elaboração do inventário, do balanço patrimonial e do balanço de resultado econômico, cabendo ao{"s sócios" if not eh_unipessoal else " sócio"}, os lucros ou perdas apuradas.
+
+{"Parágrafo Primeiro – A sociedade deliberará em reunião dos sócios, devidamente convocada, a respeito da distribuição dos resultados, desproporcional aos percentuais de participação do quadro societário, segundo autoriza o artigo 1.007 da Lei nº 10.406/2002." if not eh_unipessoal else "Parágrafo Único – Fica a sociedade limitada unipessoal autorizada a levantar balanços ou balancetes intermediários em qualquer período do ano calendário, observadas as disposições legais, podendo inclusive, distribuir os resultados se houver e se for de interesse do titular, inclusive a obrigação da reposição dos lucros, se os mesmos forem distribuídos com prejuízo do capital."}
+
+{"Parágrafo Segundo – Fica a sociedade autorizada a distribuir antecipadamente lucros do exercício, com base em levantamento de balanço intermediário, observada a reposição de lucros quando a distribuição afetar o capital social, conforme estabelece o artigo 1.059 da Lei nº 10.406/2002." if not eh_unipessoal else ""}
+
+CLÁUSULA DÉCIMA PRIMEIRA – RESOLUÇÃO DAS QUOTAS EM RELAÇÃO À SOCIEDADE
+Falecendo ou interditado o{"s sócios" if not eh_unipessoal else " sócio"}, a empresa continuará suas atividades com os herdeiros, sucessores e/ou sucessores do incapaz. Não sendo possível ou inexistindo interesse destes, o valor de seus haveres será apurado liquidado com base na situação patrimonial da empresa, à data da resolução, verificada em balanço especialmente levantado.
+
+CLÁUSULA DÉCIMA SEGUNDA – DA DISSOLUÇÃO E LIQUIDAÇÃO DA SOCIEDADE
+A sociedade poderá ser dissolvida por iniciativa do{"s sócios" if not eh_unipessoal else " sócio"}, que, nessa hipótese, realizará diretamente a liquidação ou indicará um liquidante, ditando-lhe a forma de liquidação. Solvidas as dívidas e extintas as obrigações da sociedade, o patrimônio remanescente será integralmente incorporado ao patrimônio dos sócios.
+
+CLÁUSULA DÉCIMA TERCEIRA – FORO DE ELEIÇÃO
+Fica eleito o foro da comarca de {end.get('cidade', 'São Paulo')}/{end.get('estado', 'SP')}, para o exercício e o cumprimento dos direitos e obrigações resultantes do presente deste contrato, com exclusão de qualquer outro, seja qual for ou vier a ser o futuro domicílio do{"s sócios" if not eh_unipessoal else " sócio"}.
+
+E, por estar{"em" if not eh_unipessoal else ""} assim, justo{"s" if not eh_unipessoal else ""} e contratado{"s" if not eh_unipessoal else ""}, {assinatura_plural}.
+
+{end.get('cidade', 'São Paulo')}/{end.get('estado', 'SP')}, {data_atual}.
+{assinaturas}
+
+IMPORTANTE: Gere o documento COMPLETO seguindo EXATAMENTE a estrutura acima. NÃO adicione testemunhas."""
 
 --------------------------------------------------------------------------------
                     CLÁUSULA SEGUNDA - DA SEDE
