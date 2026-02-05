@@ -942,19 +942,19 @@ const ClassificacaoPage = ({ user, onLogout }) => {
               onClick={() => setAiCommand('Reclassifique produtos de limpeza como DESPESA')}
               className="text-xs px-2 py-1 bg-white text-gray-700 rounded hover:bg-gray-100 border"
             >
-              "limpeza → DESPESA"
+              limpeza → DESPESA
             </button>
             <button 
               onClick={() => setAiCommand('Produtos com NCM 30* são medicamentos - classificar como DESPESA')}
               className="text-xs px-2 py-1 bg-white text-gray-700 rounded hover:bg-gray-100 border"
             >
-              "NCM 30* → DESPESA"
+              NCM 30* → DESPESA
             </button>
             <button 
               onClick={() => setAiCommand('Material de escritório é DESPESA (CFOP 1556)')}
               className="text-xs px-2 py-1 bg-white text-gray-700 rounded hover:bg-gray-100 border"
             >
-              "escritório → DESPESA"
+              escritório → DESPESA
             </button>
           </div>
 
