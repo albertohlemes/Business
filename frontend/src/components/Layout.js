@@ -16,7 +16,7 @@ const Layout = ({ user, onLogout, children }) => {
     { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
     { name: 'Alertas CFOP', href: '/alertas-cfop', icon: AlertTriangle, testId: 'nav-alertas-cfop' },
     { name: 'Validação & IA', href: '/classificacao', icon: Brain, testId: 'nav-classificacao' },
-    { name: 'PIS/COFINS Saídas', href: '/analise-pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
+    { name: 'Auditoria PIS/COFINS', href: '/analise-pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
     { name: 'Apuração Mensal', href: '/apuracao-mensal', icon: Calculator, testId: 'nav-apuracao-mensal' },
     { name: 'Análise Tributária', href: '/analise-tributaria', icon: TrendingUp, testId: 'nav-analise' },
     { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
