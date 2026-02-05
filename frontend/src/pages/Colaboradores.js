@@ -225,7 +225,7 @@ const Colaboradores = () => {
       resetForm();
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erro ao salvar colaboradores');
+      toast.error(getErrorMessage(error, 'Erro ao salvar colaboradores'));
     } finally {
       setSaving(false);
     }
@@ -252,7 +252,7 @@ const Colaboradores = () => {
       resetForm();
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erro ao salvar colaborador');
+      toast.error(getErrorMessage(error, 'Erro ao salvar colaborador'));
     }
   };
 
