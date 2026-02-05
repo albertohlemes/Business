@@ -11,20 +11,20 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Componente de header ordenável (fora do componente principal)
+// Componente de header ordenável
 const SortHeader = ({ label, sortKey, sortConfig, onSort, className = '' }) => (
   <th 
-    className={`px-2 py-2 text-xs font-semibold text-gray-600 cursor-pointer hover:bg-gray-200 select-none ${className}`}
+    className={`px-2 py-2 text-xs font-semibold text-gray-600 cursor-pointer hover:bg-gray-200 select-none whitespace-nowrap ${className}`}
     onClick={() => onSort(sortKey)}
   >
     <div className="flex items-center gap-1 justify-center">
       <span>{label}</span>
       {sortConfig.key === sortKey ? (
         sortConfig.direction === 'asc' ? 
-          <ChevronUp className="w-3 h-3 text-red-600) : 
-          <ChevronDown className="w-3 h-3 text-red-600)
+          <ChevronUp className="w-3 h-3 text-red-600" /> : 
+          <ChevronDown className="w-3 h-3 text-red-600" />
       ) : (
-        <ChevronUp className="w-3 h-3 opacity-20)
+        <ChevronUp className="w-3 h-3 opacity-20" />
       )}
     </div>
   </th>
@@ -76,40 +76,21 @@ const AnalisePisCofins = ({ user, onLogout }) => {
   // Função genérica de ordenação
   const sortData = useCallback((data) => {
     if (!data || !sortConfig.key) return data;
-    
     return [...data].sort((a, b) => {
       let aVal = a[sortConfig.key];
       let bVal = b[sortConfig.key];
-      
-      // Handle null/undefined
       if (aVal == null) aVal = '';
       if (bVal == null) bVal = '';
-      
-      // Numeric comparison
       if (typeof aVal === 'number' && typeof bVal === 'number') {
         return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
       }
-      
-      // String comparison
       const aStr = String(aVal).toLowerCase();
       const bStr = String(bVal).toLowerCase();
-      
       if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
       if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
   }, [sortConfig]);
-
-  // Wrapper para SortHeader
-  const renderSortHeader = (label, sortKey, className = '') => (
-    <SortHeader 
-      label={label} 
-      sortKey={sortKey} 
-      sortConfig={sortConfig} 
-      onSort={handleSort} 
-      className={className} 
-    />
-  );
 
   // Lista plana de produtos divergentes
   const produtosDivergentes = useMemo(() => {
@@ -127,7 +108,6 @@ const AnalisePisCofins = ({ user, onLogout }) => {
         }
       });
     });
-    
     if (filtroTipo !== 'todos') lista = lista.filter(p => p.tipo_divergencia === filtroTipo);
     if (busca) {
       const s = busca.toLowerCase();
@@ -136,11 +116,9 @@ const AnalisePisCofins = ({ user, onLogout }) => {
         p.numero_nfe?.includes(busca) || p.cliente?.toLowerCase().includes(s)
       );
     }
-    
     return sortData(lista);
-  }, [dados, filtroTipo, busca, sortConfig]);
+  }, [dados, filtroTipo, busca, sortData]);
 
-  // Agrupamentos
   const agrupadoPorProduto = useMemo(() => {
     if (!dados?.agrupamentos?.por_produto) return [];
     let lista = [...dados.agrupamentos.por_produto];
@@ -150,7 +128,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
       lista = lista.filter(p => p.descricao?.toLowerCase().includes(s) || p.ncm?.includes(busca));
     }
     return sortData(lista);
-  }, [dados, filtroTipo, busca, sortConfig]);
+  }, [dados, filtroTipo, busca, sortData]);
 
   const agrupadoPorNCM = useMemo(() => {
     if (!dados?.agrupamentos?.por_ncm) return [];
@@ -158,13 +136,12 @@ const AnalisePisCofins = ({ user, onLogout }) => {
     if (filtroTipo !== 'todos') lista = lista.filter(p => p.tipo_divergencia === filtroTipo);
     if (busca) lista = lista.filter(p => p.ncm?.includes(busca));
     return sortData(lista);
-  }, [dados, filtroTipo, busca, sortConfig]);
+  }, [dados, filtroTipo, busca, sortData]);
 
-  // CSV Export
   const exportCSV = () => {
     if (!produtosDivergentes.length) return;
-    const headers = ['NF','Cliente','Produto','NCM','CFOP','Valor','CST PIS XML','CST PIS Correto','Aliq PIS XML','Aliq PIS Correta','PIS XML','PIS Correto','Dif PIS','CST COF XML','CST COF Correto','Aliq COF XML','Aliq COF Correta','COF XML','COF Correto','Dif COF','Tipo','Motivo'];
-    const rows = produtosDivergentes.map(p => [p.numero_nfe,p.cliente,p.descricao,p.ncm,p.cfop,p.valor_produto,p.cst_pis_atual,p.cst_pis_correto,p.aliq_pis_atual,p.aliq_pis_correto,p.v_pis_atual,p.v_pis_correto,p.impacto_pis,p.cst_cofins_atual,p.cst_cofins_correto,p.aliq_cofins_atual,p.aliq_cofins_correto,p.v_cofins_atual,p.v_cofins_correto,p.impacto_cofins,p.tipo_divergencia,p.motivo]);
+    const headers = ['NF','Cliente','Produto','NCM','CFOP','Valor','CST PIS XML','CST PIS OK','Aliq PIS XML','Aliq PIS OK','PIS XML','PIS OK','CST COF XML','CST COF OK','Aliq COF XML','Aliq COF OK','COF XML','COF OK','Impacto','Tipo'];
+    const rows = produtosDivergentes.map(p => [p.numero_nfe,p.cliente,p.descricao,p.ncm,p.cfop,p.valor_produto,p.cst_pis_atual,p.cst_pis_correto,p.aliq_pis_atual,p.aliq_pis_correto,p.v_pis_atual,p.v_pis_correto,p.cst_cofins_atual,p.cst_cofins_correto,p.aliq_cofins_atual,p.aliq_cofins_correto,p.v_cofins_atual,p.v_cofins_correto,p.impacto_total,p.tipo_divergencia]);
     const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -173,22 +150,15 @@ const AnalisePisCofins = ({ user, onLogout }) => {
     link.click();
   };
 
-  const getTipoDivergenciaLabel = (tipo) => ({
-    'CFOP_SEM_DEBITO': 'CFOP s/ débito', 'NCM_MONOFASICO': 'Monofásico',
-    'NCM_ALIQUOTA_ZERO': 'Alíq. Zero', 'ALIQUOTA_INCORRETA': 'Alíq. Incorreta'
-  }[tipo] || tipo);
-
-  const getTipoDivergenciaColor = (tipo) => ({
-    'CFOP_SEM_DEBITO': 'bg-purple-100 text-purple-800', 'NCM_MONOFASICO': 'bg-blue-100 text-blue-800',
-    'NCM_ALIQUOTA_ZERO': 'bg-green-100 text-green-800', 'ALIQUOTA_INCORRETA': 'bg-orange-100 text-orange-800'
-  }[tipo] || 'bg-gray-100 text-gray-800');
+  const getTipoDivergenciaLabel = (tipo) => ({'CFOP_SEM_DEBITO': 'CFOP s/ débito', 'NCM_MONOFASICO': 'Monofásico', 'NCM_ALIQUOTA_ZERO': 'Alíq. Zero', 'ALIQUOTA_INCORRETA': 'Alíq. Incorreta'}[tipo] || tipo);
+  const getTipoDivergenciaColor = (tipo) => ({'CFOP_SEM_DEBITO': 'bg-purple-100 text-purple-800', 'NCM_MONOFASICO': 'bg-blue-100 text-blue-800', 'NCM_ALIQUOTA_ZERO': 'bg-green-100 text-green-800', 'ALIQUOTA_INCORRETA': 'bg-orange-100 text-orange-800'}[tipo] || 'bg-gray-100 text-gray-800');
 
   if (!selectedCompany || !selectedCompetencia) {
     return (
       <Layout user={user} onLogout={onLogout}>
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
-            <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4)
+            <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-700">Selecione uma empresa e competência</h2>
           </div>
         </div>
@@ -196,21 +166,61 @@ const AnalisePisCofins = ({ user, onLogout }) => {
     );
   }
 
-  // Calcular valores para cards
   const diferenca = dados?.resumo?.diferenca_total || 0;
   const pagoAMais = diferenca > 0 ? diferenca : 0;
   const pagoAMenos = diferenca < 0 ? Math.abs(diferenca) : 0;
 
+  // Colunas da tabela
+  const colunas = [
+    { key: 'numero_nfe', label: 'NF', show: visualizacao === 'nf' },
+    { key: 'descricao', label: 'Produto' },
+    { key: 'ncm', label: 'NCM' },
+    { key: 'qtd_ocorrencias', label: 'Qtd', show: visualizacao !== 'nf' },
+    { key: visualizacao === 'nf' ? 'valor_produto' : 'valor_total', label: 'Valor' },
+    { key: 'cst_pis_atual', label: 'CST PIS', sub: 'XML', color: 'red' },
+    { key: 'cst_pis_correto', label: 'CST PIS', sub: 'OK', color: 'green' },
+    { key: 'aliq_pis_atual', label: 'Alíq PIS', sub: 'XML', color: 'red' },
+    { key: 'aliq_pis_correto', label: 'Alíq PIS', sub: 'OK', color: 'green' },
+    { key: 'v_pis_atual', label: 'PIS', sub: 'XML', color: 'red' },
+    { key: 'v_pis_correto', label: 'PIS', sub: 'OK', color: 'green' },
+    { key: 'cst_cofins_atual', label: 'CST COF', sub: 'XML', color: 'red' },
+    { key: 'cst_cofins_correto', label: 'CST COF', sub: 'OK', color: 'green' },
+    { key: 'aliq_cofins_atual', label: 'Alíq COF', sub: 'XML', color: 'red' },
+    { key: 'aliq_cofins_correto', label: 'Alíq COF', sub: 'OK', color: 'green' },
+    { key: 'v_cofins_atual', label: 'COF', sub: 'XML', color: 'red' },
+    { key: 'v_cofins_correto', label: 'COF', sub: 'OK', color: 'green' },
+    { key: 'impacto_total', label: 'Impacto', color: 'amber' },
+    { key: 'tipo_divergencia', label: 'Tipo' }
+  ];
+
+  const renderCell = (p, col) => {
+    const val = p[col.key];
+    const colorClass = col.color === 'red' ? 'text-red-600 bg-red-50/50' : col.color === 'green' ? 'text-green-600 bg-green-50/50' : col.color === 'amber' ? 'text-amber-600 bg-amber-50/50 font-bold' : '';
+    
+    if (col.key === 'descricao') return <div className="truncate max-w-[120px]" title={val}>{val}</div>;
+    if (col.key === 'ncm') return <span className="font-mono">{val}</span>;
+    if (col.key === 'tipo_divergencia') return <span className={`px-1 py-0.5 rounded text-[9px] ${getTipoDivergenciaColor(val)}`}>{getTipoDivergenciaLabel(val)}</span>;
+    if (col.key.includes('aliq_')) return <span className={colorClass}>{formatPercent(val)}</span>;
+    if (col.key.includes('v_') || col.key.includes('valor') || col.key === 'impacto_total') return <span className={`${colorClass} text-right`}>{formatCurrency(val)}</span>;
+    if (col.key.includes('cst_')) return <span className={colorClass}>{val || '-'}</span>;
+    return val;
+  };
+
+  const getDataForView = () => {
+    if (visualizacao === 'nf') return produtosDivergentes;
+    if (visualizacao === 'produto') return agrupadoPorProduto;
+    return agrupadoPorNCM;
+  };
+
   return (
     <Layout user={user} onLogout={onLogout}>
-      <div data-testid="analise-pis-cofins-page, "space-y-4">
+      <div data-testid="analise-pis-cofins-page" className="space-y-4">
         {/* Header */}
         <div className="bg-gradient-to-r from-red-700 to-red-800 rounded-xl p-5 text-white">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold flex items-center gap-2">
-                <DollarSign className="w-6 h-6)
-                Auditoria de PIS/COFINS nas Operações de Saída
+                <DollarSign className="w-6 h-6" /> Auditoria de PIS/COFINS nas Operações de Saída
               </h1>
               <p className="text-red-100 text-sm mt-1">
                 Competência {selectedCompetencia} • Regime: {dados?.regime_tributario || '-'}
@@ -224,10 +234,10 @@ const AnalisePisCofins = ({ user, onLogout }) => {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center h-64"><RefreshCw className="w-8 h-8 animate-spin text-red-600)</div>
+          <div className="flex items-center justify-center h-64"><RefreshCw className="w-8 h-8 animate-spin text-red-600" /></div>
         ) : dados ? (
           <>
-            {/* Cards Resumo */}
+            {/* Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <div className="bg-white rounded-lg p-3 border">
                 <p className="text-[10px] text-gray-500 uppercase">Total Saídas</p>
@@ -250,21 +260,13 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                 <p className="text-[10px] text-gray-400">itens com problema</p>
               </div>
               <div className={`rounded-lg p-3 border ${pagoAMais > 0 ? 'bg-green-50 border-green-300' : 'bg-gray-50'}`}>
-                <p className="text-[10px] text-green-700 uppercase font-semibold flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3) Tributo Pago a Maior
-                </p>
-                <p className={`text-base font-bold ${pagoAMais > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                  {formatCurrency(pagoAMais)}
-                </p>
+                <p className="text-[10px] text-green-700 uppercase font-semibold flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Pago a Maior</p>
+                <p className={`text-base font-bold ${pagoAMais > 0 ? 'text-green-600' : 'text-gray-400'}`}>{formatCurrency(pagoAMais)}</p>
                 <p className="text-[10px] text-green-600">Crédito a recuperar</p>
               </div>
               <div className={`rounded-lg p-3 border ${pagoAMenos > 0 ? 'bg-red-50 border-red-300' : 'bg-gray-50'}`}>
-                <p className="text-[10px] text-red-700 uppercase font-semibold flex items-center gap-1">
-                  <TrendingDown className="w-3 h-3) Tributo Pago a Menor
-                </p>
-                <p className={`text-base font-bold ${pagoAMenos > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                  {formatCurrency(pagoAMenos)}
-                </p>
+                <p className="text-[10px] text-red-700 uppercase font-semibold flex items-center gap-1"><TrendingDown className="w-3 h-3" /> Pago a Menor</p>
+                <p className={`text-base font-bold ${pagoAMenos > 0 ? 'text-red-600' : 'text-gray-400'}`}>{formatCurrency(pagoAMenos)}</p>
                 <p className="text-[10px] text-red-600">Passivo tributário</p>
               </div>
             </div>
@@ -274,17 +276,9 @@ const AnalisePisCofins = ({ user, onLogout }) => {
               <div className="bg-white rounded-lg p-3 border">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-semibold text-gray-600">Filtrar:</span>
-                  <button onClick={() => setFiltroTipo('todos')}
-                    className={`px-2 py-1 rounded text-xs font-medium ${filtroTipo === 'todos' ? 'bg-red-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>
-                    Todos ({dados.total_divergentes})
-                  </button>
+                  <button onClick={() => setFiltroTipo('todos')} className={`px-2 py-1 rounded text-xs font-medium ${filtroTipo === 'todos' ? 'bg-red-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Todos ({dados.total_divergentes})</button>
                   {dados.resumo?.por_tipo_divergencia && Object.entries(dados.resumo.por_tipo_divergencia).map(([tipo, info]) => (
-                    info.qtd > 0 && (
-                      <button key={tipo} onClick={() => setFiltroTipo(filtroTipo === tipo ? 'todos' : tipo)}
-                        className={`px-2 py-1 rounded text-xs font-medium ${filtroTipo === tipo ? 'ring-2 ring-red-500 ' + getTipoDivergenciaColor(tipo) : getTipoDivergenciaColor(tipo)}`}>
-                        {getTipoDivergenciaLabel(tipo)}: {info.qtd}
-                      </button>
-                    )
+                    info.qtd > 0 && <button key={tipo} onClick={() => setFiltroTipo(filtroTipo === tipo ? 'todos' : tipo)} className={`px-2 py-1 rounded text-xs font-medium ${filtroTipo === tipo ? 'ring-2 ring-red-500 ' + getTipoDivergenciaColor(tipo) : getTipoDivergenciaColor(tipo)}`}>{getTipoDivergenciaLabel(tipo)}: {info.qtd}</button>
                   ))}
                 </div>
               </div>
@@ -294,74 +288,39 @@ const AnalisePisCofins = ({ user, onLogout }) => {
             <div className="bg-white rounded-lg p-3 border">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="relative flex-1 min-w-[180px] max-w-sm">
-                  <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-gray-400)
-                  <input type="text" placeholder="Buscar..." value={busca} onChange={(e) => setBusca(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 border rounded text-sm)
+                  <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input type="text" placeholder="Buscar..." value={busca} onChange={(e) => setBusca(e.target.value)} className="w-full pl-8 pr-3 py-1.5 border rounded text-sm" />
                 </div>
-                <button onClick={exportCSV} disabled={!produtosDivergentes.length}
-                  className="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 flex items-center gap-1 disabled:opacity-50">
-                  <Download className="w-3 h-3) CSV
-                </button>
+                <button onClick={exportCSV} disabled={!produtosDivergentes.length} className="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 flex items-center gap-1 disabled:opacity-50"><Download className="w-3 h-3" /> CSV</button>
                 <div className="flex gap-1 ml-auto">
                   {['nf', 'produto', 'ncm'].map(v => (
-                    <button key={v} onClick={() => setVisualizacao(v)}
-                      className={`px-3 py-1.5 rounded text-xs font-medium ${visualizacao === v ? 'bg-red-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>
-                      {v === 'nf' ? 'Por NF' : v === 'produto' ? 'Por Produto' : 'Por NCM'}
-                    </button>
+                    <button key={v} onClick={() => setVisualizacao(v)} className={`px-3 py-1.5 rounded text-xs font-medium ${visualizacao === v ? 'bg-red-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>{v === 'nf' ? 'Por NF' : v === 'produto' ? 'Por Produto' : 'Por NCM'}</button>
                   ))}
                 </div>
               </div>
               <p className="text-[10px] text-gray-400 mt-2">Clique no cabeçalho de qualquer coluna para ordenar ↑↓</p>
             </div>
 
-            {/* Tabela Por NF */}
-            {visualizacao === 'nf' && produtosDivergentes.length > 0 && (
+            {/* Tabela Unificada */}
+            {getDataForView().length > 0 && (
               <div className="bg-white rounded-lg border overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead className="bg-gray-100">
                       <tr>
-                        {renderSortHeader("NF, "numero_nfe)
-                        {renderSortHeader("Produto, "descricao)
-                        {renderSortHeader("NCM, "ncm)
-                        {renderSortHeader("Valor, "valor_produto)
-                        {renderSortHeader("CST PIS XML, "cst_pis_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("CST PIS OK, "cst_pis_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("Alíq PIS XML, "aliq_pis_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("Alíq PIS OK, "aliq_pis_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("PIS XML, "v_pis_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("PIS OK, "v_pis_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("CST COF XML, "cst_cofins_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("CST COF OK, "cst_cofins_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("Alíq COF XML, "aliq_cofins_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("Alíq COF OK, "aliq_cofins_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("COF XML, "v_cofins_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("COF OK, "v_cofins_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("Impacto, "impacto_total, "bg-amber-50)
-                        {renderSortHeader("Tipo, "tipo_divergencia)
+                        {colunas.filter(c => c.show !== false).map(col => (
+                          <SortHeader key={col.key} label={col.sub ? `${col.label} ${col.sub}` : col.label} sortKey={col.key} sortConfig={sortConfig} onSort={handleSort} className={col.color === 'red' ? 'text-red-600 bg-red-50' : col.color === 'green' ? 'text-green-600 bg-green-50' : col.color === 'amber' ? 'bg-amber-50' : ''} />
+                        ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {produtosDivergentes.map((p, i) => (
+                      {getDataForView().map((p, i) => (
                         <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-2 py-1.5 text-center">{p.numero_nfe}</td>
-                          <td className="px-2 py-1.5"><div className="truncate max-w-[120px]" title={p.descricao}>{p.descricao}</div></td>
-                          <td className="px-2 py-1.5 font-mono text-center">{p.ncm}</td>
-                          <td className="px-2 py-1.5 text-right">{formatCurrency(p.valor_produto)}</td>
-                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{p.cst_pis_atual || '-'}</td>
-                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{p.cst_pis_correto || '-'}</td>
-                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{formatPercent(p.aliq_pis_atual)}</td>
-                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{formatPercent(p.aliq_pis_correto)}</td>
-                          <td className="px-2 py-1.5 text-right text-red-600 bg-red-50/50">{formatCurrency(p.v_pis_atual)}</td>
-                          <td className="px-2 py-1.5 text-right text-green-600 bg-green-50/50">{formatCurrency(p.v_pis_correto)}</td>
-                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{p.cst_cofins_atual || '-'}</td>
-                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{p.cst_cofins_correto || '-'}</td>
-                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{formatPercent(p.aliq_cofins_atual)}</td>
-                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{formatPercent(p.aliq_cofins_correto)}</td>
-                          <td className="px-2 py-1.5 text-right text-red-600 bg-red-50/50">{formatCurrency(p.v_cofins_atual)}</td>
-                          <td className="px-2 py-1.5 text-right text-green-600 bg-green-50/50">{formatCurrency(p.v_cofins_correto)}</td>
-                          <td className="px-2 py-1.5 text-right font-bold text-amber-600 bg-amber-50/50">{formatCurrency(p.impacto_total)}</td>
-                          <td className="px-2 py-1.5"><span className={`px-1 py-0.5 rounded text-[9px] ${getTipoDivergenciaColor(p.tipo_divergencia)}`}>{getTipoDivergenciaLabel(p.tipo_divergencia)}</span></td>
+                          {colunas.filter(c => c.show !== false).map(col => (
+                            <td key={col.key} className={`px-2 py-1.5 text-center ${col.color === 'red' ? 'bg-red-50/30' : col.color === 'green' ? 'bg-green-50/30' : col.color === 'amber' ? 'bg-amber-50/30' : ''}`}>
+                              {renderCell(p, col)}
+                            </td>
+                          ))}
                         </tr>
                       ))}
                     </tbody>
@@ -370,122 +329,9 @@ const AnalisePisCofins = ({ user, onLogout }) => {
               </div>
             )}
 
-            {/* Tabela Por Produto */}
-            {visualizacao === 'produto' && agrupadoPorProduto.length > 0 && (
-              <div className="bg-white rounded-lg border overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        {renderSortHeader("Produto, "descricao)
-                        {renderSortHeader("NCM, "ncm)
-                        {renderSortHeader("Qtd, "qtd_ocorrencias)
-                        {renderSortHeader("Valor Total, "valor_total)
-                        {renderSortHeader("CST PIS XML, "cst_pis_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("CST PIS OK, "cst_pis_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("Alíq PIS XML, "aliq_pis_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("Alíq PIS OK, "aliq_pis_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("PIS XML, "v_pis_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("PIS OK, "v_pis_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("CST COF XML, "cst_cofins_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("CST COF OK, "cst_cofins_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("Alíq COF XML, "aliq_cofins_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("Alíq COF OK, "aliq_cofins_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("COF XML, "v_cofins_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("COF OK, "v_cofins_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("Impacto, "impacto_total, "bg-amber-50)
-                        {renderSortHeader("Tipo, "tipo_divergencia)
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {agrupadoPorProduto.map((p, i) => (
-                        <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-2 py-1.5"><div className="truncate max-w-[140px] font-medium" title={p.descricao}>{p.descricao}</div></td>
-                          <td className="px-2 py-1.5 font-mono text-center">{p.ncm}</td>
-                          <td className="px-2 py-1.5 text-center">{p.qtd_ocorrencias}</td>
-                          <td className="px-2 py-1.5 text-right">{formatCurrency(p.valor_total)}</td>
-                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{p.cst_pis_atual || '-'}</td>
-                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{p.cst_pis_correto || '-'}</td>
-                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{formatPercent(p.aliq_pis_atual)}</td>
-                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{formatPercent(p.aliq_pis_correto)}</td>
-                          <td className="px-2 py-1.5 text-right text-red-600 bg-red-50/50">{formatCurrency(p.v_pis_atual)}</td>
-                          <td className="px-2 py-1.5 text-right text-green-600 bg-green-50/50">{formatCurrency(p.v_pis_correto)}</td>
-                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{p.cst_cofins_atual || '-'}</td>
-                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{p.cst_cofins_correto || '-'}</td>
-                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{formatPercent(p.aliq_cofins_atual)}</td>
-                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{formatPercent(p.aliq_cofins_correto)}</td>
-                          <td className="px-2 py-1.5 text-right text-red-600 bg-red-50/50">{formatCurrency(p.v_cofins_atual)}</td>
-                          <td className="px-2 py-1.5 text-right text-green-600 bg-green-50/50">{formatCurrency(p.v_cofins_correto)}</td>
-                          <td className="px-2 py-1.5 text-right font-bold text-amber-600 bg-amber-50/50">{formatCurrency(p.impacto_total)}</td>
-                          <td className="px-2 py-1.5"><span className={`px-1 py-0.5 rounded text-[9px] ${getTipoDivergenciaColor(p.tipo_divergencia)}`}>{getTipoDivergenciaLabel(p.tipo_divergencia)}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Tabela Por NCM */}
-            {visualizacao === 'ncm' && agrupadoPorNCM.length > 0 && (
-              <div className="bg-white rounded-lg border overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        {renderSortHeader("NCM, "ncm)
-                        <th className="px-2 py-2 text-xs font-semibold text-gray-600">Produtos</th>
-                        {renderSortHeader("Qtd, "qtd_ocorrencias)
-                        {renderSortHeader("Valor Total, "valor_total)
-                        {renderSortHeader("CST PIS XML, "cst_pis_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("CST PIS OK, "cst_pis_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("Alíq PIS XML, "aliq_pis_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("Alíq PIS OK, "aliq_pis_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("PIS XML, "v_pis_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("PIS OK, "v_pis_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("CST COF XML, "cst_cofins_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("CST COF OK, "cst_cofins_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("Alíq COF XML, "aliq_cofins_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("Alíq COF OK, "aliq_cofins_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("COF XML, "v_cofins_atual, "text-red-600 bg-red-50)
-                        {renderSortHeader("COF OK, "v_cofins_correto, "text-green-600 bg-green-50)
-                        {renderSortHeader("Impacto, "impacto_total, "bg-amber-50)
-                        {renderSortHeader("Tipo, "tipo_divergencia)
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {agrupadoPorNCM.map((p, i) => (
-                        <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-2 py-1.5 font-mono font-bold text-center">{p.ncm}</td>
-                          <td className="px-2 py-1.5"><div className="text-[10px] text-gray-500 truncate max-w-[100px]" title={p.produtos?.join(', ')}>{p.produtos?.slice(0,2).join(', ')}</div></td>
-                          <td className="px-2 py-1.5 text-center">{p.qtd_ocorrencias}</td>
-                          <td className="px-2 py-1.5 text-right">{formatCurrency(p.valor_total)}</td>
-                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{p.cst_pis_atual || '-'}</td>
-                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{p.cst_pis_correto || '-'}</td>
-                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{formatPercent(p.aliq_pis_atual)}</td>
-                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{formatPercent(p.aliq_pis_correto)}</td>
-                          <td className="px-2 py-1.5 text-right text-red-600 bg-red-50/50">{formatCurrency(p.v_pis_atual)}</td>
-                          <td className="px-2 py-1.5 text-right text-green-600 bg-green-50/50">{formatCurrency(p.v_pis_correto)}</td>
-                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{p.cst_cofins_atual || '-'}</td>
-                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{p.cst_cofins_correto || '-'}</td>
-                          <td className="px-2 py-1.5 text-center text-red-600 bg-red-50/50">{formatPercent(p.aliq_cofins_atual)}</td>
-                          <td className="px-2 py-1.5 text-center text-green-600 bg-green-50/50">{formatPercent(p.aliq_cofins_correto)}</td>
-                          <td className="px-2 py-1.5 text-right text-red-600 bg-red-50/50">{formatCurrency(p.v_cofins_atual)}</td>
-                          <td className="px-2 py-1.5 text-right text-green-600 bg-green-50/50">{formatCurrency(p.v_cofins_correto)}</td>
-                          <td className="px-2 py-1.5 text-right font-bold text-amber-600 bg-amber-50/50">{formatCurrency(p.impacto_total)}</td>
-                          <td className="px-2 py-1.5"><span className={`px-1 py-0.5 rounded text-[9px] ${getTipoDivergenciaColor(p.tipo_divergencia)}`}>{getTipoDivergenciaLabel(p.tipo_divergencia)}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Sem divergências */}
             {dados.total_divergentes === 0 && (
               <div className="bg-white rounded-xl p-10 border text-center">
-                <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-3)
+                <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-3" />
                 <h2 className="text-lg font-semibold text-gray-900">Nenhuma divergência identificada</h2>
                 <p className="text-gray-500 text-sm mt-1">Todos os produtos estão com CST e alíquotas corretos.</p>
               </div>
@@ -493,7 +339,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
           </>
         ) : (
           <div className="bg-white rounded-xl p-10 border text-center">
-            <Info className="w-14 h-14 text-gray-400 mx-auto mb-3)
+            <Info className="w-14 h-14 text-gray-400 mx-auto mb-3" />
             <h2 className="text-lg font-semibold text-gray-700">Carregando dados...</h2>
           </div>
         )}
