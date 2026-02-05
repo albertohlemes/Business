@@ -1586,6 +1586,8 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
         setMinutaId(null);
         setCnpjInput('');
         setTextoContratoOriginal('');
+        setTemRascunhoSalvo(false);
+        limparRascunho();
     };
 
     const handleClose = () => {
