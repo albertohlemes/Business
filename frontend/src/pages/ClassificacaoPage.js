@@ -115,6 +115,40 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     }
   };
 
+  // Reimportar todos os documentos (como se fossem novos)
+  const handleReimportBatch = async () => {
+    if (!selectedCompany || !selectedCompetencia) {
+      alert('Selecione uma empresa e competência');
+      return;
+    }
+    
+    const confirmMsg = `⚠️ REIMPORTAR DOCUMENTOS\n\nIsso irá:\n• Re-extrair TODOS os dados dos XMLs originais\n• APAGAR todas as classificações anteriores\n• Aplicar classificação da IA do zero\n• Resetar status para pendente\n\nÉ como se você apagasse e importasse novamente.\n\nDeseja continuar?`;
+    
+    if (!window.confirm(confirmMsg)) {
+      return;
+    }
+    
+    setReimporting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const url = `${API}/xml/reimport-batch?company_id=${selectedCompany.id}&competencia=${encodeURIComponent(selectedCompetencia)}`;
+      const res = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
+      
+      if (res.data.success !== false) {
+        const msg = `✅ Reimportação concluída!\n\n📊 Total: ${res.data.total}\n✅ Sucesso: ${res.data.success}\n📥 Entradas: ${res.data.entradas}\n📤 Saídas: ${res.data.saidas}\n🤖 Classificados (IA): ${res.data.classificados}\n❌ Erros: ${res.data.errors}`;
+        alert(msg);
+        fetchData(); // Recarregar dados
+      } else {
+        alert('Erro: ' + res.data.error);
+      }
+    } catch (err) {
+      console.error('Erro ao reimportar:', err);
+      alert(err.response?.data?.detail || 'Erro ao reimportar documentos');
+    } finally {
+      setReimporting(false);
+    }
+  };
+
   // Agrupar produtos
   const groupedProducts = useMemo(() => {
     const groups = {};
