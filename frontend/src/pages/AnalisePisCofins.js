@@ -292,57 +292,26 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                     )}
                   </div>
                 </div>
-                <p className={`text-sm mt-2 ${
-                  dados.resumo.diferenca_total > 0 
-                    ? 'text-red-600' 
-                    : dados.resumo.diferenca_total < 0 
-                      ? 'text-green-600'
-                      : 'text-gray-500'
-                }`}>
-                  {dados.resumo.diferenca_total > 0 
-                    ? 'Pagando a mais' 
-                    : dados.resumo.diferenca_total < 0 
-                      ? 'Pagando a menos'
-                      : 'Sem divergência'}
-                </p>
-              </div>
-            </div>
-
-            {/* Resumo por Tipo de Divergência */}
+            {/* Resumo por Tipo de Divergência - Compacto */}
             {dados.total_divergentes > 0 && (
-              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-amber-500" />
-                  Resumo por Tipo de Divergência
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                  Por Tipo de Divergência (clique para filtrar)
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="flex flex-wrap gap-2">
                   {Object.entries(dados.resumo.por_tipo_divergencia).map(([tipo, info]) => (
                     info.qtd > 0 && (
-                      <div 
+                      <button 
                         key={tipo} 
-                        className={`p-4 rounded-lg ${getTipoDivergenciaColor(tipo).replace('text-', 'border-').replace('100', '200')} border`}
                         onClick={() => setFiltroTipo(filtroTipo === tipo ? 'todos' : tipo)}
-                        style={{ cursor: 'pointer' }}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition ${
+                          filtroTipo === tipo 
+                            ? 'ring-2 ring-indigo-500 ' + getTipoDivergenciaColor(tipo)
+                            : getTipoDivergenciaColor(tipo) + ' hover:opacity-80'
+                        }`}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${getTipoDivergenciaColor(tipo)}`}>
-                            {getTipoDivergenciaLabel(tipo)}
-                          </span>
-                          <span className="text-sm font-semibold text-gray-700">{info.qtd} itens</span>
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          <div className="flex justify-between">
-                            <span>PIS:</span>
-                            <span className="font-medium">{formatCurrency(info.impacto_pis)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>COFINS:</span>
-                            <span className="font-medium">{formatCurrency(info.impacto_cofins)}</span>
-                          </div>
-                          <div className="flex justify-between border-t border-gray-300 mt-1 pt-1">
-                            <span className="font-semibold">Total:</span>
-                            <span className="font-bold text-gray-900">{formatCurrency(info.impacto_total)}</span>
-                          </div>
+                        {getTipoDivergenciaLabel(tipo)}: {info.qtd} • {formatCurrency(info.impacto_total)}
                         </div>
                       </div>
                     )
