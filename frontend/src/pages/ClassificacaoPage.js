@@ -725,8 +725,8 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     );
   };
 
-  // Componente de produto agrupado
-  const GroupedProductItem = ({ product }) => {
+  // Componente de produto agrupado - convertido para função render
+  const renderGroupedProductItem = (product) => {
     const { approved, total } = countProductApprovals(product.codigo);
     const allApproved = approved === total;
     const isSelected = selectedProductCodes.includes(product.codigo);
@@ -734,7 +734,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     if (showOnlyPending && allApproved) return null;
     
     return (
-      <div className={`grid grid-cols-12 gap-2 items-center px-4 py-3 border-b hover:bg-gray-50 transition-colors ${allApproved ? 'bg-green-50' : ''}`}>
+      <div key={product.codigo} className={`grid grid-cols-12 gap-2 items-center px-4 py-3 border-b hover:bg-gray-50 transition-colors ${allApproved ? 'bg-green-50' : ''}`}>
         {/* Checkbox + Aprovação */}
         <div className="col-span-1 flex items-center justify-center gap-2">
           <button
