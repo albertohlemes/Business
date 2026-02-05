@@ -788,7 +788,7 @@ async def extrair_dados_contrato(
     Extrai dados estruturados do contrato usando IA.
     Retorna campos individuais em vez de texto corrido.
     """
-    minuta = await db.minutas.find_one({"id": minuta_id, "user_id": current_user["id"]})
+    minuta = await db.minutas.find_one({"id": minuta_id})
     if not minuta:
         raise HTTPException(status_code=404, detail="Minuta não encontrada")
     
