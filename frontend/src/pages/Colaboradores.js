@@ -13,6 +13,7 @@ import { Plus, Users, Pencil, Trash2, Search, X, Upload, FileUp, Loader2, CheckC
 import { useDropzone } from 'react-dropzone';
 import { useEmpresa } from '../contexts/EmpresaContext';
 import { getErrorMessage } from '../utils/errorHandler';
+import { generateEmpresaCode, sortClientesBySelection } from '../utils/empresaHelpers';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
