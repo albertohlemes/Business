@@ -280,6 +280,29 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 ## Changelog
 
 ### 02/2026 - Iteration 37 (06/02/2026)
+- ✅ **BUG FIX CRÍTICO: Estrutura incorreta do SPED Fiscal**
+  - **Problema:** Campos do registro C170 estavam fora de ordem, causando:
+    - Alíquota de ICMS não aparecia
+    - CST de PIS/COFINS estava na posição da base de cálculo
+    - Alíquotas de PIS/COFINS não eram preenchidas
+    - Campo VL_ABAT_NT aparecia incorretamente
+  - **Solução:**
+    1. Reescrita completa do registro C100 (29 campos) com layout oficial
+    2. Reescrita completa do registro C170 (38 campos) com layout oficial
+    3. Adicionada extração de alíquotas (p_icms, p_pis, p_cofins) e bases de cálculo do XML
+    4. Implementado cálculo retroativo de alíquotas quando não presentes no XML
+  - **Resultado:** SPED agora possui todos os campos na ordem correta:
+    - ALIQ_ICMS: Campo 14 ✅
+    - CST_PIS: Campo 25 ✅
+    - VL_BC_PIS: Campo 26 ✅
+    - ALIQ_PIS: Campo 27 (4 decimais) ✅
+    - VL_PIS: Campo 30 ✅
+    - CST_COFINS: Campo 31 ✅
+    - VL_BC_COFINS: Campo 32 ✅
+    - ALIQ_COFINS: Campo 33 (4 decimais) ✅
+    - VL_COFINS: Campo 36 ✅
+    - VL_ABAT_NT: Campo 38 (apenas quando houver abatimento) ✅
+
 - ✅ **BUG FIX CRÍTICO: Inconsistência de dados entre "Documentos" e "Validação"**
   - **Problema:** Produtos diferentes de fornecedores diferentes com mesmo código interno (ex: código 4) eram agrupados incorretamente. Um produto "TONER" era sobrescrito por "OLEO DIESEL" na visualização agrupada.
   - **Causa raiz:** A chave de agrupamento usava apenas `prod.codigo`, que não é único entre diferentes fornecedores/XMLs.
