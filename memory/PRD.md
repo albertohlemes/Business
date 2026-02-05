@@ -74,6 +74,8 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 
 ### Colaboradores
 - CRUD `/api/colaboradores`, `POST /api/colaboradores/importar`
+- `POST /api/colaboradores/salvar-lote` - Salva múltiplos colaboradores em lote
+- `POST /api/colaboradores/importar-lote` - Importa de múltiplos arquivos
 
 ### Dissídio
 - CRUD `/api/dissidios`
