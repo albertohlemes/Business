@@ -244,6 +244,36 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 36 (05/02/2026)
+- ✅ **FEATURE P0: Análise Completa de PIS/COFINS nas Saídas**
+  - **Problema:** O usuário precisava de uma análise precisa de PIS/COFINS para determinar crédito e débito, considerando CFOPs e NCMs
+  - **Solução:**
+    1. Criado endpoint `GET /api/analise-pis-cofins-completa/{company_id}` que:
+       - Analisa TODOS os produtos das notas de saída
+       - Identifica NCMs monofásicos (combustíveis, medicamentos, perfumaria, bebidas, veículos)
+       - Identifica NCMs com alíquota zero (cesta básica)
+       - Identifica CFOPs que não geram débito (transferências, devoluções, remessas)
+       - Compara CST e alíquotas usados vs corretos
+       - Calcula impacto financeiro real
+    2. Nova página `/analise-pis-cofins` com:
+       - Cards de resumo: Total Saídas, PIS Declarado, COFINS Declarado, Diferença Total
+       - Resumo por tipo de divergência (clicável para filtrar)
+       - Tabela ordenável de divergências por NF
+       - Detalhes expandíveis mostrando 3 colunas: "Como Está", "Como Deveria", "Diferença"
+       - Filtros por tipo de divergência e busca livre
+       - Exportação CSV completo
+       - Suporta ambos os regimes (Lucro Real e Presumido)
+  - **Regras implementadas:**
+    - NCMs monofásicos: 2710, 2711 (combustíveis), 3001-3004 (medicamentos), 3303-3307 (cosméticos), 2201-2203 (bebidas), 8702-8711 (veículos)
+    - NCMs alíquota zero: Cesta básica (carnes, leite, arroz, feijão, pão, etc.)
+    - CFOPs sem débito: 51xx/61xx (transferências), 52xx/62xx (devoluções), 59xx/69xx (remessas)
+  - **Arquivos:** `/app/backend/server.py`, `/app/frontend/src/pages/AnalisePisCofins.js`, `/app/frontend/src/components/Layout.js`
+
+- ✅ **FIX: Reimportação apenas de Entradas**
+  - **Problema:** O reprocessamento estava convertendo notas de emissão própria (saídas)
+  - **Solução:** Filtrar apenas documentos de ENTRADA no reimport
+  - **Resultado:** Saídas são ignoradas, apenas entradas são reprocessadas e classificadas
+
 ### 02/2026 - Iteration 35 (05/02/2026)
 - ✅ **FEATURE: Barra de Progresso na Reimportação**
   - **Problema:** O usuário queria feedback visual durante a reimportação
