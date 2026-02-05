@@ -75,6 +75,18 @@ const ClienteCard = ({ cliente, onView, onEdit, onDownloadWord, onDownloadPDF, o
                                     </Button>
                                 </>
                             )}
+                            {/* Botão GClick - apenas para processos concluídos */}
+                            {m.status === 'concluida' && (
+                                <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    onClick={() => onEnviarGClick(m.id)} 
+                                    className={`border-zinc-700 h-8 ${m.gclick_enviado ? 'text-green-500 border-green-600' : 'hover:border-green-600 hover:text-green-500'}`}
+                                    title={m.gclick_enviado ? 'Enviado para GClick' : 'Enviar para GClick'}
+                                >
+                                    {m.gclick_enviado ? <CheckCircle className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                                </Button>
+                            )}
                             <Button size="sm" variant="outline" onClick={() => onView(m)} className="border-zinc-700 h-8" title="Visualizar">
                                 <Eye className="w-4 h-4" />
                             </Button>
