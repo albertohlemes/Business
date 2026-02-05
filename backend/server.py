@@ -1155,10 +1155,13 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
         "is_transferencia": is_transferencia
     }
 
-def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo: str) -> str:
+def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo: str, excluir_creditos_despesa_st: bool = False) -> str:
     """
     Gera arquivo SPED Fiscal no layout versão 019 (válido para 2025)
     Baseado na Nota Técnica 2024.001 v1.0 - Ato Cotepe nº 131/2024
+    
+    Parâmetros:
+    - excluir_creditos_despesa_st: Se True, exclui créditos de ICMS de CFOPs de despesa e ST na apuração (E110)
     """
     lines = []
     
