@@ -33,7 +33,7 @@ const Dashboard = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center min-h-[calc(100vh-100px)]">
                 <div className="animate-spin w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full"></div>
             </div>
         );
