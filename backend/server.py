@@ -2458,6 +2458,13 @@ async def gerar_distrato_social(
                     qualif += f" sob o Regime de {s.regime_casamento}"
             if s.profissao:
                 qualif += f", {s.profissao.lower()}"
+            # Naturalidade (cidade/estado de nascimento)
+            cidade_nasc = getattr(s, 'cidade_nascimento', None)
+            estado_nasc = getattr(s, 'estado_nascimento', None)
+            if cidade_nasc and estado_nasc:
+                qualif += f", natural de {cidade_nasc}/{estado_nasc}"
+            elif cidade_nasc:
+                qualif += f", natural de {cidade_nasc}"
             # data_nascimento é opcional
             data_nasc = getattr(s, 'data_nascimento', None)
             if data_nasc:
