@@ -16,6 +16,7 @@ const ExportMenu = ({ user, onLogout }) => {
   const [documentsCount, setDocumentsCount] = useState(0);
   const [availableCompetencias, setAvailableCompetencias] = useState([]);
   const [activeTab, setActiveTab] = useState('sped'); // sped, entrada, saida
+  const [excluirCreditosDespesaST, setExcluirCreditosDespesaST] = useState(true); // Default: excluir
 
   useEffect(() => {
     fetchCompanies();
