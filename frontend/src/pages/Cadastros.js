@@ -961,7 +961,7 @@ E-MAIL: ${sciForm.email || 'N/A'}
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                <input ref={sciFileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleExtrairIASci} />
+                                <input ref={sciFileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" multiple className="hidden" onChange={handleExtrairIASci} />
                                 <Button 
                                     variant="outline" 
                                     onClick={() => sciFileInputRef.current?.click()}
@@ -978,7 +978,7 @@ E-MAIL: ${sciForm.email || 'N/A'}
                         </div>
 
                         <p className="text-xs text-zinc-500 mb-4 bg-zinc-800/50 p-2 rounded">
-                            💡 Anexe Cartão CNPJ, Contrato Social ou Certidão da Junta para preenchimento automático
+                            💡 <strong>Selecione múltiplos documentos</strong> (Cartão CNPJ, Contrato Social, Certidão Junta). A IA consolida todas as informações automaticamente!
                         </p>
 
                         <div className="grid grid-cols-2 gap-6">
