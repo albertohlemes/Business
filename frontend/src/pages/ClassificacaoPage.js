@@ -1162,42 +1162,43 @@ const ClassificacaoPage = ({ user, onLogout }) => {
 
         {/* Lista de Produtos */}
         <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
-            <h3 className="font-semibold text-gray-900">
-              Produtos de Entrada ({sortedProducts.length})
-            </h3>
-            
-            <div className="flex items-center gap-2">
-              {/* Toggle Agrupado/Lista */}
-              <div className="flex bg-gray-200 rounded-lg p-1">
-                <button
-                  onClick={() => setDisplayMode('agrupado')}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                    displayMode === 'agrupado' 
-                      ? 'bg-white text-purple-700 shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <Layers className="w-4 h-4 inline mr-1" />
-                  Agrupado
-                </button>
-                <button
-                  onClick={() => setDisplayMode('lista')}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                    displayMode === 'lista' 
-                      ? 'bg-white text-purple-700 shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Lista
-                </button>
-              </div>
+          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+            <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+              <h3 className="font-semibold text-gray-900">
+                Produtos de Entrada ({sortedProducts.length})
+              </h3>
               
-              <button
-                onClick={() => setSelectedProductCodes(
-                  selectedProductCodes.length === groupedProducts.length ? [] : groupedProducts.map(p => p.codigo)
-                )}
-                className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium"
+              <div className="flex items-center gap-2">
+                {/* Toggle Agrupado/Lista */}
+                <div className="flex bg-gray-200 rounded-lg p-1">
+                  <button
+                    onClick={() => setDisplayMode('agrupado')}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      displayMode === 'agrupado' 
+                        ? 'bg-white text-purple-700 shadow-sm' 
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Layers className="w-4 h-4 inline mr-1" />
+                    Agrupado
+                  </button>
+                  <button
+                    onClick={() => setDisplayMode('lista')}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      displayMode === 'lista' 
+                        ? 'bg-white text-purple-700 shadow-sm' 
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Lista
+                  </button>
+                </div>
+                
+                <button
+                  onClick={() => setSelectedProductCodes(
+                    selectedProductCodes.length === groupedProducts.length ? [] : groupedProducts.map(p => p.codigo)
+                  )}
+                  className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium"
               >
                 {selectedProductCodes.length === groupedProducts.length ? 'Limpar' : 'Selecionar Todos'}
               </button>
