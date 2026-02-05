@@ -771,6 +771,41 @@ const SocioCard = ({ socio, index, onChange, onRemove, canRemove }) => {
                 </div>
             </div>
             
+            {/* Naturalidade e Data de Nascimento */}
+            <div className="grid grid-cols-3 gap-3">
+                <div>
+                    <Label className="text-zinc-500 text-xs">Data de Nascimento</Label>
+                    <Input
+                        type="date"
+                        value={socio.dataNascimento || ''}
+                        onChange={(e) => onChange({ ...socio, dataNascimento: e.target.value })}
+                        className="bg-zinc-900 border-zinc-700 mt-1"
+                    />
+                </div>
+                <div>
+                    <Label className="text-zinc-500 text-xs">Cidade de Nascimento</Label>
+                    <Input
+                        value={socio.cidadeNascimento || ''}
+                        onChange={(e) => onChange({ ...socio, cidadeNascimento: e.target.value })}
+                        placeholder="São Paulo"
+                        className="bg-zinc-900 border-zinc-700 mt-1"
+                    />
+                </div>
+                <div>
+                    <Label className="text-zinc-500 text-xs">Estado de Nascimento</Label>
+                    <Select value={socio.estadoNascimento || ''} onValueChange={(v) => onChange({ ...socio, estadoNascimento: v })}>
+                        <SelectTrigger className="bg-zinc-900 border-zinc-700 mt-1">
+                            <SelectValue placeholder="UF" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-900 border-zinc-700">
+                            {ESTADOS.map(uf => (
+                                <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            
             <div className="grid grid-cols-3 gap-3">
                 <div>
                     <Label className="text-zinc-500 text-xs">Estado Civil <span className="text-red-500">*</span></Label>
