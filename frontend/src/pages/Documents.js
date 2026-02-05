@@ -108,7 +108,7 @@ const Documents = ({ user, onLogout }) => {
     setDeleting(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`${API}/documents/competencia/${ctxCompany.id}/${selectedCompetencia}`, {
+      await axios.delete(`${API}/documents/${ctxCompany.id}/competencia/${encodeURIComponent(selectedCompetencia)}`, {
         headers: { Authorization: `Bearer ${token}` },
         params: {
           tipo: selectedTipo || undefined,
