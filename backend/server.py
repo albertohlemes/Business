@@ -5012,9 +5012,10 @@ async def apuracao_periodo(
         item['v_cofins'] = round(item['v_cofins'], 2)
     
     # Calcular subtotais - separando operações com e sem crédito de ICMS
-    # Entradas com crédito de ICMS (excluindo ST)
+    # Entradas com crédito de ICMS (excluindo ST e Despesa)
     entradas_com_credito = [x for x in lista_entradas if not x.get('sem_credito_icms', False)]
-    entradas_sem_credito = [x for x in lista_entradas if x.get('sem_credito_icms', False)]
+    entradas_st = [x for x in lista_entradas if x.get('is_st', False)]
+    entradas_despesa = [x for x in lista_entradas if x.get('is_despesa', False)]
     
     subtotal_entradas = {
         'valor': round(sum(x['valor'] for x in lista_entradas), 2),
@@ -5023,11 +5024,17 @@ async def apuracao_periodo(
         'v_pis': round(sum(x['v_pis'] for x in lista_entradas), 2),
         'v_cofins': round(sum(x['v_cofins'] for x in lista_entradas), 2),
         'qtd_itens': sum(x['qtd_itens'] for x in lista_entradas),
-        # Informação adicional sobre ST desconsiderado
+        # Informação sobre ST desconsiderado
         'st_desconsiderado': {
-            'bc_icms': round(sum(x['bc_icms'] for x in entradas_sem_credito), 2),
-            'v_icms': round(sum(x['v_icms'] for x in entradas_sem_credito), 2),
-            'qtd_itens': sum(x['qtd_itens'] for x in entradas_sem_credito)
+            'bc_icms': round(sum(x['bc_icms'] for x in entradas_st), 2),
+            'v_icms': round(sum(x['v_icms'] for x in entradas_st), 2),
+            'qtd_itens': sum(x['qtd_itens'] for x in entradas_st)
+        },
+        # Informação sobre Despesa desconsiderada
+        'despesa_desconsiderada': {
+            'bc_icms': round(sum(x['bc_icms'] for x in entradas_despesa), 2),
+            'v_icms': round(sum(x['v_icms'] for x in entradas_despesa), 2),
+            'qtd_itens': sum(x['qtd_itens'] for x in entradas_despesa)
         }
     }
     
