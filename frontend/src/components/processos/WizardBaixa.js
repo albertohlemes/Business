@@ -404,6 +404,7 @@ const WizardBaixa = ({ open, onClose, onComplete, processoEditando }) => {
         setPrazoGuarda('5 anos');
         setDistratoGerado('');
         setProcessoId(null);
+        setModoEdicao(false);
     };
 
     const handleClose = () => {
