@@ -452,7 +452,7 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                       <div className="text-center py-8">
                         <Brain className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                         <p className="text-gray-600">Insights não disponíveis</p>
-                        <p className="text-gray-500 text-sm">Clique em "Atualizar Análise" para gerar insights com IA.</p>
+                        <p className="text-gray-500 text-sm">Clique em &quot;Atualizar Análise&quot; para gerar insights com IA.</p>
                       </div>
                     )}
                   </div>
