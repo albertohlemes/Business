@@ -349,12 +349,22 @@ async def buscar_cnpj_receita(cnpj: str, current_user: dict = Depends(get_curren
             if data.get("status") == "ERROR":
                 raise HTTPException(status_code=404, detail=data.get("message", "CNPJ não encontrado"))
             
-            # Format response
+            # Format address
+            logradouro = data.get('logradouro', '')
+            numero = data.get('numero', '')
+            bairro = data.get('bairro', '')
+            endereco = f"{logradouro} {numero}".strip()
+            if bairro:
+                endereco += f", {bairro}"
+            
+            # Format response with all available fields
             return {
                 "cnpj": data.get("cnpj", cnpj_limpo),
                 "razao_social": data.get("nome", ""),
                 "nome_fantasia": data.get("fantasia", ""),
-                "endereco": f"{data.get('logradouro', '')} {data.get('numero', '')}, {data.get('bairro', '')} - {data.get('municipio', '')}/{data.get('uf', '')}".strip(),
+                "endereco": endereco,
+                "cidade": data.get("municipio", ""),
+                "uf": data.get("uf", ""),
                 "cep": data.get("cep", ""),
                 "telefone": data.get("telefone", ""),
                 "email": data.get("email", ""),
