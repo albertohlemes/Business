@@ -158,7 +158,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
       cmv,
       lucroBruto,
       margemBruta,
-      icms: { credito: icmsCredito, debito: icmsDebito, aPagar: icmsAPagar, saldo: icmsSaldo, stDesconsiderado: icmsSTDesconsiderado },
+      icms: { credito: icmsCredito, debito: icmsDebito, aPagar: icmsAPagar, saldo: icmsSaldo, stDesconsiderado: icmsSTDesconsiderado, despesaDesconsiderada: icmsDespesaDesconsiderado, totalDesconsiderado: icmsTotalDesconsiderado },
       pis: { credito: pisCredito, debito: pisDebito, aPagar: pisAPagar },
       cofins: { credito: cofinsCredito, debito: cofinsDebito, aPagar: cofinsAPagar },
       totalImpostos,
