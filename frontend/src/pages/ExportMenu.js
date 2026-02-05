@@ -346,6 +346,153 @@ const ExportMenu = ({ user, onLogout }) => {
                 </>
               )}
             </button>
+
+            {/* Validação SPED - apenas para aba SPED */}
+            {activeTab === 'sped' && (
+              <div className="mt-6 border-t pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    Validar Totalizadores
+                  </h3>
+                  <button
+                    onClick={handleValidar}
+                    disabled={loadingValidacao || !selectedCompany || !competencia}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {loadingValidacao ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                    {loadingValidacao ? 'Validando...' : 'Validar'}
+                  </button>
+                </div>
+
+                {validacao && (
+                  <div className="space-y-4">
+                    {/* Resumo da Apuração */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <h4 className="font-semibold text-green-800 mb-2">Entradas (Créditos)</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Total Valor:</span>
+                            <span className="font-mono">R$ {validacao.resumo.entradas.total_valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">ICMS Creditável:</span>
+                            <span className="font-mono text-green-700 font-semibold">R$ {validacao.resumo.entradas.total_icms_creditavel.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                          {excluirCreditosDespesaST && validacao.resumo.entradas.total_icms_excluido > 0 && (
+                            <div className="flex justify-between text-red-600">
+                              <span>ICMS Excluído (Desp/ST):</span>
+                              <span className="font-mono">R$ {validacao.resumo.entradas.total_icms_excluido.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">PIS:</span>
+                            <span className="font-mono">R$ {validacao.resumo.entradas.total_pis.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">COFINS:</span>
+                            <span className="font-mono">R$ {validacao.resumo.entradas.total_cofins.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                        <h4 className="font-semibold text-red-800 mb-2">Saídas (Débitos)</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Total Valor:</span>
+                            <span className="font-mono">R$ {validacao.resumo.saidas.total_valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">ICMS Débito:</span>
+                            <span className="font-mono text-red-700 font-semibold">R$ {validacao.resumo.saidas.total_icms.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">PIS:</span>
+                            <span className="font-mono">R$ {validacao.resumo.saidas.total_pis.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">COFINS:</span>
+                            <span className="font-mono">R$ {validacao.resumo.saidas.total_cofins.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Saldo ICMS */}
+                    <div className={`p-4 rounded-lg border ${validacao.resumo.apuracao_icms.icms_a_pagar > 0 ? 'bg-yellow-50 border-yellow-300' : 'bg-blue-50 border-blue-200'}`}>
+                      <h4 className="font-semibold mb-2">Apuração ICMS</h4>
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-600">Saldo:</span>
+                          <div className="font-mono text-lg font-bold">
+                            R$ {validacao.resumo.apuracao_icms.saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">ICMS a Pagar:</span>
+                          <div className={`font-mono text-lg font-bold ${validacao.resumo.apuracao_icms.icms_a_pagar > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                            R$ {validacao.resumo.apuracao_icms.icms_a_pagar.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Crédito a Transportar:</span>
+                          <div className={`font-mono text-lg font-bold ${validacao.resumo.apuracao_icms.icms_a_compensar > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                            R$ {validacao.resumo.apuracao_icms.icms_a_compensar.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Detalhamento por CFOP */}
+                    <div className="bg-white rounded-lg border">
+                      <div className="p-3 bg-gray-50 border-b font-semibold text-gray-700">
+                        Totalizadores por CFOP (Entradas)
+                      </div>
+                      <div className="max-h-60 overflow-y-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50 sticky top-0">
+                            <tr>
+                              <th className="px-3 py-2 text-left">CFOP</th>
+                              <th className="px-3 py-2 text-right">Itens</th>
+                              <th className="px-3 py-2 text-right">Valor</th>
+                              <th className="px-3 py-2 text-right">ICMS</th>
+                              <th className="px-3 py-2 text-center">Crédito</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {validacao.detalhamento_cfop.entradas.map((cfop) => (
+                              <tr key={cfop.cfop} className={cfop.credito_excluido ? 'bg-red-50' : ''}>
+                                <td className="px-3 py-2 font-mono font-semibold">{cfop.cfop}</td>
+                                <td className="px-3 py-2 text-right">{cfop.qtd_itens}</td>
+                                <td className="px-3 py-2 text-right font-mono">R$ {cfop.valor.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                <td className="px-3 py-2 text-right font-mono">R$ {cfop.icms.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                <td className="px-3 py-2 text-center">
+                                  {cfop.credito_excluido ? (
+                                    <span className="text-red-600 flex items-center justify-center gap-1">
+                                      <XCircle className="w-4 h-4" /> Excluído
+                                    </span>
+                                  ) : (
+                                    <span className="text-green-600 flex items-center justify-center gap-1">
+                                      <CheckCircle className="w-4 h-4" /> OK
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
