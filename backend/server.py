@@ -1716,10 +1716,11 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
     licencas_proximas = await db.licencas.count_documents({"user_id": user_id, "status": "proxima_vencimento"})
     total_licencas = await db.licencas.count_documents({"user_id": user_id})
     
-    # Count minutas (TODOS os processos - visível para todos)
-    total_minutas = await db.minutas.count_documents({})
-    minutas_pendentes = await db.minutas.count_documents({"status": "pendente"})
-    minutas_concluidas = await db.minutas.count_documents({"status": "concluida"})
+    # Count minutas (TODOS os processos NÃO deletados - visível para todos)
+    total_minutas = await db.minutas.count_documents({"deleted": {"$ne": True}})
+    minutas_pendentes = await db.minutas.count_documents({"status": "pendente", "deleted": {"$ne": True}})
+    minutas_concluidas = await db.minutas.count_documents({"status": "concluida", "deleted": {"$ne": True}})
+    minutas_lixeira = await db.minutas.count_documents({"deleted": True})
     
     return {
         "certificados": {
@@ -1734,7 +1735,8 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
         "minutas": {
             "total": total_minutas,
             "pendentes": minutas_pendentes,
-            "concluidas": minutas_concluidas
+            "concluidas": minutas_concluidas,
+            "lixeira": minutas_lixeira
         }
     }
 
