@@ -643,9 +643,16 @@ const ValidacaoFolha = () => {
               )}
             </div>
 
+            {/* Progress Bar */}
+            {uploading && (
+              <div className="py-4">
+                <ValidacaoFolhaProgress isProcessing={uploading} />
+              </div>
+            )}
+
             {/* Submit */}
             <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+              <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={uploading}>Cancelar</Button>
               <Button
                 onClick={handleValidar}
                 disabled={uploading || !holeriteAtual || !selectedCliente || !mesReferencia}
@@ -655,7 +662,7 @@ const ValidacaoFolha = () => {
                 {uploading ? (
                   <>
                     <Loader2 className="animate-spin mr-2" size={16} />
-                    Analisando...
+                    Processando...
                   </>
                 ) : (
                   <>
