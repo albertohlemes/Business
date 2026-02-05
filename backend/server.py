@@ -7457,7 +7457,12 @@ async def exportar_e_validar_sped(
                 
                 tipo = documento_atual['tipo']
                 sped_totais[tipo]['total_valor'] += valor
-                sped_totais[tipo]['total_icms'] += v_icms
+                
+                # Aplicar mesma lógica de exclusão do sistema
+                if tipo == 'entradas' and excluir_creditos_despesa_st and cfop in CFOPS_SEM_CREDITO:
+                    pass  # Não conta o ICMS de despesa/ST
+                else:
+                    sped_totais[tipo]['total_icms'] += v_icms
                 
                 if cfop not in sped_totais[tipo]['por_cfop']:
                     sped_totais[tipo]['por_cfop'][cfop] = {'valor': 0, 'icms': 0, 'qtd': 0}
