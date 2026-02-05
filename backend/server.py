@@ -2588,6 +2588,482 @@ async def salvar_cadastro_sci(
         "id": cadastro["id"]
     }
 
+# ============ EXPORTAÇÃO PARA SCI ÚNICO ============
+
+class SCIUnicoEmpresaExport(BaseModel):
+    """Dados da empresa para exportação ao SCI Único"""
+    codigo: str
+    razao_social: str
+    nome_fantasia: Optional[str] = None
+    cnpj: str
+    inscricao_estadual: Optional[str] = None
+    inscricao_municipal: Optional[str] = None
+    data_entrada: Optional[str] = None
+    data_constituicao: Optional[str] = None
+    data_registro: Optional[str] = None
+    orgao_registro: Optional[str] = None
+    numero_registro: Optional[str] = None
+    email: Optional[str] = None
+    telefone: Optional[str] = None
+    cep: Optional[str] = None
+    endereco: Optional[str] = None
+    numero: Optional[str] = None
+    complemento: Optional[str] = None
+    bairro: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    socios: Optional[List[dict]] = None
+
+@api_router.post("/sci-unico/exportar")
+async def exportar_para_sci_unico(
+    dados: SCIUnicoEmpresaExport,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Gera arquivo JSON formatado para o executável de automação do SCI Único.
+    O executável lê este arquivo e preenche automaticamente os campos.
+    """
+    # Formatar dados na ordem dos TABs do SCI Único
+    export_data = {
+        "empresa": {
+            "codigo": dados.codigo,
+            "apelido": dados.razao_social[:30] if dados.razao_social else "",  # SCI usa como apelido
+            "razao_social": dados.razao_social,
+            "reduzido": dados.razao_social[:15] if dados.razao_social else "",  # Versão curta
+            "nome_fantasia": dados.nome_fantasia or "",
+            "cnpj": dados.cnpj,
+            "data_entrada": dados.data_entrada or "",
+            "cep": dados.cep or "",
+            "endereco": dados.endereco or "",
+            "numero": dados.numero or "",
+            "complemento": dados.complemento or "",
+            "bairro": dados.bairro or "",
+            "cidade": dados.cidade or "",
+            "estado": dados.estado or "",
+            "telefone": dados.telefone or "",
+            "inscricao_estadual": dados.inscricao_estadual or "",
+            "inscricao_municipal": dados.inscricao_municipal or "",
+            "email": dados.email or "",
+            "orgao_registro": dados.orgao_registro or "",
+            "numero_registro": dados.numero_registro or "",
+            "data_registro": dados.data_registro or "",
+            "data_constituicao": dados.data_constituicao or ""
+        },
+        "socios": []
+    }
+    
+    # Formatar sócios
+    if dados.socios:
+        for idx, socio in enumerate(dados.socios):
+            socio_data = {
+                "codigo": str(idx + 1),
+                "nome": socio.get("nome", ""),
+                "cpf": socio.get("cpf", ""),
+                "rg": socio.get("rg", ""),
+                "orgao_emissor": socio.get("orgao_emissor", "SSP"),
+                "uf_emissor": socio.get("uf_emissor", dados.estado or "SP"),
+                "responsavel": socio.get("administrador", False),
+                "data_nascimento": socio.get("data_nascimento", socio.get("dataNascimento", "")),
+                "estado_civil": socio.get("estado_civil", "Solteiro(a)"),
+                "cep": socio.get("cep", ""),
+                "endereco": socio.get("endereco", ""),
+                "numero": socio.get("numero", ""),
+                "complemento": socio.get("complemento", ""),
+                "bairro": socio.get("bairro", ""),
+                "cidade": socio.get("cidade", ""),
+                "estado": socio.get("estado", ""),
+                "telefone": socio.get("telefone", ""),
+                "celular": socio.get("celular", ""),
+                "entrada_sociedade": dados.data_constituicao or "",
+                "email": socio.get("email", ""),
+                "naturalidade": socio.get("naturalidade", ""),
+                "sexo": socio.get("sexo", ""),
+                "participacao": socio.get("participacao", "")
+            }
+            export_data["socios"].append(socio_data)
+    
+    # Salvar no histórico
+    registro = {
+        "id": str(uuid.uuid4()),
+        "tipo": "exportacao_sci_unico",
+        "user_id": current_user["id"],
+        "dados_enviados": export_data,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.cadastros_externos.insert_one(registro)
+    
+    return {
+        "success": True,
+        "data": export_data,
+        "message": "Dados prontos para o SCI Único"
+    }
+
+@api_router.get("/sci-unico/download-script")
+async def download_script_sci_unico():
+    """Retorna o script Python para automação do SCI Único"""
+    script = '''#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+SCI Único - Robô de Preenchimento Automático
+Business Contabilidade - Portal Societário
+
+Este script lê os dados exportados do portal e preenche 
+automaticamente os campos do SCI Único.
+
+Requisitos:
+- Python 3.8+
+- pip install pyautogui pyperclip requests
+
+Uso:
+1. Abra o SCI Único na tela de cadastro de empresa (novo cadastro)
+2. Execute este script
+3. O robô vai preencher automaticamente os campos
+"""
+
+import pyautogui
+import pyperclip
+import time
+import json
+import sys
+import os
+
+# Configurações
+DELAY_ENTRE_CAMPOS = 0.1  # segundos entre cada TAB
+DELAY_DIGITACAO = 0.02    # segundos entre cada caractere
+API_URL = "https://corporegister.preview.emergentagent.com"
+
+def digitar_texto(texto):
+    """Digita texto de forma segura"""
+    if not texto:
+        return
+    pyperclip.copy(str(texto))
+    pyautogui.hotkey('ctrl', 'v')
+    time.sleep(DELAY_DIGITACAO)
+
+def tab():
+    """Pressiona TAB"""
+    pyautogui.press('tab')
+    time.sleep(DELAY_ENTRE_CAMPOS)
+
+def enter():
+    """Pressiona ENTER"""
+    pyautogui.press('enter')
+    time.sleep(DELAY_ENTRE_CAMPOS)
+
+def preencher_empresa(dados):
+    """Preenche os dados da empresa na aba Cadastrais"""
+    print("\\n=== PREENCHENDO DADOS DA EMPRESA ===")
+    
+    # Código (primeiro campo)
+    print(f"  Código: {dados.get('codigo', '')}")
+    digitar_texto(dados.get('codigo', ''))
+    tab()
+    
+    # Apelido
+    print(f"  Apelido: {dados.get('apelido', '')}")
+    digitar_texto(dados.get('apelido', ''))
+    tab()
+    
+    # Razão Social
+    print(f"  Razão Social: {dados.get('razao_social', '')}")
+    digitar_texto(dados.get('razao_social', ''))
+    tab()
+    
+    # Reduzido
+    print(f"  Reduzido: {dados.get('reduzido', '')}")
+    digitar_texto(dados.get('reduzido', ''))
+    tab()
+    
+    # Nome Fantasia
+    print(f"  Nome Fantasia: {dados.get('nome_fantasia', '')}")
+    digitar_texto(dados.get('nome_fantasia', ''))
+    tab()
+    
+    # CNPJ - pula pois vem da importação da Receita
+    print("  CNPJ: (importado da Receita)")
+    tab()
+    
+    # Data de entrada
+    print(f"  Data entrada: {dados.get('data_entrada', '')}")
+    digitar_texto(dados.get('data_entrada', ''))
+    tab()
+    
+    # CEP
+    print(f"  CEP: {dados.get('cep', '')}")
+    digitar_texto(dados.get('cep', ''))
+    tab()
+    
+    # Data saída (pula)
+    tab()
+    
+    # Tipo endereço (pula - já preenchido)
+    tab()
+    
+    # Endereço
+    print(f"  Endereço: {dados.get('endereco', '')}")
+    digitar_texto(dados.get('endereco', ''))
+    tab()
+    
+    # Número
+    print(f"  Número: {dados.get('numero', '')}")
+    digitar_texto(dados.get('numero', ''))
+    tab()
+    
+    # Complemento
+    print(f"  Complemento: {dados.get('complemento', '')}")
+    digitar_texto(dados.get('complemento', ''))
+    tab()
+    
+    # Bairro
+    print(f"  Bairro: {dados.get('bairro', '')}")
+    digitar_texto(dados.get('bairro', ''))
+    tab()
+    
+    # Cidade (campo com busca)
+    print(f"  Cidade: {dados.get('cidade', '')}")
+    digitar_texto(dados.get('cidade', ''))
+    enter()  # Confirma a busca
+    time.sleep(0.3)
+    tab()
+    
+    # Zoneamento (pula)
+    tab()
+    
+    # Telefones (3 campos)
+    print(f"  Telefone: {dados.get('telefone', '')}")
+    digitar_texto(dados.get('telefone', ''))
+    tab()
+    tab()  # Telefone 2
+    tab()  # Celular
+    
+    # Início das atividades
+    print(f"  Início atividades: {dados.get('data_constituicao', '')}")
+    digitar_texto(dados.get('data_constituicao', ''))
+    tab()
+    
+    # Encerramento (pula)
+    tab()
+    
+    # Inscrição Estadual
+    print(f"  Inscrição Estadual: {dados.get('inscricao_estadual', '')}")
+    digitar_texto(dados.get('inscricao_estadual', ''))
+    tab()
+    
+    # Inscrição Municipal
+    print(f"  Inscrição Municipal: {dados.get('inscricao_municipal', '')}")
+    digitar_texto(dados.get('inscricao_municipal', ''))
+    tab()
+    
+    # Inscrição Suframa (pula)
+    tab()
+    
+    # Checkbox matriz (pula)
+    tab()
+    
+    # Matriz (pula)
+    tab()
+    
+    # Email
+    print(f"  Email: {dados.get('email', '')}")
+    digitar_texto(dados.get('email', ''))
+    
+    print("\\n✅ Empresa preenchida!")
+
+def preencher_socio(dados):
+    """Preenche os dados de um sócio"""
+    print(f"\\n=== PREENCHENDO SÓCIO: {dados.get('nome', '')} ===")
+    
+    # Código
+    print(f"  Código: {dados.get('codigo', '')}")
+    digitar_texto(dados.get('codigo', ''))
+    tab()
+    
+    # Nome
+    print(f"  Nome: {dados.get('nome', '')}")
+    digitar_texto(dados.get('nome', ''))
+    tab()
+    
+    # Exterior (checkbox - pula)
+    tab()
+    
+    # País (pula)
+    tab()
+    
+    # CPF
+    print(f"  CPF: {dados.get('cpf', '')}")
+    digitar_texto(dados.get('cpf', ''))
+    tab()
+    
+    # RG
+    print(f"  RG: {dados.get('rg', '')}")
+    digitar_texto(dados.get('rg', ''))
+    tab()
+    
+    # Órgão emissor
+    print(f"  Órgão emissor: {dados.get('orgao_emissor', 'SSP')}")
+    digitar_texto(dados.get('orgao_emissor', 'SSP'))
+    tab()
+    
+    # UF emissor
+    print(f"  UF emissor: {dados.get('uf_emissor', '')}")
+    digitar_texto(dados.get('uf_emissor', ''))
+    tab()
+    
+    # Responsável pela empresa (checkbox)
+    if dados.get('responsavel', False):
+        pyautogui.press('space')
+    tab()
+    
+    # Data de nascimento
+    print(f"  Data nascimento: {dados.get('data_nascimento', '')}")
+    digitar_texto(dados.get('data_nascimento', ''))
+    tab()
+    
+    # Estado civil
+    print(f"  Estado civil: {dados.get('estado_civil', '')}")
+    digitar_texto(dados.get('estado_civil', ''))
+    tab()
+    
+    # CEP
+    print(f"  CEP: {dados.get('cep', '')}")
+    digitar_texto(dados.get('cep', ''))
+    tab()
+    
+    # Tipo endereço (pula)
+    tab()
+    
+    # Endereço
+    print(f"  Endereço: {dados.get('endereco', '')}")
+    digitar_texto(dados.get('endereco', ''))
+    tab()
+    
+    # Número
+    print(f"  Número: {dados.get('numero', '')}")
+    digitar_texto(dados.get('numero', ''))
+    tab()
+    
+    # Complemento
+    digitar_texto(dados.get('complemento', ''))
+    tab()
+    
+    # Bairro
+    print(f"  Bairro: {dados.get('bairro', '')}")
+    digitar_texto(dados.get('bairro', ''))
+    tab()
+    
+    # Cidade
+    print(f"  Cidade: {dados.get('cidade', '')}")
+    digitar_texto(dados.get('cidade', ''))
+    enter()
+    time.sleep(0.3)
+    tab()
+    
+    # Telefones
+    print(f"  Telefone: {dados.get('telefone', '')}")
+    digitar_texto(dados.get('telefone', ''))
+    tab()
+    tab()  # Fax
+    
+    # Celular
+    print(f"  Celular: {dados.get('celular', '')}")
+    digitar_texto(dados.get('celular', ''))
+    tab()
+    
+    # Entrada na sociedade
+    print(f"  Entrada sociedade: {dados.get('entrada_sociedade', '')}")
+    digitar_texto(dados.get('entrada_sociedade', ''))
+    tab()
+    
+    # Saída (pula)
+    tab()
+    
+    # CBO (pula)
+    tab()
+    tab()
+    
+    # Email
+    print(f"  Email: {dados.get('email', '')}")
+    digitar_texto(dados.get('email', ''))
+    
+    print(f"\\n✅ Sócio {dados.get('nome', '')} preenchido!")
+
+def main():
+    print("=" * 50)
+    print("  SCI Único - Robô de Preenchimento Automático")
+    print("  Business Contabilidade - Portal Societário")
+    print("=" * 50)
+    
+    # Verificar se existe arquivo de dados
+    if len(sys.argv) > 1:
+        arquivo = sys.argv[1]
+    else:
+        arquivo = "sci_dados.json"
+    
+    if not os.path.exists(arquivo):
+        print(f"\\n❌ Arquivo {arquivo} não encontrado!")
+        print("\\nUso: python sci_robo.py [arquivo.json]")
+        print("\\nExporte os dados do portal antes de executar.")
+        input("\\nPressione ENTER para sair...")
+        return
+    
+    # Carregar dados
+    with open(arquivo, 'r', encoding='utf-8') as f:
+        dados = json.load(f)
+    
+    print(f"\\n📄 Dados carregados de: {arquivo}")
+    print(f"   Empresa: {dados['empresa'].get('razao_social', 'N/A')}")
+    print(f"   Sócios: {len(dados.get('socios', []))}")
+    
+    print("\\n" + "=" * 50)
+    print("  INSTRUÇÕES:")
+    print("  1. Abra o SCI Único na tela de cadastro")
+    print("  2. Posicione o cursor no PRIMEIRO campo (Código)")
+    print("  3. Pressione ENTER para iniciar")
+    print("=" * 50)
+    
+    input("\\nPressione ENTER quando estiver pronto...")
+    
+    print("\\n⏳ Iniciando em 3 segundos...")
+    time.sleep(3)
+    
+    # Preencher empresa
+    preencher_empresa(dados['empresa'])
+    
+    # Perguntar sobre sócios
+    if dados.get('socios'):
+        print(f"\\n\\n{'=' * 50}")
+        print(f"  Existem {len(dados['socios'])} sócio(s) para preencher")
+        print(f"{'=' * 50}")
+        
+        for i, socio in enumerate(dados['socios']):
+            print(f"\\n--- Sócio {i+1}/{len(dados['socios'])}: {socio.get('nome', '')} ---")
+            print("\\nAbra a tela de cadastro de SÓCIOS no SCI Único")
+            print("Posicione o cursor no primeiro campo (Código)")
+            input("Pressione ENTER quando estiver pronto...")
+            
+            print("\\n⏳ Iniciando em 2 segundos...")
+            time.sleep(2)
+            
+            preencher_socio(socio)
+    
+    print("\\n" + "=" * 50)
+    print("  ✅ PREENCHIMENTO CONCLUÍDO!")
+    print("=" * 50)
+    print("\\nRevise os dados e salve o cadastro no SCI Único.")
+    input("\\nPressione ENTER para sair...")
+
+if __name__ == "__main__":
+    main()
+'''
+    
+    return Response(
+        content=script,
+        media_type="text/plain",
+        headers={
+            "Content-Disposition": "attachment; filename=sci_robo.py"
+        }
+    )
+
 # ============ HISTÓRICO DE CADASTROS ============
 
 @api_router.get("/cadastros/historico")
