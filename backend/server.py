@@ -7307,6 +7307,7 @@ Seja direto, prático e específico para o perfil desta empresa. Use linguagem t
         llm = LlmChat(
             api_key=os.environ.get('EMERGENT_LLM_KEY'),
             session_id=f"analise_tributaria_{company_id}_{competencia}_{datetime.now().timestamp()}",
+            system_message="Você é um consultor tributário especialista em legislação brasileira (ICMS, PIS, COFINS). Analise os dados e forneça insights estratégicos."
         ).with_model("openai", "gpt-4o")
         
         response = await llm.send_async(
