@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEmpresa } from '../contexts/EmpresaContext';
 import { useState } from 'react';
@@ -23,6 +23,7 @@ const Layout = () => {
   const { user, logout } = useAuth();
   const { empresaSelecionada, competencia } = useEmpresa();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
 
@@ -38,7 +39,6 @@ const Layout = () => {
 
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/clientes', icon: Building2, label: 'Clientes' },
     { to: '/colaboradores', icon: Users, label: 'Colaboradores' },
     { to: '/dissidio', icon: FileText, label: 'Dissídio' },
     { to: '/admissoes', icon: UserPlus, label: 'Admissões' },
@@ -58,14 +58,90 @@ const Layout = () => {
         {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
-      {/* Sidebar */}
-      <aside className={`sidebar transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out z-40`}>
-        <div className="p-6 border-b border-slate-800">
-          <h1 className="text-xl font-bold text-white tracking-tight">Portal DP</h1>
-          <p className="text-sm text-slate-400 mt-1">Departamento Pessoal</p>
+      {/* Top Header Bar */}
+      <header className="header-glass h-16 flex items-center justify-between px-6 lg:px-8 fixed top-0 left-0 right-0 z-30">
+        <div className="flex items-center gap-8">
+          {/* Logo */}
+          <div className="flex items-center gap-3 ml-12 lg:ml-0">
+            <div className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <Building2 className="text-white" size={22} />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900 leading-tight">Portal DP</h1>
+              <p className="text-xs text-slate-500">Departamento Pessoal</p>
+            </div>
+          </div>
+
+          {/* Empresas Button in Header */}
+          <button
+            data-testid="header-empresas-btn"
+            onClick={() => navigate('/clientes')}
+            className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              location.pathname === '/clientes' 
+                ? 'bg-indigo-100 text-indigo-700' 
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Building2 size={18} />
+            <span className="font-medium">Empresas</span>
+          </button>
         </div>
 
+        <div className="flex items-center gap-4">
+          {/* Empresa Selector Button */}
+          <button
+            data-testid="empresa-selector-header"
+            onClick={() => setSelectorOpen(true)}
+            className="flex items-center gap-3 px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            {empresaSelecionada ? (
+              <div className="flex items-center gap-3">
+                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded">
+                  {generateCode(empresaSelecionada.id)}
+                </span>
+                <span className="font-medium text-slate-700 max-w-[150px] truncate hidden sm:block">
+                  {empresaSelecionada.nome_fantasia || empresaSelecionada.razao_social}
+                </span>
+                <div className="flex items-center gap-1 text-slate-500 text-sm">
+                  <Calendar size={14} />
+                  <span className="font-mono">{competencia}</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <Building2 size={18} className="text-indigo-600" />
+                <span className="text-slate-500 hidden sm:block">Selecionar Empresa</span>
+              </>
+            )}
+            <ChevronDown size={16} className="text-slate-400" />
+          </button>
+
+          {/* User info */}
+          <div className="hidden md:flex items-center gap-2 text-sm text-slate-600">
+            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-semibold text-sm">
+              {user?.nome?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+            <span className="font-medium">{user?.nome}</span>
+          </div>
+        </div>
+      </header>
+
+      {/* Sidebar */}
+      <aside className={`sidebar transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out z-40 pt-16`}>
         <nav className="py-4">
+          {/* Empresas link in sidebar for mobile */}
+          <NavLink
+            to="/clientes"
+            data-testid="nav-empresas"
+            className={({ isActive }) =>
+              `sidebar-item lg:hidden ${isActive ? 'active' : ''}`
+            }
+            onClick={() => setSidebarOpen(false)}
+          >
+            <Building2 size={20} strokeWidth={1.5} />
+            <span>Empresas</span>
+          </NavLink>
+
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -113,43 +189,7 @@ const Layout = () => {
       )}
 
       {/* Main content */}
-      <main className="lg:ml-64 min-h-screen">
-        {/* Header with Empresa Selector */}
-        <header className="header-glass h-16 flex items-center justify-between px-6">
-          <div className="flex items-center gap-4 ml-12 lg:ml-0">
-            {/* Empresa Selector Button */}
-            <button
-              data-testid="empresa-selector-header"
-              onClick={() => setSelectorOpen(true)}
-              className="flex items-center gap-3 px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
-            >
-              <Building2 size={18} className="text-indigo-600" />
-              {empresaSelecionada ? (
-                <div className="flex items-center gap-3">
-                  <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded">
-                    {generateCode(empresaSelecionada.id)}
-                  </span>
-                  <span className="font-medium text-slate-700 max-w-[200px] truncate">
-                    {empresaSelecionada.nome_fantasia || empresaSelecionada.razao_social}
-                  </span>
-                  <div className="flex items-center gap-1 text-slate-500 text-sm">
-                    <Calendar size={14} />
-                    <span className="font-mono">{competencia}</span>
-                  </div>
-                </div>
-              ) : (
-                <span className="text-slate-500">Selecionar Empresa</span>
-              )}
-              <ChevronDown size={16} className="text-slate-400" />
-            </button>
-          </div>
-
-          {/* User info */}
-          <div className="hidden md:flex items-center gap-2 text-sm text-slate-600">
-            <span className="font-medium">{user?.nome}</span>
-          </div>
-        </header>
-
+      <main className="lg:ml-64 min-h-screen pt-16">
         <div className="p-6 md:p-8">
           <Outlet />
         </div>
