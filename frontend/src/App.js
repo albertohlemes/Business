@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Processos from './pages/Processos';
+import Cadastros from './pages/Cadastros';
 import Certificados from './pages/Certificados';
 import Licencas from './pages/Licencas';
 import './App.css';
