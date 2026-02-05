@@ -240,6 +240,8 @@ Portal para departamento societário com geração de documentos via IA.
   - Botão "Ver Histórico" no topo da página (com contador de registros)
   - Lista todos os cadastros feitos (GClick e SCI Único)
   - Exibe: Data/hora, Razão Social, CNPJ, Tipo (GClick/SCI), Status de envio
+  - **Botão "Reenviar/Editar"** - Carrega dados no formulário para edição e reenvio
+  - **Botão "Excluir"** - Remove registro do histórico
   - Botão de refresh para atualizar lista
   - **Endpoints:** `GET/DELETE /api/cadastros/historico`, `GET /api/cadastros/historico/{id}`
   
