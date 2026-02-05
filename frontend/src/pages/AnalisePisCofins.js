@@ -771,7 +771,10 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                   </table>
                 </div>
               </div>
-            ) : (
+            )}
+
+            {/* Mensagem quando não há divergências */}
+            {dados.total_divergentes === 0 && (
               <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
                 <h2 className="text-xl font-semibold text-gray-900">Nenhuma divergência encontrada!</h2>
