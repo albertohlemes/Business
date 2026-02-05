@@ -349,29 +349,47 @@ const WizardBaixa = ({ open, onClose, onComplete, processoEditando }) => {
             setModoEdicao(true);
             setProcessoId(processoEditando.id);
             
-            // Carregar dados da empresa
-            setRazaoSocial(processoEditando.razao_social || '');
-            setCnpj(processoEditando.cnpj || '');
-            setNire(processoEditando.nire || '');
-            setCapitalSocial(processoEditando.capital_social || '');
-            setDataRegistro(processoEditando.data_registro || '');
-            setJuntaComercial(processoEditando.junta_comercial || '');
-            setEndereco(processoEditando.endereco || '');
+            // Carregar dados da empresa (pode estar em dados_empresa ou diretamente)
+            const dadosEmpresa = processoEditando.dados_empresa || {};
+            setRazaoSocial(dadosEmpresa.razao_social || processoEditando.razao_social || '');
+            setCnpj(dadosEmpresa.cnpj || processoEditando.cnpj || '');
+            setNire(dadosEmpresa.nire || processoEditando.nire || '');
+            setCapitalSocial(dadosEmpresa.capital_social || processoEditando.capital_social || '');
+            setDataRegistro(dadosEmpresa.data_registro || processoEditando.data_registro || '');
+            setJuntaComercial(dadosEmpresa.junta_comercial || processoEditando.junta_comercial || '');
+            setEndereco(dadosEmpresa.endereco || processoEditando.endereco || '');
             
-            // Carregar sócios
-            if (processoEditando.socios && processoEditando.socios.length > 0) {
-                setSocios(processoEditando.socios);
+            // Carregar sócios (pode estar em dados_socios ou socios)
+            const sociosData = processoEditando.dados_socios || processoEditando.socios || [];
+            if (sociosData.length > 0) {
+                setSocios(sociosData);
             }
             
-            // Carregar motivo
-            if (processoEditando.motivo_baixa) setMotivoBaixa(processoEditando.motivo_baixa);
-            if (processoEditando.motivo_detalhado) setMotivoDetalhado(processoEditando.motivo_detalhado);
-            if (processoEditando.data_encerramento) setDataEncerramentoAtividades(processoEditando.data_encerramento);
-            if (processoEditando.destinacao_acervo) setDestinacaoAcervo(processoEditando.destinacao_acervo);
+            // Carregar dados da baixa (pode estar em dados_baixa ou diretamente)
+            const dadosBaixa = processoEditando.dados_baixa || {};
+            setMotivoBaixa(dadosBaixa.motivo || processoEditando.motivo_baixa || 'vontade_socios');
+            setMotivoDetalhado(dadosBaixa.motivo_detalhado || processoEditando.motivo_detalhado || '');
+            setDataEncerramentoAtividades(dadosBaixa.data_encerramento || processoEditando.data_encerramento || getDataHoje());
+            setDestinacaoAcervo(dadosBaixa.destinacao_acervo || processoEditando.destinacao_acervo || 'Os livros e documentos contábeis da sociedade ficarão sob a guarda do sócio responsável, pelo prazo legal, no endereço da sede.');
             
             // Carregar patrimônio
-            if (processoEditando.declaracao_quitacao !== undefined) setDeclaracaoQuitacao(processoEditando.declaracao_quitacao);
-            if (processoEditando.distribuicao_patrimonio) setDistribuicaoPatrimonio(processoEditando.distribuicao_patrimonio);
+            if (dadosBaixa.declaracao_quitacao !== undefined) {
+                setDeclaracaoQuitacao(dadosBaixa.declaracao_quitacao);
+            } else if (processoEditando.declaracao_quitacao !== undefined) {
+                setDeclaracaoQuitacao(processoEditando.declaracao_quitacao);
+            }
+            if (dadosBaixa.distribuicao_patrimonio || processoEditando.distribuicao_patrimonio) {
+                setDistribuicaoPatrimonio(dadosBaixa.distribuicao_patrimonio || processoEditando.distribuicao_patrimonio);
+            }
+            if (dadosBaixa.responsavel_guarda || processoEditando.responsavel_guarda) {
+                // Encontrar índice do sócio responsável
+                const responsavel = dadosBaixa.responsavel_guarda || processoEditando.responsavel_guarda;
+                const idx = sociosData.findIndex(s => s.nome === responsavel);
+                if (idx >= 0) setResponsavelGuardaIndex(idx);
+            }
+            if (dadosBaixa.prazo_guarda || processoEditando.prazo_guarda) {
+                setPrazoGuarda(dadosBaixa.prazo_guarda || processoEditando.prazo_guarda);
+            }
             
             // Carregar conteúdo gerado
             if (processoEditando.conteudo_gerado) {
