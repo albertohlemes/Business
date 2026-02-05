@@ -68,9 +68,28 @@ class ClienteCreate(BaseModel):
     cnpj: str
     nome_fantasia: Optional[str] = None
     endereco: Optional[str] = None
+    cidade: Optional[str] = None
+    uf: Optional[str] = None
+    cep: Optional[str] = None
     telefone: Optional[str] = None
     email: Optional[str] = None
     sindicato: Optional[str] = None
+    codigo_interno: Optional[str] = None
+    # Campos fiscais
+    cnae_principal: Optional[str] = None
+    cnae_descricao: Optional[str] = None
+    inscricao_estadual: Optional[str] = None
+    inscricao_municipal: Optional[str] = None
+    regime_tributario: Optional[str] = None  # simples, lucro_presumido, lucro_real
+    tipo_atividade: Optional[str] = None  # comercio, servicos, industria
+    # Dados DP
+    data_abertura: Optional[str] = None
+    natureza_juridica: Optional[str] = None
+    porte: Optional[str] = None
+    situacao: Optional[str] = None
+    responsavel_dp: Optional[str] = None
+    contador_responsavel: Optional[str] = None
+    observacoes: Optional[str] = None
 
 class ClienteResponse(BaseModel):
     id: str
@@ -78,9 +97,26 @@ class ClienteResponse(BaseModel):
     cnpj: str
     nome_fantasia: Optional[str] = None
     endereco: Optional[str] = None
+    cidade: Optional[str] = None
+    uf: Optional[str] = None
+    cep: Optional[str] = None
     telefone: Optional[str] = None
     email: Optional[str] = None
     sindicato: Optional[str] = None
+    codigo_interno: Optional[str] = None
+    cnae_principal: Optional[str] = None
+    cnae_descricao: Optional[str] = None
+    inscricao_estadual: Optional[str] = None
+    inscricao_municipal: Optional[str] = None
+    regime_tributario: Optional[str] = None
+    tipo_atividade: Optional[str] = None
+    data_abertura: Optional[str] = None
+    natureza_juridica: Optional[str] = None
+    porte: Optional[str] = None
+    situacao: Optional[str] = None
+    responsavel_dp: Optional[str] = None
+    contador_responsavel: Optional[str] = None
+    observacoes: Optional[str] = None
     created_at: str
     total_colaboradores: int = 0
 
