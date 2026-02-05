@@ -1406,10 +1406,41 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
         )
         lines.append(linha_c100)
         
+        # Obter regime tributário e UF da empresa para determinar alíquotas corretas
+        regime = getattr(company, 'regime_tributario', 'lucro_presumido') or 'lucro_presumido'
+        uf_empresa = (company.uf or 'SP').upper()
+        
+        # Alíquotas padrão de PIS/COFINS por regime
+        ALIQ_PIS_COFINS = {
+            'lucro_real': {'pis': 1.65, 'cofins': 7.60},
+            'lucro_presumido': {'pis': 0.65, 'cofins': 3.00},
+            'simples_nacional': {'pis': 0.00, 'cofins': 0.00}
+        }
+        aliq_pis_regime = ALIQ_PIS_COFINS.get(regime, ALIQ_PIS_COFINS['lucro_presumido'])
+        
+        # Alíquotas de ICMS por UF (interna)
+        ALIQ_ICMS_UF = {
+            'AC': 17, 'AL': 18, 'AP': 18, 'AM': 18, 'BA': 18, 'CE': 18, 'DF': 18,
+            'ES': 17, 'GO': 17, 'MA': 18, 'MT': 17, 'MS': 17, 'MG': 18, 'PA': 17,
+            'PB': 18, 'PR': 18, 'PE': 18, 'PI': 18, 'RJ': 20, 'RN': 18, 'RS': 18,
+            'RO': 17.5, 'RR': 17, 'SC': 17, 'SP': 18, 'SE': 18, 'TO': 18
+        }
+        
+        # Alíquotas interestaduais de ICMS
+        ALIQ_ICMS_INTERESTADUAL = {
+            # Sul e Sudeste (exceto ES) para outras regiões: 7%
+            # Demais: 12%
+            'Sul_Sudeste': 7,
+            'Demais': 12
+        }
+        
+        # UFs do Sul e Sudeste
+        UF_SUL_SUDESTE = ['SP', 'RJ', 'MG', 'PR', 'SC', 'RS']
+        
         # Registro C170 - Itens do documento
         # Layout: REG|NUM_ITEM|COD_ITEM|DESCR_COMPL|QTD|UNID|VL_ITEM|VL_DESC|IND_MOV|CST_ICMS|CFOP|COD_NAT|VL_BC_ICMS|ALIQ_ICMS|VL_ICMS|VL_BC_ICMS_ST|ALIQ_ST|VL_ICMS_ST|IND_APUR|CST_IPI|COD_ENQ|VL_BC_IPI|ALIQ_IPI|VL_IPI|CST_PIS|VL_BC_PIS|ALIQ_PIS|QUANT_BC_PIS|ALIQ_PIS_R$|VL_PIS|CST_COFINS|VL_BC_COFINS|ALIQ_COFINS|QUANT_BC_COFINS|ALIQ_COFINS_R$|VL_COFINS|COD_CTA|VL_ABAT_NT
         for idx, prod in enumerate(doc.produtos):
-            # Quantidade e valor do item - definir primeiro para usar nos cálculos
+            # Quantidade e valor do item
             qtd = float(prod.get('quantidade', 0) or 0)
             vl_item = float(prod.get('valor_total', 0) or 0)
             unid = (prod.get('unidade', 'UN') or 'UN')[:6].upper()
@@ -1417,60 +1448,134 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             # CST ICMS (3 dígitos, ex: 000, 020, 060, 090)
             cst_icms = str(prod.get('cst', '') or prod.get('cst_icms', '') or '000').zfill(3)
             cfop = str(prod.get('cfop', '') or '')
+            ncm = str(prod.get('ncm', '') or '')
             
-            # Valores de ICMS do XML
-            bc_icms = float(prod.get('v_bc_icms', 0) or prod.get('bc_icms', 0) or prod.get('v_bc', 0) or 0)
-            aliq_icms = float(prod.get('p_icms', 0) or prod.get('aliq_icms', 0) or 0)
-            v_icms = float(prod.get('v_icms', 0) or 0)
+            # Determinar UF de origem (do emitente) para cálculo de ICMS interestadual
+            uf_origem = (getattr(doc, 'emitente_uf', '') or '').upper() or uf_empresa
             
-            # Se não tem alíquota mas tem base e valor, calcular
-            if aliq_icms == 0 and bc_icms > 0 and v_icms > 0:
-                aliq_icms = (v_icms / bc_icms) * 100
+            # ==== CÁLCULO CORRETO DE ICMS ====
+            # Determinar a alíquota correta de ICMS baseado na operação
+            primeiro_digito_cfop = cfop[0] if cfop else ''
+            is_interestadual = primeiro_digito_cfop in ['2', '6']  # CFOP 2xxx ou 6xxx
+            is_importacao = primeiro_digito_cfop == '3'  # CFOP 3xxx
             
-            # CST de PIS/COFINS do XML (2 dígitos)
-            cst_pis = str(prod.get('cst_pis', '') or '01').zfill(2)
-            cst_cofins = str(prod.get('cst_cofins', '') or '01').zfill(2)
+            # CST de ICMS indica se há tributação
+            # 00, 10, 20, 70, 90 = tributado; 40, 41, 50, 60 = isento/suspenso/ST
+            cst_icms_num = cst_icms[-2:] if len(cst_icms) >= 2 else cst_icms
+            tem_icms = cst_icms_num in ['00', '10', '20', '70', '90']
             
-            # Valores de PIS do XML
-            bc_pis = float(prod.get('v_bc_pis', 0) or prod.get('bc_pis', 0) or 0)
-            aliq_pis = float(prod.get('p_pis', 0) or prod.get('aliq_pis', 0) or 0)
-            v_pis = float(prod.get('v_pis', 0) or 0)
+            if tem_icms:
+                if is_interestadual:
+                    # Operação interestadual: 7% (Sul/Sudeste → outros) ou 12% (demais)
+                    if uf_origem in UF_SUL_SUDESTE and uf_empresa not in UF_SUL_SUDESTE:
+                        aliq_icms = 7.0
+                    else:
+                        aliq_icms = 12.0
+                elif is_importacao:
+                    # Importação: usa alíquota interna do estado
+                    aliq_icms = ALIQ_ICMS_UF.get(uf_empresa, 18)
+                else:
+                    # Operação interna: usa alíquota do estado
+                    aliq_icms = ALIQ_ICMS_UF.get(uf_empresa, 18)
+            else:
+                # Sem ICMS (isento, ST, suspenso)
+                aliq_icms = 0.0
             
-            # Se não tem alíquota de PIS mas tem base e valor, calcular
-            if aliq_pis == 0 and bc_pis > 0 and v_pis > 0:
-                aliq_pis = (v_pis / bc_pis) * 100
-            # Se não tem base de PIS mas tem valor, usar o valor do item como base
-            if bc_pis == 0 and v_pis > 0:
+            # Base de cálculo de ICMS = valor do item (simplificado)
+            bc_icms = vl_item if tem_icms else 0.0
+            v_icms = round(bc_icms * aliq_icms / 100, 2) if tem_icms else 0.0
+            
+            # ==== CÁLCULO CORRETO DE PIS/COFINS ====
+            # Determinar CST correto de PIS/COFINS baseado na operação
+            is_entrada = primeiro_digito_cfop in ['1', '2', '3']
+            is_saida = primeiro_digito_cfop in ['5', '6', '7']
+            
+            # Verificar se NCM tem alíquota zero (cesta básica, medicamentos, etc.)
+            ncm_aliq_zero = is_ncm_aliquota_zero(ncm)
+            
+            # CFOPs sem incidência de PIS/COFINS (devoluções, transferências, remessas)
+            CFOPS_SEM_INCIDENCIA = [
+                '1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209', '1210',
+                '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209', '2210',
+                '5201', '5202', '5205', '5206', '5207', '5208', '5209', '5210',
+                '6201', '6202', '6205', '6206', '6207', '6208', '6209', '6210',
+                '1901', '1902', '1903', '1904', '1905', '1906', '1907', '1908', '1909',
+                '2901', '2902', '2903', '2904', '2905', '2906', '2907', '2908', '2909',
+                '5901', '5902', '5903', '5904', '5905', '5906', '5907', '5908', '5909',
+                '6901', '6902', '6903', '6904', '6905', '6906', '6907', '6908', '6909',
+            ]
+            
+            # CFOPs que dão direito a crédito de PIS/COFINS (Lucro Real)
+            CFOPS_COM_CREDITO = [
+                '1101', '1102', '1111', '1113', '1116', '1117', '1118', '1120', '1121', '1122',
+                '1124', '1125', '1126', '1401', '1403', '1501', '1651', '1652', '1653',
+                '2101', '2102', '2111', '2113', '2116', '2117', '2118', '2120', '2121', '2122',
+                '2124', '2125', '2126', '2401', '2403', '2501', '2651', '2652', '2653',
+                '3101', '3102', '3126', '3127'
+            ]
+            
+            cfop_sem_incidencia = cfop in CFOPS_SEM_INCIDENCIA
+            cfop_com_credito = cfop in CFOPS_COM_CREDITO
+            
+            # Determinar CST e alíquotas corretas de PIS/COFINS
+            if cfop_sem_incidencia:
+                # Sem incidência - CST 98 (entrada) ou 49 (saída)
+                cst_pis = '98' if is_entrada else '49'
+                cst_cofins = '98' if is_entrada else '49'
+                aliq_pis = 0.0
+                aliq_cofins = 0.0
+                bc_pis = 0.0
+                bc_cofins = 0.0
+            elif ncm_aliq_zero:
+                # Alíquota zero pelo NCM - CST 73 (entrada) ou 06 (saída)
+                cst_pis = '73' if is_entrada else '06'
+                cst_cofins = '73' if is_entrada else '06'
+                aliq_pis = 0.0
+                aliq_cofins = 0.0
                 bc_pis = vl_item
-                if bc_pis > 0:
-                    aliq_pis = (v_pis / bc_pis) * 100
-            
-            # Valores de COFINS do XML
-            bc_cofins = float(prod.get('v_bc_cofins', 0) or prod.get('bc_cofins', 0) or 0)
-            aliq_cofins = float(prod.get('p_cofins', 0) or prod.get('aliq_cofins', 0) or 0)
-            v_cofins = float(prod.get('v_cofins', 0) or 0)
-            
-            # Se não tem alíquota de COFINS mas tem base e valor, calcular
-            if aliq_cofins == 0 and bc_cofins > 0 and v_cofins > 0:
-                aliq_cofins = (v_cofins / bc_cofins) * 100
-            # Se não tem base de COFINS mas tem valor, usar o valor do item como base
-            if bc_cofins == 0 and v_cofins > 0:
                 bc_cofins = vl_item
-                if bc_cofins > 0:
-                    aliq_cofins = (v_cofins / bc_cofins) * 100
+            elif regime == 'simples_nacional':
+                # Simples Nacional - não tem PIS/COFINS destacado
+                cst_pis = '99'
+                cst_cofins = '99'
+                aliq_pis = 0.0
+                aliq_cofins = 0.0
+                bc_pis = 0.0
+                bc_cofins = 0.0
+            elif is_entrada:
+                # Entrada
+                if regime == 'lucro_real' and cfop_com_credito:
+                    # Lucro Real com direito a crédito - CST 50
+                    cst_pis = '50'
+                    cst_cofins = '50'
+                    aliq_pis = 1.65
+                    aliq_cofins = 7.60
+                else:
+                    # Sem crédito (Presumido ou CFOP sem crédito) - CST 70
+                    cst_pis = '70'
+                    cst_cofins = '70'
+                    aliq_pis = aliq_pis_regime['pis']
+                    aliq_cofins = aliq_pis_regime['cofins']
+                bc_pis = vl_item
+                bc_cofins = vl_item
+            else:
+                # Saída - sempre tributado (CST 01)
+                cst_pis = '01'
+                cst_cofins = '01'
+                aliq_pis = aliq_pis_regime['pis']
+                aliq_cofins = aliq_pis_regime['cofins']
+                bc_pis = vl_item
+                bc_cofins = vl_item
             
-            # Descrição complementar (deixar vazio se não necessário)
+            # Calcular valores de PIS/COFINS
+            v_pis = round(bc_pis * aliq_pis / 100, 2)
+            v_cofins = round(bc_cofins * aliq_cofins / 100, 2)
+            
+            # Descrição complementar e outros campos
             descr_compl = ''
-            
-            # IND_MOV: 0=com movimentação física, 1=sem
             ind_mov = '0'
-            
-            # Valor do desconto (não existe em NFe padrão, então 0)
             vl_desc = float(prod.get('v_desc', 0) or prod.get('v_desconto', 0) or 0)
-            
-            # VL_ABAT_NT - Valor do abatimento não tributado e não comercial (campo 38)
-            # Não confundir com desconto! Só preencher se houver abatimento específico
-            vl_abat_nt = 0
+            vl_abat_nt = 0  # Só preencher se houver abatimento específico
             
             # Formatar linha C170 com TODOS os 38 campos
             # Layout: |C170|02|03|04|05|06|07|08|09|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|
