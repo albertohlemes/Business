@@ -1,0 +1,105 @@
+{
+  "summary": "Completed frontend testing for integrity validation improvements (Iteration 17). All 8 features PASSED. The integrity column (✓/✗) appears in the first column of the documents list, NF 30073 shows red X (divergence), NF 5679 shows green check (OK), summary card shows '477 de 535 notas OK (58 com divergência)', modal shows BC ST and ICMS-ST fields in header and tables, and divergence alert shows detailed difference information.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Feature 1: Coluna de integridade (✓/✗) aparece na primeira coluna da listagem de documentos - PASSED",
+    "Feature 2: NF 30073 mostra X vermelho (tem divergência) - PASSED",
+    "Feature 3: NF 5679 mostra check verde (valores OK) - PASSED",
+    "Feature 4: Card de resumo mostra 'X de Y notas OK (Z com divergência)' - PASSED (shows '477 de 535 notas OK (58 com divergência)')",
+    "Feature 5: Modal mostra campos BC ST e ICMS-ST no header e tabelas - PASSED",
+    "Feature 6: Modal mostra alerta vermelho com detalhes da divergência - PASSED (shows 'Valor Produtos: NF R$ 5.354,95 ≠ Soma R$ 5.075,00 (Dif: R$ 279,95)')",
+    "Feature 7: Totalizador por CFOP inclui colunas BC ST e ICMS-ST - PASSED",
+    "Feature 8: Tabela de itens inclui colunas BC ST e ICMS-ST - PASSED"
+  ],
+
+  "frontend_tests_passed": [
+    "Login flow works correctly with admin@test.com / 123456",
+    "Company selection modal works (ANZEN DISTRIBUIDORA selected)",
+    "Competência 12/2025 set correctly",
+    "Documents page loads with integrity summary card",
+    "Integrity column (✓/✗) displayed as first column in documents table",
+    "Green checkmark icon shown for NFs with valid values (e.g., NF 5679)",
+    "Red X icon shown for NFs with divergence (e.g., NF 30073)",
+    "Summary card shows correct count: 477 OK, 58 with divergence",
+    "NF detail modal opens when clicking on NF number",
+    "Modal header shows BC ST and ICMS-ST fields with values",
+    "Modal shows green 'Valores OK' indicator for valid NFs",
+    "Modal shows red '1 Divergência(s)' indicator for invalid NFs",
+    "Red divergence alert box shows detailed comparison (NF value vs Sum value with difference)",
+    "Totalizador por CFOP table includes BC ST and ICMS-ST columns",
+    "Itens da NF table includes BC ST and ICMS-ST columns"
+  ],
+
+  "test_report_links": [
+    "/app/test_reports/iteration_17.json"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "quickCheckIntegrity() function correctly validates documents in the listing",
+    "integritySummary calculation properly counts valid, divergent, and no-products documents",
+    "checkDocIntegrity() function correctly compares NF totals with sum of items using 0.02 tolerance",
+    "calculateCFOPTotals() properly aggregates BC ST (v_bc_icms_st/v_bc_st) and ICMS-ST (v_icms_st/v_st) values",
+    "calculateItemsSum() correctly sums all tax fields including BC ST and ICMS-ST",
+    "getFieldClass() helper properly applies green/red styling based on field validation status",
+    "DocumentDetailModal component displays all required fields and divergence details"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "100% (all 8 features passed)"
+  },
+
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+
+  "seed_data_creation": "None - used existing ANZEN DISTRIBUIDORA data with 535 documents in 12/2025",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Integrity validation improvements are complete and working. Test with ANZEN (72da3296-b8fa-42a4-8eaf-86e9ea8902f9) competencia 12/2025. NF 30073 has a real divergence (R$ 279.95 difference) that shows the red X indicator and detailed alert in modal. NF 5679 shows green checkmark and 'Valores OK' in modal. Summary card shows 477 OK and 58 with divergence. BC ST and ICMS-ST columns are present in modal header, CFOP totals table, and items table.",
+
+  "features_verified": {
+    "integrity_column_in_listing": "PASSED - First column shows ✓ (green) or ✗ (red) icons",
+    "nf_30073_red_x": "PASSED - Shows red X circle indicating divergence",
+    "nf_5679_green_check": "PASSED - Shows green checkmark indicating values OK",
+    "summary_card": "PASSED - Shows '477 de 535 notas OK (58 com divergência)'",
+    "modal_bc_st_icms_st_header": "PASSED - Header cards include BC ST and ICMS-ST fields",
+    "modal_divergence_alert": "PASSED - Red alert shows 'Valor Produtos: NF R$ 5.354,95 ≠ Soma R$ 5.075,00 (Dif: R$ 279,95)'",
+    "cfop_totals_bc_st_icms_st": "PASSED - Totalizador por CFOP table has BC ST and ICMS-ST columns",
+    "items_table_bc_st_icms_st": "PASSED - Itens da NF table has BC ST and ICMS-ST columns"
+  },
+
+  "divergence_test_results": {
+    "nf_with_divergence": "30073",
+    "nf_value": "R$ 5.354,95",
+    "sum_value": "R$ 5.075,00",
+    "difference": "R$ 279,95",
+    "indicator_shown": "1 Divergência(s) (red)"
+  },
+
+  "ok_test_results": {
+    "nf_without_divergence": "5679",
+    "valor_produtos": "R$ 648,00",
+    "valor_nf": "R$ 648,00",
+    "indicator_shown": "Valores OK (green)"
+  }
+}
