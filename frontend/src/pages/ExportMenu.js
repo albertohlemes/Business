@@ -28,12 +28,14 @@ const ExportMenu = ({ user, onLogout }) => {
 
   // Sincronizar com o contexto global quando ele mudar
   useEffect(() => {
+    // Primeiro definir a competência do contexto se existir
+    if (ctxCompetencia) {
+      setCompetencia(ctxCompetencia);
+    }
+    // Depois carregar documentos se tiver empresa
     if (ctxCompany) {
       setSelectedCompany(ctxCompany.id);
       fetchDocumentsAndCompetencias(ctxCompany.id);
-    }
-    if (ctxCompetencia) {
-      setCompetencia(ctxCompetencia);
     }
   }, [ctxCompany, ctxCompetencia]);
 
