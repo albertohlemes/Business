@@ -56,10 +56,7 @@ const ExportMenu = ({ user, onLogout }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCompanies(response.data);
-      if (response.data.length > 0) {
-        setSelectedCompany(response.data[0].id);
-        fetchDocumentsAndCompetencias(response.data[0].id);
-      }
+      // Não forçar seleção aqui - deixar o useEffect decidir baseado no contexto
     } catch (err) {
       console.error('Erro ao carregar empresas:', err);
     }
