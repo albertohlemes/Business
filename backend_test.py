@@ -453,6 +453,7 @@ def main():
         ("Authentication", tester.test_auth_flow),
         ("Cliente CRUD", tester.test_cliente_crud),
         ("Colaborador CRUD", tester.test_colaborador_crud),
+        ("Colaborador Import", tester.test_colaborador_import),
         ("Dashboard", tester.test_dashboard),
         ("Dissídio Endpoints", tester.test_dissidio_endpoints),
         ("Cleanup", tester.cleanup_test_data)
