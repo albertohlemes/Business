@@ -893,31 +893,111 @@ const ClassificacaoPage = ({ user, onLogout }) => {
 
         {/* Lista de Produtos */}
         <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
             <h3 className="font-semibold text-gray-900">
               Produtos de Entrada ({sortedProducts.length})
             </h3>
-            <button
-              onClick={() => setSelectedProductCodes(
-                selectedProductCodes.length === groupedProducts.length ? [] : groupedProducts.map(p => p.codigo)
-              )}
-              className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium"
-            >
-              {selectedProductCodes.length === groupedProducts.length ? 'Limpar' : 'Selecionar Todos'}
-            </button>
-          </div>
-          
-          {/* Cabeçalho ordenável */}
-          <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 grid grid-cols-12 gap-2 items-center text-sm font-semibold text-gray-700">
-            <div className="col-span-1 text-center">
-              <input 
-                type="checkbox"
-                checked={selectedProductCodes.length === groupedProducts.length && groupedProducts.length > 0}
-                onChange={() => setSelectedProductCodes(
+            
+            <div className="flex items-center gap-2">
+              {/* Toggle Agrupado/Lista */}
+              <div className="flex bg-gray-200 rounded-lg p-1">
+                <button
+                  onClick={() => setDisplayMode('agrupado')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    displayMode === 'agrupado' 
+                      ? 'bg-white text-purple-700 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Layers className="w-4 h-4 inline mr-1" />
+                  Agrupado
+                </button>
+                <button
+                  onClick={() => setDisplayMode('lista')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    displayMode === 'lista' 
+                      ? 'bg-white text-purple-700 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Lista
+                </button>
+              </div>
+              
+              <button
+                onClick={() => setSelectedProductCodes(
                   selectedProductCodes.length === groupedProducts.length ? [] : groupedProducts.map(p => p.codigo)
                 )}
-                className="rounded border-gray-300"
-              />
+                className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium"
+              >
+                {selectedProductCodes.length === groupedProducts.length ? 'Limpar' : 'Selecionar Todos'}
+              </button>
+            </div>
+          </div>
+          
+          {/* Visualização Agrupada por Categoria */}
+          {displayMode === 'agrupado' && (
+            <div className="divide-y divide-gray-200">
+              {Object.entries(productsByCategoria).map(([categoria, { produtos, cor, corFundo, icon }]) => (
+                produtos.length > 0 && (
+                  <div key={categoria}>
+                    <button
+                      onClick={() => setExpandedCategoria(expandedCategoria === categoria ? null : categoria)}
+                      className={`w-full px-4 py-4 flex items-center justify-between ${corFundo} hover:brightness-95 transition-colors`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`w-10 h-10 rounded-lg ${cor} text-white flex items-center justify-center text-xl`}>
+                          {icon}
+                        </span>
+                        <div className="text-left">
+                          <p className="font-bold text-gray-900">{categoria.replace('_', ' ')}</p>
+                          <p className="text-sm text-gray-600">{produtos.length} produto(s) • {produtos.reduce((s, p) => s + p.ocorrencias.length, 0)} ocorrência(s)</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-sm text-gray-500">Valor Total</p>
+                          <p className="font-bold text-gray-900">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                              produtos.reduce((s, p) => s + p.valor_total, 0)
+                            )}
+                          </p>
+                        </div>
+                        {expandedCategoria === categoria ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                      </div>
+                    </button>
+                    
+                    {/* Lista de produtos expandida */}
+                    {expandedCategoria === categoria && (
+                      <div className="bg-white">
+                        {produtos.map((product) => (
+                          <ProductRow 
+                            key={product.codigo} 
+                            product={product} 
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              ))}
+            </div>
+          )}
+          
+          {/* Visualização em Lista */}
+          {displayMode === 'lista' && (
+            <>
+              {/* Cabeçalho ordenável */}
+              <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 grid grid-cols-12 gap-2 items-center text-sm font-semibold text-gray-700">
+                <div className="col-span-1 text-center">
+                  <input 
+                    type="checkbox"
+                    checked={selectedProductCodes.length === groupedProducts.length && groupedProducts.length > 0}
+                    onChange={() => setSelectedProductCodes(
+                      selectedProductCodes.length === groupedProducts.length ? [] : groupedProducts.map(p => p.codigo)
+                    )}
+                    className="rounded border-gray-300"
+                  />
             </div>
             
             <button onClick={() => toggleSort('descricao')} className="col-span-4 flex items-center gap-1 hover:text-purple-700">
