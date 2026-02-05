@@ -466,7 +466,7 @@ const Documents = ({ user, onLogout }) => {
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
                 <div className={`p-3 rounded-lg border ${getFieldClass('valor', 'bg-gray-50')}`}>
                   <p className="text-xs text-gray-500 mb-1">Valor Produtos</p>
-                  <p className="font-bold">{formatCurrency(itemsSum.valor)}</p>
+                  <p className="font-bold">{formatCurrency(itemsSum.valor_total)}</p>
                 </div>
                 <div className="p-3 rounded-lg border bg-gray-50">
                   <p className="text-xs text-gray-500 mb-1">Valor NF</p>
