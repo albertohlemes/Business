@@ -5,8 +5,9 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Building2, Users, Pencil, Trash2, Search, X } from 'lucide-react';
+import { Plus, Building2, Users, Pencil, Trash2, Search, X, RefreshCw, Loader2 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -16,6 +17,7 @@ const Clientes = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [buscandoReceita, setBuscandoReceita] = useState(false);
   const [formData, setFormData] = useState({
     razao_social: '',
     cnpj: '',
@@ -23,7 +25,8 @@ const Clientes = () => {
     endereco: '',
     telefone: '',
     email: '',
-    sindicato: ''
+    sindicato: '',
+    codigo_interno: ''
   });
 
   useEffect(() => {
@@ -39,6 +42,45 @@ const Clientes = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const buscarReceita = async () => {
+    const cnpjLimpo = formData.cnpj.replace(/\D/g, '');
+    if (cnpjLimpo.length !== 14) {
+      toast.error('CNPJ deve ter 14 dígitos');
+      return;
+    }
+
+    setBuscandoReceita(true);
+    try {
+      const response = await axios.get(`${API_URL}/api/receita/${cnpjLimpo}`);
+      const dados = response.data;
+      
+      setFormData(prev => ({
+        ...prev,
+        razao_social: dados.razao_social || prev.razao_social,
+        nome_fantasia: dados.nome_fantasia || prev.nome_fantasia,
+        endereco: dados.endereco || prev.endereco,
+        telefone: dados.telefone || prev.telefone,
+        email: dados.email || prev.email,
+        cnpj: dados.cnpj || prev.cnpj
+      }));
+      
+      toast.success('Dados carregados da Receita Federal!');
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erro ao buscar CNPJ na Receita Federal');
+    } finally {
+      setBuscandoReceita(false);
+    }
+  };
+
+  const formatCNPJ = (value) => {
+    const cnpj = value.replace(/\D/g, '').slice(0, 14);
+    if (cnpj.length <= 2) return cnpj;
+    if (cnpj.length <= 5) return `${cnpj.slice(0, 2)}.${cnpj.slice(2)}`;
+    if (cnpj.length <= 8) return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5)}`;
+    if (cnpj.length <= 12) return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8)}`;
+    return `${cnpj.slice(0, 2)}.${cnpj.slice(2, 5)}.${cnpj.slice(5, 8)}/${cnpj.slice(8, 12)}-${cnpj.slice(12)}`;
   };
 
   const handleSubmit = async (e) => {
@@ -68,7 +110,8 @@ const Clientes = () => {
       endereco: cliente.endereco || '',
       telefone: cliente.telefone || '',
       email: cliente.email || '',
-      sindicato: cliente.sindicato || ''
+      sindicato: cliente.sindicato || '',
+      codigo_interno: cliente.codigo_interno || ''
     });
     setDialogOpen(true);
   };
@@ -93,8 +136,13 @@ const Clientes = () => {
       endereco: '',
       telefone: '',
       email: '',
-      sindicato: ''
+      sindicato: '',
+      codigo_interno: ''
     });
+  };
+
+  const generateCode = (id) => {
+    return `#${id.slice(0, 4).toUpperCase()}`;
   };
 
   const filteredClientes = clientes.filter(c =>
@@ -118,21 +166,84 @@ const Clientes = () => {
     <div data-testid="clientes-page" className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Clientes</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Empresas</h1>
           <p className="text-slate-500 mt-1">Gerencie as empresas cadastradas</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
             <Button data-testid="add-cliente-btn" className="bg-indigo-600 hover:bg-indigo-700">
               <Plus size={18} className="mr-2" />
-              Novo Cliente
+              Nova Empresa
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingCliente ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
+              <DialogTitle className="text-xl">
+                {editingCliente ? 'Editar Empresa' : 'Cadastrar Nova Empresa'}
+              </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+              {/* Código Interno */}
+              <Card className="border-slate-200 bg-slate-50">
+                <CardContent className="p-4">
+                  <Label htmlFor="codigo_interno" className="text-slate-600">Código/ID da Empresa (opcional)</Label>
+                  <Input
+                    id="codigo_interno"
+                    data-testid="input-codigo"
+                    placeholder="Ex: 001, CLI-2024, etc."
+                    value={formData.codigo_interno}
+                    onChange={(e) => setFormData({ ...formData, codigo_interno: e.target.value })}
+                    className="mt-2"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">Use para identificar a empresa no sistema (aparece ao lado do nome)</p>
+                </CardContent>
+              </Card>
+
+              {/* Busca Receita Federal */}
+              <Card className="border-indigo-200 bg-indigo-50/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 text-indigo-700 font-semibold mb-3">
+                    <RefreshCw size={18} />
+                    Busca Automática na Receita Federal
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Label htmlFor="cnpj">CNPJ *</Label>
+                      <Input
+                        id="cnpj"
+                        data-testid="input-cnpj"
+                        placeholder="00.000.000/0000-00"
+                        value={formatCNPJ(formData.cnpj)}
+                        onChange={(e) => setFormData({ ...formData, cnpj: e.target.value.replace(/\D/g, '') })}
+                        required
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        type="button"
+                        data-testid="buscar-receita-btn"
+                        onClick={buscarReceita}
+                        disabled={buscandoReceita || formData.cnpj.replace(/\D/g, '').length !== 14}
+                        className="bg-indigo-600 hover:bg-indigo-700 h-10"
+                      >
+                        {buscandoReceita ? (
+                          <Loader2 className="animate-spin" size={18} />
+                        ) : (
+                          <>
+                            <RefreshCw size={16} className="mr-2" />
+                            Buscar Receita
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-indigo-600 mt-2">
+                    Digite o CNPJ e clique no botão para preencher automaticamente os dados
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Dados da Empresa */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <Label htmlFor="razao_social">Razão Social *</Label>
@@ -144,17 +255,7 @@ const Clientes = () => {
                     required
                   />
                 </div>
-                <div>
-                  <Label htmlFor="cnpj">CNPJ *</Label>
-                  <Input
-                    id="cnpj"
-                    data-testid="input-cnpj"
-                    value={formData.cnpj}
-                    onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
+                <div className="sm:col-span-2">
                   <Label htmlFor="nome_fantasia">Nome Fantasia</Label>
                   <Input
                     id="nome_fantasia"
@@ -198,11 +299,12 @@ const Clientes = () => {
                     data-testid="input-sindicato"
                     value={formData.sindicato}
                     onChange={(e) => setFormData({ ...formData, sindicato: e.target.value })}
-                    placeholder="Ex: SINDCOMÉRCIO"
+                    placeholder="Ex: SINDCOMÉRCIO, SINDILOJAS..."
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-3 pt-4">
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
@@ -235,60 +337,75 @@ const Clientes = () => {
         )}
       </div>
 
-      {/* Clients Grid */}
+      {/* Clients Grid - Visual similar to FiscalFlow */}
       {filteredClientes.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredClientes.map((cliente) => (
-            <Card key={cliente.id} data-testid={`cliente-card-${cliente.id}`} className="border-slate-200 hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
+            <Card key={cliente.id} data-testid={`cliente-card-${cliente.id}`} className="border-slate-200 hover:shadow-md transition-shadow overflow-hidden">
+              <CardContent className="p-0">
+                {/* Card Header with actions */}
+                <div className="flex items-center justify-between p-4 bg-slate-50 border-b border-slate-100">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
                       <Building2 className="text-indigo-600" size={20} />
                     </div>
-                    <div>
-                      <CardTitle className="text-base font-semibold text-slate-900 line-clamp-1">
-                        {cliente.nome_fantasia || cliente.razao_social}
-                      </CardTitle>
-                      <p className="text-xs text-slate-500 font-mono">{cliente.cnpj}</p>
-                    </div>
+                    <span className="px-2 py-1 bg-indigo-600 text-white text-xs font-bold rounded">
+                      {cliente.codigo_interno || generateCode(cliente.id)}
+                    </span>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      data-testid={`edit-cliente-${cliente.id}`}
+                      onClick={() => handleEdit(cliente)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Pencil size={14} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      data-testid={`delete-cliente-${cliente.id}`}
+                      onClick={() => handleDelete(cliente.id)}
+                      className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                    >
+                      <Trash2 size={14} />
+                    </Button>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-2 text-sm text-slate-600">
-                  {cliente.razao_social !== cliente.nome_fantasia && cliente.nome_fantasia && (
-                    <p className="text-xs text-slate-400">{cliente.razao_social}</p>
+
+                {/* Card Body */}
+                <div className="p-4">
+                  <h3 className="font-bold text-slate-900 text-lg leading-tight mb-1">
+                    {cliente.nome_fantasia || cliente.razao_social}
+                  </h3>
+                  {cliente.nome_fantasia && (
+                    <p className="text-sm text-slate-500 mb-2">{cliente.razao_social}</p>
                   )}
+                  <p className="text-sm font-mono text-slate-600 mb-3">
+                    CNPJ: {formatCNPJ(cliente.cnpj)}
+                  </p>
+                  
                   {cliente.sindicato && (
-                    <p><span className="text-slate-400">Sindicato:</span> {cliente.sindicato}</p>
+                    <div className="inline-flex items-center px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded mb-3">
+                      {cliente.sindicato}
+                    </div>
                   )}
-                  <div className="flex items-center gap-2 pt-2">
+
+                  {cliente.endereco && (
+                    <p className="text-xs text-slate-400 mb-3 line-clamp-2">
+                      {cliente.endereco}
+                    </p>
+                  )}
+
+                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
                     <Users size={14} className="text-slate-400" />
-                    <span className="font-mono">{cliente.total_colaboradores}</span>
-                    <span className="text-slate-400">colaboradores</span>
+                    <span className="text-sm">
+                      <span className="font-mono font-bold">{cliente.total_colaboradores}</span>
+                      <span className="text-slate-400 ml-1">colaboradores</span>
+                    </span>
                   </div>
-                </div>
-                <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    data-testid={`edit-cliente-${cliente.id}`}
-                    onClick={() => handleEdit(cliente)}
-                    className="flex-1"
-                  >
-                    <Pencil size={14} className="mr-1" />
-                    Editar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    data-testid={`delete-cliente-${cliente.id}`}
-                    onClick={() => handleDelete(cliente.id)}
-                    className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                  >
-                    <Trash2 size={14} />
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -301,10 +418,10 @@ const Clientes = () => {
               <Building2 className="text-slate-400" size={32} />
             </div>
             <p className="text-slate-500">
-              {searchTerm ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
+              {searchTerm ? 'Nenhuma empresa encontrada' : 'Nenhuma empresa cadastrada'}
             </p>
             <p className="text-sm text-slate-400 mt-1">
-              {searchTerm ? 'Tente outro termo de busca' : 'Clique em "Novo Cliente" para começar'}
+              {searchTerm ? 'Tente outro termo de busca' : 'Clique em "Nova Empresa" para começar'}
             </p>
           </CardContent>
         </Card>
