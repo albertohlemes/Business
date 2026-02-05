@@ -190,6 +190,37 @@ const ExportMenu = ({ user, onLogout }) => {
       document.body.removeChild(a);
   };
 
+  // Função para abrir modal de correção de item pendente
+  const abrirCorrecaoItem = (item) => {
+    setModalCorrecao({
+      ...item,
+      novoCst: '', // CST alternativo
+      acao: null // 'manter', 'alterar_cst', 'ir_para_documento'
+    });
+  };
+
+  // Função para aplicar correção
+  const aplicarCorrecao = async (acao) => {
+    if (!modalCorrecao) return;
+    
+    if (acao === 'ir_para_documento') {
+      // Redirecionar para a página de documentos com filtro
+      window.location.href = `/documentos?search=${encodeURIComponent(modalCorrecao.numero_nf)}&company=${selectedCompany}`;
+      return;
+    }
+    
+    if (acao === 'manter') {
+      // O usuário decidiu manter como está (ICMS = 0)
+      // Podemos registrar essa decisão ou simplesmente fechar o modal
+      setModalCorrecao(null);
+      alert('Item mantido. O ICMS continuará como R$ 0,00 no SPED.');
+      return;
+    }
+    
+    // Para outras ações futuras (alterar CST, etc.)
+    setModalCorrecao(null);
+  };
+
   const selectedCompanyData = companies.find(c => c.id === selectedCompany);
 
   return (
