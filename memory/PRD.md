@@ -195,4 +195,9 @@ Portal para departamento societário com geração de documentos via IA.
 - Busca de CEP ✅
 - Busca de CNPJ ✅
 - Campos de Naturalidade ✅
+- Extração por IA (naturalidade) ✅
+- Edição de Processos ✅
+- Profissão Padrão ✅
+- Nome da Empresa na Listagem ✅
+- Múltiplos Processos Simultâneos ✅
 - Dashboard renomeado ✅
