@@ -30,7 +30,10 @@ const ApuracaoMensal = ({ user, onLogout }) => {
   
   // Detalhamento PIS/COFINS
   const [pisCofinsViewMode, setPisCofinsViewMode] = useState('cfop'); // cfop, ncm, cst
-  const [pisCofinsExpanded, setPisCofinsExpanded] = useState(null); // 'credito', 'sem_credito'
+  const [pisCofinsExpanded, setPisCofinsExpanded] = useState(null); // 'credito', 'sem_credito', 'debito', 'debito_zero'
+  
+  // Ordenação das tabelas
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   useEffect(() => {
     if (selectedCompany && selectedCompetencia) {
