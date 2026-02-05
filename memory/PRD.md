@@ -16,7 +16,12 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - ✅ CRUD Clientes/Empresas com busca CNPJ na Receita Federal
 - ✅ CRUD Colaboradores
 - ✅ Seletor de Empresa + Competência no header
-- ✅ Dashboard com estatísticas
+- ✅ Dashboard com estatísticas (filtra por empresa e competência)
+- ✅ **CONTEXTO GLOBAL DE EMPRESA/COMPETÊNCIA (05/02/2026)**:
+  - Dashboard filtra dados pela empresa selecionada
+  - Código da empresa (#XXXX) aparece antes do nome em toda a UI
+  - Selects priorizam a empresa selecionada no contexto
+  - Competência setada é respeitada em todo o sistema
 
 ### Admissão de Colaboradores (eSocial)
 - ✅ Formulário completo com template eSocial (5 abas, 60+ campos)
