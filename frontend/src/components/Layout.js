@@ -1,5 +1,8 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useEmpresa } from '../contexts/EmpresaContext';
+import { useState } from 'react';
+import EmpresaSelectorModal from './EmpresaSelectorModal';
 import { 
   LayoutDashboard, 
   Building2, 
@@ -11,18 +14,26 @@ import {
   FileSpreadsheet,
   LogOut,
   Menu,
-  X
+  X,
+  Calendar,
+  ChevronDown
 } from 'lucide-react';
-import { useState } from 'react';
 
 const Layout = () => {
   const { user, logout } = useAuth();
+  const { empresaSelecionada, competencia } = useEmpresa();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectorOpen, setSelectorOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const generateCode = (id) => {
+    if (!id) return '';
+    return `#${id.slice(0, 4).toUpperCase()}`;
   };
 
   const navItems = [
@@ -103,10 +114,49 @@ const Layout = () => {
 
       {/* Main content */}
       <main className="lg:ml-64 min-h-screen">
+        {/* Header with Empresa Selector */}
+        <header className="header-glass h-16 flex items-center justify-between px-6">
+          <div className="flex items-center gap-4 ml-12 lg:ml-0">
+            {/* Empresa Selector Button */}
+            <button
+              data-testid="empresa-selector-header"
+              onClick={() => setSelectorOpen(true)}
+              className="flex items-center gap-3 px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              <Building2 size={18} className="text-indigo-600" />
+              {empresaSelecionada ? (
+                <div className="flex items-center gap-3">
+                  <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded">
+                    {generateCode(empresaSelecionada.id)}
+                  </span>
+                  <span className="font-medium text-slate-700 max-w-[200px] truncate">
+                    {empresaSelecionada.nome_fantasia || empresaSelecionada.razao_social}
+                  </span>
+                  <div className="flex items-center gap-1 text-slate-500 text-sm">
+                    <Calendar size={14} />
+                    <span className="font-mono">{competencia}</span>
+                  </div>
+                </div>
+              ) : (
+                <span className="text-slate-500">Selecionar Empresa</span>
+              )}
+              <ChevronDown size={16} className="text-slate-400" />
+            </button>
+          </div>
+
+          {/* User info */}
+          <div className="hidden md:flex items-center gap-2 text-sm text-slate-600">
+            <span className="font-medium">{user?.nome}</span>
+          </div>
+        </header>
+
         <div className="p-6 md:p-8">
           <Outlet />
         </div>
       </main>
+
+      {/* Empresa Selector Modal */}
+      <EmpresaSelectorModal open={selectorOpen} onOpenChange={setSelectorOpen} />
     </div>
   );
 };
