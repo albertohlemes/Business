@@ -3161,16 +3161,18 @@ async def reprocess_batch(
 ):
     """
     Re-processa todos os XMLs de uma competência para extrair campos faltantes.
+    MANTÉM as classificações da IA e memórias aprendidas.
     """
+    # Buscar documentos COM os produtos atuais para preservar classificações
     documents = await db.xml_documents.find(
         {"company_id": company_id, "competencia": competencia},
-        {"_id": 0, "id": 1, "numero_nfe": 1, "xml_content": 1, "modelo": 1}
+        {"_id": 0}
     ).to_list(2000)
     
     if not documents:
         return {"success": False, "error": "Nenhum documento encontrado"}
     
-    results = {"total": len(documents), "success": 0, "errors": 0, "with_st": 0}
+    results = {"total": len(documents), "success": 0, "errors": 0, "with_st": 0, "classificacoes_preservadas": 0}
     
     for doc in documents:
         try:
@@ -3187,12 +3189,40 @@ async def reprocess_batch(
             else:
                 parsed = parse_xml_nfe(xml_content)
             
+            # Mesclar produtos: manter classificações da IA, adicionar campos novos do XML
+            produtos_atuais = doc.get('produtos', [])
+            produtos_novos = parsed.get('produtos', [])
+            
+            # Criar mapa dos produtos atuais por código
+            produtos_map = {p.get('codigo', ''): p for p in produtos_atuais}
+            
+            # Campos que devem ser PRESERVADOS (classificações da IA)
+            campos_preservar = [
+                'classificacao', 'cfop', 'cfop_sugerido', 'justificativa_ia',
+                'aprovado', 'reclassificado', 'reclassificado_por', 'data_reclassificacao'
+            ]
+            
+            # Mesclar produtos
+            produtos_mesclados = []
+            for prod_novo in produtos_novos:
+                codigo = prod_novo.get('codigo', '')
+                prod_atual = produtos_map.get(codigo, {})
+                
+                prod_mesclado = prod_novo.copy()
+                for campo in campos_preservar:
+                    if campo in prod_atual and prod_atual[campo]:
+                        prod_mesclado[campo] = prod_atual[campo]
+                
+                produtos_mesclados.append(prod_mesclado)
+                if prod_mesclado.get('classificacao'):
+                    results['classificacoes_preservadas'] += 1
+            
             update_data = {
-                'produtos': parsed.get('produtos', []),
-                'emitente_ie': parsed.get('emitente_ie', ''),
-                'emitente_endereco': parsed.get('emitente_endereco', {}),
-                'destinatario_ie': parsed.get('destinatario_ie', ''),
-                'destinatario_endereco': parsed.get('destinatario_endereco', {}),
+                'produtos': produtos_mesclados,
+                'emitente_ie': parsed.get('emitente_ie', '') or doc.get('emitente_ie', ''),
+                'emitente_endereco': parsed.get('emitente_endereco', {}) or doc.get('emitente_endereco', {}),
+                'destinatario_ie': parsed.get('destinatario_ie', '') or doc.get('destinatario_ie', ''),
+                'destinatario_endereco': parsed.get('destinatario_endereco', {}) or doc.get('destinatario_endereco', {}),
                 'total_ipi': parsed.get('total_ipi', 0),
                 'total_icms_st': parsed.get('total_icms_st', 0),
                 'total_frete': parsed.get('total_frete', 0),
@@ -3208,6 +3238,7 @@ async def reprocess_batch(
             
             results['success'] += 1
             if update_data['total_icms_st'] > 0:
+                results['with_st'] += 1
                 results['with_st'] += 1
                 
         except Exception as e:
