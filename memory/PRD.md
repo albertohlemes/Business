@@ -186,7 +186,15 @@ Portal para departamento societário com geração de documentos via IA.
 - Fallback: razao_social → nome_empresa → "Empresa não identificada"
 - Campo `razao_social` e `nome_empresa` salvos ao gerar contrato de constituição
 
-### ✅ Campos de Naturalidade para Sócios
+### ✅ Qualificação dos Sócios Melhorada
+- Qualificação inclui: naturalidade (cidade/estado), data de nascimento formatada (DD/MM/YYYY)
+- Ordem padronizada: nome, nacionalidade, naturalidade, data nascimento, estado civil, profissão, RG, CPF, endereço
+- Dados enviados corretamente do frontend para o backend (camelCase → snake_case)
+
+### ✅ Tabela de Distribuição de Cotas com TOTAL
+- Todas as tabelas de distribuição de cotas agora incluem linha de TOTAL no final
+- Aplicado em: Constituição, Alteração (redistribuição), Baixa (patrimônio)
+- Formato: SÓCIO | %% | Qtd quotas | R$ Valor + linha TOTAL | 100% | Total quotas | R$ Total
 - **Novos campos**: Data de Nascimento, Cidade de Nascimento, Estado de Nascimento
 - **WizardConstituicao.js**: SocioCard (linhas 774-807)
 - **WizardAlteracao.js**: SocioCardAlteracao (linhas 733-772), SociosEntrando (linhas 477-484)
