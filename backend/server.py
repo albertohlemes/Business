@@ -6727,8 +6727,15 @@ async def list_exceptions(
 async def export_sped(
     company_id: str,
     competencia: Optional[str] = None,
+    excluir_creditos_despesa_st: bool = False,
     current_user: User = Depends(get_current_user)
 ):
+    """
+    Exporta SPED Fiscal para a empresa e competência especificadas.
+    
+    Parâmetros:
+    - excluir_creditos_despesa_st: Se True, exclui créditos de ICMS de CFOPs de despesa (1556, 2556) e ST na apuração
+    """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
@@ -6755,11 +6762,12 @@ async def export_sped(
     
     # Usar competência para gerar o período correto
     periodo = competencia or "01/2024"
-    sped_content = generate_sped_fiscal(company_obj, xml_docs, periodo)
+    sped_content = generate_sped_fiscal(company_obj, xml_docs, periodo, excluir_creditos_despesa_st)
     
     return {
         "content": sped_content,
-        "filename": f"SPED_FISCAL_{company['cnpj']}_{competencia or periodo}.txt"
+        "filename": f"SPED_FISCAL_{company['cnpj']}_{competencia or periodo}.txt",
+        "excluir_creditos_despesa_st": excluir_creditos_despesa_st
     }
 
 @api_router.get("/export/csv/saida")
