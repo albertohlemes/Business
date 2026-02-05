@@ -118,6 +118,12 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - 🔲 Dashboard com métricas por cliente
 
 ## Credenciais de Teste
-- Email: admin@dp.com
-- Senha: senha123
-- Empresa: Empresa Teste LTDA (CNPJ 12345678000199)
+- Email: teste@emergent.com
+- Senha: Teste123!
+- Empresa: Empresa Nova (CNPJ 98765432000188)
+
+## Último Teste
+- **Data**: 05/02/2026
+- **Funcionalidade**: Importação de Múltiplos Colaboradores
+- **Resultado**: ✅ 100% dos testes passaram (Backend 11/11, Frontend OK)
+- **Relatório**: /app/test_reports/iteration_9.json
