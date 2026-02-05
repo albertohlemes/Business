@@ -573,12 +573,18 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             v_pis = 0
             v_cofins = 0
             v_ipi = 0
+            p_icms = 0  # Alíquota de ICMS
+            p_pis = 0   # Alíquota de PIS
+            p_cofins = 0  # Alíquota de COFINS
+            v_bc_pis = 0  # Base de cálculo do PIS
+            v_bc_cofins = 0  # Base de cálculo da COFINS
             
             # Extrair ICMS próprio e ST
             for key in icms:
                 if isinstance(icms[key], dict):
                     v_icms = float(icms[key].get('vICMS', 0) or 0)
                     v_bc = float(icms[key].get('vBC', 0) or 0)
+                    p_icms = float(icms[key].get('pICMS', 0) or 0)  # Alíquota de ICMS
                     # ICMS-ST
                     v_icms_st = float(icms[key].get('vICMSST', 0) or 0)
                     v_bc_st = float(icms[key].get('vBCST', 0) or 0)
