@@ -1542,9 +1542,10 @@ async def validacao_completa(
     - apoio_files: Lista de arquivos de apoio para comparação (OPCIONAL, múltiplos)
     
     A análise compara o holerite atual com todos os documentos enviados.
+    Usa OCR local primeiro (gratuito), IA apenas se necessário.
     """
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        from document_processor import doc_processor
         import asyncio
         
         # Verify cliente exists
@@ -1555,6 +1556,7 @@ async def validacao_completa(
         # Read all files and save to temp
         temp_files = []
         file_info = []
+        extracted_texts = {}
         
         # Helper to save temp file and get mime type
         def get_mime_type(suffix):
@@ -1574,7 +1576,7 @@ async def validacao_completa(
             }
             mime = mime_types.get(suffix.lower())
             if not mime:
-                mime = "application/pdf"  # Fallback
+                mime = "application/pdf"
             return mime
         
         try:
