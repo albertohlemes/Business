@@ -134,14 +134,7 @@ const Colaboradores = () => {
       toast.success(`${colabs.length} colaborador(es) extraído(s)! Revise os dados.`);
       
     } catch (error) {
-      const detail = error.response?.data?.detail;
-      let errorMsg = 'Erro ao processar documento';
-      if (typeof detail === 'string') {
-        errorMsg = detail;
-      } else if (Array.isArray(detail)) {
-        errorMsg = detail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
-      }
-      toast.error(errorMsg);
+      toast.error(getErrorMessage(error, 'Erro ao processar documento'));
     } finally {
       setUploading(false);
     }
