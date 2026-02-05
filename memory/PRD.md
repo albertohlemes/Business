@@ -240,18 +240,30 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Credenciais de Teste
 - Email: admin@test.com
-- Senha: test123
+- Senha: 123456
 
 ## Próximas Tarefas (Backlog)
 
 ### P0 - Crítica
-- [ ] **Refatorar `server.py`** - Dividir o monolito em routers, services e models (5000+ linhas)
+- [~] **Refatorar `server.py`** - Dividir o monolito em routers, services e models (~8500 linhas) - **EM ANDAMENTO**
+  - ✅ Criada estrutura de diretórios: `models/`, `routers/`, `services/`, `utils/`
+  - ✅ Criado `models/schemas.py` com modelos Pydantic
+  - ✅ Criado `services/database.py` com conexão MongoDB
+  - ✅ Criado `services/auth.py` com funções de autenticação
+  - ✅ Criado `services/tax_utils.py` com funções de cálculo fiscal
+  - ✅ Criado `routers/auth.py` com endpoints de autenticação
+  - ✅ Criado `routers/companies.py` com CRUD de empresas
+  - ✅ Criado `routers/cnpj.py` com busca CNPJ
+  - ⏳ Próximos: Integrar routers no server.py, mover mais endpoints
 
 ### P1 - Alta Prioridade
 - [x] ~~**Download via SIEG:** Implementar download e processamento automático de XMLs do SIEG~~ ✅ CONCLUÍDO
 - [x] ~~**Crédito PIS/COFINS divergente:** Dashboard vs Apuração Mensal~~ ✅ CONCLUÍDO (Iteration 31)
 - [x] ~~**Limpeza de arquivos obsoletos:** Excluir páginas antigas~~ ✅ CONCLUÍDO (Iteration 31)
+- [x] **SPED: Correção apuração ICMS** - CFOPs de despesa agora são desconsiderados nos créditos ✅ CONCLUÍDO
 - [ ] Finalizar e testar a funcionalidade de exportação do **SPED Fiscal**
+- [ ] Barras de pesquisa nas páginas Documentos e Validação (UI adicionada, lint corrigido)
+- [ ] Hiperlink da NF deve abrir documento específico
 
 ### P2 - Média Prioridade
 - [ ] **Análise de Saídas e Divergências:** Agrupar por produto e filtrar itens com tributação indevida
@@ -266,6 +278,27 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - [ ] Histórico de alterações (Audit Log)
 
 ## Changelog
+
+### 02/2026 - Iteration 37 (06/02/2026)
+- ✅ **REFATORAÇÃO DO BACKEND - FASE 1**
+  - Criada estrutura modular: `models/`, `routers/`, `services/`, `utils/`
+  - `models/schemas.py`: Todos os modelos Pydantic movidos
+  - `services/database.py`: Conexão MongoDB isolada
+  - `services/auth.py`: Funções de autenticação (JWT, password hash)
+  - `services/tax_utils.py`: Constantes e funções fiscais (NCMs, CFOPs, alíquotas)
+  - `routers/auth.py`: Endpoints `/auth/login`, `/auth/register`, `/auth/me`
+  - `routers/companies.py`: CRUD completo de empresas
+  - `routers/cnpj.py`: Busca CNPJ via Brasil API
+
+- ✅ **BUG FIX: SPED - Apuração de ICMS incorreta**
+  - **Problema:** Créditos de ICMS incluíam CFOPs de despesa (1556, 2556) e ST
+  - **Solução:** Adicionada lista `CFOPS_SEM_CREDITO_SPED` na função `generate_sped_fiscal()`
+  - **Resultado:** Registro E110 agora calcula créditos corretamente
+
+- ✅ **LINT ERRORS CORRIGIDOS - Frontend**
+  - `Documents.js`: Componentes aninhados (`SortIcon`, `DocumentDetailModal`, `SortableHeader`) convertidos para funções de render
+  - `ClassificacaoPage.js`: `NFsList` movido para fora do componente; `ProductRow` e `GroupedProductItem` convertidos para funções de render
+  - **Resultado:** 0 erros, apenas warnings de dependências
 
 ### 02/2026 - Iteration 36 (05/02/2026)
 - ✅ **FEATURE P0: Análise Completa de PIS/COFINS nas Saídas**
