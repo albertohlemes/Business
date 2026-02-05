@@ -1632,6 +1632,15 @@ async def importar_medias(
         logger.error(f"Erro na importação: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao importar médias: {str(e)}")
 
+@api_router.get("/medias/importacoes")
+async def listar_importacoes_medias(current_user: dict = Depends(get_current_user)):
+    """List all media imports"""
+    importacoes = await db.importacoes_medias.find(
+        {"user_id": current_user["id"]},
+        {"_id": 0, "user_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return importacoes
+
 @api_router.get("/medias/{colaborador_id}")
 async def get_medias_colaborador(colaborador_id: str, meses: int = 12, current_user: dict = Depends(get_current_user)):
     """Get historical averages for a specific employee"""
@@ -1661,15 +1670,6 @@ async def get_medias_colaborador(colaborador_id: str, meses: int = 12, current_u
         "media_adicionais": round(total_adicionais / count, 2) if count else 0,
         "media_total": round((total_salario + total_extras + total_comissoes + total_adicionais) / count, 2) if count else 0
     }
-
-@api_router.get("/medias/importacoes")
-async def listar_importacoes_medias(current_user: dict = Depends(get_current_user)):
-    """List all media imports"""
-    importacoes = await db.importacoes_medias.find(
-        {"user_id": current_user["id"]},
-        {"_id": 0, "user_id": 0}
-    ).sort("created_at", -1).to_list(100)
-    return importacoes
 
 @api_router.post("/medias/extrair")
 async def extrair_medias_documento(
