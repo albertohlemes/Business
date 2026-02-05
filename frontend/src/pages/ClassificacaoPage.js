@@ -48,6 +48,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
   const [editingRule, setEditingRule] = useState(null);
   const [ruleEdit, setRuleEdit] = useState({ categoria: '', cfop: '' });
   const [selectedRules, setSelectedRules] = useState([]); // Para exclusão em lote
+  const [searchTerm, setSearchTerm] = useState(''); // Busca de produtos
 
   // Funções de ordenação
   const toggleSort = (field) => {
