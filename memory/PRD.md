@@ -244,6 +244,29 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 35 (05/02/2026)
+- ✅ **FEATURE: Barra de Progresso na Reimportação**
+  - **Problema:** O usuário queria feedback visual durante a reimportação
+  - **Solução:**
+    1. Criados novos endpoints com suporte a SSE (Server-Sent Events):
+       - `POST /api/xml/reimport-init` - Inicializa task e retorna task_id
+       - `GET /api/xml/reimport-progress/{task_id}` - Stream de progresso
+       - `POST /api/xml/reimport-execute/{task_id}` - Executa em background
+    2. Frontend com barra de progresso mostrando:
+       - Porcentagem de conclusão
+       - Documento atual / Total
+       - Quantidade de produtos classificados
+       - Erros (se houver)
+    3. Mensagem de sucesso ao final com detalhes
+  - **Resultado:** Feedback visual em tempo real durante a reimportação
+  - **Arquivos:** `/app/backend/server.py`, `/app/frontend/src/pages/ClassificacaoPage.js`
+
+- ✅ **BUG FIX: Valores inconsistentes após reimportação**
+  - **Problema:** Os campos `categoria_classificada` estavam vazios após reimportação
+  - **Causa:** O código estava setando `classificacao` mas não `categoria_classificada` em alguns caminhos
+  - **Solução:** Garantir que ambos os campos são preenchidos em todos os cenários de classificação
+  - **Resultado:** Valores agora consistentes entre todas as páginas
+
 ### 02/2026 - Iteration 34 (05/02/2026)
 - ✅ **FEATURE: Reimportação Completa na Validação & IA**
   - **Problema:** O usuário queria que o reprocessamento funcionasse como se apagasse e importasse novamente, e que ficasse na página de Validação
