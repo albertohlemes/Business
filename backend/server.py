@@ -1473,11 +1473,10 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             vl_abat_nt = 0
             
             # Formatar linha C170 com TODOS os 38 campos
-            # Campos vazios: COD_NAT(12), VL_BC_ICMS_ST(16), ALIQ_ST(17), VL_ICMS_ST(18), 
-            #                IND_APUR(19), CST_IPI(20), COD_ENQ(21), VL_BC_IPI(22), ALIQ_IPI(23), VL_IPI(24),
-            #                QUANT_BC_PIS(28), ALIQ_PIS_R$(29), QUANT_BC_COFINS(34), ALIQ_COFINS_R$(35), COD_CTA(37)
+            # Layout: |C170|02|03|04|05|06|07|08|09|10|11|12|13|14|15|16|17|18|19|20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|
+            #         |C170|NUM|COD|DESC|QTD|UN|VITEM|VDESC|MOV|CST|CFOP|NAT|BC|ALQ|ICM|BCST|ALQST|ICMST|APU|CSTI|ENQ|BCI|ALQI|IPI|CSTP|BCP|ALQP|QBP|ALQPR|PIS|CSTC|BCC|ALQC|QBC|ALQCR|COF|CTA|ABAT|
             
-            linha_c170 = "|C170|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}||{}|{}|{}|||||||||{}|{}|{}|||{}|{}|{}|{}|||{}||{}|".format(
+            linha_c170 = "|C170|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|".format(
                 idx + 1,                                                    # 02 NUM_ITEM
                 str(prod.get('codigo', ''))[:60],                          # 03 COD_ITEM
                 descr_compl[:60] if descr_compl else '',                   # 04 DESCR_COMPL
@@ -1488,22 +1487,32 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
                 ind_mov,                                                    # 09 IND_MOV
                 cst_icms,                                                   # 10 CST_ICMS
                 cfop,                                                       # 11 CFOP
-                # 12 COD_NAT vazio
+                '',                                                         # 12 COD_NAT (vazio)
                 f"{bc_icms:.2f}".replace('.',','),                         # 13 VL_BC_ICMS
                 f"{aliq_icms:.2f}".replace('.',','),                       # 14 ALIQ_ICMS
                 f"{v_icms:.2f}".replace('.',','),                          # 15 VL_ICMS
-                # 16-24 vazios (ST, IPI)
+                '',                                                         # 16 VL_BC_ICMS_ST (vazio)
+                '',                                                         # 17 ALIQ_ST (vazio)
+                '',                                                         # 18 VL_ICMS_ST (vazio)
+                '',                                                         # 19 IND_APUR (vazio)
+                '',                                                         # 20 CST_IPI (vazio)
+                '',                                                         # 21 COD_ENQ (vazio)
+                '',                                                         # 22 VL_BC_IPI (vazio)
+                '',                                                         # 23 ALIQ_IPI (vazio)
+                '',                                                         # 24 VL_IPI (vazio)
                 cst_pis,                                                    # 25 CST_PIS
                 f"{bc_pis:.2f}".replace('.',','),                          # 26 VL_BC_PIS
                 f"{aliq_pis:.4f}".replace('.',','),                        # 27 ALIQ_PIS (4 decimais)
-                # 28-29 vazios (QUANT_BC_PIS, ALIQ_PIS em R$)
+                '',                                                         # 28 QUANT_BC_PIS (vazio)
+                '',                                                         # 29 ALIQ_PIS em R$ (vazio)
                 f"{v_pis:.2f}".replace('.',','),                           # 30 VL_PIS
                 cst_cofins,                                                 # 31 CST_COFINS
                 f"{bc_cofins:.2f}".replace('.',','),                       # 32 VL_BC_COFINS
                 f"{aliq_cofins:.4f}".replace('.',','),                     # 33 ALIQ_COFINS (4 decimais)
-                # 34-35 vazios (QUANT_BC_COFINS, ALIQ_COFINS em R$)
+                '',                                                         # 34 QUANT_BC_COFINS (vazio)
+                '',                                                         # 35 ALIQ_COFINS em R$ (vazio)
                 f"{v_cofins:.2f}".replace('.',','),                        # 36 VL_COFINS
-                # 37 COD_CTA vazio
+                '',                                                         # 37 COD_CTA (vazio)
                 f"{vl_abat_nt:.2f}".replace('.',',') if vl_abat_nt > 0 else ''  # 38 VL_ABAT_NT
             )
             lines.append(linha_c170)
