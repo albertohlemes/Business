@@ -2528,6 +2528,66 @@ async def cadastrar_direto_gclick(
         logger.error(f"Erro ao cadastrar direto no GClick: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao cadastrar no GClick: {str(e)}")
 
+class SCIUnicoCadastroRequest(BaseModel):
+    """Modelo para salvar cadastro do SCI Único no histórico"""
+    razao_social: str
+    cnpj: str
+    nome_fantasia: Optional[str] = None
+    inscricao_estadual: Optional[str] = None
+    inscricao_municipal: Optional[str] = None
+    regime_tributario: Optional[str] = None
+    data_abertura: Optional[str] = None
+    capital_social: Optional[str] = None
+    endereco: Optional[str] = None
+    bairro: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    cep: Optional[str] = None
+    responsavel: Optional[str] = None
+    cpf_responsavel: Optional[str] = None
+    telefone: Optional[str] = None
+    email: Optional[str] = None
+
+@api_router.post("/cadastros/salvar-sci")
+async def salvar_cadastro_sci(
+    request: SCIUnicoCadastroRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Salva cadastro do SCI Único no histórico (para rastreamento)"""
+    cadastro = {
+        "id": str(uuid.uuid4()),
+        "tipo": "sci_unico",
+        "user_id": current_user["id"],
+        "dados_enviados": {
+            "razao_social": request.razao_social,
+            "cnpj": request.cnpj,
+            "nome_fantasia": request.nome_fantasia,
+            "inscricao_estadual": request.inscricao_estadual,
+            "inscricao_municipal": request.inscricao_municipal,
+            "regime_tributario": request.regime_tributario,
+            "data_abertura": request.data_abertura,
+            "capital_social": request.capital_social,
+            "endereco": request.endereco,
+            "bairro": request.bairro,
+            "cidade": request.cidade,
+            "estado": request.estado,
+            "cep": request.cep,
+            "responsavel": request.responsavel,
+            "cpf_responsavel": request.cpf_responsavel,
+            "telefone": request.telefone,
+            "email": request.email
+        },
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.cadastros_externos.insert_one(cadastro)
+    
+    return {
+        "success": True,
+        "message": "Cadastro salvo no histórico",
+        "id": cadastro["id"]
+    }
+
 # ============ HISTÓRICO DE CADASTROS ============
 
 @api_router.get("/cadastros/historico")
