@@ -5705,6 +5705,73 @@ async def analise_pis_cofins_completa(
             resumo['por_tipo_divergencia'][tipo]['impacto_pis'] + resumo['por_tipo_divergencia'][tipo]['impacto_cofins'], 2
         )
     
+    # Criar agrupamentos por produto e por NCM
+    agrup_produto = {}
+    agrup_ncm = {}
+    
+    for doc in divergencias:
+        for prod in doc['produtos']:
+            # Agrupamento por código do produto
+            codigo = prod.get('codigo', '') or prod.get('descricao', '')[:30]
+            if codigo not in agrup_produto:
+                agrup_produto[codigo] = {
+                    'codigo': codigo,
+                    'descricao': prod.get('descricao', ''),
+                    'ncm': prod.get('ncm', ''),
+                    'qtd_ocorrencias': 0,
+                    'valor_total': 0,
+                    'impacto_pis': 0,
+                    'impacto_cofins': 0,
+                    'tipo_divergencia': prod.get('tipo_divergencia', ''),
+                    'motivo': prod.get('motivo', '')
+                }
+            agrup_produto[codigo]['qtd_ocorrencias'] += 1
+            agrup_produto[codigo]['valor_total'] += prod.get('valor_produto', 0)
+            agrup_produto[codigo]['impacto_pis'] += prod.get('impacto_pis', 0)
+            agrup_produto[codigo]['impacto_cofins'] += prod.get('impacto_cofins', 0)
+            
+            # Agrupamento por NCM
+            ncm = prod.get('ncm', '')[:4]  # Primeiros 4 dígitos
+            if ncm and ncm not in agrup_ncm:
+                agrup_ncm[ncm] = {
+                    'ncm': ncm,
+                    'produtos': set(),
+                    'qtd_ocorrencias': 0,
+                    'valor_total': 0,
+                    'impacto_pis': 0,
+                    'impacto_cofins': 0,
+                    'tipo_divergencia': prod.get('tipo_divergencia', ''),
+                    'motivo': prod.get('motivo', '')
+                }
+            if ncm:
+                agrup_ncm[ncm]['produtos'].add(prod.get('descricao', '')[:50])
+                agrup_ncm[ncm]['qtd_ocorrencias'] += 1
+                agrup_ncm[ncm]['valor_total'] += prod.get('valor_produto', 0)
+                agrup_ncm[ncm]['impacto_pis'] += prod.get('impacto_pis', 0)
+                agrup_ncm[ncm]['impacto_cofins'] += prod.get('impacto_cofins', 0)
+    
+    # Converter sets para listas e arredondar valores
+    for codigo in agrup_produto:
+        agrup_produto[codigo]['valor_total'] = round(agrup_produto[codigo]['valor_total'], 2)
+        agrup_produto[codigo]['impacto_pis'] = round(agrup_produto[codigo]['impacto_pis'], 2)
+        agrup_produto[codigo]['impacto_cofins'] = round(agrup_produto[codigo]['impacto_cofins'], 2)
+        agrup_produto[codigo]['impacto_total'] = round(
+            agrup_produto[codigo]['impacto_pis'] + agrup_produto[codigo]['impacto_cofins'], 2
+        )
+    
+    for ncm in agrup_ncm:
+        agrup_ncm[ncm]['produtos'] = list(agrup_ncm[ncm]['produtos'])[:5]  # Max 5 exemplos
+        agrup_ncm[ncm]['valor_total'] = round(agrup_ncm[ncm]['valor_total'], 2)
+        agrup_ncm[ncm]['impacto_pis'] = round(agrup_ncm[ncm]['impacto_pis'], 2)
+        agrup_ncm[ncm]['impacto_cofins'] = round(agrup_ncm[ncm]['impacto_cofins'], 2)
+        agrup_ncm[ncm]['impacto_total'] = round(
+            agrup_ncm[ncm]['impacto_pis'] + agrup_ncm[ncm]['impacto_cofins'], 2
+        )
+    
+    # Ordenar por impacto
+    agrup_produto_list = sorted(agrup_produto.values(), key=lambda x: -x['impacto_total'])
+    agrup_ncm_list = sorted(agrup_ncm.values(), key=lambda x: -x['impacto_total'])
+    
     return {
         "empresa": company.get('razao_social', ''),
         "competencia": competencia,
@@ -5714,7 +5781,11 @@ async def analise_pis_cofins_completa(
         "total_produtos": total_produtos,
         "total_divergentes": total_divergentes,
         "resumo": resumo,
-        "divergencias": divergencias
+        "divergencias": divergencias,
+        "agrupamentos": {
+            "por_produto": agrup_produto_list,
+            "por_ncm": agrup_ncm_list
+        }
     }
 
 
