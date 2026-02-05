@@ -2027,6 +2027,11 @@ async def gerar_contrato_constituicao(
         socios = request.socios
         cnaes = request.cnaes
         
+        # Log para debug
+        logger.info(f"Gerando contrato - Empresa: {empresa.razao_social}")
+        for i, s in enumerate(socios):
+            logger.info(f"Sócio {i+1}: {s.nome}, data_nasc={s.data_nascimento}, cidade_nasc={s.cidade_nascimento}, estado_nasc={s.estado_nascimento}")
+        
         # Formatar endereço
         end = empresa.endereco
         endereco_completo = f"{end.get('logradouro', '').upper()}, Nº {end.get('numero', '')}"
