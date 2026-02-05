@@ -3,48 +3,61 @@ O usuário deseja criar um portal de departamento pessoal para seu escritório d
 1.  **Aplicação de Dissídio Coletivo**: Automatizar o processo de leitura da convenção coletiva, extração do percentual de aumento, cálculo dos reajustes, e envio para aprovação do cliente.
 2.  **Admissão de Colaboradores com IA**: Extrair informações de documentos de admissão (imagens, PDFs), incluindo documentos que contenham múltiplos colaboradores, e preencher automaticamente os dados.
 3.  **Importação de Médias Históricas**: Para novos clientes, extrair dados de médias salariais de relatórios da contabilidade anterior (em formatos variados como XLS, TXT, PDF) e gerar um arquivo de importação para o sistema de folha de pagamento SCI Único.
-4.  **Validação de Folha de Pagamento**: Comparar a folha atual com a do mês anterior e também permitir a comparação do holerite gerado com um documento de apoio (e-mail, imagem, PDF, Excel) para validar os lançamentos.
+4.  **Validação de Folha de Pagamento**: Comparar a folha atual com a do mês anterior e também permitir a comparação do holerite gerado com um documento de apoio (e-mail, imagem, PDF, Excel) para validar os lançamentos. A funcionalidade deve suportar múltiplos arquivos de apoio e manter um histórico de validações.
 5.  **Comparação de Informes de Rendimento**: Automatizar a comparação anual entre o relatório do eSocial e o do sistema interno SCI Único.
-6.  **Relatórios Exportáveis**: Gerar relatórios em formato Excel e PDF para as principais funcionalidades (colaboradores, dissídios, etc.).
+6.  **Relatórios Exportáveis**: Gerar relatórios em formato Excel e PDF para as principais funcionalidades.
+7.  **Melhorias de Fluxo e UI**: Garantir que a empresa e competência selecionadas no cabeçalho sejam respeitadas em toda a aplicação, filtrar dados do dashboard, e exibir o código da empresa antes do nome.
+8.  **Barras de Progresso**: Adicionar barras de progresso visuais para todas as operações de longa duração (importações, validações).
 
 **User's preferred language**: Portuguese. The next agent MUST respond in Portuguese.
 
 **what currently exists?**
 - Um aplicativo full-stack com backend em FastAPI e frontend em React.
-- Autenticação de usuário baseada em JWT (registro e login).
-- Funcionalidade de cadastro de clientes (empresas) com busca automática de dados na Receita Federal por CNPJ.
-- Um cabeçalho que permite ao usuário selecionar a empresa ativa e a competência (mês/ano).
-- **Módulo de Admissão de Colaboradores**: Permite o upload de um documento para extração de dados com IA. O backend e o frontend foram recentemente reescritos para suportar a extração de múltiplos colaboradores de um único arquivo, mas a funcionalidade ainda não foi testada.
-- **Módulo de Dissídio Coletivo**: Funcionalidade completa com upload de convenção, extração de dados por IA, pré-visualização detalhada dos colaboradores afetados (com salário atual, percentual, novo salário), fluxo de aprovação e aplicação de reajuste.
-- **Módulo de Validação de Folha**: Possui duas abas: uma para análise comparativa com o mês anterior e outra para comparar um holerite com um relatório de apoio de formato livre (PDF, imagem, etc.).
-- **Módulo de Comparação de Informes**: Uma página para upload do relatório do eSocial e do sistema SCI Único para comparação via IA.
-- **Módulo de Importação de Médias**: Permite o upload de um relatório da contabilidade antiga, extrai as médias por IA e prepara os dados para gerar um arquivo de importação (atualmente em formato genérico).
-- **Página de Relatórios**: Permite a exportação de dados de Colaboradores, Dissídios e Validações de Folha para Excel.
+- Autenticação JWT, cadastro de clientes com busca de CNPJ e um cabeçalho global com seleção de empresa/competência.
+- **Módulo de Admissão de Colaboradores**: Implementado com um sistema **híbrido**. Primeiro, tenta extrair dados de múltiplos colaboradores de um documento usando **OCR local (Tesseract)**, que é gratuito e rápido. Se a extração local falhar ou tiver baixa confiança, ele recorre a uma API de IA (Google Gemini ou Emergent LLM). A UI de revisão pós-importação foi redesenhada para ser mais visual e funcional, com scroll e status por colaborador.
+- **Módulo de Validação de Folha de Pagamento**: A interface foi redesenhada para aceitar um holerite atual, um do mês anterior (opcional) e múltiplos arquivos de apoio (opcional). O backend foi parcialmente refatorado para usar a mesma abordagem híbrida de OCR local, mas a implementação está **incompleta e com bugs**.
+- **Outros Módulos**: Dissídio Coletivo, Comparação de Informes, Importação de Médias e Relatórios estão funcionais.
+- **Melhorias de UI/UX**: O dashboard agora filtra os dados pela empresa selecionada. Menus e seletores de empresa mostram o código interno antes do nome e respeitam o contexto global. Barras de progresso com animação foram adicionadas a todos os fluxos de upload de arquivos.
+- **Gerenciamento de Erros**: Foi criado um helper de frontend para formatar e exibir mensagens de erro da API de forma mais clara.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava refatorando a funcionalidade de Admissão de Colaboradores para suportar a extração de **múltiplos colaboradores** de um único documento, conforme solicitado pelo usuário. O trabalho envolveu a reescrita do endpoint  no backend e da página  para exibir uma lista de colaboradores extraídos para revisão antes de salvar.
--   **Status**: IN PROGRESS
--   **Agent Testing Done**: N
--   **Which testing method agent to use?**: both
--   **User Testing Done**: N
+- **Last item agent was working**: O agente estava tentando consertar a funcionalidade de Validação de Folha que, segundo o usuário, não estava progredindo (continua nao progredindo). O agente iniciou a refatoração do backend para usar um sistema híbrido de OCR local + IA, similar ao que foi feito com sucesso no módulo de admissão, para reduzir custos e evitar travamentos.
+- **Status**: IN PROGRESS
+- **Agent Testing Done**: N
+- **Which testing method agent to use?**: both
+- **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Testar a nova funcionalidade de importação de múltiplos colaboradores.**
-    -   **Priority**: P0
-    -   **Description**: O código do backend e do frontend para a importação de múltiplos colaboradores foi reescrito, mas não foi testado. A funcionalidade precisa ser validada para garantir que múltiplos colaboradores são extraídos corretamente do documento e que o frontend exibe a lista para revisão e permite salvá-los em lote.
+-   **Issue 1: A Validação de Folha de Pagamento não funciona e a barra de progresso não avança.** (P0)
+-   **Issue 2: A chave de API do Google AI do usuário atinge o limite de quota rapidamente.** (P1)
+
+**Issues Detail**:
+-   **Issue 1**:
+    -   **Attempted fixes**: O agente começou a reescrever o endpoint  para usar OCR local () primeiro, e só então recorrer à IA. Ele adicionou um helper de OCR para holerites, mas a integração com a lógica principal, a análise comparativa e o salvamento dos resultados está incompleta. O sistema antigo, que dependia 100% de IA, foi parcialmente removido, deixando a funcionalidade em um estado quebrado.
     -   **Next debug checklist**:
-        1.  Verificar os logs do backend para garantir que a aplicação iniciou sem erros após as modificações.
-        2.  Realizar um teste manual (smoke test): fazer login, navegar para a página de Colaboradores e tentar fazer o upload de um documento.
-        3.  Verificar se a UI renderiza uma tabela ou lista com os múltiplos colaboradores extraídos para revisão.
-        4.  Verificar a resposta da API no console do navegador e a funcionalidade do botão para salvar todos os colaboradores.
-        5.  Após a validação inicial, executar o  para um teste completo e regressão.
+        1.  Revisar o arquivo  na função .
+        2.  Verificar como os dados extraídos pelo OCR (, , ) estão sendo processados.
+        3.  Implementar a lógica de comparação entre os textos extraídos. A lógica atual de IA foi removida, mas nenhuma lógica de substituição baseada em OCR foi finalizada.
+        4.  Garantir que o resultado da análise é salvo corretamente no banco de dados na coleção .
+        5.  Criar um teste via  ou  para validar o fluxo completo do novo endpoint.
+    -   **Why fix this issue and what will be achieved with the fix?**: Corrigir isso tornará a funcionalidade de validação de folha utilizável, mais rápida e muito mais barata, resolvendo uma queixa principal do usuário.
     -   **Status**: IN PROGRESS
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?**: both
+-   **Issue 2**:
+    -   **Attempted fixes**: O agente implementou o OCR local como primeira opção para reduzir o uso da IA. Também configurou o sistema para usar a chave do Google AI do usuário em vez da chave paga da Emergent. No entanto, a chave gratuita do usuário também esgotou a quota.
+    -   **Next debug checklist**: A solução principal já está em andamento (minimizar o uso de IA). O próximo passo é garantir que a implementação de OCR na Validação de Folha (Issue 1) seja robusta o suficiente para que a IA seja raramente necessária. Informar ao usuário que, para casos complexos que exigem IA, ele precisará gerenciar sua quota ou usar um plano pago.
+    -   **Why fix this issue and what will be achieved with the fix?**: Reduz a dependência de serviços pagos/limitados, tornando o aplicativo mais robusto e econômico para o usuário.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: A solução completa depende da finalização da Issue 1.
 
 **In progress Task List**:
--   **Task 1: Concluir e testar a funcionalidade de Admissão de Múltiplos Colaboradores**
+-   **Task 1: Concluir a refatoração da Validação de Folha de Pagamento**
     -   **Priority**: P0
-    -   **Where to resume**: O agente acabou de reescrever os arquivos  e . O próximo passo é iniciar os testes (conforme checklist acima).
-    -   **What will be achieved with this?**: O sistema será capaz de processar uma ficha de registro com vários vínculos, extraindo todos os colaboradores de uma só vez e otimizando drasticamente o processo de admissão em lote.
+    -   **Where to resume**: No arquivo , dentro do endpoint . A lógica de extração de texto por OCR foi adicionada, mas a lógica de **análise, comparação e geração do resumo** precisa ser implementada usando os textos extraídos, e o resultado precisa ser salvo no banco.
+    -   **What will be achieved with this?**: A funcionalidade de validação de folha se tornará rápida, barata e funcional.
     -   **Status**: IN PROGRESS
     -   **Should Test frontend/backend/both after fix?**: both
 
@@ -52,16 +65,21 @@ O usuário deseja criar um portal de departamento pessoal para seu escritório d
 -   **Upcoming Tasks**:
     -   **P1: Refinar o layout de exportação para o SCI Único**: O usuário mencionou que fornecerá o layout exato (XLS ou TXT) para a importação de médias históricas. A tarefa será ajustar o endpoint  para gerar o arquivo no formato exato do SCI Único.
 -   **Future Tasks**:
-    -   **P2: Integrar diretamente com o SCI Único**: O usuário informou que não há integração direta, mas futuras investigações podem revelar possibilidades de automação via importação de arquivos em pastas específicas ou outras soluções.
-    -   **P2: Análise de Padrões de Erros**: O agente sugeriu criar um dashboard para identificar padrões de erros recorrentes na validação da folha por empresa ou funcionário ao longo do tempo.
+    -   **P2: Integrar diretamente com o SCI Único**: Investigar possibilidades de automação via importação de arquivos em pastas específicas.
+    -   **P2: Análise de Padrões de Erros**: Criar um dashboard para identificar padrões de erros recorrentes na validação da folha por empresa ou funcionário.
+    -   **P2: Melhorar o fluxo guiado**: O usuário sugeriu um fluxo mais guiado para novos usuários: cadastrar empresa → importar colaboradores → primeira validação.
 
 **Completed work in this session**
--   **Funcionalidade de Admissão de Colaboradores (v1)**: Concluída a implementação do formulário completo com base no template eSocial, com extração via IA e teste end-to-end.
--   **Automação do Dissídio Coletivo**: Melhorada a funcionalidade existente com uma tela de pré-visualização detalhada, incluindo cálculo de percentual, diferença e novos salários, além da opção de baixar a prévia em Excel.
--   **Validação de Folha de Pagamento**: Implementada a nova funcionalidade para comparar o holerite com um relatório de apoio de formato livre (PDF, imagem, etc.) usando IA.
--   **Comparação de Informes de Rendimento**: Atualizada a página e o prompt da IA para comparar relatórios do eSocial com os do sistema SCI Único.
--   **Relatórios Exportáveis**: Criada uma nova página de Relatórios e endpoints no backend para exportar dados de colaboradores, dissídios e validações para arquivos Excel ().
--   **Importação de Médias Históricas**: Implementada a funcionalidade para extrair médias de relatórios da contabilidade anterior e gerar um arquivo para importação no SCI Único.
+-   **Admissão de Múltiplos Colaboradores**: Finalizada e testada.
+-   **Implementação de Processamento Híbrido (OCR + AI)**: Implementado com sucesso no módulo de admissão, usando Tesseract para extração local e gratuita, reduzindo drasticamente os custos de API e o tempo de processamento.
+-   **UI/UX de Admissão**: O modal de revisão pós-importação foi completamente redesenhado para uma melhor visualização e usabilidade, com navegação horizontal, cards coloridos e scrollbars personalizadas.
+-   **Melhorias de Fluxo Global**: O dashboard e os menus de seleção agora filtram e priorizam com base na empresa e competência selecionadas no contexto global. O código da empresa agora é exibido antes do nome.
+-   **Barras de Progresso**: Adicionadas a todas as páginas com uploads, com animações e mensagens dinâmicas para melhorar a percepção do usuário durante o processamento.
+-   **Refatoração da Validação de Folha**: A UI foi redesenhada para suportar múltiplos arquivos e o backend foi **iniciado** na refatoração para o modelo híbrido.
+-   **Correção de Bugs**:
+    -   Corrigido erro 502 (Bad Gateway) na API da IA com retries.
+    -   Corrigido erro de renderização no React () com um novo .
+    -   Corrigido erro de backend cliente_id é obrigatório na validação de folha usando  para os parâmetros.
 
 **Earlier issues found/mentioned but not fixed**
 -   None.
@@ -73,78 +91,89 @@ O usuário deseja criar um portal de departamento pessoal para seu escritório d
 
 
 **Key Technical Concepts**
--   **Backend**: FastAPI, Pydantic, JWT, Motor (MongoDB),  e  para geração de relatórios.
+-   **Backend**: FastAPI, Pydantic, JWT, Motor (MongoDB), .
 -   **Frontend**: React, React Router, Axios, Shadcn UI, TailwindCSS, .
--   **AI**: LLM (mencionado ) via  para extração de dados de documentos.
+-   **Document Processing**: Modelo Híbrido:
+    1.  **OCR Local**: , ,  para extração de texto gratuita e rápida de PDFs/imagens.
+    2.  **AI Fallback**:  (com chave do usuário) e  (com chave da plataforma).
 
 **key DB schema**
--   ****: Dados das empresas clientes.
--   ****: Dados dos funcionários, com esquema expandido para corresponder à ficha eSocial.
--   ****: Credenciais de login dos usuários.
--   ****, ****, ****: Novas coleções implícitas para armazenar dados dos novos módulos.
+-   ****: Estrutura atualizada para armazenar resultados de análises, incluindo ,  e .
 
 **changes in tech stack**
--   Adicionadas as bibliotecas  e  no backend para geração de relatórios Excel e PDF.
+-   **Backend**: Adicionadas as dependências , usage: pymupdf [-h]
+               {show,clean,join,extract,embed-info,embed-add,embed-del,embed-upd,embed-extract,embed-copy,gettext,internal}
+               ...
+
+------------------------- Basic PyMuPDF Functions -------------------------
+
+options:
+  -h, --help            show this help message and exit
+
+Subcommands:
+  {show,clean,join,extract,embed-info,embed-add,embed-del,embed-upd,embed-extract,embed-copy,gettext,internal}
+                        Enter 'command -h' for subcommand specific help, , ,  (via apt).
+-   **Estratégia**: Mudança de um modelo 100% dependente de API de IA para um modelo híbrido que prioriza o OCR local.
 
 **All files of reference**
--   : Principal arquivo do backend, modificado extensivamente para adicionar/atualizar endpoints.
--   : Principal arquivo do frontend para a tarefa atual, reescrito para suportar a importação de múltiplos colaboradores.
--   , , , : Páginas reescritas para implementar as novas funcionalidades.
--   : Nova página criada para exportação de relatórios.
--    e : Modificados para adicionar a nova rota e o link de menu para Relatórios.
--   : Atualizado com as novas dependências.
+-   : Modificado extensivamente para implementar o modelo híbrido e corrigir bugs.
+-   : Novo arquivo com a lógica de processamento de documentos (OCR e IA).
+-   : Atualizado para incluir a .
+-   : Principal arquivo do frontend para a tarefa atual, reescrito, mas com a chamada de API quebrada.
+-   : Atualizado para usar o novo modelo de importação e a UI de revisão.
+-   : Novo componente reutilizável.
+-   , : Novos helpers.
+-   : Adicionados estilos para scrollbars personalizadas e animações.
 
 **Areas that need refactoring**:
--   O arquivo  está cada vez mais monolítico. A separação das rotas por funcionalidade (ex: , ) e dos modelos de dados () é altamente recomendada para melhorar a manutenibilidade.
+-   A lógica de validação de folha dentro de  está muito complexa e deve ser movida para  para seguir o padrão estabelecido pela refatoração da admissão de colaboradores.
 
 **key api endpoints**
--   : Endpoint reescrito para extrair uma lista de colaboradores.
--   : Novo endpoint para salvar uma lista de colaboradores.
--   : Compara holerite com documento de apoio.
--   : Retorna a prévia do impacto do dissídio.
--   : Endpoints para download de relatórios em Excel.
--   : Extrai dados de médias de um relatório.
--   : Gera o arquivo de importação para o SCI Único.
--   : Endpoint atualizado para comparar eSocial vs. SCI Único.
+-   : Novo endpoint principal para admissão, que usa OCR primeiro.
+-   : Endpoint que está sendo refatorado e atualmente está quebrado.
 
 **Critical Info for New Agent**
--   A tarefa atual e de maior prioridade (P0) é **testar e finalizar** a funcionalidade de importação de múltiplos colaboradores. O código foi escrito, mas não validado.
--   O sistema SCI Único é o sistema de folha de pagamento de destino. Ele não possui API, então todas as integrações são baseadas na geração de arquivos de importação (XLS, TXT).
--   O usuário é muito engajado e os requisitos evoluem rapidamente. Preste atenção às respostas do usuário para ajustar as prioridades.
+-   A prioridade máxima (P0) é consertar a funcionalidade de **Validação de Folha**. O usuário está bloqueado por isso. A abordagem deve ser finalizar a implementação do OCR local iniciada pelo agente anterior.
+-   **Não confie nas APIs de IA**. Os orçamentos/quotas (tanto da plataforma quanto do usuário) são instáveis. A solução robusta é fazer o OCR local funcionar para a maioria dos casos. A IA deve ser apenas um fallback para casos complexos.
+-   O código para a validação de folha ( em ) está em um estado intermediário. A lógica antiga de IA foi parcialmente removida, e a nova lógica de OCR não foi totalmente implementada. Você precisará completar essa transição.
 
 **documents and test reports created in this job**
 -   /app/memory/PRD.md (atualizado consistentemente)
--   /app/test_reports/iteration_5.json
--   /app/test_reports/iteration_6.json
--   /app/test_reports/iteration_7.json
--   /app/test_reports/iteration_8.json
+-   /app/test_reports/iteration_9.json
+-   /app/test_reports/iteration_10.json
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Usuário**: TREICAMOS DE ALGUMAS MELHORIAS. A FICHA DE REGISTRO QUE ENVIO, É MULTI VINCULOS. TEM QUE IMPORTAR TODOS OS COLABORADEES QUE LA ESTAO -> **Status: Em Andamento**. Esta é a tarefa atual de importação de múltiplos colaboradores.
-2.  **Usuário**: 1 xls ou txt. 2 vou ver se consigo o documento. 3. tendo o layout, vemos la. o sci nao tem integracao direta -> **Status: Concluído (parcialmente)**. Esclareceu requisitos para a importação de médias, confirmando que o layout do SCI será fornecido depois. A funcionalidade foi implementada com um layout genérico.
-3.  **Usuário**: nao qieroa calcular as medias. queria pegar o relatorio de medias... -> **Status: Concluído**. Mudou o requisito do cálculo de médias para uma funcionalidade de importação/extração.
-4.  **Usuário**: p1 acrescenta o percentual tbm. e das futuras o 1 e o 3, lembranco que o nosso sistema é o sci unico. -> **Status: Concluído**. Solicitou adicionar o percentual na prévia do dissídio e priorizou tarefas futuras, especificando o sistema SCI Único.
-5.  **Usuário**: 2 e taterfas futuras pode fazer -> **Status: Concluído**. Aprovou a continuação do plano.
-6.  **Usuário**: automacao dissidio, dps validacao folha -> **Status: Concluído**. Priorizou as próximas tarefas a serem implementadas.
-7.  **Usuário**: podemos seguir seu plano, mas na questao da folha, alem do mes passado, tbm quero que o usuario mande um relatorio de apoio... -> **Status: Concluído**. Adicionou o requisito de comparação com relatório de apoio na validação da folha.
-8.  **Usuário**: pode prosseguir -> **Status: Concluído**. Aprovou o início dos trabalhos da sessão.
+1.  **usuário**: validacao de folha continua nao progredindo - O usuário relata que a funcionalidade principal está quebrada. (Status: **EM ANDAMENTO**)
+2.  **usuário**: mas resolveu o erro da validacao de folha tbm? - O usuário questiona se a correção do cliente_id obrigatório resolveu o problema de travamento. (Status: **RESOLVIDO PARCIALMENTE**, mas o problema principal persiste)
+3.  **usuário**: as validacoes estao demoradas e sempre trava no 95%. resolve isso, por favor - O usuário reclama da experiência da barra de progresso. (Status: **RESOLVIDO**, UI da barra foi melhorada)
+4.  **usuário**: cliente_id é obrigatório - O usuário reporta um erro específico na validação de folha. (Status: **RESOLVIDO**)
+5.  **usuário**: o site parou de funcionar - O usuário relata que o site caiu. (Status: **RESOLVIDO**, serviços reiniciados)
+6.  **usuário**: coloca credito e segue - O usuário confirma que o crédito foi adicionado (depois foi revelado ser temporário). (Status: **RESOLVIDO**)
+7.  **usuário**: 3 e 4 me agradam. funcionando, faz o mais barato - O usuário aprova a mudança para um sistema híbrido (OCR+IA) e o uso de sua própria chave de API. (Status: **EM ANDAMENTO**)
+8.  **usuário**: deu certo. mas o menu que exibe pós importacao está sem rolagem, nao achei mto visual tbm - Feedback sobre a UI do modal de revisão de colaboradores. (Status: **RESOLVIDO**)
+9.  **usuário**: Input should be a valid list esta dando esse erro gora - O usuário reporta outro erro de validação. (Status: **RESOLVIDO**)
+10. **usuário**: entendo que precisamos melhorar o fluxo... - O usuário fornece feedback valioso sobre UX e fluxo do sistema. (Status: **RESOLVIDO**)
 
 **Project Health Check:**
--   **Broken**: A funcionalidade de importação de colaboradores pode estar quebrada, pois foi reescrita e não testada.
--   **Mocked**: A geração do arquivo de importação para o SCI Único () usa um formato genérico e precisará ser atualizada quando o usuário fornecer o layout específico.
+-   **Broken**: A funcionalidade de Validação de Folha de Pagamento está quebrada. O agente estava no meio de uma refatoração.
+-   **Mocked**: A geração do arquivo de importação para o SCI Único ainda usa um formato genérico.
+-   **Risk**: A dependência de APIs de IA (tanto da plataforma quanto a chave do usuário) continua sendo um risco devido aos limites de orçamento/quota. A estratégia de priorizar o OCR local mitiga, mas não elimina, esse risco.
 
 **3rd Party Integrations**
--   **OpenAI / Gemini LLMs**: Usado para extração de dados de documentos (ex: ). Utiliza a .
--   **API da Receita Federal**: Usada para buscar dados de empresas por CNPJ (provavelmente via ). Não requer chave de usuário.
+-   **Emergent LLM Key**: Usado como um fallback para análise de documentos. O orçamento esgotou-se repetidamente.
+-   **Google Generative AI**: Integrado para usar a chave de API do próprio usuário. A quota gratuita diária também se esgotou.
+-   **Tesseract OCR**: Instalado localmente (, ) como o método principal e gratuito para extração de texto de documentos.
+-   **API da Receita Federal (BrasilAPI)**: Para busca de dados de empresas por CNPJ.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES (usado extensivamente após cada entrega de funcionalidade).
+-   **Testing agent used after significant changes**: YES
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: None.
--   **Known regressions**: None.
+-   **Test files created**: None
+-   **Known regressions**: A funcionalidade de Validação de Folha, que funcionava antes (mesmo que com custo), agora está quebrada devido a uma refatoração inacabada.
 
 **Credentials to test flow:**
--   Novas contas de usuário podem ser criadas diretamente na página de registro da aplicação. Use um e-mail e senha de sua escolha.
+-   A chave da API do Google AI do usuário está em  como . Esteja ciente de que ela pode estar sem quota.
+-   Contas de usuário podem ser criadas na página de registro.
 
 **What agent forgot to execute**
--   O agente não esqueceu nenhuma tarefa solicitada. A tarefa atual (importação de múltiplos colaboradores) está em andamento e é a continuação direta do último pedido do usuário. O plano de refatorar o  foi corretamente adiado em favor da entrega de valor ao usuário.</analysis>
+-   O agente não concluiu a refatoração da funcionalidade de validação de folha. Ele removeu parte da implementação antiga baseada em IA, mas não finalizou a nova implementação baseada em OCR local, deixando a funcionalidade em um estado quebrado e não testado.</analysis>
