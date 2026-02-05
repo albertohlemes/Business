@@ -1871,19 +1871,19 @@ async def gerar_arquivo_importacao_sci(
     current_user: dict = Depends(get_current_user)
 ):
     """Generate import file for SCI Único (Excel or TXT format)"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from io import BytesIO
+    from fastapi.responses import StreamingResponse
+    
+    cliente_id = data.get("cliente_id")
+    funcionarios = data.get("funcionarios", [])
+    formato = data.get("formato", "xlsx")
+    
+    if not funcionarios:
+        raise HTTPException(status_code=400, detail="Nenhum funcionário para exportar")
+    
     try:
-        from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-        from io import BytesIO
-        from fastapi.responses import StreamingResponse
-        
-        cliente_id = data.get("cliente_id")
-        funcionarios = data.get("funcionarios", [])
-        formato = data.get("formato", "xlsx")
-        
-        if not funcionarios:
-            raise HTTPException(status_code=400, detail="Nenhum funcionário para exportar")
-        
         if formato == "xlsx":
             # Generate Excel file
             wb = Workbook()
