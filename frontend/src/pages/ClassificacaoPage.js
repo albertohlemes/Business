@@ -193,6 +193,37 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     return sorted;
   }, [groupedProducts, sortConfig]);
 
+  // Agrupar produtos por categoria para visualização agrupada
+  const productsByCategoria = useMemo(() => {
+    const grupos = {
+      'REVENDA': { produtos: [], cor: 'bg-green-500', corFundo: 'bg-green-50', icon: '🛒' },
+      'INSUMO': { produtos: [], cor: 'bg-blue-500', corFundo: 'bg-blue-50', icon: '⚙️' },
+      'DESPESA': { produtos: [], cor: 'bg-orange-500', corFundo: 'bg-orange-50', icon: '📋' },
+      'ATIVO_IMOBILIZADO': { produtos: [], cor: 'bg-purple-500', corFundo: 'bg-purple-50', icon: '🏭' },
+      'COMBUSTIVEL': { produtos: [], cor: 'bg-gray-700', corFundo: 'bg-gray-50', icon: '⛽' },
+      'PENDENTE': { produtos: [], cor: 'bg-red-500', corFundo: 'bg-red-50', icon: '⚠️' },
+    };
+    
+    sortedProducts.forEach(prod => {
+      const cat = (prod.categoria || '').toUpperCase();
+      if (cat.includes('REVENDA')) {
+        grupos['REVENDA'].produtos.push(prod);
+      } else if (cat.includes('INSUMO')) {
+        grupos['INSUMO'].produtos.push(prod);
+      } else if (cat.includes('DESPESA')) {
+        grupos['DESPESA'].produtos.push(prod);
+      } else if (cat.includes('ATIVO') || cat.includes('IMOBILIZADO')) {
+        grupos['ATIVO_IMOBILIZADO'].produtos.push(prod);
+      } else if (cat.includes('COMBUSTIVEL') || cat.includes('COMBUSTÍVEL')) {
+        grupos['COMBUSTIVEL'].produtos.push(prod);
+      } else {
+        grupos['PENDENTE'].produtos.push(prod);
+      }
+    });
+    
+    return grupos;
+  }, [sortedProducts]);
+
   // Funções de aprovação
   const isProductApproved = (docId, productCode) => {
     return !!approvedProducts[`${docId}_${productCode}`];
