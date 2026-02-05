@@ -3057,6 +3057,129 @@ async def get_document(
     return document
 
 
+@api_router.post("/xml/reprocess/{document_id}")
+async def reprocess_document(
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Re-processa o XML original de um documento para extrair campos faltantes
+    (como ICMS-ST, endereços, etc.) que não existiam na versão anterior.
+    """
+    document = await db.xml_documents.find_one({"id": document_id}, {"_id": 0})
+    if not document:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    
+    xml_content = document.get('xml_content', '')
+    if not xml_content:
+        return {"success": False, "error": "XML original não encontrado"}
+    
+    try:
+        # Re-parsear o XML original
+        modelo = document.get('modelo', 'nfe')
+        if modelo == 'nfse':
+            parsed = parse_xml_nfse(xml_content)
+        elif modelo == 'nfce':
+            parsed = parse_xml_nfce(xml_content)
+        else:
+            parsed = parse_xml_nfe(xml_content)
+        
+        # Atualizar o documento com os novos campos extraídos
+        update_data = {
+            'produtos': parsed.get('produtos', []),
+            'emitente_ie': parsed.get('emitente_ie', ''),
+            'emitente_endereco': parsed.get('emitente_endereco', {}),
+            'destinatario_ie': parsed.get('destinatario_ie', ''),
+            'destinatario_endereco': parsed.get('destinatario_endereco', {}),
+            'total_ipi': parsed.get('total_ipi', 0),
+            'total_icms_st': parsed.get('total_icms_st', 0),
+            'total_frete': parsed.get('total_frete', 0),
+            'total_seguro': parsed.get('total_seguro', 0),
+            'total_outras_despesas': parsed.get('total_outras_despesas', 0),
+            'total_desconto': parsed.get('total_desconto', 0),
+        }
+        
+        await db.xml_documents.update_one(
+            {"id": document_id},
+            {"$set": update_data}
+        )
+        
+        return {
+            "success": True,
+            "document_id": document_id,
+            "numero_nfe": document.get('numero_nfe'),
+            "campos_atualizados": list(update_data.keys()),
+            "total_icms_st": update_data['total_icms_st'],
+            "produtos_com_st": sum(1 for p in update_data['produtos'] if p.get('v_icms_st', 0) > 0)
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": f"Erro ao re-processar: {str(e)}"}
+
+
+@api_router.post("/xml/reprocess-batch/{company_id}/{competencia}")
+async def reprocess_batch(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Re-processa todos os XMLs de uma competência para extrair campos faltantes.
+    """
+    documents = await db.xml_documents.find(
+        {"company_id": company_id, "competencia": competencia},
+        {"_id": 0, "id": 1, "numero_nfe": 1, "xml_content": 1, "modelo": 1}
+    ).to_list(2000)
+    
+    if not documents:
+        return {"success": False, "error": "Nenhum documento encontrado"}
+    
+    results = {"total": len(documents), "success": 0, "errors": 0, "with_st": 0}
+    
+    for doc in documents:
+        try:
+            xml_content = doc.get('xml_content', '')
+            if not xml_content:
+                results['errors'] += 1
+                continue
+            
+            modelo = doc.get('modelo', 'nfe')
+            if modelo == 'nfse':
+                parsed = parse_xml_nfse(xml_content)
+            elif modelo == 'nfce':
+                parsed = parse_xml_nfce(xml_content)
+            else:
+                parsed = parse_xml_nfe(xml_content)
+            
+            update_data = {
+                'produtos': parsed.get('produtos', []),
+                'emitente_ie': parsed.get('emitente_ie', ''),
+                'emitente_endereco': parsed.get('emitente_endereco', {}),
+                'destinatario_ie': parsed.get('destinatario_ie', ''),
+                'destinatario_endereco': parsed.get('destinatario_endereco', {}),
+                'total_ipi': parsed.get('total_ipi', 0),
+                'total_icms_st': parsed.get('total_icms_st', 0),
+                'total_frete': parsed.get('total_frete', 0),
+                'total_seguro': parsed.get('total_seguro', 0),
+                'total_outras_despesas': parsed.get('total_outras_despesas', 0),
+                'total_desconto': parsed.get('total_desconto', 0),
+            }
+            
+            await db.xml_documents.update_one(
+                {"id": doc['id']},
+                {"$set": update_data}
+            )
+            
+            results['success'] += 1
+            if update_data['total_icms_st'] > 0:
+                results['with_st'] += 1
+                
+        except Exception as e:
+            results['errors'] += 1
+    
+    return results
+
+
 @api_router.get("/xml/validate-integrity/{document_id}")
 async def validate_document_integrity(
     document_id: str,
