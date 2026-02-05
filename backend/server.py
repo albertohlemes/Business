@@ -821,7 +821,7 @@ REGRAS: Extraia TODOS os funcionários. Salário como número. Datas DD/MM/AAAA.
                 response_text = response_text[4:]
         resultado = json.loads(response_text.strip())
         return resultado.get("colaboradores", [])
-    except:
+    except (json.JSONDecodeError, IndexError, KeyError):
         return []
 
 @api_router.post("/colaboradores/salvar-lote")
