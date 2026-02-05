@@ -678,7 +678,7 @@ const ValidacaoFolha = () => {
 
       {/* Dialog Resultado */}
       <Dialog open={resultDialogOpen} onOpenChange={setResultDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {analysisResult?.total_divergencias > 0 ? (
@@ -693,32 +693,34 @@ const ValidacaoFolha = () => {
           {analysisResult && (
             <div className="space-y-6 mt-4">
               {/* Summary Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <Card className="border-slate-200">
-                  <CardContent className="p-4 text-center">
+                  <CardContent className="p-3 text-center">
                     <p className="text-2xl font-bold text-slate-900">{analysisResult.funcionarios_analisados || 0}</p>
-                    <p className="text-xs text-slate-500">Funcionários</p>
-                  </CardContent>
-                </Card>
-                <Card className={`border-slate-200 ${analysisResult.total_divergencias > 0 ? 'bg-rose-50' : ''}`}>
-                  <CardContent className="p-4 text-center">
-                    <p className={`text-2xl font-bold ${analysisResult.total_divergencias > 0 ? 'text-rose-600' : 'text-slate-900'}`}>
-                      {analysisResult.total_divergencias || 0}
-                    </p>
-                    <p className="text-xs text-slate-500">Divergências</p>
+                    <p className="text-xs text-slate-500">Colaboradores</p>
                   </CardContent>
                 </Card>
                 <Card className="border-slate-200 bg-emerald-50">
-                  <CardContent className="p-4 text-center">
-                    <p className="text-2xl font-bold text-emerald-600">{analysisResult.total_conferidos || 0}</p>
-                    <p className="text-xs text-slate-500">Conferidos OK</p>
+                  <CardContent className="p-3 text-center">
+                    <p className="text-2xl font-bold text-emerald-600">{analysisResult.estatisticas?.ok || 0}</p>
+                    <p className="text-xs text-slate-500">OK</p>
                   </CardContent>
                 </Card>
-                <Card className={`border-slate-200 ${analysisResult.impacto_financeiro_total > 0 ? 'bg-amber-50' : ''}`}>
-                  <CardContent className="p-4 text-center">
-                    <p className={`text-lg font-bold ${analysisResult.impacto_financeiro_total > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
-                      {formatCurrency(analysisResult.impacto_financeiro_total || 0)}
-                    </p>
+                <Card className="border-slate-200 bg-amber-50">
+                  <CardContent className="p-3 text-center">
+                    <p className="text-2xl font-bold text-amber-600">{analysisResult.estatisticas?.atencao || 0}</p>
+                    <p className="text-xs text-slate-500">Atenção</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-slate-200 bg-rose-50">
+                  <CardContent className="p-3 text-center">
+                    <p className="text-2xl font-bold text-rose-600">{analysisResult.estatisticas?.divergente || 0}</p>
+                    <p className="text-xs text-slate-500">Divergente</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-slate-200">
+                  <CardContent className="p-3 text-center">
+                    <p className="text-lg font-bold text-amber-600">{formatCurrency(analysisResult.impacto_financeiro_total || 0)}</p>
                     <p className="text-xs text-slate-500">Impacto</p>
                   </CardContent>
                 </Card>
@@ -726,78 +728,116 @@ const ValidacaoFolha = () => {
 
               {/* Resumo */}
               {analysisResult.resumo_executivo && (
-                <Card className="border-slate-200">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Resumo Executivo</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-slate-600 whitespace-pre-line">{analysisResult.resumo_executivo}</p>
-                  </CardContent>
-                </Card>
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <p className="text-sm text-slate-700">{analysisResult.resumo_executivo}</p>
+                </div>
               )}
 
-              {/* Divergências */}
-              {analysisResult.divergencias?.length > 0 && (
-                <Card className="border-rose-200">
-                  <CardHeader className="pb-2 bg-rose-50">
-                    <CardTitle className="text-sm text-rose-700 flex items-center gap-2">
-                      <XCircle size={16} />
-                      Divergências Encontradas ({analysisResult.divergencias.length})
+              {/* Tabela de Colaboradores */}
+              {analysisResult.colaboradores?.length > 0 && (
+                <Card className="border-slate-200">
+                  <CardHeader className="pb-2 bg-slate-50 border-b">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Building2 size={16} className="text-indigo-600" />
+                      Validação por Colaborador
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="divide-y divide-rose-100">
-                      {analysisResult.divergencias.map((d, i) => (
-                        <div key={i} className="p-4 hover:bg-rose-50">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-medium text-slate-900">{d.funcionario || 'Geral'}</span>
-                                {getSeverityBadge(d.severidade)}
-                              </div>
-                              <p className="text-sm text-slate-600">{d.descricao}</p>
-                              {(d.valor_esperado || d.valor_encontrado) && (
-                                <div className="mt-2 flex gap-4 text-xs">
-                                  {d.valor_esperado && (
-                                    <span className="text-emerald-600">Esperado: <strong>{d.valor_esperado}</strong></span>
-                                  )}
-                                  {d.valor_encontrado && (
-                                    <span className="text-rose-600">Encontrado: <strong>{d.valor_encontrado}</strong></span>
-                                  )}
-                                  {d.impacto_financeiro > 0 && (
-                                    <span className="text-amber-600">Impacto: <strong>{formatCurrency(d.impacto_financeiro)}</strong></span>
-                                  )}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 border-b">
+                          <tr>
+                            <th className="text-left p-3 font-medium">Status</th>
+                            <th className="text-left p-3 font-medium">Colaborador</th>
+                            <th className="text-right p-3 font-medium">Líquido</th>
+                            <th className="text-center p-3 font-medium">Var. Mês Ant.</th>
+                            <th className="text-left p-3 font-medium">Divergências</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {analysisResult.colaboradores.map((colab, idx) => (
+                            <tr key={idx} className={`hover:bg-slate-50 ${colab.status === 'divergente' ? 'bg-rose-50/50' : colab.status === 'atencao' ? 'bg-amber-50/50' : ''}`}>
+                              <td className="p-3">
+                                {colab.status === 'ok' && <CheckCircle2 className="text-emerald-500" size={20} />}
+                                {colab.status === 'atencao' && <AlertTriangle className="text-amber-500" size={20} />}
+                                {colab.status === 'divergente' && <XCircle className="text-rose-500" size={20} />}
+                              </td>
+                              <td className="p-3">
+                                <div>
+                                  <p className="font-medium text-slate-900">{colab.nome}</p>
+                                  <p className="text-xs text-slate-500">
+                                    {colab.cpf && <span className="mr-2">{colab.cpf}</span>}
+                                    {colab.cargo && <span className="text-indigo-600">{colab.cargo}</span>}
+                                  </p>
                                 </div>
-                              )}
-                            </div>
-                            <Badge variant="outline" className="text-xs shrink-0">{d.campo || d.tipo}</Badge>
-                          </div>
-                        </div>
-                      ))}
+                              </td>
+                              <td className="p-3 text-right font-mono font-medium">
+                                {formatCurrency(colab.dados_atuais?.liquido || 0)}
+                              </td>
+                              <td className="p-3 text-center">
+                                {colab.comparacao_anterior?.encontrado ? (
+                                  <div className="flex flex-col items-center">
+                                    {colab.comparacao_anterior.campos?.filter(c => c.campo === 'Líquido').map((c, i) => (
+                                      <span key={i} className={`text-xs font-medium ${c.percentual > 0 ? 'text-emerald-600' : c.percentual < 0 ? 'text-rose-600' : 'text-slate-500'}`}>
+                                        {c.percentual > 0 ? '+' : ''}{c.percentual.toFixed(1)}%
+                                        <span className="block text-[10px] text-slate-400">
+                                          {c.diferenca > 0 ? '+' : ''}{formatCurrency(c.diferenca)}
+                                        </span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : colab.comparacao_anterior?.encontrado === false ? (
+                                  <Badge variant="outline" className="text-xs">Novo</Badge>
+                                ) : (
+                                  <span className="text-slate-400">-</span>
+                                )}
+                              </td>
+                              <td className="p-3">
+                                {(colab.divergencias?.length > 0 || colab.divergencias_apoio?.length > 0) ? (
+                                  <div className="space-y-1">
+                                    {colab.divergencias?.map((div, i) => (
+                                      <div key={`d-${i}`} className="text-xs text-rose-600 bg-rose-100 px-2 py-1 rounded">
+                                        <strong>{div.campo}:</strong> {div.esperado?.toLocaleString('pt-BR')} → {div.encontrado?.toLocaleString('pt-BR')}
+                                        {div.percentual && <span className="ml-1">({div.percentual > 0 ? '+' : ''}{div.percentual.toFixed(1)}%)</span>}
+                                      </div>
+                                    ))}
+                                    {colab.divergencias_apoio?.map((div, i) => (
+                                      <div key={`da-${i}`} className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded">
+                                        <strong>{div.campo}:</strong> Apoio={div.valor_apoio} ≠ Holerite={div.valor_holerite}
+                                        <span className="block text-[10px] text-amber-600">{div.arquivo}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-emerald-600 text-xs">Sem divergências</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Campos Conferidos */}
-              {analysisResult.campos_conferidos?.length > 0 && (
-                <Card className="border-emerald-200">
-                  <CardHeader className="pb-2 bg-emerald-50">
-                    <CardTitle className="text-sm text-emerald-700 flex items-center gap-2">
-                      <CheckCircle2 size={16} />
-                      Campos Conferidos OK ({analysisResult.campos_conferidos.length})
+              {/* Referências Extraídas do Apoio */}
+              {analysisResult.referencias_apoio?.length > 0 && (
+                <Card className="border-blue-200">
+                  <CardHeader className="pb-2 bg-blue-50">
+                    <CardTitle className="text-sm text-blue-700 flex items-center gap-2">
+                      <FileText size={16} />
+                      Referências dos Arquivos de Apoio
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4">
                     <div className="flex flex-wrap gap-2">
-                      {analysisResult.campos_conferidos.slice(0, 20).map((c, i) => (
-                        <Badge key={i} variant="outline" className="text-emerald-600 border-emerald-300">
-                          {c.funcionario ? `${c.funcionario}: ` : ''}{c.campo} {c.valor ? `(${typeof c.valor === 'number' ? formatCurrency(c.valor) : c.valor})` : ''}
+                      {analysisResult.referencias_apoio.map((ref, i) => (
+                        <Badge key={i} variant="outline" className="text-blue-600 border-blue-300">
+                          {ref.identificador}: {ref.valor} {ref.tipo.replace('_', ' ')}
+                          <span className="text-[10px] text-slate-400 ml-1">({ref.arquivo})</span>
                         </Badge>
                       ))}
-                      {analysisResult.campos_conferidos.length > 20 && (
-                        <Badge variant="secondary">+{analysisResult.campos_conferidos.length - 20} mais</Badge>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
