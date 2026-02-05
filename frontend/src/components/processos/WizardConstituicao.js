@@ -1273,6 +1273,8 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
             setRazaoSocial(dadosEmpresa.razao_social || processoEditando.razao_social || processoEditando.nome_empresa || '');
             setNomeFantasia(dadosEmpresa.nome_fantasia || processoEditando.nome_fantasia || '');
             setCapitalSocial(dadosEmpresa.capital_social || processoEditando.capital_social || '');
+            setInscricaoEstadual(dadosEmpresa.inscricao_estadual || processoEditando.inscricao_estadual || '');
+            setInscricaoMunicipal(dadosEmpresa.inscricao_municipal || processoEditando.inscricao_municipal || '');
             
             // Carregar endereço da empresa
             if (dadosEmpresa.endereco) {
