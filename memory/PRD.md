@@ -270,14 +270,32 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
        - ✓ Verde: "Todas as X notas com valores íntegros"
        - ⚠ Âmbar: "X de Y notas OK (Z com divergência)" + botão "Ver detalhes"
   - **Resultado:** Validação em tempo real garante fidelidade dos valores para exportação SPED
-  - **Arquivos modificados:**
-    - `/app/backend/server.py` - 2 novos endpoints de validação
-    - `/app/frontend/src/pages/Documents.js` - Card de integridade
 
-- ✅ **TESTES: 15/15 testes passaram (Iteration 15)**
-  - Verificado: Endpoints de integridade funcionam corretamente
-  - Verificado: Card de integridade exibe corretamente
-  - Verificado: 535 documentos ANZEN 12/2025 passam validação de integridade
+- ✅ **MODAL DE DETALHAMENTO DA NF (NOVO)**
+  - **Problema:** Usuário precisava visualizar itens da NF e validar que a soma está correta
+  - **Solução:**
+    1. Modal abre ao clicar no número da NF na página Documentos
+    2. Header com número da NF, emitente, data e indicador de integridade
+    3. Cards de resumo: Valor NF, BC ICMS, ICMS, IPI, PIS, COFINS
+    4. **Totalizador por CFOP** - tabela com Qtd, Valor, BC ICMS, ICMS, IPI, PIS, COFINS por CFOP
+    5. **Lista de Itens** - todos os produtos com NCM, CFOP, CST, Qtd, Valor, ICMS, IPI, PIS/COF
+    6. **Indicador de integridade:** ✓ Verde (Valores OK) ou ✗ Vermelho (Com Divergência + detalhes)
+  - **Arquivos:** `/app/frontend/src/pages/Documents.js`
+
+- ✅ **LINKS DE NF NA PÁGINA VALIDAÇÃO & IA**
+  - **Problema:** Quando havia muitas NFs, mostrava "+1, +2" sem detalhes
+  - **Solução:**
+    1. Componente NFsList exibe todas as NFs (não oculta com +1)
+    2. Números da NF são hiperlinks azuis clicáveis
+    3. Ao clicar, navega para `/documents?highlight={doc_id}`
+    4. Opção "mais" permite expandir para ver todas as NFs
+  - **Arquivos:** `/app/frontend/src/pages/ClassificacaoPage.js`
+
+- ✅ **TESTES: 6/6 features passaram (Iteration 16)**
+  - Modal de detalhamento funciona corretamente
+  - Totalizador por CFOP exibe valores agregados
+  - Indicador verde/vermelho funciona (NF 30073 mostra divergência real de R$ 279,95)
+  - Links das NFs navegam corretamente
 
 ### 02/2026 - Iteration 31 (04/02/2026)
 - ✅ **CORREÇÃO: Crédito PIS/COFINS divergente entre Dashboard e Apuração**
