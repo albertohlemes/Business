@@ -1049,6 +1049,8 @@ const ClassificacaoPage = ({ user, onLogout }) => {
               ))
             )}
           </div>
+            </>
+          )}
         </div>
       </div>
 
