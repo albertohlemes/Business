@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Calculator, Upload, Loader2, FileUp, Download, CheckCircle2, AlertTriangle, Pencil, Trash2, Plus, FileSpreadsheet, FileText, Eye } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useEmpresa } from '../contexts/EmpresaContext';
+import { ImportMediasProgress } from '../components/ProcessingBar';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
