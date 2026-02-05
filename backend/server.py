@@ -2631,6 +2631,172 @@ async def delete_cadastro_historico(
 
 # ============ EXTRAÇÃO POR IA PARA CADASTROS ============
 
+@api_router.post("/cadastros/extrair-dados-multiplos")
+async def extrair_dados_multiplos_documentos(
+    files: List[UploadFile] = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Extrai e consolida dados de MÚLTIPLOS documentos empresariais usando IA.
+    A IA analisa cada documento e mescla as informações automaticamente.
+    
+    Aceita: Cartão CNPJ, Certidão Inteiro Teor, Contrato Social, Comprovante de Endereço, RG/CNH dos sócios
+    """
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        import tempfile
+        import json as json_lib
+        
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not api_key:
+            raise HTTPException(status_code=500, detail="Chave de API não configurada")
+        
+        if not files or len(files) == 0:
+            raise HTTPException(status_code=400, detail="Nenhum arquivo enviado")
+        
+        # Processar cada arquivo e salvar temporariamente
+        tmp_files = []
+        file_contents = []
+        
+        for file in files:
+            content_type = file.content_type or ''
+            filename = file.filename or ''
+            
+            if 'pdf' in content_type or filename.endswith('.pdf'):
+                mime_type = 'application/pdf'
+                suffix = '.pdf'
+            elif 'png' in content_type or filename.endswith('.png'):
+                mime_type = 'image/png'
+                suffix = '.png'
+            elif 'jpeg' in content_type or 'jpg' in content_type or filename.endswith(('.jpg', '.jpeg')):
+                mime_type = 'image/jpeg'
+                suffix = '.jpg'
+            else:
+                mime_type = 'application/pdf'
+                suffix = '.pdf'
+            
+            file_content = await file.read()
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(file_content)
+                tmp_path = tmp.name
+                tmp_files.append(tmp_path)
+                file_contents.append(FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type))
+        
+        system_message = """Você é um especialista em análise de documentos empresariais brasileiros.
+Você receberá MÚLTIPLOS documentos de uma mesma empresa. Sua tarefa é:
+
+1. ANALISAR CADA DOCUMENTO separadamente
+2. IDENTIFICAR o tipo de cada documento (Cartão CNPJ, Contrato Social, Certidão Junta, RG/CNH, Comprovante Endereço, etc.)
+3. EXTRAIR as informações relevantes de cada um
+4. CONSOLIDAR todas as informações em um único JSON, priorizando:
+   - Cartão CNPJ: CNPJ, Razão Social, Nome Fantasia, Data Abertura, Situação
+   - Contrato Social/Alteração: Sócios, Capital Social, Objeto Social, Administração
+   - Certidão Junta: NIRE, dados complementares
+   - RG/CNH dos sócios: Nome completo, CPF, Data/Local Nascimento, Estado Civil
+   - Comprovante Endereço: Endereço atualizado
+
+IMPORTANTE: 
+- Se houver informações conflitantes entre documentos, priorize o documento mais oficial (Cartão CNPJ > Contrato > outros)
+- Para dados dos SÓCIOS, extraia de TODOS os documentos (RG, CNH, Contrato) e consolide
+- Inclua a naturalidade (cidade/estado de nascimento) dos sócios quando disponível
+
+SEMPRE responda APENAS com um JSON válido, sem markdown, sem explicações.
+O JSON deve seguir esta estrutura:
+
+{
+    "cnpj": "00.000.000/0001-00",
+    "razao_social": "NOME DA EMPRESA LTDA",
+    "nome_fantasia": "Nome Fantasia",
+    "inscricao_estadual": "000.000.000.000 ou ISENTO",
+    "inscricao_municipal": "000.000.000",
+    "data_abertura": "DD/MM/AAAA",
+    "endereco": {
+        "logradouro": "Rua/Av completo",
+        "numero": "000",
+        "complemento": "Sala/Andar",
+        "bairro": "Bairro",
+        "cidade": "Cidade",
+        "estado": "UF",
+        "cep": "00000-000"
+    },
+    "telefone": "(00) 00000-0000",
+    "email": "email@empresa.com",
+    "capital_social": "R$ 0.000,00",
+    "objeto_social": "Descrição das atividades",
+    "socios": [
+        {
+            "nome": "NOME COMPLETO",
+            "cpf": "000.000.000-00",
+            "rg": "00.000.000-0",
+            "data_nascimento": "DD/MM/AAAA",
+            "naturalidade": "Cidade/UF",
+            "estado_civil": "Solteiro/Casado/etc",
+            "profissao": "Empresário(a)",
+            "participacao": "50",
+            "administrador": true
+        }
+    ],
+    "nire": "00000000000",
+    "regime_tributario": "Simples Nacional / Lucro Presumido / Lucro Real",
+    "situacao_cadastral": "ATIVA",
+    "documentos_analisados": ["Cartão CNPJ", "Contrato Social", "RG Sócio 1"]
+}
+
+Se algum campo não for encontrado em nenhum documento, use null."""
+
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"cadastro-multi-extract-{uuid.uuid4()}",
+            system_message=system_message
+        ).with_model("gemini", "gemini-2.5-flash")
+        
+        user_message = UserMessage(
+            text=f"Analise estes {len(files)} documentos empresariais e extraia/consolide TODAS as informações em um único JSON. Identifique o tipo de cada documento e extraia os dados relevantes de cada um.",
+            file_contents=file_contents
+        )
+        
+        response = await chat.send_message(user_message)
+        
+        # Limpar arquivos temporários
+        for tmp_path in tmp_files:
+            try:
+                os.unlink(tmp_path)
+            except:
+                pass
+        
+        # Parsear JSON da resposta
+        try:
+            json_str = response.strip()
+            if json_str.startswith('```'):
+                json_str = json_str.split('```')[1]
+                if json_str.startswith('json'):
+                    json_str = json_str[4:]
+            if json_str.endswith('```'):
+                json_str = json_str[:-3]
+            
+            dados = json_lib.loads(json_str.strip())
+        except json_lib.JSONDecodeError:
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', response)
+            if json_match:
+                dados = json_lib.loads(json_match.group())
+            else:
+                dados = {"raw_text": response}
+        
+        return {
+            "success": True,
+            "dados": dados,
+            "arquivos_processados": len(files)
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao extrair dados de múltiplos documentos: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Erro na extração: {str(e)}",
+            "dados": {}
+        }
+
 @api_router.post("/cadastros/extrair-dados")
 async def extrair_dados_cadastro(
     file: UploadFile = File(...),
