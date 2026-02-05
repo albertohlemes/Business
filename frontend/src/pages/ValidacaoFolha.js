@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { 
   ClipboardCheck, Upload, Loader2, FileUp, AlertTriangle, CheckCircle2, 
   XCircle, FileText, Calendar, Building2, X, Eye, TrendingUp, TrendingDown,
-  Minus, ChevronDown, ChevronUp, History, Search, Filter
+  Minus, ChevronDown, ChevronUp, History, Search, Filter, Trash2
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useEmpresa } from '../contexts/EmpresaContext';
