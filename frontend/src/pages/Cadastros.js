@@ -579,7 +579,7 @@ E-MAIL: ${sciForm.email || 'N/A'}
                     ) : (
                         <div className="space-y-2 max-h-[300px] overflow-y-auto">
                             {historico.map((item) => (
-                                <div key={item.id} className="flex items-center justify-between bg-zinc-800/50 border border-zinc-700 rounded-lg p-3">
+                                <div key={item.id} className="flex items-center justify-between bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 hover:bg-zinc-800/80 transition-colors">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-8 h-8 rounded flex items-center justify-center ${item.tipo === 'cadastro_direto_gclick' ? 'bg-green-600/20' : 'bg-blue-600/20'}`}>
                                             {item.tipo === 'cadastro_direto_gclick' ? (
@@ -597,11 +597,32 @@ E-MAIL: ${sciForm.email || 'N/A'}
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-3">
                                         <span className="text-zinc-500 text-xs">{formatarData(item.created_at)}</span>
                                         {item.gclick_response?.id && (
                                             <CheckCircle className="w-4 h-4 text-green-500" title="Enviado com sucesso" />
                                         )}
+                                        <div className="flex items-center gap-1 ml-2">
+                                            <Button 
+                                                size="sm" 
+                                                variant="ghost" 
+                                                onClick={() => carregarDoHistorico(item)}
+                                                className="h-7 px-2 text-zinc-400 hover:text-white hover:bg-zinc-700"
+                                                title={item.tipo === 'cadastro_direto_gclick' ? 'Reenviar para GClick' : 'Editar e Exportar'}
+                                            >
+                                                <RefreshCw className="w-3 h-3 mr-1" />
+                                                {item.tipo === 'cadastro_direto_gclick' ? 'Reenviar' : 'Editar'}
+                                            </Button>
+                                            <Button 
+                                                size="sm" 
+                                                variant="ghost" 
+                                                onClick={() => excluirDoHistorico(item.id)}
+                                                className="h-7 px-2 text-zinc-400 hover:text-red-500 hover:bg-red-600/10"
+                                                title="Excluir do histórico"
+                                            >
+                                                <Trash2 className="w-3 h-3" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
