@@ -1799,6 +1799,368 @@ Identifique todas as divergências entre os valores do eSocial e do SCI Único."
         logger.error(f"Erro na comparação: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao comparar informes: {str(e)}")
 
+@api_router.get("/informes/historico")
+async def listar_comparacoes_informes(current_user: dict = Depends(get_current_user)):
+    """List all income report comparisons"""
+    comparacoes = await db.comparacoes_informes.find(
+        {"user_id": current_user["id"]},
+        {"_id": 0, "user_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return comparacoes
+
+# ==================== RELATÓRIOS (PDF/EXCEL) ====================
+
+@api_router.get("/relatorios/colaboradores/excel")
+async def relatorio_colaboradores_excel(
+    cliente_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate Excel report of employees"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from io import BytesIO
+    
+    query = {"user_id": current_user["id"]}
+    if cliente_id:
+        query["cliente_id"] = cliente_id
+    
+    colaboradores = await db.colaboradores.find(query, {"_id": 0, "user_id": 0}).to_list(10000)
+    clientes = await db.clientes.find({"user_id": current_user["id"]}, {"_id": 0}).to_list(1000)
+    clientes_dict = {c["id"]: c.get("nome_fantasia") or c.get("razao_social") for c in clientes}
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Colaboradores"
+    
+    # Styles
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    # Headers
+    headers = ["Empresa", "Nome", "CPF", "Cargo", "Departamento", "Salário Base", "Data Admissão", "PIS", "Email", "Celular"]
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = border
+    
+    # Data
+    for row, colab in enumerate(colaboradores, 2):
+        empresa = clientes_dict.get(colab.get("cliente_id"), "N/A")
+        data = [
+            empresa,
+            colab.get("nome", ""),
+            colab.get("cpf", ""),
+            colab.get("cargo", ""),
+            colab.get("departamento", ""),
+            colab.get("salario_base", 0),
+            colab.get("data_admissao", ""),
+            colab.get("pis", ""),
+            colab.get("email", ""),
+            colab.get("celular", "")
+        ]
+        for col, value in enumerate(data, 1):
+            cell = ws.cell(row=row, column=col, value=value)
+            cell.border = border
+            if col == 6:  # Salary column
+                cell.number_format = 'R$ #,##0.00'
+    
+    # Adjust column widths
+    ws.column_dimensions['A'].width = 25
+    ws.column_dimensions['B'].width = 30
+    ws.column_dimensions['C'].width = 15
+    ws.column_dimensions['D'].width = 20
+    ws.column_dimensions['E'].width = 20
+    ws.column_dimensions['F'].width = 15
+    ws.column_dimensions['G'].width = 15
+    ws.column_dimensions['H'].width = 15
+    ws.column_dimensions['I'].width = 25
+    ws.column_dimensions['J'].width = 15
+    
+    # Save to bytes
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    filename = f"colaboradores_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@api_router.get("/relatorios/dissidios/excel")
+async def relatorio_dissidios_excel(
+    cliente_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate Excel report of dissídios"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from io import BytesIO
+    
+    query = {"user_id": current_user["id"]}
+    if cliente_id:
+        query["cliente_id"] = cliente_id
+    
+    dissidios = await db.dissidios.find(query, {"_id": 0, "user_id": 0}).to_list(1000)
+    clientes = await db.clientes.find({"user_id": current_user["id"]}, {"_id": 0}).to_list(1000)
+    clientes_dict = {c["id"]: c.get("nome_fantasia") or c.get("razao_social") for c in clientes}
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Dissídios"
+    
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    headers = ["Empresa", "Sindicato", "Percentual (%)", "Data-Base", "Colaboradores Afetados", "Valor Total Reajuste", "Status", "Criado em", "Aprovado em"]
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = border
+    
+    for row, dissidio in enumerate(dissidios, 2):
+        empresa = clientes_dict.get(dissidio.get("cliente_id"), "N/A")
+        data = [
+            empresa,
+            dissidio.get("sindicato", ""),
+            dissidio.get("percentual_reajuste", 0),
+            dissidio.get("data_base", ""),
+            dissidio.get("colaboradores_afetados", 0),
+            dissidio.get("valor_total_reajuste", 0),
+            dissidio.get("status", "").upper(),
+            dissidio.get("created_at", "")[:10] if dissidio.get("created_at") else "",
+            dissidio.get("aprovado_em", "")[:10] if dissidio.get("aprovado_em") else ""
+        ]
+        for col, value in enumerate(data, 1):
+            cell = ws.cell(row=row, column=col, value=value)
+            cell.border = border
+            if col == 3:
+                cell.number_format = '0.00%'
+            elif col == 6:
+                cell.number_format = 'R$ #,##0.00'
+    
+    for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']:
+        ws.column_dimensions[col].width = 18
+    
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    filename = f"dissidios_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@api_router.get("/relatorios/dissidio/{dissidio_id}/previa/excel")
+async def relatorio_previa_dissidio_excel(
+    dissidio_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate Excel report with salary adjustment preview for a specific dissídio"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from io import BytesIO
+    
+    dissidio = await db.dissidios.find_one({"id": dissidio_id, "user_id": current_user["id"]})
+    if not dissidio:
+        raise HTTPException(status_code=404, detail="Dissídio não encontrado")
+    
+    cliente = await db.clientes.find_one({"id": dissidio["cliente_id"]})
+    cliente_nome = cliente.get("nome_fantasia") or cliente.get("razao_social") if cliente else "N/A"
+    
+    percentual = dissidio["percentual_reajuste"]
+    colaboradores = await db.colaboradores.find(
+        {"cliente_id": dissidio["cliente_id"]},
+        {"_id": 0}
+    ).to_list(10000)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Prévia Reajuste"
+    
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="059669", end_color="059669", fill_type="solid")
+    title_font = Font(bold=True, size=14)
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    # Title section
+    ws.cell(row=1, column=1, value="PRÉVIA DE REAJUSTE SALARIAL - DISSÍDIO").font = title_font
+    ws.cell(row=2, column=1, value=f"Empresa: {cliente_nome}")
+    ws.cell(row=3, column=1, value=f"Sindicato: {dissidio.get('sindicato', '')}")
+    ws.cell(row=4, column=1, value=f"Percentual de Reajuste: {percentual}%")
+    ws.cell(row=5, column=1, value=f"Data-Base: {dissidio.get('data_base', '')}")
+    
+    # Headers
+    headers = ["Nome", "CPF", "Cargo", "Salário Atual", "Percentual", "Diferença (R$)", "Novo Salário"]
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=7, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = border
+    
+    total_atual = 0
+    total_diferenca = 0
+    total_novo = 0
+    
+    for row, colab in enumerate(colaboradores, 8):
+        salario_atual = colab.get("salario_base", 0) or 0
+        diferenca = round(salario_atual * (percentual / 100), 2)
+        salario_novo = round(salario_atual + diferenca, 2)
+        
+        total_atual += salario_atual
+        total_diferenca += diferenca
+        total_novo += salario_novo
+        
+        data = [
+            colab.get("nome", ""),
+            colab.get("cpf", ""),
+            colab.get("cargo", ""),
+            salario_atual,
+            f"{percentual}%",
+            diferenca,
+            salario_novo
+        ]
+        for col, value in enumerate(data, 1):
+            cell = ws.cell(row=row, column=col, value=value)
+            cell.border = border
+            if col in [4, 6, 7]:
+                cell.number_format = 'R$ #,##0.00'
+    
+    # Totals row
+    total_row = 8 + len(colaboradores)
+    total_fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
+    
+    for col, value in enumerate(["TOTAL", "", "", total_atual, "", total_diferenca, total_novo], 1):
+        cell = ws.cell(row=total_row, column=col, value=value)
+        cell.font = Font(bold=True)
+        cell.fill = total_fill
+        cell.border = border
+        if col in [4, 6, 7]:
+            cell.number_format = 'R$ #,##0.00'
+    
+    # Adjust widths
+    ws.column_dimensions['A'].width = 30
+    ws.column_dimensions['B'].width = 15
+    ws.column_dimensions['C'].width = 20
+    ws.column_dimensions['D'].width = 15
+    ws.column_dimensions['E'].width = 12
+    ws.column_dimensions['F'].width = 15
+    ws.column_dimensions['G'].width = 15
+    
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    filename = f"previa_dissidio_{dissidio_id[:8]}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@api_router.get("/relatorios/validacoes/excel")
+async def relatorio_validacoes_excel(
+    cliente_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate Excel report of payroll validations"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from io import BytesIO
+    
+    query = {"user_id": current_user["id"]}
+    if cliente_id:
+        query["cliente_id"] = cliente_id
+    
+    validacoes = await db.validacoes.find(query, {"_id": 0, "user_id": 0}).to_list(1000)
+    clientes = await db.clientes.find({"user_id": current_user["id"]}, {"_id": 0}).to_list(1000)
+    clientes_dict = {c["id"]: c.get("nome_fantasia") or c.get("razao_social") for c in clientes}
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Validações"
+    
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    headers = ["Empresa", "Mês/Ano", "Tipo", "Itens Verificados", "Erros/Divergências", "Status", "Data"]
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
+        cell.border = border
+    
+    for row, val in enumerate(validacoes, 2):
+        empresa = clientes_dict.get(val.get("cliente_id"), "N/A")
+        tipo = "Comparação c/ Apoio" if val.get("tipo_validacao") == "comparacao_apoio" else "Análise da Folha"
+        status = "OK" if val.get("total_erros", 0) == 0 else "Revisar"
+        data = [
+            empresa,
+            f"{val.get('mes_referencia', '')}/{val.get('ano_referencia', '')}",
+            tipo,
+            val.get("total_verificados", 0),
+            val.get("total_erros", 0),
+            status,
+            val.get("created_at", "")[:10] if val.get("created_at") else ""
+        ]
+        for col, value in enumerate(data, 1):
+            cell = ws.cell(row=row, column=col, value=value)
+            cell.border = border
+    
+    for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G']:
+        ws.column_dimensions[col].width = 18
+    
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    filename = f"validacoes_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 # ==================== CONVENÇÃO COLETIVA (DISSÍDIO) ====================
 
 @api_router.post("/convencao/analisar")
