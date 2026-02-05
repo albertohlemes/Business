@@ -2011,6 +2011,8 @@ async def gerar_arquivo_importacao_sci(
                 upsert=False
             )
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Erro ao gerar arquivo: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao gerar arquivo: {str(e)}")
