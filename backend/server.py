@@ -7435,12 +7435,13 @@ async def exportar_e_validar_sped(
         
         # C170 - Itens do documento
         elif reg == 'C170' and documento_atual['tipo']:
-            # |C170|NUM_ITEM|COD_ITEM|DESCR_COMPL|QTD|UNID|VL_ITEM|VL_DESC|IND_MOV|CST_ICMS|CFOP|...
-            if len(campos) > 11:
+            # Layout C170: |C170|NUM_ITEM|COD_ITEM|DESCR_COMPL|QTD|UNID|VL_ITEM|VL_DESC|IND_MOV|CST_ICMS|CFOP|COD_NAT|VL_BC_ICMS|ALIQ_ICMS|VL_ICMS|...
+            # Índices:      0    1        2        3           4   5    6       7       8       9        10   11      12         13        14
+            if len(campos) > 14:
                 cfop = campos[11]
                 valor = float(campos[7].replace(',', '.')) if campos[7] else 0
-                # ICMS está no campo 17 (VL_ICMS)
-                v_icms = float(campos[17].replace(',', '.')) if len(campos) > 17 and campos[17] else 0
+                # ICMS está no campo 15 (índice 14) - VL_ICMS
+                v_icms = float(campos[15].replace(',', '.')) if len(campos) > 15 and campos[15] else 0
                 
                 tipo = documento_atual['tipo']
                 sped_totais[tipo]['total_valor'] += valor
