@@ -1186,30 +1186,57 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
     # |REG|NOME|CPF|CRC|CNPJ|CEP|END|NUM|COMPL|BAIRRO|FONE|FAX|EMAIL|COD_MUN|
     lines.append("|0100|BUSINESS CONTABILIDADE||CRC-SP|12345678000199|01310100|AV PAULISTA|1000|||BELA VISTA|1140787878||business@businessconta.com.br|3550308|")
     
-    # Registro 0150 - Participantes (fornecedores/clientes)
+    # Registro 0150 - Participantes (fornecedores/clientes) com dados completos
     participantes = {}
     for doc in documents:
         emit_cnpj = doc.emitente_cnpj.replace('.','').replace('/','').replace('-','') if doc.emitente_cnpj else ''
         dest_cnpj = doc.destinatario_cnpj.replace('.','').replace('/','').replace('-','') if doc.destinatario_cnpj else ''
         
+        # Coletar dados do emitente
         if emit_cnpj and emit_cnpj not in participantes:
+            emit_end = getattr(doc, 'emitente_endereco', {}) or {}
             participantes[emit_cnpj] = {
                 'nome': (doc.emitente_nome or 'FORNECEDOR')[:60],
-                'uf': getattr(doc, 'emitente_uf', '') or 'SP'
+                'ie': (getattr(doc, 'emitente_ie', '') or '').replace('.','').replace('-',''),
+                'cod_mun': emit_end.get('cod_municipio', '') or '',
+                'uf': emit_end.get('uf', '') or getattr(doc, 'emitente_uf', '') or '',
+                'endereco': (emit_end.get('logradouro', '') or '')[:60],
+                'numero': (emit_end.get('numero', '') or '')[:10],
+                'complemento': (emit_end.get('complemento', '') or '')[:60],
+                'bairro': (emit_end.get('bairro', '') or '')[:60],
+                'cep': (emit_end.get('cep', '') or '').replace('-',''),
+                'cod_pais': emit_end.get('cod_pais', '1058'),
             }
+        
+        # Coletar dados do destinatário
         if dest_cnpj and dest_cnpj not in participantes:
+            dest_end = getattr(doc, 'destinatario_endereco', {}) or {}
             participantes[dest_cnpj] = {
                 'nome': (doc.destinatario_nome or 'CLIENTE')[:60],
-                'uf': getattr(doc, 'destinatario_uf', '') or 'SP'
+                'ie': (getattr(doc, 'destinatario_ie', '') or '').replace('.','').replace('-',''),
+                'cod_mun': dest_end.get('cod_municipio', '') or '',
+                'uf': dest_end.get('uf', '') or getattr(doc, 'destinatario_uf', '') or '',
+                'endereco': (dest_end.get('logradouro', '') or '')[:60],
+                'numero': (dest_end.get('numero', '') or '')[:10],
+                'complemento': (dest_end.get('complemento', '') or '')[:60],
+                'bairro': (dest_end.get('bairro', '') or '')[:60],
+                'cep': (dest_end.get('cep', '') or '').replace('-',''),
+                'cod_pais': dest_end.get('cod_pais', '1058'),
             }
     
     # |REG|COD_PART|NOME|COD_PAIS|CNPJ|CPF|IE|COD_MUN|SUFRAMA|END|NUM|COMPL|BAIRRO|
     for cnpj, info in participantes.items():
-        lines.append("|0150|{}|{}|1058|{}|||{}||||||".format(
-            cnpj,           # COD_PART
-            info['nome'],   # NOME
-            cnpj,           # CNPJ
-            info['uf']      # UF (campo usado para identificar o participante)
+        lines.append("|0150|{}|{}|{}|{}||{}|{}||{}|{}|{}|{}|".format(
+            cnpj,                       # COD_PART
+            info['nome'],               # NOME
+            info['cod_pais'] or '1058', # COD_PAIS
+            cnpj,                       # CNPJ
+            info['ie'],                 # IE
+            info['cod_mun'],            # COD_MUN
+            info['endereco'],           # END
+            info['numero'],             # NUM
+            info['complemento'],        # COMPL
+            info['bairro']              # BAIRRO
         ))
     
     # Registro 0190 - Unidades de medida
