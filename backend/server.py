@@ -2203,6 +2203,8 @@ IMPORTANTE: Gere o documento COMPLETO seguindo EXATAMENTE a estrutura acima. NÃ
             {
                 "$set": {
                     "tipo_processo": "constituicao",
+                    "razao_social": empresa.razao_social,
+                    "nome_empresa": empresa.razao_social,
                     "conteudo_gerado": contrato,
                     "dados_empresa": empresa.dict(),
                     "dados_socios": [s.dict() for s in socios],
