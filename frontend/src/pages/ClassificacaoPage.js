@@ -671,8 +671,9 @@ const ClassificacaoPage = ({ user, onLogout }) => {
           <p className="text-xs text-gray-500">
             Cód: {product.codigo}
           </p>
-          <p className="text-xs text-blue-600">
-            NFs: {product.ocorrencias?.slice(0, 2).map(o => o.nf || o.numero_nfe || '?').join(', ')}{product.ocorrencias?.length > 2 ? ` +${product.ocorrencias.length - 2}` : ''}
+          <p className="text-xs">
+            <span className="text-gray-500">NFs: </span>
+            <NFsList ocorrencias={product.ocorrencias || []} maxVisible={3} />
           </p>
         </div>
         
