@@ -4,12 +4,13 @@
 Portal para o Departamento Pessoal de escritório de contabilidade com foco em automatização de processos e conferências automatizadas.
 
 ## Stack Tecnológico
-- **Backend**: FastAPI + MongoDB + Emergent LLM (Gemini 2.5 Flash) + openpyxl (Excel)
+- **Backend**: FastAPI + MongoDB + Tesseract OCR + openpyxl (Excel)
 - **Frontend**: React + Tailwind + Shadcn UI + Recharts
-- **IA**: Gemini 2.5 Flash via Emergent LLM Key
+- **OCR**: Tesseract (local, gratuito) - PyMuPDF para PDFs
+- **IA (Fallback)**: Google AI Studio / Emergent LLM (apenas para casos complexos)
 - **Sistema Interno de Folha**: SCI Único (não tem API de integração)
 
-## Funcionalidades Implementadas (05/02/2026)
+## Funcionalidades Implementadas
 
 ### Autenticação e Base
 - ✅ Autenticação JWT (login/registro)
@@ -17,69 +18,58 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - ✅ CRUD Colaboradores
 - ✅ Seletor de Empresa + Competência no header
 - ✅ Dashboard com estatísticas (filtra por empresa e competência)
-- ✅ **CONTEXTO GLOBAL DE EMPRESA/COMPETÊNCIA (05/02/2026)**:
-  - Dashboard filtra dados pela empresa selecionada
-  - Código da empresa (#XXXX) aparece antes do nome em toda a UI
-  - Selects priorizam a empresa selecionada no contexto
-  - Competência setada é respeitada em todo o sistema
+- ✅ Código da empresa (#XXXX) aparece antes do nome em toda a UI
+- ✅ Selects priorizam a empresa selecionada no contexto
 
 ### Admissão de Colaboradores (eSocial)
 - ✅ Formulário completo com template eSocial (5 abas, 60+ campos)
-- ✅ Extração automática por IA de documentos
+- ✅ Extração automática por OCR híbrido (Tesseract local + IA fallback)
 - ✅ Suporte a documentos manuscritos e escaneados
-- ✅ Modal de revisão antes de salvar
-- ✅ **SUPORTE A MÚLTIPLOS VÍNCULOS (05/02/2026)**
-  - Extração de TODOS os colaboradores de uma única ficha de registro
-  - Navegação entre colaboradores extraídos com setas
-  - Contador de colaboradores completos (com nome e CPF)
-  - Opção de remover colaborador individual da lista
-  - Botão "Salvar Todos" para salvamento em lote
+- ✅ Suporte a múltiplos colaboradores por documento
+- ✅ Modal de revisão com navegação entre colaboradores
+- ✅ Botão "Salvar Todos" para salvamento em lote
 
 ### Dissídio Coletivo (COMPLETO)
 - ✅ Upload de convenção coletiva (PDF)
 - ✅ Extração por IA dos dados (sindicato, percentual, data-base, piso)
-- ✅ **Modal de prévia com tabela de colaboradores afetados**
-  - Salário atual, Percentual, Diferença R$, Novo salário, TOTAL
+- ✅ Modal de prévia com tabela de colaboradores afetados
 - ✅ Download Excel da prévia
 - ✅ Aprovação/Rejeição com aplicação automática
 
-### Validação de Folha (REESCRITO - 05/02/2026)
+### Validação de Folha (REFATORADO - 05/02/2026)
 - ✅ **Interface Unificada**: Uma única tela com 3 áreas de upload
   - **Holerite Atual** (obrigatório): Documento principal a ser validado
   - **Holerite Mês Anterior** (opcional): Para comparação mês a mês
-  - **Arquivos de Apoio** (opcional, múltiplos): Emails, planilhas, imagens, PDFs de referência
-- ✅ **Análise Cirúrgica com IA**:
-  - Extração de TODOS os valores numéricos (salário, HE, descontos, benefícios, FGTS)
-  - Comparação automática com mês anterior (variações, reajustes)
-  - Cruzamento com documentos de apoio (horas extras vs lançadas, comissões vs pagas)
-  - Cálculo de impacto financeiro das divergências
+  - **Arquivos de Apoio** (opcional, múltiplos): Emails, planilhas, imagens, PDFs
+- ✅ **OCR Local (Tesseract)**: Extração gratuita e rápida de texto
+  - Suporte a PDF, imagens (JPG, PNG), TXT, Excel
+  - Parser inteligente para formato brasileiro (1.234,56) e americano (1234.56)
+- ✅ **Análise Inteligente**:
+  - Extração automática de funcionário, competência, proventos, descontos, líquido
+  - Comparação com mês anterior (detecta variações >10%)
+  - Identificação de divergências com severidade (alta/média/baixa)
+  - Cálculo de impacto financeiro
 - ✅ **Histórico Consultável**:
-  - Validações agrupadas por competência (mês/ano)
-  - Linhas expansíveis para ver resumo rápido
-  - Detalhes completos disponíveis por validação
-- ✅ **Endpoints**:
-  - `POST /api/validacoes/validar-completa` - Validação unificada
-  - `GET /api/validacoes/{id}` - Detalhes completos de uma validação
+  - Validações agrupadas por competência
+  - Badges de tipo (Análise Isolada, Comparação Mensal, Com Apoio)
+  - Detalhes expandíveis por validação
 
 ### Informes de Rendimento (COMPLETO)
 - ✅ Comparação **eSocial vs SCI Único**
 - ✅ IA identifica divergências em rendimentos, IR, INSS, FGTS
 - ✅ Histórico de comparações
 
-### Importação de Médias para SCI Único (NOVO)
+### Importação de Médias para SCI Único
 - ✅ Upload do relatório de médias da antiga contabilidade
-- ✅ IA extrai dados de médias salariais (salário, HE, comissões, DSR, ad.noturno)
+- ✅ IA extrai dados de médias salariais
 - ✅ Modal de revisão com edição de valores
-- ✅ **Geração de arquivo para importar no SCI Único**
-  - Formato Excel (.xlsx) ou Texto (.txt pipe-delimited)
-  - Colunas: MATRÍCULA, CPF, NOME, COMPETÊNCIA, SALÁRIO, HE, COMISSÕES, DSR, AD.NOTURNO, OUTROS, TOTAL
-  - *Formato ajustável quando tiver documentação do layout exato do SCI Único*
+- ✅ Geração de arquivo para importar no SCI Único (Excel ou TXT)
 
 ### Relatórios Exportáveis (COMPLETO)
-- ✅ **Colaboradores**: Excel com dados cadastrais
-- ✅ **Dissídios**: Excel com histórico de reajustes
-- ✅ **Validações de Folha**: Excel com histórico de validações
-- ✅ **Prévia de Dissídio**: Excel com novos salários calculados
+- ✅ Colaboradores: Excel com dados cadastrais
+- ✅ Dissídios: Excel com histórico de reajustes
+- ✅ Validações de Folha: Excel com histórico
+- ✅ Prévia de Dissídio: Excel com novos salários calculados
 
 ## APIs Principais
 
@@ -90,33 +80,26 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - `GET /api/receita/{cnpj}`, CRUD `/api/clientes`
 
 ### Colaboradores
-- CRUD `/api/colaboradores`, `POST /api/colaboradores/importar`
-- `POST /api/colaboradores/salvar-lote` - Salva múltiplos colaboradores em lote
-- `POST /api/colaboradores/importar-lote` - Importa de múltiplos arquivos
+- CRUD `/api/colaboradores`
+- `POST /api/colaboradores/importar-hibrido` - Extração OCR híbrida
+- `POST /api/colaboradores/salvar-lote` - Salva múltiplos em lote
 
 ### Dissídio
 - CRUD `/api/dissidios`
-- `GET /api/dissidios/{id}/previa` - Prévia com tabela de salários
-- `POST /api/dissidios/simular` - Simulação de reajuste
+- `GET /api/dissidios/{id}/previa`, `POST /api/dissidios/simular`
 - `PUT /api/dissidios/{id}/aprovar`, `PUT /api/dissidios/{id}/rejeitar`
-- `POST /api/convencao/analisar`
 
 ### Validação de Folha
 - `GET /api/validacoes` - Lista validações (filtro por cliente opcional)
-- `GET /api/validacoes/{id}` - Detalhes completos de uma validação
-- `POST /api/validacoes/validar-completa` - Validação unificada (holerite_atual, holerite_anterior, apoio_files)
-- `POST /api/validacoes/analisar` - Análise simples (legado)
-- `POST /api/validacoes/comparar-apoio` - Comparação com apoio (legado)
+- `GET /api/validacoes/{id}` - Detalhes completos
+- `POST /api/validacoes/validar-completa` - Validação unificada com OCR local
 
 ### Informes de Rendimento
-- `GET /api/informes/historico`
-- `POST /api/informes/comparar`
+- `GET /api/informes/historico`, `POST /api/informes/comparar`
 
 ### Médias (SCI Único)
-- `GET /api/medias/importacoes` - Lista importações
-- `POST /api/medias/extrair` - Extrai dados com IA
-- `POST /api/medias/salvar` - Salva no banco
-- `POST /api/medias/gerar-importacao` - Gera XLS ou TXT para SCI Único
+- `GET /api/medias/importacoes`, `POST /api/medias/extrair`
+- `POST /api/medias/salvar`, `POST /api/medias/gerar-importacao`
 
 ### Relatórios Excel
 - `GET /api/relatorios/colaboradores/excel`
@@ -135,14 +118,16 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - 🔲 Notificações de dissídios pendentes
 - 🔲 Comparativo mensal automático de folha
 - 🔲 Dashboard com métricas por cliente
+- 🔲 Análise de padrões de erros recorrentes
 
 ## Credenciais de Teste
 - Email: teste@emergent.com
 - Senha: Teste123!
 - Empresa: Empresa Nova (CNPJ 98765432000188)
 
-## Último Teste
+## Última Atualização
 - **Data**: 05/02/2026
-- **Funcionalidade**: Validação de Folha de Pagamento (Reescrita)
-- **Resultado**: ✅ 100% dos testes passaram (Backend 8/8, Frontend OK)
-- **Relatório**: /app/test_reports/iteration_10.json
+- **Funcionalidade**: Validação de Folha de Pagamento (Refatoração completa)
+- **Mudança**: Migração de API de IA paga para OCR local (Tesseract)
+- **Resultado**: ✅ 100% dos testes passaram (Backend 17/17, Frontend OK)
+- **Relatório**: /app/test_reports/iteration_11.json
