@@ -81,7 +81,7 @@ const Documents = ({ user, onLogout }) => {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.post(
-        `${API}/xml/reprocess-batch/${ctxCompany.id}/${selectedCompetencia}`,
+        `${API}/xml/reprocess-batch?company_id=${ctxCompany.id}&competencia=${encodeURIComponent(selectedCompetencia)}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
