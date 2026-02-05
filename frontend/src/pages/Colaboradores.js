@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Plus, Users, Pencil, Trash2, Search, X, Upload, FileUp, Loader2, CheckCircle2, AlertTriangle, FileText, User, FileCheck, Briefcase, CreditCard, UsersRound, Eye, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useEmpresa } from '../contexts/EmpresaContext';
+import { getErrorMessage } from '../utils/errorHandler';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
