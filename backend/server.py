@@ -7383,7 +7383,7 @@ async def exportar_e_validar_sped(
         'saidas': {'por_cfop': {}, 'total_icms': 0, 'total_valor': 0}
     }
     
-    # CFOPs sem crédito
+    # CFOPs sem crédito (despesa e ST)
     CFOPS_SEM_CREDITO = {
         '1403', '1409', '2403', '2409', '3403', '3409',
         '1407', '2407', '1556', '2556', '1557', '2557',
@@ -7391,61 +7391,30 @@ async def exportar_e_validar_sped(
         '1554', '2554', '1406', '2406', '1408', '2408'
     }
     
-    # Alíquotas por UF (mesma lógica do SPED)
-    ALIQ_ICMS_UF = {
-        'AC': 19, 'AL': 19, 'AP': 18, 'AM': 20, 'BA': 20.5, 'CE': 20, 'DF': 20,
-        'ES': 17, 'GO': 19, 'MA': 22, 'MT': 17, 'MS': 17, 'MG': 18, 'PA': 19,
-        'PB': 20, 'PR': 19.5, 'PE': 20.5, 'PI': 21, 'RJ': 22, 'RN': 20, 'RS': 17,
-        'RO': 19.5, 'RR': 20, 'SC': 17, 'SP': 18, 'SE': 19, 'TO': 20
-    }
-    UF_SUL_SUDESTE = {'SP', 'RJ', 'MG', 'ES', 'PR', 'SC', 'RS'}
-    uf_empresa = company.uf or 'SP'
-    
-    # Calcular totais do sistema usando a MESMA LÓGICA do SPED (alíquotas padronizadas)
+    # Calcular totais do sistema usando valores do XML
     for doc in documents:
         tipo = 'entradas' if doc.tipo == 'entrada' else 'saidas'
-        uf_origem = doc.emitente_uf or uf_empresa
         
         for prod in doc.produtos:
+            # Usar CFOP da classificação do sistema
             cfop = str(prod.get('cfop', ''))
             valor = float(prod.get('valor_total', 0) or 0)
-            cst_icms = str(prod.get('cst_icms', '') or '')
-            
-            # Calcular ICMS usando a mesma lógica do SPED
-            primeiro_digito_cfop = cfop[0] if cfop else ''
-            is_interestadual = primeiro_digito_cfop in ['2', '6']
-            
-            # CST de ICMS indica se há tributação
-            cst_icms_num = cst_icms[-2:] if len(cst_icms) >= 2 else cst_icms
-            tem_icms = cst_icms_num in ['00', '10', '20', '70', '90']
-            
-            if tem_icms:
-                if is_interestadual:
-                    if uf_origem in UF_SUL_SUDESTE and uf_empresa not in UF_SUL_SUDESTE:
-                        aliq_icms = 7.0
-                    else:
-                        aliq_icms = 12.0
-                else:
-                    aliq_icms = ALIQ_ICMS_UF.get(uf_empresa, 18)
-            else:
-                aliq_icms = 0.0
-            
-            # Calcular ICMS
-            v_icms_calculado = round(valor * aliq_icms / 100, 2) if tem_icms else 0.0
+            # Usar ICMS do XML
+            v_icms = float(prod.get('v_icms', 0) or 0)
             
             sistema_totais[tipo]['total_valor'] += valor
             
-            # Aplicar lógica de exclusão de créditos se necessário
+            # Aplicar lógica de exclusão de créditos de despesa/ST
             if tipo == 'entradas' and excluir_creditos_despesa_st and cfop in CFOPS_SEM_CREDITO:
-                pass  # Não conta o ICMS
+                pass  # Não conta o ICMS de despesa/ST
             else:
-                sistema_totais[tipo]['total_icms'] += v_icms_calculado
+                sistema_totais[tipo]['total_icms'] += v_icms
             
             if cfop not in sistema_totais[tipo]['por_cfop']:
                 sistema_totais[tipo]['por_cfop'][cfop] = {'valor': 0, 'icms': 0, 'qtd': 0}
             
             sistema_totais[tipo]['por_cfop'][cfop]['valor'] += valor
-            sistema_totais[tipo]['por_cfop'][cfop]['icms'] += v_icms_calculado
+            sistema_totais[tipo]['por_cfop'][cfop]['icms'] += v_icms
             sistema_totais[tipo]['por_cfop'][cfop]['qtd'] += 1
     
     # Parse das linhas do SPED para extrair C100 e E110
