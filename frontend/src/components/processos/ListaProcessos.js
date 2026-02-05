@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { 
-    FileText, Trash2, Eye, Building2, Hash, FileDown, FileType, RefreshCw, Copy
+    FileText, Trash2, Eye, Building2, Hash, FileDown, FileType, RefreshCw, Copy, Edit
 } from 'lucide-react';
 import {
     Dialog,
@@ -14,7 +14,7 @@ import {
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-const ClienteCard = ({ cliente, onView, onDownloadWord, onDownloadPDF, onDelete }) => {
+const ClienteCard = ({ cliente, onView, onEdit, onDownloadWord, onDownloadPDF, onDelete }) => {
     const getStatus = (s) => {
         const cfg = { pendente: 'badge-pending', em_analise: 'badge-warning', concluida: 'badge-success' };
         const lbl = { pendente: 'Pendente', em_analise: 'Em Análise', concluida: 'Concluída' };
@@ -29,7 +29,7 @@ const ClienteCard = ({ cliente, onView, onDownloadWord, onDownloadPDF, onDelete 
                     <Building2 className="w-5 h-5 text-red-500" />
                     <div>
                         <p className="font-medium text-white">
-                            {cliente.razao_social || 'Empresa não identificada'}
+                            {cliente.razao_social || cliente.nome_empresa || 'Empresa não identificada'}
                         </p>
                         <p className="text-xs text-zinc-500 font-mono">
                             {cliente.cnpj || 'CNPJ não informado'}
@@ -77,6 +77,9 @@ const ClienteCard = ({ cliente, onView, onDownloadWord, onDownloadPDF, onDelete 
                             )}
                             <Button size="sm" variant="outline" onClick={() => onView(m)} className="border-zinc-700 h-8" title="Visualizar">
                                 <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => onEdit(m)} className="border-zinc-700 hover:border-blue-600 h-8" title="Editar">
+                                <Edit className="w-4 h-4" />
                             </Button>
                             <Button size="sm" variant="outline" onClick={() => onDelete(m.id)} className="border-zinc-700 hover:border-red-600 h-8" title="Excluir">
                                 <Trash2 className="w-4 h-4" />
