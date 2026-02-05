@@ -740,268 +740,89 @@ async def importar_colaborador_documento(
 async def _extract_with_emergent_ai(tmp_path: str, suffix: str, tipo_documento: str, api_key: str) -> List[Dict]:
     """Extração usando Emergent AI (pago) - chamada interna"""
     from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
-            api_key = os.environ.get('EMERGENT_LLM_KEY')
-            
-            # Determine document type for better extraction
-            doc_context = ""
-            if tipo_documento == "ficha_registro":
-                doc_context = "Este é uma FICHA DE REGISTRO DE EMPREGADO. PODE CONTER MÚLTIPLOS FUNCIONÁRIOS/VÍNCULOS."
-            elif tipo_documento == "holerite":
-                doc_context = "Este é um HOLERITE/CONTRACHEQUE. PODE CONTER MÚLTIPLOS FUNCIONÁRIOS."
-            elif tipo_documento == "ficha_esocial":
-                doc_context = "Este é uma FICHA DE ADMISSÃO eSocial. PODE CONTER MÚLTIPLOS FUNCIONÁRIOS."
-            else:
-                doc_context = "Este documento pode conter UM OU MAIS FUNCIONÁRIOS. Identifique e extraia TODOS."
-            
-            chat = LlmChat(
-                api_key=api_key,
-                session_id=f"importar-colab-{uuid.uuid4()}",
-                system_message=f"""Você é um especialista em departamento pessoal brasileiro. {doc_context}
+    
+    # Determine document type for better extraction
+    doc_context = ""
+    if tipo_documento == "ficha_registro":
+        doc_context = "Este é uma FICHA DE REGISTRO DE EMPREGADO. PODE CONTER MÚLTIPLOS FUNCIONÁRIOS/VÍNCULOS."
+    elif tipo_documento == "holerite":
+        doc_context = "Este é um HOLERITE/CONTRACHEQUE. PODE CONTER MÚLTIPLOS FUNCIONÁRIOS."
+    elif tipo_documento == "ficha_esocial":
+        doc_context = "Este é uma FICHA DE ADMISSÃO eSocial. PODE CONTER MÚLTIPLOS FUNCIONÁRIOS."
+    else:
+        doc_context = "Este documento pode conter UM OU MAIS FUNCIONÁRIOS. Identifique e extraia TODOS."
+    
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=f"importar-colab-{uuid.uuid4()}",
+        system_message=f"""Você é um especialista em departamento pessoal brasileiro. {doc_context}
 
 IMPORTANTE: O documento pode conter MÚLTIPLOS FUNCIONÁRIOS/VÍNCULOS. Extraia TODOS os colaboradores encontrados.
 
-Para CADA funcionário encontrado no documento, extraia todos os campos possíveis.
-
 Retorne em formato JSON com ARRAY de colaboradores:
 {{
-    "tipo_documento_detectado": "ficha_registro", "holerite" ou "ficha_esocial",
-    "confianca": "alta", "media" ou "baixa",
-    "total_colaboradores": número de colaboradores encontrados,
     "colaboradores": [
         {{
-            "nome": "nome completo do funcionário",
+            "nome": "nome completo",
             "cpf": "CPF",
-            "endereco": "logradouro/rua",
-            "numero": "número do endereço",
-            "bairro": "bairro",
-            "complemento": "complemento",
-            "cep": "CEP",
-            "cidade": "cidade",
-            "uf": "UF",
-            "email": "email",
-            "celular": "telefone",
-            "ddd": "DDD",
-            "deficiencia": false,
-            "tipo_deficiencia": "",
-            "cidade_nascimento": "cidade de nascimento",
-            "uf_nascimento": "UF de nascimento",
-            "data_nascimento": "DD/MM/AAAA",
-            "estado_civil": "solteiro, casado, etc",
-            "grau_instrucao": "fundamental, médio, superior, etc",
-            "data_admissao": "DD/MM/AAAA",
             "cargo": "cargo/função",
-            "etnia": "",
-            "recebendo_seguro_desemprego": false,
-            "sexo": "masculino ou feminino",
-            "rg": "número do RG",
-            "rg_orgao_emissor": "órgão emissor",
-            "rg_data_emissao": "DD/MM/AAAA",
-            "rg_uf": "UF",
-            "reservista": "",
-            "pis": "número do PIS/PASEP",
-            "ctps": "número da CTPS",
-            "ctps_serie": "série",
-            "ctps_data_emissao": "DD/MM/AAAA",
-            "ctps_uf": "UF",
-            "titulo_eleitor": "",
-            "titulo_zona": "",
-            "titulo_secao": "",
-            "cnh": "",
-            "cnh_uf": "",
-            "cnh_categoria": "",
-            "cnh_vencimento": "",
-            "cnh_emissao": "",
-            "cnh_primeira_habilitacao": "",
-            "nome_mae": "nome da mãe",
-            "nome_pai": "nome do pai",
-            "nome_conjuge": "",
             "salario_base": 0,
-            "horista": false,
-            "insalubridade_percentual": null,
-            "periculosidade_percentual": null,
-            "prazo_experiencia": "",
-            "quadro_horario": "",
-            "vale_transporte": false,
-            "adiantamento_salarial": false,
-            "desconto_sindical": false,
-            "data_exame_admissional": "",
-            "banco": "",
-            "agencia": "",
-            "conta": "",
-            "departamento": "",
-            "dependentes": []
+            "data_admissao": "DD/MM/AAAA",
+            "data_nascimento": "DD/MM/AAAA",
+            "rg": "RG",
+            "pis": "PIS",
+            "ctps": "CTPS",
+            "endereco": "endereço",
+            "cidade": "cidade",
+            "uf": "UF"
         }}
-    ],
-    "campos_comuns_extraidos": ["lista dos campos extraídos com confiança"],
-    "observacoes": "observações sobre a extração"
+    ]
 }}
 
-REGRAS IMPORTANTES:
-- Extraia TODOS os funcionários do documento, mesmo que tenham dados incompletos
-- Se encontrar apenas 1 funcionário, retorne array com 1 elemento
-- Se encontrar múltiplos, retorne todos no array
-- Salário deve ser número (1500.00, não "R$ 1.500,00")
-- Datas no formato DD/MM/AAAA
-- Campos booleanos: "sim", "x", "marcado" = true
-- Campos não encontrados: deixe em branco "" ou null/false
-- Extraia mesmo de documentos manuscritos ou escaneados"""
-            ).with_model("gemini", "gemini-2.5-flash")
-            
-            mime_types = {
-                ".pdf": "application/pdf",
-                ".jpg": "image/jpeg",
-                ".jpeg": "image/jpeg",
-                ".png": "image/png",
-                ".gif": "image/gif",
-                ".webp": "image/webp",
-                ".bmp": "image/bmp",
-                ".tiff": "image/tiff",
-                ".tif": "image/tiff",
-                ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                ".xls": "application/vnd.ms-excel"
-            }
-            mime_type = mime_types.get(suffix.lower())
-            
-            # Se não encontrou pelo suffix, tenta detectar pelo conteúdo
-            if not mime_type:
-                # Tenta identificar imagens pelo magic number
-                with open(tmp_path, 'rb') as f:
-                    header = f.read(16)
-                if header[:8] == b'\x89PNG\r\n\x1a\n':
-                    mime_type = "image/png"
-                elif header[:2] == b'\xff\xd8':
-                    mime_type = "image/jpeg"
-                elif header[:4] == b'%PDF':
-                    mime_type = "application/pdf"
-                elif header[:4] == b'GIF8':
-                    mime_type = "image/gif"
-                else:
-                    # Default para PDF se não conseguir detectar
-                    mime_type = "application/pdf"
-                    logger.warning(f"Tipo de arquivo não detectado para {file.filename}, usando PDF como fallback")
-            
-            file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
-            
-            # Retry logic para erros temporários (502, 503)
-            max_retries = 3
-            last_error = None
-            for attempt in range(max_retries):
-                try:
-                    response = await chat.send_message(UserMessage(
-                        text=f"Extraia TODOS os funcionários deste documento. {doc_context} Se houver múltiplos vínculos/colaboradores, extraia todos.",
-                        file_contents=[file_content]
-                    ))
-                    break  # Sucesso, sai do loop
-                except Exception as e:
-                    last_error = e
-                    error_str = str(e)
-                    if "502" in error_str or "503" in error_str or "BadGateway" in error_str:
-                        if attempt < max_retries - 1:
-                            logger.warning(f"Tentativa {attempt + 1} falhou com erro de gateway, tentando novamente...")
-                            import asyncio
-                            await asyncio.sleep(2 ** attempt)  # Exponential backoff
-                            continue
-                    raise e
-            else:
-                raise last_error if last_error else Exception("Falha após todas as tentativas")
-            
-            # Parse JSON response
-            try:
-                response_text = response.strip()
-                if response_text.startswith("```json"):
-                    response_text = response_text[7:]
-                if response_text.startswith("```"):
-                    response_text = response_text[3:]
-                if response_text.endswith("```"):
-                    response_text = response_text[:-3]
-                
-                resultado = json.loads(response_text.strip())
-            except json.JSONDecodeError:
-                resultado = {
-                    "tipo_documento_detectado": "desconhecido",
-                    "confianca": "baixa",
-                    "colaboradores": [],
-                    "raw_response": response,
-                    "parsing_error": True
-                }
-            
-            # Get colaboradores array - handle both old format (dados) and new format (colaboradores)
-            colaboradores = resultado.get("colaboradores", [])
-            
-            # Backward compatibility: if old format with "dados", convert to array
-            if not colaboradores and resultado.get("dados"):
-                colaboradores = [resultado.get("dados")]
-            
-            # Process and normalize each colaborador
-            processed_colaboradores = []
-            for colab in colaboradores:
-                # Process salary
-                if colab.get("salario_base"):
-                    try:
-                        salario_str = str(colab["salario_base"])
-                        salario_str = salario_str.replace("R$", "").replace(".", "").replace(",", ".").strip()
-                        colab["salario_base"] = float(salario_str)
-                    except:
-                        colab["salario_base"] = 0
-                
-                # Process percentages
-                for field in ["insalubridade_percentual", "periculosidade_percentual"]:
-                    if colab.get(field):
-                        try:
-                            colab[field] = float(str(colab[field]).replace("%", "").strip())
-                        except:
-                            colab[field] = None
-                
-                # Process boolean fields
-                bool_fields = ["deficiencia", "recebendo_seguro_desemprego", "horista", 
-                              "vale_transporte", "adiantamento_salarial", "desconto_sindical"]
-                for field in bool_fields:
-                    if field in colab:
-                        val = colab[field]
-                        if isinstance(val, str):
-                            colab[field] = val.lower() in ["true", "sim", "s", "x", "1", "marcado"]
-                        elif isinstance(val, bool):
-                            pass
-                        else:
-                            colab[field] = bool(val) if val else False
-                
-                # Process dependentes array
-                if colab.get("dependentes"):
-                    try:
-                        deps = colab["dependentes"]
-                        if isinstance(deps, list):
-                            processed_deps = []
-                            for dep in deps:
-                                if isinstance(dep, dict):
-                                    for bf in ["ir", "salario_familia"]:
-                                        if bf in dep:
-                                            val = dep[bf]
-                                            if isinstance(val, str):
-                                                dep[bf] = val.lower() in ["true", "sim", "s", "x", "1"]
-                                    processed_deps.append(dep)
-                            colab["dependentes"] = processed_deps
-                    except:
-                        colab["dependentes"] = []
-                
-                processed_colaboradores.append(colab)
-            
-            return {
-                "success": True,
-                "tipo_documento": resultado.get("tipo_documento_detectado", "desconhecido"),
-                "confianca": resultado.get("confianca", "baixa"),
-                "total_colaboradores": len(processed_colaboradores),
-                "colaboradores": processed_colaboradores,
-                "campos_comuns_extraidos": resultado.get("campos_comuns_extraidos", resultado.get("campos_extraidos", [])),
-                "observacoes": resultado.get("observacoes", ""),
-                "message": f"{len(processed_colaboradores)} colaborador(es) extraído(s). Revise antes de salvar."
-            }
-            
-        finally:
-            os.unlink(tmp_path)
-            
-    except Exception as e:
-        logger.error(f"Erro na importação: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao processar documento: {str(e)}")
+REGRAS: Extraia TODOS os funcionários. Salário como número. Datas DD/MM/AAAA."""
+    ).with_model("gemini", "gemini-2.5-flash")
+    
+    mime_types = {
+        ".pdf": "application/pdf",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".xls": "application/vnd.ms-excel"
+    }
+    mime_type = mime_types.get(suffix.lower(), "application/pdf")
+    
+    file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
+    
+    # Retry logic
+    max_retries = 2
+    for attempt in range(max_retries):
+        try:
+            response = await chat.send_message(UserMessage(
+                text=f"Extraia TODOS os funcionários. {doc_context}",
+                file_contents=[file_content]
+            ))
+            break
+        except Exception as e:
+            if attempt < max_retries - 1 and ("502" in str(e) or "503" in str(e)):
+                import asyncio
+                await asyncio.sleep(2)
+                continue
+            raise e
+    
+    # Parse JSON response
+    try:
+        response_text = response.strip()
+        if response_text.startswith("```"):
+            response_text = response_text.split("```")[1]
+            if response_text.startswith("json"):
+                response_text = response_text[4:]
+        resultado = json.loads(response_text.strip())
+        return resultado.get("colaboradores", [])
+    except:
+        return []
 
 @api_router.post("/colaboradores/salvar-lote")
 async def salvar_colaboradores_lote(
