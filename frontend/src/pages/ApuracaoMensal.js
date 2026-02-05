@@ -27,6 +27,10 @@ const ApuracaoMensal = ({ user, onLogout }) => {
   // Abas expandidas
   const [expandedTab, setExpandedTab] = useState(null);
   const [viewMode, setViewMode] = useState('cfop'); // cfop, cst, ncm
+  
+  // Detalhamento PIS/COFINS
+  const [pisCofinsViewMode, setPisCofinsViewMode] = useState('cfop'); // cfop, ncm, cst
+  const [pisCofinsExpanded, setPisCofinsExpanded] = useState(null); // 'credito', 'sem_credito'
 
   useEffect(() => {
     if (selectedCompany && selectedCompetencia) {
