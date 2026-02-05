@@ -10,7 +10,6 @@ import Documents from './pages/Documents';
 import ClassificacaoPage from './pages/ClassificacaoPage';
 import ExportMenu from './pages/ExportMenu';
 import Reports from './pages/Reports';
-import AnaliseTributaria from './pages/AnaliseTributaria';
 import AnaliseSaidas from './pages/AnaliseSaidas';
 import AnalisePisCofins from './pages/AnalisePisCofins';
 import ApuracaoMensal from './pages/ApuracaoMensal';
@@ -66,10 +65,6 @@ function App() {
             <Route
               path="/"
               element={user ? <Dashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
-            />
-            <Route
-              path="/analise-tributaria"
-              element={user ? <AnaliseTributaria user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
               path="/companies"
