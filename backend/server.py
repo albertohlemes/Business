@@ -1783,10 +1783,26 @@ async def reimport_init(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    # Contar documentos
-    doc_count = await db.xml_documents.count_documents({"company_id": company_id, "competencia": competencia})
-    if doc_count == 0:
-        raise HTTPException(status_code=404, detail="Nenhum documento encontrado para esta competência")
+    cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+    
+    # Contar apenas documentos de ENTRADA (onde o emitente NÃO é a empresa)
+    # Primeiro, buscamos todos os docs para filtrar
+    all_docs = await db.xml_documents.find(
+        {"company_id": company_id, "competencia": competencia},
+        {"_id": 0, "emitente_cnpj": 1, "cnpj_emitente": 1, "tipo": 1}
+    ).to_list(2000)
+    
+    # Filtrar apenas entradas
+    entrada_count = 0
+    for doc in all_docs:
+        cnpj_emit = (doc.get('emitente_cnpj') or doc.get('cnpj_emitente', '')).replace('.', '').replace('/', '').replace('-', '')
+        tipo_atual = doc.get('tipo', '')
+        # É entrada se emitente NÃO é a empresa OU se já está marcado como entrada
+        if cnpj_emit != cnpj_empresa or tipo_atual == 'entrada':
+            entrada_count += 1
+    
+    if entrada_count == 0:
+        raise HTTPException(status_code=404, detail="Nenhum documento de ENTRADA encontrado para esta competência")
     
     task_id = str(uuid.uuid4())
     reimport_progress_store[task_id] = {
@@ -1795,7 +1811,8 @@ async def reimport_init(
         "progress_percent": 0,
         "company_id": company_id,
         "competencia": competencia,
-        "total_docs": doc_count,
+        "cnpj_empresa": cnpj_empresa,
+        "total_docs": entrada_count,
         "processed": 0,
         "classificados": 0,
         "errors": 0,
@@ -1803,7 +1820,7 @@ async def reimport_init(
         "results": None
     }
     
-    return {"task_id": task_id, "total_docs": doc_count}
+    return {"task_id": task_id, "total_docs": entrada_count}
 
 
 @api_router.get("/xml/reimport-progress/{task_id}")
