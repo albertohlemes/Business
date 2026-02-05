@@ -549,26 +549,26 @@ class DocumentProcessor:
                     break
             
             i += 1
-        
+        # Extrair Valor FGTS específico
         valor_fgts_match = re.search(r'Valor\s+FGTS\s*\n?\s*([\d.,]+)', block, re.IGNORECASE)
         if valor_fgts_match:
             colab['fgts'] = parse_valor(valor_fgts_match.group(1))
         
-        # Extrair salário base do rodapé
+        # Extrair salário base do rodapé (mais confiável)
         salario_base_match = re.search(r'Sal[aá]rio\s+base\s*\n?\s*([\d.,]+)', block, re.IGNORECASE)
         if salario_base_match:
             colab['salario_base'] = parse_valor(salario_base_match.group(1))
         
-        # Calcular totais se não extraídos
+        # Calcular totais
         if colab['total_proventos'] == 0:
-            proventos = [colab['salario_base'], colab['vale_compras'], colab['vale'], 
-                        colab['horas_extras'], colab['horas_extras_50'], colab['horas_extras_100'],
-                        colab['dsr_horas_extras'], colab['adicional_noturno'], colab['quebra_caixa']]
+            proventos = [colab['salario_base'], colab['horas_extras'], colab['horas_extras_50'], 
+                        colab['horas_extras_100'], colab['dsr_horas_extras'], colab['adicional_noturno'], 
+                        colab['quebra_caixa']]
             colab['total_proventos'] = round(sum(p for p in proventos if p > 0), 2)
         
         if colab['total_descontos'] == 0:
             descontos = [colab['inss'], colab['irrf'], colab['contribuicao_assistencial'], 
-                        colab['faltas'], colab['vale_transporte']]
+                        colab['faltas'], colab['vale_transporte'], colab['vale_compras'], colab['vale']]
             colab['total_descontos'] = round(sum(d for d in descontos if d > 0), 2)
         
         return colab
