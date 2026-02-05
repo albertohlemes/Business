@@ -162,6 +162,21 @@ Portal para departamento societário com geração de documentos via IA.
 
 ## Implementações Recentes (05/02/2026)
 
+### ✅ Edição de Processos Concluídos
+- **Botão de Editar** adicionado na lista de processos (ícone de lápis)
+- Funciona para todos os tipos: Constituição, Alteração e Baixa
+- Ao clicar, abre o wizard correspondente em **modo edição** com dados pré-preenchidos
+- Permite regenerar documentos após edições
+
+### ✅ Profissão Padrão "Empresário(a)"
+- Campo profissão nos formulários de sócios vem preenchido com "Empresário(a)" por padrão
+- Aplicado em WizardConstituicao e WizardAlteracao
+
+### ✅ Nome da Empresa na Listagem
+- Lista de processos agora exibe a razão social/nome da empresa
+- Fallback: razao_social → nome_empresa → "Empresa não identificada"
+- Campo `razao_social` e `nome_empresa` salvos ao gerar contrato de constituição
+
 ### ✅ Campos de Naturalidade para Sócios
 - **Novos campos**: Data de Nascimento, Cidade de Nascimento, Estado de Nascimento
 - **WizardConstituicao.js**: SocioCard (linhas 774-807)
