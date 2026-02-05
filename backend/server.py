@@ -599,6 +599,8 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             for key in pis:
                 if isinstance(pis[key], dict):
                     v_pis = float(pis[key].get('vPIS', 0) or 0)
+                    v_bc_pis = float(pis[key].get('vBC', 0) or 0)  # Base de cálculo do PIS
+                    p_pis = float(pis[key].get('pPIS', 0) or 0)  # Alíquota de PIS
                     # Extrair CST de PIS
                     cst_pis = pis[key].get('CST', '')
                     break
@@ -606,6 +608,8 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             for key in cofins:
                 if isinstance(cofins[key], dict):
                     v_cofins = float(cofins[key].get('vCOFINS', 0) or 0)
+                    v_bc_cofins = float(cofins[key].get('vBC', 0) or 0)  # Base de cálculo da COFINS
+                    p_cofins = float(cofins[key].get('pCOFINS', 0) or 0)  # Alíquota de COFINS
                     # Extrair CST de COFINS
                     cst_cofins = cofins[key].get('CST', '')
                     break
