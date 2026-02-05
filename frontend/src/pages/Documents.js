@@ -489,8 +489,8 @@ const Documents = ({ user, onLogout }) => {
                             <td className="px-2 py-2 text-right text-xs">{parseFloat(prod.quantidade || 0).toFixed(2)}</td>
                             <td className="px-2 py-2 text-right font-medium text-xs">{formatCurrency(prod.valor_total)}</td>
                             <td className="px-2 py-2 text-right text-blue-600 text-xs">{formatCurrency(prod.v_icms)}</td>
-                            <td className="px-2 py-2 text-right text-xs">{formatCurrency(prod.v_bc_st)}</td>
-                            <td className="px-2 py-2 text-right text-orange-600 text-xs">{formatCurrency(prod.v_st || prod.v_icms_st)}</td>
+                            <td className="px-2 py-2 text-right text-xs">{formatCurrency(prod.v_bc_icms_st || prod.v_bc_st)}</td>
+                            <td className="px-2 py-2 text-right text-orange-600 text-xs">{formatCurrency(prod.v_icms_st || prod.v_st)}</td>
                             <td className="px-2 py-2 text-right text-purple-600 text-xs">{formatCurrency(prod.v_ipi)}</td>
                             <td className="px-2 py-2 text-right text-teal-600 text-xs">
                               {formatCurrency((parseFloat(prod.v_pis || 0) + parseFloat(prod.v_cofins || 0)))}
