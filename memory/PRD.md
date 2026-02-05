@@ -38,11 +38,23 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - ✅ Download Excel da prévia
 - ✅ Aprovação/Rejeição com aplicação automática
 
-### Validação de Folha (COMPLETO)
-- ✅ **Aba 1 - Análise da Folha**: Detectar erros e inconsistências
-- ✅ **Aba 2 - Comparar com Apoio**: Comparar holerite com relatório de referência
-  - Aceita email, planilha, imagem, PDF
-  - IA identifica divergências com valores lado a lado
+### Validação de Folha (REESCRITO - 05/02/2026)
+- ✅ **Interface Unificada**: Uma única tela com 3 áreas de upload
+  - **Holerite Atual** (obrigatório): Documento principal a ser validado
+  - **Holerite Mês Anterior** (opcional): Para comparação mês a mês
+  - **Arquivos de Apoio** (opcional, múltiplos): Emails, planilhas, imagens, PDFs de referência
+- ✅ **Análise Cirúrgica com IA**:
+  - Extração de TODOS os valores numéricos (salário, HE, descontos, benefícios, FGTS)
+  - Comparação automática com mês anterior (variações, reajustes)
+  - Cruzamento com documentos de apoio (horas extras vs lançadas, comissões vs pagas)
+  - Cálculo de impacto financeiro das divergências
+- ✅ **Histórico Consultável**:
+  - Validações agrupadas por competência (mês/ano)
+  - Linhas expansíveis para ver resumo rápido
+  - Detalhes completos disponíveis por validação
+- ✅ **Endpoints**:
+  - `POST /api/validacoes/validar-completa` - Validação unificada
+  - `GET /api/validacoes/{id}` - Detalhes completos de uma validação
 
 ### Informes de Rendimento (COMPLETO)
 - ✅ Comparação **eSocial vs SCI Único**
