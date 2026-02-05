@@ -441,25 +441,25 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                           <button onClick={() => requestSort('numero_nfe')} className="flex items-center gap-1 hover:text-gray-900">
                             NF / Cliente
-                            <SortIcon columnKey="numero_nfe" />
+                            <SortIconComponent sortKey="numero_nfe" currentKey={sortConfig.key} direction={sortConfig.direction} />
                           </button>
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                           <button onClick={() => requestSort('qtd_divergencias')} className="flex items-center gap-1 hover:text-gray-900">
                             Divergências
-                            <SortIcon columnKey="qtd_divergencias" />
+                            <SortIconComponent sortKey="qtd_divergencias" currentKey={sortConfig.key} direction={sortConfig.direction} />
                           </button>
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                           <button onClick={() => requestSort('valor_total')} className="flex items-center gap-1 hover:text-gray-900">
                             Valor NF
-                            <SortIcon columnKey="valor_total" />
+                            <SortIconComponent sortKey="valor_total" currentKey={sortConfig.key} direction={sortConfig.direction} />
                           </button>
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                           <button onClick={() => requestSort('impacto_total')} className="flex items-center gap-1 hover:text-gray-900">
                             Impacto Fiscal
-                            <SortIcon columnKey="impacto_total" />
+                            <SortIconComponent sortKey="impacto_total" currentKey={sortConfig.key} direction={sortConfig.direction} />
                           </button>
                         </th>
                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-20">
