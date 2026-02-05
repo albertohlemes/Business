@@ -140,6 +140,25 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - Filtro: Todos, Com Alertas, OK
 - Exportar CSV
 
+### ✅ **Análise de PIS/COFINS - Saídas** (05/02/2026) 🆕
+- **Página dedicada:** `/analise-pis-cofins`
+- **Cards de Resumo Separados:**
+  - Total de Saídas (NFs • itens)
+  - PIS Declarado (vs Correto)
+  - COFINS Declarado (vs Correto)
+  - ⬆ **Pagou a Mais** (vermelho) - Tributos pagos em excesso
+  - ⬇ **Pagou a Menos** (âmbar) - Risco fiscal
+- **Filtros por Tipo de Divergência:** NCM Monofásico, CFOP sem débito, Alíquota Incorreta, NCM Alíq. Zero
+- **Três Visualizações em Abas:**
+  - **Por NF:** Tabela compacta com todas as informações visíveis (NF, Produto, NCM, CST, Valor, PIS atual→correto, COFINS atual→correto, Impacto, Motivo)
+  - **Por Produto:** Agrupa divergências repetidas por produto
+  - **Por NCM:** Agrupa divergências por código NCM
+- **Regras da Legislação Brasileira:**
+  - Identifica NCMs com alíquota zero (Tabela 4.3.13 SPED)
+  - Valida CFOPs que não geram débito
+  - Considera regime tributário da empresa (Lucro Real/Presumido)
+- **Exportação CSV** com todos os dados detalhados
+
 ### ✅ **Gerenciamento de Documentos**
 - **Apagar notas em lote:** Botão "Apagar Competência {MM/AAAA}" na página de documentos
 - **Apagar individual:** Botão de lixeira em cada linha da tabela
