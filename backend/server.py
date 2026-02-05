@@ -1594,10 +1594,10 @@ async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
     licencas_proximas = await db.licencas.count_documents({"user_id": user_id, "status": "proxima_vencimento"})
     total_licencas = await db.licencas.count_documents({"user_id": user_id})
     
-    # Count minutas
-    total_minutas = await db.minutas.count_documents({"user_id": user_id})
-    minutas_pendentes = await db.minutas.count_documents({"user_id": user_id, "status": "pendente"})
-    minutas_concluidas = await db.minutas.count_documents({"user_id": user_id, "status": "concluida"})
+    # Count minutas (TODOS os processos - visível para todos)
+    total_minutas = await db.minutas.count_documents({})
+    minutas_pendentes = await db.minutas.count_documents({"status": "pendente"})
+    minutas_concluidas = await db.minutas.count_documents({"status": "concluida"})
     
     return {
         "certificados": {
