@@ -2740,8 +2740,22 @@ async def exportar_para_sci_unico(
             "data_registro": dados.data_registro or "",
             "data_constituicao": dados.data_constituicao or ""
         },
-        "socios": []
+        "socios": [],
+        "configuracoes": {},
+        "padroes": PADROES_SCI
     }
+    
+    # Gerar configurações baseadas no perfil
+    if dados.perfil:
+        export_data["configuracoes"] = gerar_configuracoes_perfil(dados.perfil)
+        export_data["perfil"] = {
+            "regime_tributario": dados.perfil.regime_tributario,
+            "codigo_acesso_simples": dados.perfil.codigo_acesso_simples,
+            "tipo_atividade": dados.perfil.tipo_atividade,
+            "tem_funcionarios": dados.perfil.tem_funcionarios,
+            "contribuinte_icms": dados.perfil.contribuinte_icms,
+            "enquadramento_simples": dados.perfil.enquadramento_simples
+        }
     
     # Formatar sócios
     if dados.socios:
