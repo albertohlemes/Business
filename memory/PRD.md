@@ -167,6 +167,7 @@ Portal para departamento societário com geração de documentos via IA.
 - **WizardConstituicao.js**: SocioCard (linhas 774-807)
 - **WizardAlteracao.js**: SocioCardAlteracao (linhas 733-772), SociosEntrando (linhas 477-484)
 - **Backend (server.py)**: Modelo SocioConstituicao (linhas 1768-1770)
+- **Extração por IA**: Prompt atualizado para extrair data_nascimento, cidade_nascimento, estado_nascimento automaticamente
 - **Geração de documentos**: Campos opcionais incluídos quando fornecidos
 - **Testes**: 100% passaram (backend e frontend)
 
