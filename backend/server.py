@@ -635,10 +635,10 @@ async def delete_colaborador(colaborador_id: str, current_user: dict = Depends(g
 async def importar_colaborador_documento(
     file: UploadFile = File(...),
     cliente_id: str = None,
-    tipo_documento: str = "auto",  # auto, ficha_registro, holerite
+    tipo_documento: str = "auto",  # auto, ficha_registro, holerite, ficha_esocial
     current_user: dict = Depends(get_current_user)
 ):
-    """Importa colaborador a partir de ficha de registro ou holerite usando IA"""
+    """Importa colaborador a partir de ficha de registro, holerite ou ficha eSocial usando IA"""
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
         
@@ -664,54 +664,108 @@ async def importar_colaborador_documento(
                 doc_context = "Este é uma FICHA DE REGISTRO DE EMPREGADO."
             elif tipo_documento == "holerite":
                 doc_context = "Este é um HOLERITE/CONTRACHEQUE. Extraia os dados do cabeçalho e identificação do funcionário."
+            elif tipo_documento == "ficha_esocial":
+                doc_context = "Este é uma FICHA DE ADMISSÃO eSocial com todos os campos obrigatórios para envio ao governo."
             else:
-                doc_context = "Este documento pode ser uma FICHA DE REGISTRO DE EMPREGADO ou um HOLERITE/CONTRACHEQUE. Identifique o tipo e extraia os dados."
+                doc_context = "Este documento pode ser uma FICHA DE REGISTRO DE EMPREGADO, FICHA eSocial ou um HOLERITE/CONTRACHEQUE. Identifique o tipo e extraia os dados."
             
             chat = LlmChat(
                 api_key=api_key,
                 session_id=f"importar-colab-{uuid.uuid4()}",
-                system_message=f"""Você é um especialista em departamento pessoal. {doc_context}
+                system_message=f"""Você é um especialista em departamento pessoal brasileiro. {doc_context}
 
-Extraia TODAS as informações possíveis do documento, mesmo que algumas estejam incompletas ou ilegíveis.
+Extraia TODAS as informações possíveis do documento, mesmo que algumas estejam incompletas, manuscritas ou difíceis de ler.
+Este é o template completo da Ficha de Admissão eSocial. Extraia todos os campos que conseguir identificar.
 
 Retorne em formato JSON com os seguintes campos (deixe em branco "" os campos não encontrados):
 {{
-    "tipo_documento_detectado": "ficha_registro" ou "holerite",
+    "tipo_documento_detectado": "ficha_registro", "holerite" ou "ficha_esocial",
     "confianca": "alta", "media" ou "baixa",
     "dados": {{
         "nome": "nome completo do funcionário",
         "cpf": "CPF (apenas números ou formatado)",
-        "rg": "RG",
-        "data_nascimento": "data de nascimento (DD/MM/AAAA)",
-        "cargo": "cargo ou função",
-        "departamento": "setor ou departamento",
-        "salario_base": "salário base (apenas número)",
-        "data_admissao": "data de admissão (DD/MM/AAAA)",
-        "pis": "número do PIS/PASEP",
-        "ctps": "número da CTPS e série",
-        "endereco": "endereço completo",
-        "telefone": "telefone",
+        "endereco": "logradouro/rua",
+        "numero": "número do endereço",
+        "bairro": "bairro",
+        "complemento": "complemento do endereço",
+        "cep": "CEP",
+        "cidade": "cidade/município",
+        "uf": "UF (sigla)",
         "email": "email",
-        "banco": "nome do banco",
+        "celular": "telefone celular",
+        "ddd": "DDD do telefone",
+        "deficiencia": true/false,
+        "tipo_deficiencia": "física, visual, auditiva, mental, intelectual, reabilitado",
+        "cidade_nascimento": "cidade de nascimento",
+        "uf_nascimento": "UF de nascimento",
+        "data_nascimento": "data de nascimento (DD/MM/AAAA)",
+        "estado_civil": "solteiro, casado, divorciado, viúvo, separado, união estável",
+        "grau_instrucao": "fundamental, médio, superior, pós-graduação, mestrado, doutorado",
+        "data_admissao": "data de admissão (DD/MM/AAAA)",
+        "cargo": "cargo/função",
+        "etnia": "branca, preta, parda, amarela, indígena, não declarado",
+        "recebendo_seguro_desemprego": true/false,
+        "sexo": "masculino ou feminino",
+        "rg": "número do RG",
+        "rg_orgao_emissor": "órgão emissor do RG (SSP, etc)",
+        "rg_data_emissao": "data de emissão do RG (DD/MM/AAAA)",
+        "rg_uf": "UF de emissão do RG",
+        "reservista": "número do certificado de reservista",
+        "pis": "número do PIS/PASEP",
+        "ctps": "número da CTPS",
+        "ctps_serie": "série da CTPS",
+        "ctps_data_emissao": "data de emissão da CTPS (DD/MM/AAAA)",
+        "ctps_uf": "UF de emissão da CTPS",
+        "titulo_eleitor": "número do título de eleitor",
+        "titulo_zona": "zona eleitoral",
+        "titulo_secao": "seção eleitoral",
+        "cnh": "número da CNH",
+        "cnh_uf": "UF da CNH",
+        "cnh_categoria": "categoria da CNH (A, B, AB, C, D, E)",
+        "cnh_vencimento": "data de vencimento da CNH (DD/MM/AAAA)",
+        "cnh_emissao": "data de emissão da CNH (DD/MM/AAAA)",
+        "cnh_primeira_habilitacao": "data da primeira habilitação (DD/MM/AAAA)",
+        "nome_mae": "nome completo da mãe",
+        "nome_pai": "nome completo do pai",
+        "nome_conjuge": "nome do cônjuge (se casado/união estável)",
+        "salario_base": "salário base (apenas número, ex: 1500.00)",
+        "horista": true/false,
+        "insalubridade_percentual": "percentual de insalubridade (10, 20 ou 40)",
+        "periculosidade_percentual": "percentual de periculosidade (30)",
+        "prazo_experiencia": "prazo de experiência em dias (30, 45, 60, 90)",
+        "quadro_horario": "horário de trabalho (ex: 08:00 às 17:00)",
+        "vale_transporte": true/false,
+        "adiantamento_salarial": true/false,
+        "desconto_sindical": true/false,
+        "data_exame_admissional": "data do exame admissional (DD/MM/AAAA)",
+        "banco": "nome ou código do banco",
         "agencia": "número da agência",
         "conta": "número da conta",
-        "cbo": "código CBO",
-        "escolaridade": "grau de escolaridade",
-        "estado_civil": "estado civil",
-        "nacionalidade": "nacionalidade",
-        "nome_mae": "nome da mãe",
-        "nome_pai": "nome do pai"
+        "departamento": "setor/departamento",
+        "dependentes": [
+            {{
+                "nome": "nome do dependente",
+                "data_nascimento": "DD/MM/AAAA",
+                "cpf": "CPF do dependente",
+                "parentesco": "filho, cônjuge, pai, mãe, etc",
+                "ir": true/false,
+                "salario_familia": true/false
+            }}
+        ]
     }},
     "campos_extraidos": ["lista dos campos que conseguiu extrair com confiança"],
     "campos_incertos": ["lista dos campos com extração duvidosa"],
-    "observacoes": "qualquer observação sobre a qualidade da extração"
+    "observacoes": "qualquer observação sobre a qualidade da extração ou campos que não foram encontrados"
 }}
 
 IMPORTANTE: 
-- Extraia o MÁXIMO possível de informações
+- Extraia o MÁXIMO possível de informações, mesmo de documentos manuscritos ou escaneados com baixa qualidade
 - Se o salário estiver em formato "R$ 1.500,00", retorne apenas "1500.00"
 - Datas devem estar no formato DD/MM/AAAA
-- Mesmo dados parciais são úteis, não deixe de extrair"""
+- Para campos booleanos (true/false), interprete "sim", "x", "marcado" como true
+- Campos numéricos devem ser apenas números
+- Mesmo dados parciais são úteis, não deixe de extrair
+- Se houver dependentes listados no documento, extraia-os no array de dependentes"""
             ).with_model("gemini", "gemini-2.5-flash")
             
             mime_types = {
