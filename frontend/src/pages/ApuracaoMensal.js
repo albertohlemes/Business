@@ -570,6 +570,122 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                 )}
               </div>
             </div>
+
+            {/* Detalhamento PIS/COFINS */}
+            {pisCofinsData && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-4 text-white">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-6 h-6" />
+                      <h2 className="font-bold text-lg">Detalhamento PIS/COFINS</h2>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setPisCofinsViewMode('cfop')}
+                        className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                          pisCofinsViewMode === 'cfop' 
+                            ? 'bg-white text-purple-700' 
+                            : 'bg-white/20 text-white hover:bg-white/30'
+                        }`}
+                      >
+                        Por CFOP
+                      </button>
+                      <button
+                        onClick={() => setPisCofinsViewMode('ncm')}
+                        className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                          pisCofinsViewMode === 'ncm' 
+                            ? 'bg-white text-purple-700' 
+                            : 'bg-white/20 text-white hover:bg-white/30'
+                        }`}
+                      >
+                        Por NCM
+                      </button>
+                      <button
+                        onClick={() => setPisCofinsViewMode('cst')}
+                        className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                          pisCofinsViewMode === 'cst' 
+                            ? 'bg-white text-purple-700' 
+                            : 'bg-white/20 text-white hover:bg-white/30'
+                        }`}
+                      >
+                        Por CST
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Com Crédito (CST 50) */}
+                <div className="border-b border-gray-200">
+                  <button
+                    onClick={() => setPisCofinsExpanded(pisCofinsExpanded === 'credito' ? null : 'credito')}
+                    className="w-full px-5 py-4 flex items-center justify-between bg-green-50 hover:bg-green-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      <span className="font-semibold text-green-900">Com Direito a Crédito</span>
+                      <span className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded font-medium">CST 50</span>
+                      <span className="text-sm text-green-600">
+                        {(pisCofinsData?.creditos?.com_credito?.[`por_${pisCofinsViewMode}`] || []).length} registros
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <span className="text-xs text-gray-500 block">PIS</span>
+                        <span className="font-bold text-green-700">{formatCurrency(pisCofinsData?.creditos?.com_credito?.pis || 0)}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs text-gray-500 block">COFINS</span>
+                        <span className="font-bold text-green-700">{formatCurrency(pisCofinsData?.creditos?.com_credito?.cofins || 0)}</span>
+                      </div>
+                      {pisCofinsExpanded === 'credito' ? <ChevronDown className="w-5 h-5 text-green-600" /> : <ChevronRight className="w-5 h-5 text-green-600" />}
+                    </div>
+                  </button>
+                  {pisCofinsExpanded === 'credito' && (
+                    <div className="p-4 bg-green-50/50">
+                      <PisCofinsTable 
+                        items={pisCofinsData?.creditos?.com_credito?.[`por_${pisCofinsViewMode}`] || []} 
+                        tipo="credito"
+                        viewMode={pisCofinsViewMode}
+                      />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Sem Crédito (Alíquota Zero / Sem Incidência) */}
+                <div>
+                  <button
+                    onClick={() => setPisCofinsExpanded(pisCofinsExpanded === 'sem_credito' ? null : 'sem_credito')}
+                    className="w-full px-5 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                      <span className="font-semibold text-gray-700">Sem Direito a Crédito</span>
+                      <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded font-medium">CST 70/73/98</span>
+                      <span className="text-sm text-gray-500">
+                        {(pisCofinsData?.creditos?.aliquota_zero?.[`por_${pisCofinsViewMode}`] || []).length} registros
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <span className="text-xs text-gray-500 block">Total</span>
+                        <span className="font-bold text-gray-600">{formatCurrency(pisCofinsData?.creditos?.aliquota_zero?.total || 0)}</span>
+                      </div>
+                      {pisCofinsExpanded === 'sem_credito' ? <ChevronDown className="w-5 h-5 text-gray-500" /> : <ChevronRight className="w-5 h-5 text-gray-500" />}
+                    </div>
+                  </button>
+                  {pisCofinsExpanded === 'sem_credito' && (
+                    <div className="p-4">
+                      <PisCofinsTable 
+                        items={pisCofinsData?.creditos?.aliquota_zero?.[`por_${pisCofinsViewMode}`] || []} 
+                        tipo="sem_credito"
+                        viewMode={pisCofinsViewMode}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         ) : null}
       </div>
