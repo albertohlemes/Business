@@ -3117,7 +3117,7 @@ async def reprocess_document(
         return {"success": False, "error": f"Erro ao re-processar: {str(e)}"}
 
 
-@api_router.post("/xml/reprocess-batch/{company_id}/{competencia}")
+@api_router.post("/xml/reprocess-batch")
 async def reprocess_batch(
     company_id: str,
     competencia: str,
