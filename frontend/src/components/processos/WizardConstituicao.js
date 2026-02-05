@@ -1493,18 +1493,24 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
     const handleGerarContrato = async () => {
         setProcessing(true);
         try {
-            const formData = new FormData();
-            formData.append('tipo_alteracao', 'constituicao');
-            formData.append('descricao', `Constituição de ${razaoSocial}`);
+            let currentProcessoId = processoId;
             
-            const uploadRes = await axios.post(`${API_URL}/api/minutas/upload`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            
-            setProcessoId(uploadRes.data.id);
+            // Se não estiver em modo edição, criar nova minuta
+            if (!modoEdicao || !currentProcessoId) {
+                const formData = new FormData();
+                formData.append('tipo_alteracao', 'constituicao');
+                formData.append('descricao', `Constituição de ${razaoSocial}`);
+                
+                const uploadRes = await axios.post(`${API_URL}/api/minutas/upload`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                
+                currentProcessoId = uploadRes.data.id;
+                setProcessoId(currentProcessoId);
+            }
             
             const response = await axios.post(`${API_URL}/api/constituicao/gerar-contrato`, {
-                minuta_id: uploadRes.data.id,
+                minuta_id: currentProcessoId,
                 empresa: {
                     razao_social: razaoSocial,
                     nome_fantasia: nomeFantasia,
@@ -1534,8 +1540,8 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
             
             if (response.data.contrato) {
                 setContratoGerado(response.data.contrato);
-                setProcessoId(response.data.minuta_id || uploadRes.data.id);
-                toast.success('Contrato social gerado!');
+                setProcessoId(response.data.minuta_id || currentProcessoId);
+                toast.success(modoEdicao ? 'Contrato atualizado!' : 'Contrato social gerado!');
                 setStep(6);
                 onComplete();
             }
