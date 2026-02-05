@@ -6990,87 +6990,120 @@ async def analise_tributaria_ia(
     # CFOPs de ST (Substituição Tributária)
     CFOPS_ST_ENTRADA = {'1401', '1403', '1407', '1408', '1409', '2401', '2403', '2407', '2408', '2409'}
     CFOPS_ST_SAIDA = {'5401', '5403', '5405', '5408', '5409', '6401', '6403', '6405', '6408', '6409'}
+    # CFOPs de despesa (não geram crédito)
+    CFOPS_DESPESA = {'1556', '2556'}
     
-    # Processar entradas
+    # Processar entradas - agrupar por NCM para análise
+    produtos_entrada = {}  # Por NCM
+    produtos_entrada_detalhe = {}  # Por NCM + descrição (para detalhes)
+    
     for doc in entradas:
         for prod in doc.get('produtos', []):
             ncm = str(prod.get('ncm', ''))[:8]
-            codigo = prod.get('codigo', '')
+            if not ncm or ncm == '':
+                continue
+                
             descricao = prod.get('descricao', '')[:50]
-            key = f"{ncm}_{descricao[:30]}"
-            
             cfop = str(prod.get('cfop', ''))
-            aliq_icms = float(prod.get('p_icms', 0) or 0)
             v_icms = float(prod.get('v_icms', 0) or 0)
             valor = float(prod.get('valor_total', 0) or 0)
             cst = str(prod.get('cst_icms', '') or '')
             is_st = cfop in CFOPS_ST_ENTRADA or cst in ['10', '30', '60', '70']
+            is_despesa = cfop in CFOPS_DESPESA
             
-            if key not in produtos_entrada:
-                produtos_entrada[key] = {
+            # Agrupar por NCM para cruzamento
+            if ncm not in produtos_entrada:
+                produtos_entrada[ncm] = {
                     'ncm': ncm,
-                    'descricao': descricao,
-                    'codigo': codigo,
-                    'aliq_icms_media': 0,
+                    'descricoes': set(),
                     'total_icms': 0,
+                    'total_icms_creditavel': 0,  # Excluindo ST/Despesa
                     'total_valor': 0,
                     'qtd_itens': 0,
-                    'is_st': is_st,
+                    'tem_st': False,
+                    'tem_tributado': False,
+                    'tem_despesa': False,
                     'cfops': set(),
-                    'csts': set()
+                    'csts': set(),
+                    'aliquotas': []
                 }
             
-            produtos_entrada[key]['total_icms'] += v_icms
-            produtos_entrada[key]['total_valor'] += valor
-            produtos_entrada[key]['qtd_itens'] += 1
-            produtos_entrada[key]['cfops'].add(cfop)
-            produtos_entrada[key]['csts'].add(cst)
+            produtos_entrada[ncm]['descricoes'].add(descricao)
+            produtos_entrada[ncm]['total_icms'] += v_icms
+            # Crédito só se não for ST nem despesa
+            if not is_st and not is_despesa:
+                produtos_entrada[ncm]['total_icms_creditavel'] += v_icms
+                produtos_entrada[ncm]['tem_tributado'] = True
+            produtos_entrada[ncm]['total_valor'] += valor
+            produtos_entrada[ncm]['qtd_itens'] += 1
+            produtos_entrada[ncm]['cfops'].add(cfop)
+            produtos_entrada[ncm]['csts'].add(cst)
             if is_st:
-                produtos_entrada[key]['is_st'] = True
+                produtos_entrada[ncm]['tem_st'] = True
+            if is_despesa:
+                produtos_entrada[ncm]['tem_despesa'] = True
+            if valor > 0:
+                aliq = round((v_icms / valor) * 100, 2)
+                produtos_entrada[ncm]['aliquotas'].append(aliq)
     
-    # Processar saídas
+    # Processar saídas - agrupar por NCM
+    produtos_saida = {}
+    
     for doc in saidas:
         for prod in doc.get('produtos', []):
             ncm = str(prod.get('ncm', ''))[:8]
+            if not ncm or ncm == '':
+                continue
+                
             descricao = prod.get('descricao', '')[:50]
-            key = f"{ncm}_{descricao[:30]}"
-            
             cfop = str(prod.get('cfop', ''))
-            aliq_icms = float(prod.get('p_icms', 0) or 0)
             v_icms = float(prod.get('v_icms', 0) or 0)
             valor = float(prod.get('valor_total', 0) or 0)
             cst = str(prod.get('cst_icms', '') or '')
             is_st = cfop in CFOPS_ST_SAIDA or cst in ['10', '30', '60', '70']
             
-            if key not in produtos_saida:
-                produtos_saida[key] = {
+            if ncm not in produtos_saida:
+                produtos_saida[ncm] = {
                     'ncm': ncm,
-                    'descricao': descricao,
-                    'aliq_icms_media': 0,
+                    'descricoes': set(),
                     'total_icms': 0,
                     'total_valor': 0,
                     'qtd_itens': 0,
-                    'is_st': is_st,
+                    'tem_st': False,
+                    'tem_tributado': False,
                     'cfops': set(),
-                    'csts': set()
+                    'csts': set(),
+                    'aliquotas': []
                 }
             
-            produtos_saida[key]['total_icms'] += v_icms
-            produtos_saida[key]['total_valor'] += valor
-            produtos_saida[key]['qtd_itens'] += 1
-            produtos_saida[key]['cfops'].add(cfop)
-            produtos_saida[key]['csts'].add(cst)
+            produtos_saida[ncm]['descricoes'].add(descricao)
+            produtos_saida[ncm]['total_icms'] += v_icms
+            produtos_saida[ncm]['total_valor'] += valor
+            produtos_saida[ncm]['qtd_itens'] += 1
+            produtos_saida[ncm]['cfops'].add(cfop)
+            produtos_saida[ncm]['csts'].add(cst)
             if is_st:
-                produtos_saida[key]['is_st'] = True
+                produtos_saida[ncm]['tem_st'] = True
+            else:
+                produtos_saida[ncm]['tem_tributado'] = True
+            if valor > 0:
+                aliq = round((v_icms / valor) * 100, 2)
+                produtos_saida[ncm]['aliquotas'].append(aliq)
     
     # Calcular alíquota média de ICMS
-    for key, prod in produtos_entrada.items():
+    for ncm, prod in produtos_entrada.items():
         if prod['total_valor'] > 0:
             prod['aliq_icms_media'] = round((prod['total_icms'] / prod['total_valor']) * 100, 2)
+            prod['aliq_creditavel'] = round((prod['total_icms_creditavel'] / prod['total_valor']) * 100, 2) if prod['tem_tributado'] else 0
+        else:
+            prod['aliq_icms_media'] = 0
+            prod['aliq_creditavel'] = 0
     
-    for key, prod in produtos_saida.items():
+    for ncm, prod in produtos_saida.items():
         if prod['total_valor'] > 0:
             prod['aliq_icms_media'] = round((prod['total_icms'] / prod['total_valor']) * 100, 2)
+        else:
+            prod['aliq_icms_media'] = 0
     
     # ===== IDENTIFICAR VILÕES TRIBUTÁRIOS =====
     viloes = []
