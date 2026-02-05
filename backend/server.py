@@ -3148,43 +3148,91 @@ async def analisar_convencao(
 # ==================== DASHBOARD ====================
 
 @api_router.get("/dashboard", response_model=DashboardStats)
-async def get_dashboard(current_user: dict = Depends(get_current_user)):
+async def get_dashboard(
+    cliente_id: Optional[str] = None,
+    competencia: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
     user_id = current_user["id"]
     
-    total_clientes = await db.clientes.count_documents({"user_id": user_id})
+    # Parse competencia (MM/YYYY)
+    mes_ref = None
+    ano_ref = None
+    if competencia:
+        try:
+            parts = competencia.split('/')
+            mes_ref = parts[0]
+            ano_ref = int(parts[1])
+        except:
+            pass
     
-    clientes = await db.clientes.find({"user_id": user_id}, {"id": 1}).to_list(1000)
-    cliente_ids = [c["id"] for c in clientes]
+    # If cliente_id is specified, filter by that cliente
+    if cliente_id:
+        # Verify cliente belongs to user
+        cliente = await db.clientes.find_one({"id": cliente_id, "user_id": user_id})
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Empresa não encontrada")
+        
+        cliente_ids = [cliente_id]
+        total_clientes = 1
+    else:
+        total_clientes = await db.clientes.count_documents({"user_id": user_id})
+        clientes = await db.clientes.find({"user_id": user_id}, {"id": 1}).to_list(1000)
+        cliente_ids = [c["id"] for c in clientes]
     
     total_colaboradores = await db.colaboradores.count_documents({"cliente_id": {"$in": cliente_ids}})
-    dissidios_pendentes = await db.dissidios.count_documents({"user_id": user_id, "status": "pendente"})
-    admissoes_pendentes = await db.admissoes.count_documents({"user_id": user_id, "status": "pendente"})
-    validacoes_pendentes = await db.validacoes.count_documents({"user_id": user_id, "status": "pendente"})
     
-    # Get recent activities
+    # Build query for pending items
+    dissidio_query = {"user_id": user_id, "status": "pendente"}
+    validacao_query = {"user_id": user_id, "status": "pendente"}
+    admissao_query = {"user_id": user_id, "status": "pendente"}
+    
+    if cliente_id:
+        dissidio_query["cliente_id"] = cliente_id
+        validacao_query["cliente_id"] = cliente_id
+        admissao_query["cliente_id"] = cliente_id
+    
+    if mes_ref and ano_ref:
+        validacao_query["mes_referencia"] = mes_ref
+        validacao_query["ano_referencia"] = ano_ref
+    
+    dissidios_pendentes = await db.dissidios.count_documents(dissidio_query)
+    admissoes_pendentes = await db.admissoes.count_documents(admissao_query)
+    validacoes_pendentes = await db.validacoes.count_documents(validacao_query)
+    
+    # Get recent activities for selected cliente/competencia
     tarefas = []
     
+    activity_dissidio_query = {"user_id": user_id}
+    activity_validacao_query = {"user_id": user_id}
+    activity_admissao_query = {"user_id": user_id}
+    
+    if cliente_id:
+        activity_dissidio_query["cliente_id"] = cliente_id
+        activity_validacao_query["cliente_id"] = cliente_id
+        activity_admissao_query["cliente_id"] = cliente_id
+    
     recent_dissidios = await db.dissidios.find(
-        {"user_id": user_id},
-        {"_id": 0, "id": 1, "sindicato": 1, "status": 1, "created_at": 1}
-    ).sort("created_at", -1).to_list(3)
+        activity_dissidio_query,
+        {"_id": 0, "id": 1, "sindicato": 1, "status": 1, "created_at": 1, "cliente_id": 1}
+    ).sort("created_at", -1).to_list(5)
     for d in recent_dissidios:
         tarefas.append({"tipo": "dissidio", "titulo": f"Dissídio - {d.get('sindicato', 'N/A')}", **d})
     
     recent_admissoes = await db.admissoes.find(
-        {"user_id": user_id},
-        {"_id": 0, "id": 1, "status": 1, "created_at": 1, "dados_extraidos": 1}
-    ).sort("created_at", -1).to_list(3)
+        activity_admissao_query,
+        {"_id": 0, "id": 1, "status": 1, "created_at": 1, "dados_extraidos": 1, "cliente_id": 1}
+    ).sort("created_at", -1).to_list(5)
     for a in recent_admissoes:
         nome = a.get("dados_extraidos", {}).get("nome", "Novo Funcionário")
         tarefas.append({"tipo": "admissao", "titulo": f"Admissão - {nome}", "id": a["id"], "status": a["status"], "created_at": a["created_at"]})
     
     recent_validacoes = await db.validacoes.find(
-        {"user_id": user_id},
-        {"_id": 0, "id": 1, "status": 1, "created_at": 1, "mes_referencia": 1, "ano_referencia": 1}
-    ).sort("created_at", -1).to_list(3)
+        activity_validacao_query,
+        {"_id": 0, "id": 1, "status": 1, "created_at": 1, "mes_referencia": 1, "ano_referencia": 1, "cliente_id": 1, "cliente_nome": 1}
+    ).sort("created_at", -1).to_list(5)
     for v in recent_validacoes:
-        tarefas.append({"tipo": "validacao", "titulo": f"Validação {v.get('mes_referencia', '')}/{v.get('ano_referencia', '')}", "id": v["id"], "status": v["status"], "created_at": v["created_at"]})
+        tarefas.append({"tipo": "validacao", "titulo": f"Validação {v.get('mes_referencia', '')}/{v.get('ano_referencia', '')} - {v.get('cliente_nome', '')}", "id": v["id"], "status": v["status"], "created_at": v["created_at"]})
     
     # Sort by date
     tarefas.sort(key=lambda x: x.get("created_at", ""), reverse=True)
