@@ -409,8 +409,8 @@ const Documents = ({ user, onLogout }) => {
     }, { total: 0, validos: 0, divergentes: 0, semProdutos: 0 });
   }, [sortedAndFilteredDocuments]);
 
-  // Modal de detalhamento do documento
-  const DocumentDetailModal = () => {
+  // Modal de detalhamento do documento - usando função de render
+  const renderDocumentDetailModal = () => {
     if (!selectedDocument) return null;
     
     const produtos = selectedDocument.produtos || [];
