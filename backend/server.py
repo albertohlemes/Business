@@ -2590,6 +2590,15 @@ async def salvar_cadastro_sci(
 
 # ============ EXPORTAÇÃO PARA SCI ÚNICO ============
 
+class PerfilClienteSCI(BaseModel):
+    """Perfil do cliente para configuração automática"""
+    regime_tributario: str = "simples"  # simples, presumido, real
+    codigo_acesso_simples: Optional[str] = None
+    tipo_atividade: str = "servicos"  # comercio, servicos, industria, misto
+    tem_funcionarios: bool = False
+    contribuinte_icms: bool = False
+    enquadramento_simples: Optional[str] = "anexo3"  # anexo1-5
+
 class SCIUnicoEmpresaExport(BaseModel):
     """Dados da empresa para exportação ao SCI Único"""
     codigo: str
@@ -2613,6 +2622,88 @@ class SCIUnicoEmpresaExport(BaseModel):
     cidade: Optional[str] = None
     estado: Optional[str] = None
     socios: Optional[List[dict]] = None
+    perfil: Optional[PerfilClienteSCI] = None
+
+# Valores padrão fixos do SCI Único
+PADROES_SCI = {
+    "contador": "6",                    # ALBERTO HENRIQUE
+    "plano_contabilizacao": "51",       # Plano Business
+    "plano_contas": "90113",            # Plano de contas SCI - Departamentalizado
+    "plano_historicos": "9001",         # Histórico padrão SCI
+    "centro_custo": ""
+}
+
+def gerar_configuracoes_perfil(perfil: PerfilClienteSCI):
+    """Gera todas as configurações baseadas no perfil do cliente"""
+    config = {
+        # Aba Contadores
+        "contadores": {
+            "contador_contabil": PADROES_SCI["contador"],
+            "contador_fiscal": PADROES_SCI["contador"],
+            "contador_rh": PADROES_SCI["contador"]
+        },
+        # Aba Planos
+        "planos": {
+            "plano_contabilizacao": PADROES_SCI["plano_contabilizacao"],
+            "plano_contas": PADROES_SCI["plano_contas"],
+            "plano_historicos": PADROES_SCI["plano_historicos"],
+            "centro_custo": PADROES_SCI["centro_custo"]
+        },
+        # Aba Enquadramento Federal
+        "enquadramento": {
+            "me_epp": "ME/EPP" if perfil.regime_tributario == "simples" else "",
+            "simples_nacional": perfil.regime_tributario == "simples",
+            "codigo_acesso_simples": perfil.codigo_acesso_simples or ""
+        },
+        # Aba Fiscal - Federal
+        "fiscal_federal": {
+            "sped_contribuicoes": perfil.regime_tributario != "simples",
+            "sped_ecf": perfil.regime_tributario != "simples",
+            "reinf": True,
+            "dmed": False
+        },
+        # Aba Fiscal - Estadual
+        "fiscal_estadual": {
+            "contribuinte_icms": perfil.contribuinte_icms,
+            "sped_icms_ipi": perfil.contribuinte_icms,
+            "substituicao_tributaria": False
+        },
+        # Aba Fiscal - Municipal
+        "fiscal_municipal": {
+            "contribuinte_iss": perfil.tipo_atividade in ["servicos", "misto"],
+            "retencao_iss": perfil.tipo_atividade in ["servicos", "misto"]
+        },
+        # Aba Folha - eSocial
+        "esocial": {
+            "ativo": perfil.tem_funcionarios,
+            "faseamento": "4" if perfil.tem_funcionarios else "",
+            "dctfweb": perfil.tem_funcionarios
+        },
+        # Aba Folha - GPS
+        "gps": {
+            "simples": perfil.regime_tributario == "simples",
+            "fpas": "515" if perfil.tipo_atividade == "comercio" else "515",
+            "rat": "1",
+            "fap": "1.0000"
+        },
+        # Aba Folha - Parâmetros
+        "folha_parametros": {
+            "ferias_proporcionais": True,
+            "decimo_terceiro": True,
+            "aviso_previo": True
+        }
+    }
+    
+    # Configurações específicas por regime
+    if perfil.regime_tributario == "simples":
+        config["enquadramento"]["anexo"] = perfil.enquadramento_simples
+    elif perfil.regime_tributario == "presumido":
+        config["fiscal_federal"]["lalur"] = False
+    elif perfil.regime_tributario == "real":
+        config["fiscal_federal"]["lalur"] = True
+        config["fiscal_federal"]["sped_ecf"] = True
+    
+    return config
 
 @api_router.post("/sci-unico/exportar")
 async def exportar_para_sci_unico(
