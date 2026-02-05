@@ -286,6 +286,62 @@ async def login(credentials: UserLogin):
 async def get_me(current_user: dict = Depends(get_current_user)):
     return UserResponse(**current_user)
 
+# ==================== RECEITA FEDERAL LOOKUP ====================
+
+@api_router.get("/receita/{cnpj}")
+async def buscar_cnpj_receita(cnpj: str, current_user: dict = Depends(get_current_user)):
+    """Busca dados de CNPJ na Receita Federal via API pública"""
+    import requests
+    
+    # Clean CNPJ (remove . / -)
+    cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+    
+    if len(cnpj_limpo) != 14:
+        raise HTTPException(status_code=400, detail="CNPJ deve ter 14 dígitos")
+    
+    try:
+        # Use ReceitaWS API (free tier)
+        response = requests.get(
+            f"https://receitaws.com.br/v1/cnpj/{cnpj_limpo}",
+            timeout=30,
+            headers={"Accept": "application/json"}
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            if data.get("status") == "ERROR":
+                raise HTTPException(status_code=404, detail=data.get("message", "CNPJ não encontrado"))
+            
+            # Format response
+            return {
+                "cnpj": data.get("cnpj", cnpj_limpo),
+                "razao_social": data.get("nome", ""),
+                "nome_fantasia": data.get("fantasia", ""),
+                "endereco": f"{data.get('logradouro', '')} {data.get('numero', '')}, {data.get('bairro', '')} - {data.get('municipio', '')}/{data.get('uf', '')}".strip(),
+                "cep": data.get("cep", ""),
+                "telefone": data.get("telefone", ""),
+                "email": data.get("email", ""),
+                "cnae_principal": data.get("atividade_principal", [{}])[0].get("code", "") if data.get("atividade_principal") else "",
+                "cnae_descricao": data.get("atividade_principal", [{}])[0].get("text", "") if data.get("atividade_principal") else "",
+                "situacao": data.get("situacao", ""),
+                "data_abertura": data.get("abertura", ""),
+                "natureza_juridica": data.get("natureza_juridica", ""),
+                "capital_social": data.get("capital_social", ""),
+                "porte": data.get("porte", ""),
+                "tipo": data.get("tipo", "")
+            }
+        elif response.status_code == 429:
+            raise HTTPException(status_code=429, detail="Muitas requisições. Aguarde alguns segundos e tente novamente.")
+        else:
+            raise HTTPException(status_code=response.status_code, detail="Erro ao consultar Receita Federal")
+            
+    except requests.Timeout:
+        raise HTTPException(status_code=504, detail="Timeout ao consultar Receita Federal")
+    except requests.RequestException as e:
+        logger.error(f"Erro na consulta à Receita: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro ao consultar Receita Federal")
+
 # ==================== CLIENTE ROUTES ====================
 
 @api_router.post("/clientes", response_model=ClienteResponse)
