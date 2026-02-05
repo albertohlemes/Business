@@ -877,7 +877,7 @@ E-MAIL: ${sciForm.email || 'N/A'}
                                     </Button>
                                 </div>
 
-                                <div className="space-y-3 max-h-[280px] overflow-y-auto">
+                                <div className="space-y-3 max-h-[380px] overflow-y-auto">
                                     {gclickSocios.map((socio, idx) => (
                                         <div key={idx} className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-3">
                                             <div className="flex items-center justify-between mb-2">
@@ -913,6 +913,20 @@ E-MAIL: ${sciForm.email || 'N/A'}
                                                     placeholder="CPF"
                                                     className="bg-zinc-900 border-zinc-700 text-sm h-8"
                                                 />
+                                                <Input
+                                                    value={socio.dataNascimento || ''}
+                                                    onChange={(e) => updateSocio(idx, 'dataNascimento', e.target.value)}
+                                                    placeholder="Data Nasc. (DD/MM/AAAA)"
+                                                    className="bg-zinc-900 border-zinc-700 text-sm h-8"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2 mt-2">
+                                                <Input
+                                                    value={socio.naturalidade || ''}
+                                                    onChange={(e) => updateSocio(idx, 'naturalidade', e.target.value)}
+                                                    placeholder="Naturalidade (Cidade/UF)"
+                                                    className="bg-zinc-900 border-zinc-700 text-sm h-8"
+                                                />
                                                 <label className="flex items-center gap-2 text-xs text-zinc-400">
                                                     <input
                                                         type="checkbox"
@@ -922,6 +936,14 @@ E-MAIL: ${sciForm.email || 'N/A'}
                                                     />
                                                     Administrador
                                                 </label>
+                                            </div>
+                                            <div className="mt-2">
+                                                <Input
+                                                    value={socio.endereco || ''}
+                                                    onChange={(e) => updateSocio(idx, 'endereco', e.target.value)}
+                                                    placeholder="Endereço completo do sócio"
+                                                    className="bg-zinc-900 border-zinc-700 text-sm h-8"
+                                                />
                                             </div>
                                         </div>
                                     ))}
