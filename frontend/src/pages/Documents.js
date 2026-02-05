@@ -930,7 +930,7 @@ const Documents = ({ user, onLogout }) => {
       </div>
       
       {/* Modal de Detalhamento */}
-      <DocumentDetailModal />
+      {renderDocumentDetailModal()}
     </Layout>
   );
 };
