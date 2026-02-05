@@ -268,13 +268,12 @@ const Dissidio = () => {
 
                 <div
                   {...getRootProps()}
-                  className={`upload-zone ${isDragActive ? 'active' : ''} ${!selectedCliente ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`upload-zone ${isDragActive ? 'active' : ''} ${!selectedCliente ? 'opacity-50 cursor-not-allowed' : ''} ${uploading ? 'pointer-events-none' : ''}`}
                 >
                   <input {...getInputProps()} disabled={!selectedCliente || uploading} />
                   {uploading ? (
-                    <div className="flex flex-col items-center">
-                      <Loader2 className="animate-spin text-indigo-600 mb-2" size={32} />
-                      <p className="text-slate-600">Analisando convenção com IA...</p>
+                    <div className="py-2">
+                      <DissidioProgress isProcessing={uploading} />
                     </div>
                   ) : (
                     <>
