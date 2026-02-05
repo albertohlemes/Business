@@ -271,13 +271,19 @@ const ApuracaoMensal = ({ user, onLogout }) => {
       return <p className="text-gray-500 text-center py-4">Nenhum registro</p>;
     }
     
-    // Calcular totais
-    const totais = items.reduce((acc, item) => ({
-      valor: acc.valor + (item.valor || 0),
-      v_icms: acc.v_icms + (item.v_icms || 0),
-      v_pis: acc.v_pis + (item.v_pis || item.pis || 0),
-      v_cofins: acc.v_cofins + (item.v_cofins || item.cofins || 0)
-    }), { valor: 0, v_icms: 0, v_pis: 0, v_cofins: 0 });
+    // Calcular totais - EXCLUIR itens sem crédito (ST/Despesa) do total de ICMS para entradas
+    const totais = items.reduce((acc, item) => {
+      const isSemCredito = item.is_st || item.is_despesa || item.sem_credito_icms;
+      const icmsParaSomar = (tipo === 'entrada' && isSemCredito) ? 0 : (item.v_icms || 0);
+      
+      return {
+        valor: acc.valor + (item.valor || 0),
+        v_icms: acc.v_icms + icmsParaSomar,
+        v_icms_desconsiderado: acc.v_icms_desconsiderado + (tipo === 'entrada' && isSemCredito ? (item.v_icms || 0) : 0),
+        v_pis: acc.v_pis + (item.v_pis || item.pis || 0),
+        v_cofins: acc.v_cofins + (item.v_cofins || item.cofins || 0)
+      };
+    }, { valor: 0, v_icms: 0, v_icms_desconsiderado: 0, v_pis: 0, v_cofins: 0 });
     
     return (
       <div className="overflow-x-auto">
@@ -293,20 +299,22 @@ const ApuracaoMensal = ({ user, onLogout }) => {
           </thead>
           <tbody>
             {items.map((item, idx) => {
-              const isST = item.is_st || item.sem_credito_icms;
+              const isSemCredito = item.is_st || item.is_despesa || item.sem_credito_icms;
               return (
                 <tr 
                   key={idx} 
-                  className={`border-b border-gray-100 ${isST && tipo === 'entrada' ? 'bg-red-50' : 'hover:bg-gray-50'}`}
+                  className={`border-b border-gray-100 ${isSemCredito && tipo === 'entrada' ? 'bg-red-50' : 'hover:bg-gray-50'}`}
                 >
                   <td className="px-4 py-2 font-mono font-medium">
                     {item.cfop || item.cst || item.codigo}
-                    {isST && tipo === 'entrada' && (
-                      <span className="ml-2 text-xs bg-red-200 text-red-700 px-1.5 py-0.5 rounded font-normal">ST</span>
+                    {isSemCredito && tipo === 'entrada' && (
+                      <span className="ml-2 text-xs bg-red-200 text-red-700 px-1.5 py-0.5 rounded font-normal">
+                        {item.is_st ? 'ST' : item.is_despesa ? 'DESP' : 'S/CRED'}
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-2 text-right">{formatCurrency(item.valor)}</td>
-                  <td className={`px-4 py-2 text-right ${isST && tipo === 'entrada' ? 'text-red-500 line-through' : ''}`}>
+                  <td className={`px-4 py-2 text-right ${isSemCredito && tipo === 'entrada' ? 'text-red-500 line-through' : ''}`}>
                     {formatCurrency(item.v_icms)}
                   </td>
                   <td className="px-4 py-2 text-right">{formatCurrency(item.v_pis || item.pis)}</td>
@@ -317,7 +325,24 @@ const ApuracaoMensal = ({ user, onLogout }) => {
           </tbody>
           <tfoot>
             <tr className="bg-gray-100 font-bold border-t-2 border-gray-300">
-              <td className="px-4 py-3">TOTAL ({items.length})</td>
+              <td className="px-4 py-3">
+                TOTAL ({items.length})
+                {tipo === 'entrada' && totais.v_icms_desconsiderado > 0 && (
+                  <span className="ml-2 text-xs font-normal text-red-600">
+                    (ICMS s/ crédito: {formatCurrency(totais.v_icms_desconsiderado)})
+                  </span>
+                )}
+              </td>
+              <td className="px-4 py-3 text-right">{formatCurrency(totais.valor)}</td>
+              <td className="px-4 py-3 text-right">{formatCurrency(totais.v_icms)}</td>
+              <td className="px-4 py-3 text-right">{formatCurrency(totais.v_pis)}</td>
+              <td className="px-4 py-3 text-right">{formatCurrency(totais.v_cofins)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    );
+  };
               <td className="px-4 py-3 text-right">{formatCurrency(totais.valor)}</td>
               <td className="px-4 py-3 text-right">{formatCurrency(totais.v_icms)}</td>
               <td className="px-4 py-3 text-right">{formatCurrency(totais.v_pis)}</td>
