@@ -12,7 +12,7 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 1. **Dissídio Automatizado**: Upload de convenção coletiva → IA extrai reajustes → Aprovação → Lançamento
 2. **Admissões Inteligentes**: Upload de documentos → IA extrai dados → Preenche ficha automaticamente
 3. **Recomposição de Médias**: Importação histórico 12-24 meses → Cálculo automático para férias/rescisão
-4. **Validação de Folha**: Comparação com mês anterior → Detecção de discrepâncias
+4. **Validação de Folha**: Comparação com mês anterior + Comparação com relatório de apoio
 5. **Conferência Informes de Rendimento**: Comparação eSocial vs Sistema interno
 
 ## Implementado (05/02/2026)
@@ -40,20 +40,36 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - ✅ Dashboard com header mostrando empresa/competência selecionada
 - ✅ Persistência de seleção no localStorage
 
-### Funcionalidade de Admissão eSocial (05/02/2026) - NOVA
+### Funcionalidade de Admissão eSocial (05/02/2026)
 - ✅ Formulário completo de cadastro de colaboradores com template eSocial
 - ✅ 5 abas organizadas: Cadastrais, Documentos, Contrato, Bancários, Dependentes
-- ✅ Todos os campos da Ficha de Admissão eSocial implementados:
-  - Dados cadastrais (nome, CPF, endereço, contato, filiação, deficiência)
-  - Documentos (RG, CTPS, PIS/PASEP, Título de Eleitor, Reservista, CNH)
-  - Informações contratuais (salário, cargo, experiência, horário, adicionais, benefícios)
-  - Dados bancários (banco, agência, conta)
-  - Dependentes (nome, CPF, parentesco, IR, salário família)
+- ✅ Todos os campos da Ficha de Admissão eSocial implementados (60+ campos)
 - ✅ Extração automática por IA de documentos (PDF, JPG, PNG, Excel)
 - ✅ Suporte a documentos manuscritos e escaneados
 - ✅ Modal de revisão de dados extraídos antes de salvar
 - ✅ Indicador de confiança da extração (alta/média/baixa)
-- ✅ Lista de campos extraídos e incertos para revisão
+
+### Validação de Folha com Relatório de Apoio (05/02/2026) - NOVA
+- ✅ **Aba 1 - Análise da Folha**: Análise simples da folha de pagamento
+  - Erros de cálculo nos valores
+  - Inconsistências entre funcionários
+  - Valores fora do padrão
+  - Comparação com mês anterior
+- ✅ **Aba 2 - Comparar com Apoio**: Nova funcionalidade
+  - Upload do holerite gerado pelo sistema
+  - Upload do relatório de apoio (qualquer formato: email, imagem, PDF, Excel, TXT)
+  - IA compara os dois documentos e identifica divergências
+  - Exemplos de apoio: email do RH com horas extras, planilha de comissões, foto do ponto, relatório de faltas
+  - Exibição de divergências com valores lado a lado (holerite vs apoio)
+  - Recomendações de correção
+
+### Automação do Dissídio Coletivo (já existia)
+- ✅ Upload de convenção coletiva (PDF)
+- ✅ Extração por IA dos dados (sindicato, percentual, data-base, piso salarial)
+- ✅ Criação do dissídio com dados extraídos
+- ✅ Fluxo de aprovação/rejeição
+- ✅ Cálculo de colaboradores afetados e valor total do reajuste
+- ✅ Aplicação automática do reajuste nos salários após aprovação
 
 ## Stack Tecnológico
 - **Backend**: FastAPI + MongoDB + Emergent LLM (Gemini 2.5 Flash)
@@ -63,13 +79,14 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 
 ## Prioritized Backlog
 
-### P0 (Crítico)
-- ✅ Funcionalidade de Admissão de Colaboradores via template eSocial (CONCLUÍDO)
+### P0 (Crítico) - CONCLUÍDO
+- ✅ Funcionalidade de Admissão de Colaboradores via template eSocial
+- ✅ Automação do Dissídio Coletivo
+- ✅ Validação de Folha com Relatório de Apoio
 
 ### P1 (Alta Prioridade)
-- 🔲 Automação do Dissídio Coletivo (upload convenção, extração percentual, cálculo reajustes)
-- 🔲 Validação da Folha de Pagamento (comparar com mês anterior, sinalizar discrepâncias)
 - 🔲 Cálculo de Médias Históricas (importar 12-24 meses para novos clientes)
+- 🔲 Melhorar Dissídio com visualização prévia dos colaboradores afetados e novo salário
 
 ### P2 (Média Prioridade)
 - 🔲 Comparação de Informes de Rendimento (eSocial vs sistema interno)
@@ -92,6 +109,7 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 ├── backend/
 │   └── server.py         # API FastAPI com todas as rotas e modelos
 │   └── .env              # Variáveis de ambiente (MONGO_URL, EMERGENT_LLM_KEY)
+│   └── tests/            # Testes automatizados
 ├── frontend/
 │   └── src/
 │       ├── components/
@@ -105,8 +123,9 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 │       │   ├── Login.js
 │       │   ├── Dashboard.js
 │       │   ├── Clientes.js
-│       │   ├── Colaboradores.js  # Formulário completo eSocial
-│       │   └── Dissidio.js
+│       │   ├── Colaboradores.js   # Formulário completo eSocial
+│       │   ├── Dissidio.js        # Automação de dissídio
+│       │   └── ValidacaoFolha.js  # Validação + Comparação com apoio
 │       └── App.js
 └── memory/
     └── PRD.md
@@ -131,7 +150,7 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - `POST /api/colaboradores` - Criar colaborador
 - `PUT /api/colaboradores/{id}` - Atualizar colaborador
 - `DELETE /api/colaboradores/{id}` - Excluir colaborador
-- `POST /api/colaboradores/importar` - **NOVO** Importar colaborador via documento com IA
+- `POST /api/colaboradores/importar` - Importar colaborador via documento com IA
 
 ### Dissídio
 - `GET /api/dissidios` - Listar dissídios
@@ -140,13 +159,17 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - `PUT /api/dissidios/{id}/rejeitar` - Rejeitar dissídio
 - `POST /api/convencao/analisar` - Analisar convenção coletiva com IA
 
+### Validação de Folha
+- `GET /api/validacoes` - Listar validações
+- `POST /api/validacoes/analisar` - Analisar folha de pagamento com IA
+- `POST /api/validacoes/comparar-apoio` - **NOVO** Comparar holerite com relatório de apoio
+
 ## Credenciais de Teste
 - Email: admin@dp.com
 - Senha: senha123
 - Empresa de teste: Empresa Teste LTDA (CNPJ 12345678000199)
 
 ## Próximos Passos
-1. 🔲 Implementar automação completa do Dissídio Coletivo
-2. 🔲 Criar página de Validação de Folha de Pagamento
-3. 🔲 Implementar cálculo de Médias Históricas
-4. 🔲 Adicionar comparação de Informes de Rendimento
+1. 🔲 Implementar Cálculo de Médias Históricas
+2. 🔲 Adicionar comparação de Informes de Rendimento
+3. 🔲 Melhorar Dissídio com prévia dos novos salários
