@@ -522,89 +522,180 @@ const Colaboradores = () => {
 
       {/* Review Dialog - After Import (Multiple Colaboradores) */}
       <Dialog open={reviewDialogOpen} onOpenChange={(o) => { setReviewDialogOpen(o); if (!o) resetForm(); }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="text-emerald-600" size={24} />
-              Revisar Colaboradores Extraídos
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0">
+          {/* Header fixo */}
+          <div className="flex-shrink-0 p-6 border-b bg-gradient-to-r from-emerald-50 to-indigo-50">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3 text-xl">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center">
+                  <CheckCircle2 className="text-white" size={22} />
+                </div>
+                <div>
+                  <span>Colaboradores Extraídos</span>
+                  <p className="text-sm font-normal text-slate-500 mt-0.5">
+                    Revise os dados antes de salvar
+                  </p>
+                </div>
+              </DialogTitle>
+            </DialogHeader>
+          </div>
           
           {importResult && extractedColaboradores.length > 0 && (
-            <div className="space-y-4 mt-4">
-              {/* Navigation between colaboradores */}
-              <div className="flex items-center justify-between bg-slate-50 rounded-lg p-3">
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${importResult.confianca === 'alta' ? 'bg-emerald-100 text-emerald-700' : importResult.confianca === 'media' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>
-                    Confiança: {importResult.confianca}
+            <>
+              {/* Info bar e navegação */}
+              <div className="flex-shrink-0 px-6 py-3 bg-slate-50 border-b flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
+                    importResult.confianca === 'alta' ? 'bg-emerald-100 text-emerald-700' : 
+                    importResult.confianca === 'media' ? 'bg-amber-100 text-amber-700' : 
+                    'bg-rose-100 text-rose-700'
+                  }`}>
+                    {importResult.confianca === 'alta' ? '✓ Alta confiança' : 
+                     importResult.confianca === 'media' ? '◐ Média confiança' : '! Baixa confiança'}
                   </span>
-                  <span className="text-sm text-slate-500">
-                    {importResult.tipo_documento === 'ficha_registro' ? 'Ficha de Registro' : importResult.tipo_documento}
+                  <span className="text-sm text-slate-600">
+                    {extractedColaboradores.filter(c => c.nome && c.cpf).length} de {extractedColaboradores.length} completos
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" disabled={currentColabIndex === 0} onClick={() => goToColaborador(currentColabIndex - 1)}>
+                  <Button variant="outline" size="sm" className="h-8" disabled={currentColabIndex === 0} onClick={() => goToColaborador(currentColabIndex - 1)}>
                     <ChevronLeft size={16} />
                   </Button>
-                  <span className="text-sm font-medium px-3">
-                    {currentColabIndex + 1} de {extractedColaboradores.length}
+                  <span className="text-sm font-semibold px-3 py-1 bg-white rounded border min-w-[80px] text-center">
+                    {currentColabIndex + 1} / {extractedColaboradores.length}
                   </span>
-                  <Button variant="outline" size="sm" disabled={currentColabIndex === extractedColaboradores.length - 1} onClick={() => goToColaborador(currentColabIndex + 1)}>
+                  <Button variant="outline" size="sm" className="h-8" disabled={currentColabIndex === extractedColaboradores.length - 1} onClick={() => goToColaborador(currentColabIndex + 1)}>
                     <ChevronRight size={16} />
                   </Button>
                 </div>
               </div>
 
-              {/* Colaboradores tabs/cards */}
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {extractedColaboradores.map((colab, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => goToColaborador(idx)}
-                    className={`flex-shrink-0 px-3 py-2 rounded-lg cursor-pointer transition-all ${idx === currentColabIndex ? 'bg-indigo-100 border-2 border-indigo-500' : 'bg-slate-100 border border-slate-200 hover:bg-slate-200'}`}
-                  >
-                    <p className="text-sm font-medium truncate max-w-[120px]">{colab.nome || `Colaborador ${idx + 1}`}</p>
-                    <p className="text-xs text-slate-500 font-mono">{colab.cpf || 'Sem CPF'}</p>
-                    {idx === currentColabIndex && extractedColaboradores.length > 1 && (
-                      <Button variant="ghost" size="sm" className="mt-1 h-5 text-xs text-rose-600 p-0" onClick={(e) => { e.stopPropagation(); removeColaborador(idx); }}>
-                        <Trash2 size={10} className="mr-1" /> Remover
-                      </Button>
-                    )}
-                  </div>
-                ))}
+              {/* Lista de colaboradores - horizontal scrollável */}
+              <div className="flex-shrink-0 px-6 py-3 border-b bg-white">
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                  {extractedColaboradores.map((colab, idx) => {
+                    const isComplete = colab.nome && colab.cpf;
+                    const isActive = idx === currentColabIndex;
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => goToColaborador(idx)}
+                        className={`flex-shrink-0 p-3 rounded-xl cursor-pointer transition-all min-w-[160px] ${
+                          isActive 
+                            ? 'bg-indigo-600 text-white shadow-lg scale-105' 
+                            : isComplete 
+                              ? 'bg-emerald-50 border-2 border-emerald-200 hover:border-emerald-400' 
+                              : 'bg-amber-50 border-2 border-amber-200 hover:border-amber-400'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-semibold truncate ${isActive ? 'text-white' : 'text-slate-800'}`}>
+                              {colab.nome || `Colaborador ${idx + 1}`}
+                            </p>
+                            <p className={`text-xs font-mono mt-0.5 ${isActive ? 'text-indigo-200' : 'text-slate-500'}`}>
+                              {colab.cpf || 'CPF pendente'}
+                            </p>
+                            {colab.cargo && (
+                              <p className={`text-xs mt-1 truncate ${isActive ? 'text-indigo-200' : 'text-slate-400'}`}>
+                                {colab.cargo}
+                              </p>
+                            )}
+                          </div>
+                          {!isActive && (
+                            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+                              isComplete ? 'bg-emerald-500 text-white' : 'bg-amber-400 text-white'
+                            }`}>
+                              {isComplete ? '✓' : '!'}
+                            </span>
+                          )}
+                        </div>
+                        {isActive && extractedColaboradores.length > 1 && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="mt-2 h-6 text-xs text-white/80 hover:text-white hover:bg-white/20 w-full" 
+                            onClick={(e) => { e.stopPropagation(); removeColaborador(idx); }}
+                          >
+                            <Trash2 size={12} className="mr-1" /> Remover
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Current colaborador form */}
-              <Card className="border-slate-200">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center justify-between">
-                    <span>{formData.nome || 'Colaborador sem nome'}</span>
-                    {!formData.nome && <span className="text-xs text-amber-600 flex items-center gap-1"><AlertTriangle size={12} />Preencha o nome</span>}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {renderFormFields()}
-                </CardContent>
-              </Card>
+              {/* Formulário com scroll */}
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                <Card className="border-slate-200 shadow-sm">
+                  <CardHeader className="pb-3 bg-slate-50 rounded-t-lg">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                          <User className="text-indigo-600" size={18} />
+                        </div>
+                        <div>
+                          <span className="text-lg">{formData.nome || 'Nome não informado'}</span>
+                          {formData.cargo && <p className="text-sm font-normal text-slate-500">{formData.cargo}</p>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {formData.salario_base > 0 && (
+                          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold">
+                            {formatCurrency(formData.salario_base)}
+                          </span>
+                        )}
+                        {(!formData.nome || !formData.cpf) && (
+                          <span className="text-xs text-amber-600 flex items-center gap-1 bg-amber-50 px-2 py-1 rounded">
+                            <AlertTriangle size={12} />
+                            Dados obrigatórios pendentes
+                          </span>
+                        )}
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    {renderFormFields()}
+                  </CardContent>
+                </Card>
+              </div>
 
-              {/* Actions */}
-              <div className="flex justify-between gap-3 pt-4 border-t">
-                <div className="text-sm text-slate-500">
-                  {extractedColaboradores.filter(c => c.nome && c.cpf).length} de {extractedColaboradores.length} completos
+              {/* Footer fixo com ações */}
+              <div className="flex-shrink-0 px-6 py-4 border-t bg-white flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                    <span className="text-sm text-slate-600">
+                      {extractedColaboradores.filter(c => c.nome && c.cpf).length} completos
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                    <span className="text-sm text-slate-600">
+                      {extractedColaboradores.filter(c => !c.nome || !c.cpf).length} pendentes
+                    </span>
+                  </div>
                 </div>
                 <div className="flex gap-3">
-                  <Button variant="outline" onClick={() => setReviewDialogOpen(false)}>Cancelar</Button>
+                  <Button variant="outline" onClick={() => setReviewDialogOpen(false)}>
+                    Cancelar
+                  </Button>
                   <Button
                     onClick={handleSaveAll}
                     disabled={saving || extractedColaboradores.length === 0}
-                    className="bg-emerald-600 hover:bg-emerald-700"
+                    className="bg-emerald-600 hover:bg-emerald-700 min-w-[180px]"
                     data-testid="salvar-todos-btn"
                   >
-                    {saving ? <><Loader2 className="animate-spin mr-2" size={16} />Salvando...</> : <><Save size={16} className="mr-2" />Salvar Todos ({extractedColaboradores.length})</>}
+                    {saving ? (
+                      <><Loader2 className="animate-spin mr-2" size={16} />Salvando...</>
+                    ) : (
+                      <><Save size={16} className="mr-2" />Salvar Todos ({extractedColaboradores.length})</>
+                    )}
                   </Button>
                 </div>
               </div>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
