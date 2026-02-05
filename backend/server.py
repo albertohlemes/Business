@@ -2078,7 +2078,10 @@ async def gerar_contrato_constituicao(
         for socio in socios:
             perc = float(socio.participacao)
             valor = capital_valor * perc / 100
-            tabela_quotas += f"{socio.nome.upper()} | {perc:.0f}% | R$ {valor:,.2f}\n"
+            qtd_quotas = int(capital_valor * perc / 100)
+            tabela_quotas += f"{socio.nome.upper()} | {perc:.0f}% | {qtd_quotas:,} quotas | R$ {valor:,.2f}\n"
+        # Linha de TOTAL
+        tabela_quotas += f"TOTAL | 100% | {qtd_quotas_total:,} quotas | R$ {capital_valor:,.2f}\n"
         
         # Assinaturas
         assinaturas = ""
