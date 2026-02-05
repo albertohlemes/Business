@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { EmpresaProvider } from "./contexts/EmpresaContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Clientes from "./pages/Clientes";
@@ -34,26 +35,28 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Toaster richColors position="top-right" />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Layout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<Dashboard />} />
-            <Route path="clientes" element={<Clientes />} />
-            <Route path="colaboradores" element={<Colaboradores />} />
-            <Route path="dissidio" element={<Dissidio />} />
-            <Route path="admissoes" element={<Admissoes />} />
-            <Route path="medias" element={<Medias />} />
-            <Route path="validacao" element={<ValidacaoFolha />} />
-            <Route path="informes" element={<InformesRendimento />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <EmpresaProvider>
+        <BrowserRouter>
+          <Toaster richColors position="top-right" />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<Dashboard />} />
+              <Route path="clientes" element={<Clientes />} />
+              <Route path="colaboradores" element={<Colaboradores />} />
+              <Route path="dissidio" element={<Dissidio />} />
+              <Route path="admissoes" element={<Admissoes />} />
+              <Route path="medias" element={<Medias />} />
+              <Route path="validacao" element={<ValidacaoFolha />} />
+              <Route path="informes" element={<InformesRendimento />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </EmpresaProvider>
     </AuthProvider>
   );
 }
