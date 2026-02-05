@@ -93,6 +93,20 @@ const ValidacaoFolha = () => {
     }
   };
 
+  const deleteValidacao = async (id, e) => {
+    e?.stopPropagation();
+    if (!window.confirm('Tem certeza que deseja excluir esta validação?')) {
+      return;
+    }
+    try {
+      await axios.delete(`${API_URL}/api/validacoes/${id}`);
+      toast.success('Validação excluída');
+      setValidacoes(prev => prev.filter(v => v.id !== id));
+    } catch (error) {
+      toast.error('Erro ao excluir validação');
+    }
+  };
+
   // Dropzones
   const onDropHoleriteAtual = useCallback((acceptedFiles) => {
     if (acceptedFiles.length > 0) {
