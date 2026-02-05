@@ -774,66 +774,108 @@ def detect_xml_type(xml_content: str) -> str:
     return 'nfe'
 
 def classify_product_category(descricao: str, ncm: str, company_products: List[str], company_insumos: List[str], company_despesas: List[str], company_ativos: List[str] = [], company_combustiveis: List[str] = []) -> tuple:
-    """Classifica produto e retorna (categoria, justificativa)"""
-    descricao_lower = descricao.lower()
+    """Classifica produto e retorna (categoria, justificativa) usando correspondência inteligente"""
+    descricao_lower = descricao.lower().strip()
+    descricao_words = set(descricao_lower.split())
     
-    # Verificar produtos de despesa customizados da empresa
-    for despesa in company_despesas:
-        if despesa.lower() in descricao_lower or descricao_lower in despesa.lower():
-            return ('despesa', f'Produto cadastrado como despesa da empresa ({despesa})')
+    def match_keywords(keywords: List[str], descricao_lower: str, descricao_words: set) -> tuple:
+        """Verifica correspondência entre palavras-chave e descrição com diferentes níveis de confiança"""
+        for keyword in keywords:
+            keyword_lower = keyword.lower().strip()
+            if not keyword_lower:
+                continue
+                
+            # Match exato
+            if keyword_lower == descricao_lower:
+                return (True, keyword, "exato")
+            
+            # Keyword está contida na descrição
+            if keyword_lower in descricao_lower:
+                return (True, keyword, "contido")
+            
+            # Descrição contém a keyword
+            if descricao_lower in keyword_lower:
+                return (True, keyword, "parcial")
+            
+            # Match por palavras individuais (para keywords multi-palavras)
+            keyword_words = set(keyword_lower.split())
+            if len(keyword_words) > 1:
+                # Se todas as palavras da keyword estão na descrição
+                if keyword_words.issubset(descricao_words):
+                    return (True, keyword, "palavras")
+                # Se a maioria das palavras está presente (fuzzy)
+                matching_words = keyword_words.intersection(descricao_words)
+                if len(matching_words) >= len(keyword_words) * 0.7:
+                    return (True, keyword, "fuzzy")
+            else:
+                # Para keywords de uma palavra, verificar se está nas palavras da descrição
+                if keyword_lower in descricao_words:
+                    return (True, keyword, "palavra")
+        
+        return (False, None, None)
     
-    # Verificar ativo imobilizado customizado da empresa
-    for ativo in company_ativos:
-        if ativo.lower() in descricao_lower or descricao_lower in ativo.lower():
-            return ('ativo_imobilizado', f'Ativo imobilizado cadastrado ({ativo})')
+    # PRIORIDADE 1: Combustíveis customizados da empresa (alta prioridade)
+    if company_combustiveis:
+        matched, keyword, match_type = match_keywords(company_combustiveis, descricao_lower, descricao_words)
+        if matched:
+            return ('combustivel', f'🔥 Combustível cadastrado na empresa [{keyword}] (match: {match_type})')
     
-    # Verificar combustíveis customizados da empresa
-    for comb in company_combustiveis:
-        if comb.lower() in descricao_lower or descricao_lower in comb.lower():
-            return ('combustivel', f'Combustível cadastrado ({comb})')
+    # PRIORIDADE 2: Ativo imobilizado customizado da empresa (alta prioridade)
+    if company_ativos:
+        matched, keyword, match_type = match_keywords(company_ativos, descricao_lower, descricao_words)
+        if matched:
+            return ('ativo_imobilizado', f'🏭 Ativo imobilizado cadastrado na empresa [{keyword}] (match: {match_type})')
     
-    # Combustíveis padrão
-    combustiveis = ['gasolina', 'diesel', 'etanol', 'alcool combustivel', 'gnv', 'gas natural', 'oleo diesel']
-    for item in combustiveis:
-        if item in descricao_lower:
-            return ('combustivel', f'Combustível identificado ({item})')
+    # PRIORIDADE 3: Despesas customizadas da empresa (alta prioridade)
+    if company_despesas:
+        matched, keyword, match_type = match_keywords(company_despesas, descricao_lower, descricao_words)
+        if matched:
+            return ('despesa', f'📋 Despesa cadastrada na empresa [{keyword}] (match: {match_type})')
     
-    # Ativo imobilizado padrão
-    ativos_padrao = ['maquina', 'equipamento', 'veiculo', 'computador', 'servidor', 'ar condicionado', 'movel', 'estante', 'balcao', 'gondola', 'prateleira', 'freezer', 'geladeira', 'empilhadeira', 'caminhao', 'carro', 'moto']
-    for item in ativos_padrao:
-        if item in descricao_lower:
-            return ('ativo_imobilizado', f'Ativo imobilizado identificado ({item})')
+    # PRIORIDADE 4: Insumos customizados da empresa (alta prioridade)
+    if company_insumos:
+        matched, keyword, match_type = match_keywords(company_insumos, descricao_lower, descricao_words)
+        if matched:
+            return ('insumo', f'⚙️ Insumo cadastrado na empresa [{keyword}] (match: {match_type})')
     
-    # Materiais de escritório
-    materiais_escritorio = ['papel', 'caneta', 'lapis', 'pasta', 'grampeador', 'clips', 'borracha', 'toner', 'cartucho', 'impressora', 'tinta impressora']
-    for item in materiais_escritorio:
-        if item in descricao_lower:
-            return ('despesa', f'Material de escritório ({item})')
+    # PRIORIDADE 5: Produtos de revenda customizados da empresa (alta prioridade)
+    if company_products:
+        matched, keyword, match_type = match_keywords(company_products, descricao_lower, descricao_words)
+        if matched:
+            return ('revenda', f'🛒 Produto comercializado cadastrado na empresa [{keyword}] (match: {match_type})')
     
-    # Materiais de limpeza
-    materiais_limpeza = ['sabao', 'detergente', 'desinfetante', 'alcool gel', 'alcool', 'papel higienico', 'toalha', 'vassoura', 'pano', 'luva', 'saco lixo']
-    for item in materiais_limpeza:
-        if item in descricao_lower:
-            return ('despesa', f'Material de limpeza ({item})')
+    # PRIORIDADE 6: Combustíveis padrão (média prioridade)
+    combustiveis_padrao = ['gasolina', 'diesel', 'etanol', 'alcool combustivel', 'gnv', 'gas natural', 'oleo diesel', 'biodiesel', 'querosene']
+    matched, keyword, match_type = match_keywords(combustiveis_padrao, descricao_lower, descricao_words)
+    if matched:
+        return ('combustivel', f'Combustível identificado ({keyword})')
     
-    # Materiais de construção
-    materiais_construcao = ['cimento', 'areia', 'tijolo', 'telha', 'tinta parede', 'massa corrida', 'prego', 'parafuso', 'madeira', 'ferro', 'porta', 'janela']
-    for item in materiais_construcao:
-        if item in descricao_lower:
-            return ('despesa', f'Material de construção/manutenção ({item})')
+    # PRIORIDADE 7: Ativo imobilizado padrão (média prioridade)
+    ativos_padrao = ['maquina', 'equipamento', 'veiculo', 'computador', 'servidor', 'ar condicionado', 'movel', 'estante', 'balcao', 'gondola', 'prateleira', 'freezer', 'geladeira', 'empilhadeira', 'caminhao', 'carro', 'moto', 'notebook', 'impressora industrial']
+    matched, keyword, match_type = match_keywords(ativos_padrao, descricao_lower, descricao_words)
+    if matched:
+        return ('ativo_imobilizado', f'Ativo imobilizado identificado ({keyword})')
     
-    # Verificar insumos cadastrados
-    for insumo in company_insumos:
-        if insumo.lower() in descricao_lower or descricao_lower in insumo.lower():
-            return ('insumo', f'Insumo de produção cadastrado ({insumo})')
+    # PRIORIDADE 8: Materiais de escritório (baixa prioridade - apenas se não houver match anterior)
+    materiais_escritorio = ['papel sulfite', 'papel a4', 'caneta', 'lapis', 'pasta arquivo', 'grampeador', 'clips', 'borracha', 'toner', 'cartucho tinta']
+    matched, keyword, match_type = match_keywords(materiais_escritorio, descricao_lower, descricao_words)
+    if matched:
+        return ('despesa', f'Material de escritório ({keyword})')
     
-    # Verificar produtos de revenda cadastrados
-    for produto in company_products:
-        if produto.lower() in descricao_lower or descricao_lower in produto.lower():
-            return ('revenda', f'Produto comercializado pela empresa ({produto})')
+    # PRIORIDADE 9: Materiais de limpeza (baixa prioridade)
+    materiais_limpeza = ['sabao', 'detergente', 'desinfetante', 'alcool gel', 'alcool 70', 'papel higienico', 'toalha papel', 'vassoura', 'pano limpeza', 'luva limpeza', 'saco lixo', 'agua sanitaria', 'desengordurante']
+    matched, keyword, match_type = match_keywords(materiais_limpeza, descricao_lower, descricao_words)
+    if matched:
+        return ('despesa', f'Material de limpeza ({keyword})')
     
-    # Padrão: revenda (produto do escopo da empresa)
-    return ('revenda', 'Produto presumido para revenda (escopo comercial da empresa)')
+    # PRIORIDADE 10: Materiais de construção/manutenção (baixa prioridade)
+    materiais_construcao = ['cimento', 'areia', 'tijolo', 'telha', 'tinta parede', 'massa corrida', 'prego', 'parafuso', 'madeira', 'ferro construcao', 'porta', 'janela']
+    matched, keyword, match_type = match_keywords(materiais_construcao, descricao_lower, descricao_words)
+    if matched:
+        return ('despesa', f'Material de construção/manutenção ({keyword})')
+    
+    # Padrão: revenda (produto do escopo da empresa) - mas sinalizando que precisa validação
+    return ('revenda', 'Produto presumido para revenda (validar classificação)')
 
 async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tipo_doc: str, cfop_original: str, emitente_uf: str = '') -> Dict[str, Any]:
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
