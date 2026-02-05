@@ -243,81 +243,47 @@ const AnalisePisCofins = ({ user, onLogout }) => {
           </div>
         ) : dados ? (
           <>
-            {/* Cards de Resumo */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">Total Saídas</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(dados.resumo.total_valor_saidas)}</p>
-                  </div>
-                  <div className="p-3 bg-gray-100 rounded-lg">
-                    <FileText className="w-6 h-6 text-gray-600" />
-                  </div>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">
-                  {dados.total_documentos} notas • {dados.total_produtos} produtos
-                </p>
+            {/* Cards de Resumo - Compactos */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+              {/* Total Saídas */}
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <p className="text-xs text-gray-500 uppercase">Total Saídas</p>
+                <p className="text-lg font-bold text-gray-900">{formatCurrency(dados.resumo.total_valor_saidas)}</p>
+                <p className="text-xs text-gray-400">{dados.total_documentos} NFs • {dados.total_produtos} itens</p>
               </div>
 
-              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">PIS Declarado</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(dados.resumo.total_pis_declarado)}</p>
-                  </div>
-                  <div className="p-3 bg-blue-100 rounded-lg">
-                    <DollarSign className="w-6 h-6 text-blue-600" />
-                  </div>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">
-                  Correto: {formatCurrency(dados.resumo.total_pis_correto)}
-                </p>
+              {/* PIS */}
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <p className="text-xs text-gray-500 uppercase">PIS</p>
+                <p className="text-lg font-bold text-gray-900">{formatCurrency(dados.resumo.total_pis_declarado)}</p>
+                <p className="text-xs text-gray-400">Correto: {formatCurrency(dados.resumo.total_pis_correto)}</p>
               </div>
 
-              <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">COFINS Declarado</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(dados.resumo.total_cofins_declarado)}</p>
-                  </div>
-                  <div className="p-3 bg-purple-100 rounded-lg">
-                    <DollarSign className="w-6 h-6 text-purple-600" />
-                  </div>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">
-                  Correto: {formatCurrency(dados.resumo.total_cofins_correto)}
-                </p>
+              {/* COFINS */}
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <p className="text-xs text-gray-500 uppercase">COFINS</p>
+                <p className="text-lg font-bold text-gray-900">{formatCurrency(dados.resumo.total_cofins_declarado)}</p>
+                <p className="text-xs text-gray-400">Correto: {formatCurrency(dados.resumo.total_cofins_correto)}</p>
               </div>
 
-              <div className={`rounded-xl p-5 border shadow-sm ${
-                dados.resumo.diferenca_total > 0 
-                  ? 'bg-red-50 border-red-200' 
-                  : dados.resumo.diferenca_total < 0 
-                    ? 'bg-green-50 border-green-200'
-                    : 'bg-gray-50 border-gray-200'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Diferença Total</p>
-                    <p className={`text-2xl font-bold ${
-                      dados.resumo.diferenca_total > 0 
-                        ? 'text-red-600' 
-                        : dados.resumo.diferenca_total < 0 
-                          ? 'text-green-600'
-                          : 'text-gray-600'
-                    }`}>
-                      {formatCurrency(Math.abs(dados.resumo.diferenca_total))}
-                    </p>
-                  </div>
-                  <div className={`p-3 rounded-lg ${
-                    dados.resumo.diferenca_total > 0 
-                      ? 'bg-red-100' 
-                      : dados.resumo.diferenca_total < 0 
-                        ? 'bg-green-100'
-                        : 'bg-gray-100'
-                  }`}>
-                    {dados.resumo.diferenca_total > 0 ? (
+              {/* Pagou a MAIS */}
+              <div className={`rounded-lg p-4 border ${dados.resumo.diferenca_total > 0 ? 'bg-red-50 border-red-300' : 'bg-gray-50 border-gray-200'}`}>
+                <p className="text-xs text-red-600 uppercase font-semibold">⬆ Pagou a Mais</p>
+                <p className={`text-lg font-bold ${dados.resumo.diferenca_total > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                  {formatCurrency(dados.resumo.diferenca_total > 0 ? dados.resumo.diferenca_total : 0)}
+                </p>
+                <p className="text-xs text-red-500">{dados.total_divergentes} divergências</p>
+              </div>
+
+              {/* Pagou a MENOS */}
+              <div className={`rounded-lg p-4 border ${dados.resumo.diferenca_total < 0 ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-200'}`}>
+                <p className="text-xs text-amber-600 uppercase font-semibold">⬇ Pagou a Menos</p>
+                <p className={`text-lg font-bold ${dados.resumo.diferenca_total < 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                  {formatCurrency(dados.resumo.diferenca_total < 0 ? Math.abs(dados.resumo.diferenca_total) : 0)}
+                </p>
+                <p className="text-xs text-amber-500">Risco fiscal</p>
+              </div>
+            </div>
                       <TrendingUp className="w-6 h-6 text-red-600" />
                     ) : dados.resumo.diferenca_total < 0 ? (
                       <TrendingDown className="w-6 h-6 text-green-600" />
