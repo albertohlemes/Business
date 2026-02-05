@@ -1528,7 +1528,8 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
                     endereco: endereco,
                     objeto_social: objetoSocial,
                     inscricao_estadual: inscricaoEstadual,
-                    inscricao_municipal: inscricaoMunicipal
+                    inscricao_municipal: inscricaoMunicipal,
+                    codigo_cliente: codigoCliente
                 },
                 socios: socios.map(s => ({
                     nome: s.nome,
