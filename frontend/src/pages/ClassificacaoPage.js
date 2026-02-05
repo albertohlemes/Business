@@ -515,6 +515,53 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     );
   };
 
+  // Componente ProductRow para visualização agrupada
+  const ProductRow = ({ product }) => {
+    const { approved, total } = countProductApprovals(product.codigo);
+    const allApproved = approved === total;
+    
+    return (
+      <div className={`px-6 py-3 border-b border-gray-100 hover:bg-gray-50 flex items-center justify-between ${allApproved ? 'bg-green-50/50' : ''}`}>
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <button
+            onClick={() => toggleApproveProductAll(product.codigo)}
+            className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+              allApproved 
+                ? 'bg-green-600 border-green-600 text-white' 
+                : 'border-gray-300 hover:border-green-500'
+            }`}
+          >
+            {allApproved && <Check className="w-4 h-4" />}
+          </button>
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-gray-900 truncate">{product.descricao}</p>
+            <p className="text-xs text-gray-500">
+              Código: {product.codigo} • NCM: {product.ncm} • CFOP: {product.cfop}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 ml-4">
+          <div className="text-right">
+            <p className="font-bold text-gray-900">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.valor_total)}
+            </p>
+            <p className="text-xs text-gray-500">{product.ocorrencias.length} NF(s)</p>
+          </div>
+          <button
+            onClick={() => setReclassifyingProduct({
+              product,
+              occurrences: product.ocorrencias
+            })}
+            className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-200 flex items-center gap-1"
+          >
+            <Edit2 className="w-3 h-3" />
+            Reclassificar
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   // Componente de produto agrupado
   const GroupedProductItem = ({ product }) => {
     const { approved, total } = countProductApprovals(product.codigo);
