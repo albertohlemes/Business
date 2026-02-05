@@ -653,7 +653,15 @@ E-MAIL: ${sciForm.email || 'N/A'}
                 bairro: sciForm.bairro,
                 cidade: sciForm.cidade,
                 estado: sciForm.estado,
-                socios: sciSocios
+                socios: sciSocios,
+                perfil: {
+                    regime_tributario: perfilCliente.regimeTributario,
+                    codigo_acesso_simples: perfilCliente.codigoAcessoSimples,
+                    tipo_atividade: perfilCliente.tipoAtividade,
+                    tem_funcionarios: perfilCliente.temFuncionarios,
+                    contribuinte_icms: perfilCliente.contribuinteICMS,
+                    enquadramento_simples: perfilCliente.enquadramentoSimples
+                }
             });
 
             if (response.data.success) {
