@@ -279,6 +279,45 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 39 (05/02/2026)
+- ✅ **FEATURE: Análise Tributária Inteligente por IA**
+  - **Problema:** O usuário precisava de uma análise aprofundada da tributação da empresa, identificando "vilões tributários" (produtos com prejuízo tributário) e oportunidades de otimização.
+  - **Solução:**
+    1. **Nova página `/analise-tributaria-ia`** com:
+       - Cards de resumo: Documentos, Crédito ICMS, Débito ICMS, Saldo ICMS
+       - Cards de alerta: Vilões Tributários e Oportunidades
+       - Abas: Vilões, Oportunidades, Por NCM, Insights IA
+    2. **Endpoint `GET /api/analise-tributaria-ia/{company_id}`** que:
+       - Cruza produtos de entrada e saída para identificar vilões:
+         - Alíquota desfavorável: entrada 12% → saída 18% (crédito < débito)
+         - ST entrada → tributado saída (sem crédito, com débito)
+       - Identifica oportunidades:
+         - Tributado entrada → ST saída (com crédito, sem débito)
+         - Alíquota favorável: entrada > saída
+       - Gera análise por NCM com saldo de ICMS
+       - Gera **insights estratégicos por GPT-4o** com:
+         - Pontos positivos
+         - Pontos de atenção
+         - Recomendações estratégicas
+         - Análise de precificação
+         - Oportunidades legais
+  - **Arquivos:** `/app/backend/server.py`, `/app/frontend/src/pages/AnaliseTributariaIA.js`, `/app/frontend/src/App.js`, `/app/frontend/src/components/Layout.js`
+
+- ✅ **FEATURE: Validação Pós-Exportação do SPED**
+  - **Problema:** O usuário precisava garantir que o arquivo SPED gerado estava correto antes de importar no sistema contábil.
+  - **Solução:**
+    1. **Novo endpoint `POST /api/sped/exportar-e-validar/{company_id}`** que:
+       - Gera o arquivo TXT do SPED
+       - Faz parse do arquivo gerado
+       - Confronta com os dados do sistema (MongoDB)
+       - Retorna comparativo por CFOP: Sistema vs SPED
+    2. **UI na página de Exportação** que:
+       - Mostra status da validação (OK ou Divergente)
+       - Exibe Totais do Sistema vs Totais no SPED Gerado
+       - Tabela de comparativo por CFOP com status por linha
+  - **Nota:** Há um refinamento pendente no parse do campo ICMS do C170
+  - **Arquivos:** `/app/backend/server.py`, `/app/frontend/src/pages/ExportMenu.js`
+
 ### 02/2026 - Iteration 38 (05/02/2026)
 - ✅ **FEATURE: Validação de Totalizadores do SPED Fiscal**
   - **Problema:** O usuário precisava de uma forma de validar se o SPED gerado está correto antes de importar no sistema contábil
