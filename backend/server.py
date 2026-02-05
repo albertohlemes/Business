@@ -6344,44 +6344,71 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
 async def classify_products_batch_llm(products: List[Dict[str, Any]], company_data: Dict[str, Any], batch_size: int = 20) -> Dict[str, Any]:
     """
     Classifica uma lista de produtos usando LLM com base nas regras da empresa.
+    PRIORIDADE: Palavras-chave cadastradas na empresa têm MÁXIMA prioridade.
     """
     if not products:
         return {}
         
     classified_results = {}
     
-    # Construir contexto da empresa
-    context = f"""
-    Empresa: {company_data.get('razao_social')}
-    Atividade: {company_data.get('tipo_atividade')}
+    # Extrair palavras-chave cadastradas (com destaque para importância)
+    revenda_keywords = company_data.get('produtos_comercializados', [])
+    insumo_keywords = company_data.get('insumos_producao', [])
+    despesa_keywords = company_data.get('produtos_despesa', [])
+    ativo_keywords = company_data.get('ativo_imobilizado', [])
+    combustivel_keywords = company_data.get('combustivel', [])
     
-    PALAVRAS-CHAVE E REGRAS DA EMPRESA:
-    1. REVENDA (Comercialização): {', '.join(company_data.get('produtos_comercializados', []))}
-    2. INSUMO (Produção/Industrialização): {', '.join(company_data.get('insumos_producao', []))}
-    3. DESPESA (Uso e Consumo): {', '.join(company_data.get('produtos_despesa', []))}
-    4. ATIVO_IMOBILIZADO (Bens permanentes): {', '.join(company_data.get('ativo_imobilizado', []))}
-    5. COMBUSTIVEL: {', '.join(company_data.get('combustivel', []))}
-    
-    Instruções:
-    Analise cada produto e classifique como 'revenda', 'insumo', 'despesa', 'ativo_imobilizado' ou 'combustivel'.
-    Use inteligência semântica baseada nas palavras-chave acima.
-    - REVENDA: Produtos para comercialização/venda
-    - INSUMO: Matéria-prima para produção/industrialização
-    - DESPESA: Material de uso e consumo (limpeza, escritório, etc)
-    - ATIVO_IMOBILIZADO: Máquinas, equipamentos, veículos, móveis, computadores (bens permanentes)
-    - COMBUSTIVEL: Gasolina, diesel, etanol, GNV
-    
-    Responda APENAS um JSON no formato:
-    {{
-        "resultados": [
-            {{
-                "id": "id_do_produto",
-                "categoria": "revenda|insumo|despesa|ativo_imobilizado|combustivel",
-                "justificativa": "breve explicação"
-            }}
-        ]
-    }}
-    """
+    # Construir contexto da empresa com ênfase nas palavras-chave
+    context = f"""Você é um especialista em classificação fiscal de produtos.
+
+=== EMPRESA ===
+Nome: {company_data.get('razao_social', 'N/A')}
+Atividade: {company_data.get('tipo_atividade', 'comercio')}
+CNAE: {company_data.get('cnae_principal_descricao', 'N/A')}
+
+=== REGRAS ABSOLUTAS DE CLASSIFICAÇÃO (MÁXIMA PRIORIDADE) ===
+O cliente cadastrou as seguintes palavras-chave para classificação. 
+Se o produto corresponder a QUALQUER uma destas palavras-chave, USE ESSA CLASSIFICAÇÃO.
+Use correspondência SEMÂNTICA - não precisa ser exata, produtos relacionados também devem ser incluídos.
+
+🛒 REVENDA (produtos para comercialização): 
+{', '.join(revenda_keywords) if revenda_keywords else '(nenhum cadastrado)'}
+
+⚙️ INSUMO (matéria-prima para produção): 
+{', '.join(insumo_keywords) if insumo_keywords else '(nenhum cadastrado)'}
+
+📋 DESPESA (uso e consumo da empresa): 
+{', '.join(despesa_keywords) if despesa_keywords else '(nenhum cadastrado)'}
+
+🏭 ATIVO IMOBILIZADO (bens permanentes): 
+{', '.join(ativo_keywords) if ativo_keywords else '(nenhum cadastrado)'}
+
+⛽ COMBUSTÍVEL: 
+{', '.join(combustivel_keywords) if combustivel_keywords else '(nenhum cadastrado)'}
+
+=== REGRAS GERAIS (se não houver match com palavras-chave) ===
+- DESPESA: materiais de limpeza, escritório, manutenção, uso interno
+- ATIVO_IMOBILIZADO: máquinas, equipamentos, veículos, móveis, computadores
+- COMBUSTIVEL: gasolina, diesel, etanol, GNV
+- INSUMO: matéria-prima para produção/industrialização
+- REVENDA: produtos para revenda (padrão para empresas comerciais)
+
+=== IMPORTANTE ===
+1. Se o produto tem QUALQUER relação com as palavras-chave cadastradas, USE essa classificação
+2. Use busca SEMÂNTICA (sinônimos, variações, termos relacionados)
+3. Exemplo: se "esponja" está em REVENDA, então "esponja de aço", "bucha", "esponja multiuso" também são REVENDA
+4. Na justificativa, indique qual palavra-chave você usou como referência
+
+Responda APENAS um JSON válido:
+{{
+    "resultados": [
+        {{
+            "id": "id_do_produto",
+            "categoria": "revenda|insumo|despesa|ativo_imobilizado|combustivel",
+            "justificativa": "Baseado em [palavra-chave] cadastrada como [categoria]" ou "Regra geral: [motivo]"
+        }}
+    ]
+}}"""
     
     # Adicionar ID temporário para cada produto para garantir mapeamento correto
     for idx, p in enumerate(products):
