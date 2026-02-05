@@ -188,7 +188,14 @@ const ValidacaoFolha = () => {
       toast.success('Validação concluída!');
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erro ao validar folha');
+      const detail = error.response?.data?.detail;
+      let errorMsg = 'Erro ao validar folha';
+      if (typeof detail === 'string') {
+        errorMsg = detail;
+      } else if (Array.isArray(detail)) {
+        errorMsg = detail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
+      }
+      toast.error(errorMsg);
     } finally {
       setUploading(false);
     }
