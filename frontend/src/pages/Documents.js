@@ -206,16 +206,23 @@ const Documents = ({ user, onLogout }) => {
   // Função para calcular soma dos itens (inclui ICMS-ST)
   const calculateItemsSum = (produtos) => {
     return (produtos || []).reduce((sum, prod) => ({
-      valor: sum.valor + parseFloat(prod.valor_total || 0),
+      // valor_total já inclui ST, IPI, frete, etc
+      valor_total: sum.valor_total + parseFloat(prod.valor_total || 0),
+      // valor_produto é o vProd puro (sem ST, IPI, etc)
+      valor_produto: sum.valor_produto + parseFloat(prod.valor_produto || prod.valor_total || 0),
       bc_icms: sum.bc_icms + parseFloat(prod.v_bc_icms || 0),
       v_icms: sum.v_icms + parseFloat(prod.v_icms || 0),
       bc_st: sum.bc_st + parseFloat(prod.v_bc_icms_st || prod.v_bc_st || 0),
       v_st: sum.v_st + parseFloat(prod.v_icms_st || prod.v_st || 0),
       v_ipi: sum.v_ipi + parseFloat(prod.v_ipi || 0),
+      v_frete: sum.v_frete + parseFloat(prod.v_frete || 0),
+      v_seguro: sum.v_seguro + parseFloat(prod.v_seguro || 0),
+      v_outras: sum.v_outras + parseFloat(prod.v_outras_despesas || 0),
+      v_desconto: sum.v_desconto + parseFloat(prod.v_desconto || 0),
       v_pis: sum.v_pis + parseFloat(prod.v_pis || 0),
       v_cofins: sum.v_cofins + parseFloat(prod.v_cofins || 0),
       qtd: sum.qtd + parseFloat(prod.quantidade || 0)
-    }), { valor: 0, bc_icms: 0, v_icms: 0, bc_st: 0, v_st: 0, v_ipi: 0, v_pis: 0, v_cofins: 0, qtd: 0 });
+    }), { valor_total: 0, valor_produto: 0, bc_icms: 0, v_icms: 0, bc_st: 0, v_st: 0, v_ipi: 0, v_frete: 0, v_seguro: 0, v_outras: 0, v_desconto: 0, v_pis: 0, v_cofins: 0, qtd: 0 });
   };
 
   // Verificar integridade do documento - Compara soma dos itens com totais da NF
@@ -225,7 +232,7 @@ const Documents = ({ user, onLogout }) => {
     const itemsSum = calculateItemsSum(doc.produtos);
     const errors = [];
     const fieldStatus = {};
-    const tolerance = 0.02;
+    const tolerance = 0.05; // Tolerância maior para arredondamentos
     
     const totaisNF = {
       valor: parseFloat(doc.valor_total || 0),
@@ -233,36 +240,44 @@ const Documents = ({ user, onLogout }) => {
       v_st: parseFloat(doc.total_icms_st || 0),
       v_frete: parseFloat(doc.total_frete || 0),
       v_seg: parseFloat(doc.total_seguro || 0),
-      v_outro: parseFloat(doc.total_outras_despesas || 0)
+      v_outro: parseFloat(doc.total_outras_despesas || 0),
+      v_desc: parseFloat(doc.total_desconto || 0)
     };
     
-    const valorProdutosEsperado = totaisNF.valor - totaisNF.v_ipi - totaisNF.v_st - totaisNF.v_frete - totaisNF.v_seg - totaisNF.v_outro;
+    // Método 1: Verificar se soma de valor_total dos produtos = Valor NF
+    // (valor_total do produto já inclui ST, IPI, frete rateado, etc)
+    const diffValorTotal = Math.abs(totaisNF.valor - itemsSum.valor_total);
     
-    if (Math.abs(valorProdutosEsperado - itemsSum.valor) > tolerance && valorProdutosEsperado > 0) {
-      errors.push({
-        campo: 'Valor Produtos',
-        nf: valorProdutosEsperado,
-        soma: itemsSum.valor,
-        diferenca: valorProdutosEsperado - itemsSum.valor
-      });
+    // Método 2: Verificar se soma de valor_produto + ST + IPI + frete + seg + outros - desc = Valor NF
+    const valorCalculado = itemsSum.valor_produto + itemsSum.v_st + itemsSum.v_ipi + 
+                          itemsSum.v_frete + itemsSum.v_seguro + itemsSum.v_outras - itemsSum.v_desconto;
+    const diffValorCalculado = Math.abs(totaisNF.valor - valorCalculado);
+    
+    // Se nenhum dos métodos bater, há divergência
+    if (diffValorTotal > tolerance && diffValorCalculado > tolerance) {
+      // Verificar qual é a menor diferença para reportar
+      if (diffValorTotal <= diffValorCalculado) {
+        errors.push({
+          campo: 'Valor Total',
+          nf: totaisNF.valor,
+          soma: itemsSum.valor_total,
+          diferenca: totaisNF.valor - itemsSum.valor_total
+        });
+      } else {
+        errors.push({
+          campo: 'Valor Calculado',
+          nf: totaisNF.valor,
+          soma: valorCalculado,
+          diferenca: totaisNF.valor - valorCalculado
+        });
+      }
       fieldStatus.valor = 'error';
     } else {
       fieldStatus.valor = 'ok';
     }
     
-    if (Math.abs(totaisNF.v_ipi - itemsSum.v_ipi) > tolerance) {
-      errors.push({
-        campo: 'IPI',
-        nf: totaisNF.v_ipi,
-        soma: itemsSum.v_ipi,
-        diferenca: totaisNF.v_ipi - itemsSum.v_ipi
-      });
-      fieldStatus.v_ipi = 'error';
-    } else {
-      fieldStatus.v_ipi = 'ok';
-    }
-    
-    if (Math.abs(totaisNF.v_st - itemsSum.v_st) > tolerance) {
+    // Verificar ICMS-ST
+    if (totaisNF.v_st > 0 && Math.abs(totaisNF.v_st - itemsSum.v_st) > tolerance) {
       errors.push({
         campo: 'ICMS-ST',
         nf: totaisNF.v_st,
@@ -272,6 +287,19 @@ const Documents = ({ user, onLogout }) => {
       fieldStatus.v_st = 'error';
     } else {
       fieldStatus.v_st = 'ok';
+    }
+    
+    // Verificar IPI
+    if (totaisNF.v_ipi > 0 && Math.abs(totaisNF.v_ipi - itemsSum.v_ipi) > tolerance) {
+      errors.push({
+        campo: 'IPI',
+        nf: totaisNF.v_ipi,
+        soma: itemsSum.v_ipi,
+        diferenca: totaisNF.v_ipi - itemsSum.v_ipi
+      });
+      fieldStatus.v_ipi = 'error';
+    } else {
+      fieldStatus.v_ipi = 'ok';
     }
     
     fieldStatus.bc_icms = 'ok';
