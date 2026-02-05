@@ -633,9 +633,14 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                               NCM <SortIcon columnKey="ncm" />
                             </button>
                           </th>
-                          <th className="px-4 py-3 text-left">
-                            <button onClick={() => handleSort('descricao')} className="flex items-center gap-1 text-xs font-semibold text-gray-600">
-                              Descrição <SortIcon columnKey="descricao" />
+                          <th className="px-4 py-3 text-center">
+                            <button onClick={() => handleSort('aliq_entrada')} className="flex items-center gap-1 justify-center text-xs font-semibold text-gray-600 w-full">
+                              Alíq. Entr. <SortIcon columnKey="aliq_entrada" />
+                            </button>
+                          </th>
+                          <th className="px-4 py-3 text-center">
+                            <button onClick={() => handleSort('aliq_saida')} className="flex items-center gap-1 justify-center text-xs font-semibold text-gray-600 w-full">
+                              Alíq. Saída <SortIcon columnKey="aliq_saida" />
                             </button>
                           </th>
                           <th className="px-4 py-3 text-right">
@@ -644,8 +649,8 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                             </button>
                           </th>
                           <th className="px-4 py-3 text-right">
-                            <button onClick={() => handleSort('entrada_icms')} className="flex items-center gap-1 justify-end text-xs font-semibold text-gray-600 w-full">
-                              ICMS Créd. <SortIcon columnKey="entrada_icms" />
+                            <button onClick={() => handleSort('entrada_icms_creditavel')} className="flex items-center gap-1 justify-end text-xs font-semibold text-gray-600 w-full">
+                              Créd. ICMS <SortIcon columnKey="entrada_icms_creditavel" />
                             </button>
                           </th>
                           <th className="px-4 py-3 text-right">
@@ -655,38 +660,48 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                           </th>
                           <th className="px-4 py-3 text-right">
                             <button onClick={() => handleSort('saida_icms')} className="flex items-center gap-1 justify-end text-xs font-semibold text-gray-600 w-full">
-                              ICMS Déb. <SortIcon columnKey="saida_icms" />
+                              Déb. ICMS <SortIcon columnKey="saida_icms" />
                             </button>
                           </th>
                           <th className="px-4 py-3 text-right">
                             <button onClick={() => handleSort('saldo_icms')} className="flex items-center gap-1 justify-end text-xs font-semibold text-gray-600 w-full">
-                              Saldo ICMS <SortIcon columnKey="saldo_icms" />
-                            </button>
-                          </th>
-                          <th className="px-4 py-3 text-right">
-                            <button onClick={() => handleSort('margem_icms')} className="flex items-center gap-1 justify-end text-xs font-semibold text-gray-600 w-full">
-                              Margem % <SortIcon columnKey="margem_icms" />
+                              Saldo <SortIcon columnKey="saldo_icms" />
                             </button>
                           </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
-                        {filteredNcmData.map((ncm, idx) => (
-                          <tr key={idx} className={ncm.saldo_icms > 0 ? 'bg-red-50' : ncm.saldo_icms < 0 ? 'bg-green-50' : ''}>
-                            <td className="px-4 py-3 font-mono text-sm">{ncm.ncm}</td>
-                            <td className="px-4 py-3 text-sm text-gray-700 truncate max-w-[200px]">{ncm.descricao}</td>
-                            <td className="px-4 py-3 text-sm text-right">{formatCurrency(ncm.entrada_valor)}</td>
-                            <td className="px-4 py-3 text-sm text-right text-green-600">{formatCurrency(ncm.entrada_icms)}</td>
-                            <td className="px-4 py-3 text-sm text-right">{formatCurrency(ncm.saida_valor)}</td>
-                            <td className="px-4 py-3 text-sm text-right text-red-600">{formatCurrency(ncm.saida_icms)}</td>
-                            <td className={`px-4 py-3 text-sm text-right font-semibold ${ncm.saldo_icms > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                              {formatCurrency(ncm.saldo_icms)}
-                            </td>
-                            <td className={`px-4 py-3 text-sm text-right ${ncm.margem_icms > 5 ? 'text-red-600' : 'text-gray-600'}`}>
-                              {ncm.margem_icms}%
-                            </td>
-                          </tr>
-                        ))}
+                        {filteredNcmData.map((ncm, idx) => {
+                          const temDiferencaAliquota = ncm.aliq_entrada > 0 && ncm.aliq_saida > 0 && Math.abs(ncm.aliq_saida - ncm.aliq_entrada) >= 3;
+                          return (
+                            <tr 
+                              key={idx} 
+                              className={ncm.saldo_icms > 0 ? 'bg-red-50' : ncm.saldo_icms < 0 ? 'bg-green-50' : ''}
+                              title={ncm.descricoes?.join(', ') || ''}
+                            >
+                              <td className="px-4 py-3 font-mono text-sm font-medium">{ncm.ncm}</td>
+                              <td className="px-4 py-3 text-sm text-center">
+                                {ncm.aliq_entrada > 0 ? `${ncm.aliq_entrada}%` : 
+                                  ncm.tem_st_entrada ? <span className="text-orange-600 text-xs">ST</span> : '-'}
+                              </td>
+                              <td className={`px-4 py-3 text-sm text-center ${temDiferencaAliquota && ncm.aliq_saida > ncm.aliq_entrada ? 'text-red-600 font-bold' : ''}`}>
+                                {ncm.aliq_saida > 0 ? `${ncm.aliq_saida}%` : '-'}
+                                {temDiferencaAliquota && ncm.aliq_saida > ncm.aliq_entrada && (
+                                  <span className="ml-1 text-xs">⚠️</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right">{formatCurrency(ncm.entrada_valor)}</td>
+                              <td className="px-4 py-3 text-sm text-right text-green-600">
+                                {formatCurrency(ncm.entrada_icms_creditavel || ncm.entrada_icms)}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right">{formatCurrency(ncm.saida_valor)}</td>
+                              <td className="px-4 py-3 text-sm text-right text-red-600">{formatCurrency(ncm.saida_icms)}</td>
+                              <td className={`px-4 py-3 text-sm text-right font-semibold ${ncm.saldo_icms > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                {formatCurrency(ncm.saldo_icms)}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                     {filteredNcmData.length === 0 && (
