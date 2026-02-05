@@ -133,10 +133,15 @@ class PortalDPAPITester:
             print("❌ No token available for cliente tests")
             return False
 
+        # Generate unique CNPJ based on timestamp
+        import time
+        timestamp = str(int(time.time()))[-8:]  # Last 8 digits of timestamp
+        unique_cnpj = f"12.345.{timestamp[:3]}/0001-90"
+
         # Test create cliente
         cliente_data = {
             "razao_social": "Empresa Teste LTDA",
-            "cnpj": "12.345.678/0001-90",
+            "cnpj": unique_cnpj,
             "nome_fantasia": "Teste Corp",
             "endereco": "Rua Teste, 123",
             "telefone": "(11) 99999-9999",
