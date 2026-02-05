@@ -1277,7 +1277,7 @@ Esta é uma minuta preliminar. Revise e ajuste conforme necessário.
 
 @api_router.delete("/minutas/{minuta_id}")
 async def delete_minuta(minuta_id: str, current_user: dict = Depends(get_current_user)):
-    result = await db.minutas.delete_one({"id": minuta_id, "user_id": current_user["id"]})
+    result = await db.minutas.delete_one({"id": minuta_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Minuta não encontrada")
     return {"message": "Minuta removida com sucesso"}
