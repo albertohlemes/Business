@@ -23,6 +23,12 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - ✅ Extração automática por IA de documentos
 - ✅ Suporte a documentos manuscritos e escaneados
 - ✅ Modal de revisão antes de salvar
+- ✅ **SUPORTE A MÚLTIPLOS VÍNCULOS (05/02/2026)**
+  - Extração de TODOS os colaboradores de uma única ficha de registro
+  - Navegação entre colaboradores extraídos com setas
+  - Contador de colaboradores completos (com nome e CPF)
+  - Opção de remover colaborador individual da lista
+  - Botão "Salvar Todos" para salvamento em lote
 
 ### Dissídio Coletivo (COMPLETO)
 - ✅ Upload de convenção coletiva (PDF)
