@@ -2045,22 +2045,28 @@ async def gerar_contrato_constituicao(
                 qualif += f", natural de {socio.cidade_nascimento}/{socio.estado_nascimento}"
             elif socio.cidade_nascimento:
                 qualif += f", natural de {socio.cidade_nascimento}"
+            # Data de nascimento formatada
+            if socio.data_nascimento:
+                try:
+                    from datetime import datetime as dt
+                    data_obj = dt.strptime(socio.data_nascimento, "%Y-%m-%d")
+                    data_formatada = data_obj.strftime("%d/%m/%Y")
+                    qualif += f", nascido(a) em {data_formatada}"
+                except:
+                    qualif += f", nascido(a) em {socio.data_nascimento}"
             if socio.estado_civil:
                 qualif += f", {socio.estado_civil.lower()}"
                 if socio.regime_casamento and 'casado' in socio.estado_civil.lower():
-                    qualif += f" sob o Regime de {socio.regime_casamento}"
-            # data_nascimento é opcional
-            if socio.data_nascimento:
-                qualif += f", nascido em: {socio.data_nascimento}"
+                    qualif += f" sob o regime de {socio.regime_casamento}"
             if socio.profissao:
                 qualif += f", {socio.profissao.lower()}"
             if socio.rg:
-                qualif += f", documento de identidade RG sob nº {socio.rg}"
+                qualif += f", portador(a) da Cédula de Identidade RG nº {socio.rg}"
                 if socio.orgao_emissor:
-                    qualif += f" Órgão Emissor: {socio.orgao_emissor}"
-            qualif += f" e CPF {socio.cpf}"
+                    qualif += f" {socio.orgao_emissor}"
+            qualif += f", inscrito(a) no CPF/MF sob o nº {socio.cpf}"
             if socio.endereco:
-                qualif += f", residente e domiciliado na {socio.endereco}"
+                qualif += f", residente e domiciliado(a) na {socio.endereco}"
             qualif += ".\n\n"
             socios_qualificacao += qualif
         
