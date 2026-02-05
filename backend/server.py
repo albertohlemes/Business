@@ -3056,6 +3056,184 @@ async def get_document(
     
     return document
 
+
+@api_router.get("/xml/validate-integrity/{document_id}")
+async def validate_document_integrity(
+    document_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Valida integridade do documento comparando valores salvos com XML original.
+    Garante que valores não foram alterados após importação.
+    """
+    document = await db.xml_documents.find_one({"id": document_id}, {"_id": 0})
+    if not document:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    
+    xml_content = document.get('xml_content', '')
+    if not xml_content:
+        return {"valid": False, "error": "XML original não encontrado"}
+    
+    try:
+        # Re-parsear o XML original
+        modelo = document.get('modelo', 'nfe')
+        if modelo == 'nfse':
+            parsed = parse_xml_nfse(xml_content)
+        elif modelo == 'nfce':
+            parsed = parse_xml_nfce(xml_content)
+        else:
+            parsed = parse_xml_nfe(xml_content)
+        
+        divergencias = []
+        
+        # Comparar valor total da NF
+        valor_xml = round(float(parsed.get('valor_total', 0)), 2)
+        valor_db = round(float(document.get('valor_total', 0)), 2)
+        if valor_xml != valor_db:
+            divergencias.append({
+                "campo": "valor_total",
+                "descricao": "Valor Total da NF",
+                "valor_xml": valor_xml,
+                "valor_db": valor_db,
+                "diferenca": round(valor_db - valor_xml, 2)
+            })
+        
+        # Comparar número da NF
+        numero_xml = str(parsed.get('numero_nfe', ''))
+        numero_db = str(document.get('numero_nfe', ''))
+        if numero_xml != numero_db:
+            divergencias.append({
+                "campo": "numero_nfe",
+                "descricao": "Número da NF",
+                "valor_xml": numero_xml,
+                "valor_db": numero_db
+            })
+        
+        # Comparar produtos (quantidade e valores)
+        produtos_xml = parsed.get('produtos', [])
+        produtos_db = document.get('produtos', [])
+        
+        # Criar mapa por código de produto para comparação
+        for i, prod_db in enumerate(produtos_db):
+            codigo = prod_db.get('codigo', '')
+            
+            # Encontrar produto correspondente no XML
+            prod_xml = None
+            for px in produtos_xml:
+                if px.get('codigo', '') == codigo:
+                    prod_xml = px
+                    break
+            
+            if prod_xml:
+                # Comparar valor total do produto
+                valor_prod_xml = round(float(prod_xml.get('valor_total', 0)), 2)
+                valor_prod_db = round(float(prod_db.get('valor_total', 0)), 2)
+                
+                # Nota: O valor_total no DB pode incluir IPI e ST conforme lógica de importação
+                # Vamos comparar o valor_produto (vProd) se disponível
+                valor_vprod_xml = round(float(prod_xml.get('valor_produto', prod_xml.get('valor_total', 0))), 2)
+                valor_vprod_db = round(float(prod_db.get('valor_produto', prod_db.get('valor_total', 0))), 2)
+                
+                if valor_vprod_xml != valor_vprod_db:
+                    divergencias.append({
+                        "campo": f"produto_{i}_valor",
+                        "descricao": f"Valor Produto: {prod_db.get('descricao', codigo)[:30]}",
+                        "valor_xml": valor_vprod_xml,
+                        "valor_db": valor_vprod_db,
+                        "diferenca": round(valor_vprod_db - valor_vprod_xml, 2)
+                    })
+                
+                # Comparar quantidade
+                qtd_xml = round(float(prod_xml.get('quantidade', 0)), 4)
+                qtd_db = round(float(prod_db.get('quantidade', 0)), 4)
+                if qtd_xml != qtd_db:
+                    divergencias.append({
+                        "campo": f"produto_{i}_qtd",
+                        "descricao": f"Quantidade: {prod_db.get('descricao', codigo)[:30]}",
+                        "valor_xml": qtd_xml,
+                        "valor_db": qtd_db
+                    })
+        
+        return {
+            "valid": len(divergencias) == 0,
+            "document_id": document_id,
+            "numero_nfe": document.get('numero_nfe'),
+            "divergencias": divergencias,
+            "total_divergencias": len(divergencias)
+        }
+        
+    except Exception as e:
+        return {
+            "valid": False,
+            "document_id": document_id,
+            "error": f"Erro ao validar: {str(e)}"
+        }
+
+
+@api_router.get("/xml/integrity-summary/{company_id}")
+async def get_integrity_summary(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna resumo de integridade de todos os documentos da competência.
+    """
+    documents = await db.xml_documents.find(
+        {"company_id": company_id, "competencia": competencia},
+        {"_id": 0, "id": 1, "numero_nfe": 1, "valor_total": 1, "xml_content": 1, "modelo": 1, "produtos": 1}
+    ).to_list(1000)
+    
+    total = len(documents)
+    validos = 0
+    com_divergencia = 0
+    erros = 0
+    divergencias_detalhe = []
+    
+    for doc in documents:
+        try:
+            xml_content = doc.get('xml_content', '')
+            if not xml_content:
+                erros += 1
+                continue
+            
+            modelo = doc.get('modelo', 'nfe')
+            if modelo == 'nfse':
+                parsed = parse_xml_nfse(xml_content)
+            elif modelo == 'nfce':
+                parsed = parse_xml_nfce(xml_content)
+            else:
+                parsed = parse_xml_nfe(xml_content)
+            
+            # Comparar valor total
+            valor_xml = round(float(parsed.get('valor_total', 0)), 2)
+            valor_db = round(float(doc.get('valor_total', 0)), 2)
+            
+            if valor_xml == valor_db:
+                validos += 1
+            else:
+                com_divergencia += 1
+                divergencias_detalhe.append({
+                    "document_id": doc['id'],
+                    "numero_nfe": doc.get('numero_nfe'),
+                    "valor_xml": valor_xml,
+                    "valor_db": valor_db,
+                    "diferenca": round(valor_db - valor_xml, 2)
+                })
+        except Exception as e:
+            erros += 1
+    
+    return {
+        "company_id": company_id,
+        "competencia": competencia,
+        "total": total,
+        "validos": validos,
+        "com_divergencia": com_divergencia,
+        "erros": erros,
+        "percentual_valido": round((validos / total * 100) if total > 0 else 100, 1),
+        "divergencias": divergencias_detalhe[:10]  # Limitar a 10 para não sobrecarregar
+    }
+
 @api_router.get("/dashboard/stats/{company_id}")
 async def get_dashboard_stats(
     company_id: str,
