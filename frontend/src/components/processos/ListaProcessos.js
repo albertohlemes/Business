@@ -108,6 +108,7 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, onEdit, emp
     const [viewOpen, setViewOpen] = useState(false);
     const [viewContent, setViewContent] = useState('');
     const [viewProcessoId, setViewProcessoId] = useState(null);
+    const [enviandoGClick, setEnviandoGClick] = useState(null);
 
     // Agrupar processos por cliente
     const processosAgrupados = useMemo(() => {
