@@ -1949,7 +1949,7 @@ async def execute_reimport_task(task_id: str, company_id: str, competencia: str)
         
         for i, doc in enumerate(documents):
             try:
-                progress["step"] = f"Processando documento {i+1}/{total}..."
+                progress["step"] = f"Processando entrada {i+1}/{total}..."
                 progress["processed"] = i + 1
                 progress["progress_percent"] = int((i + 1) / total * 100)
                 
@@ -1968,25 +1968,16 @@ async def execute_reimport_task(task_id: str, company_id: str, competencia: str)
                 else:
                     parsed = parse_xml_nfe(xml_content)
                 
-                # Determinar tipo
-                cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
-                cnpj_emitente = parsed.get('cnpj_emitente', '').replace('.', '').replace('/', '').replace('-', '')
-                
-                if cnpj_emitente == cnpj_empresa:
-                    tipo = 'saida'
-                    results['saidas'] += 1
-                else:
-                    tipo = 'entrada'
-                    results['entradas'] += 1
-                
+                # Já sabemos que é ENTRADA (filtrado acima)
+                tipo = 'entrada'
                 emitente_uf = parsed.get('emitente_uf', '')
                 produtos = parsed.get('produtos', [])
                 
-                # Para ENTRADAS: Classificar produtos
-                if tipo == 'entrada' and produtos:
+                # Classificar produtos de ENTRADA
+                if produtos:
                     progress["step"] = f"Classificando produtos do doc {i+1}/{total}..."
                     
-                    # Converter CFOPs
+                    # Converter CFOPs de saída para entrada (o XML vem com CFOP do emitente)
                     for product in produtos:
                         cfop = str(product.get('cfop', ''))
                         if cfop.startswith('5') or cfop.startswith('6'):
