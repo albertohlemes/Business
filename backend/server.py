@@ -1341,7 +1341,7 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             modelo = '55'
         
         # Registro C100 - Nota Fiscal (código 01, 1B, 04, 55 e 65)
-        # |REG|IND_OPER|IND_EMIT|COD_PART|COD_MOD|COD_SIT|SER|NUM_DOC|CHV_NFE|DT_DOC|DT_E_S|VL_DOC|IND_PGTO|VL_DESC|VL_ABAT_NT|VL_MERC|IND_FRT|VL_FRT|VL_SEG|VL_OUT_DA|VL_BC_ICMS|VL_ICMS|VL_BC_ICMS_ST|VL_ICMS_ST|VL_IPI|VL_PIS|VL_COFINS|VL_PIS_ST|VL_COFINS_ST|
+        # Layout oficial: REG|IND_OPER|IND_EMIT|COD_PART|COD_MOD|COD_SIT|SER|NUM_DOC|CHV_NFE|DT_DOC|DT_E_S|VL_DOC|IND_PGTO|VL_DESC|VL_ABAT_NT|VL_MERC|IND_FRT|VL_FRT|VL_SEG|VL_OUT_DA|VL_BC_ICMS|VL_ICMS|VL_BC_ICMS_ST|VL_ICMS_ST|VL_IPI|VL_PIS|VL_COFINS|VL_PIS_ST|VL_COFINS_ST
         
         # Obter série da chave NFe (posição 22-24) ou usar '1' como padrão
         serie = '1'
@@ -1353,25 +1353,43 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
         total_v_icms = sum(float(p.get('v_icms', 0) or 0) for p in doc.produtos)
         total_v_pis = sum(float(p.get('v_pis', 0) or 0) for p in doc.produtos)
         total_v_cofins = sum(float(p.get('v_cofins', 0) or 0) for p in doc.produtos)
+        total_v_ipi = sum(float(p.get('v_ipi', 0) or 0) for p in doc.produtos)
+        total_v_desc = sum(float(p.get('v_desc', 0) or 0) for p in doc.produtos)
         
-        lines.append("|C100|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|0|0|0|{}|9|0|0|0|{}|{}|0|0|0|{}|{}|0|0|".format(
-            ind_oper,                                       # IND_OPER
-            ind_emit,                                       # IND_EMIT
-            emit_cnpj,                                      # COD_PART
-            modelo,                                         # COD_MOD
-            cod_sit,                                        # COD_SIT
-            serie,                                          # SER
-            doc.numero_nfe or '',                           # NUM_DOC
-            doc.chave_nfe or '',                            # CHV_NFE
-            data_emissao,                                   # DT_DOC
-            data_emissao,                                   # DT_E_S
-            f"{doc.valor_total:.2f}".replace('.',','),     # VL_DOC
-            f"{doc.valor_total:.2f}".replace('.',','),     # VL_MERC
-            f"{total_bc_icms:.2f}".replace('.',','),       # VL_BC_ICMS
-            f"{total_v_icms:.2f}".replace('.',','),        # VL_ICMS
-            f"{total_v_pis:.2f}".replace('.',','),         # VL_PIS
-            f"{total_v_cofins:.2f}".replace('.',',')       # VL_COFINS
-        ))
+        # VL_MERC = soma dos valores dos itens
+        total_merc = sum(float(p.get('valor_total', 0) or 0) for p in doc.produtos)
+        
+        # VL_ABAT_NT = 0 (abatimento não tributado e não comercial - só preencher se existir)
+        vl_abat_nt = 0
+        
+        # Formatar C100 com TODOS os 29 campos
+        linha_c100 = "|C100|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|9|||||{}|{}||||{}|{}|||".format(
+            ind_oper,                                               # 02 IND_OPER
+            ind_emit,                                               # 03 IND_EMIT
+            emit_cnpj,                                              # 04 COD_PART
+            modelo,                                                 # 05 COD_MOD
+            cod_sit,                                                # 06 COD_SIT
+            serie,                                                  # 07 SER
+            doc.numero_nfe or '',                                   # 08 NUM_DOC
+            doc.chave_nfe or '',                                    # 09 CHV_NFE
+            data_emissao,                                           # 10 DT_DOC
+            data_emissao,                                           # 11 DT_E_S
+            f"{doc.valor_total:.2f}".replace('.',','),             # 12 VL_DOC
+            '0',                                                    # 13 IND_PGTO (0=à vista)
+            f"{total_v_desc:.2f}".replace('.',',') if total_v_desc > 0 else '',  # 14 VL_DESC
+            f"{vl_abat_nt:.2f}".replace('.',',') if vl_abat_nt > 0 else '',      # 15 VL_ABAT_NT
+            f"{total_merc:.2f}".replace('.',','),                  # 16 VL_MERC
+            # 17 IND_FRT = 9 (sem frete)
+            # 18-20 VL_FRT, VL_SEG, VL_OUT_DA vazios
+            f"{total_bc_icms:.2f}".replace('.',','),               # 21 VL_BC_ICMS
+            f"{total_v_icms:.2f}".replace('.',','),                # 22 VL_ICMS
+            # 23-24 VL_BC_ICMS_ST, VL_ICMS_ST vazios
+            # 25 VL_IPI vazio
+            f"{total_v_pis:.2f}".replace('.',','),                 # 26 VL_PIS
+            f"{total_v_cofins:.2f}".replace('.',',')               # 27 VL_COFINS
+            # 28-29 VL_PIS_ST, VL_COFINS_ST vazios
+        )
+        lines.append(linha_c100)
         
         # Registro C170 - Itens do documento
         # Layout: REG|NUM_ITEM|COD_ITEM|DESCR_COMPL|QTD|UNID|VL_ITEM|VL_DESC|IND_MOV|CST_ICMS|CFOP|COD_NAT|VL_BC_ICMS|ALIQ_ICMS|VL_ICMS|VL_BC_ICMS_ST|ALIQ_ST|VL_ICMS_ST|IND_APUR|CST_IPI|COD_ENQ|VL_BC_IPI|ALIQ_IPI|VL_IPI|CST_PIS|VL_BC_PIS|ALIQ_PIS|QUANT_BC_PIS|ALIQ_PIS_R$|VL_PIS|CST_COFINS|VL_BC_COFINS|ALIQ_COFINS|QUANT_BC_COFINS|ALIQ_COFINS_R$|VL_COFINS|COD_CTA|VL_ABAT_NT
