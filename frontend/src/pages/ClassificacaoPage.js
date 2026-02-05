@@ -162,6 +162,10 @@ const ClassificacaoPage = ({ user, onLogout }) => {
           aVal = a.descricao || '';
           bVal = b.descricao || '';
           break;
+        case 'ncm':
+          aVal = a.ncm || '';
+          bVal = b.ncm || '';
+          break;
         case 'categoria':
           aVal = a.categoria || 'zzz';
           bVal = b.categoria || 'zzz';
