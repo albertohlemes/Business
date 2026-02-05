@@ -833,12 +833,44 @@ def parse_xml_nfse(xml_content: str) -> Dict[str, Any]:
         cnpj_prestador = id_prestador.get('Cnpj', '') or prestador.get('Cnpj', '')
         nome_prestador = prestador.get('RazaoSocial', '') or prestador.get('NomeFantasia', '')
         
+        # Endereço do prestador
+        endereco_prestador_data = prestador.get('Endereco', {})
+        prestador_endereco = {
+            'logradouro': endereco_prestador_data.get('Endereco', '') or endereco_prestador_data.get('Logradouro', ''),
+            'numero': endereco_prestador_data.get('Numero', ''),
+            'complemento': endereco_prestador_data.get('Complemento', ''),
+            'bairro': endereco_prestador_data.get('Bairro', ''),
+            'cidade': endereco_prestador_data.get('Cidade', '') or endereco_prestador_data.get('xMun', ''),
+            'cod_municipio': endereco_prestador_data.get('CodigoMunicipio', ''),
+            'uf': endereco_prestador_data.get('Uf', ''),
+            'cep': endereco_prestador_data.get('Cep', ''),
+            'pais': 'BRASIL',
+            'cod_pais': '1058',
+            'telefone': prestador.get('Contato', {}).get('Telefone', '') or ''
+        }
+        
         # Dados do tomador (cliente)
         tomador = nfse.get('TomadorServico', {}) or nfse.get('Tomador', {})
         id_tomador = tomador.get('IdentificacaoTomador', {})
         cpf_cnpj_tomador = id_tomador.get('CpfCnpj', {})
         cnpj_tomador = cpf_cnpj_tomador.get('Cnpj', '') or cpf_cnpj_tomador.get('Cpf', '') or tomador.get('Cnpj', '') or tomador.get('Cpf', '')
         nome_tomador = tomador.get('RazaoSocial', '') or tomador.get('NomeFantasia', '') or 'TOMADOR'
+        
+        # Endereço do tomador
+        endereco_tomador_data = tomador.get('Endereco', {})
+        tomador_endereco = {
+            'logradouro': endereco_tomador_data.get('Endereco', '') or endereco_tomador_data.get('Logradouro', ''),
+            'numero': endereco_tomador_data.get('Numero', ''),
+            'complemento': endereco_tomador_data.get('Complemento', ''),
+            'bairro': endereco_tomador_data.get('Bairro', ''),
+            'cidade': endereco_tomador_data.get('Cidade', '') or endereco_tomador_data.get('xMun', ''),
+            'cod_municipio': endereco_tomador_data.get('CodigoMunicipio', ''),
+            'uf': endereco_tomador_data.get('Uf', ''),
+            'cep': endereco_tomador_data.get('Cep', ''),
+            'pais': 'BRASIL',
+            'cod_pais': '1058',
+            'telefone': tomador.get('Contato', {}).get('Telefone', '') or ''
+        }
         
         # Dados do serviço
         servico = nfse.get('Servico', {}) or nfse.get('DeclaracaoPrestacaoServico', {}).get('Servico', {})
