@@ -7378,6 +7378,12 @@ async def exportar_e_validar_sped(
         '1554', '2554', '1406', '2406', '1408', '2408'
     }
     
+    # Lista para armazenar itens com divergência (CST tributado mas ICMS = 0)
+    itens_pendentes = []
+    
+    # CSTs que indicam tributação de ICMS
+    CSTS_TRIBUTADOS = ['00', '10', '20', '70', '90']
+    
     # Calcular totais do sistema usando valores do XML
     for doc in documents:
         tipo = 'entradas' if doc.tipo == 'entrada' else 'saidas'
@@ -7388,6 +7394,23 @@ async def exportar_e_validar_sped(
             valor = float(prod.get('valor_total', 0) or 0)
             # Usar ICMS do XML
             v_icms = float(prod.get('v_icms', 0) or 0)
+            
+            # Verificar se é item com divergência (CST tributado mas ICMS = 0)
+            cst_icms = str(prod.get('cst_icms', '') or prod.get('cst', '') or '')
+            cst_icms_num = cst_icms[-2:] if len(cst_icms) >= 2 else cst_icms
+            
+            if cst_icms_num in CSTS_TRIBUTADOS and v_icms == 0 and valor > 0:
+                itens_pendentes.append({
+                    'tipo': tipo,
+                    'cfop': cfop,
+                    'descricao': prod.get('descricao', '')[:50],
+                    'ncm': prod.get('ncm', ''),
+                    'valor': round(valor, 2),
+                    'cst': cst_icms,
+                    'motivo': f'CST {cst_icms} indica tributação mas ICMS = R$ 0,00',
+                    'numero_nf': getattr(doc, 'numero', '') or '',
+                    'chave': getattr(doc, 'chave_acesso', '')[:20] if hasattr(doc, 'chave_acesso') else ''
+                })
             
             sistema_totais[tipo]['total_valor'] += valor
             
