@@ -163,8 +163,8 @@ const Documents = ({ user, onLogout }) => {
       totals[cfop].valor += parseFloat(prod.valor_total || 0);
       totals[cfop].bc_icms += parseFloat(prod.v_bc_icms || 0);
       totals[cfop].v_icms += parseFloat(prod.v_icms || 0);
-      totals[cfop].bc_st += parseFloat(prod.v_bc_st || 0);
-      totals[cfop].v_st += parseFloat(prod.v_st || prod.v_icms_st || 0);
+      totals[cfop].bc_st += parseFloat(prod.v_bc_icms_st || prod.v_bc_st || 0);
+      totals[cfop].v_st += parseFloat(prod.v_icms_st || prod.v_st || 0);
       totals[cfop].v_ipi += parseFloat(prod.v_ipi || 0);
       totals[cfop].v_pis += parseFloat(prod.v_pis || 0);
       totals[cfop].v_cofins += parseFloat(prod.v_cofins || 0);
@@ -178,8 +178,8 @@ const Documents = ({ user, onLogout }) => {
       valor: sum.valor + parseFloat(prod.valor_total || 0),
       bc_icms: sum.bc_icms + parseFloat(prod.v_bc_icms || 0),
       v_icms: sum.v_icms + parseFloat(prod.v_icms || 0),
-      bc_st: sum.bc_st + parseFloat(prod.v_bc_st || 0),
-      v_st: sum.v_st + parseFloat(prod.v_st || prod.v_icms_st || 0),
+      bc_st: sum.bc_st + parseFloat(prod.v_bc_icms_st || prod.v_bc_st || 0),
+      v_st: sum.v_st + parseFloat(prod.v_icms_st || prod.v_st || 0),
       v_ipi: sum.v_ipi + parseFloat(prod.v_ipi || 0),
       v_pis: sum.v_pis + parseFloat(prod.v_pis || 0),
       v_cofins: sum.v_cofins + parseFloat(prod.v_cofins || 0),
