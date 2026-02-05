@@ -298,11 +298,12 @@ const SocioBaixaCard = ({ socio, index, onChange, onRemove, canRemove }) => {
     );
 };
 
-const WizardBaixa = ({ open, onClose, onComplete }) => {
+const WizardBaixa = ({ open, onClose, onComplete, processoEditando }) => {
     const [step, setStep] = useState(1);
     const [processing, setProcessing] = useState(false);
     const [processoId, setProcessoId] = useState(null);
     const [extraindoContrato, setExtraindoContrato] = useState(false);
+    const [modoEdicao, setModoEdicao] = useState(false);
     const contratoInputRef = useRef(null);
     
     // Função para obter data de hoje formatada
