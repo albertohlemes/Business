@@ -115,7 +115,10 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     }
   };
 
-  // Reimportar todos os documentos (como se fossem novos)
+  // Estado para progresso de reimportação
+  const [reimportProgress, setReimportProgress] = useState(null);
+
+  // Reimportar todos os documentos (como se fossem novos) - COM BARRA DE PROGRESSO
   const handleReimportBatch = async () => {
     if (!selectedCompany || !selectedCompetencia) {
       alert('Selecione uma empresa e competência');
@@ -129,23 +132,74 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     }
     
     setReimporting(true);
+    setReimportProgress({ percent: 0, step: 'Iniciando...', processed: 0, total: 0 });
+    
     try {
       const token = localStorage.getItem('token');
-      const url = `${API}/xml/reimport-batch?company_id=${selectedCompany.id}&competencia=${encodeURIComponent(selectedCompetencia)}`;
-      const res = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
       
-      if (res.data.success !== false) {
-        const msg = `✅ Reimportação concluída!\n\n📊 Total: ${res.data.total}\n✅ Sucesso: ${res.data.success}\n📥 Entradas: ${res.data.entradas}\n📤 Saídas: ${res.data.saidas}\n🤖 Classificados (IA): ${res.data.classificados}\n❌ Erros: ${res.data.errors}`;
-        alert(msg);
-        fetchData(); // Recarregar dados
-      } else {
-        alert('Erro: ' + res.data.error);
-      }
+      // 1. Inicializar a task
+      const initRes = await axios.post(
+        `${API}/xml/reimport-init?company_id=${selectedCompany.id}&competencia=${encodeURIComponent(selectedCompetencia)}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      const { task_id, total_docs } = initRes.data;
+      setReimportProgress({ percent: 0, step: 'Preparando...', processed: 0, total: total_docs });
+      
+      // 2. Executar a task
+      await axios.post(
+        `${API}/xml/reimport-execute/${task_id}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // 3. Conectar ao SSE para acompanhar progresso
+      const eventSource = new EventSource(`${API}/xml/reimport-progress/${task_id}`);
+      
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        setReimportProgress({
+          percent: data.progress_percent || 0,
+          step: data.step || 'Processando...',
+          processed: data.processed || 0,
+          total: data.total_docs || total_docs,
+          classificados: data.classificados || 0,
+          errors: data.errors || 0
+        });
+        
+        if (data.completed) {
+          eventSource.close();
+          setReimporting(false);
+          setReimportProgress(null);
+          
+          if (data.results) {
+            const r = data.results;
+            showSuccess(`Reimportação concluída! ${r.success} documentos, ${r.classificados} produtos classificados`);
+          }
+          fetchData();
+        }
+        
+        if (data.error) {
+          eventSource.close();
+          setReimporting(false);
+          setReimportProgress(null);
+          alert('Erro: ' + data.error);
+        }
+      };
+      
+      eventSource.onerror = () => {
+        eventSource.close();
+        setReimporting(false);
+        setReimportProgress(null);
+      };
+      
     } catch (err) {
       console.error('Erro ao reimportar:', err);
       alert(err.response?.data?.detail || 'Erro ao reimportar documentos');
-    } finally {
       setReimporting(false);
+      setReimportProgress(null);
     }
   };
 
