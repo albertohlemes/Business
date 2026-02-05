@@ -3,20 +3,20 @@ import axios from 'axios';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
 import { 
-  AlertTriangle, CheckCircle, TrendingUp, TrendingDown, RefreshCw, 
-  Filter, Download, ChevronUp, ChevronDown, DollarSign, FileText, 
-  Package, ArrowRight, Info, X, Search
+  AlertTriangle, CheckCircle, RefreshCw, 
+  Download, ChevronUp, ChevronDown, DollarSign, 
+  Info, Search
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Componente de ícone de ordenação (fora do componente principal)
-const SortIconComponent = ({ sortKey, currentKey, direction }) => {
-  if (currentKey !== sortKey) return <ChevronUp className="w-4 h-4 opacity-30" />;
+// Componente de ícone de ordenação
+const SortIcon = ({ active, direction }) => {
+  if (!active) return <ChevronUp className="w-3 h-3 opacity-30" />;
   return direction === 'asc' 
-    ? <ChevronUp className="w-4 h-4" /> 
-    : <ChevronDown className="w-4 h-4" />;
+    ? <ChevronUp className="w-3 h-3" /> 
+    : <ChevronDown className="w-3 h-3" />;
 };
 
 const AnalisePisCofins = ({ user, onLogout }) => {
@@ -26,8 +26,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [busca, setBusca] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'impacto_total', direction: 'desc' });
-  const [expandedDoc, setExpandedDoc] = useState(null);
-  const [visualizacao, setVisualizacao] = useState('nf'); // 'nf', 'produto', 'ncm'
+  const [visualizacao, setVisualizacao] = useState('nf');
 
   const fetchData = useCallback(async () => {
     if (!selectedCompany) return;
@@ -67,65 +66,127 @@ const AnalisePisCofins = ({ user, onLogout }) => {
     }));
   };
 
-  // Filtrar e ordenar divergências
-  const divergenciasFiltradas = useMemo(() => {
+  // Criar lista plana de produtos divergentes para ordenação completa
+  const produtosDivergentes = useMemo(() => {
     if (!dados?.divergencias) return [];
     
-    let result = [...dados.divergencias];
+    let lista = [];
+    
+    // Expandir documentos em lista plana de produtos
+    dados.divergencias.forEach(doc => {
+      doc.produtos.forEach(prod => {
+        // Só incluir produtos realmente divergentes
+        if (prod.divergente !== false) {
+          lista.push({
+            ...prod,
+            numero_nfe: doc.numero_nfe,
+            cliente: doc.cliente,
+            data_emissao: doc.data_emissao,
+            documento_id: doc.documento_id,
+            impacto_total: Math.abs(prod.impacto_pis || 0) + Math.abs(prod.impacto_cofins || 0)
+          });
+        }
+      });
+    });
     
     // Filtrar por tipo
     if (filtroTipo !== 'todos') {
-      result = result.map(doc => ({
-        ...doc,
-        produtos: doc.produtos.filter(p => p.tipo_divergencia === filtroTipo)
-      })).filter(doc => doc.produtos.length > 0);
+      lista = lista.filter(p => p.tipo_divergencia === filtroTipo);
     }
     
     // Filtrar por busca
     if (busca) {
       const searchLower = busca.toLowerCase();
-      result = result.map(doc => ({
-        ...doc,
-        produtos: doc.produtos.filter(p => 
-          p.descricao?.toLowerCase().includes(searchLower) ||
-          p.ncm?.includes(busca) ||
-          p.codigo?.toLowerCase().includes(searchLower)
-        )
-      })).filter(doc => 
-        doc.produtos.length > 0 ||
-        doc.numero_nfe?.includes(busca) ||
-        doc.cliente?.toLowerCase().includes(searchLower)
+      lista = lista.filter(p => 
+        p.descricao?.toLowerCase().includes(searchLower) ||
+        p.ncm?.includes(busca) ||
+        p.codigo?.toLowerCase().includes(searchLower) ||
+        p.numero_nfe?.includes(busca) ||
+        p.cliente?.toLowerCase().includes(searchLower)
       );
     }
     
-    // Calcular totais por documento
-    result = result.map(doc => ({
-      ...doc,
-      impacto_total: doc.produtos.reduce((sum, p) => sum + Math.abs(p.impacto_pis || 0) + Math.abs(p.impacto_cofins || 0), 0),
-      qtd_divergencias: doc.produtos.length
-    }));
-    
     // Ordenar
-    result.sort((a, b) => {
+    lista.sort((a, b) => {
       let aVal = a[sortConfig.key];
       let bVal = b[sortConfig.key];
       
-      if (typeof aVal === 'string') {
-        aVal = aVal.toLowerCase();
-        bVal = bVal.toLowerCase();
+      // Tratar valores numéricos
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
       }
+      
+      // Tratar strings
+      if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+      if (typeof bVal === 'string') bVal = bVal.toLowerCase();
       
       if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
     
-    return result;
+    return lista;
+  }, [dados, filtroTipo, busca, sortConfig]);
+
+  // Agrupamento por produto
+  const agrupadoPorProduto = useMemo(() => {
+    if (!dados?.agrupamentos?.por_produto) return [];
+    let lista = [...dados.agrupamentos.por_produto];
+    
+    if (filtroTipo !== 'todos') {
+      lista = lista.filter(p => p.tipo_divergencia === filtroTipo);
+    }
+    
+    if (busca) {
+      const searchLower = busca.toLowerCase();
+      lista = lista.filter(p => 
+        p.descricao?.toLowerCase().includes(searchLower) ||
+        p.ncm?.includes(busca)
+      );
+    }
+    
+    lista.sort((a, b) => {
+      let aVal = a[sortConfig.key] ?? 0;
+      let bVal = b[sortConfig.key] ?? 0;
+      if (typeof aVal === 'number') return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+      if (typeof aVal === 'string') { aVal = aVal.toLowerCase(); bVal = (bVal || '').toLowerCase(); }
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    return lista;
+  }, [dados, filtroTipo, busca, sortConfig]);
+
+  // Agrupamento por NCM
+  const agrupadoPorNCM = useMemo(() => {
+    if (!dados?.agrupamentos?.por_ncm) return [];
+    let lista = [...dados.agrupamentos.por_ncm];
+    
+    if (filtroTipo !== 'todos') {
+      lista = lista.filter(p => p.tipo_divergencia === filtroTipo);
+    }
+    
+    if (busca) {
+      lista = lista.filter(p => p.ncm?.includes(busca));
+    }
+    
+    lista.sort((a, b) => {
+      let aVal = a[sortConfig.key] ?? 0;
+      let bVal = b[sortConfig.key] ?? 0;
+      if (typeof aVal === 'number') return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+      if (typeof aVal === 'string') { aVal = aVal.toLowerCase(); bVal = (bVal || '').toLowerCase(); }
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    return lista;
   }, [dados, filtroTipo, busca, sortConfig]);
 
   // Exportar CSV
   const exportCSV = () => {
-    if (!dados) return;
+    if (!produtosDivergentes.length) return;
     
     const headers = [
       'NF', 'Cliente', 'Produto', 'NCM', 'CFOP', 'Valor Produto',
@@ -134,41 +195,20 @@ const AnalisePisCofins = ({ user, onLogout }) => {
       'Tipo Divergência', 'Motivo'
     ];
     
-    const rows = [];
-    divergenciasFiltradas.forEach(doc => {
-      doc.produtos.forEach(p => {
-        rows.push([
-          doc.numero_nfe,
-          doc.cliente,
-          p.descricao,
-          p.ncm,
-          p.cfop,
-          p.valor_produto,
-          p.cst_pis_atual,
-          p.cst_pis_correto,
-          p.aliq_pis_atual,
-          p.aliq_pis_correto,
-          p.v_pis_atual,
-          p.v_pis_correto,
-          p.impacto_pis,
-          p.cst_cofins_atual,
-          p.cst_cofins_correto,
-          p.aliq_cofins_atual,
-          p.aliq_cofins_correto,
-          p.v_cofins_atual,
-          p.v_cofins_correto,
-          p.impacto_cofins,
-          p.tipo_divergencia,
-          p.motivo
-        ]);
-      });
-    });
+    const rows = produtosDivergentes.map(p => [
+      p.numero_nfe, p.cliente, p.descricao, p.ncm, p.cfop, p.valor_produto,
+      p.cst_pis_atual, p.cst_pis_correto, p.aliq_pis_atual, p.aliq_pis_correto,
+      p.v_pis_atual, p.v_pis_correto, p.impacto_pis,
+      p.cst_cofins_atual, p.cst_cofins_correto, p.aliq_cofins_atual, p.aliq_cofins_correto,
+      p.v_cofins_atual, p.v_cofins_correto, p.impacto_cofins,
+      p.tipo_divergencia, p.motivo
+    ]);
     
     const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `analise_pis_cofins_${selectedCompetencia.replace('/', '-')}.csv`;
+    link.download = `auditoria_pis_cofins_${selectedCompetencia.replace('/', '-')}.csv`;
     link.click();
   };
 
@@ -192,6 +232,19 @@ const AnalisePisCofins = ({ user, onLogout }) => {
     return colors[tipo] || 'bg-gray-100 text-gray-800';
   };
 
+  // Header de coluna ordenável
+  const SortableHeader = ({ label, sortKey, className = '' }) => (
+    <th className={`px-3 py-2 text-xs font-semibold text-gray-600 ${className}`}>
+      <button 
+        onClick={() => requestSort(sortKey)} 
+        className="flex items-center gap-1 hover:text-gray-900 transition"
+      >
+        {label}
+        <SortIcon active={sortConfig.key === sortKey} direction={sortConfig.direction} />
+      </button>
+    </th>
+  );
+
   if (!selectedCompany || !selectedCompetencia) {
     return (
       <Layout user={user} onLogout={onLogout}>
@@ -210,19 +263,20 @@ const AnalisePisCofins = ({ user, onLogout }) => {
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="analise-pis-cofins-page" className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-r from-red-700 to-red-800 rounded-xl p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 <DollarSign className="w-7 h-7" />
-                Análise de PIS/COFINS - Saídas
+                Auditoria de PIS/COFINS nas Operações de Saída
               </h1>
-              <p className="text-indigo-100 mt-1">
-                Verificação de divergências em NCMs e CFOPs • {selectedCompetencia}
+              <p className="text-red-100 mt-1">
+                Identificação de Divergências Tributárias • Competência {selectedCompetencia}
               </p>
               {dados && (
-                <p className="text-indigo-200 text-sm mt-1">
-                  Regime: {dados.regime_tributario} (PIS {dados.aliquotas_regime?.pis}% / COFINS {dados.aliquotas_regime?.cofins}%)
+                <p className="text-red-200 text-sm mt-1">
+                  Regime Tributário: {dados.regime_tributario === 'lucro_real' ? 'Lucro Real' : 'Lucro Presumido'} 
+                  {dados.aliquotas_regime && ` (PIS ${dados.aliquotas_regime.pis}% / COFINS ${dados.aliquotas_regime.cofins}%)`}
                 </p>
               )}
             </div>
@@ -239,68 +293,73 @@ const AnalisePisCofins = ({ user, onLogout }) => {
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <RefreshCw className="w-8 h-8 animate-spin text-indigo-600" />
+            <RefreshCw className="w-8 h-8 animate-spin text-red-600" />
           </div>
         ) : dados ? (
           <>
-            {/* Cards de Resumo - Compactos */}
+            {/* Cards de Resumo */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-              {/* Total Saídas */}
               <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <p className="text-xs text-gray-500 uppercase">Total Saídas</p>
-                <p className="text-lg font-bold text-gray-900">{formatCurrency(dados.resumo.total_valor_saidas)}</p>
+                <p className="text-xs text-gray-500 uppercase">Total em Saídas</p>
+                <p className="text-lg font-bold text-gray-900">{formatCurrency(dados.resumo?.total_valor_saidas)}</p>
                 <p className="text-xs text-gray-400">{dados.total_documentos} NFs • {dados.total_produtos} itens</p>
               </div>
 
-              {/* PIS */}
               <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <p className="text-xs text-gray-500 uppercase">PIS</p>
-                <p className="text-lg font-bold text-gray-900">{formatCurrency(dados.resumo.total_pis_declarado)}</p>
-                <p className="text-xs text-gray-400">Correto: {formatCurrency(dados.resumo.total_pis_correto)}</p>
+                <p className="text-xs text-gray-500 uppercase">PIS Declarado</p>
+                <p className="text-lg font-bold text-gray-900">{formatCurrency(dados.resumo?.total_pis_declarado)}</p>
+                <p className="text-xs text-gray-400">Correto: {formatCurrency(dados.resumo?.total_pis_correto)}</p>
               </div>
 
-              {/* COFINS */}
               <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <p className="text-xs text-gray-500 uppercase">COFINS</p>
-                <p className="text-lg font-bold text-gray-900">{formatCurrency(dados.resumo.total_cofins_declarado)}</p>
-                <p className="text-xs text-gray-400">Correto: {formatCurrency(dados.resumo.total_cofins_correto)}</p>
+                <p className="text-xs text-gray-500 uppercase">COFINS Declarado</p>
+                <p className="text-lg font-bold text-gray-900">{formatCurrency(dados.resumo?.total_cofins_declarado)}</p>
+                <p className="text-xs text-gray-400">Correto: {formatCurrency(dados.resumo?.total_cofins_correto)}</p>
               </div>
 
-              {/* Pagou a MAIS */}
-              <div className={`rounded-lg p-4 border ${dados.resumo.diferenca_total > 0 ? 'bg-red-50 border-red-300' : 'bg-gray-50 border-gray-200'}`}>
-                <p className="text-xs text-red-600 uppercase font-semibold">⬆ Pagou a Mais</p>
-                <p className={`text-lg font-bold ${dados.resumo.diferenca_total > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                  {formatCurrency(dados.resumo.diferenca_total > 0 ? dados.resumo.diferenca_total : 0)}
+              <div className={`rounded-lg p-4 border ${dados.resumo?.diferenca_total > 0 ? 'bg-red-50 border-red-300' : 'bg-gray-50 border-gray-200'}`}>
+                <p className="text-xs text-red-700 uppercase font-semibold">Tributo Pago a Maior</p>
+                <p className={`text-lg font-bold ${dados.resumo?.diferenca_total > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                  {formatCurrency(dados.resumo?.diferenca_total > 0 ? dados.resumo.diferenca_total : 0)}
                 </p>
                 <p className="text-xs text-red-500">{dados.total_divergentes} divergências</p>
               </div>
 
-              {/* Pagou a MENOS */}
-              <div className={`rounded-lg p-4 border ${dados.resumo.diferenca_total < 0 ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-200'}`}>
-                <p className="text-xs text-amber-600 uppercase font-semibold">⬇ Pagou a Menos</p>
-                <p className={`text-lg font-bold ${dados.resumo.diferenca_total < 0 ? 'text-amber-600' : 'text-gray-400'}`}>
-                  {formatCurrency(dados.resumo.diferenca_total < 0 ? Math.abs(dados.resumo.diferenca_total) : 0)}
+              <div className={`rounded-lg p-4 border ${dados.resumo?.diferenca_total < 0 ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-200'}`}>
+                <p className="text-xs text-amber-700 uppercase font-semibold">Tributo Pago a Menor</p>
+                <p className={`text-lg font-bold ${dados.resumo?.diferenca_total < 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                  {formatCurrency(dados.resumo?.diferenca_total < 0 ? Math.abs(dados.resumo.diferenca_total) : 0)}
                 </p>
-                <p className="text-xs text-amber-500">Risco fiscal</p>
+                <p className="text-xs text-amber-600">Passivo Tributário</p>
               </div>
             </div>
 
-            {/* Resumo por Tipo de Divergência - Compacto */}
+            {/* Filtros por Tipo de Divergência */}
             {dados.total_divergentes > 0 && (
               <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-500" />
-                  Por Tipo de Divergência (clique para filtrar)
+                  Filtrar por Tipo de Divergência
                 </h2>
                 <div className="flex flex-wrap gap-2">
-                  {Object.entries(dados.resumo.por_tipo_divergencia).map(([tipo, info]) => (
+                  <button 
+                    onClick={() => setFiltroTipo('todos')}
+                    className={`px-3 py-2 rounded-lg text-xs font-medium transition ${
+                      filtroTipo === 'todos' 
+                        ? 'ring-2 ring-red-500 bg-gray-100 text-gray-800'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    Todos ({dados.total_divergentes})
+                  </button>
+                  {dados.resumo?.por_tipo_divergencia && Object.entries(dados.resumo.por_tipo_divergencia).map(([tipo, info]) => (
                     info.qtd > 0 && (
                       <button 
                         key={tipo} 
                         onClick={() => setFiltroTipo(filtroTipo === tipo ? 'todos' : tipo)}
                         className={`px-3 py-2 rounded-lg text-xs font-medium transition ${
                           filtroTipo === tipo 
-                            ? 'ring-2 ring-indigo-500 ' + getTipoDivergenciaColor(tipo)
+                            ? 'ring-2 ring-red-500 ' + getTipoDivergenciaColor(tipo)
                             : getTipoDivergenciaColor(tipo) + ' hover:opacity-80'
                         }`}
                       >
@@ -312,14 +371,14 @@ const AnalisePisCofins = ({ user, onLogout }) => {
               </div>
             )}
 
-            {/* Filtros e Busca */}
+            {/* Busca e Visualizações */}
             <div className="bg-white rounded-lg p-4 border border-gray-200">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="relative flex-1 min-w-[200px] max-w-md">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Buscar NF, produto, NCM..."
+                    placeholder="Buscar NF, produto, NCM, cliente..."
                     value={busca}
                     onChange={(e) => setBusca(e.target.value)}
                     className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm"
@@ -328,27 +387,28 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                 
                 <button
                   onClick={exportCSV}
-                  className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 flex items-center gap-1"
+                  disabled={!produtosDivergentes.length}
+                  className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 flex items-center gap-1 disabled:opacity-50"
                 >
                   <Download className="w-4 h-4" />
-                  CSV
+                  Exportar CSV
                 </button>
               </div>
               
-              {/* Abas de Visualização */}
+              {/* Abas */}
               <div className="mt-3 flex gap-2 border-t border-gray-200 pt-3">
                 <button
                   onClick={() => setVisualizacao('nf')}
                   className={`px-3 py-1.5 rounded text-xs font-medium transition ${
-                    visualizacao === 'nf' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    visualizacao === 'nf' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  Por NF
+                  Por Nota Fiscal
                 </button>
                 <button
                   onClick={() => setVisualizacao('produto')}
                   className={`px-3 py-1.5 rounded text-xs font-medium transition ${
-                    visualizacao === 'produto' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    visualizacao === 'produto' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
                   Por Produto
@@ -356,37 +416,94 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                 <button
                   onClick={() => setVisualizacao('ncm')}
                   className={`px-3 py-1.5 rounded text-xs font-medium transition ${
-                    visualizacao === 'ncm' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    visualizacao === 'ncm' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
                   Por NCM
                 </button>
                 <span className="ml-auto text-xs text-gray-500">
-                  {dados.total_divergentes} divergências
+                  {visualizacao === 'nf' ? produtosDivergentes.length : 
+                   visualizacao === 'produto' ? agrupadoPorProduto.length : agrupadoPorNCM.length} registros
                 </span>
               </div>
             </div>
 
-            {/* Visualização por Produto - Compacta */}
-            {visualizacao === 'produto' && dados.agrupamentos?.por_produto?.length > 0 && (
+            {/* Tabela Por NF - Todas as colunas ordenáveis */}
+            {visualizacao === 'nf' && produtosDivergentes.length > 0 && (
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b">
                       <tr>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Produto</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">NCM</th>
-                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Qtd</th>
-                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Valor</th>
-                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Impacto</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Tipo</th>
+                        <SortableHeader label="NF" sortKey="numero_nfe" className="text-left" />
+                        <SortableHeader label="Produto" sortKey="descricao" className="text-left" />
+                        <SortableHeader label="NCM" sortKey="ncm" className="text-left" />
+                        <SortableHeader label="CFOP" sortKey="cfop" className="text-center" />
+                        <SortableHeader label="Valor" sortKey="valor_produto" className="text-right" />
+                        <SortableHeader label="PIS Atual" sortKey="v_pis_atual" className="text-right" />
+                        <SortableHeader label="PIS Correto" sortKey="v_pis_correto" className="text-right" />
+                        <SortableHeader label="COFINS Atual" sortKey="v_cofins_atual" className="text-right" />
+                        <SortableHeader label="COFINS Correto" sortKey="v_cofins_correto" className="text-right" />
+                        <SortableHeader label="Impacto" sortKey="impacto_total" className="text-right" />
+                        <SortableHeader label="Tipo" sortKey="tipo_divergencia" className="text-left" />
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {dados.agrupamentos.por_produto.map((item, idx) => (
+                      {produtosDivergentes.map((prod, idx) => (
                         <tr key={idx} className="hover:bg-gray-50">
                           <td className="px-3 py-2">
-                            <div className="font-medium text-gray-900 truncate max-w-[200px]" title={item.descricao}>{item.descricao}</div>
+                            <div className="font-semibold text-gray-900">{prod.numero_nfe}</div>
+                            <div className="text-xs text-gray-400 truncate max-w-[100px]" title={prod.cliente}>{prod.cliente}</div>
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="font-medium text-gray-900 truncate max-w-[180px]" title={prod.descricao}>{prod.descricao}</div>
+                            <div className="text-xs text-gray-400">{prod.codigo}</div>
+                          </td>
+                          <td className="px-3 py-2 font-mono text-xs text-gray-600">{prod.ncm}</td>
+                          <td className="px-3 py-2 text-center text-gray-600">{prod.cfop}</td>
+                          <td className="px-3 py-2 text-right text-gray-900">{formatCurrency(prod.valor_produto)}</td>
+                          <td className="px-3 py-2 text-right text-red-600 font-medium">{formatCurrency(prod.v_pis_atual)}</td>
+                          <td className="px-3 py-2 text-right text-green-600 font-medium">{formatCurrency(prod.v_pis_correto)}</td>
+                          <td className="px-3 py-2 text-right text-red-600 font-medium">{formatCurrency(prod.v_cofins_atual)}</td>
+                          <td className="px-3 py-2 text-right text-green-600 font-medium">{formatCurrency(prod.v_cofins_correto)}</td>
+                          <td className="px-3 py-2 text-right">
+                            <span className={`font-bold ${prod.impacto_total > 0 ? 'text-red-600' : 'text-amber-600'}`}>
+                              {formatCurrency(prod.impacto_total)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className={`px-2 py-0.5 rounded text-xs ${getTipoDivergenciaColor(prod.tipo_divergencia)}`}>
+                              {getTipoDivergenciaLabel(prod.tipo_divergencia)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Tabela Por Produto */}
+            {visualizacao === 'produto' && agrupadoPorProduto.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <SortableHeader label="Produto" sortKey="descricao" className="text-left" />
+                        <SortableHeader label="NCM" sortKey="ncm" className="text-left" />
+                        <SortableHeader label="Ocorrências" sortKey="qtd_ocorrencias" className="text-center" />
+                        <SortableHeader label="Valor Total" sortKey="valor_total" className="text-right" />
+                        <SortableHeader label="Impacto Total" sortKey="impacto_total" className="text-right" />
+                        <SortableHeader label="Tipo" sortKey="tipo_divergencia" className="text-left" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {agrupadoPorProduto.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="px-3 py-2">
+                            <div className="font-medium text-gray-900 truncate max-w-[220px]" title={item.descricao}>{item.descricao}</div>
                           </td>
                           <td className="px-3 py-2 text-gray-600 font-mono text-xs">{item.ncm}</td>
                           <td className="px-3 py-2 text-center text-gray-600">{item.qtd_ocorrencias}</td>
@@ -405,28 +522,29 @@ const AnalisePisCofins = ({ user, onLogout }) => {
               </div>
             )}
 
-            {/* Visualização por NCM - Compacta */}
-            {visualizacao === 'ncm' && dados.agrupamentos?.por_ncm?.length > 0 && (
+            {/* Tabela Por NCM */}
+            {visualizacao === 'ncm' && agrupadoPorNCM.length > 0 && (
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b">
                       <tr>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">NCM</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Exemplos</th>
-                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Qtd</th>
-                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Valor</th>
-                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Impacto</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Tipo</th>
+                        <SortableHeader label="NCM" sortKey="ncm" className="text-left" />
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Produtos</th>
+                        <SortableHeader label="Ocorrências" sortKey="qtd_ocorrencias" className="text-center" />
+                        <SortableHeader label="Valor Total" sortKey="valor_total" className="text-right" />
+                        <SortableHeader label="Impacto Total" sortKey="impacto_total" className="text-right" />
+                        <SortableHeader label="Tipo" sortKey="tipo_divergencia" className="text-left" />
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {dados.agrupamentos.por_ncm.map((item, idx) => (
+                      {agrupadoPorNCM.map((item, idx) => (
                         <tr key={idx} className="hover:bg-gray-50">
                           <td className="px-3 py-2 font-mono font-bold text-gray-900">{item.ncm}</td>
                           <td className="px-3 py-2">
-                            <div className="text-xs text-gray-600 max-w-[180px] truncate" title={item.produtos?.join(', ')}>
+                            <div className="text-xs text-gray-600 max-w-[200px] truncate" title={item.produtos?.join(', ')}>
                               {item.produtos?.slice(0, 2).join(', ')}
+                              {item.produtos?.length > 2 && ` +${item.produtos.length - 2}`}
                             </div>
                           </td>
                           <td className="px-3 py-2 text-center text-gray-600">{item.qtd_ocorrencias}</td>
@@ -445,90 +563,23 @@ const AnalisePisCofins = ({ user, onLogout }) => {
               </div>
             )}
 
-            {/* Visualização por NF - Com mais informações diretas */}
-            {visualizacao === 'nf' && divergenciasFiltradas.length > 0 && (
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
-                          <button onClick={() => requestSort('numero_nfe')} className="flex items-center gap-1">
-                            NF
-                            <SortIconComponent sortKey="numero_nfe" currentKey={sortConfig.key} direction={sortConfig.direction} />
-                          </button>
-                        </th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Produto / NCM</th>
-                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">CST</th>
-                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Valor</th>
-                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">PIS Atual→Correto</th>
-                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">COFINS Atual→Correto</th>
-                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">
-                          <button onClick={() => requestSort('impacto_total')} className="flex items-center gap-1 ml-auto">
-                            Impacto
-                            <SortIconComponent sortKey="impacto_total" currentKey={sortConfig.key} direction={sortConfig.direction} />
-                          </button>
-                        </th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Motivo</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {divergenciasFiltradas.map((doc, idx) => (
-                        doc.produtos.map((prod, pIdx) => (
-                          <tr key={`${idx}-${pIdx}`} className="hover:bg-gray-50">
-                            <td className="px-3 py-2">
-                              <div className="font-semibold text-gray-900">{doc.numero_nfe}</div>
-                              <div className="text-xs text-gray-400 truncate max-w-[100px]" title={doc.cliente}>{doc.cliente}</div>
-                            </td>
-                            <td className="px-3 py-2">
-                              <div className="font-medium text-gray-900 truncate max-w-[150px]" title={prod.descricao}>{prod.descricao}</div>
-                              <div className="text-xs text-gray-500 font-mono">{prod.ncm} • {prod.cfop}</div>
-                            </td>
-                            <td className="px-3 py-2 text-center">
-                              <div className="text-xs">
-                                <span className="text-red-600">{prod.cst_pis_atual || '-'}</span>
-                                <span className="text-gray-400">→</span>
-                                <span className="text-green-600">{prod.cst_pis_correto || '-'}</span>
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 text-right text-gray-900">{formatCurrency(prod.valor_produto)}</td>
-                            <td className="px-3 py-2 text-right">
-                              <span className="text-red-600">{formatCurrency(prod.v_pis_atual)}</span>
-                              <span className="text-gray-400">→</span>
-                              <span className="text-green-600">{formatCurrency(prod.v_pis_correto)}</span>
-                            </td>
-                            <td className="px-3 py-2 text-right">
-                              <span className="text-red-600">{formatCurrency(prod.v_cofins_atual)}</span>
-                              <span className="text-gray-400">→</span>
-                              <span className="text-green-600">{formatCurrency(prod.v_cofins_correto)}</span>
-                            </td>
-                            <td className="px-3 py-2 text-right">
-                              <span className={`font-bold ${(prod.impacto_pis + prod.impacto_cofins) > 0 ? 'text-red-600' : 'text-amber-600'}`}>
-                                {formatCurrency(Math.abs(prod.impacto_pis || 0) + Math.abs(prod.impacto_cofins || 0))}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2">
-                              <span className={`px-2 py-0.5 rounded text-xs ${getTipoDivergenciaColor(prod.tipo_divergencia)}`}>
-                                {getTipoDivergenciaLabel(prod.tipo_divergencia)}
-                              </span>
-                            </td>
-                          </tr>
-                        ))
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
             {/* Mensagem quando não há divergências */}
             {dados.total_divergentes === 0 && (
               <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold text-gray-900">Nenhuma divergência encontrada!</h2>
+                <h2 className="text-xl font-semibold text-gray-900">Nenhuma divergência identificada</h2>
                 <p className="text-gray-500 mt-2">
-                  Todos os produtos estão com CST e alíquotas de PIS/COFINS corretos.
+                  Todos os produtos nas notas de saída estão com CST e alíquotas de PIS/COFINS em conformidade.
                 </p>
+              </div>
+            )}
+
+            {/* Mensagem quando filtro não retorna resultados */}
+            {dados.total_divergentes > 0 && produtosDivergentes.length === 0 && visualizacao === 'nf' && (
+              <div className="bg-white rounded-xl p-8 border border-gray-200 text-center">
+                <Info className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h2 className="text-lg font-semibold text-gray-700">Nenhum resultado para o filtro aplicado</h2>
+                <p className="text-gray-500 mt-2">Tente alterar os critérios de busca ou o tipo de divergência.</p>
               </div>
             )}
           </>
