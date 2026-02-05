@@ -1469,30 +1469,11 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             cst_icms_num = cst_icms[-2:] if len(cst_icms) >= 2 else cst_icms
             tem_icms = cst_icms_num in ['00', '10', '20', '70', '90']
             
-            # Se tem ICMS no XML, usar o valor do XML
-            # Se não tem, calcular baseado na alíquota padrão
-            if v_icms_xml > 0:
-                # Usar valores do XML
-                v_icms = v_icms_xml
-                bc_icms = vl_item
-                # Calcular alíquota a partir do valor (para exibição)
-                aliq_icms = round((v_icms_xml / vl_item) * 100, 2) if vl_item > 0 else 0
-            elif tem_icms:
-                # Não tem ICMS no XML mas CST indica tributado - calcular
-                if is_interestadual:
-                    if uf_origem in UF_SUL_SUDESTE and uf_empresa not in UF_SUL_SUDESTE:
-                        aliq_icms = 7.0
-                    else:
-                        aliq_icms = 12.0
-                else:
-                    aliq_icms = ALIQ_ICMS_UF.get(uf_empresa, 18)
-                bc_icms = vl_item
-                v_icms = round(bc_icms * aliq_icms / 100, 2)
-            else:
-                # Sem ICMS
-                aliq_icms = 0.0
-                bc_icms = 0.0
-                v_icms = 0.0
+            # SEMPRE usar o valor do XML
+            v_icms = v_icms_xml
+            bc_icms = vl_item if v_icms_xml > 0 else 0.0
+            # Calcular alíquota a partir do valor (para exibição)
+            aliq_icms = round((v_icms_xml / vl_item) * 100, 2) if vl_item > 0 and v_icms_xml > 0 else 0.0
             
             # ==== CÁLCULO CORRETO DE PIS/COFINS ====
             # Determinar CST correto de PIS/COFINS baseado na operação
