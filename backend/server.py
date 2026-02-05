@@ -1806,13 +1806,13 @@ async def salvar_medias_extraidas(
     current_user: dict = Depends(get_current_user)
 ):
     """Save extracted media data to database"""
+    cliente_id = data.get("cliente_id")
+    funcionarios = data.get("funcionarios", [])
+    
+    if not funcionarios:
+        raise HTTPException(status_code=400, detail="Nenhum funcionário para salvar")
+    
     try:
-        cliente_id = data.get("cliente_id")
-        funcionarios = data.get("funcionarios", [])
-        
-        if not funcionarios:
-            raise HTTPException(status_code=400, detail="Nenhum funcionário para salvar")
-        
         # Save import record
         importacao_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
@@ -1859,6 +1859,8 @@ async def salvar_medias_extraidas(
             "total_meses": total_meses
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Erro ao salvar médias: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao salvar médias: {str(e)}")
