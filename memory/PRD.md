@@ -271,16 +271,25 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
        - ⚠ Âmbar: "X de Y notas OK (Z com divergência)" + botão "Ver detalhes"
   - **Resultado:** Validação em tempo real garante fidelidade dos valores para exportação SPED
 
-- ✅ **MODAL DE DETALHAMENTO DA NF (NOVO)**
+- ✅ **MODAL DE DETALHAMENTO DA NF (MELHORADO)**
   - **Problema:** Usuário precisava visualizar itens da NF e validar que a soma está correta
   - **Solução:**
     1. Modal abre ao clicar no número da NF na página Documentos
     2. Header com número da NF, emitente, data e indicador de integridade
-    3. Cards de resumo: Valor NF, BC ICMS, ICMS, IPI, PIS, COFINS
-    4. **Totalizador por CFOP** - tabela com Qtd, Valor, BC ICMS, ICMS, IPI, PIS, COFINS por CFOP
-    5. **Lista de Itens** - todos os produtos com NCM, CFOP, CST, Qtd, Valor, ICMS, IPI, PIS/COF
-    6. **Indicador de integridade:** ✓ Verde (Valores OK) ou ✗ Vermelho (Com Divergência + detalhes)
+    3. Cards de resumo: Valor Produtos, Valor NF, BC ICMS, ICMS, **BC ST, ICMS-ST**, IPI, PIS/COFINS
+    4. **Totalizador por CFOP** - tabela com Qtd, Valor, BC ICMS, ICMS, **BC ST, ICMS-ST**, IPI, PIS, COFINS
+    5. **Lista de Itens** - todos os produtos com NCM, CFOP, CST, Qtd, Valor, ICMS, **BC ST, ICMS-ST**, IPI, PIS/COF
+    6. **Campos coloridos**: Verde (batendo) / Vermelho (divergente)
+    7. **Indicador de integridade:** ✓ Verde (Valores OK) ou ✗ Vermelho (Com Divergência + detalhes)
   - **Arquivos:** `/app/frontend/src/pages/Documents.js`
+
+- ✅ **VALIDAÇÃO DE INTEGRIDADE APRIMORADA**
+  - **Problema:** A validação comparava valor total da NF com XML. Usuário queria comparar soma dos itens com totais da NF
+  - **Solução:**
+    1. **Coluna ✓/✗ na listagem** - primeira coluna mostra check verde ou X vermelho
+    2. **Lógica corrigida** - compara soma dos produtos com (Valor NF - IPI - ST - Frete - Seguro - Outros)
+    3. **Card de resumo** - mostra "477 de 535 notas OK (58 com divergência)"
+    4. **Mensagem de divergência** - "Valor Produtos: NF R$ X ≠ Soma R$ Y (Dif: R$ Z)"
 
 - ✅ **LINKS DE NF NA PÁGINA VALIDAÇÃO & IA**
   - **Problema:** Quando havia muitas NFs, mostrava "+1, +2" sem detalhes
@@ -291,11 +300,11 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
     4. Opção "mais" permite expandir para ver todas as NFs
   - **Arquivos:** `/app/frontend/src/pages/ClassificacaoPage.js`
 
-- ✅ **TESTES: 6/6 features passaram (Iteration 16)**
-  - Modal de detalhamento funciona corretamente
-  - Totalizador por CFOP exibe valores agregados
-  - Indicador verde/vermelho funciona (NF 30073 mostra divergência real de R$ 279,95)
-  - Links das NFs navegam corretamente
+- ✅ **TESTES: 8/8 features passaram (Iteration 17)**
+  - Coluna ✓/✗ funciona corretamente
+  - NF 30073 mostra X vermelho (divergência de R$ 279,95)
+  - NF 5679 mostra check verde (valores OK)
+  - BC ST e ICMS-ST aparecem em todos os lugares
 
 ### 02/2026 - Iteration 31 (04/02/2026)
 - ✅ **CORREÇÃO: Crédito PIS/COFINS divergente entre Dashboard e Apuração**
