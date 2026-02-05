@@ -643,15 +643,15 @@ const Documents = ({ user, onLogout }) => {
     );
   };
 
-  // Header de coluna clicável para ordenação
-  const SortableHeader = ({ field, children, className = '' }) => (
+  // Header de coluna clicável para ordenação - usando render function
+  const renderSortableHeader = (field, children, className = '') => (
     <th 
       className={`px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase cursor-pointer hover:bg-gray-100 select-none ${className}`}
       onClick={() => handleSort(field)}
     >
       <div className="flex items-center gap-1">
         {children}
-        <SortIcon field={field} />
+        {renderSortIcon(field)}
       </div>
     </th>
   );
