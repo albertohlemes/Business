@@ -320,7 +320,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     }
   };
 
-  // IA - Processar comando
+  // IA - Processar comando (usa o novo endpoint inteligente)
   const processAICommand = async () => {
     if (!aiCommand.trim()) {
       alert('Digite uma instrução para a IA');
@@ -330,12 +330,14 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     setAiProcessing(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${API}/ai/reclassify`, {
+      
+      // Usar o novo endpoint de reclassificação inteligente
+      const response = await axios.post(`${API}/ai/smart-reclassify`, {
         company_id: selectedCompany.id,
         competencia: selectedCompetencia,
-        product_ids: selectedProductCodes.length > 0 ? selectedProductCodes : [],
-        instrucao_usuario: aiCommand,
-        aplicar_em_lote: true
+        comando: aiCommand,
+        aplicar: true,
+        sobrepor_regras: true
       }, {
         headers: { Authorization: 'Bearer ' + token }
       });
@@ -345,9 +347,31 @@ const ClassificacaoPage = ({ user, onLogout }) => {
         fetchData();
         fetchLearnedRules();
         setAiCommand('');
+        showSuccess(`${response.data.total_produtos_encontrados} produtos encontrados e reclassificados!`);
       }
     } catch (err) {
-      alert(err.response?.data?.detail || 'Erro na análise com IA');
+      // Fallback para o endpoint antigo se o novo falhar
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.post(`${API}/ai/reclassify`, {
+          company_id: selectedCompany.id,
+          competencia: selectedCompetencia,
+          product_ids: selectedProductCodes.length > 0 ? selectedProductCodes : [],
+          instrucao_usuario: aiCommand,
+          aplicar_em_lote: true
+        }, {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+        
+        setAiResult(response.data);
+        if (response.data.success) {
+          fetchData();
+          fetchLearnedRules();
+          setAiCommand('');
+        }
+      } catch (err2) {
+        alert(err2.response?.data?.detail || 'Erro na análise com IA');
+      }
     } finally {
       setAiProcessing(false);
     }
