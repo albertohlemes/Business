@@ -2321,8 +2321,8 @@ async def enviar_empresa_gclick(
 ):
     """Envia dados da empresa e sócios para o GClick"""
     try:
-        # Buscar dados da minuta
-        minuta = await db.minutas.find_one({"id": request.minuta_id, "user_id": current_user["id"]})
+        # Buscar dados da minuta (visível para todos os usuários)
+        minuta = await db.minutas.find_one({"id": request.minuta_id})
         if not minuta:
             raise HTTPException(status_code=404, detail="Processo não encontrado")
         
