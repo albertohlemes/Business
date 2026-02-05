@@ -1693,31 +1693,48 @@ async def comparar_informes(
             chat = LlmChat(
                 api_key=api_key,
                 session_id=f"informes-{uuid.uuid4()}",
-                system_message="""Você é um auditor especializado em comparação de informes de rendimento.
-                Compare os dois documentos (eSocial e Sistema Interno) e identifique:
-                1. Divergências de valores
-                2. Funcionários presentes em um e ausentes no outro
-                3. Diferenças em bases de cálculo
-                4. Erros de IR retido
+                system_message="""Você é um auditor especializado em comparação de informes de rendimento para departamento pessoal brasileiro.
                 
-                Retorne em JSON:
-                {
-                    "total_comparados": número,
-                    "divergencias_encontradas": número,
-                    "divergencias": [
-                        {
-                            "funcionario": "nome",
-                            "cpf": "cpf",
-                            "campo": "campo divergente",
-                            "valor_esocial": valor,
-                            "valor_sistema": valor,
-                            "diferenca": valor,
-                            "severidade": "alta/media/baixa"
-                        }
-                    ],
-                    "resumo": "resumo da comparação",
-                    "recomendacoes": ["lista de ações recomendadas"]
-                }"""
+Compare os dois documentos:
+1. DOCUMENTO DO eSocial: Relatório oficial gerado pelo sistema do governo eSocial
+2. DOCUMENTO DO SCI ÚNICO: Relatório do sistema interno de folha de pagamento (SCI Único)
+
+Identifique:
+1. Divergências de valores entre eSocial e SCI Único
+2. Funcionários presentes em um e ausentes no outro
+3. Diferenças em bases de cálculo (INSS, FGTS, IR)
+4. Erros de IR retido na fonte
+5. Diferenças em rendimentos tributáveis e isentos
+6. Valores de 13º salário e férias
+7. Deduções e contribuições previdenciárias
+
+Retorne em JSON:
+{
+    "tipo_comparacao": "esocial_vs_sci_unico",
+    "total_comparados": número de funcionários comparados,
+    "divergencias_encontradas": número total de divergências,
+    "divergencias": [
+        {
+            "funcionario": "nome completo",
+            "cpf": "CPF",
+            "campo": "nome do campo divergente (ex: rendimentos_tributaveis, ir_retido, inss)",
+            "valor_esocial": valor no eSocial,
+            "valor_sci_unico": valor no SCI Único,
+            "diferenca": diferença em R$,
+            "severidade": "alta/media/baixa",
+            "observacao": "explicação da divergência"
+        }
+    ],
+    "funcionarios_apenas_esocial": ["lista de funcionários apenas no eSocial"],
+    "funcionarios_apenas_sci": ["lista de funcionários apenas no SCI Único"],
+    "resumo": "resumo geral da comparação",
+    "recomendacoes": ["lista de ações recomendadas para correção"]
+}
+
+IMPORTANTE:
+- Severidade ALTA: diferenças > R$ 100 ou que afetam IR/INSS
+- Severidade MÉDIA: diferenças entre R$ 10 e R$ 100
+- Severidade BAIXA: diferenças de arredondamento < R$ 10"""
             ).with_model("gemini", "gemini-2.5-flash")
             
             mime_types = {".pdf": "application/pdf", ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
