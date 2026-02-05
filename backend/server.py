@@ -2198,7 +2198,7 @@ Os sócios elegem o foro da Comarca de {end.get('cidade', 'São Paulo')}, Estado
 
 Os casos omissos serão resolvidos pelos sócios de comum acordo, observadas as disposições legais aplicáveis.
 
-E por estarem assim justos e contratados, assinam o presente instrumento em [NÚMERO] vias de igual teor e forma, na presença de duas testemunhas.
+E por estarem assim justos e contratados, assinam o presente instrumento em [NÚMERO] vias de igual teor e forma.
 
 {end.get('cidade', 'São Paulo')}, {data_atual}.
 
@@ -2206,21 +2206,11 @@ E por estarem assim justos e contratados, assinam o presente instrumento em [NÚ
                               ASSINATURAS
 ================================================================================
 
-[ESPAÇO PARA ASSINATURA DE CADA SÓCIO]
+[GERAR ESPAÇO DE ASSINATURA PARA CADA SÓCIO NO FORMATO:]
 
 _______________________________________________
-
-_______________________________________________
-
-TESTEMUNHAS:
-
-1. _____________________________________________
-   Nome:
-   CPF:
-
-2. _____________________________________________
-   Nome:
-   CPF:
+NOME COMPLETO DO SÓCIO
+CPF: XXX.XXX.XXX-XX
 
 ================================================================================
 
@@ -2228,9 +2218,10 @@ INSTRUÇÕES:
 1. Gere o contrato COMPLETO seguindo exatamente a estrutura acima
 2. Preencha TODOS os campos com os dados fornecidos
 3. Use linguagem jurídica formal
-4. Mantenha os traços de assinatura (___) para os sócios e testemunhas
-5. NÃO use Markdown. Use texto simples com linhas de = e - para separação
-6. O contrato deve estar pronto para impressão e assinatura"""
+4. Gere uma linha de assinatura para CADA sócio com nome e CPF abaixo
+5. NÃO inclua testemunhas no documento
+6. NÃO use Markdown. Use texto simples com linhas de = e - para separação
+7. O contrato deve estar pronto para impressão e assinatura"""
 
         chat = LlmChat(
             api_key=emergent_api_key,
