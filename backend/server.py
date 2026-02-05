@@ -803,8 +803,10 @@ IMPORTANTE:
                     "parsing_error": True
                 }
             
-            # Process salary if present
+            # Process and normalize extracted data
             dados = resultado.get("dados", {})
+            
+            # Process salary if present
             if dados.get("salario_base"):
                 try:
                     salario_str = str(dados["salario_base"])
@@ -812,6 +814,46 @@ IMPORTANTE:
                     dados["salario_base"] = float(salario_str)
                 except:
                     dados["salario_base"] = 0
+            
+            # Process percentages
+            for field in ["insalubridade_percentual", "periculosidade_percentual"]:
+                if dados.get(field):
+                    try:
+                        dados[field] = float(str(dados[field]).replace("%", "").strip())
+                    except:
+                        dados[field] = None
+            
+            # Process boolean fields
+            bool_fields = ["deficiencia", "recebendo_seguro_desemprego", "horista", 
+                          "vale_transporte", "adiantamento_salarial", "desconto_sindical"]
+            for field in bool_fields:
+                if field in dados:
+                    val = dados[field]
+                    if isinstance(val, str):
+                        dados[field] = val.lower() in ["true", "sim", "s", "x", "1", "marcado"]
+                    elif isinstance(val, bool):
+                        pass
+                    else:
+                        dados[field] = bool(val)
+            
+            # Process dependentes array
+            if dados.get("dependentes"):
+                try:
+                    deps = dados["dependentes"]
+                    if isinstance(deps, list):
+                        processed_deps = []
+                        for dep in deps:
+                            if isinstance(dep, dict):
+                                # Process boolean fields in dependentes
+                                for bf in ["ir", "salario_familia"]:
+                                    if bf in dep:
+                                        val = dep[bf]
+                                        if isinstance(val, str):
+                                            dep[bf] = val.lower() in ["true", "sim", "s", "x", "1"]
+                                processed_deps.append(dep)
+                        dados["dependentes"] = processed_deps
+                except:
+                    dados["dependentes"] = []
             
             return {
                 "success": True,
