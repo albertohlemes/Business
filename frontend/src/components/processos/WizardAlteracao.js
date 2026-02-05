@@ -1891,10 +1891,23 @@ const WizardAlteracao = ({ open, onClose, onComplete, processoEditando }) => {
                     descricaoCompleta += `\n[ENTRADA DE SÓCIOS]\n`;
                     dadosQSA.sociosEntrando.forEach(s => {
                         const endereco = s.endereco || {};
-                        descricaoCompleta += `- Novo sócio: ${s.nome}, ${s.nacionalidade}, ${s.estadoCivil}, ${s.profissao}\n`;
-                        descricaoCompleta += `  CPF: ${s.cpf}, RG: ${s.rg} ${s.orgaoEmissor}\n`;
+                        descricaoCompleta += `- Novo sócio: ${s.nome}, ${s.nacionalidade || 'brasileiro(a)'}`;
+                        // Naturalidade
+                        if (s.cidadeNascimento && s.estadoNascimento) {
+                            descricaoCompleta += `, natural de ${s.cidadeNascimento}/${s.estadoNascimento}`;
+                        }
+                        // Data de nascimento
+                        if (s.dataNascimento) {
+                            descricaoCompleta += `, nascido(a) em ${s.dataNascimento}`;
+                        }
+                        descricaoCompleta += `, ${s.estadoCivil || ''}, ${s.profissao || ''}\n`;
+                        descricaoCompleta += `  CPF: ${s.cpf}, RG: ${s.rg} ${s.orgaoEmissor || ''}\n`;
                         descricaoCompleta += `  Endereço: ${endereco.logradouro || ''}, ${endereco.numero || ''}, ${endereco.bairro || ''}, ${endereco.cidade || ''}-${endereco.estado || ''}, CEP ${endereco.cep || ''}\n`;
-                        descricaoCompleta += `  Participação: ${s.participacao}%\n`;
+                        descricaoCompleta += `  Participação: ${s.participacao}%`;
+                        if (s.administrador) {
+                            descricaoCompleta += ` (ADMINISTRADOR)`;
+                        }
+                        descricaoCompleta += `\n`;
                     });
                 }
                 
