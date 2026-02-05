@@ -4254,15 +4254,31 @@ async def apuracao_periodo(
             # Verificar se é CFOP de Substituição Tributária
             is_st = cfop in CFOPS_ST
             
-            # Determinar se é entrada ou saída pelo CFOP ou tipo do documento
+            # Determinar se é entrada ou saída pelo TIPO DO DOCUMENTO (não pelo CFOP)
+            # Isso é importante porque em notas de entrada, o CFOP vem do emitente (que é saída para ele)
             primeiro_digito = cfop[0] if cfop else ''
             
-            # Se CFOP vazio, usar tipo do documento
-            is_entrada = primeiro_digito in ['1', '2', '3'] if primeiro_digito else (tipo_operacao == 'entrada')
-            is_saida = primeiro_digito in ['5', '6', '7'] if primeiro_digito else (tipo_operacao == 'saida')
+            # Usar o tipo do documento como critério principal
+            doc_tipo = doc.get('tipo', 'entrada')
+            is_entrada = doc_tipo == 'entrada'
+            is_saida = doc_tipo == 'saida'
             
-            # Se não tem CFOP, usar "SEM CFOP" como chave
-            cfop_key = cfop if cfop else f"SEM CFOP ({tipo_operacao.upper()})"
+            # Converter CFOP de saída para entrada quando for documento de entrada
+            if is_entrada and primeiro_digito in ['5', '6', '7']:
+                # Converter: 5xxx -> 1xxx, 6xxx -> 2xxx, 7xxx -> 3xxx
+                cfop_convertido = cfop.replace(primeiro_digito, {'5': '1', '6': '2', '7': '3'}[primeiro_digito], 1)
+                cfop_key = cfop_convertido
+            elif is_saida and primeiro_digito in ['1', '2', '3']:
+                # Converter: 1xxx -> 5xxx, 2xxx -> 6xxx, 3xxx -> 7xxx (caso raro)
+                cfop_convertido = cfop.replace(primeiro_digito, {'1': '5', '2': '6', '3': '7'}[primeiro_digito], 1)
+                cfop_key = cfop_convertido
+            else:
+                cfop_key = cfop if cfop else f"SEM CFOP ({doc_tipo.upper()})"
+            
+            # Verificar ST no CFOP convertido
+            if is_entrada:
+                cfops_st_entrada = ['1403', '1409', '2403', '2409', '3403', '3409']
+                is_st = cfop_key in cfops_st_entrada
             
             if is_entrada:
                 # Entrada
