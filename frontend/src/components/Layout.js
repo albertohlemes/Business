@@ -46,6 +46,7 @@ const Layout = () => {
     { to: '/medias', icon: Calculator, label: 'Médias' },
     { to: '/validacao', icon: ClipboardCheck, label: 'Validação Folha' },
     { to: '/informes', icon: FileSpreadsheet, label: 'Informes Rendimento' },
+    { to: '/relatorios', icon: Download, label: 'Relatórios' },
   ];
 
   return (
