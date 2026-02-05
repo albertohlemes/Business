@@ -709,15 +709,45 @@ const Documents = ({ user, onLogout }) => {
             
             <div className="flex items-center gap-2">
               {ctxCompany && selectedCompetencia && (
-                <button
-                  onClick={handleReprocessBatch}
-                  disabled={reprocessing}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
-                  title="Re-processar XMLs para extrair campos faltantes (ICMS-ST, endereços, etc.)"
-                >
-                  <RefreshCw className={`w-4 h-4 ${reprocessing ? 'animate-spin' : ''}`} />
-                  {reprocessing ? 'Re-processando...' : 'Re-processar XMLs'}
-                </button>
+                <div className="relative" ref={reprocessMenuRef}>
+                  <button
+                    data-testid="btn-reprocessar-dropdown"
+                    onClick={() => setShowReprocessMenu(!showReprocessMenu)}
+                    disabled={reprocessing}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${reprocessing ? 'animate-spin' : ''}`} />
+                    {reprocessing ? 'Re-processando...' : 'Re-processar'}
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                  
+                  {showReprocessMenu && !reprocessing && (
+                    <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
+                      <button
+                        data-testid="btn-reprocessar-rapido"
+                        onClick={() => { setShowReprocessMenu(false); handleReprocessBatch(false); }}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-start gap-3 border-b border-gray-100"
+                      >
+                        <RefreshCw className="w-5 h-5 text-blue-600 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-gray-900">Re-processar (Rápido)</div>
+                          <div className="text-sm text-gray-500">Extrai campos faltantes: ICMS-ST, endereços, etc.</div>
+                        </div>
+                      </button>
+                      <button
+                        data-testid="btn-reprocessar-com-ia"
+                        onClick={() => { setShowReprocessMenu(false); handleReprocessBatch(true); }}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-start gap-3"
+                      >
+                        <Cpu className="w-5 h-5 text-purple-600 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-gray-900">Re-processar + Classificar (IA)</div>
+                          <div className="text-sm text-gray-500">Extrai dados e aplica classificação da IA com memória</div>
+                        </div>
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
               
               {ctxCompany && selectedCompetencia && user.role === 'admin' && (
