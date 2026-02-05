@@ -550,6 +550,9 @@ const SocioCardAlteracao = ({ socio, index, onChange, onRemove }) => {
                     rg: dados.rg || socio.rg,
                     orgaoEmissor: dados.orgao_emissor || socio.orgaoEmissor,
                     nacionalidade: dados.nacionalidade || socio.nacionalidade,
+                    dataNascimento: dados.data_nascimento || socio.dataNascimento,
+                    cidadeNascimento: dados.cidade_nascimento || socio.cidadeNascimento,
+                    estadoNascimento: dados.estado_nascimento || socio.estadoNascimento,
                     estadoCivil: dados.estado_civil || socio.estadoCivil,
                     profissao: dados.profissao || socio.profissao,
                 });

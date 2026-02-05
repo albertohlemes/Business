@@ -1905,12 +1905,19 @@ Retorne APENAS um JSON válido no seguinte formato:
     "rg": "00.000.000-0",
     "orgao_emissor": "SSP/UF",
     "nacionalidade": "Brasileiro(a)",
+    "data_nascimento": "YYYY-MM-DD",
+    "cidade_nascimento": "Nome da cidade de nascimento",
+    "estado_nascimento": "UF (sigla do estado de nascimento, ex: SP, RJ, MG)",
     "estado_civil": "Solteiro(a)/Casado(a)/Divorciado(a)/Viúvo(a)",
     "profissao": "Profissão se disponível",
     "endereco": "Endereço completo se disponível"
 }
 
-Se algum campo não for encontrado no documento, use null.
+IMPORTANTE:
+- data_nascimento deve estar no formato YYYY-MM-DD (ano-mês-dia)
+- cidade_nascimento é a cidade onde a pessoa nasceu (naturalidade)
+- estado_nascimento é a sigla do estado onde a pessoa nasceu (ex: SP, RJ, MG)
+- Se algum campo não for encontrado no documento, use null.
 NÃO inclua explicações, apenas o JSON."""
         
         from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
