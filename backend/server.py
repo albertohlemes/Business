@@ -1889,24 +1889,12 @@ async def reimport_execute(
 
 
 async def execute_reimport_task(task_id: str, company_id: str, competencia: str):
-    """Função de background que executa a reimportação"""
+    """Função de background que executa a reimportação - APENAS ENTRADAS"""
     progress = reimport_progress_store[task_id]
     
     try:
         progress["status"] = "running"
-        progress["step"] = "Buscando documentos..."
-        
-        # Buscar documentos
-        documents = await db.xml_documents.find(
-            {"company_id": company_id, "competencia": competencia},
-            {"_id": 0}
-        ).to_list(2000)
-        
-        if not documents:
-            progress["status"] = "error"
-            progress["step"] = "Nenhum documento encontrado"
-            progress["completed"] = True
-            return
+        progress["step"] = "Buscando documentos de entrada..."
         
         # Buscar dados da empresa
         company = await db.companies.find_one({"id": company_id}, {"_id": 0})
@@ -1916,17 +1904,47 @@ async def execute_reimport_task(task_id: str, company_id: str, competencia: str)
             progress["completed"] = True
             return
         
+        cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
         uf_empresa = company.get('uf', 'SP')
+        
+        # Buscar todos os documentos
+        all_documents = await db.xml_documents.find(
+            {"company_id": company_id, "competencia": competencia},
+            {"_id": 0}
+        ).to_list(2000)
+        
+        if not all_documents:
+            progress["status"] = "error"
+            progress["step"] = "Nenhum documento encontrado"
+            progress["completed"] = True
+            return
+        
+        # Filtrar apenas documentos de ENTRADA
+        documents = []
+        for doc in all_documents:
+            cnpj_emit = (doc.get('emitente_cnpj') or doc.get('cnpj_emitente', '')).replace('.', '').replace('/', '').replace('-', '')
+            # É entrada se o emitente NÃO é a empresa
+            if cnpj_emit != cnpj_empresa:
+                documents.append(doc)
+        
+        if not documents:
+            progress["status"] = "completed"
+            progress["step"] = "Nenhum documento de entrada para processar"
+            progress["completed"] = True
+            progress["results"] = {"total": 0, "success": 0, "errors": 0, "classificados": 0, "entradas": 0, "saidas_ignoradas": len(all_documents)}
+            return
+        
         total = len(documents)
         progress["total_docs"] = total
+        progress["step"] = f"Processando {total} documentos de entrada..."
         
         results = {
             "total": total,
             "success": 0,
             "errors": 0,
             "classificados": 0,
-            "entradas": 0,
-            "saidas": 0
+            "entradas": total,
+            "saidas_ignoradas": len(all_documents) - total
         }
         
         for i, doc in enumerate(documents):
