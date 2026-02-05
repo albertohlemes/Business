@@ -1,0 +1,710 @@
+import { useState } from 'react';
+import axios from 'axios';
+import { toast } from 'sonner';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { 
+    Database, Send, Building2, Users, MapPin, FileText, 
+    Loader2, CheckCircle, Download, Plus, Trash2
+} from 'lucide-react';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+// Estados brasileiros
+const ESTADOS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+
+const Cadastros = () => {
+    const [activeTab, setActiveTab] = useState('gclick');
+    
+    // GClick Form State
+    const [gclickLoading, setGclickLoading] = useState(false);
+    const [gclickForm, setGclickForm] = useState({
+        codigoCliente: '',
+        razaoSocial: '',
+        nomeFantasia: '',
+        cnpj: '',
+        inscricaoEstadual: '',
+        inscricaoMunicipal: '',
+        endereco: '',
+        numero: '',
+        complemento: '',
+        bairro: '',
+        cidade: '',
+        estado: 'SP',
+        cep: '',
+        telefone: '',
+        email: '',
+        observacoes: ''
+    });
+    const [gclickSocios, setGclickSocios] = useState([
+        { nome: '', cpf: '', participacao: '', administrador: true }
+    ]);
+
+    // SCI Único Form State
+    const [sciForm, setSciForm] = useState({
+        codigoCliente: '',
+        razaoSocial: '',
+        nomeFantasia: '',
+        cnpj: '',
+        inscricaoEstadual: '',
+        inscricaoMunicipal: '',
+        regime: 'simples',
+        dataAbertura: '',
+        capitalSocial: '',
+        endereco: '',
+        numero: '',
+        bairro: '',
+        cidade: '',
+        estado: 'SP',
+        cep: '',
+        responsavel: '',
+        cpfResponsavel: '',
+        telefone: '',
+        email: ''
+    });
+
+    // Handlers GClick
+    const handleGclickChange = (field, value) => {
+        setGclickForm(prev => ({ ...prev, [field]: value }));
+    };
+
+    const addSocio = () => {
+        setGclickSocios(prev => [...prev, { nome: '', cpf: '', participacao: '', administrador: false }]);
+    };
+
+    const removeSocio = (index) => {
+        if (gclickSocios.length > 1) {
+            setGclickSocios(prev => prev.filter((_, i) => i !== index));
+        }
+    };
+
+    const updateSocio = (index, field, value) => {
+        setGclickSocios(prev => prev.map((s, i) => i === index ? { ...s, [field]: value } : s));
+    };
+
+    const handleEnviarGClick = async () => {
+        if (!gclickForm.razaoSocial || !gclickForm.cnpj) {
+            toast.error('Preencha pelo menos a Razão Social e CNPJ');
+            return;
+        }
+
+        setGclickLoading(true);
+        try {
+            // Montar nome no formato ID - RAZÃO SOCIAL
+            const nomeGclick = gclickForm.codigoCliente 
+                ? `${gclickForm.codigoCliente} - ${gclickForm.razaoSocial}`
+                : gclickForm.razaoSocial;
+
+            // Montar endereço completo
+            let enderecoCompleto = gclickForm.endereco;
+            if (gclickForm.numero) enderecoCompleto += `, ${gclickForm.numero}`;
+            if (gclickForm.complemento) enderecoCompleto += `, ${gclickForm.complemento}`;
+
+            // Montar observações com sócios
+            let observacoes = gclickForm.observacoes || '';
+            if (gclickSocios.length > 0 && gclickSocios[0].nome) {
+                observacoes += '\n\nSÓCIOS:\n';
+                gclickSocios.forEach(s => {
+                    if (s.nome) {
+                        observacoes += `- ${s.nome} (CPF: ${s.cpf || 'N/A'}) - ${s.participacao || '?'}%`;
+                        if (s.administrador) observacoes += ' [ADMINISTRADOR]';
+                        observacoes += '\n';
+                    }
+                });
+            }
+
+            const response = await axios.post(`${API_URL}/api/gclick/cadastrar-direto`, {
+                nome: nomeGclick,
+                nome_fantasia: gclickForm.nomeFantasia,
+                cpf_cnpj: gclickForm.cnpj,
+                inscricao_estadual: gclickForm.inscricaoEstadual,
+                inscricao_municipal: gclickForm.inscricaoMunicipal,
+                endereco: enderecoCompleto,
+                bairro: gclickForm.bairro,
+                cidade: gclickForm.cidade,
+                estado: gclickForm.estado,
+                cep: gclickForm.cep,
+                telefone: gclickForm.telefone,
+                email: gclickForm.email,
+                observacoes: observacoes
+            });
+
+            if (response.data.success) {
+                toast.success('Empresa cadastrada com sucesso no GClick!');
+                // Limpar formulário
+                setGclickForm({
+                    codigoCliente: '', razaoSocial: '', nomeFantasia: '', cnpj: '',
+                    inscricaoEstadual: '', inscricaoMunicipal: '', endereco: '', numero: '',
+                    complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '',
+                    telefone: '', email: '', observacoes: ''
+                });
+                setGclickSocios([{ nome: '', cpf: '', participacao: '', administrador: true }]);
+            } else {
+                toast.error(response.data.message || 'Erro ao cadastrar no GClick');
+            }
+        } catch (error) {
+            console.error('Erro GClick:', error);
+            toast.error(error.response?.data?.detail || 'Erro ao enviar para GClick');
+        } finally {
+            setGclickLoading(false);
+        }
+    };
+
+    // Handler SCI Único - Exportar dados
+    const handleExportarSCI = () => {
+        if (!sciForm.razaoSocial || !sciForm.cnpj) {
+            toast.error('Preencha pelo menos a Razão Social e CNPJ');
+            return;
+        }
+
+        // Gerar texto formatado para copiar/importar no SCI
+        const dados = `
+========================================
+DADOS PARA CADASTRO NO SCI ÚNICO
+========================================
+
+CÓDIGO CLIENTE: ${sciForm.codigoCliente || 'N/A'}
+RAZÃO SOCIAL: ${sciForm.razaoSocial}
+NOME FANTASIA: ${sciForm.nomeFantasia || 'N/A'}
+CNPJ: ${sciForm.cnpj}
+INSCRIÇÃO ESTADUAL: ${sciForm.inscricaoEstadual || 'ISENTO'}
+INSCRIÇÃO MUNICIPAL: ${sciForm.inscricaoMunicipal || 'N/A'}
+
+REGIME TRIBUTÁRIO: ${sciForm.regime === 'simples' ? 'Simples Nacional' : sciForm.regime === 'presumido' ? 'Lucro Presumido' : 'Lucro Real'}
+DATA DE ABERTURA: ${sciForm.dataAbertura || 'N/A'}
+CAPITAL SOCIAL: ${sciForm.capitalSocial || 'N/A'}
+
+ENDEREÇO: ${sciForm.endereco}${sciForm.numero ? `, ${sciForm.numero}` : ''}
+BAIRRO: ${sciForm.bairro}
+CIDADE/UF: ${sciForm.cidade}/${sciForm.estado}
+CEP: ${sciForm.cep}
+
+RESPONSÁVEL: ${sciForm.responsavel || 'N/A'}
+CPF RESPONSÁVEL: ${sciForm.cpfResponsavel || 'N/A'}
+TELEFONE: ${sciForm.telefone || 'N/A'}
+E-MAIL: ${sciForm.email || 'N/A'}
+
+========================================
+        `.trim();
+
+        // Copiar para clipboard
+        navigator.clipboard.writeText(dados);
+        toast.success('Dados copiados para a área de transferência! Cole no SCI Único.');
+    };
+
+    const handleSciChange = (field, value) => {
+        setSciForm(prev => ({ ...prev, [field]: value }));
+    };
+
+    return (
+        <div className="p-8" data-testid="cadastros-page">
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                    <Database className="w-8 h-8 text-red-500" />
+                    <div>
+                        <h1 className="text-2xl font-bold text-white">Cadastros</h1>
+                        <p className="text-zinc-500 text-sm">Integração com sistemas externos</p>
+                    </div>
+                </div>
+            </div>
+
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="bg-zinc-900 border border-zinc-800 mb-6">
+                    <TabsTrigger value="gclick" className="data-[state=active]:bg-red-600">
+                        <Send className="w-4 h-4 mr-2" />
+                        GClick
+                    </TabsTrigger>
+                    <TabsTrigger value="sci" className="data-[state=active]:bg-red-600">
+                        <FileText className="w-4 h-4 mr-2" />
+                        SCI Único
+                    </TabsTrigger>
+                </TabsList>
+
+                {/* Aba GClick */}
+                <TabsContent value="gclick">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="w-10 h-10 bg-green-600/20 rounded-lg flex items-center justify-center">
+                                <Send className="w-5 h-5 text-green-500" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-semibold text-white">Cadastro GClick</h2>
+                                <p className="text-zinc-500 text-sm">Envie dados diretamente para o GClick</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-6">
+                            {/* Coluna Esquerda - Dados da Empresa */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                                    <Building2 className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Dados da Empresa</span>
+                                </div>
+
+                                <div className="grid grid-cols-4 gap-3">
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">ID/Código</Label>
+                                        <Input
+                                            value={gclickForm.codigoCliente}
+                                            onChange={(e) => handleGclickChange('codigoCliente', e.target.value)}
+                                            placeholder="0000"
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div className="col-span-3">
+                                        <Label className="text-zinc-500 text-xs">Razão Social <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            value={gclickForm.razaoSocial}
+                                            onChange={(e) => handleGclickChange('razaoSocial', e.target.value.toUpperCase())}
+                                            placeholder="EMPRESA EXEMPLO LTDA"
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <Label className="text-zinc-500 text-xs">Nome Fantasia</Label>
+                                    <Input
+                                        value={gclickForm.nomeFantasia}
+                                        onChange={(e) => handleGclickChange('nomeFantasia', e.target.value)}
+                                        placeholder="Nome comercial"
+                                        className="bg-zinc-800 border-zinc-700 mt-1"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">CNPJ <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            value={gclickForm.cnpj}
+                                            onChange={(e) => handleGclickChange('cnpj', e.target.value)}
+                                            placeholder="00.000.000/0001-00"
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Insc. Estadual</Label>
+                                        <Input
+                                            value={gclickForm.inscricaoEstadual}
+                                            onChange={(e) => handleGclickChange('inscricaoEstadual', e.target.value)}
+                                            placeholder="000.000.000.000"
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Insc. Municipal</Label>
+                                        <Input
+                                            value={gclickForm.inscricaoMunicipal}
+                                            onChange={(e) => handleGclickChange('inscricaoMunicipal', e.target.value)}
+                                            placeholder="000.000.000"
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Endereço */}
+                                <div className="flex items-center gap-2 text-zinc-400 mt-4 mb-2">
+                                    <MapPin className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Endereço</span>
+                                </div>
+
+                                <div className="grid grid-cols-4 gap-3">
+                                    <div className="col-span-3">
+                                        <Label className="text-zinc-500 text-xs">Logradouro</Label>
+                                        <Input
+                                            value={gclickForm.endereco}
+                                            onChange={(e) => handleGclickChange('endereco', e.target.value)}
+                                            placeholder="Rua, Av, etc"
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Número</Label>
+                                        <Input
+                                            value={gclickForm.numero}
+                                            onChange={(e) => handleGclickChange('numero', e.target.value)}
+                                            placeholder="000"
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Bairro</Label>
+                                        <Input
+                                            value={gclickForm.bairro}
+                                            onChange={(e) => handleGclickChange('bairro', e.target.value)}
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Cidade</Label>
+                                        <Input
+                                            value={gclickForm.cidade}
+                                            onChange={(e) => handleGclickChange('cidade', e.target.value)}
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">UF</Label>
+                                        <select
+                                            value={gclickForm.estado}
+                                            onChange={(e) => handleGclickChange('estado', e.target.value)}
+                                            className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 mt-1 text-white text-sm"
+                                        >
+                                            {ESTADOS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">CEP</Label>
+                                        <Input
+                                            value={gclickForm.cep}
+                                            onChange={(e) => handleGclickChange('cep', e.target.value)}
+                                            placeholder="00000-000"
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Telefone</Label>
+                                        <Input
+                                            value={gclickForm.telefone}
+                                            onChange={(e) => handleGclickChange('telefone', e.target.value)}
+                                            placeholder="(00) 00000-0000"
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">E-mail</Label>
+                                        <Input
+                                            value={gclickForm.email}
+                                            onChange={(e) => handleGclickChange('email', e.target.value)}
+                                            placeholder="email@empresa.com"
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Coluna Direita - Sócios e Observações */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-zinc-400">
+                                        <Users className="w-4 h-4" />
+                                        <span className="text-sm font-medium">Sócios</span>
+                                    </div>
+                                    <Button size="sm" variant="outline" onClick={addSocio} className="border-zinc-700 h-7">
+                                        <Plus className="w-3 h-3 mr-1" /> Adicionar
+                                    </Button>
+                                </div>
+
+                                <div className="space-y-3 max-h-[280px] overflow-y-auto">
+                                    {gclickSocios.map((socio, idx) => (
+                                        <div key={idx} className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-xs text-zinc-500">Sócio {idx + 1}</span>
+                                                {gclickSocios.length > 1 && (
+                                                    <Button size="sm" variant="ghost" onClick={() => removeSocio(idx)} className="h-6 w-6 p-0 text-red-500">
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <div className="col-span-2">
+                                                    <Input
+                                                        value={socio.nome}
+                                                        onChange={(e) => updateSocio(idx, 'nome', e.target.value.toUpperCase())}
+                                                        placeholder="Nome completo"
+                                                        className="bg-zinc-900 border-zinc-700 text-sm h-8"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Input
+                                                        value={socio.participacao}
+                                                        onChange={(e) => updateSocio(idx, 'participacao', e.target.value)}
+                                                        placeholder="%"
+                                                        className="bg-zinc-900 border-zinc-700 text-sm h-8"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2 mt-2">
+                                                <Input
+                                                    value={socio.cpf}
+                                                    onChange={(e) => updateSocio(idx, 'cpf', e.target.value)}
+                                                    placeholder="CPF"
+                                                    className="bg-zinc-900 border-zinc-700 text-sm h-8"
+                                                />
+                                                <label className="flex items-center gap-2 text-xs text-zinc-400">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={socio.administrador}
+                                                        onChange={(e) => updateSocio(idx, 'administrador', e.target.checked)}
+                                                        className="accent-green-600"
+                                                    />
+                                                    Administrador
+                                                </label>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div>
+                                    <Label className="text-zinc-500 text-xs">Observações</Label>
+                                    <Textarea
+                                        value={gclickForm.observacoes}
+                                        onChange={(e) => handleGclickChange('observacoes', e.target.value)}
+                                        placeholder="Informações adicionais..."
+                                        className="bg-zinc-800 border-zinc-700 mt-1 h-24"
+                                    />
+                                </div>
+
+                                <Button 
+                                    onClick={handleEnviarGClick} 
+                                    disabled={gclickLoading}
+                                    className="w-full bg-green-600 hover:bg-green-700 mt-4"
+                                >
+                                    {gclickLoading ? (
+                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...</>
+                                    ) : (
+                                        <><Send className="w-4 h-4 mr-2" /> Enviar para GClick</>
+                                    )}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </TabsContent>
+
+                {/* Aba SCI Único */}
+                <TabsContent value="sci">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center">
+                                <FileText className="w-5 h-5 text-blue-500" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-semibold text-white">Exportar para SCI Único</h2>
+                                <p className="text-zinc-500 text-sm">Gere os dados formatados para importar manualmente no SCI</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-6">
+                            {/* Coluna Esquerda */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                                    <Building2 className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Dados da Empresa</span>
+                                </div>
+
+                                <div className="grid grid-cols-4 gap-3">
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">ID/Código</Label>
+                                        <Input
+                                            value={sciForm.codigoCliente}
+                                            onChange={(e) => handleSciChange('codigoCliente', e.target.value)}
+                                            placeholder="0000"
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div className="col-span-3">
+                                        <Label className="text-zinc-500 text-xs">Razão Social <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            value={sciForm.razaoSocial}
+                                            onChange={(e) => handleSciChange('razaoSocial', e.target.value.toUpperCase())}
+                                            placeholder="EMPRESA EXEMPLO LTDA"
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <Label className="text-zinc-500 text-xs">Nome Fantasia</Label>
+                                    <Input
+                                        value={sciForm.nomeFantasia}
+                                        onChange={(e) => handleSciChange('nomeFantasia', e.target.value)}
+                                        placeholder="Nome comercial"
+                                        className="bg-zinc-800 border-zinc-700 mt-1"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">CNPJ <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            value={sciForm.cnpj}
+                                            onChange={(e) => handleSciChange('cnpj', e.target.value)}
+                                            placeholder="00.000.000/0001-00"
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Insc. Estadual</Label>
+                                        <Input
+                                            value={sciForm.inscricaoEstadual}
+                                            onChange={(e) => handleSciChange('inscricaoEstadual', e.target.value)}
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Insc. Municipal</Label>
+                                        <Input
+                                            value={sciForm.inscricaoMunicipal}
+                                            onChange={(e) => handleSciChange('inscricaoMunicipal', e.target.value)}
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Regime Tributário</Label>
+                                        <select
+                                            value={sciForm.regime}
+                                            onChange={(e) => handleSciChange('regime', e.target.value)}
+                                            className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 mt-1 text-white text-sm"
+                                        >
+                                            <option value="simples">Simples Nacional</option>
+                                            <option value="presumido">Lucro Presumido</option>
+                                            <option value="real">Lucro Real</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Data Abertura</Label>
+                                        <Input
+                                            type="date"
+                                            value={sciForm.dataAbertura}
+                                            onChange={(e) => handleSciChange('dataAbertura', e.target.value)}
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Capital Social</Label>
+                                        <Input
+                                            value={sciForm.capitalSocial}
+                                            onChange={(e) => handleSciChange('capitalSocial', e.target.value)}
+                                            placeholder="R$ 0,00"
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Coluna Direita */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                                    <MapPin className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Endereço e Contato</span>
+                                </div>
+
+                                <div className="grid grid-cols-4 gap-3">
+                                    <div className="col-span-3">
+                                        <Label className="text-zinc-500 text-xs">Logradouro</Label>
+                                        <Input
+                                            value={sciForm.endereco}
+                                            onChange={(e) => handleSciChange('endereco', e.target.value)}
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Número</Label>
+                                        <Input
+                                            value={sciForm.numero}
+                                            onChange={(e) => handleSciChange('numero', e.target.value)}
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Bairro</Label>
+                                        <Input
+                                            value={sciForm.bairro}
+                                            onChange={(e) => handleSciChange('bairro', e.target.value)}
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Cidade</Label>
+                                        <Input
+                                            value={sciForm.cidade}
+                                            onChange={(e) => handleSciChange('cidade', e.target.value)}
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">UF</Label>
+                                        <select
+                                            value={sciForm.estado}
+                                            onChange={(e) => handleSciChange('estado', e.target.value)}
+                                            className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 mt-1 text-white text-sm"
+                                        >
+                                            {ESTADOS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Responsável</Label>
+                                        <Input
+                                            value={sciForm.responsavel}
+                                            onChange={(e) => handleSciChange('responsavel', e.target.value)}
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">CPF Responsável</Label>
+                                        <Input
+                                            value={sciForm.cpfResponsavel}
+                                            onChange={(e) => handleSciChange('cpfResponsavel', e.target.value)}
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">Telefone</Label>
+                                        <Input
+                                            value={sciForm.telefone}
+                                            onChange={(e) => handleSciChange('telefone', e.target.value)}
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">E-mail</Label>
+                                        <Input
+                                            value={sciForm.email}
+                                            onChange={(e) => handleSciChange('email', e.target.value)}
+                                            className="bg-zinc-800 border-zinc-700 mt-1"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4 mt-4">
+                                    <p className="text-blue-400 text-sm mb-3">
+                                        <strong>Como funciona:</strong> Ao clicar em "Copiar Dados", os dados serão copiados em formato texto para você colar no SCI Único.
+                                    </p>
+                                    <Button 
+                                        onClick={handleExportarSCI}
+                                        className="w-full bg-blue-600 hover:bg-blue-700"
+                                    >
+                                        <Download className="w-4 h-4 mr-2" /> Copiar Dados para SCI Único
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
+};
+
+export default Cadastros;
