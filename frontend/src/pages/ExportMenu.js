@@ -24,20 +24,30 @@ const ExportMenu = ({ user, onLogout }) => {
     fetchCompanies();
   }, []);
 
+  // Sincronizar com o contexto global quando ele mudar
   useEffect(() => {
-    if (ctxCompany && !selectedCompany) {
+    if (ctxCompany) {
       setSelectedCompany(ctxCompany.id);
       fetchDocumentsAndCompetencias(ctxCompany.id);
     }
-    if (ctxCompetencia && !competencia) {
+    if (ctxCompetencia) {
       setCompetencia(ctxCompetencia);
-    } else if (!competencia) {
+    }
+  }, [ctxCompany, ctxCompetencia]);
+
+  // Se não há contexto e empresas foram carregadas, selecionar primeira
+  useEffect(() => {
+    if (!ctxCompany && companies.length > 0 && !selectedCompany) {
+      setSelectedCompany(companies[0].id);
+      fetchDocumentsAndCompetencias(companies[0].id);
+    }
+    if (!ctxCompetencia && !competencia) {
       const now = new Date();
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const year = now.getFullYear();
       setCompetencia(`${month}/${year}`);
     }
-  }, [ctxCompany, ctxCompetencia]);
+  }, [companies, ctxCompany, ctxCompetencia]);
 
   const fetchCompanies = async () => {
     try {
