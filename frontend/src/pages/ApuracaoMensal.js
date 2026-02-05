@@ -299,17 +299,23 @@ const ApuracaoMensal = ({ user, onLogout }) => {
     );
   };
 
-  // Tabela de detalhamento PIS/COFINS
+  // Tabela de detalhamento PIS/COFINS com ordenação
   const PisCofinsTable = ({ items, tipo, viewMode }) => {
+    const [localSort, setLocalSort] = useState({ key: 'valor', direction: 'desc' });
+    
     if (!items || items.length === 0) {
       return <p className="text-gray-500 text-center py-4">Nenhum registro encontrado</p>;
     }
 
     // Mapear labels do CST
     const cstLabels = {
+      '01': 'Tributável',
+      '04': 'Monofásico',
+      '06': 'Alíq. zero',
+      '49': 'Outras saídas',
       '50': 'Com crédito',
       '70': 'Sem crédito',
-      '73': 'Alíquota zero',
+      '73': 'Alíq. zero',
       '98': 'Sem incidência'
     };
 
@@ -322,29 +328,136 @@ const ApuracaoMensal = ({ user, onLogout }) => {
       }
     };
 
+    // Função de ordenação
+    const handleSort = (key) => {
+      setLocalSort(prev => ({
+        key,
+        direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+      }));
+    };
+
+    // Ordenar items
+    const sortedItems = [...items].sort((a, b) => {
+      if (!localSort.key) return 0;
+      
+      let aVal = a[localSort.key];
+      let bVal = b[localSort.key];
+      
+      // Para código, ordenar como string
+      if (localSort.key === 'codigo') {
+        aVal = String(aVal || '');
+        bVal = String(bVal || '');
+        return localSort.direction === 'asc' 
+          ? aVal.localeCompare(bVal) 
+          : bVal.localeCompare(aVal);
+      }
+      
+      // Para valores numéricos
+      aVal = Number(aVal) || 0;
+      bVal = Number(bVal) || 0;
+      return localSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+
+    // Ícone de ordenação
+    const SortIcon = ({ columnKey }) => {
+      if (localSort.key !== columnKey) {
+        return <ArrowUpDown className="w-3 h-3 opacity-30" />;
+      }
+      return localSort.direction === 'asc' 
+        ? <ArrowUp className="w-3 h-3" />
+        : <ArrowDown className="w-3 h-3" />;
+    };
+
+    // Definir cores baseado no tipo
+    const isCredito = tipo === 'credito';
+    const isDebito = tipo === 'debito';
+    const isSemImposto = tipo === 'sem_credito' || tipo === 'debito_zero';
+
+    const getRowHoverClass = () => {
+      if (isCredito) return 'hover:bg-green-50';
+      if (isDebito) return 'hover:bg-red-50';
+      return 'hover:bg-gray-50';
+    };
+
+    const getValueClass = () => {
+      if (isCredito) return 'text-green-600';
+      if (isDebito) return 'text-red-600';
+      return 'text-gray-400 line-through';
+    };
+
+    const getFooterClass = () => {
+      if (isCredito) return 'bg-green-100';
+      if (isDebito) return 'bg-red-100';
+      return 'bg-gray-100';
+    };
+
+    const getFooterValueClass = () => {
+      if (isCredito) return 'text-green-700';
+      if (isDebito) return 'text-red-700';
+      return 'text-gray-400';
+    };
+
     return (
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-100">
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">{getColumnLabel()}</th>
-              <th className="px-4 py-3 text-right font-semibold text-gray-700">Valor Base</th>
-              <th className="px-4 py-3 text-right font-semibold text-gray-700">PIS (1,65%)</th>
-              <th className="px-4 py-3 text-right font-semibold text-gray-700">COFINS (7,6%)</th>
+              <th 
+                className="px-4 py-3 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 select-none"
+                onClick={() => handleSort('codigo')}
+              >
+                <div className="flex items-center gap-2">
+                  {getColumnLabel()}
+                  <SortIcon columnKey="codigo" />
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 text-right font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 select-none"
+                onClick={() => handleSort('valor')}
+              >
+                <div className="flex items-center justify-end gap-2">
+                  Valor Operação
+                  <SortIcon columnKey="valor" />
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 text-right font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 select-none"
+                onClick={() => handleSort('pis')}
+              >
+                <div className="flex items-center justify-end gap-2">
+                  PIS {isDebito ? '(Débito)' : '(Crédito)'}
+                  <SortIcon columnKey="pis" />
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 text-right font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 select-none"
+                onClick={() => handleSort('cofins')}
+              >
+                <div className="flex items-center justify-end gap-2">
+                  COFINS {isDebito ? '(Débito)' : '(Crédito)'}
+                  <SortIcon columnKey="cofins" />
+                </div>
+              </th>
               <th className="px-4 py-3 text-center font-semibold text-gray-700">CST</th>
-              <th className="px-4 py-3 text-center font-semibold text-gray-700">Qtd</th>
+              <th 
+                className="px-4 py-3 text-center font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 select-none"
+                onClick={() => handleSort('qtd')}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  Qtd
+                  <SortIcon columnKey="qtd" />
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {items.map((item, idx) => {
-              const isCredito = tipo === 'credito';
+            {sortedItems.map((item, idx) => {
               const cst = item.cst || '-';
-              const cstLabel = cstLabels[cst] || cst;
               
               return (
                 <tr 
                   key={idx} 
-                  className={`border-b border-gray-100 ${isCredito ? 'hover:bg-green-50' : 'hover:bg-gray-50'}`}
+                  className={`border-b border-gray-100 ${getRowHoverClass()}`}
                 >
                   <td className="px-4 py-3">
                     <span className="font-mono font-medium">{item.codigo || '-'}</span>
@@ -352,17 +465,18 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                   <td className="px-4 py-3 text-right font-medium">
                     {formatCurrency(item.valor || 0)}
                   </td>
-                  <td className={`px-4 py-3 text-right font-medium ${isCredito ? 'text-green-600' : 'text-gray-400 line-through'}`}>
+                  <td className={`px-4 py-3 text-right font-medium ${isSemImposto ? 'text-gray-400 line-through' : getValueClass()}`}>
                     {formatCurrency(item.pis || 0)}
                   </td>
-                  <td className={`px-4 py-3 text-right font-medium ${isCredito ? 'text-green-600' : 'text-gray-400 line-through'}`}>
+                  <td className={`px-4 py-3 text-right font-medium ${isSemImposto ? 'text-gray-400 line-through' : getValueClass()}`}>
                     {formatCurrency(item.cofins || 0)}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                      cst === '50' ? 'bg-green-100 text-green-800' :
-                      cst === '73' ? 'bg-yellow-100 text-yellow-800' :
-                      cst === '98' ? 'bg-red-100 text-red-800' :
+                      cst === '50' || cst === '01' ? 'bg-green-100 text-green-800' :
+                      cst === '73' || cst === '06' ? 'bg-yellow-100 text-yellow-800' :
+                      cst === '98' || cst === '49' ? 'bg-orange-100 text-orange-800' :
+                      cst === '04' ? 'bg-purple-100 text-purple-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>
                       {cst}
@@ -376,15 +490,15 @@ const ApuracaoMensal = ({ user, onLogout }) => {
             })}
           </tbody>
           <tfoot>
-            <tr className={`font-bold ${tipo === 'credito' ? 'bg-green-100' : 'bg-gray-100'}`}>
-              <td className="px-4 py-3">TOTAL</td>
+            <tr className={`font-bold ${getFooterClass()}`}>
+              <td className="px-4 py-3">TOTAL ({sortedItems.length})</td>
               <td className="px-4 py-3 text-right">
                 {formatCurrency(items.reduce((sum, i) => sum + (i.valor || 0), 0))}
               </td>
-              <td className={`px-4 py-3 text-right ${tipo === 'credito' ? 'text-green-700' : 'text-gray-400'}`}>
+              <td className={`px-4 py-3 text-right ${getFooterValueClass()}`}>
                 {formatCurrency(items.reduce((sum, i) => sum + (i.pis || 0), 0))}
               </td>
-              <td className={`px-4 py-3 text-right ${tipo === 'credito' ? 'text-green-700' : 'text-gray-400'}`}>
+              <td className={`px-4 py-3 text-right ${getFooterValueClass()}`}>
                 {formatCurrency(items.reduce((sum, i) => sum + (i.cofins || 0), 0))}
               </td>
               <td className="px-4 py-3"></td>
