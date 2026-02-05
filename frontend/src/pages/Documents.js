@@ -33,6 +33,17 @@ const Documents = ({ user, onLogout }) => {
     fetchData();
   }, [ctxCompany]);
 
+  // Fechar menu de reprocessamento ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (reprocessMenuRef.current && !reprocessMenuRef.current.contains(event.target)) {
+        setShowReprocessMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
