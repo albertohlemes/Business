@@ -1409,6 +1409,11 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
         # Registro C170 - Itens do documento
         # Layout: REG|NUM_ITEM|COD_ITEM|DESCR_COMPL|QTD|UNID|VL_ITEM|VL_DESC|IND_MOV|CST_ICMS|CFOP|COD_NAT|VL_BC_ICMS|ALIQ_ICMS|VL_ICMS|VL_BC_ICMS_ST|ALIQ_ST|VL_ICMS_ST|IND_APUR|CST_IPI|COD_ENQ|VL_BC_IPI|ALIQ_IPI|VL_IPI|CST_PIS|VL_BC_PIS|ALIQ_PIS|QUANT_BC_PIS|ALIQ_PIS_R$|VL_PIS|CST_COFINS|VL_BC_COFINS|ALIQ_COFINS|QUANT_BC_COFINS|ALIQ_COFINS_R$|VL_COFINS|COD_CTA|VL_ABAT_NT
         for idx, prod in enumerate(doc.produtos):
+            # Quantidade e valor do item - definir primeiro para usar nos cálculos
+            qtd = float(prod.get('quantidade', 0) or 0)
+            vl_item = float(prod.get('valor_total', 0) or 0)
+            unid = (prod.get('unidade', 'UN') or 'UN')[:6].upper()
+            
             # CST ICMS (3 dígitos, ex: 000, 020, 060, 090)
             cst_icms = str(prod.get('cst', '') or prod.get('cst_icms', '') or '000').zfill(3)
             cfop = str(prod.get('cfop', '') or '')
