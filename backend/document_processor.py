@@ -71,87 +71,123 @@ class DocumentProcessor:
             return ""
     
     def parse_colaboradores_from_text(self, text: str) -> List[Dict[str, Any]]:
-        """Extrai colaboradores do texto usando regex e padrões"""
+        """Extrai colaboradores do texto usando regex e padrões inteligentes"""
         colaboradores = []
         
-        # Padrões comuns em fichas de registro
-        # CPF: 000.000.000-00
-        cpf_pattern = r'\b\d{3}[.\s]?\d{3}[.\s]?\d{3}[-.\s]?\d{2}\b'
-        # Nome: geralmente em maiúsculas antes do CPF ou após "Nome:"
-        nome_pattern = r'(?:Nome[:\s]*)?([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]+?)(?=\s*(?:CPF|RG|\d{3}\.\d{3}|\n))'
-        # Salário: R$ 0.000,00
-        salario_pattern = r'R\$\s*([\d.,]+)'
-        # Data admissão: DD/MM/AAAA
-        data_pattern = r'\b(\d{2}/\d{2}/\d{4})\b'
-        # Cargo
-        cargo_patterns = [
-            r'(?:Cargo|Função)[:\s]*([A-Za-záéíóúâêôãõç\s]+?)(?=\n|Salário|R\$|\d)',
-            r'(?:CARGO|FUNÇÃO)[:\s]*([A-Za-záéíóúâêôãõç\s]+?)(?=\n|SALÁRIO|R\$|\d)'
-        ]
+        # Normaliza o texto
+        text = text.replace('\r\n', '\n').replace('\r', '\n')
         
-        # Divide o texto em blocos por colaborador
-        # Procura padrões que indicam novo registro
-        blocks = re.split(r'(?=(?:Nome|NOME|Funcionário|FUNCIONÁRIO)[:\s])', text)
+        # Padrões para extrair dados
+        cpf_pattern = r'\b(\d{3})[.\s]?(\d{3})[.\s]?(\d{3})[-.\s]?(\d{2})\b'
+        salario_pattern = r'(?:R\$|RS)\s*([\d.,]+)|(\d{1,2}[.,]\d{3}[.,]\d{2})'
+        data_pattern = r'\b(\d{2}[/.-]\d{2}[/.-]\d{4})\b'
         
-        for block in blocks:
-            if len(block.strip()) < 20:
-                continue
+        # Divide em blocos que podem conter colaboradores diferentes
+        # Procura por padrões de separação comuns em fichas de registro
+        
+        # Método 1: Procurar por CPFs e extrair dados ao redor
+        cpf_matches = list(re.finditer(cpf_pattern, text))
+        
+        for i, cpf_match in enumerate(cpf_matches):
+            cpf = f"{cpf_match.group(1)}.{cpf_match.group(2)}.{cpf_match.group(3)}-{cpf_match.group(4)}"
+            
+            # Define a região de texto para este colaborador
+            start = cpf_match.start() - 500 if cpf_match.start() > 500 else 0
+            end = cpf_matches[i+1].start() if i+1 < len(cpf_matches) else cpf_match.end() + 500
+            end = min(end, len(text))
+            
+            region = text[start:end]
             
             colab = {
                 'nome': '',
-                'cpf': '',
+                'cpf': cpf,
                 'cargo': '',
                 'salario_base': 0,
-                'data_admissao': ''
+                'data_admissao': '',
+                'data_nascimento': '',
+                'rg': '',
+                'pis': '',
+                'ctps': '',
+                'endereco': '',
+                'cidade': '',
+                'uf': ''
             }
             
-            # Extrai CPF
-            cpf_match = re.search(cpf_pattern, block)
-            if cpf_match:
-                cpf = re.sub(r'[.\s-]', '', cpf_match.group())
-                if len(cpf) == 11:
-                    colab['cpf'] = f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
-            
-            # Extrai Nome
-            nome_match = re.search(nome_pattern, block, re.IGNORECASE)
-            if nome_match:
-                colab['nome'] = nome_match.group(1).strip().title()
-            else:
-                # Tenta pegar nome em maiúsculas no início
-                lines = block.split('\n')
-                for line in lines[:5]:
-                    if re.match(r'^[A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{5,50}$', line.strip()):
-                        colab['nome'] = line.strip().title()
+            # Extrai nome (geralmente em maiúsculas perto do CPF)
+            # Procura linhas em maiúsculas que parecem nomes
+            lines = region.split('\n')
+            for line in lines:
+                line = line.strip()
+                # Nome geralmente é uma linha em maiúsculas com 2+ palavras
+                if re.match(r'^[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{4,50}$', line):
+                    # Verifica se não é um cargo comum
+                    if not any(x in line.upper() for x in ['CARGO', 'FUNÇÃO', 'ADMISSÃO', 'SALÁRIO', 'CPF', 'RG', 'DATA']):
+                        colab['nome'] = line.title()
                         break
             
-            # Extrai Salário
-            salario_matches = re.findall(salario_pattern, block)
-            for sal in salario_matches:
-                try:
-                    valor = float(sal.replace('.', '').replace(',', '.'))
-                    if 500 < valor < 50000:  # Faixa razoável de salário
-                        colab['salario_base'] = valor
-                        break
-                except:
-                    pass
+            # Se não achou nome em maiúsculas, tenta outros padrões
+            if not colab['nome']:
+                nome_match = re.search(r'(?:Nome|NOME)[:\s]*([A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ\s]{3,50})', region)
+                if nome_match:
+                    colab['nome'] = nome_match.group(1).strip().title()
             
-            # Extrai Data de Admissão
-            datas = re.findall(data_pattern, block)
-            if datas:
-                colab['data_admissao'] = datas[0]
+            # Extrai salário
+            salario_matches = re.findall(salario_pattern, region)
+            for sal_tuple in salario_matches:
+                sal = sal_tuple[0] or sal_tuple[1]
+                if sal:
+                    try:
+                        # Remove pontos de milhar e troca vírgula por ponto
+                        sal_clean = sal.replace('.', '').replace(',', '.')
+                        valor = float(sal_clean)
+                        if 500 < valor < 50000:  # Faixa razoável de salário
+                            colab['salario_base'] = valor
+                            break
+                    except:
+                        pass
             
-            # Extrai Cargo
-            for pattern in cargo_patterns:
-                cargo_match = re.search(pattern, block)
-                if cargo_match:
-                    colab['cargo'] = cargo_match.group(1).strip().title()
-                    break
+            # Extrai datas
+            datas = re.findall(data_pattern, region)
+            for data in datas:
+                data_norm = data.replace('-', '/').replace('.', '/')
+                # Tenta identificar se é admissão ou nascimento pelo contexto
+                idx = region.find(data)
+                context = region[max(0, idx-30):idx].lower()
+                if 'admis' in context or 'contrat' in context:
+                    colab['data_admissao'] = data_norm
+                elif 'nasc' in context:
+                    colab['data_nascimento'] = data_norm
+                elif not colab['data_admissao']:
+                    colab['data_admissao'] = data_norm
             
-            # Só adiciona se tiver pelo menos nome ou CPF
-            if colab['nome'] or colab['cpf']:
+            # Extrai cargo
+            cargo_match = re.search(r'(?:Cargo|CARGO|Função|FUNÇÃO)[:\s]*([A-Za-záéíóúâêôãõç\s]{3,40})', region)
+            if cargo_match:
+                colab['cargo'] = cargo_match.group(1).strip().title()
+            
+            # Extrai RG
+            rg_match = re.search(r'(?:RG|R\.G\.)[:\s]*([0-9.\-X]{5,15})', region, re.IGNORECASE)
+            if rg_match:
+                colab['rg'] = rg_match.group(1).strip()
+            
+            # Extrai PIS
+            pis_match = re.search(r'(?:PIS|NIS|PASEP)[:\s]*([0-9.\-]{10,15})', region, re.IGNORECASE)
+            if pis_match:
+                colab['pis'] = pis_match.group(1).strip()
+            
+            # Só adiciona se tiver nome ou CPF válido
+            if colab['nome'] or (colab['cpf'] and len(colab['cpf']) == 14):
                 colaboradores.append(colab)
         
-        return colaboradores
+        # Remove duplicatas por CPF
+        seen_cpfs = set()
+        unique_colabs = []
+        for c in colaboradores:
+            if c['cpf'] not in seen_cpfs:
+                seen_cpfs.add(c['cpf'])
+                unique_colabs.append(c)
+        
+        return unique_colabs
     
     def parse_holerite_from_text(self, text: str) -> Dict[str, Any]:
         """Extrai dados de holerite do texto"""
@@ -204,19 +240,18 @@ class GoogleAIProcessor:
     
     def __init__(self, api_key: str = None):
         self.api_key = api_key or os.environ.get('GOOGLE_AI_API_KEY')
-        self.model = None
+        self.client = None
         
         if self.api_key:
             try:
-                import google.generativeai as genai
-                genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel('gemini-1.5-flash')
+                from google import genai
+                self.client = genai.Client(api_key=self.api_key)
                 logger.info("Google AI Studio configurado com sucesso")
             except Exception as e:
                 logger.error(f"Erro ao configurar Google AI: {e}")
     
     def is_available(self) -> bool:
-        return self.model is not None
+        return self.client is not None
     
     async def analyze_document(self, text: str, prompt: str) -> str:
         """Analisa texto usando Gemini"""
@@ -224,10 +259,11 @@ class GoogleAIProcessor:
             return ""
         
         try:
-            import google.generativeai as genai
-            
-            full_prompt = f"{prompt}\n\nTexto do documento:\n{text[:15000]}"  # Limita tamanho
-            response = self.model.generate_content(full_prompt)
+            full_prompt = f"{prompt}\n\nTexto do documento:\n{text[:15000]}"
+            response = self.client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=full_prompt
+            )
             return response.text
         except Exception as e:
             logger.error(f"Erro na análise com Google AI: {e}")
