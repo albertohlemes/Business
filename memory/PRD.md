@@ -244,6 +244,24 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 34 (05/02/2026)
+- ✅ **FEATURE: Reimportação Completa na Validação & IA**
+  - **Problema:** O usuário queria que o reprocessamento funcionasse como se apagasse e importasse novamente, e que ficasse na página de Validação
+  - **Solução:**
+    1. **Movido** funcionalidade de reprocessamento da página **Documentos** para **Validação & IA**
+    2. Criado novo endpoint `POST /api/xml/reimport-batch` que:
+       - Re-extrai TODOS os dados do XML original
+       - APAGA todas as classificações anteriores
+       - Aplica classificação da IA do zero
+       - Reseta status para `pendente` e `aprovado=False`
+    3. Frontend: Seção "Ações em Lote" com botão "Reimportar Tudo" (laranja)
+    4. Confirmação clara: "É como se você apagasse e importasse novamente"
+  - **Resultado:** 100% dos testes passaram (8/8 backend, 100% frontend)
+  - **Arquivos:** 
+    - `/app/backend/server.py` (endpoint `/xml/reimport-batch`)
+    - `/app/frontend/src/pages/ClassificacaoPage.js` (seção Ações em Lote)
+    - `/app/frontend/src/pages/Documents.js` (removido botão de reprocessamento)
+
 ### 02/2026 - Iteration 33 (05/02/2026)
 - ✅ **FEATURE P0: Re-processar e Classificar com IA**
   - **Problema:** O usuário queria que a funcionalidade de "reprocessar" também aplicasse a classificação da IA, similar ao upload inicial
@@ -259,6 +277,7 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
        - **Re-processar + Classificar (IA)** - Extrai dados e aplica classificação da IA com memória
   - **Resultado:** 100% dos testes passaram (9/9 backend, 100% frontend). Testado com ANZEN competência 02/2026: 5 produtos classificados pela IA
   - **Arquivos:** `/app/backend/server.py` (endpoint), `/app/frontend/src/pages/Documents.js` (UI)
+  - **Nota:** Esta funcionalidade foi substituída pela Iteration 34 (Reimportação Completa)
 
 ### 02/2026 - Iteration 32 (05/02/2026)
 - ✅ **BUG FIX P0: Biblioteca thefuzz instalada**
