@@ -1521,7 +1521,9 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
                     capital_social: capitalSocial,
                     capital_extenso: capitalExtenso,
                     endereco: endereco,
-                    objeto_social: objetoSocial
+                    objeto_social: objetoSocial,
+                    inscricao_estadual: inscricaoEstadual,
+                    inscricao_municipal: inscricaoMunicipal
                 },
                 socios: socios.map(s => ({
                     nome: s.nome,
