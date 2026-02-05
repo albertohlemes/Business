@@ -6954,6 +6954,599 @@ async def validar_sped(
     }
 
 
+@api_router.get("/analise-tributaria-ia/{company_id}")
+async def analise_tributaria_ia(
+    company_id: str,
+    competencia: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Análise Tributária Inteligente por IA.
+    Identifica vilões tributários, oportunidades e gera insights personalizados.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    query = {"company_id": company_id}
+    if competencia:
+        query['competencia'] = competencia
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    if not documents:
+        return {
+            "empresa": company.get('razao_social'),
+            "competencia": competencia,
+            "total_documentos": 0,
+            "viloes_tributarios": [],
+            "oportunidades": [],
+            "analise_por_ncm": [],
+            "insights_ia": None,
+            "resumo": {
+                "total_entradas": 0,
+                "total_saidas": 0,
+                "credito_icms": 0,
+                "debito_icms": 0,
+                "saldo_icms": 0
+            }
+        }
+    
+    # Separar entradas e saídas
+    entradas = [d for d in documents if d.get('tipo') == 'entrada']
+    saidas = [d for d in documents if d.get('tipo') == 'saida']
+    
+    # Agrupar produtos por código+NCM para análise cruzada entrada/saída
+    produtos_entrada = {}  # {codigo_ncm: {aliq_icms, cst, valor, qtd, st}}
+    produtos_saida = {}    # {codigo_ncm: {aliq_icms, cst, valor, qtd, st}}
+    
+    # CFOPs de ST (Substituição Tributária)
+    CFOPS_ST_ENTRADA = {'1401', '1403', '1407', '1408', '1409', '2401', '2403', '2407', '2408', '2409'}
+    CFOPS_ST_SAIDA = {'5401', '5403', '5405', '5408', '5409', '6401', '6403', '6405', '6408', '6409'}
+    
+    # Processar entradas
+    for doc in entradas:
+        for prod in doc.get('produtos', []):
+            ncm = str(prod.get('ncm', ''))[:8]
+            codigo = prod.get('codigo', '')
+            descricao = prod.get('descricao', '')[:50]
+            key = f"{ncm}_{descricao[:30]}"
+            
+            cfop = str(prod.get('cfop', ''))
+            aliq_icms = float(prod.get('p_icms', 0) or 0)
+            v_icms = float(prod.get('v_icms', 0) or 0)
+            valor = float(prod.get('valor_total', 0) or 0)
+            cst = str(prod.get('cst_icms', '') or '')
+            is_st = cfop in CFOPS_ST_ENTRADA or cst in ['10', '30', '60', '70']
+            
+            if key not in produtos_entrada:
+                produtos_entrada[key] = {
+                    'ncm': ncm,
+                    'descricao': descricao,
+                    'codigo': codigo,
+                    'aliq_icms_media': 0,
+                    'total_icms': 0,
+                    'total_valor': 0,
+                    'qtd_itens': 0,
+                    'is_st': is_st,
+                    'cfops': set(),
+                    'csts': set()
+                }
+            
+            produtos_entrada[key]['total_icms'] += v_icms
+            produtos_entrada[key]['total_valor'] += valor
+            produtos_entrada[key]['qtd_itens'] += 1
+            produtos_entrada[key]['cfops'].add(cfop)
+            produtos_entrada[key]['csts'].add(cst)
+            if is_st:
+                produtos_entrada[key]['is_st'] = True
+    
+    # Processar saídas
+    for doc in saidas:
+        for prod in doc.get('produtos', []):
+            ncm = str(prod.get('ncm', ''))[:8]
+            descricao = prod.get('descricao', '')[:50]
+            key = f"{ncm}_{descricao[:30]}"
+            
+            cfop = str(prod.get('cfop', ''))
+            aliq_icms = float(prod.get('p_icms', 0) or 0)
+            v_icms = float(prod.get('v_icms', 0) or 0)
+            valor = float(prod.get('valor_total', 0) or 0)
+            cst = str(prod.get('cst_icms', '') or '')
+            is_st = cfop in CFOPS_ST_SAIDA or cst in ['10', '30', '60', '70']
+            
+            if key not in produtos_saida:
+                produtos_saida[key] = {
+                    'ncm': ncm,
+                    'descricao': descricao,
+                    'aliq_icms_media': 0,
+                    'total_icms': 0,
+                    'total_valor': 0,
+                    'qtd_itens': 0,
+                    'is_st': is_st,
+                    'cfops': set(),
+                    'csts': set()
+                }
+            
+            produtos_saida[key]['total_icms'] += v_icms
+            produtos_saida[key]['total_valor'] += valor
+            produtos_saida[key]['qtd_itens'] += 1
+            produtos_saida[key]['cfops'].add(cfop)
+            produtos_saida[key]['csts'].add(cst)
+            if is_st:
+                produtos_saida[key]['is_st'] = True
+    
+    # Calcular alíquota média de ICMS
+    for key, prod in produtos_entrada.items():
+        if prod['total_valor'] > 0:
+            prod['aliq_icms_media'] = round((prod['total_icms'] / prod['total_valor']) * 100, 2)
+    
+    for key, prod in produtos_saida.items():
+        if prod['total_valor'] > 0:
+            prod['aliq_icms_media'] = round((prod['total_icms'] / prod['total_valor']) * 100, 2)
+    
+    # ===== IDENTIFICAR VILÕES TRIBUTÁRIOS =====
+    viloes = []
+    oportunidades = []
+    
+    # Cruzar produtos entrada x saída
+    for key in set(produtos_entrada.keys()) & set(produtos_saida.keys()):
+        entrada = produtos_entrada[key]
+        saida = produtos_saida[key]
+        
+        aliq_entrada = entrada['aliq_icms_media']
+        aliq_saida = saida['aliq_icms_media']
+        icms_credito = entrada['total_icms']
+        icms_debito = saida['total_icms']
+        impacto = icms_debito - icms_credito
+        
+        # Vilão 1: Entrada com crédito menor que débito na saída (ex: entra 12%, sai 18%)
+        if aliq_entrada > 0 and aliq_saida > 0 and aliq_entrada < aliq_saida and impacto > 0:
+            viloes.append({
+                'tipo': 'ALIQUOTA_DESFAVORAVEL',
+                'ncm': entrada['ncm'],
+                'descricao': entrada['descricao'],
+                'aliq_entrada': aliq_entrada,
+                'aliq_saida': aliq_saida,
+                'diferenca_aliquota': round(aliq_saida - aliq_entrada, 2),
+                'icms_credito': round(icms_credito, 2),
+                'icms_debito': round(icms_debito, 2),
+                'impacto_negativo': round(impacto, 2),
+                'qtd_entrada': entrada['qtd_itens'],
+                'qtd_saida': saida['qtd_itens'],
+                'valor_entrada': round(entrada['total_valor'], 2),
+                'valor_saida': round(saida['total_valor'], 2),
+                'explicacao': f"Produto entra com {aliq_entrada}% de ICMS e sai com {aliq_saida}%. Diferença de {round(aliq_saida - aliq_entrada, 2)}% gera prejuízo tributário de R$ {round(impacto, 2)}"
+            })
+        
+        # Vilão 2: Entrada ST (sem crédito) → Saída tributada (com débito)
+        if entrada['is_st'] and not saida['is_st'] and icms_debito > 0:
+            viloes.append({
+                'tipo': 'ST_ENTRADA_TRIBUTADO_SAIDA',
+                'ncm': entrada['ncm'],
+                'descricao': entrada['descricao'],
+                'aliq_entrada': 0,  # ST não gera crédito
+                'aliq_saida': aliq_saida,
+                'diferenca_aliquota': aliq_saida,
+                'icms_credito': 0,
+                'icms_debito': round(icms_debito, 2),
+                'impacto_negativo': round(icms_debito, 2),
+                'qtd_entrada': entrada['qtd_itens'],
+                'qtd_saida': saida['qtd_itens'],
+                'valor_entrada': round(entrada['total_valor'], 2),
+                'valor_saida': round(saida['total_valor'], 2),
+                'cfops_entrada': list(entrada['cfops']),
+                'cfops_saida': list(saida['cfops']),
+                'explicacao': f"Produto entra com ST (sem direito a crédito) mas sai tributado com {aliq_saida}% de ICMS. Todo débito de R$ {round(icms_debito, 2)} é prejuízo."
+            })
+        
+        # Oportunidade: Entrada tributada → Saída ST (favorável)
+        if not entrada['is_st'] and saida['is_st'] and icms_credito > 0:
+            oportunidades.append({
+                'tipo': 'TRIBUTADO_ENTRADA_ST_SAIDA',
+                'ncm': entrada['ncm'],
+                'descricao': entrada['descricao'],
+                'aliq_entrada': aliq_entrada,
+                'aliq_saida': 0,  # ST não gera débito
+                'icms_credito': round(icms_credito, 2),
+                'icms_debito': 0,
+                'beneficio': round(icms_credito, 2),
+                'qtd_entrada': entrada['qtd_itens'],
+                'qtd_saida': saida['qtd_itens'],
+                'explicacao': f"Produto entra tributado com crédito de R$ {round(icms_credito, 2)} e sai com ST (sem débito). Situação favorável!"
+            })
+        
+        # Oportunidade: Alíquota favorável (entrada > saída)
+        if aliq_entrada > aliq_saida and aliq_saida > 0 and icms_credito > icms_debito:
+            beneficio = icms_credito - icms_debito
+            oportunidades.append({
+                'tipo': 'ALIQUOTA_FAVORAVEL',
+                'ncm': entrada['ncm'],
+                'descricao': entrada['descricao'],
+                'aliq_entrada': aliq_entrada,
+                'aliq_saida': aliq_saida,
+                'diferenca_aliquota': round(aliq_entrada - aliq_saida, 2),
+                'icms_credito': round(icms_credito, 2),
+                'icms_debito': round(icms_debito, 2),
+                'beneficio': round(beneficio, 2),
+                'explicacao': f"Produto entra com {aliq_entrada}% e sai com {aliq_saida}%. Crédito maior que débito gera benefício de R$ {round(beneficio, 2)}"
+            })
+    
+    # Ordenar vilões pelo impacto (maior primeiro)
+    viloes = sorted(viloes, key=lambda x: x.get('impacto_negativo', 0), reverse=True)
+    oportunidades = sorted(oportunidades, key=lambda x: x.get('beneficio', 0), reverse=True)
+    
+    # ===== ANÁLISE POR NCM =====
+    analise_ncm = {}
+    
+    for key, prod in produtos_entrada.items():
+        ncm = prod['ncm']
+        if ncm not in analise_ncm:
+            analise_ncm[ncm] = {
+                'ncm': ncm,
+                'descricao': prod['descricao'],
+                'entrada_valor': 0,
+                'entrada_icms': 0,
+                'entrada_qtd': 0,
+                'saida_valor': 0,
+                'saida_icms': 0,
+                'saida_qtd': 0,
+                'saldo_icms': 0,
+                'margem_icms': 0
+            }
+        analise_ncm[ncm]['entrada_valor'] += prod['total_valor']
+        analise_ncm[ncm]['entrada_icms'] += prod['total_icms']
+        analise_ncm[ncm]['entrada_qtd'] += prod['qtd_itens']
+    
+    for key, prod in produtos_saida.items():
+        ncm = prod['ncm']
+        if ncm not in analise_ncm:
+            analise_ncm[ncm] = {
+                'ncm': ncm,
+                'descricao': prod['descricao'],
+                'entrada_valor': 0,
+                'entrada_icms': 0,
+                'entrada_qtd': 0,
+                'saida_valor': 0,
+                'saida_icms': 0,
+                'saida_qtd': 0,
+                'saldo_icms': 0,
+                'margem_icms': 0
+            }
+        analise_ncm[ncm]['saida_valor'] += prod['total_valor']
+        analise_ncm[ncm]['saida_icms'] += prod['total_icms']
+        analise_ncm[ncm]['saida_qtd'] += prod['qtd_itens']
+    
+    # Calcular saldo e margem
+    for ncm, dados in analise_ncm.items():
+        dados['saldo_icms'] = round(dados['saida_icms'] - dados['entrada_icms'], 2)
+        dados['entrada_valor'] = round(dados['entrada_valor'], 2)
+        dados['entrada_icms'] = round(dados['entrada_icms'], 2)
+        dados['saida_valor'] = round(dados['saida_valor'], 2)
+        dados['saida_icms'] = round(dados['saida_icms'], 2)
+        # Margem = quanto % do valor de saída virou imposto líquido
+        if dados['saida_valor'] > 0:
+            dados['margem_icms'] = round((dados['saldo_icms'] / dados['saida_valor']) * 100, 2)
+    
+    analise_ncm_list = sorted(analise_ncm.values(), key=lambda x: x['saldo_icms'], reverse=True)
+    
+    # ===== RESUMO GERAL =====
+    total_entrada_valor = sum(p['total_valor'] for p in produtos_entrada.values())
+    total_entrada_icms = sum(p['total_icms'] for p in produtos_entrada.values())
+    total_saida_valor = sum(p['total_valor'] for p in produtos_saida.values())
+    total_saida_icms = sum(p['total_icms'] for p in produtos_saida.values())
+    
+    resumo = {
+        'total_documentos': len(documents),
+        'total_entradas': len(entradas),
+        'total_saidas': len(saidas),
+        'valor_entradas': round(total_entrada_valor, 2),
+        'valor_saidas': round(total_saida_valor, 2),
+        'credito_icms': round(total_entrada_icms, 2),
+        'debito_icms': round(total_saida_icms, 2),
+        'saldo_icms': round(total_saida_icms - total_entrada_icms, 2),
+        'total_viloes': len(viloes),
+        'impacto_viloes': round(sum(v.get('impacto_negativo', 0) for v in viloes), 2),
+        'total_oportunidades': len(oportunidades),
+        'beneficio_oportunidades': round(sum(o.get('beneficio', 0) for o in oportunidades), 2)
+    }
+    
+    # ===== GERAR INSIGHTS COM IA =====
+    insights_ia = None
+    try:
+        # Preparar contexto para a IA
+        contexto = {
+            'empresa': company.get('razao_social'),
+            'regime_tributario': company.get('regime_tributario', 'lucro_real'),
+            'atividade': company.get('tipo_atividade', 'comercio'),
+            'uf': company.get('uf', 'SP'),
+            'competencia': competencia,
+            'resumo': resumo,
+            'viloes_top5': viloes[:5],
+            'oportunidades_top5': oportunidades[:5],
+            'ncm_mais_impacto': analise_ncm_list[:5]
+        }
+        
+        prompt = f"""Você é um especialista em tributação brasileira (ICMS, PIS, COFINS).
+Analise os dados tributários da empresa e forneça insights estratégicos.
+
+DADOS DA EMPRESA:
+- Razão Social: {contexto['empresa']}
+- Regime Tributário: {contexto['regime_tributario']}
+- Atividade: {contexto['atividade']}
+- UF: {contexto['uf']}
+- Competência: {contexto['competencia']}
+
+RESUMO TRIBUTÁRIO:
+- Valor total de entradas: R$ {resumo['valor_entradas']:,.2f}
+- Valor total de saídas: R$ {resumo['valor_saidas']:,.2f}
+- Crédito de ICMS: R$ {resumo['credito_icms']:,.2f}
+- Débito de ICMS: R$ {resumo['debito_icms']:,.2f}
+- Saldo ICMS (a pagar): R$ {resumo['saldo_icms']:,.2f}
+- Quantidade de "vilões tributários" identificados: {resumo['total_viloes']}
+- Impacto negativo total dos vilões: R$ {resumo['impacto_viloes']:,.2f}
+
+TOP 5 VILÕES TRIBUTÁRIOS (produtos com prejuízo tributário):
+{json.dumps(contexto['viloes_top5'], ensure_ascii=False, indent=2)}
+
+TOP 5 OPORTUNIDADES (produtos com situação favorável):
+{json.dumps(contexto['oportunidades_top5'], ensure_ascii=False, indent=2)}
+
+NCMs COM MAIOR IMPACTO NO ICMS:
+{json.dumps(contexto['ncm_mais_impacto'], ensure_ascii=False, indent=2)}
+
+Por favor, forneça:
+1. PONTOS POSITIVOS (2-3 itens): Aspectos favoráveis da tributação da empresa
+2. PONTOS DE ATENÇÃO (2-3 itens): Riscos ou problemas identificados
+3. RECOMENDAÇÕES ESTRATÉGICAS (3-4 itens): Ações concretas para otimização tributária
+4. ANÁLISE DE PRECIFICAÇÃO: Considerando os vilões tributários, sugira ajustes de markup/preço
+5. OPORTUNIDADES LEGAIS: Benefícios fiscais ou regimes especiais que a empresa pode aproveitar
+
+Seja direto, prático e específico para o perfil desta empresa. Use linguagem técnica mas acessível."""
+
+        llm = LlmChat(
+            api_key=os.environ.get('EMERGENT_LLM_KEY'),
+            model="gpt-4o"
+        )
+        
+        response = await llm.send_async(
+            messages=[UserMessage(content=prompt)],
+            session_id=f"analise_tributaria_{company_id}_{competencia}_{datetime.now().timestamp()}",
+        )
+        
+        insights_ia = response.content
+        
+    except Exception as e:
+        logging.error(f"Erro ao gerar insights IA: {e}")
+        insights_ia = f"Não foi possível gerar análise por IA: {str(e)}"
+    
+    # Converter sets para lists antes de retornar
+    for v in viloes:
+        if 'cfops_entrada' not in v:
+            v['cfops_entrada'] = []
+        if 'cfops_saida' not in v:
+            v['cfops_saida'] = []
+    
+    return {
+        "empresa": company.get('razao_social'),
+        "competencia": competencia,
+        "resumo": resumo,
+        "viloes_tributarios": viloes[:20],  # Top 20 vilões
+        "oportunidades": oportunidades[:20],  # Top 20 oportunidades
+        "analise_por_ncm": analise_ncm_list[:30],  # Top 30 NCMs
+        "insights_ia": insights_ia
+    }
+
+
+@api_router.post("/sped/exportar-e-validar/{company_id}")
+async def exportar_e_validar_sped(
+    company_id: str,
+    competencia: str,
+    excluir_creditos_despesa_st: bool = False,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Exporta o SPED Fiscal e automaticamente valida confrontando o arquivo gerado
+    com os dados do sistema.
+    """
+    company_doc = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company_doc:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    company = Company(**company_doc)
+    
+    # Buscar documentos da competência
+    documents_cursor = db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia
+    }, {"_id": 0})
+    documents_data = await documents_cursor.to_list(10000)
+    
+    if not documents_data:
+        raise HTTPException(status_code=404, detail=f"Nenhum documento encontrado para competência {competencia}")
+    
+    documents = [XMLDocument(**d) for d in documents_data]
+    
+    # Gerar o SPED
+    periodo = competencia.replace('/', '')
+    sped_content = generate_sped_fiscal(company, documents, competencia, excluir_creditos_despesa_st)
+    
+    # ===== VALIDAR O SPED GERADO =====
+    # Parse do arquivo SPED para extrair totais
+    sped_totais = {
+        'entradas': {'por_cfop': {}, 'total_icms': 0, 'total_valor': 0},
+        'saidas': {'por_cfop': {}, 'total_icms': 0, 'total_valor': 0},
+        'apuracao': {'debitos': 0, 'creditos': 0, 'saldo': 0}
+    }
+    
+    # Totais do sistema (banco de dados)
+    sistema_totais = {
+        'entradas': {'por_cfop': {}, 'total_icms': 0, 'total_valor': 0},
+        'saidas': {'por_cfop': {}, 'total_icms': 0, 'total_valor': 0}
+    }
+    
+    # CFOPs sem crédito
+    CFOPS_SEM_CREDITO = {
+        '1403', '1409', '2403', '2409', '3403', '3409',
+        '1407', '2407', '1556', '2556', '1557', '2557',
+        '1128', '2128', '1551', '2551', '1553', '2553',
+        '1554', '2554', '1406', '2406', '1408', '2408'
+    }
+    
+    # Calcular totais do sistema
+    for doc in documents:
+        tipo = 'entradas' if doc.tipo == 'entrada' else 'saidas'
+        
+        for prod in doc.produtos:
+            cfop = str(prod.get('cfop', ''))
+            valor = float(prod.get('valor_total', 0) or 0)
+            v_icms = float(prod.get('v_icms', 0) or 0)
+            
+            sistema_totais[tipo]['total_valor'] += valor
+            
+            # Aplicar lógica de exclusão de créditos se necessário
+            if tipo == 'entradas' and excluir_creditos_despesa_st and cfop in CFOPS_SEM_CREDITO:
+                pass  # Não conta o ICMS
+            else:
+                sistema_totais[tipo]['total_icms'] += v_icms
+            
+            if cfop not in sistema_totais[tipo]['por_cfop']:
+                sistema_totais[tipo]['por_cfop'][cfop] = {'valor': 0, 'icms': 0, 'qtd': 0}
+            
+            sistema_totais[tipo]['por_cfop'][cfop]['valor'] += valor
+            sistema_totais[tipo]['por_cfop'][cfop]['icms'] += v_icms
+            sistema_totais[tipo]['por_cfop'][cfop]['qtd'] += 1
+    
+    # Parse das linhas do SPED para extrair C100 e E110
+    linhas = sped_content.split('\n')
+    documento_atual = {'tipo': None, 'cfop': None}
+    
+    for linha in linhas:
+        campos = linha.split('|')
+        if len(campos) < 2:
+            continue
+        
+        reg = campos[1] if len(campos) > 1 else ''
+        
+        # C100 - Documento (NF-e)
+        if reg == 'C100':
+            # |C100|IND_OPER|IND_EMIT|COD_PART|COD_MOD|COD_SIT|SER|NUM_DOC|CHV_NFE|...
+            if len(campos) > 2:
+                ind_oper = campos[2]  # 0=Entrada, 1=Saída
+                documento_atual['tipo'] = 'entradas' if ind_oper == '0' else 'saidas'
+        
+        # C170 - Itens do documento
+        elif reg == 'C170' and documento_atual['tipo']:
+            # |C170|NUM_ITEM|COD_ITEM|DESCR_COMPL|QTD|UNID|VL_ITEM|VL_DESC|IND_MOV|CST_ICMS|CFOP|...
+            if len(campos) > 11:
+                cfop = campos[11]
+                valor = float(campos[7].replace(',', '.')) if campos[7] else 0
+                # ICMS está no campo 17 (VL_ICMS)
+                v_icms = float(campos[17].replace(',', '.')) if len(campos) > 17 and campos[17] else 0
+                
+                tipo = documento_atual['tipo']
+                sped_totais[tipo]['total_valor'] += valor
+                sped_totais[tipo]['total_icms'] += v_icms
+                
+                if cfop not in sped_totais[tipo]['por_cfop']:
+                    sped_totais[tipo]['por_cfop'][cfop] = {'valor': 0, 'icms': 0, 'qtd': 0}
+                
+                sped_totais[tipo]['por_cfop'][cfop]['valor'] += valor
+                sped_totais[tipo]['por_cfop'][cfop]['icms'] += v_icms
+                sped_totais[tipo]['por_cfop'][cfop]['qtd'] += 1
+        
+        # E110 - Apuração ICMS
+        elif reg == 'E110':
+            # |E110|VL_TOT_DEBITOS|VL_AJ_DEBITOS|VL_TOT_AJ_DEBITOS|VL_ESTORNOS_CRED|VL_TOT_CREDITOS|...
+            if len(campos) > 6:
+                sped_totais['apuracao']['debitos'] = float(campos[2].replace(',', '.')) if campos[2] else 0
+                sped_totais['apuracao']['creditos'] = float(campos[6].replace(',', '.')) if campos[6] else 0
+                sped_totais['apuracao']['saldo'] = sped_totais['apuracao']['debitos'] - sped_totais['apuracao']['creditos']
+    
+    # ===== COMPARAR E GERAR RELATÓRIO DE VALIDAÇÃO =====
+    validacao = {
+        'status': 'OK',
+        'divergencias': [],
+        'totais_sistema': {
+            'entradas': {
+                'valor': round(sistema_totais['entradas']['total_valor'], 2),
+                'icms': round(sistema_totais['entradas']['total_icms'], 2),
+                'cfops': len(sistema_totais['entradas']['por_cfop'])
+            },
+            'saidas': {
+                'valor': round(sistema_totais['saidas']['total_valor'], 2),
+                'icms': round(sistema_totais['saidas']['total_icms'], 2),
+                'cfops': len(sistema_totais['saidas']['por_cfop'])
+            }
+        },
+        'totais_sped': {
+            'entradas': {
+                'valor': round(sped_totais['entradas']['total_valor'], 2),
+                'icms': round(sped_totais['entradas']['total_icms'], 2),
+                'cfops': len(sped_totais['entradas']['por_cfop'])
+            },
+            'saidas': {
+                'valor': round(sped_totais['saidas']['total_valor'], 2),
+                'icms': round(sped_totais['saidas']['total_icms'], 2),
+                'cfops': len(sped_totais['saidas']['por_cfop'])
+            }
+        },
+        'comparativo_cfop': {
+            'entradas': [],
+            'saidas': []
+        }
+    }
+    
+    # Comparar por CFOP
+    for tipo in ['entradas', 'saidas']:
+        all_cfops = set(sistema_totais[tipo]['por_cfop'].keys()) | set(sped_totais[tipo]['por_cfop'].keys())
+        
+        for cfop in sorted(all_cfops):
+            sistema_cfop = sistema_totais[tipo]['por_cfop'].get(cfop, {'valor': 0, 'icms': 0, 'qtd': 0})
+            sped_cfop = sped_totais[tipo]['por_cfop'].get(cfop, {'valor': 0, 'icms': 0, 'qtd': 0})
+            
+            diff_valor = abs(round(sistema_cfop['valor'], 2) - round(sped_cfop['valor'], 2))
+            diff_icms = abs(round(sistema_cfop['icms'], 2) - round(sped_cfop['icms'], 2))
+            
+            status_cfop = 'OK' if diff_valor < 0.01 and diff_icms < 0.01 else 'DIVERGENTE'
+            
+            if status_cfop == 'DIVERGENTE':
+                validacao['status'] = 'DIVERGENTE'
+                validacao['divergencias'].append({
+                    'tipo': tipo,
+                    'cfop': cfop,
+                    'valor_sistema': round(sistema_cfop['valor'], 2),
+                    'valor_sped': round(sped_cfop['valor'], 2),
+                    'icms_sistema': round(sistema_cfop['icms'], 2),
+                    'icms_sped': round(sped_cfop['icms'], 2)
+                })
+            
+            validacao['comparativo_cfop'][tipo].append({
+                'cfop': cfop,
+                'sistema': {
+                    'valor': round(sistema_cfop['valor'], 2),
+                    'icms': round(sistema_cfop['icms'], 2),
+                    'qtd': sistema_cfop['qtd']
+                },
+                'sped': {
+                    'valor': round(sped_cfop['valor'], 2),
+                    'icms': round(sped_cfop['icms'], 2),
+                    'qtd': sped_cfop['qtd']
+                },
+                'status': status_cfop
+            })
+    
+    # Gerar filename
+    cnpj_limpo = company.cnpj.replace('.', '').replace('/', '').replace('-', '')
+    filename = f"SPED_{cnpj_limpo}_{competencia.replace('/', '')}.txt"
+    
+    return {
+        "filename": filename,
+        "content": sped_content,
+        "validacao": validacao
+    }
+
+
 @api_router.get("/export/csv/saida")
 async def export_csv_saida(
     company_id: str, 
