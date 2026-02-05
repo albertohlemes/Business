@@ -14,6 +14,7 @@ import { useDropzone } from 'react-dropzone';
 import { useEmpresa } from '../contexts/EmpresaContext';
 import { getErrorMessage } from '../utils/errorHandler';
 import { generateEmpresaCode, sortClientesBySelection } from '../utils/empresaHelpers';
+import { ImportColaboradoresProgress } from '../components/ProcessingBar';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
