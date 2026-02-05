@@ -1,15 +1,20 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from pydantic import BaseModel, Field, EmailStr
+from typing import List, Optional, Dict, Any
 import uuid
-from datetime import datetime, timezone
-
+from datetime import datetime, timezone, timedelta
+import jwt
+import bcrypt
+import json
+import tempfile
+import aiofiles
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -19,52 +24,1136 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
-app = FastAPI()
+# JWT Config
+JWT_SECRET = os.environ.get('JWT_SECRET_KEY', 'portal-dp-secret-key-2024')
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_HOURS = 24
+
+# Create the main app
+app = FastAPI(title="Portal DP - Departamento Pessoal")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
+security = HTTPBearer()
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
+# ==================== MODELS ====================
+
+# Auth Models
+class UserCreate(BaseModel):
+    nome: str
+    email: EmailStr
+    senha: str
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    senha: str
+
+class UserResponse(BaseModel):
+    id: str
+    nome: str
+    email: str
+    created_at: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+# Cliente/Empresa Models
+class ClienteCreate(BaseModel):
+    razao_social: str
+    cnpj: str
+    nome_fantasia: Optional[str] = None
+    endereco: Optional[str] = None
+    telefone: Optional[str] = None
+    email: Optional[str] = None
+    sindicato: Optional[str] = None
+
+class ClienteResponse(BaseModel):
+    id: str
+    razao_social: str
+    cnpj: str
+    nome_fantasia: Optional[str] = None
+    endereco: Optional[str] = None
+    telefone: Optional[str] = None
+    email: Optional[str] = None
+    sindicato: Optional[str] = None
+    created_at: str
+    total_colaboradores: int = 0
+
+# Colaborador Models
+class ColaboradorCreate(BaseModel):
+    cliente_id: str
+    nome: str
+    cpf: str
+    data_nascimento: Optional[str] = None
+    cargo: Optional[str] = None
+    salario_base: float = 0.0
+    data_admissao: Optional[str] = None
+    departamento: Optional[str] = None
+    pis: Optional[str] = None
+    ctps: Optional[str] = None
+    rg: Optional[str] = None
+    endereco: Optional[str] = None
+    telefone: Optional[str] = None
+    email: Optional[str] = None
+    banco: Optional[str] = None
+    agencia: Optional[str] = None
+    conta: Optional[str] = None
+
+class ColaboradorResponse(BaseModel):
+    id: str
+    cliente_id: str
+    nome: str
+    cpf: str
+    data_nascimento: Optional[str] = None
+    cargo: Optional[str] = None
+    salario_base: float = 0.0
+    data_admissao: Optional[str] = None
+    departamento: Optional[str] = None
+    pis: Optional[str] = None
+    ctps: Optional[str] = None
+    rg: Optional[str] = None
+    endereco: Optional[str] = None
+    telefone: Optional[str] = None
+    email: Optional[str] = None
+    banco: Optional[str] = None
+    agencia: Optional[str] = None
+    conta: Optional[str] = None
+    created_at: str
+
+# Dissídio Models
+class DissidioCreate(BaseModel):
+    cliente_id: str
+    sindicato: str
+    percentual_reajuste: float
+    data_base: str
+    observacoes: Optional[str] = None
+
+class DissidioResponse(BaseModel):
+    id: str
+    cliente_id: str
+    sindicato: str
+    percentual_reajuste: float
+    data_base: str
+    status: str
+    observacoes: Optional[str] = None
+    colaboradores_afetados: int = 0
+    valor_total_reajuste: float = 0.0
+    created_at: str
+    aprovado_em: Optional[str] = None
+
+# Admissão Models
+class AdmissaoCreate(BaseModel):
+    cliente_id: str
+    dados_extraidos: Dict[str, Any]
+    status: str = "pendente"
+
+class AdmissaoResponse(BaseModel):
+    id: str
+    cliente_id: str
+    dados_extraidos: Dict[str, Any]
+    status: str
+    created_at: str
+
+# Validação Folha Models
+class ValidacaoFolhaCreate(BaseModel):
+    cliente_id: str
+    mes_referencia: str
+    ano_referencia: int
+
+class ValidacaoFolhaResponse(BaseModel):
+    id: str
+    cliente_id: str
+    mes_referencia: str
+    ano_referencia: int
+    status: str
+    discrepancias: List[Dict[str, Any]] = []
+    total_verificados: int = 0
+    total_erros: int = 0
+    created_at: str
+
+# Média Models
+class MediaHistoricoCreate(BaseModel):
+    cliente_id: str
+    colaborador_id: str
+    competencia: str
+    salario_bruto: float
+    horas_extras: float = 0.0
+    comissoes: float = 0.0
+    adicionais: float = 0.0
+
+class MediaHistoricoResponse(BaseModel):
+    id: str
+    cliente_id: str
+    colaborador_id: str
+    competencia: str
+    salario_bruto: float
+    horas_extras: float
+    comissoes: float
+    adicionais: float
+    total: float
+    created_at: str
+
+# Dashboard Models
+class DashboardStats(BaseModel):
+    total_clientes: int
+    total_colaboradores: int
+    dissidios_pendentes: int
+    admissoes_pendentes: int
+    validacoes_pendentes: int
+    tarefas_recentes: List[Dict[str, Any]]
+
+# ==================== AUTH HELPERS ====================
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+def create_token(user_id: str, email: str) -> str:
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Token inválido")
+        user = await db.users.find_one({"id": user_id}, {"_id": 0, "senha": 0})
+        if not user:
+            raise HTTPException(status_code=401, detail="Usuário não encontrado")
+        return user
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expirado")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+# ==================== AUTH ROUTES ====================
+
+@api_router.post("/auth/register", response_model=TokenResponse)
+async def register(user: UserCreate):
+    existing = await db.users.find_one({"email": user.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email já cadastrado")
     
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    user_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    user_doc = {
+        "id": user_id,
+        "nome": user.nome,
+        "email": user.email,
+        "senha": hash_password(user.senha),
+        "created_at": now
+    }
+    await db.users.insert_one(user_doc)
+    
+    token = create_token(user_id, user.email)
+    return TokenResponse(
+        access_token=token,
+        user=UserResponse(id=user_id, nome=user.nome, email=user.email, created_at=now)
+    )
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+@api_router.post("/auth/login", response_model=TokenResponse)
+async def login(credentials: UserLogin):
+    user = await db.users.find_one({"email": credentials.email})
+    if not user or not verify_password(credentials.senha, user["senha"]):
+        raise HTTPException(status_code=401, detail="Credenciais inválidas")
+    
+    token = create_token(user["id"], user["email"])
+    return TokenResponse(
+        access_token=token,
+        user=UserResponse(
+            id=user["id"],
+            nome=user["nome"],
+            email=user["email"],
+            created_at=user["created_at"]
+        )
+    )
 
-# Add your routes to the router instead of directly to app
+@api_router.get("/auth/me", response_model=UserResponse)
+async def get_me(current_user: dict = Depends(get_current_user)):
+    return UserResponse(**current_user)
+
+# ==================== CLIENTE ROUTES ====================
+
+@api_router.post("/clientes", response_model=ClienteResponse)
+async def create_cliente(cliente: ClienteCreate, current_user: dict = Depends(get_current_user)):
+    existing = await db.clientes.find_one({"cnpj": cliente.cnpj})
+    if existing:
+        raise HTTPException(status_code=400, detail="CNPJ já cadastrado")
+    
+    cliente_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    cliente_doc = {
+        "id": cliente_id,
+        **cliente.model_dump(),
+        "created_at": now,
+        "user_id": current_user["id"]
+    }
+    await db.clientes.insert_one(cliente_doc)
+    
+    return ClienteResponse(id=cliente_id, **cliente.model_dump(), created_at=now, total_colaboradores=0)
+
+@api_router.get("/clientes", response_model=List[ClienteResponse])
+async def list_clientes(current_user: dict = Depends(get_current_user)):
+    clientes = await db.clientes.find({"user_id": current_user["id"]}, {"_id": 0}).to_list(1000)
+    result = []
+    for c in clientes:
+        total_colab = await db.colaboradores.count_documents({"cliente_id": c["id"]})
+        result.append(ClienteResponse(**c, total_colaboradores=total_colab))
+    return result
+
+@api_router.get("/clientes/{cliente_id}", response_model=ClienteResponse)
+async def get_cliente(cliente_id: str, current_user: dict = Depends(get_current_user)):
+    cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]}, {"_id": 0})
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    total_colab = await db.colaboradores.count_documents({"cliente_id": cliente_id})
+    return ClienteResponse(**cliente, total_colaboradores=total_colab)
+
+@api_router.put("/clientes/{cliente_id}", response_model=ClienteResponse)
+async def update_cliente(cliente_id: str, cliente: ClienteCreate, current_user: dict = Depends(get_current_user)):
+    existing = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    await db.clientes.update_one(
+        {"id": cliente_id},
+        {"$set": cliente.model_dump()}
+    )
+    updated = await db.clientes.find_one({"id": cliente_id}, {"_id": 0})
+    total_colab = await db.colaboradores.count_documents({"cliente_id": cliente_id})
+    return ClienteResponse(**updated, total_colaboradores=total_colab)
+
+@api_router.delete("/clientes/{cliente_id}")
+async def delete_cliente(cliente_id: str, current_user: dict = Depends(get_current_user)):
+    result = await db.clientes.delete_one({"id": cliente_id, "user_id": current_user["id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    # Also delete related colaboradores
+    await db.colaboradores.delete_many({"cliente_id": cliente_id})
+    return {"message": "Cliente excluído com sucesso"}
+
+# ==================== COLABORADOR ROUTES ====================
+
+@api_router.post("/colaboradores", response_model=ColaboradorResponse)
+async def create_colaborador(colaborador: ColaboradorCreate, current_user: dict = Depends(get_current_user)):
+    cliente = await db.clientes.find_one({"id": colaborador.cliente_id, "user_id": current_user["id"]})
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    colaborador_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    colab_doc = {
+        "id": colaborador_id,
+        **colaborador.model_dump(),
+        "created_at": now
+    }
+    await db.colaboradores.insert_one(colab_doc)
+    
+    return ColaboradorResponse(id=colaborador_id, **colaborador.model_dump(), created_at=now)
+
+@api_router.get("/colaboradores", response_model=List[ColaboradorResponse])
+async def list_colaboradores(cliente_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    query = {}
+    if cliente_id:
+        cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente não encontrado")
+        query["cliente_id"] = cliente_id
+    else:
+        clientes = await db.clientes.find({"user_id": current_user["id"]}, {"id": 1}).to_list(1000)
+        cliente_ids = [c["id"] for c in clientes]
+        query["cliente_id"] = {"$in": cliente_ids}
+    
+    colaboradores = await db.colaboradores.find(query, {"_id": 0}).to_list(1000)
+    return [ColaboradorResponse(**c) for c in colaboradores]
+
+@api_router.get("/colaboradores/{colaborador_id}", response_model=ColaboradorResponse)
+async def get_colaborador(colaborador_id: str, current_user: dict = Depends(get_current_user)):
+    colaborador = await db.colaboradores.find_one({"id": colaborador_id}, {"_id": 0})
+    if not colaborador:
+        raise HTTPException(status_code=404, detail="Colaborador não encontrado")
+    return ColaboradorResponse(**colaborador)
+
+@api_router.put("/colaboradores/{colaborador_id}", response_model=ColaboradorResponse)
+async def update_colaborador(colaborador_id: str, colaborador: ColaboradorCreate, current_user: dict = Depends(get_current_user)):
+    existing = await db.colaboradores.find_one({"id": colaborador_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Colaborador não encontrado")
+    
+    await db.colaboradores.update_one(
+        {"id": colaborador_id},
+        {"$set": colaborador.model_dump()}
+    )
+    updated = await db.colaboradores.find_one({"id": colaborador_id}, {"_id": 0})
+    return ColaboradorResponse(**updated)
+
+@api_router.delete("/colaboradores/{colaborador_id}")
+async def delete_colaborador(colaborador_id: str, current_user: dict = Depends(get_current_user)):
+    result = await db.colaboradores.delete_one({"id": colaborador_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Colaborador não encontrado")
+    return {"message": "Colaborador excluído com sucesso"}
+
+# ==================== DISSÍDIO ROUTES ====================
+
+@api_router.post("/dissidios", response_model=DissidioResponse)
+async def create_dissidio(dissidio: DissidioCreate, current_user: dict = Depends(get_current_user)):
+    cliente = await db.clientes.find_one({"id": dissidio.cliente_id, "user_id": current_user["id"]})
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    # Calculate affected employees and total adjustment
+    colaboradores = await db.colaboradores.find({"cliente_id": dissidio.cliente_id}).to_list(1000)
+    total_reajuste = sum(c.get("salario_base", 0) * (dissidio.percentual_reajuste / 100) for c in colaboradores)
+    
+    dissidio_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    dissidio_doc = {
+        "id": dissidio_id,
+        **dissidio.model_dump(),
+        "status": "pendente",
+        "colaboradores_afetados": len(colaboradores),
+        "valor_total_reajuste": round(total_reajuste, 2),
+        "created_at": now,
+        "aprovado_em": None,
+        "user_id": current_user["id"]
+    }
+    await db.dissidios.insert_one(dissidio_doc)
+    
+    return DissidioResponse(**{k: v for k, v in dissidio_doc.items() if k != "user_id" and k != "_id"})
+
+@api_router.get("/dissidios", response_model=List[DissidioResponse])
+async def list_dissidios(cliente_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    query = {"user_id": current_user["id"]}
+    if cliente_id:
+        query["cliente_id"] = cliente_id
+    
+    dissidios = await db.dissidios.find(query, {"_id": 0, "user_id": 0}).to_list(1000)
+    return [DissidioResponse(**d) for d in dissidios]
+
+@api_router.put("/dissidios/{dissidio_id}/aprovar")
+async def aprovar_dissidio(dissidio_id: str, current_user: dict = Depends(get_current_user)):
+    dissidio = await db.dissidios.find_one({"id": dissidio_id, "user_id": current_user["id"]})
+    if not dissidio:
+        raise HTTPException(status_code=404, detail="Dissídio não encontrado")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Apply adjustment to all employees
+    percentual = dissidio["percentual_reajuste"]
+    await db.colaboradores.update_many(
+        {"cliente_id": dissidio["cliente_id"]},
+        {"$mul": {"salario_base": 1 + (percentual / 100)}}
+    )
+    
+    await db.dissidios.update_one(
+        {"id": dissidio_id},
+        {"$set": {"status": "aprovado", "aprovado_em": now}}
+    )
+    
+    return {"message": "Dissídio aprovado e salários atualizados com sucesso"}
+
+@api_router.put("/dissidios/{dissidio_id}/rejeitar")
+async def rejeitar_dissidio(dissidio_id: str, current_user: dict = Depends(get_current_user)):
+    result = await db.dissidios.update_one(
+        {"id": dissidio_id, "user_id": current_user["id"]},
+        {"$set": {"status": "rejeitado"}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Dissídio não encontrado")
+    return {"message": "Dissídio rejeitado"}
+
+# ==================== ADMISSÃO ROUTES ====================
+
+@api_router.post("/admissoes/extrair")
+async def extrair_dados_admissao(
+    file: UploadFile = File(...),
+    cliente_id: str = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Extract employee data from uploaded document using AI"""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        
+        # Save uploaded file temporarily
+        content = await file.read()
+        suffix = Path(file.filename).suffix
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        
+        try:
+            # Use Gemini for file analysis (supports file attachments)
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"admissao-{uuid.uuid4()}",
+                system_message="""Você é um assistente especializado em extração de dados de documentos de admissão de funcionários.
+                Extraia todas as informações possíveis do documento e retorne em formato JSON com os seguintes campos quando disponíveis:
+                - nome (nome completo)
+                - cpf
+                - rg
+                - data_nascimento (formato DD/MM/YYYY)
+                - endereco
+                - telefone
+                - email
+                - pis
+                - ctps
+                - cargo
+                - salario_base (apenas o número)
+                - data_admissao (formato DD/MM/YYYY)
+                - banco
+                - agencia
+                - conta
+                
+                Retorne APENAS o JSON, sem texto adicional."""
+            ).with_model("gemini", "gemini-2.5-flash")
+            
+            # Determine mime type
+            mime_types = {
+                ".pdf": "application/pdf",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".png": "image/png"
+            }
+            mime_type = mime_types.get(suffix.lower(), "application/octet-stream")
+            
+            file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
+            
+            response = await chat.send_message(UserMessage(
+                text="Extraia os dados de admissão do funcionário deste documento.",
+                file_contents=[file_content]
+            ))
+            
+            # Parse JSON from response
+            try:
+                # Try to extract JSON from response
+                response_text = response.strip()
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:]
+                if response_text.startswith("```"):
+                    response_text = response_text[3:]
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3]
+                
+                dados = json.loads(response_text.strip())
+            except json.JSONDecodeError:
+                dados = {"raw_response": response, "parsing_error": True}
+            
+            # Save admission record
+            admissao_id = str(uuid.uuid4())
+            now = datetime.now(timezone.utc).isoformat()
+            
+            admissao_doc = {
+                "id": admissao_id,
+                "cliente_id": cliente_id,
+                "dados_extraidos": dados,
+                "status": "pendente",
+                "created_at": now,
+                "user_id": current_user["id"]
+            }
+            await db.admissoes.insert_one(admissao_doc)
+            
+            return {
+                "id": admissao_id,
+                "dados_extraidos": dados,
+                "status": "pendente",
+                "message": "Dados extraídos com sucesso. Revise e confirme."
+            }
+            
+        finally:
+            # Clean up temp file
+            os.unlink(tmp_path)
+            
+    except Exception as e:
+        logger.error(f"Erro na extração: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao processar documento: {str(e)}")
+
+@api_router.get("/admissoes", response_model=List[AdmissaoResponse])
+async def list_admissoes(cliente_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    query = {"user_id": current_user["id"]}
+    if cliente_id:
+        query["cliente_id"] = cliente_id
+    
+    admissoes = await db.admissoes.find(query, {"_id": 0, "user_id": 0}).to_list(1000)
+    return [AdmissaoResponse(**a) for a in admissoes]
+
+@api_router.post("/admissoes/{admissao_id}/confirmar")
+async def confirmar_admissao(admissao_id: str, dados: ColaboradorCreate, current_user: dict = Depends(get_current_user)):
+    """Confirm admission and create employee record"""
+    admissao = await db.admissoes.find_one({"id": admissao_id, "user_id": current_user["id"]})
+    if not admissao:
+        raise HTTPException(status_code=404, detail="Admissão não encontrada")
+    
+    # Create colaborador
+    colaborador = await create_colaborador(dados, current_user)
+    
+    # Update admission status
+    await db.admissoes.update_one(
+        {"id": admissao_id},
+        {"$set": {"status": "confirmado", "colaborador_id": colaborador.id}}
+    )
+    
+    return {"message": "Admissão confirmada", "colaborador": colaborador}
+
+# ==================== VALIDAÇÃO FOLHA ROUTES ====================
+
+@api_router.post("/validacoes/analisar")
+async def analisar_folha(
+    file: UploadFile = File(...),
+    cliente_id: str = None,
+    mes_referencia: str = None,
+    ano_referencia: int = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Analyze payroll spreadsheet and detect discrepancies"""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        
+        content = await file.read()
+        suffix = Path(file.filename).suffix
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"validacao-{uuid.uuid4()}",
+                system_message="""Você é um auditor especializado em folha de pagamento.
+                Analise o documento e identifique:
+                1. Possíveis erros de cálculo
+                2. Valores inconsistentes
+                3. Dados faltantes
+                4. Discrepâncias entre valores
+                
+                Retorne em JSON com a estrutura:
+                {
+                    "total_verificados": número de funcionários analisados,
+                    "total_erros": número de problemas encontrados,
+                    "discrepancias": [
+                        {
+                            "funcionario": "nome",
+                            "tipo": "tipo do problema",
+                            "descricao": "descrição detalhada",
+                            "severidade": "alta/media/baixa"
+                        }
+                    ],
+                    "resumo": "resumo geral da análise"
+                }"""
+            ).with_model("gemini", "gemini-2.5-flash")
+            
+            mime_types = {
+                ".pdf": "application/pdf",
+                ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ".xls": "application/vnd.ms-excel",
+                ".csv": "text/csv"
+            }
+            mime_type = mime_types.get(suffix.lower(), "application/octet-stream")
+            
+            file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
+            
+            response = await chat.send_message(UserMessage(
+                text="Analise esta folha de pagamento e identifique possíveis erros e discrepâncias.",
+                file_contents=[file_content]
+            ))
+            
+            # Parse response
+            try:
+                response_text = response.strip()
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:]
+                if response_text.startswith("```"):
+                    response_text = response_text[3:]
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3]
+                
+                resultado = json.loads(response_text.strip())
+            except json.JSONDecodeError:
+                resultado = {
+                    "total_verificados": 0,
+                    "total_erros": 0,
+                    "discrepancias": [],
+                    "resumo": response
+                }
+            
+            # Save validation record
+            validacao_id = str(uuid.uuid4())
+            now = datetime.now(timezone.utc).isoformat()
+            
+            validacao_doc = {
+                "id": validacao_id,
+                "cliente_id": cliente_id,
+                "mes_referencia": mes_referencia or datetime.now().strftime("%m"),
+                "ano_referencia": ano_referencia or datetime.now().year,
+                "status": "concluido",
+                "discrepancias": resultado.get("discrepancias", []),
+                "total_verificados": resultado.get("total_verificados", 0),
+                "total_erros": resultado.get("total_erros", 0),
+                "resumo": resultado.get("resumo", ""),
+                "created_at": now,
+                "user_id": current_user["id"]
+            }
+            await db.validacoes.insert_one(validacao_doc)
+            
+            return {
+                "id": validacao_id,
+                **resultado,
+                "message": "Análise concluída"
+            }
+            
+        finally:
+            os.unlink(tmp_path)
+            
+    except Exception as e:
+        logger.error(f"Erro na validação: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao analisar folha: {str(e)}")
+
+@api_router.get("/validacoes", response_model=List[ValidacaoFolhaResponse])
+async def list_validacoes(cliente_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    query = {"user_id": current_user["id"]}
+    if cliente_id:
+        query["cliente_id"] = cliente_id
+    
+    validacoes = await db.validacoes.find(query, {"_id": 0, "user_id": 0, "resumo": 0}).to_list(1000)
+    return [ValidacaoFolhaResponse(**v) for v in validacoes]
+
+# ==================== MÉDIAS ROUTES ====================
+
+@api_router.post("/medias/importar")
+async def importar_medias(
+    file: UploadFile = File(...),
+    cliente_id: str = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Import historical salary data for average calculations"""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        
+        content = await file.read()
+        suffix = Path(file.filename).suffix
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"medias-{uuid.uuid4()}",
+                system_message="""Você é um assistente de departamento pessoal especializado em cálculos de médias salariais.
+                Extraia os dados históricos de salários do documento.
+                
+                Retorne em JSON com a estrutura:
+                {
+                    "colaboradores": [
+                        {
+                            "nome": "nome do funcionário",
+                            "cpf": "cpf se disponível",
+                            "historico": [
+                                {
+                                    "competencia": "MM/YYYY",
+                                    "salario_bruto": valor,
+                                    "horas_extras": valor,
+                                    "comissoes": valor,
+                                    "adicionais": valor
+                                }
+                            ]
+                        }
+                    ],
+                    "periodo_inicio": "MM/YYYY",
+                    "periodo_fim": "MM/YYYY"
+                }"""
+            ).with_model("gemini", "gemini-2.5-flash")
+            
+            mime_types = {
+                ".pdf": "application/pdf",
+                ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ".xls": "application/vnd.ms-excel",
+                ".csv": "text/csv"
+            }
+            mime_type = mime_types.get(suffix.lower(), "application/octet-stream")
+            
+            file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
+            
+            response = await chat.send_message(UserMessage(
+                text="Extraia os dados históricos de salários deste documento para cálculo de médias.",
+                file_contents=[file_content]
+            ))
+            
+            try:
+                response_text = response.strip()
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:]
+                if response_text.startswith("```"):
+                    response_text = response_text[3:]
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3]
+                
+                dados = json.loads(response_text.strip())
+            except json.JSONDecodeError:
+                dados = {"colaboradores": [], "raw_response": response}
+            
+            # Save extracted data
+            now = datetime.now(timezone.utc).isoformat()
+            registros_salvos = 0
+            
+            for colab_data in dados.get("colaboradores", []):
+                # Try to find existing colaborador
+                colaborador = await db.colaboradores.find_one({
+                    "cliente_id": cliente_id,
+                    "$or": [
+                        {"nome": {"$regex": colab_data.get("nome", ""), "$options": "i"}},
+                        {"cpf": colab_data.get("cpf", "")}
+                    ]
+                })
+                
+                colaborador_id = colaborador["id"] if colaborador else None
+                
+                for hist in colab_data.get("historico", []):
+                    media_doc = {
+                        "id": str(uuid.uuid4()),
+                        "cliente_id": cliente_id,
+                        "colaborador_id": colaborador_id,
+                        "colaborador_nome": colab_data.get("nome"),
+                        "competencia": hist.get("competencia"),
+                        "salario_bruto": float(hist.get("salario_bruto", 0)),
+                        "horas_extras": float(hist.get("horas_extras", 0)),
+                        "comissoes": float(hist.get("comissoes", 0)),
+                        "adicionais": float(hist.get("adicionais", 0)),
+                        "created_at": now,
+                        "user_id": current_user["id"]
+                    }
+                    await db.medias_historico.insert_one(media_doc)
+                    registros_salvos += 1
+            
+            return {
+                "message": f"Importação concluída. {registros_salvos} registros salvos.",
+                "dados": dados,
+                "registros_salvos": registros_salvos
+            }
+            
+        finally:
+            os.unlink(tmp_path)
+            
+    except Exception as e:
+        logger.error(f"Erro na importação: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao importar médias: {str(e)}")
+
+@api_router.get("/medias/{colaborador_id}")
+async def get_medias_colaborador(colaborador_id: str, meses: int = 12, current_user: dict = Depends(get_current_user)):
+    """Get historical averages for a specific employee"""
+    medias = await db.medias_historico.find(
+        {"colaborador_id": colaborador_id},
+        {"_id": 0, "user_id": 0}
+    ).sort("competencia", -1).to_list(meses)
+    
+    if not medias:
+        return {"colaborador_id": colaborador_id, "medias": [], "media_calculada": 0}
+    
+    # Calculate averages
+    total_salario = sum(m.get("salario_bruto", 0) for m in medias)
+    total_extras = sum(m.get("horas_extras", 0) for m in medias)
+    total_comissoes = sum(m.get("comissoes", 0) for m in medias)
+    total_adicionais = sum(m.get("adicionais", 0) for m in medias)
+    
+    count = len(medias)
+    
+    return {
+        "colaborador_id": colaborador_id,
+        "medias": medias,
+        "periodo_meses": count,
+        "media_salario": round(total_salario / count, 2) if count else 0,
+        "media_horas_extras": round(total_extras / count, 2) if count else 0,
+        "media_comissoes": round(total_comissoes / count, 2) if count else 0,
+        "media_adicionais": round(total_adicionais / count, 2) if count else 0,
+        "media_total": round((total_salario + total_extras + total_comissoes + total_adicionais) / count, 2) if count else 0
+    }
+
+# ==================== INFORMES DE RENDIMENTO ====================
+
+@api_router.post("/informes/comparar")
+async def comparar_informes(
+    file_esocial: UploadFile = File(...),
+    file_sistema: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Compare eSocial report with internal system report"""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        
+        content_esocial = await file_esocial.read()
+        content_sistema = await file_sistema.read()
+        
+        suffix_esocial = Path(file_esocial.filename).suffix
+        suffix_sistema = Path(file_sistema.filename).suffix
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix_esocial) as tmp1:
+            tmp1.write(content_esocial)
+            tmp_path_esocial = tmp1.name
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix_sistema) as tmp2:
+            tmp2.write(content_sistema)
+            tmp_path_sistema = tmp2.name
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"informes-{uuid.uuid4()}",
+                system_message="""Você é um auditor especializado em comparação de informes de rendimento.
+                Compare os dois documentos (eSocial e Sistema Interno) e identifique:
+                1. Divergências de valores
+                2. Funcionários presentes em um e ausentes no outro
+                3. Diferenças em bases de cálculo
+                4. Erros de IR retido
+                
+                Retorne em JSON:
+                {
+                    "total_comparados": número,
+                    "divergencias_encontradas": número,
+                    "divergencias": [
+                        {
+                            "funcionario": "nome",
+                            "cpf": "cpf",
+                            "campo": "campo divergente",
+                            "valor_esocial": valor,
+                            "valor_sistema": valor,
+                            "diferenca": valor,
+                            "severidade": "alta/media/baixa"
+                        }
+                    ],
+                    "resumo": "resumo da comparação",
+                    "recomendacoes": ["lista de ações recomendadas"]
+                }"""
+            ).with_model("gemini", "gemini-2.5-flash")
+            
+            mime_types = {".pdf": "application/pdf", ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
+            
+            file1 = FileContentWithMimeType(
+                file_path=tmp_path_esocial,
+                mime_type=mime_types.get(suffix_esocial.lower(), "application/pdf")
+            )
+            file2 = FileContentWithMimeType(
+                file_path=tmp_path_sistema,
+                mime_type=mime_types.get(suffix_sistema.lower(), "application/pdf")
+            )
+            
+            response = await chat.send_message(UserMessage(
+                text="Compare estes dois documentos de informe de rendimentos. O primeiro é do eSocial e o segundo é do sistema interno.",
+                file_contents=[file1, file2]
+            ))
+            
+            try:
+                response_text = response.strip()
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:]
+                if response_text.startswith("```"):
+                    response_text = response_text[3:]
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3]
+                
+                resultado = json.loads(response_text.strip())
+            except json.JSONDecodeError:
+                resultado = {
+                    "total_comparados": 0,
+                    "divergencias_encontradas": 0,
+                    "divergencias": [],
+                    "resumo": response,
+                    "recomendacoes": []
+                }
+            
+            # Save comparison record
+            comparacao_id = str(uuid.uuid4())
+            now = datetime.now(timezone.utc).isoformat()
+            
+            comparacao_doc = {
+                "id": comparacao_id,
+                **resultado,
+                "created_at": now,
+                "user_id": current_user["id"]
+            }
+            await db.comparacoes_informes.insert_one(comparacao_doc)
+            
+            return {"id": comparacao_id, **resultado}
+            
+        finally:
+            os.unlink(tmp_path_esocial)
+            os.unlink(tmp_path_sistema)
+            
+    except Exception as e:
+        logger.error(f"Erro na comparação: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao comparar informes: {str(e)}")
+
+# ==================== CONVENÇÃO COLETIVA (DISSÍDIO) ====================
+
+@api_router.post("/convencao/analisar")
+async def analisar_convencao(
+    file: UploadFile = File(...),
+    cliente_id: str = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Analyze union convention and extract adjustment data"""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        
+        content = await file.read()
+        suffix = Path(file.filename).suffix
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"convencao-{uuid.uuid4()}",
+                system_message="""Você é um especialista em convenções coletivas de trabalho.
+                Analise o documento e extraia:
+                1. Nome do sindicato
+                2. Percentual de reajuste salarial
+                3. Data-base da categoria
+                4. Piso salarial (se houver)
+                5. Benefícios alterados (VA, VT, etc)
+                6. Outras cláusulas importantes
+                
+                Retorne em JSON:
+                {
+                    "sindicato": "nome do sindicato",
+                    "percentual_reajuste": número (ex: 5.5),
+                    "data_base": "MM/YYYY",
+                    "piso_salarial": valor ou null,
+                    "beneficios": [
+                        {"tipo": "VA", "valor": 500, "alteracao": "aumento de 10%"}
+                    ],
+                    "clausulas_importantes": ["lista de cláusulas relevantes"],
+                    "vigencia_inicio": "DD/MM/YYYY",
+                    "vigencia_fim": "DD/MM/YYYY",
+                    "resumo": "resumo executivo da convenção"
+                }"""
+            ).with_model("gemini", "gemini-2.5-flash")
+            
+            file_content = FileContentWithMimeType(
+                file_path=tmp_path,
+                mime_type="application/pdf"
+            )
+            
+            response = await chat.send_message(UserMessage(
+                text="Analise esta convenção coletiva e extraia os dados de reajuste salarial e benefícios.",
+                file_contents=[file_content]
+            ))
+            
+            try:
+                response_text = response.strip()
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:]
+                if response_text.startswith("```"):
+                    response_text = response_text[3:]
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3]
+                
+                dados = json.loads(response_text.strip())
+            except json.JSONDecodeError:
+                dados = {"raw_response": response, "parsing_error": True}
+            
+            return {
+                "cliente_id": cliente_id,
+                "dados_convencao": dados,
+                "message": "Convenção analisada com sucesso. Revise os dados antes de aplicar o dissídio."
+            }
+            
+        finally:
+            os.unlink(tmp_path)
+            
+    except Exception as e:
+        logger.error(f"Erro na análise: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao analisar convenção: {str(e)}")
+
+# ==================== DASHBOARD ====================
+
+@api_router.get("/dashboard", response_model=DashboardStats)
+async def get_dashboard(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["id"]
+    
+    total_clientes = await db.clientes.count_documents({"user_id": user_id})
+    
+    clientes = await db.clientes.find({"user_id": user_id}, {"id": 1}).to_list(1000)
+    cliente_ids = [c["id"] for c in clientes]
+    
+    total_colaboradores = await db.colaboradores.count_documents({"cliente_id": {"$in": cliente_ids}})
+    dissidios_pendentes = await db.dissidios.count_documents({"user_id": user_id, "status": "pendente"})
+    admissoes_pendentes = await db.admissoes.count_documents({"user_id": user_id, "status": "pendente"})
+    validacoes_pendentes = await db.validacoes.count_documents({"user_id": user_id, "status": "pendente"})
+    
+    # Get recent activities
+    tarefas = []
+    
+    recent_dissidios = await db.dissidios.find(
+        {"user_id": user_id},
+        {"_id": 0, "id": 1, "sindicato": 1, "status": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(3)
+    for d in recent_dissidios:
+        tarefas.append({"tipo": "dissidio", "titulo": f"Dissídio - {d.get('sindicato', 'N/A')}", **d})
+    
+    recent_admissoes = await db.admissoes.find(
+        {"user_id": user_id},
+        {"_id": 0, "id": 1, "status": 1, "created_at": 1, "dados_extraidos": 1}
+    ).sort("created_at", -1).to_list(3)
+    for a in recent_admissoes:
+        nome = a.get("dados_extraidos", {}).get("nome", "Novo Funcionário")
+        tarefas.append({"tipo": "admissao", "titulo": f"Admissão - {nome}", "id": a["id"], "status": a["status"], "created_at": a["created_at"]})
+    
+    recent_validacoes = await db.validacoes.find(
+        {"user_id": user_id},
+        {"_id": 0, "id": 1, "status": 1, "created_at": 1, "mes_referencia": 1, "ano_referencia": 1}
+    ).sort("created_at", -1).to_list(3)
+    for v in recent_validacoes:
+        tarefas.append({"tipo": "validacao", "titulo": f"Validação {v.get('mes_referencia', '')}/{v.get('ano_referencia', '')}", "id": v["id"], "status": v["status"], "created_at": v["created_at"]})
+    
+    # Sort by date
+    tarefas.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    
+    return DashboardStats(
+        total_clientes=total_clientes,
+        total_colaboradores=total_colaboradores,
+        dissidios_pendentes=dissidios_pendentes,
+        admissoes_pendentes=admissoes_pendentes,
+        validacoes_pendentes=validacoes_pendentes,
+        tarefas_recentes=tarefas[:10]
+    )
+
+# ==================== HEALTH CHECK ====================
+
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Portal DP API - Online", "version": "1.0.0"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
-
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
+@api_router.get("/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -76,13 +1165,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
