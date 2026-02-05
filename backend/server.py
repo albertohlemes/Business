@@ -908,10 +908,18 @@ def parse_xml_nfse(xml_content: str) -> Dict[str, Any]:
             'numero_nfe': str(numero),
             'serie': '1',
             'data_emissao': data_emissao,
+            # Dados do prestador (emitente)
             'emitente_cnpj': cnpj_prestador,
             'emitente_nome': nome_prestador,
+            'emitente_ie': id_prestador.get('InscricaoMunicipal', ''),
+            'emitente_uf': prestador_endereco.get('uf', ''),
+            'emitente_endereco': prestador_endereco,
+            # Dados do tomador (destinatário)
             'destinatario_cnpj': cnpj_tomador,
             'destinatario_nome': nome_tomador,
+            'destinatario_ie': id_tomador.get('InscricaoMunicipal', ''),
+            'destinatario_uf': tomador_endereco.get('uf', ''),
+            'destinatario_endereco': tomador_endereco,
             'valor_total': valor_servicos,
             'valor_servicos': valor_servicos,
             'produtos': [],
