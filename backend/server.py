@@ -3300,6 +3300,187 @@ async def reprocess_batch(
     return results
 
 
+@api_router.post("/xml/reimport-batch")
+async def reimport_batch(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Re-importa completamente todos os XMLs de uma competência.
+    Funciona como se os documentos fossem apagados e importados novamente:
+    - Re-extrai TODOS os dados do XML original
+    - APAGA todas as classificações anteriores
+    - Aplica classificação da IA do zero
+    - Atualiza status normalmente
+    """
+    # Buscar documentos
+    documents = await db.xml_documents.find(
+        {"company_id": company_id, "competencia": competencia},
+        {"_id": 0}
+    ).to_list(2000)
+    
+    if not documents:
+        return {"success": False, "error": "Nenhum documento encontrado"}
+    
+    # Buscar dados da empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        return {"success": False, "error": "Empresa não encontrada"}
+    
+    uf_empresa = company.get('uf', 'SP')
+    
+    results = {
+        "total": len(documents), 
+        "success": 0, 
+        "errors": 0, 
+        "classificados": 0,
+        "entradas": 0,
+        "saidas": 0
+    }
+    
+    for doc in documents:
+        try:
+            xml_content = doc.get('xml_content', '')
+            if not xml_content:
+                results['errors'] += 1
+                continue
+            
+            # Re-parsear o XML completamente
+            modelo = doc.get('modelo', 'nfe')
+            if modelo == 'nfse':
+                parsed = parse_xml_nfse(xml_content)
+            elif modelo == 'nfce':
+                parsed = parse_xml_nfce(xml_content)
+            else:
+                parsed = parse_xml_nfe(xml_content)
+            
+            # Determinar tipo (entrada/saída) baseado no CNPJ
+            cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+            cnpj_emitente = parsed.get('cnpj_emitente', '').replace('.', '').replace('/', '').replace('-', '')
+            cnpj_destinatario = parsed.get('cnpj_destinatario', '').replace('.', '').replace('/', '').replace('-', '')
+            
+            if cnpj_emitente == cnpj_empresa:
+                tipo = 'saida'
+                results['saidas'] += 1
+            else:
+                tipo = 'entrada'
+                results['entradas'] += 1
+            
+            emitente_uf = parsed.get('emitente_uf', '')
+            produtos = parsed.get('produtos', [])
+            
+            # Para ENTRADAS: Classificar produtos com IA
+            if tipo == 'entrada' and produtos:
+                # Converter CFOPs de saída para entrada
+                for product in produtos:
+                    cfop = str(product.get('cfop', ''))
+                    if cfop.startswith('5') or cfop.startswith('6'):
+                        cfop_entrada = cfop.replace('5', '1', 1).replace('6', '2', 1)
+                        product['cfop_original'] = cfop
+                        product['cfop'] = cfop_entrada
+                
+                # Classificar com IA
+                try:
+                    classifications, stats = await classify_products_with_cache(
+                        produtos,
+                        company_id,
+                        company,
+                        emitente_uf
+                    )
+                    
+                    # Aplicar classificações
+                    for idx, product in enumerate(produtos):
+                        p_id = str(idx)
+                        if p_id in classifications:
+                            result = classifications[p_id]
+                            cfop_original = product.get('cfop_original', product.get('cfop', ''))
+                            cfop_novo = result['cfop']
+                            
+                            product['cfop_original'] = cfop_original
+                            product['cfop'] = cfop_novo
+                            product['cfop_sugerido'] = cfop_novo
+                            product['classificacao'] = result['categoria']
+                            product['categoria_classificada'] = result['categoria']
+                            product['justificativa_ia'] = result['justificativa']
+                            product['aprovado'] = False
+                            product['reclassificado'] = False
+                            results['classificados'] += 1
+                        else:
+                            # Fallback: REVENDA
+                            is_interestadual = emitente_uf and emitente_uf != uf_empresa
+                            cfop_prefix = '2' if is_interestadual else '1'
+                            cst = product.get('cst', '')
+                            is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+                            cfop_novo = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
+                            
+                            product['cfop'] = cfop_novo
+                            product['cfop_sugerido'] = cfop_novo
+                            product['classificacao'] = 'revenda'
+                            product['categoria_classificada'] = 'revenda'
+                            product['justificativa_ia'] = 'Classificação padrão: REVENDA'
+                            product['aprovado'] = False
+                            product['reclassificado'] = False
+                            results['classificados'] += 1
+                            
+                except Exception as e:
+                    print(f"Erro na classificação IA: {e}")
+                    # Se falhar IA, aplicar fallback para todos
+                    for product in produtos:
+                        is_interestadual = emitente_uf and emitente_uf != uf_empresa
+                        cfop_prefix = '2' if is_interestadual else '1'
+                        product['cfop'] = cfop_prefix + '102'
+                        product['cfop_sugerido'] = cfop_prefix + '102'
+                        product['classificacao'] = 'revenda'
+                        product['categoria_classificada'] = 'revenda'
+                        product['justificativa_ia'] = 'Classificação padrão: REVENDA (fallback)'
+                        product['aprovado'] = False
+                        product['reclassificado'] = False
+            
+            # Atualizar documento com TODOS os dados re-extraídos
+            update_data = {
+                'tipo': tipo,
+                'produtos': produtos,
+                'valor_total': parsed.get('valor_total', 0),
+                'data_emissao': parsed.get('data_emissao'),
+                'numero_nfe': parsed.get('numero_nfe', ''),
+                'chave_acesso': parsed.get('chave_acesso', ''),
+                'emitente_nome': parsed.get('emitente_nome', ''),
+                'emitente_cnpj': parsed.get('cnpj_emitente', ''),
+                'emitente_uf': emitente_uf,
+                'emitente_ie': parsed.get('emitente_ie', ''),
+                'emitente_endereco': parsed.get('emitente_endereco', {}),
+                'destinatario_nome': parsed.get('destinatario_nome', ''),
+                'destinatario_cnpj': parsed.get('cnpj_destinatario', ''),
+                'destinatario_ie': parsed.get('destinatario_ie', ''),
+                'destinatario_endereco': parsed.get('destinatario_endereco', {}),
+                'total_icms': parsed.get('total_icms', 0),
+                'total_icms_st': parsed.get('total_icms_st', 0),
+                'total_ipi': parsed.get('total_ipi', 0),
+                'total_pis': parsed.get('total_pis', 0),
+                'total_cofins': parsed.get('total_cofins', 0),
+                'total_frete': parsed.get('total_frete', 0),
+                'total_seguro': parsed.get('total_seguro', 0),
+                'total_outras_despesas': parsed.get('total_outras_despesas', 0),
+                'total_desconto': parsed.get('total_desconto', 0),
+                'status_validacao': 'pendente',  # Reset para pendente
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }
+            
+            await db.xml_documents.update_one(
+                {"id": doc['id']},
+                {"$set": update_data}
+            )
+            
+            results['success'] += 1
+                
+        except Exception as e:
+            print(f"Erro ao reimportar documento: {e}")
+            results['errors'] += 1
+    
+    return results
+
+
 @api_router.get("/xml/validate-integrity/{document_id}")
 async def validate_document_integrity(
     document_id: str,
