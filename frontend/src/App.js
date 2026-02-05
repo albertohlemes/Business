@@ -110,9 +110,13 @@ function App() {
               path="/analise-saidas"
               element={user ? <AnaliseSaidas user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/analise-pis-cofins"
+              element={user ? <AnalisePisCofins user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
             {/* Rotas antigas redirecionam */}
             <Route path="/analise-aliquotas-saida" element={<Navigate to="/analise-saidas" />} />
-            <Route path="/divergencias-saida" element={<Navigate to="/analise-saidas" />} />
+            <Route path="/divergencias-saida" element={<Navigate to="/analise-pis-cofins" />} />
             <Route path="/apuracao" element={<Navigate to="/apuracao-mensal" />} />
             <Route path="/apuracao-pis-cofins" element={<Navigate to="/apuracao-mensal" />} />
           </Routes>
