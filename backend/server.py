@@ -648,6 +648,7 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                 'unidade': prod.get('uCom', ''),
                 'v_bc_icms': v_bc,
                 'v_icms': v_icms,
+                'p_icms': p_icms,  # Alíquota de ICMS
                 'v_bc_icms_st': v_bc_st,
                 'v_icms_st': v_icms_st,
                 'v_ipi': v_ipi,
@@ -656,7 +657,11 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                 'v_outras_despesas': v_outro_item,
                 'v_desconto': v_desc_item,
                 'v_pis': v_pis,
-                'v_cofins': v_cofins
+                'v_bc_pis': v_bc_pis,  # Base de cálculo do PIS
+                'p_pis': p_pis,  # Alíquota de PIS
+                'v_cofins': v_cofins,
+                'v_bc_cofins': v_bc_cofins,  # Base de cálculo da COFINS
+                'p_cofins': p_cofins  # Alíquota de COFINS
             })
         
         return {
