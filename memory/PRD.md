@@ -36,23 +36,21 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - ✅ Download Excel da prévia
 - ✅ Aprovação/Rejeição com aplicação automática
 
-### Validação de Folha (REFATORADO - 05/02/2026)
-- ✅ **Interface Unificada**: Uma única tela com 3 áreas de upload
-  - **Holerite Atual** (obrigatório): Documento principal a ser validado
-  - **Holerite Mês Anterior** (opcional): Para comparação mês a mês
-  - **Arquivos de Apoio** (opcional, múltiplos): Emails, planilhas, imagens, PDFs
-- ✅ **OCR Local (Tesseract)**: Extração gratuita e rápida de texto
-  - Suporte a PDF, imagens (JPG, PNG), TXT, Excel
-  - Parser inteligente para formato brasileiro (1.234,56) e americano (1234.56)
-- ✅ **Análise Inteligente**:
-  - Extração automática de funcionário, competência, proventos, descontos, líquido
-  - Comparação com mês anterior (detecta variações >10%)
-  - Identificação de divergências com severidade (alta/média/baixa)
-  - Cálculo de impacto financeiro
-- ✅ **Histórico Consultável**:
-  - Validações agrupadas por competência
-  - Badges de tipo (Análise Isolada, Comparação Mensal, Com Apoio)
-  - Detalhes expandíveis por validação
+### Validação de Folha por Colaborador (NOVO - 05/02/2026)
+- ✅ **Extração de Múltiplos Colaboradores**: Processa folha de pagamento completa e extrai cada funcionário individualmente
+- ✅ **Comparação Individual com Mês Anterior**: Cada colaborador é comparado com seu correspondente no mês anterior
+  - Calcula variação percentual por campo (proventos, descontos, líquido, etc.)
+  - Detecta divergências significativas (>10%) com classificação de severidade
+  - Identifica colaboradores novos (não encontrados no mês anterior)
+- ✅ **Cruzamento com Arquivos de Apoio**: 
+  - Extrai referências do documento de apoio (Ex: "João - 15 horas extras")
+  - Cruza com os dados do holerite de cada colaborador
+  - Detecta divergências (Ex: Apoio diz 15 HE, holerite mostra 7 = DIVERGÊNCIA)
+- ✅ **Visualização por Colaborador**:
+  - Tabela com Status/Nome/Líquido/Variação/Problemas por colaborador
+  - Estatísticas: OK / Atenção / Divergente
+  - Impacto financeiro total calculado
+- ✅ **OCR Local (Tesseract)**: Zero custo de API para extração de texto
 
 ### Informes de Rendimento (COMPLETO)
 - ✅ Comparação **eSocial vs SCI Único**
@@ -91,8 +89,8 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 
 ### Validação de Folha
 - `GET /api/validacoes` - Lista validações (filtro por cliente opcional)
-- `GET /api/validacoes/{id}` - Detalhes completos
-- `POST /api/validacoes/validar-completa` - Validação unificada com OCR local
+- `GET /api/validacoes/{id}` - Detalhes completos com array de colaboradores
+- `POST /api/validacoes/validar-completa` - Validação com suporte a múltiplos colaboradores
 
 ### Informes de Rendimento
 - `GET /api/informes/historico`, `POST /api/informes/comparar`
@@ -124,10 +122,15 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - Email: teste@emergent.com
 - Senha: Teste123!
 - Empresa: Empresa Nova (CNPJ 98765432000188)
+- Cliente ID: 897c7b37-a18f-4e66-9562-961697a460b3
 
 ## Última Atualização
 - **Data**: 05/02/2026
-- **Funcionalidade**: Validação de Folha de Pagamento (Refatoração completa)
-- **Mudança**: Migração de API de IA paga para OCR local (Tesseract)
-- **Resultado**: ✅ 100% dos testes passaram (Backend 17/17, Frontend OK)
-- **Relatório**: /app/test_reports/iteration_11.json
+- **Funcionalidade**: Validação de Folha POR COLABORADOR
+- **Mudanças**:
+  - Extração de múltiplos colaboradores de uma folha
+  - Comparação individual com mês anterior (variação percentual)
+  - Cruzamento com arquivos de apoio por colaborador
+  - Tabela de colaboradores na visualização expandida
+- **Resultado**: ✅ 100% dos testes passaram (Backend 16/16, Frontend OK)
+- **Relatório**: /app/test_reports/iteration_12.json
