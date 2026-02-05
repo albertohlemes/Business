@@ -1277,10 +1277,132 @@ Esta é uma minuta preliminar. Revise e ajuste conforme necessário.
 
 @api_router.delete("/minutas/{minuta_id}")
 async def delete_minuta(minuta_id: str, current_user: dict = Depends(get_current_user)):
-    result = await db.minutas.delete_one({"id": minuta_id})
-    if result.deleted_count == 0:
+    """Move processo para a lixeira (soft delete)"""
+    result = await db.minutas.update_one(
+        {"id": minuta_id, "deleted": {"$ne": True}},
+        {
+            "$set": {
+                "deleted": True,
+                "deleted_at": datetime.now(timezone.utc).isoformat(),
+                "deleted_by": current_user["id"]
+            }
+        }
+    )
+    if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Minuta não encontrada")
-    return {"message": "Minuta removida com sucesso"}
+    return {"message": "Processo movido para a lixeira"}
+
+# ============ ENDPOINTS DE LIXEIRA ============
+
+@api_router.get("/lixeira")
+async def listar_lixeira(current_user: dict = Depends(get_current_user)):
+    """Lista todos os processos na lixeira"""
+    minutas = await db.minutas.find(
+        {"deleted": True},
+        {"_id": 0, "user_id": 0, "mensagens": 0}
+    ).sort("deleted_at", -1).to_list(100)
+    
+    return {
+        "total": len(minutas),
+        "processos": [{
+            "id": m["id"],
+            "tipo_alteracao": m["tipo_alteracao"],
+            "tipo_processo": m.get("tipo_processo"),
+            "descricao": m.get("descricao", ""),
+            "razao_social": m.get("razao_social"),
+            "cnpj": m.get("cnpj"),
+            "status": m["status"],
+            "created_at": m["created_at"],
+            "deleted_at": m.get("deleted_at")
+        } for m in minutas]
+    }
+
+@api_router.post("/lixeira/{minuta_id}/restaurar")
+async def restaurar_da_lixeira(minuta_id: str, current_user: dict = Depends(get_current_user)):
+    """Restaura um processo da lixeira"""
+    result = await db.minutas.update_one(
+        {"id": minuta_id, "deleted": True},
+        {
+            "$set": {"deleted": False},
+            "$unset": {"deleted_at": "", "deleted_by": ""}
+        }
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Processo não encontrado na lixeira")
+    return {"message": "Processo restaurado com sucesso"}
+
+@api_router.delete("/lixeira/{minuta_id}/permanente")
+async def deletar_permanente(minuta_id: str, current_user: dict = Depends(get_current_user)):
+    """Deleta permanentemente um processo da lixeira"""
+    result = await db.minutas.delete_one({"id": minuta_id, "deleted": True})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Processo não encontrado na lixeira")
+    return {"message": "Processo excluído permanentemente"}
+
+@api_router.post("/lixeira/esvaziar")
+async def esvaziar_lixeira(current_user: dict = Depends(get_current_user)):
+    """Esvazia toda a lixeira (deleta permanentemente todos)"""
+    result = await db.minutas.delete_many({"deleted": True})
+    return {"message": f"{result.deleted_count} processo(s) excluído(s) permanentemente"}
+
+# ============ ENDPOINTS DE MULTI-SELEÇÃO ============
+
+class MultiDeleteRequest(BaseModel):
+    ids: List[str]
+
+@api_router.post("/minutas/deletar-multiplos")
+async def deletar_multiplos(request: MultiDeleteRequest, current_user: dict = Depends(get_current_user)):
+    """Move múltiplos processos para a lixeira"""
+    if not request.ids:
+        raise HTTPException(status_code=400, detail="Nenhum ID fornecido")
+    
+    result = await db.minutas.update_many(
+        {"id": {"$in": request.ids}, "deleted": {"$ne": True}},
+        {
+            "$set": {
+                "deleted": True,
+                "deleted_at": datetime.now(timezone.utc).isoformat(),
+                "deleted_by": current_user["id"]
+            }
+        }
+    )
+    return {
+        "message": f"{result.modified_count} processo(s) movido(s) para a lixeira",
+        "deleted_count": result.modified_count
+    }
+
+class MultiRestoreRequest(BaseModel):
+    ids: List[str]
+
+@api_router.post("/lixeira/restaurar-multiplos")
+async def restaurar_multiplos(request: MultiRestoreRequest, current_user: dict = Depends(get_current_user)):
+    """Restaura múltiplos processos da lixeira"""
+    if not request.ids:
+        raise HTTPException(status_code=400, detail="Nenhum ID fornecido")
+    
+    result = await db.minutas.update_many(
+        {"id": {"$in": request.ids}, "deleted": True},
+        {
+            "$set": {"deleted": False},
+            "$unset": {"deleted_at": "", "deleted_by": ""}
+        }
+    )
+    return {
+        "message": f"{result.modified_count} processo(s) restaurado(s)",
+        "restored_count": result.modified_count
+    }
+
+@api_router.post("/lixeira/deletar-permanente-multiplos")
+async def deletar_permanente_multiplos(request: MultiDeleteRequest, current_user: dict = Depends(get_current_user)):
+    """Deleta permanentemente múltiplos processos da lixeira"""
+    if not request.ids:
+        raise HTTPException(status_code=400, detail="Nenhum ID fornecido")
+    
+    result = await db.minutas.delete_many({"id": {"$in": request.ids}, "deleted": True})
+    return {
+        "message": f"{result.deleted_count} processo(s) excluído(s) permanentemente",
+        "deleted_count": result.deleted_count
+    }
 
 # ============ TEMPLATES DE FORMATAÇÃO ============
 
