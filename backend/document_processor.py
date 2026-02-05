@@ -59,15 +59,39 @@ class DocumentProcessor:
     def extract_text(self, file_path: str) -> str:
         """Extrai texto de qualquer arquivo suportado"""
         suffix = Path(file_path).suffix.lower()
+        logger.info(f"extract_text: arquivo={file_path}, extensão={suffix}")
         
         if suffix == '.pdf':
             return self.extract_text_from_pdf(file_path)
         elif suffix in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']:
             return self.extract_text_from_image(file_path)
         elif suffix in ['.txt', '.csv']:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                return f.read()
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                    logger.info(f"Lido arquivo texto: {len(content)} caracteres")
+                    return content
+            except Exception as e:
+                logger.error(f"Erro ao ler arquivo texto: {e}")
+                return ""
+        elif suffix in ['.xlsx', '.xls']:
+            # Tentar extrair texto de Excel
+            try:
+                import openpyxl
+                wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
+                text_parts = []
+                for sheet in wb.worksheets:
+                    for row in sheet.iter_rows(values_only=True):
+                        row_text = ' '.join([str(cell) for cell in row if cell is not None])
+                        if row_text.strip():
+                            text_parts.append(row_text)
+                wb.close()
+                return '\n'.join(text_parts)
+            except Exception as e:
+                logger.error(f"Erro ao ler Excel: {e}")
+                return ""
         else:
+            logger.warning(f"Extensão não suportada: {suffix}")
             return ""
     
     def parse_colaboradores_from_text(self, text: str) -> List[Dict[str, Any]]:
