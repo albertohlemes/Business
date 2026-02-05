@@ -464,31 +464,43 @@ const ExportMenu = ({ user, onLogout }) => {
                     {/* Itens Pendentes de Correção */}
                     {validacao.itens_pendentes && validacao.itens_pendentes.length > 0 && (
                       <div className="bg-orange-50 rounded-lg border border-orange-200">
-                        <div className="p-3 bg-orange-100 border-b border-orange-200 font-semibold text-orange-800 flex items-center gap-2">
-                          <AlertTriangle className="w-5 h-5" />
-                          Itens com ICMS Zerado (CST indica tributação)
+                        <div className="p-3 bg-orange-100 border-b border-orange-200 font-semibold text-orange-800 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5" />
+                            Itens com ICMS Zerado (CST indica tributação)
+                          </div>
+                          <span className="text-sm font-normal">Clique em "Corrigir" para tomar uma decisão</span>
                         </div>
-                        <div className="max-h-60 overflow-y-auto">
+                        <div className="max-h-72 overflow-y-auto">
                           <table className="w-full text-sm">
                             <thead className="bg-orange-100 sticky top-0">
                               <tr>
-                                <th className="px-3 py-2 text-left">Tipo</th>
-                                <th className="px-3 py-2 text-left">CFOP</th>
-                                <th className="px-3 py-2 text-left">Descrição</th>
-                                <th className="px-3 py-2 text-left">NCM</th>
-                                <th className="px-3 py-2 text-right">Valor</th>
-                                <th className="px-3 py-2 text-center">CST</th>
+                                <th className="px-2 py-2 text-left">NF</th>
+                                <th className="px-2 py-2 text-left">CFOP</th>
+                                <th className="px-2 py-2 text-left">Descrição</th>
+                                <th className="px-2 py-2 text-right">Valor</th>
+                                <th className="px-2 py-2 text-center">CST</th>
+                                <th className="px-2 py-2 text-center">Ação</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-orange-200">
                               {validacao.itens_pendentes.map((item, idx) => (
                                 <tr key={idx} className="hover:bg-orange-100">
-                                  <td className="px-3 py-2 capitalize">{item.tipo}</td>
-                                  <td className="px-3 py-2 font-mono">{item.cfop}</td>
-                                  <td className="px-3 py-2 truncate max-w-[200px]">{item.descricao}</td>
-                                  <td className="px-3 py-2 font-mono">{item.ncm}</td>
-                                  <td className="px-3 py-2 text-right font-mono">R$ {item.valor?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                                  <td className="px-3 py-2 text-center font-mono text-orange-700 font-bold">{item.cst}</td>
+                                  <td className="px-2 py-2 font-mono text-xs">{item.numero_nf}</td>
+                                  <td className="px-2 py-2 font-mono">{item.cfop}</td>
+                                  <td className="px-2 py-2 truncate max-w-[150px]" title={item.descricao}>{item.descricao}</td>
+                                  <td className="px-2 py-2 text-right font-mono">R$ {item.valor?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                  <td className="px-2 py-2 text-center font-mono text-orange-700 font-bold">{item.cst}</td>
+                                  <td className="px-2 py-2 text-center">
+                                    <button
+                                      onClick={() => abrirCorrecaoItem(item)}
+                                      className="px-2 py-1 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded font-medium flex items-center gap-1 mx-auto"
+                                      data-testid={`corrigir-item-${idx}`}
+                                    >
+                                      <Edit className="w-3 h-3" />
+                                      Corrigir
+                                    </button>
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
@@ -499,6 +511,57 @@ const ExportMenu = ({ user, onLogout }) => {
                             Mostrando 100 de {validacao.total_itens_pendentes} itens pendentes
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    {/* Modal de Correção */}
+                    {modalCorrecao && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setModalCorrecao(null)}>
+                        <div className="bg-white rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center gap-3 mb-4 pb-4 border-b">
+                            <AlertTriangle className="w-8 h-8 text-orange-500" />
+                            <div>
+                              <h3 className="font-bold text-lg text-gray-900">Corrigir Item Pendente</h3>
+                              <p className="text-sm text-gray-600">NF: {modalCorrecao.numero_nf} | CFOP: {modalCorrecao.cfop}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-orange-50 rounded-lg p-4 mb-4">
+                            <p className="text-sm text-gray-700 mb-2"><strong>Produto:</strong> {modalCorrecao.descricao}</p>
+                            <p className="text-sm text-gray-700 mb-2"><strong>NCM:</strong> {modalCorrecao.ncm} | <strong>Valor:</strong> R$ {modalCorrecao.valor?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                            <p className="text-sm text-orange-700 font-medium"><strong>Problema:</strong> CST {modalCorrecao.cst} indica tributação, mas ICMS = R$ 0,00</p>
+                          </div>
+                          
+                          <p className="text-sm text-gray-600 mb-4">Escolha uma ação:</p>
+                          
+                          <div className="space-y-3">
+                            <button
+                              onClick={() => aplicarCorrecao('manter')}
+                              className="w-full p-3 bg-gray-100 hover:bg-gray-200 rounded-lg text-left transition-colors"
+                            >
+                              <div className="font-medium text-gray-900">✓ Manter como está</div>
+                              <div className="text-xs text-gray-600">O ICMS será exportado como R$ 0,00 (pode gerar alerta no PVA)</div>
+                            </button>
+                            
+                            <button
+                              onClick={() => aplicarCorrecao('ir_para_documento')}
+                              className="w-full p-3 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-colors flex items-center gap-3"
+                            >
+                              <ExternalLink className="w-5 h-5 text-blue-600" />
+                              <div>
+                                <div className="font-medium text-blue-900">Ir para o Documento</div>
+                                <div className="text-xs text-blue-700">Abrir a NF-e para editar manualmente (classificação, CST, etc.)</div>
+                              </div>
+                            </button>
+                          </div>
+                          
+                          <button
+                            onClick={() => setModalCorrecao(null)}
+                            className="w-full mt-4 p-2 text-gray-600 hover:text-gray-800 text-sm"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
                       </div>
                     )}
 
