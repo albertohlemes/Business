@@ -51,21 +51,6 @@ const AnalisePisCofins = ({ user, onLogout }) => {
       fetchData();
     }
   }, [selectedCompany, selectedCompetencia, fetchData]);
-    
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${API}/analise-pis-cofins-completa/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setDados(response.data);
-    } catch (err) {
-      console.error('Erro ao carregar dados:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -80,9 +65,6 @@ const AnalisePisCofins = ({ user, onLogout }) => {
       direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
     }));
   };
-
-  const SortIcon = ({ columnKey }) => {
-    if (sortConfig.key !== columnKey) return <ChevronUp className="w-4 h-4 opacity-30" />;
     return sortConfig.direction === 'asc' 
       ? <ChevronUp className="w-4 h-4" /> 
       : <ChevronDown className="w-4 h-4" />;
