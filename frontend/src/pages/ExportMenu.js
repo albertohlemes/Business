@@ -469,7 +469,7 @@ const ExportMenu = ({ user, onLogout }) => {
                             <AlertTriangle className="w-5 h-5" />
                             Itens com ICMS Zerado (CST indica tributação)
                           </div>
-                          <span className="text-sm font-normal">Clique em "Corrigir" para tomar uma decisão</span>
+                          <span className="text-sm font-normal">Clique em &quot;Corrigir&quot; para tomar uma decisão</span>
                         </div>
                         <div className="max-h-72 overflow-y-auto">
                           <table className="w-full text-sm">
