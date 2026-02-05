@@ -6,9 +6,13 @@ import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Input } from '../components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
-import { ClipboardCheck, Upload, Loader2, FileUp, AlertTriangle, CheckCircle2, XCircle, FileText, ArrowLeftRight, Calendar, Building2 } from 'lucide-react';
+import { 
+  ClipboardCheck, Upload, Loader2, FileUp, AlertTriangle, CheckCircle2, 
+  XCircle, FileText, Calendar, Building2, X, Eye, TrendingUp, TrendingDown,
+  Minus, ChevronDown, ChevronUp, History, Search, Filter
+} from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useEmpresa } from '../contexts/EmpresaContext';
 
@@ -21,29 +25,47 @@ const ValidacaoFolha = () => {
   const [uploading, setUploading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [resultDialogOpen, setResultDialogOpen] = useState(false);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState('');
   const [mesReferencia, setMesReferencia] = useState('');
   const [anoReferencia, setAnoReferencia] = useState(new Date().getFullYear().toString());
   const [analysisResult, setAnalysisResult] = useState(null);
-  const [validationType, setValidationType] = useState('folha'); // 'folha' or 'apoio'
-  const [holeriteFile, setHoleriteFile] = useState(null);
-  const [apoioFile, setApoioFile] = useState(null);
-  const { empresaSelecionada } = useEmpresa();
+  const [selectedValidacao, setSelectedValidacao] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  
+  // Files state
+  const [holeriteAtual, setHoleriteAtual] = useState(null);
+  const [holeriteAnterior, setHoleriteAnterior] = useState(null);
+  const [apoioFiles, setApoioFiles] = useState([]);
+  
+  // Filters
+  const [filterCliente, setFilterCliente] = useState('all');
+  const [filterCompetencia, setFilterCompetencia] = useState('');
+  const [expandedRows, setExpandedRows] = useState({});
+  
+  const { empresaSelecionada, competenciaSelecionada } = useEmpresa();
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [filterCliente]);
 
   useEffect(() => {
-    if (empresaSelecionada && !selectedCliente) {
+    if (empresaSelecionada) {
       setSelectedCliente(empresaSelecionada.id);
+      setFilterCliente(empresaSelecionada.id);
     }
-  }, [empresaSelecionada]);
+    if (competenciaSelecionada) {
+      const [mes, ano] = competenciaSelecionada.split('/');
+      setMesReferencia(mes);
+      setAnoReferencia(ano);
+    }
+  }, [empresaSelecionada, competenciaSelecionada]);
 
   const fetchData = async () => {
     try {
+      const params = filterCliente !== 'all' ? `?cliente_id=${filterCliente}` : '';
       const [validacoesRes, clientesRes] = await Promise.all([
-        axios.get(`${API_URL}/api/validacoes`),
+        axios.get(`${API_URL}/api/validacoes${params}`),
         axios.get(`${API_URL}/api/clientes`)
       ]);
       setValidacoes(validacoesRes.data);
@@ -55,121 +77,118 @@ const ValidacaoFolha = () => {
     }
   };
 
-  // Dropzone for folha analysis
-  const onDropFolha = useCallback(async (acceptedFiles) => {
-    if (acceptedFiles.length === 0) return;
-    if (!selectedCliente) {
-      toast.error('Selecione uma empresa primeiro');
-      return;
-    }
-
-    const file = acceptedFiles[0];
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('cliente_id', selectedCliente);
-    formData.append('mes_referencia', mesReferencia);
-    formData.append('ano_referencia', parseInt(anoReferencia));
-
-    setUploading(true);
+  const fetchValidacaoDetail = async (id) => {
+    setLoadingDetail(true);
     try {
-      const response = await axios.post(`${API_URL}/api/validacoes/analisar`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setAnalysisResult(response.data);
-      setDialogOpen(false);
-      setResultDialogOpen(true);
-      toast.success('Análise concluída!');
-      fetchData();
+      const response = await axios.get(`${API_URL}/api/validacoes/${id}`);
+      setSelectedValidacao(response.data);
+      setDetailDialogOpen(true);
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erro ao analisar folha');
+      toast.error('Erro ao carregar detalhes');
     } finally {
-      setUploading(false);
+      setLoadingDetail(false);
     }
-  }, [selectedCliente, mesReferencia, anoReferencia]);
+  };
 
-  const { getRootProps: getRootPropsFolha, getInputProps: getInputPropsFolha, isDragActive: isDragActiveFolha } = useDropzone({
-    onDrop: onDropFolha,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'text/csv': ['.csv']
-    },
-    maxFiles: 1,
-    disabled: validationType !== 'folha'
-  });
-
-  // Dropzones for holerite and apoio comparison
-  const onDropHolerite = useCallback((acceptedFiles) => {
+  // Dropzones
+  const onDropHoleriteAtual = useCallback((acceptedFiles) => {
     if (acceptedFiles.length > 0) {
-      setHoleriteFile(acceptedFiles[0]);
-      toast.success('Holerite carregado');
+      setHoleriteAtual(acceptedFiles[0]);
+      toast.success('Holerite atual carregado');
+    }
+  }, []);
+
+  const onDropHoleriteAnterior = useCallback((acceptedFiles) => {
+    if (acceptedFiles.length > 0) {
+      setHoleriteAnterior(acceptedFiles[0]);
+      toast.success('Holerite mês anterior carregado');
     }
   }, []);
 
   const onDropApoio = useCallback((acceptedFiles) => {
     if (acceptedFiles.length > 0) {
-      setApoioFile(acceptedFiles[0]);
-      toast.success('Relatório de apoio carregado');
+      setApoioFiles(prev => [...prev, ...acceptedFiles]);
+      toast.success(`${acceptedFiles.length} arquivo(s) de apoio carregado(s)`);
     }
   }, []);
 
-  const { getRootProps: getRootPropsHolerite, getInputProps: getInputPropsHolerite, isDragActive: isDragActiveHolerite } = useDropzone({
-    onDrop: onDropHolerite,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'text/csv': ['.csv'],
-      'image/*': ['.jpg', '.jpeg', '.png']
-    },
+  const fileAcceptConfig = {
+    'application/pdf': ['.pdf'],
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+    'application/vnd.ms-excel': ['.xls'],
+    'text/csv': ['.csv'],
+    'image/*': ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+  };
+
+  const apoioAcceptConfig = {
+    ...fileAcceptConfig,
+    'text/plain': ['.txt'],
+    'message/rfc822': ['.eml']
+  };
+
+  const { getRootProps: getRootPropsAtual, getInputProps: getInputPropsAtual, isDragActive: isDragActiveAtual } = useDropzone({
+    onDrop: onDropHoleriteAtual,
+    accept: fileAcceptConfig,
+    maxFiles: 1
+  });
+
+  const { getRootProps: getRootPropsAnterior, getInputProps: getInputPropsAnterior, isDragActive: isDragActiveAnterior } = useDropzone({
+    onDrop: onDropHoleriteAnterior,
+    accept: fileAcceptConfig,
     maxFiles: 1
   });
 
   const { getRootProps: getRootPropsApoio, getInputProps: getInputPropsApoio, isDragActive: isDragActiveApoio } = useDropzone({
     onDrop: onDropApoio,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'text/csv': ['.csv'],
-      'image/*': ['.jpg', '.jpeg', '.png'],
-      'text/plain': ['.txt'],
-      'message/rfc822': ['.eml'],
-      'application/vnd.ms-outlook': ['.msg']
-    },
-    maxFiles: 1
+    accept: apoioAcceptConfig,
+    multiple: true
   });
 
-  const handleCompareDocuments = async () => {
+  const removeApoioFile = (index) => {
+    setApoioFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleValidar = async () => {
     if (!selectedCliente) {
-      toast.error('Selecione uma empresa primeiro');
+      toast.error('Selecione uma empresa');
       return;
     }
-    if (!holeriteFile || !apoioFile) {
-      toast.error('Carregue ambos os documentos');
+    if (!holeriteAtual) {
+      toast.error('Carregue o holerite do mês atual');
+      return;
+    }
+    if (!mesReferencia || !anoReferencia) {
+      toast.error('Informe a competência');
       return;
     }
 
     const formData = new FormData();
-    formData.append('holerite', holeriteFile);
-    formData.append('apoio', apoioFile);
+    formData.append('holerite_atual', holeriteAtual);
     formData.append('cliente_id', selectedCliente);
     formData.append('mes_referencia', mesReferencia);
     formData.append('ano_referencia', parseInt(anoReferencia));
+    
+    if (holeriteAnterior) {
+      formData.append('holerite_anterior', holeriteAnterior);
+    }
+    
+    apoioFiles.forEach(file => {
+      formData.append('apoio_files', file);
+    });
 
     setUploading(true);
     try {
-      const response = await axios.post(`${API_URL}/api/validacoes/comparar-apoio`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const response = await axios.post(`${API_URL}/api/validacoes/validar-completa`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 180000 // 3 minutes for complex analysis
       });
       setAnalysisResult(response.data);
       setDialogOpen(false);
       setResultDialogOpen(true);
-      toast.success('Comparação concluída!');
+      toast.success('Validação concluída!');
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erro ao comparar documentos');
+      toast.error(error.response?.data?.detail || 'Erro ao validar folha');
     } finally {
       setUploading(false);
     }
@@ -177,11 +196,17 @@ const ValidacaoFolha = () => {
 
   const resetDialog = () => {
     setSelectedCliente(empresaSelecionada?.id || '');
-    setMesReferencia('');
-    setAnoReferencia(new Date().getFullYear().toString());
-    setValidationType('folha');
-    setHoleriteFile(null);
-    setApoioFile(null);
+    if (competenciaSelecionada) {
+      const [mes, ano] = competenciaSelecionada.split('/');
+      setMesReferencia(mes);
+      setAnoReferencia(ano);
+    } else {
+      setMesReferencia('');
+      setAnoReferencia(new Date().getFullYear().toString());
+    }
+    setHoleriteAtual(null);
+    setHoleriteAnterior(null);
+    setApoioFiles([]);
     setAnalysisResult(null);
   };
 
@@ -190,26 +215,55 @@ const ValidacaoFolha = () => {
     return cliente?.nome_fantasia || cliente?.razao_social || 'N/A';
   };
 
-  const getSeverityIcon = (severity) => {
-    switch (severity) {
-      case 'alta':
-        return <XCircle className="text-rose-500" size={16} />;
-      case 'media':
-        return <AlertTriangle className="text-amber-500" size={16} />;
-      default:
-        return <AlertTriangle className="text-blue-500" size={16} />;
-    }
-  };
-
   const getSeverityBadge = (severity) => {
     switch (severity) {
       case 'alta':
-        return <span className="badge-error">Alta</span>;
+        return <Badge variant="destructive" className="text-xs">Alta</Badge>;
       case 'media':
-        return <span className="badge-pending">Média</span>;
+        return <Badge variant="outline" className="text-xs border-amber-500 text-amber-600">Média</Badge>;
       default:
-        return <span className="badge-processing">Baixa</span>;
+        return <Badge variant="secondary" className="text-xs">Baixa</Badge>;
     }
+  };
+
+  const getTipoValidacaoLabel = (tipo) => {
+    switch (tipo) {
+      case 'completa':
+        return <Badge className="bg-indigo-600">Completa</Badge>;
+      case 'comparacao_mensal':
+        return <Badge className="bg-blue-600">Comparação Mensal</Badge>;
+      case 'comparacao_apoio':
+        return <Badge className="bg-emerald-600">Com Apoio</Badge>;
+      case 'analise_isolada':
+        return <Badge variant="outline">Análise Isolada</Badge>;
+      default:
+        return <Badge variant="secondary">{tipo || 'Análise'}</Badge>;
+    }
+  };
+
+  const toggleRow = (id) => {
+    setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const filteredValidacoes = validacoes.filter(v => {
+    if (filterCompetencia) {
+      const comp = `${v.mes_referencia}/${v.ano_referencia}`;
+      if (!comp.includes(filterCompetencia)) return false;
+    }
+    return true;
+  });
+
+  // Group validacoes by competencia
+  const groupedValidacoes = filteredValidacoes.reduce((acc, v) => {
+    const key = `${v.mes_referencia}/${v.ano_referencia}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(v);
+    return acc;
+  }, {});
+
+  const formatCurrency = (value) => {
+    if (!value && value !== 0) return '-';
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
   if (loading) {
@@ -226,388 +280,186 @@ const ValidacaoFolha = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Validação de Folha</h1>
-          <p className="text-slate-500 mt-1">Analise holerites e compare com relatórios de apoio</p>
+          <p className="text-slate-500 mt-1">Análise cirúrgica de holerites com comparação inteligente</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetDialog(); }}>
-          <Button
-            data-testid="nova-validacao-btn"
-            onClick={() => setDialogOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700"
-            disabled={clientes.length === 0}
-          >
-            <ClipboardCheck size={18} className="mr-2" />
-            Nova Validação
-          </Button>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Validar Folha de Pagamento</DialogTitle>
-            </DialogHeader>
-            
-            <Tabs value={validationType} onValueChange={setValidationType} className="mt-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="folha" className="flex items-center gap-2">
-                  <FileText size={16} />
-                  Análise da Folha
-                </TabsTrigger>
-                <TabsTrigger value="apoio" className="flex items-center gap-2">
-                  <ArrowLeftRight size={16} />
-                  Comparar com Apoio
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Common Fields */}
-              <div className="mt-4 space-y-4">
-                <div>
-                  <Label>Empresa</Label>
-                  <Select value={selectedCliente} onValueChange={setSelectedCliente}>
-                    <SelectTrigger data-testid="select-cliente-validacao">
-                      <SelectValue placeholder="Selecione a empresa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clientes.map(c => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.nome_fantasia || c.razao_social}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Mês de Referência</Label>
-                    <Select value={mesReferencia} onValueChange={setMesReferencia}>
-                      <SelectTrigger data-testid="select-mes">
-                        <SelectValue placeholder="Mês" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(m => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Ano</Label>
-                    <Input
-                      data-testid="input-ano"
-                      type="number"
-                      value={anoReferencia}
-                      onChange={(e) => setAnoReferencia(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Tab 1: Análise simples da Folha */}
-              <TabsContent value="folha" className="mt-4">
-                <div className="space-y-4">
-                  <Card className="border-slate-200 bg-slate-50">
-                    <CardContent className="p-4 text-sm text-slate-600">
-                      <p className="font-medium text-slate-700 mb-1">O que será analisado:</p>
-                      <ul className="list-disc list-inside space-y-1 text-slate-500">
-                        <li>Erros de cálculo nos valores</li>
-                        <li>Inconsistências entre funcionários</li>
-                        <li>Valores fora do padrão</li>
-                        <li>Comparação com mês anterior (se disponível)</li>
-                      </ul>
-                    </CardContent>
-                  </Card>
-
-                  <div
-                    {...getRootPropsFolha()}
-                    data-testid="dropzone-validacao"
-                    className={`upload-zone ${isDragActiveFolha ? 'active' : ''} ${!selectedCliente ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <input {...getInputPropsFolha()} disabled={!selectedCliente || uploading} />
-                    {uploading ? (
-                      <div className="flex flex-col items-center">
-                        <Loader2 className="animate-spin text-indigo-600 mb-2" size={32} />
-                        <p className="text-slate-600">Analisando folha com IA...</p>
-                        <p className="text-xs text-slate-400 mt-1">Verificando valores e detectando discrepâncias</p>
-                      </div>
-                    ) : (
-                      <>
-                        <FileUp className="mx-auto text-slate-400 mb-2" size={32} />
-                        <p className="text-slate-600">Arraste a folha de pagamento ou clique para selecionar</p>
-                        <p className="text-xs text-slate-400 mt-1">PDF, Excel ou CSV</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </TabsContent>
-
-              {/* Tab 2: Comparação com Relatório de Apoio */}
-              <TabsContent value="apoio" className="mt-4">
-                <div className="space-y-4">
-                  <Card className="border-indigo-200 bg-indigo-50">
-                    <CardContent className="p-4 text-sm text-indigo-800">
-                      <p className="font-medium mb-1">Compare holerite com relatório de apoio</p>
-                      <p className="text-indigo-600">
-                        Envie o holerite gerado e qualquer documento de referência (email, planilha, imagem, PDF) 
-                        para verificar se as informações estão corretas (horas extras, faltas, comissões, etc).
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Holerite Upload */}
-                    <div>
-                      <Label className="mb-2 block">Holerite Gerado</Label>
-                      <div
-                        {...getRootPropsHolerite()}
-                        data-testid="dropzone-holerite"
-                        className={`upload-zone min-h-[150px] ${isDragActiveHolerite ? 'active' : ''} ${holeriteFile ? 'border-emerald-300 bg-emerald-50' : ''}`}
-                      >
-                        <input {...getInputPropsHolerite()} />
-                        {holeriteFile ? (
-                          <div className="flex flex-col items-center">
-                            <CheckCircle2 className="text-emerald-600 mb-2" size={28} />
-                            <p className="text-sm text-emerald-700 font-medium">{holeriteFile.name}</p>
-                            <p className="text-xs text-slate-400 mt-1">Clique para trocar</p>
-                          </div>
-                        ) : (
-                          <>
-                            <FileText className="mx-auto text-slate-400 mb-2" size={28} />
-                            <p className="text-sm text-slate-600">Holerite/Folha</p>
-                            <p className="text-xs text-slate-400">PDF, Excel, CSV ou Imagem</p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Apoio Upload */}
-                    <div>
-                      <Label className="mb-2 block">Relatório de Apoio</Label>
-                      <div
-                        {...getRootPropsApoio()}
-                        data-testid="dropzone-apoio"
-                        className={`upload-zone min-h-[150px] ${isDragActiveApoio ? 'active' : ''} ${apoioFile ? 'border-emerald-300 bg-emerald-50' : ''}`}
-                      >
-                        <input {...getInputPropsApoio()} />
-                        {apoioFile ? (
-                          <div className="flex flex-col items-center">
-                            <CheckCircle2 className="text-emerald-600 mb-2" size={28} />
-                            <p className="text-sm text-emerald-700 font-medium">{apoioFile.name}</p>
-                            <p className="text-xs text-slate-400 mt-1">Clique para trocar</p>
-                          </div>
-                        ) : (
-                          <>
-                            <Upload className="mx-auto text-slate-400 mb-2" size={28} />
-                            <p className="text-sm text-slate-600">Documento de Apoio</p>
-                            <p className="text-xs text-slate-400">Email, PDF, Imagem, Excel, TXT</p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Card className="border-amber-200 bg-amber-50">
-                    <CardContent className="p-3 text-sm text-amber-800">
-                      <div className="flex items-start gap-2">
-                        <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Exemplos de relatórios de apoio:</p>
-                          <ul className="text-amber-700 text-xs mt-1 space-y-0.5">
-                            <li>• Email do RH com horas extras do mês</li>
-                            <li>• Planilha de comissões de vendas</li>
-                            <li>• Foto do espelho de ponto</li>
-                            <li>• Relatório de faltas/atrasos</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Button
-                    onClick={handleCompareDocuments}
-                    disabled={!holeriteFile || !apoioFile || !selectedCliente || uploading}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700"
-                    data-testid="btn-comparar"
-                  >
-                    {uploading ? (
-                      <>
-                        <Loader2 className="animate-spin mr-2" size={18} />
-                        Comparando documentos...
-                      </>
-                    ) : (
-                      <>
-                        <ArrowLeftRight size={18} className="mr-2" />
-                        Comparar Documentos
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </DialogContent>
-        </Dialog>
+        <Button
+          data-testid="nova-validacao-btn"
+          onClick={() => setDialogOpen(true)}
+          className="bg-indigo-600 hover:bg-indigo-700"
+          disabled={clientes.length === 0}
+        >
+          <ClipboardCheck size={18} className="mr-2" />
+          Nova Validação
+        </Button>
       </div>
 
-      {/* Result Dialog */}
-      <Dialog open={resultDialogOpen} onOpenChange={setResultDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Resultado da Análise</DialogTitle>
-          </DialogHeader>
-          {analysisResult && (
-            <div className="space-y-4 mt-4">
-              {/* Type indicator */}
-              {analysisResult.tipo_validacao && (
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  {analysisResult.tipo_validacao === 'comparacao_apoio' ? (
-                    <><ArrowLeftRight size={16} /> Comparação com Relatório de Apoio</>
-                  ) : (
-                    <><FileText size={16} /> Análise da Folha de Pagamento</>
-                  )}
-                </div>
-              )}
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1 max-w-xs">
+          <Select value={filterCliente} onValueChange={setFilterCliente}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filtrar por empresa" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as empresas</SelectItem>
+              {clientes.map(c => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome_fantasia || c.razao_social}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="relative max-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <Input
+            placeholder="Buscar competência..."
+            className="pl-9"
+            value={filterCompetencia}
+            onChange={(e) => setFilterCompetencia(e.target.value)}
+          />
+        </div>
+      </div>
 
-              {/* Summary */}
-              <div className="grid grid-cols-3 gap-4">
-                <Card className="border-slate-200">
-                  <CardContent className="p-4 text-center">
-                    <p className="text-2xl font-bold text-slate-900 font-mono">{analysisResult.total_verificados || 0}</p>
-                    <p className="text-xs text-slate-500">Itens Verificados</p>
-                  </CardContent>
-                </Card>
-                <Card className={`border-2 ${(analysisResult.total_erros || analysisResult.divergencias_encontradas) > 0 ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}`}>
-                  <CardContent className="p-4 text-center">
-                    <p className={`text-2xl font-bold font-mono ${(analysisResult.total_erros || analysisResult.divergencias_encontradas) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                      {analysisResult.total_erros || analysisResult.divergencias_encontradas || 0}
-                    </p>
-                    <p className="text-xs text-slate-500">Divergências</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-slate-200">
-                  <CardContent className="p-4 text-center">
-                    {(analysisResult.total_erros || analysisResult.divergencias_encontradas) === 0 ? (
-                      <CheckCircle2 className="mx-auto text-emerald-500" size={32} />
-                    ) : (
-                      <AlertTriangle className="mx-auto text-amber-500" size={32} />
-                    )}
-                    <p className="text-xs text-slate-500 mt-1">
-                      {(analysisResult.total_erros || analysisResult.divergencias_encontradas) === 0 ? 'Aprovado' : 'Revisar'}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Discrepancies/Divergencias */}
-              {((analysisResult.discrepancias && analysisResult.discrepancias.length > 0) || 
-                (analysisResult.divergencias && analysisResult.divergencias.length > 0)) && (
-                <Card className="border-slate-200">
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      {analysisResult.tipo_validacao === 'comparacao_apoio' ? 'Divergências Encontradas' : 'Discrepâncias Detectadas'}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="divide-y divide-slate-100">
-                      {(analysisResult.discrepancias || analysisResult.divergencias || []).map((d, index) => (
-                        <div key={index} className="p-4 hover:bg-slate-50">
-                          <div className="flex items-start gap-3">
-                            {getSeverityIcon(d.severidade)}
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <p className="font-medium text-slate-900">{d.funcionario || d.campo}</p>
-                                {getSeverityBadge(d.severidade)}
-                              </div>
-                              <p className="text-sm text-slate-600 mt-1">{d.tipo}</p>
-                              <p className="text-sm text-slate-500">{d.descricao}</p>
-                              {d.valor_holerite !== undefined && d.valor_apoio !== undefined && (
-                                <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                                  <div className="bg-slate-100 rounded p-2">
-                                    <p className="text-slate-400">No Holerite</p>
-                                    <p className="font-mono font-medium">{d.valor_holerite}</p>
-                                  </div>
-                                  <div className="bg-amber-100 rounded p-2">
-                                    <p className="text-slate-400">No Apoio</p>
-                                    <p className="font-mono font-medium">{d.valor_apoio}</p>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Summary Text */}
-              {analysisResult.resumo && (
-                <Card className="border-slate-200 bg-slate-50">
-                  <CardContent className="p-4">
-                    <p className="text-sm text-slate-600">{analysisResult.resumo}</p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Recommendations */}
-              {analysisResult.recomendacoes && analysisResult.recomendacoes.length > 0 && (
-                <Card className="border-indigo-200 bg-indigo-50">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-indigo-800">Recomendações</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <ul className="text-sm text-indigo-700 space-y-1">
-                      {analysisResult.recomendacoes.map((rec, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-indigo-400">•</span>
-                          {rec}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Validações List */}
-      {validacoes.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {validacoes.map((validacao) => (
-            <Card key={validacao.id} data-testid={`validacao-card-${validacao.id}`} className="border-slate-200">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Calendar size={14} className="text-slate-400" />
-                      <CardTitle className="text-base font-semibold text-slate-900">
-                        {validacao.mes_referencia}/{validacao.ano_referencia}
-                      </CardTitle>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Building2 size={12} className="text-slate-400" />
-                      <p className="text-sm text-slate-500">{getClienteName(validacao.cliente_id)}</p>
+      {/* Validações Agrupadas por Competência */}
+      {Object.keys(groupedValidacoes).length > 0 ? (
+        <div className="space-y-4">
+          {Object.entries(groupedValidacoes)
+            .sort(([a], [b]) => {
+              const [ma, ya] = a.split('/').map(Number);
+              const [mb, yb] = b.split('/').map(Number);
+              return (yb * 12 + mb) - (ya * 12 + ma);
+            })
+            .map(([competencia, vals]) => (
+              <Card key={competencia} className="border-slate-200 overflow-hidden">
+                <CardHeader className="py-3 bg-slate-50 border-b">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Calendar className="text-indigo-600" size={20} />
+                      <CardTitle className="text-base font-semibold">Competência {competencia}</CardTitle>
+                      <Badge variant="outline" className="text-xs">{vals.length} validação(ões)</Badge>
                     </div>
                   </div>
-                  {validacao.total_erros === 0 ? (
-                    <span className="badge-success"><CheckCircle2 size={12} className="mr-1" />OK</span>
-                  ) : (
-                    <span className="badge-error"><AlertTriangle size={12} className="mr-1" />{validacao.total_erros} erros</span>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-sm text-slate-600 space-y-1">
-                  <p><span className="text-slate-400">Verificados:</span> <span className="font-mono">{validacao.total_verificados}</span></p>
-                  {validacao.tipo_validacao && (
-                    <p className="text-xs text-indigo-600">
-                      {validacao.tipo_validacao === 'comparacao_apoio' ? 'Comparação com Apoio' : 'Análise da Folha'}
-                    </p>
-                  )}
-                  <p className="text-xs text-slate-400 pt-2">
-                    {new Date(validacao.created_at).toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="divide-y divide-slate-100">
+                    {vals.map((v) => (
+                      <div key={v.id} className="hover:bg-slate-50 transition-colors">
+                        <div 
+                          className="p-4 cursor-pointer flex items-center justify-between"
+                          onClick={() => toggleRow(v.id)}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                              {(v.total_divergencias || v.total_erros) > 0 ? (
+                                <AlertTriangle className="text-amber-500" size={20} />
+                              ) : (
+                                <CheckCircle2 className="text-emerald-500" size={20} />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-900">{v.cliente_nome || getClienteName(v.cliente_id)}</p>
+                              <p className="text-xs text-slate-500">
+                                {new Date(v.created_at).toLocaleDateString('pt-BR')} às {new Date(v.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {getTipoValidacaoLabel(v.tipo_validacao)}
+                            <div className="flex items-center gap-2 text-sm">
+                              {(v.total_divergencias || v.total_erros) > 0 && (
+                                <span className="text-rose-600 font-medium">
+                                  {v.total_divergencias || v.total_erros} divergência(s)
+                                </span>
+                              )}
+                              {(v.total_conferidos > 0) && (
+                                <span className="text-emerald-600">
+                                  {v.total_conferidos} conferido(s)
+                                </span>
+                              )}
+                            </div>
+                            {expandedRows[v.id] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                          </div>
+                        </div>
+                        
+                        {expandedRows[v.id] && (
+                          <div className="px-4 pb-4 bg-slate-50 border-t border-slate-100">
+                            <div className="pt-3 space-y-3">
+                              {/* Arquivos */}
+                              {v.arquivos && (
+                                <div className="flex flex-wrap gap-2 text-xs">
+                                  {v.arquivos.holerite_atual && (
+                                    <Badge variant="outline" className="font-normal">
+                                      <FileText size={12} className="mr-1" />
+                                      Atual: {v.arquivos.holerite_atual}
+                                    </Badge>
+                                  )}
+                                  {v.arquivos.holerite_anterior && (
+                                    <Badge variant="outline" className="font-normal">
+                                      <History size={12} className="mr-1" />
+                                      Anterior: {v.arquivos.holerite_anterior}
+                                    </Badge>
+                                  )}
+                                  {v.arquivos.apoio?.map((f, i) => (
+                                    <Badge key={i} variant="outline" className="font-normal">
+                                      Apoio: {f}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {/* Divergências resumidas */}
+                              {(v.divergencias?.length > 0 || v.discrepancias?.length > 0) && (
+                                <div className="bg-rose-50 rounded-lg p-3">
+                                  <p className="text-sm font-medium text-rose-700 mb-2">Divergências encontradas:</p>
+                                  <ul className="space-y-1">
+                                    {(v.divergencias || v.discrepancias)?.slice(0, 3).map((d, i) => (
+                                      <li key={i} className="text-xs text-rose-600 flex items-start gap-2">
+                                        <XCircle size={14} className="mt-0.5 flex-shrink-0" />
+                                        <span>
+                                          <strong>{d.funcionario || 'Geral'}:</strong> {d.descricao || d.tipo}
+                                          {d.valor_esperado && d.valor_encontrado && (
+                                            <span className="text-rose-500"> (esperado: {d.valor_esperado}, encontrado: {d.valor_encontrado})</span>
+                                          )}
+                                        </span>
+                                      </li>
+                                    ))}
+                                    {(v.divergencias || v.discrepancias)?.length > 3 && (
+                                      <li className="text-xs text-rose-500">
+                                        ... e mais {(v.divergencias || v.discrepancias).length - 3} divergência(s)
+                                      </li>
+                                    )}
+                                  </ul>
+                                </div>
+                              )}
+                              
+                              {/* Impacto financeiro */}
+                              {v.impacto_financeiro_total > 0 && (
+                                <div className="bg-amber-50 rounded-lg p-3">
+                                  <p className="text-sm font-medium text-amber-700">
+                                    Impacto financeiro estimado: {formatCurrency(v.impacto_financeiro_total)}
+                                  </p>
+                                </div>
+                              )}
+                              
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => { e.stopPropagation(); fetchValidacaoDetail(v.id); }}
+                                disabled={loadingDetail}
+                              >
+                                {loadingDetail ? <Loader2 className="animate-spin mr-2" size={14} /> : <Eye size={14} className="mr-2" />}
+                                Ver detalhes completos
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
         </div>
       ) : (
         <Card className="border-slate-200">
@@ -615,13 +467,499 @@ const ValidacaoFolha = () => {
             <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
               <ClipboardCheck className="text-slate-400" size={32} />
             </div>
-            <p className="text-slate-500">Nenhuma validação realizada</p>
-            <p className="text-sm text-slate-400 mt-1">
-              Faça upload de uma folha de pagamento ou compare com relatório de apoio
-            </p>
+            <p className="text-slate-500">Nenhuma validação encontrada</p>
+            <p className="text-sm text-slate-400 mt-1">Clique em "Nova Validação" para começar</p>
           </CardContent>
         </Card>
       )}
+
+      {/* Dialog Nova Validação */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetDialog(); }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardCheck className="text-indigo-600" size={24} />
+              Nova Validação de Folha
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6 mt-4">
+            {/* Info Card */}
+            <Card className="border-indigo-200 bg-indigo-50">
+              <CardContent className="p-4 text-sm text-indigo-800">
+                <p className="font-medium mb-2">Análise Inteligente de Folha de Pagamento</p>
+                <ul className="list-disc list-inside space-y-1 text-indigo-600">
+                  <li><strong>Holerite Atual</strong>: Documento principal a ser validado (obrigatório)</li>
+                  <li><strong>Mês Anterior</strong>: Compare variações mês a mês (opcional)</li>
+                  <li><strong>Arquivos de Apoio</strong>: Emails, planilhas, imagens para cruzar dados (opcional, múltiplos)</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Empresa e Competência */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Empresa *</Label>
+                <Select value={selectedCliente} onValueChange={setSelectedCliente}>
+                  <SelectTrigger data-testid="select-cliente-validacao">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientes.map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome_fantasia || c.razao_social}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Mês *</Label>
+                <Select value={mesReferencia} onValueChange={setMesReferencia}>
+                  <SelectTrigger data-testid="select-mes">
+                    <SelectValue placeholder="Mês" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(m => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Ano *</Label>
+                <Input
+                  data-testid="input-ano"
+                  type="number"
+                  value={anoReferencia}
+                  onChange={(e) => setAnoReferencia(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Upload Areas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Holerite Atual */}
+              <div>
+                <Label className="mb-2 block font-medium">
+                  Holerite do Mês Atual <span className="text-rose-500">*</span>
+                </Label>
+                <div
+                  {...getRootPropsAtual()}
+                  data-testid="dropzone-holerite-atual"
+                  className={`upload-zone min-h-[140px] ${isDragActiveAtual ? 'active' : ''} ${holeriteAtual ? 'border-emerald-300 bg-emerald-50' : ''}`}
+                >
+                  <input {...getInputPropsAtual()} />
+                  {holeriteAtual ? (
+                    <div className="flex flex-col items-center">
+                      <CheckCircle2 className="text-emerald-600 mb-2" size={28} />
+                      <p className="text-sm text-emerald-700 font-medium truncate max-w-full px-2">{holeriteAtual.name}</p>
+                      <button 
+                        className="text-xs text-slate-400 hover:text-rose-500 mt-1"
+                        onClick={(e) => { e.stopPropagation(); setHoleriteAtual(null); }}
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <FileUp className="mx-auto text-indigo-400 mb-2" size={28} />
+                      <p className="text-sm text-slate-600">Arraste ou clique</p>
+                      <p className="text-xs text-slate-400">PDF, Excel, Imagem</p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Holerite Mês Anterior */}
+              <div>
+                <Label className="mb-2 block font-medium text-slate-600">
+                  Holerite Mês Anterior <span className="text-slate-400 text-xs">(opcional)</span>
+                </Label>
+                <div
+                  {...getRootPropsAnterior()}
+                  data-testid="dropzone-holerite-anterior"
+                  className={`upload-zone min-h-[140px] ${isDragActiveAnterior ? 'active' : ''} ${holeriteAnterior ? 'border-blue-300 bg-blue-50' : 'border-dashed'}`}
+                >
+                  <input {...getInputPropsAnterior()} />
+                  {holeriteAnterior ? (
+                    <div className="flex flex-col items-center">
+                      <History className="text-blue-600 mb-2" size={28} />
+                      <p className="text-sm text-blue-700 font-medium truncate max-w-full px-2">{holeriteAnterior.name}</p>
+                      <button 
+                        className="text-xs text-slate-400 hover:text-rose-500 mt-1"
+                        onClick={(e) => { e.stopPropagation(); setHoleriteAnterior(null); }}
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <History className="mx-auto text-slate-300 mb-2" size={28} />
+                      <p className="text-sm text-slate-500">Comparar com mês anterior</p>
+                      <p className="text-xs text-slate-400">PDF, Excel, Imagem</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Arquivos de Apoio */}
+            <div>
+              <Label className="mb-2 block font-medium text-slate-600">
+                Arquivos de Apoio <span className="text-slate-400 text-xs">(opcional, múltiplos)</span>
+              </Label>
+              <div
+                {...getRootPropsApoio()}
+                data-testid="dropzone-apoio"
+                className={`upload-zone min-h-[100px] ${isDragActiveApoio ? 'active' : ''} border-dashed`}
+              >
+                <input {...getInputPropsApoio()} />
+                <Upload className="mx-auto text-slate-300 mb-2" size={24} />
+                <p className="text-sm text-slate-500">Arraste emails, planilhas, imagens ou PDFs de referência</p>
+                <p className="text-xs text-slate-400">Horas extras, comissões, faltas, etc.</p>
+              </div>
+              
+              {apoioFiles.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {apoioFiles.map((file, index) => (
+                    <Badge key={index} variant="secondary" className="flex items-center gap-1 py-1">
+                      <FileText size={12} />
+                      <span className="max-w-[150px] truncate">{file.name}</span>
+                      <button
+                        onClick={() => removeApoioFile(index)}
+                        className="ml-1 hover:text-rose-500"
+                      >
+                        <X size={12} />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Submit */}
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+              <Button
+                onClick={handleValidar}
+                disabled={uploading || !holeriteAtual || !selectedCliente || !mesReferencia}
+                className="bg-indigo-600 hover:bg-indigo-700"
+                data-testid="btn-validar"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2" size={16} />
+                    Analisando...
+                  </>
+                ) : (
+                  <>
+                    <ClipboardCheck size={16} className="mr-2" />
+                    Validar Folha
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Resultado */}
+      <Dialog open={resultDialogOpen} onOpenChange={setResultDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {analysisResult?.total_divergencias > 0 ? (
+                <AlertTriangle className="text-amber-500" size={24} />
+              ) : (
+                <CheckCircle2 className="text-emerald-500" size={24} />
+              )}
+              Resultado da Validação
+            </DialogTitle>
+          </DialogHeader>
+          
+          {analysisResult && (
+            <div className="space-y-6 mt-4">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="border-slate-200">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-2xl font-bold text-slate-900">{analysisResult.funcionarios_analisados || 0}</p>
+                    <p className="text-xs text-slate-500">Funcionários</p>
+                  </CardContent>
+                </Card>
+                <Card className={`border-slate-200 ${analysisResult.total_divergencias > 0 ? 'bg-rose-50' : ''}`}>
+                  <CardContent className="p-4 text-center">
+                    <p className={`text-2xl font-bold ${analysisResult.total_divergencias > 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+                      {analysisResult.total_divergencias || 0}
+                    </p>
+                    <p className="text-xs text-slate-500">Divergências</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-slate-200 bg-emerald-50">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-2xl font-bold text-emerald-600">{analysisResult.total_conferidos || 0}</p>
+                    <p className="text-xs text-slate-500">Conferidos OK</p>
+                  </CardContent>
+                </Card>
+                <Card className={`border-slate-200 ${analysisResult.impacto_financeiro_total > 0 ? 'bg-amber-50' : ''}`}>
+                  <CardContent className="p-4 text-center">
+                    <p className={`text-lg font-bold ${analysisResult.impacto_financeiro_total > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
+                      {formatCurrency(analysisResult.impacto_financeiro_total || 0)}
+                    </p>
+                    <p className="text-xs text-slate-500">Impacto</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Resumo */}
+              {analysisResult.resumo_executivo && (
+                <Card className="border-slate-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Resumo Executivo</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-slate-600 whitespace-pre-line">{analysisResult.resumo_executivo}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Divergências */}
+              {analysisResult.divergencias?.length > 0 && (
+                <Card className="border-rose-200">
+                  <CardHeader className="pb-2 bg-rose-50">
+                    <CardTitle className="text-sm text-rose-700 flex items-center gap-2">
+                      <XCircle size={16} />
+                      Divergências Encontradas ({analysisResult.divergencias.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="divide-y divide-rose-100">
+                      {analysisResult.divergencias.map((d, i) => (
+                        <div key={i} className="p-4 hover:bg-rose-50">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium text-slate-900">{d.funcionario || 'Geral'}</span>
+                                {getSeverityBadge(d.severidade)}
+                              </div>
+                              <p className="text-sm text-slate-600">{d.descricao}</p>
+                              {(d.valor_esperado || d.valor_encontrado) && (
+                                <div className="mt-2 flex gap-4 text-xs">
+                                  {d.valor_esperado && (
+                                    <span className="text-emerald-600">Esperado: <strong>{d.valor_esperado}</strong></span>
+                                  )}
+                                  {d.valor_encontrado && (
+                                    <span className="text-rose-600">Encontrado: <strong>{d.valor_encontrado}</strong></span>
+                                  )}
+                                  {d.impacto_financeiro > 0 && (
+                                    <span className="text-amber-600">Impacto: <strong>{formatCurrency(d.impacto_financeiro)}</strong></span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <Badge variant="outline" className="text-xs shrink-0">{d.campo || d.tipo}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Campos Conferidos */}
+              {analysisResult.campos_conferidos?.length > 0 && (
+                <Card className="border-emerald-200">
+                  <CardHeader className="pb-2 bg-emerald-50">
+                    <CardTitle className="text-sm text-emerald-700 flex items-center gap-2">
+                      <CheckCircle2 size={16} />
+                      Campos Conferidos OK ({analysisResult.campos_conferidos.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <div className="flex flex-wrap gap-2">
+                      {analysisResult.campos_conferidos.slice(0, 20).map((c, i) => (
+                        <Badge key={i} variant="outline" className="text-emerald-600 border-emerald-300">
+                          {c.funcionario ? `${c.funcionario}: ` : ''}{c.campo} {c.valor ? `(${typeof c.valor === 'number' ? formatCurrency(c.valor) : c.valor})` : ''}
+                        </Badge>
+                      ))}
+                      {analysisResult.campos_conferidos.length > 20 && (
+                        <Badge variant="secondary">+{analysisResult.campos_conferidos.length - 20} mais</Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Recomendações */}
+              {analysisResult.recomendacoes?.length > 0 && (
+                <Card className="border-blue-200">
+                  <CardHeader className="pb-2 bg-blue-50">
+                    <CardTitle className="text-sm text-blue-700">Recomendações</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {analysisResult.recomendacoes.map((r, i) => (
+                        <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
+                          <span className="text-blue-500 mt-0.5">•</span>
+                          {r}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="flex justify-end pt-4 border-t">
+                <Button onClick={() => setResultDialogOpen(false)}>Fechar</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Detalhes */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="text-indigo-600" size={24} />
+              Detalhes da Validação
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedValidacao && (
+            <div className="space-y-6 mt-4">
+              {/* Header Info */}
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                <div>
+                  <p className="font-medium text-slate-900">{selectedValidacao.cliente_nome || getClienteName(selectedValidacao.cliente_id)}</p>
+                  <p className="text-sm text-slate-500">Competência: {selectedValidacao.mes_referencia}/{selectedValidacao.ano_referencia}</p>
+                </div>
+                {getTipoValidacaoLabel(selectedValidacao.tipo_validacao)}
+              </div>
+
+              {/* Arquivos utilizados */}
+              {selectedValidacao.arquivos && (
+                <div>
+                  <p className="text-sm font-medium text-slate-700 mb-2">Arquivos analisados:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedValidacao.arquivos.holerite_atual && (
+                      <Badge variant="outline"><FileText size={12} className="mr-1" />Atual: {selectedValidacao.arquivos.holerite_atual}</Badge>
+                    )}
+                    {selectedValidacao.arquivos.holerite_anterior && (
+                      <Badge variant="outline"><History size={12} className="mr-1" />Anterior: {selectedValidacao.arquivos.holerite_anterior}</Badge>
+                    )}
+                    {selectedValidacao.arquivos.apoio?.map((f, i) => (
+                      <Badge key={i} variant="outline">Apoio: {f}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Resumo */}
+              {selectedValidacao.resumo_executivo && (
+                <Card className="border-slate-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Resumo</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-slate-600 whitespace-pre-line">{selectedValidacao.resumo_executivo}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Comparações */}
+              {selectedValidacao.comparacoes?.com_mes_anterior?.length > 0 && (
+                <Card className="border-blue-200">
+                  <CardHeader className="pb-2 bg-blue-50">
+                    <CardTitle className="text-sm text-blue-700">Comparação com Mês Anterior</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-blue-50">
+                          <tr>
+                            <th className="text-left p-3">Funcionário</th>
+                            <th className="text-left p-3">Campo</th>
+                            <th className="text-right p-3">Anterior</th>
+                            <th className="text-right p-3">Atual</th>
+                            <th className="text-right p-3">Diferença</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {selectedValidacao.comparacoes.com_mes_anterior.map((c, i) => (
+                            <tr key={i} className="hover:bg-slate-50">
+                              <td className="p-3">{c.funcionario}</td>
+                              <td className="p-3">{c.campo}</td>
+                              <td className="p-3 text-right font-mono">{formatCurrency(c.valor_anterior)}</td>
+                              <td className="p-3 text-right font-mono">{formatCurrency(c.valor_atual)}</td>
+                              <td className={`p-3 text-right font-mono ${c.diferenca > 0 ? 'text-emerald-600' : c.diferenca < 0 ? 'text-rose-600' : ''}`}>
+                                {c.diferenca > 0 ? '+' : ''}{formatCurrency(c.diferenca)}
+                                {c.percentual ? ` (${c.percentual > 0 ? '+' : ''}${c.percentual.toFixed(1)}%)` : ''}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Divergências detalhadas */}
+              {(selectedValidacao.divergencias?.length > 0 || selectedValidacao.discrepancias?.length > 0) && (
+                <Card className="border-rose-200">
+                  <CardHeader className="pb-2 bg-rose-50">
+                    <CardTitle className="text-sm text-rose-700">Divergências</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="divide-y">
+                      {(selectedValidacao.divergencias || selectedValidacao.discrepancias).map((d, i) => (
+                        <div key={i} className="p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <span className="font-medium">{d.funcionario || 'Geral'}</span>
+                            {getSeverityBadge(d.severidade)}
+                          </div>
+                          <p className="text-sm text-slate-600 mb-2">{d.descricao}</p>
+                          <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+                            {d.valor_esperado && <span>Esperado: <strong className="text-emerald-600">{d.valor_esperado}</strong></span>}
+                            {d.valor_encontrado && <span>Encontrado: <strong className="text-rose-600">{d.valor_encontrado}</strong></span>}
+                            {d.fonte_referencia && <span>Fonte: {d.fonte_referencia}</span>}
+                            {d.impacto_financeiro > 0 && <span>Impacto: <strong className="text-amber-600">{formatCurrency(d.impacto_financeiro)}</strong></span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Recomendações */}
+              {selectedValidacao.recomendacoes?.length > 0 && (
+                <Card className="border-blue-200">
+                  <CardHeader className="pb-2 bg-blue-50">
+                    <CardTitle className="text-sm text-blue-700">Recomendações</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {selectedValidacao.recomendacoes.map((r, i) => (
+                        <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
+                          <span className="text-blue-500">•</span> {r}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="flex justify-end pt-4 border-t">
+                <Button onClick={() => setDetailDialogOpen(false)}>Fechar</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
