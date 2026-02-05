@@ -749,20 +749,29 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                   <Target className="w-6 h-6" />
                   <h2 className="text-lg font-bold">Ponto de Equilíbrio</h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="bg-white/20 rounded-lg p-4">
                     <p className="text-amber-100 text-sm">Margem de Contribuição</p>
                     <p className="text-2xl font-bold">{calculos.margemBruta.toFixed(1)}%</p>
                   </div>
                   <div className="bg-white/20 rounded-lg p-4">
-                    <p className="text-amber-100 text-sm">Custos/Despesas Fixas</p>
+                    <p className="text-amber-100 text-sm">Impostos do Mês</p>
                     <p className="text-2xl font-bold">{formatCurrency(calculos.totalImpostos)}</p>
                   </div>
                   <div className="bg-white/30 rounded-lg p-4">
                     <p className="text-white text-sm font-semibold">Faturamento Mínimo</p>
                     <p className="text-2xl font-bold">{formatCurrency(calculos.pontoEquilibrio)}</p>
                   </div>
+                  <div className="bg-green-600/80 rounded-lg p-4 border-2 border-white/50">
+                    <p className="text-green-100 text-sm font-semibold">Despesa Máx. (lucro=0)</p>
+                    <p className="text-2xl font-bold">{formatCurrency(calculos.lucroBruto - calculos.totalImpostos)}</p>
+                    <p className="text-xs text-green-200 mt-1">Lucro Bruto - Impostos</p>
+                  </div>
                 </div>
+                <p className="text-amber-200 text-sm mt-3 italic">
+                  💡 Se suas despesas operacionais ultrapassarem {formatCurrency(calculos.lucroBruto - calculos.totalImpostos)}, você terá prejuízo. 
+                  Este valor flutua conforme o estoque e as compras do período.
+                </p>
               </div>
             )}
 
