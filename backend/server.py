@@ -3236,20 +3236,27 @@ async def download_script_sci_unico():
     script = '''#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-SCI Único - Robô de Preenchimento Automático
+SCI Único - Robô de Preenchimento Automático COMPLETO
 Business Contabilidade - Portal Societário
 
 Este script lê os dados exportados do portal e preenche 
-automaticamente os campos do SCI Único.
+automaticamente TODAS as abas do SCI Único:
+- Cadastrais (Empresa + Sócios)
+- Contadores
+- Planos
+- Enquadramento Federal
+- Lalur
+- Fiscal (Parâmetros, Federal, Estadual, Municipal, Integração)
+- Folha (GPS, Vínculos, Proporcionalidades, Parâmetros, eSocial)
 
 Requisitos:
 - Python 3.8+
-- pip install pyautogui pyperclip requests
+- pip install pyautogui pyperclip
 
 Uso:
-1. Abra o SCI Único na tela de cadastro de empresa (novo cadastro)
-2. Execute este script
-3. O robô vai preencher automaticamente os campos
+1. Exporte os dados do Portal Societário (arquivo JSON)
+2. Execute: python sci_robo.py dados_empresa.json
+3. Siga as instruções na tela
 """
 
 import pyautogui
@@ -3259,63 +3266,97 @@ import json
 import sys
 import os
 
-# Configurações
-DELAY_ENTRE_CAMPOS = 0.1  # segundos entre cada TAB
-DELAY_DIGITACAO = 0.02    # segundos entre cada caractere
-API_URL = "https://process-manager-15.preview.emergentagent.com"
+# Configurações de velocidade
+DELAY_ENTRE_CAMPOS = 0.08   # segundos entre cada TAB
+DELAY_DIGITACAO = 0.02      # segundos entre cada caractere
+DELAY_ABA = 0.5             # segundos ao trocar de aba
+
+# Configurar pyautogui
+pyautogui.PAUSE = 0.05
+pyautogui.FAILSAFE = True   # Mova o mouse para o canto para cancelar
 
 def digitar_texto(texto):
-    """Digita texto de forma segura"""
+    """Digita texto usando clipboard (mais rápido e seguro)"""
     if not texto:
         return
     pyperclip.copy(str(texto))
     pyautogui.hotkey('ctrl', 'v')
     time.sleep(DELAY_DIGITACAO)
 
-def tab():
-    """Pressiona TAB"""
-    pyautogui.press('tab')
-    time.sleep(DELAY_ENTRE_CAMPOS)
+def limpar_campo():
+    """Limpa o campo atual"""
+    pyautogui.hotkey('ctrl', 'a')
+    pyautogui.press('delete')
+
+def tab(n=1):
+    """Pressiona TAB n vezes"""
+    for _ in range(n):
+        pyautogui.press('tab')
+        time.sleep(DELAY_ENTRE_CAMPOS)
+
+def shift_tab(n=1):
+    """Pressiona SHIFT+TAB n vezes"""
+    for _ in range(n):
+        pyautogui.hotkey('shift', 'tab')
+        time.sleep(DELAY_ENTRE_CAMPOS)
 
 def enter():
     """Pressiona ENTER"""
     pyautogui.press('enter')
     time.sleep(DELAY_ENTRE_CAMPOS)
 
+def space():
+    """Pressiona SPACE (para checkboxes)"""
+    pyautogui.press('space')
+    time.sleep(DELAY_ENTRE_CAMPOS)
+
+def marcar_checkbox(valor):
+    """Marca ou desmarca checkbox baseado no valor"""
+    if valor:
+        space()
+
+def selecionar_dropdown(valor):
+    """Seleciona valor em dropdown digitando o código"""
+    if valor:
+        limpar_campo()
+        digitar_texto(valor)
+        tab()
+    else:
+        tab()
+
+def ir_para_aba(nome_aba):
+    """Instrui o usuário a ir para uma aba específica"""
+    print(f"\\n{'='*50}")
+    print(f"  >> Vá para a aba: {nome_aba}")
+    print(f"{'='*50}")
+    input("Pressione ENTER quando estiver na aba...")
+    time.sleep(DELAY_ABA)
+
+# ================= PREENCHIMENTO EMPRESA =================
+
 def preencher_empresa(dados):
     """Preenche os dados da empresa na aba Cadastrais"""
     print("\\n=== PREENCHENDO DADOS DA EMPRESA ===")
     
-    # Código (primeiro campo)
-    print(f"  Código: {dados.get('codigo', '')}")
-    digitar_texto(dados.get('codigo', ''))
+    campos = [
+        ("codigo", "Código"),
+        ("apelido", "Apelido"),
+        ("razao_social", "Razão Social"),
+        ("reduzido", "Reduzido"),
+        ("nome_fantasia", "Nome Fantasia"),
+    ]
+    
+    for campo, nome in campos:
+        valor = dados.get(campo, "")
+        print(f"  {nome}: {valor}")
+        digitar_texto(valor)
+        tab()
+    
+    # CNPJ - pula (vem da importação)
+    print("  CNPJ: (importado)")
     tab()
     
-    # Apelido
-    print(f"  Apelido: {dados.get('apelido', '')}")
-    digitar_texto(dados.get('apelido', ''))
-    tab()
-    
-    # Razão Social
-    print(f"  Razão Social: {dados.get('razao_social', '')}")
-    digitar_texto(dados.get('razao_social', ''))
-    tab()
-    
-    # Reduzido
-    print(f"  Reduzido: {dados.get('reduzido', '')}")
-    digitar_texto(dados.get('reduzido', ''))
-    tab()
-    
-    # Nome Fantasia
-    print(f"  Nome Fantasia: {dados.get('nome_fantasia', '')}")
-    digitar_texto(dados.get('nome_fantasia', ''))
-    tab()
-    
-    # CNPJ - pula pois vem da importação da Receita
-    print("  CNPJ: (importado da Receita)")
-    tab()
-    
-    # Data de entrada
+    # Data entrada
     print(f"  Data entrada: {dados.get('data_entrada', '')}")
     digitar_texto(dados.get('data_entrada', ''))
     tab()
@@ -3325,75 +3366,44 @@ def preencher_empresa(dados):
     digitar_texto(dados.get('cep', ''))
     tab()
     
-    # Data saída (pula)
-    tab()
+    # Data saída + Tipo endereço (pula)
+    tab(2)
     
-    # Tipo endereço (pula - já preenchido)
-    tab()
-    
-    # Endereço
-    print(f"  Endereço: {dados.get('endereco', '')}")
-    digitar_texto(dados.get('endereco', ''))
-    tab()
-    
-    # Número
-    print(f"  Número: {dados.get('numero', '')}")
-    digitar_texto(dados.get('numero', ''))
-    tab()
-    
-    # Complemento
-    print(f"  Complemento: {dados.get('complemento', '')}")
-    digitar_texto(dados.get('complemento', ''))
-    tab()
-    
-    # Bairro
-    print(f"  Bairro: {dados.get('bairro', '')}")
-    digitar_texto(dados.get('bairro', ''))
-    tab()
+    # Endereço completo
+    for campo in ['endereco', 'numero', 'complemento', 'bairro']:
+        valor = dados.get(campo, "")
+        print(f"  {campo.title()}: {valor}")
+        digitar_texto(valor)
+        tab()
     
     # Cidade (campo com busca)
     print(f"  Cidade: {dados.get('cidade', '')}")
     digitar_texto(dados.get('cidade', ''))
-    enter()  # Confirma a busca
+    enter()
     time.sleep(0.3)
     tab()
     
     # Zoneamento (pula)
     tab()
     
-    # Telefones (3 campos)
+    # Telefones
     print(f"  Telefone: {dados.get('telefone', '')}")
     digitar_texto(dados.get('telefone', ''))
-    tab()
-    tab()  # Telefone 2
-    tab()  # Celular
+    tab(3)  # Telefone 2 e Celular
     
     # Início das atividades
     print(f"  Início atividades: {dados.get('data_constituicao', '')}")
     digitar_texto(dados.get('data_constituicao', ''))
-    tab()
+    tab(2)  # Encerramento
     
-    # Encerramento (pula)
-    tab()
-    
-    # Inscrição Estadual
-    print(f"  Inscrição Estadual: {dados.get('inscricao_estadual', '')}")
+    # Inscrições
+    print(f"  IE: {dados.get('inscricao_estadual', '')}")
     digitar_texto(dados.get('inscricao_estadual', ''))
     tab()
     
-    # Inscrição Municipal
-    print(f"  Inscrição Municipal: {dados.get('inscricao_municipal', '')}")
+    print(f"  IM: {dados.get('inscricao_municipal', '')}")
     digitar_texto(dados.get('inscricao_municipal', ''))
-    tab()
-    
-    # Inscrição Suframa (pula)
-    tab()
-    
-    # Checkbox matriz (pula)
-    tab()
-    
-    # Matriz (pula)
-    tab()
+    tab(4)  # Suframa, checkbox matriz, matriz
     
     # Email
     print(f"  Email: {dados.get('email', '')}")
@@ -3401,131 +3411,499 @@ def preencher_empresa(dados):
     
     print("\\n✅ Empresa preenchida!")
 
+# ================= PREENCHIMENTO SÓCIOS =================
+
 def preencher_socio(dados):
     """Preenche os dados de um sócio"""
-    print(f"\\n=== PREENCHENDO SÓCIO: {dados.get('nome', '')} ===")
+    print(f"\\n=== SÓCIO: {dados.get('nome', '')} ===")
     
-    # Código
-    print(f"  Código: {dados.get('codigo', '')}")
+    # Código e Nome
     digitar_texto(dados.get('codigo', ''))
     tab()
-    
-    # Nome
-    print(f"  Nome: {dados.get('nome', '')}")
     digitar_texto(dados.get('nome', ''))
-    tab()
+    tab(2)  # Exterior, País
     
-    # Exterior (checkbox - pula)
-    tab()
-    
-    # País (pula)
-    tab()
-    
-    # CPF
-    print(f"  CPF: {dados.get('cpf', '')}")
+    # CPF, RG, Órgão, UF
     digitar_texto(dados.get('cpf', ''))
     tab()
-    
-    # RG
-    print(f"  RG: {dados.get('rg', '')}")
     digitar_texto(dados.get('rg', ''))
     tab()
-    
-    # Órgão emissor
-    print(f"  Órgão emissor: {dados.get('orgao_emissor', 'SSP')}")
     digitar_texto(dados.get('orgao_emissor', 'SSP'))
     tab()
-    
-    # UF emissor
-    print(f"  UF emissor: {dados.get('uf_emissor', '')}")
     digitar_texto(dados.get('uf_emissor', ''))
     tab()
     
-    # Responsável pela empresa (checkbox)
+    # Responsável (checkbox)
     if dados.get('responsavel', False):
-        pyautogui.press('space')
+        space()
     tab()
     
-    # Data de nascimento
-    print(f"  Data nascimento: {dados.get('data_nascimento', '')}")
+    # Data nascimento e Estado civil
     digitar_texto(dados.get('data_nascimento', ''))
     tab()
-    
-    # Estado civil
-    print(f"  Estado civil: {dados.get('estado_civil', '')}")
     digitar_texto(dados.get('estado_civil', ''))
     tab()
     
-    # CEP
-    print(f"  CEP: {dados.get('cep', '')}")
+    # Endereço do sócio
     digitar_texto(dados.get('cep', ''))
-    tab()
-    
-    # Tipo endereço (pula)
-    tab()
-    
-    # Endereço
-    print(f"  Endereço: {dados.get('endereco', '')}")
+    tab(2)  # Tipo endereço
     digitar_texto(dados.get('endereco', ''))
     tab()
-    
-    # Número
-    print(f"  Número: {dados.get('numero', '')}")
     digitar_texto(dados.get('numero', ''))
     tab()
-    
-    # Complemento
     digitar_texto(dados.get('complemento', ''))
     tab()
-    
-    # Bairro
-    print(f"  Bairro: {dados.get('bairro', '')}")
     digitar_texto(dados.get('bairro', ''))
     tab()
-    
-    # Cidade
-    print(f"  Cidade: {dados.get('cidade', '')}")
     digitar_texto(dados.get('cidade', ''))
     enter()
     time.sleep(0.3)
     tab()
     
     # Telefones
-    print(f"  Telefone: {dados.get('telefone', '')}")
     digitar_texto(dados.get('telefone', ''))
-    tab()
-    tab()  # Fax
-    
-    # Celular
-    print(f"  Celular: {dados.get('celular', '')}")
+    tab(2)  # Fax
     digitar_texto(dados.get('celular', ''))
     tab()
     
     # Entrada na sociedade
-    print(f"  Entrada sociedade: {dados.get('entrada_sociedade', '')}")
     digitar_texto(dados.get('entrada_sociedade', ''))
-    tab()
-    
-    # Saída (pula)
-    tab()
-    
-    # CBO (pula)
-    tab()
-    tab()
+    tab(3)  # Saída, CBOs
     
     # Email
-    print(f"  Email: {dados.get('email', '')}")
     digitar_texto(dados.get('email', ''))
     
-    print(f"\\n✅ Sócio {dados.get('nome', '')} preenchido!")
+    print(f"✅ Sócio preenchido!")
+
+# ================= PREENCHIMENTO CONTADORES =================
+
+def preencher_contadores(config):
+    """Preenche aba Contadores"""
+    print("\\n=== PREENCHENDO CONTADORES ===")
+    cont = config.get('contadores', {})
+    
+    digitar_texto(cont.get('contador_contabil', '6'))
+    tab()
+    digitar_texto(cont.get('contador_fiscal', '6'))
+    tab()
+    digitar_texto(cont.get('contador_rh', '6'))
+    
+    print("✅ Contadores preenchidos!")
+
+# ================= PREENCHIMENTO PLANOS =================
+
+def preencher_planos(config):
+    """Preenche aba Planos"""
+    print("\\n=== PREENCHENDO PLANOS ===")
+    planos = config.get('planos', {})
+    
+    digitar_texto(planos.get('plano_contabilizacao', '51'))
+    tab()
+    digitar_texto(planos.get('plano_contas', '90113'))
+    tab()
+    digitar_texto(planos.get('plano_historicos', '9001'))
+    tab()
+    digitar_texto(planos.get('centro_custo', ''))
+    tab()
+    digitar_texto(planos.get('plano_tributario', ''))
+    tab()
+    digitar_texto(planos.get('plano_contas_referencial', ''))
+    
+    print("✅ Planos preenchidos!")
+
+# ================= PREENCHIMENTO ENQUADRAMENTO =================
+
+def preencher_enquadramento(config):
+    """Preenche aba Enquadramento Federal"""
+    print("\\n=== PREENCHENDO ENQUADRAMENTO FEDERAL ===")
+    enq = config.get('enquadramento', {})
+    
+    # Enquadramento federal (dropdown)
+    digitar_texto(enq.get('enquadramento_federal', 'Normal'))
+    tab()
+    
+    # Forma de tributação
+    digitar_texto(enq.get('forma_tributacao', ''))
+    tab()
+    
+    # Checkboxes de atividade
+    if enq.get('atividade_comercio'):
+        space()
+    tab()
+    if enq.get('atividade_industria'):
+        space()
+    tab()
+    if enq.get('atividade_servico'):
+        space()
+    tab()
+    
+    # Anexos Folha
+    if enq.get('anexo_folha_iii'):
+        space()
+    tab()
+    if enq.get('anexo_folha_iv'):
+        space()
+    tab()
+    if enq.get('anexo_folha_v'):
+        space()
+    tab()
+    
+    # Anexos Fiscal
+    if enq.get('anexo_fiscal_iii'):
+        space()
+    tab()
+    if enq.get('anexo_fiscal_iv'):
+        space()
+    tab()
+    if enq.get('anexo_fiscal_v'):
+        space()
+    tab()
+    
+    # Relação Folha/Faturamento
+    if enq.get('relacao_folha_faturamento_anexo_iii'):
+        space()
+    tab()
+    
+    # Demais checkboxes (todos False por padrão)
+    tab(4)  # RTT, FCont, RET, EUA
+    
+    print("✅ Enquadramento preenchido!")
+
+# ================= PREENCHIMENTO LALUR =================
+
+def preencher_lalur(config):
+    """Preenche aba Lalur (apenas para Lucro Real)"""
+    print("\\n=== PREENCHENDO LALUR ===")
+    lalur = config.get('lalur', {})
+    
+    digitar_texto(lalur.get('plano_integracao_contabil', '4'))
+    tab()
+    digitar_texto(lalur.get('parte_a', '90001'))
+    tab()
+    digitar_texto(lalur.get('parte_a_estimado', '90002'))
+    tab()
+    digitar_texto(lalur.get('parte_b', '90001'))
+    tab()
+    digitar_texto(lalur.get('tributacao', '90001'))
+    tab()
+    digitar_texto(lalur.get('indice', '1'))
+    tab()
+    digitar_texto(lalur.get('data_incorporacao', ''))
+    
+    print("✅ Lalur preenchido!")
+
+# ================= PREENCHIMENTO FISCAL - PARÂMETROS =================
+
+def preencher_fiscal_parametros(config):
+    """Preenche sub-aba Fiscal > Parâmetros"""
+    print("\\n=== PREENCHENDO FISCAL - PARÂMETROS ===")
+    fp = config.get('fiscal_parametros', {})
+    
+    # Códigos principais
+    digitar_texto(fp.get('ir_csll', ''))
+    tab()
+    digitar_texto(fp.get('ipi', ''))
+    tab()
+    digitar_texto(fp.get('pis_cofins_lr', ''))
+    tab()
+    digitar_texto(fp.get('sped_fiscal', '1'))
+    tab()
+    digitar_texto(fp.get('ciap', ''))
+    tab()
+    digitar_texto(fp.get('bloco_p', ''))
+    tab()
+    digitar_texto(fp.get('cprb_reinf', '2'))
+    tab()
+    digitar_texto(fp.get('bloco_m', ''))
+    tab()
+    
+    # Checkboxes lançar produtos
+    if fp.get('lancar_produtos_entradas', True):
+        space()
+    tab()
+    if fp.get('lancar_produtos_saidas', True):
+        space()
+    tab()
+    
+    # Radio buttons e checkboxes de dedução
+    tab(2)  # Tipo apuração
+    
+    # Checkboxes deduzir
+    for campo in ['deduzir_pis', 'deduzir_cofins', 'deduzir_csll', 'deduzir_irrf', 'deduzir_issqn', 'deduzir_inss']:
+        if fp.get(campo, True):
+            space()
+        tab()
+    
+    # Funrural
+    if fp.get('deduzir_funrural', False):
+        space()
+    
+    print("✅ Fiscal Parâmetros preenchido!")
+
+# ================= PREENCHIMENTO FISCAL - FEDERAL =================
+
+def preencher_fiscal_federal(config):
+    """Preenche sub-aba Fiscal > Federal"""
+    print("\\n=== PREENCHENDO FISCAL - FEDERAL ===")
+    ff = config.get('fiscal_federal', {})
+    
+    # SPED ICMS/IPI
+    digitar_texto(ff.get('sped_icms_ipi_perfil', 'A - Perfil A'))
+    tab()
+    digitar_texto(ff.get('sped_icms_ipi_atividade', '1'))
+    tab()
+    digitar_texto(ff.get('sped_icms_ipi_data_obrigatoriedade', ''))
+    tab()
+    digitar_texto(ff.get('sped_icms_ipi_classificacao', ''))
+    tab()
+    
+    # Checkbox CFOP
+    if ff.get('preencher_cfop_cst_c425', False):
+        space()
+    tab()
+    
+    # SPED Contribuições
+    digitar_texto(ff.get('natureza_pessoa_juridica', '00 - Sociedade empresária em geral'))
+    tab()
+    digitar_texto(ff.get('atividade_preponderante', ''))
+    tab()
+    digitar_texto(ff.get('tipo_incidencia', '1 - Apuração somente sobre a receita bruta'))
+    tab()
+    digitar_texto(ff.get('sped_contribuicoes_data_obrigatoriedade', ''))
+    tab()
+    
+    # Reinf
+    digitar_texto(ff.get('reinf_data_obrigatoriedade', '01/07/2023'))
+    tab()
+    if ff.get('entrega_ecd', False):
+        space()
+    tab()
+    
+    # Dmed
+    digitar_texto(ff.get('dmed_tipo_declarante', '0 - Não se aplica'))
+    tab()
+    
+    # Simples Nacional
+    digitar_texto(ff.get('simples_codigo_acesso', ''))
+    tab()
+    digitar_texto(ff.get('simples_codigo_configuracao', ''))
+    
+    print("✅ Fiscal Federal preenchido!")
+
+# ================= PREENCHIMENTO FISCAL - ESTADUAL =================
+
+def preencher_fiscal_estadual_gerais(config):
+    """Preenche sub-aba Fiscal > Estadual > Gerais"""
+    print("\\n=== PREENCHENDO FISCAL - ESTADUAL GERAIS ===")
+    fe = config.get('fiscal_estadual_gerais', {})
+    
+    # Substituto tributário
+    if fe.get('substituto_tributario', False):
+        space()
+    tab()
+    
+    # Porte empresa
+    digitar_texto(fe.get('porte_empresa', '1'))
+    tab()
+    
+    # Checkbox valor contábil
+    if fe.get('lancar_base_icms_valor_contabil', False):
+        space()
+    tab()
+    
+    # ICMS lançar em
+    digitar_texto(fe.get('icms_lancar_em', 'Isentas'))
+    tab()
+    
+    # Antecipação
+    if fe.get('antecipacao_imposto', False):
+        space()
+    tab()
+    
+    # Reduções base ICMS
+    digitar_texto(fe.get('reducao_base_icms_entradas', '0,0000'))
+    tab()
+    digitar_texto(fe.get('reducao_base_icms_saidas', '0,0000'))
+    tab()
+    
+    # ICMS Monofásico
+    if fe.get('considerar_icms_monofasico', False):
+        space()
+    tab()
+    
+    # Parâmetros ICMS
+    digitar_texto(fe.get('dia_vencimento', '00'))
+    tab()
+    if fe.get('antecipar_sabados_domingos_feriados', False):
+        space()
+    tab()
+    
+    # Juros e Multa
+    digitar_texto(fe.get('juros_a_partir_de', '00'))
+    tab()
+    digitar_texto(fe.get('juros_percentual', '0,0000'))
+    tab(2)
+    digitar_texto(fe.get('multa_a_partir_de', '00'))
+    tab()
+    digitar_texto(fe.get('multa_percentual', '0,0000'))
+    tab(2)
+    
+    # GIA ST
+    if fe.get('apura_gia_st', False):
+        space()
+    tab()
+    digitar_texto(fe.get('configuracao_gia_st', ''))
+    
+    print("✅ Fiscal Estadual Gerais preenchido!")
+
+# ================= PREENCHIMENTO FISCAL - MUNICIPAL =================
+
+def preencher_fiscal_municipal(config):
+    """Preenche sub-aba Fiscal > Municipal"""
+    print("\\n=== PREENCHENDO FISCAL - MUNICIPAL ===")
+    fm = config.get('fiscal_municipal', {})
+    
+    if fm.get('movimenta_servicos', True):
+        space()
+    tab()
+    digitar_texto(fm.get('aliquota_iss', '0,0000'))
+    tab()
+    digitar_texto(fm.get('reducao_base_issqn', '0,0000'))
+    tab()
+    
+    if fm.get('movimenta_irrf', True):
+        space()
+    tab()
+    digitar_texto(fm.get('aliquota_irrf', '0,0000'))
+    tab()
+    digitar_texto(fm.get('irrf_isento', '0,0000'))
+    tab()
+    
+    if fm.get('retencao_inss', True):
+        space()
+    tab()
+    digitar_texto(fm.get('valor_minimo_inss', '0,0000'))
+    tab()
+    digitar_texto(fm.get('aliquota_inss', '0,0000'))
+    tab()
+    
+    digitar_texto(fm.get('valor_iss_fixo', '0,00'))
+    
+    print("✅ Fiscal Municipal preenchido!")
+
+# ================= PREENCHIMENTO FOLHA - GPS =================
+
+def preencher_folha_gps(config):
+    """Preenche sub-aba Folha > GPS"""
+    print("\\n=== PREENCHENDO FOLHA - GPS ===")
+    gps = config.get('folha_gps', {})
+    
+    # FPAS e Terceiros
+    digitar_texto(gps.get('fpas', '35'))
+    tab()
+    digitar_texto(gps.get('terceiros', '507'))
+    tab()
+    digitar_texto(gps.get('terceiros_valor', '0,00'))
+    tab()
+    
+    # Simples optante
+    if gps.get('simples_optante', False):
+        space()
+    tab()
+    
+    # Percentuais
+    digitar_texto(gps.get('pro_laboristas_percentual', '0,00'))
+    tab()
+    digitar_texto(gps.get('autonomos_percentual', '0,00'))
+    tab()
+    digitar_texto(gps.get('colaboradores_percentual', '0,00'))
+    tab()
+    
+    # RAT e FAP
+    digitar_texto(gps.get('rat_percentual', '3,00'))
+    tab()
+    digitar_texto(gps.get('fap_percentual', '0,5000'))
+    tab()
+    digitar_texto(gps.get('rat_x_fap_percentual', '1,5000'))
+    tab()
+    
+    # Classificação tributária
+    digitar_texto(gps.get('classificacao_tributaria', '1'))
+    
+    print("✅ Folha GPS preenchido!")
+
+# ================= PREENCHIMENTO FOLHA - ESOCIAL =================
+
+def preencher_folha_esocial(config):
+    """Preenche sub-aba Folha > eSocial"""
+    print("\\n=== PREENCHENDO FOLHA - ESOCIAL ===")
+    es = config.get('folha_esocial', {})
+    
+    # Faseamento
+    digitar_texto(es.get('eventos_tabela', '01/01/2019'))
+    tab()
+    digitar_texto(es.get('eventos_nao_periodicos', '10/04/2019'))
+    tab()
+    digitar_texto(es.get('eventos_periodicos', '01/05/2021'))
+    tab()
+    digitar_texto(es.get('dctfweb', '07/2021'))
+    tab()
+    digitar_texto(es.get('seguranca_saude_trabalho', '10/01/2022'))
+    tab()
+    digitar_texto(es.get('reclamatoria_trabalhista', '01/10/2023'))
+    tab()
+    digitar_texto(es.get('fgts_digital', '01/03/2024'))
+    tab()
+    digitar_texto(es.get('exame_toxicologico', '01/08/2024'))
+    tab()
+    
+    # Grupo
+    digitar_texto(es.get('grupo', 'Grupo 3'))
+    tab()
+    
+    # Tipo ambiente
+    digitar_texto(es.get('tipo_ambiente', 'Produção - Real'))
+    
+    print("✅ Folha eSocial preenchido!")
+
+# ================= MENU PRINCIPAL =================
+
+def exibir_menu():
+    """Exibe menu de opções"""
+    print("\\n" + "="*50)
+    print("  MENU DE PREENCHIMENTO")
+    print("="*50)
+    print("  1. Preencher TUDO (recomendado)")
+    print("  2. Apenas Empresa + Sócios")
+    print("  3. Apenas Configurações (Contadores, Planos...)")
+    print("  4. Aba específica")
+    print("  0. Sair")
+    print("="*50)
+    return input("\\nEscolha uma opção: ")
+
+def menu_aba_especifica():
+    """Menu para escolher aba específica"""
+    print("\\n  Qual aba deseja preencher?")
+    print("  1. Contadores")
+    print("  2. Planos")
+    print("  3. Enquadramento Federal")
+    print("  4. Lalur")
+    print("  5. Fiscal - Parâmetros")
+    print("  6. Fiscal - Federal")
+    print("  7. Fiscal - Estadual Gerais")
+    print("  8. Fiscal - Municipal")
+    print("  9. Folha - GPS")
+    print("  10. Folha - eSocial")
+    return input("\\nEscolha: ")
 
 def main():
-    print("=" * 50)
-    print("  SCI Único - Robô de Preenchimento Automático")
+    print("="*60)
+    print("  SCI Único - Robô de Preenchimento Automático COMPLETO")
     print("  Business Contabilidade - Portal Societário")
-    print("=" * 50)
+    print("  Versão 2.0 - Suporta TODAS as abas")
+    print("="*60)
     
-    # Verificar se existe arquivo de dados
+    # Verificar arquivo
     if len(sys.argv) > 1:
         arquivo = sys.argv[1]
     else:
@@ -3534,7 +3912,6 @@ def main():
     if not os.path.exists(arquivo):
         print(f"\\n❌ Arquivo {arquivo} não encontrado!")
         print("\\nUso: python sci_robo.py [arquivo.json]")
-        print("\\nExporte os dados do portal antes de executar.")
         input("\\nPressione ENTER para sair...")
         return
     
@@ -3542,46 +3919,141 @@ def main():
     with open(arquivo, 'r', encoding='utf-8') as f:
         dados = json.load(f)
     
-    print(f"\\n📄 Dados carregados de: {arquivo}")
-    print(f"   Empresa: {dados['empresa'].get('razao_social', 'N/A')}")
-    print(f"   Sócios: {len(dados.get('socios', []))}")
+    empresa = dados.get('empresa', {})
+    socios = dados.get('socios', [])
+    config = dados.get('configuracoes', {})
+    perfil = dados.get('perfil', {})
     
-    print("\\n" + "=" * 50)
-    print("  INSTRUÇÕES:")
-    print("  1. Abra o SCI Único na tela de cadastro")
-    print("  2. Posicione o cursor no PRIMEIRO campo (Código)")
-    print("  3. Pressione ENTER para iniciar")
-    print("=" * 50)
+    print(f"\\n📄 Arquivo: {arquivo}")
+    print(f"   Empresa: {empresa.get('razao_social', 'N/A')}")
+    print(f"   CNPJ: {empresa.get('cnpj', 'N/A')}")
+    print(f"   Sócios: {len(socios)}")
+    print(f"   Regime: {perfil.get('regime_tributario', 'N/A').upper()}")
+    print(f"   Atividade: {perfil.get('tipo_atividade', 'N/A')}")
+    if perfil.get('regime_tributario') == 'simples':
+        print(f"   Anexo: {perfil.get('enquadramento_simples', 'N/A')}")
     
-    input("\\nPressione ENTER quando estiver pronto...")
+    opcao = exibir_menu()
     
-    print("\\n⏳ Iniciando em 3 segundos...")
-    time.sleep(3)
+    if opcao == "0":
+        return
     
-    # Preencher empresa
-    preencher_empresa(dados['empresa'])
+    print("\\n⚠️  ATENÇÃO:")
+    print("  - Abra o SCI Único na tela correspondente")
+    print("  - Posicione o cursor no PRIMEIRO campo")
+    print("  - Para CANCELAR, mova o mouse para o canto da tela")
     
-    # Perguntar sobre sócios
-    if dados.get('socios'):
-        print(f"\\n\\n{'=' * 50}")
-        print(f"  Existem {len(dados['socios'])} sócio(s) para preencher")
-        print(f"{'=' * 50}")
+    if opcao == "1":
+        # Preencher tudo
+        ir_para_aba("CADASTRAIS - Empresa")
+        print("\\n⏳ Iniciando em 3 segundos...")
+        time.sleep(3)
+        preencher_empresa(empresa)
         
-        for i, socio in enumerate(dados['socios']):
-            print(f"\\n--- Sócio {i+1}/{len(dados['socios'])}: {socio.get('nome', '')} ---")
-            print("\\nAbra a tela de cadastro de SÓCIOS no SCI Único")
-            print("Posicione o cursor no primeiro campo (Código)")
-            input("Pressione ENTER quando estiver pronto...")
-            
-            print("\\n⏳ Iniciando em 2 segundos...")
-            time.sleep(2)
-            
+        for i, socio in enumerate(socios):
+            ir_para_aba(f"CADASTRAIS - Sócio {i+1}/{len(socios)}")
+            time.sleep(1)
+            preencher_socio(socio)
+        
+        ir_para_aba("CONTADORES")
+        preencher_contadores(config)
+        
+        ir_para_aba("PLANOS")
+        preencher_planos(config)
+        
+        ir_para_aba("ENQUADRAMENTO FEDERAL")
+        preencher_enquadramento(config)
+        
+        if perfil.get('regime_tributario') == 'real':
+            ir_para_aba("LALUR")
+            preencher_lalur(config)
+        
+        ir_para_aba("FISCAL > Parâmetros")
+        preencher_fiscal_parametros(config)
+        
+        ir_para_aba("FISCAL > Federal")
+        preencher_fiscal_federal(config)
+        
+        ir_para_aba("FISCAL > Estadual > Gerais")
+        preencher_fiscal_estadual_gerais(config)
+        
+        ir_para_aba("FISCAL > Municipal")
+        preencher_fiscal_municipal(config)
+        
+        ir_para_aba("FOLHA > GPS")
+        preencher_folha_gps(config)
+        
+        ir_para_aba("FOLHA > eSocial")
+        preencher_folha_esocial(config)
+    
+    elif opcao == "2":
+        # Apenas empresa + sócios
+        ir_para_aba("CADASTRAIS - Empresa")
+        time.sleep(2)
+        preencher_empresa(empresa)
+        
+        for i, socio in enumerate(socios):
+            ir_para_aba(f"CADASTRAIS - Sócio {i+1}/{len(socios)}")
+            time.sleep(1)
             preencher_socio(socio)
     
-    print("\\n" + "=" * 50)
+    elif opcao == "3":
+        # Apenas configurações
+        ir_para_aba("CONTADORES")
+        preencher_contadores(config)
+        
+        ir_para_aba("PLANOS")
+        preencher_planos(config)
+        
+        ir_para_aba("ENQUADRAMENTO FEDERAL")
+        preencher_enquadramento(config)
+        
+        if perfil.get('regime_tributario') == 'real':
+            ir_para_aba("LALUR")
+            preencher_lalur(config)
+        
+        ir_para_aba("FISCAL > Parâmetros")
+        preencher_fiscal_parametros(config)
+        
+        ir_para_aba("FISCAL > Federal")
+        preencher_fiscal_federal(config)
+        
+        ir_para_aba("FISCAL > Estadual > Gerais")
+        preencher_fiscal_estadual_gerais(config)
+        
+        ir_para_aba("FISCAL > Municipal")
+        preencher_fiscal_municipal(config)
+        
+        ir_para_aba("FOLHA > GPS")
+        preencher_folha_gps(config)
+        
+        ir_para_aba("FOLHA > eSocial")
+        preencher_folha_esocial(config)
+    
+    elif opcao == "4":
+        # Aba específica
+        aba = menu_aba_especifica()
+        abas = {
+            "1": ("CONTADORES", preencher_contadores),
+            "2": ("PLANOS", preencher_planos),
+            "3": ("ENQUADRAMENTO FEDERAL", preencher_enquadramento),
+            "4": ("LALUR", preencher_lalur),
+            "5": ("FISCAL > Parâmetros", preencher_fiscal_parametros),
+            "6": ("FISCAL > Federal", preencher_fiscal_federal),
+            "7": ("FISCAL > Estadual > Gerais", preencher_fiscal_estadual_gerais),
+            "8": ("FISCAL > Municipal", preencher_fiscal_municipal),
+            "9": ("FOLHA > GPS", preencher_folha_gps),
+            "10": ("FOLHA > eSocial", preencher_folha_esocial),
+        }
+        if aba in abas:
+            nome, func = abas[aba]
+            ir_para_aba(nome)
+            func(config)
+    
+    print("\\n" + "="*50)
     print("  ✅ PREENCHIMENTO CONCLUÍDO!")
-    print("=" * 50)
-    print("\\nRevise os dados e salve o cadastro no SCI Único.")
+    print("="*50)
+    print("\\n📝 Revise os dados e SALVE o cadastro no SCI Único.")
     input("\\nPressione ENTER para sair...")
 
 if __name__ == "__main__":
