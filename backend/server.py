@@ -2340,10 +2340,15 @@ async def enviar_empresa_gclick(
         elif isinstance(endereco, str):
             endereco_completo = endereco
         
+        # Preparar nome no formato: ID - RAZÃO SOCIAL
+        codigo_cliente = dados_empresa.get("codigo_cliente", "")
+        razao_social = dados_empresa.get("razao_social", "")
+        nome_gclick = f"{codigo_cliente} - {razao_social}" if codigo_cliente else razao_social
+        
         # Preparar dados para GClick
         cliente_data = {
             "tipo_pessoa": "PJ",
-            "nome": dados_empresa.get("razao_social", ""),
+            "nome": nome_gclick,
             "nome_fantasia": dados_empresa.get("nome_fantasia", ""),
             "cpf_cnpj": minuta.get("cnpj", ""),
             "inscricao_estadual": dados_empresa.get("inscricao_estadual", ""),
@@ -2353,7 +2358,7 @@ async def enviar_empresa_gclick(
             "cidade": endereco.get("cidade", "") if isinstance(endereco, dict) else "",
             "estado": endereco.get("estado", "") if isinstance(endereco, dict) else "",
             "cep": endereco.get("cep", "") if isinstance(endereco, dict) else "",
-            "observacoes": f"Capital Social: {dados_empresa.get('capital_social', '')}\nObjeto Social: {dados_empresa.get('objeto_social', '')[:500] if dados_empresa.get('objeto_social') else ''}"
+            "observacoes": f"Código Cliente: {codigo_cliente}\nCapital Social: {dados_empresa.get('capital_social', '')}\nObjeto Social: {dados_empresa.get('objeto_social', '')[:500] if dados_empresa.get('objeto_social') else ''}"
         }
         
         # Adicionar sócios nas observações
