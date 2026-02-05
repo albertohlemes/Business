@@ -461,7 +461,6 @@ const ExportMenu = ({ user, onLogout }) => {
                         )}
                       </div>
                     )}
-                    </div>
 
                     {/* Comparativo Totais */}
                     <div className="grid grid-cols-2 gap-4">
