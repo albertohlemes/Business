@@ -412,49 +412,37 @@ const AnalisePisCofins = ({ user, onLogout }) => {
               </div>
             )}
 
-            {/* Visualização por NCM */}
+            {/* Visualização por NCM - Compacta */}
             {visualizacao === 'ncm' && dados.agrupamentos?.por_ncm?.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">NCM</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Produtos Exemplo</th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Ocorrências</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Valor Total</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Impacto PIS</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Impacto COFINS</th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Impacto Total</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Tipo / Motivo</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">NCM</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Exemplos</th>
+                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Qtd</th>
+                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Valor</th>
+                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Impacto</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Tipo</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y">
                       {dados.agrupamentos.por_ncm.map((item, idx) => (
                         <tr key={idx} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-mono font-bold text-gray-900">{item.ncm}</td>
-                          <td className="px-4 py-3">
-                            <div className="text-sm text-gray-600 max-w-[300px]">
-                              {item.produtos?.slice(0, 3).map((p, i) => (
-                                <div key={i} className="truncate">• {p}</div>
-                              ))}
-                              {item.produtos?.length > 3 && (
-                                <div className="text-gray-400">... +{item.produtos.length - 3} outros</div>
-                              )}
+                          <td className="px-3 py-2 font-mono font-bold text-gray-900">{item.ncm}</td>
+                          <td className="px-3 py-2">
+                            <div className="text-xs text-gray-600 max-w-[180px] truncate" title={item.produtos?.join(', ')}>
+                              {item.produtos?.slice(0, 2).join(', ')}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className="px-2 py-1 bg-gray-100 rounded-full text-sm">{item.qtd_ocorrencias}</span>
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-900">{formatCurrency(item.valor_total)}</td>
-                          <td className="px-4 py-3 text-right text-red-600">{formatCurrency(item.impacto_pis)}</td>
-                          <td className="px-4 py-3 text-right text-red-600">{formatCurrency(item.impacto_cofins)}</td>
-                          <td className="px-4 py-3 text-right font-bold text-red-700">{formatCurrency(item.impacto_total)}</td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${getTipoDivergenciaColor(item.tipo_divergencia)}`}>
+                          <td className="px-3 py-2 text-center text-gray-600">{item.qtd_ocorrencias}</td>
+                          <td className="px-3 py-2 text-right text-gray-900">{formatCurrency(item.valor_total)}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-red-600">{formatCurrency(item.impacto_total)}</td>
+                          <td className="px-3 py-2">
+                            <span className={`px-2 py-0.5 rounded text-xs ${getTipoDivergenciaColor(item.tipo_divergencia)}`}>
                               {getTipoDivergenciaLabel(item.tipo_divergencia)}
                             </span>
-                            <div className="text-xs text-gray-500 mt-1 max-w-[200px] truncate">{item.motivo}</div>
                           </td>
                         </tr>
                       ))}
@@ -464,20 +452,81 @@ const AnalisePisCofins = ({ user, onLogout }) => {
               </div>
             )}
 
-            {/* Visualização por NF (padrão) */}
+            {/* Visualização por NF - Com mais informações diretas */}
             {visualizacao === 'nf' && divergenciasFiltradas.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          <button onClick={() => requestSort('numero_nfe')} className="flex items-center gap-1 hover:text-gray-900">
-                            NF / Cliente
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">
+                          <button onClick={() => requestSort('numero_nfe')} className="flex items-center gap-1">
+                            NF
                             <SortIconComponent sortKey="numero_nfe" currentKey={sortConfig.key} direction={sortConfig.direction} />
                           </button>
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Produto / NCM</th>
+                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">CST</th>
+                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Valor</th>
+                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">PIS Atual→Correto</th>
+                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">COFINS Atual→Correto</th>
+                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">
+                          <button onClick={() => requestSort('impacto_total')} className="flex items-center gap-1 ml-auto">
+                            Impacto
+                            <SortIconComponent sortKey="impacto_total" currentKey={sortConfig.key} direction={sortConfig.direction} />
+                          </button>
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Motivo</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {divergenciasFiltradas.map((doc, idx) => (
+                        doc.produtos.map((prod, pIdx) => (
+                          <tr key={`${idx}-${pIdx}`} className="hover:bg-gray-50">
+                            <td className="px-3 py-2">
+                              <div className="font-semibold text-gray-900">{doc.numero_nfe}</div>
+                              <div className="text-xs text-gray-400 truncate max-w-[100px]" title={doc.cliente}>{doc.cliente}</div>
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="font-medium text-gray-900 truncate max-w-[150px]" title={prod.descricao}>{prod.descricao}</div>
+                              <div className="text-xs text-gray-500 font-mono">{prod.ncm} • {prod.cfop}</div>
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <div className="text-xs">
+                                <span className="text-red-600">{prod.cst_pis_atual || '-'}</span>
+                                <span className="text-gray-400">→</span>
+                                <span className="text-green-600">{prod.cst_pis_correto || '-'}</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-right text-gray-900">{formatCurrency(prod.valor_produto)}</td>
+                            <td className="px-3 py-2 text-right">
+                              <span className="text-red-600">{formatCurrency(prod.v_pis_atual)}</span>
+                              <span className="text-gray-400">→</span>
+                              <span className="text-green-600">{formatCurrency(prod.v_pis_correto)}</span>
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              <span className="text-red-600">{formatCurrency(prod.v_cofins_atual)}</span>
+                              <span className="text-gray-400">→</span>
+                              <span className="text-green-600">{formatCurrency(prod.v_cofins_correto)}</span>
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              <span className={`font-bold ${(prod.impacto_pis + prod.impacto_cofins) > 0 ? 'text-red-600' : 'text-amber-600'}`}>
+                                {formatCurrency(Math.abs(prod.impacto_pis || 0) + Math.abs(prod.impacto_cofins || 0))}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2">
+                              <span className={`px-2 py-0.5 rounded text-xs ${getTipoDivergenciaColor(prod.tipo_divergencia)}`}>
+                                {getTipoDivergenciaLabel(prod.tipo_divergencia)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
                           <button onClick={() => requestSort('qtd_divergencias')} className="flex items-center gap-1 hover:text-gray-900">
                             Divergências
                             <SortIconComponent sortKey="qtd_divergencias" currentKey={sortConfig.key} direction={sortConfig.direction} />
