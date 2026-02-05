@@ -1630,6 +1630,43 @@ const WizardAlteracao = ({ open, onClose, onComplete, processoEditando }) => {
         setTemRascunhoSalvo(false);
     };
 
+    // Carregar dados do processo para edição
+    useEffect(() => {
+        if (open && processoEditando && (!processoEditando.tipo_processo || processoEditando.tipo_processo === 'alteracao')) {
+            setModoEdicao(true);
+            setMinutaId(processoEditando.id);
+            
+            // Carregar dados extraídos
+            if (processoEditando.dados_extraidos) {
+                setDadosExtraidos(processoEditando.dados_extraidos);
+            }
+            
+            // Carregar alterações selecionadas
+            if (processoEditando.alteracoes_selecionadas) {
+                setAlteracoesSelecionadas(processoEditando.alteracoes_selecionadas);
+            }
+            
+            // Carregar dados específicos se existirem
+            if (processoEditando.dados_qsa) setDadosQSA(processoEditando.dados_qsa);
+            if (processoEditando.dados_endereco) setDadosEndereco(processoEditando.dados_endereco);
+            if (processoEditando.dados_atividades) setDadosAtividades(processoEditando.dados_atividades);
+            if (processoEditando.dados_capital) setDadosCapital(processoEditando.dados_capital);
+            if (processoEditando.dados_nome) setDadosNome(processoEditando.dados_nome);
+            if (processoEditando.dados_administracao) setDadosAdministracao(processoEditando.dados_administracao);
+            if (processoEditando.dados_outras) setDadosOutras(processoEditando.dados_outras);
+            
+            // Carregar CNPJ
+            if (processoEditando.cnpj) setCnpjInput(processoEditando.cnpj);
+            
+            // Carregar conteúdo gerado
+            if (processoEditando.conteudo_gerado) {
+                setMinutaGerada(processoEditando.conteudo_gerado);
+            }
+        } else if (open && !processoEditando) {
+            setModoEdicao(false);
+        }
+    }, [open, processoEditando]);
+
     const resetWizard = () => {
         setStep(1);
         setContratoFile(null);
