@@ -310,8 +310,8 @@ const Documents = ({ user, onLogout }) => {
     }
   };
 
-  // Ícone de ordenação
-  const SortIcon = ({ field }) => {
+  // Ícone de ordenação - usando render function ao invés de componente
+  const renderSortIcon = (field) => {
     if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-gray-400" />;
     return sortDirection === 'asc' 
       ? <ArrowUp className="w-3 h-3 text-red-600" />
