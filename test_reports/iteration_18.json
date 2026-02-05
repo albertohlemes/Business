@@ -1,0 +1,115 @@
+{
+  "summary": "Completed testing for iteration 18 - All 6 features PASSED. Sorting works on all columns (NF-e, Emitente, Valor, Data, Integridade), Integridade filter shows 54 divergentes and 481 validadas, Re-processar XMLs button is visible and functional, NF 30073 modal shows ICMS-ST R$ 279,95 and BC ST R$ 2.485,33 correctly.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Feature 1: Ordenação funciona ao clicar nas colunas (NF-e, Emitente, Valor, Data, Integridade) - PASSED",
+    "Feature 2: Filtro de Integridade: opção 'Todos', 'Validadas', 'Divergentes' - PASSED",
+    "Feature 3: Filtro Divergentes mostra apenas NFs com divergência (54 documentos) - PASSED",
+    "Feature 4: Botão 'Re-processar XMLs' está visível e funcional - PASSED",
+    "Feature 5: ICMS-ST agora aparece no modal (NF 30073 tem R$ 279,95) - PASSED",
+    "Feature 6: BC ST aparece na tabela de itens e totalizador - PASSED"
+  ],
+
+  "backend_tests_passed": [
+    "POST /api/xml/reprocess/{document_id} - Returns success with total_icms_st=279.95",
+    "GET /api/xml/documents - Returns 535 documents for 12/2025 competência",
+    "NF 30073 has total_icms_st=279.95 in database"
+  ],
+
+  "frontend_tests_passed": [
+    "Login flow works correctly with admin@test.com / 123456",
+    "Company selection modal works (ANZEN #6751 selected)",
+    "Competência 12/2025 set correctly via input field",
+    "Documents page loads with 535 documents",
+    "Sorting: NF-e column header clickable - ascending/descending toggle works",
+    "Sorting: Valor column header clickable",
+    "Sorting: Data column header clickable",
+    "Sorting: Emitente column header clickable",
+    "Sorting: Integridade (✓) column header clickable",
+    "Sort icons (ArrowUp/ArrowDown) appear when column is sorted",
+    "Integridade filter dropdown visible with options: Todos, Validadas, Divergentes",
+    "Divergentes filter shows 54 documents",
+    "Validadas filter shows 481 documents",
+    "Integrity summary card shows '481 de 535 notas OK (54 com divergência)'",
+    "Re-processar XMLs button visible in filters section",
+    "NF 30073 modal opens correctly",
+    "Modal header shows ICMS-ST: R$ 279,95",
+    "Modal header shows BC ST: R$ 2.485,33",
+    "Modal shows divergence alert: 'Valor Produtos: NF R$ 5.075,00 ≠ Soma R$ 5.354,95 (Dif: -R$ 279,95)'",
+    "Totalizador por CFOP table includes BC ST and ICMS-ST columns",
+    "Items table includes BC ST and ICMS-ST columns"
+  ],
+
+  "test_report_links": [
+    "/app/test_reports/iteration_18.json"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "handleSort() function correctly toggles sort direction when clicking same column",
+    "SortableHeader component properly renders clickable headers with sort icons",
+    "selectedIntegridade state correctly filters documents by integrity status",
+    "handleReprocessBatch() function properly calls /api/xml/reprocess-batch endpoint",
+    "checkDocIntegrity() correctly compares NF totals with sum of items",
+    "calculateCFOPTotals() properly aggregates BC ST and ICMS-ST values",
+    "Modal displays all ICMS-ST related fields correctly"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+
+  "seed_data_creation": "None - used existing ANZEN DISTRIBUIDORA data with 535 documents in 12/2025",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "All features working correctly. Test with ANZEN (72da3296-b8fa-42a4-8eaf-86e9ea8902f9) competencia 12/2025. NF 30073 (ID: 4a92ca90-223f-40dd-b75b-fac23e17a577) has ICMS-ST R$ 279,95 and shows divergence. Sorting works on all columns. Integridade filter shows 54 divergentes and 481 validadas. Re-processar XMLs button is functional.",
+
+  "features_verified": {
+    "sorting_nfe": "PASSED - Click toggles asc/desc, sort icon changes",
+    "sorting_valor": "PASSED - Click sorts by value",
+    "sorting_data": "PASSED - Click sorts by date",
+    "sorting_emitente": "PASSED - Click sorts by emitente name",
+    "sorting_integridade": "PASSED - Click sorts by integrity status",
+    "filter_integridade_todos": "PASSED - Shows all 535 documents",
+    "filter_integridade_validadas": "PASSED - Shows 481 documents",
+    "filter_integridade_divergentes": "PASSED - Shows 54 documents",
+    "reprocess_button_visible": "PASSED - Blue button in filters section",
+    "nf_30073_icms_st": "PASSED - Modal shows R$ 279,95",
+    "nf_30073_bc_st": "PASSED - Modal shows R$ 2.485,33",
+    "cfop_totals_bc_st_icms_st": "PASSED - Columns present in totalizador",
+    "items_table_bc_st_icms_st": "PASSED - Columns present in items table"
+  },
+
+  "divergence_test_results": {
+    "nf_with_divergence": "30073",
+    "nf_value": "R$ 5.075,00",
+    "sum_value": "R$ 5.354,95",
+    "difference": "-R$ 279,95",
+    "icms_st_value": "R$ 279,95",
+    "bc_st_value": "R$ 2.485,33",
+    "indicator_shown": "1 Divergência(s) (red)"
+  }
+}
