@@ -343,6 +343,45 @@ const WizardBaixa = ({ open, onClose, onComplete, processoEditando }) => {
     // Step 6 - Resultado
     const [distratoGerado, setDistratoGerado] = useState('');
 
+    // Carregar dados do processo para edição
+    useEffect(() => {
+        if (open && processoEditando && processoEditando.tipo_processo === 'baixa') {
+            setModoEdicao(true);
+            setProcessoId(processoEditando.id);
+            
+            // Carregar dados da empresa
+            setRazaoSocial(processoEditando.razao_social || '');
+            setCnpj(processoEditando.cnpj || '');
+            setNire(processoEditando.nire || '');
+            setCapitalSocial(processoEditando.capital_social || '');
+            setDataRegistro(processoEditando.data_registro || '');
+            setJuntaComercial(processoEditando.junta_comercial || '');
+            setEndereco(processoEditando.endereco || '');
+            
+            // Carregar sócios
+            if (processoEditando.socios && processoEditando.socios.length > 0) {
+                setSocios(processoEditando.socios);
+            }
+            
+            // Carregar motivo
+            if (processoEditando.motivo_baixa) setMotivoBaixa(processoEditando.motivo_baixa);
+            if (processoEditando.motivo_detalhado) setMotivoDetalhado(processoEditando.motivo_detalhado);
+            if (processoEditando.data_encerramento) setDataEncerramentoAtividades(processoEditando.data_encerramento);
+            if (processoEditando.destinacao_acervo) setDestinacaoAcervo(processoEditando.destinacao_acervo);
+            
+            // Carregar patrimônio
+            if (processoEditando.declaracao_quitacao !== undefined) setDeclaracaoQuitacao(processoEditando.declaracao_quitacao);
+            if (processoEditando.distribuicao_patrimonio) setDistribuicaoPatrimonio(processoEditando.distribuicao_patrimonio);
+            
+            // Carregar conteúdo gerado
+            if (processoEditando.conteudo_gerado) {
+                setDistratoGerado(processoEditando.conteudo_gerado);
+            }
+        } else if (open && !processoEditando) {
+            setModoEdicao(false);
+        }
+    }, [open, processoEditando]);
+
     const resetWizard = () => {
         setStep(1);
         setArquivoContrato(null);
