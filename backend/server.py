@@ -786,10 +786,18 @@ def parse_xml_nfce(xml_content: str) -> Dict[str, Any]:
             'numero_nfe': ide.get('nNF', ''),
             'serie': ide.get('serie', ''),
             'data_emissao': ide.get('dhEmi', ''),
+            # Dados do emitente
             'emitente_cnpj': emit.get('CNPJ', ''),
             'emitente_nome': emit.get('xNome', ''),
+            'emitente_ie': emit.get('IE', ''),
+            'emitente_uf': emitente_uf,
+            'emitente_endereco': emitente_endereco,
+            # Dados do destinatário
             'destinatario_cnpj': dest.get('CNPJ', '') or dest.get('CPF', '') or '',
             'destinatario_nome': dest.get('xNome', '') or 'CONSUMIDOR',
+            'destinatario_ie': dest.get('IE', '') if dest else '',
+            'destinatario_uf': destinatario_uf,
+            'destinatario_endereco': destinatario_endereco,
             'valor_total': float(total.get('vNF', 0)),
             'produtos': produtos
         }
