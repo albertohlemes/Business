@@ -1620,8 +1620,8 @@ Identifique todas as divergências encontradas.""",
 @api_router.post("/validacoes/validar-completa")
 async def validacao_completa(
     holerite_atual: UploadFile = File(...),
-    holerite_anterior: Optional[UploadFile] = File(None),
-    apoio_files: Optional[List[UploadFile]] = File(None),
+    holerite_anterior: UploadFile = File(None),
+    apoio_files: List[UploadFile] = File(default=[]),
     cliente_id: str = None,
     mes_referencia: str = None,
     ano_referencia: int = None,
