@@ -892,11 +892,31 @@ Se algum campo não for encontrado, use null. SEMPRE retorne JSON válido."""
             mime_type = "application/pdf"
         elif file_path.endswith('.png'):
             mime_type = "image/png"
+        elif file_path.endswith('.docx'):
+            mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        elif file_path.endswith('.doc'):
+            mime_type = "application/msword"
+        elif file_path.endswith('.txt'):
+            mime_type = "text/plain"
         else:
             mime_type = "image/jpeg"
         
         user_message = UserMessage(
-            text="Extraia todos os dados estruturados deste contrato social. Retorne APENAS o JSON.",
+            text="""Extraia TODOS os dados estruturados deste contrato social.
+
+ATENÇÃO ESPECIAL PARA OS SÓCIOS:
+Para cada sócio, extraia TODAS as informações disponíveis:
+- Nome completo
+- CPF (formato: 000.000.000-00)
+- RG e órgão emissor (SSP/UF)
+- Nacionalidade
+- Estado civil e regime de casamento (se casado)
+- Profissão
+- Endereço residencial COMPLETO
+- Número de quotas, valor e percentual de participação
+- Se é administrador e quais poderes
+
+Retorne APENAS o JSON válido, sem markdown, sem explicações.""",
             file_contents=[FileContentWithMimeType(file_path=file_path, mime_type=mime_type)]
         )
         
