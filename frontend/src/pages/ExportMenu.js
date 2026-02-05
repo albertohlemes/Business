@@ -376,11 +376,179 @@ const ExportMenu = ({ user, onLogout }) => {
                     ) : (
                       <RefreshCw className="w-4 h-4" />
                     )}
-                    {loadingValidacao ? 'Validando...' : 'Validar'}
+                    {loadingValidacao ? 'Validando...' : 'Pré-Validar'}
                   </button>
                 </div>
 
-                {validacao && (
+                {/* Resultado da validação pós-exportação (comparativo Sistema vs SPED) */}
+                {validacao && validacao.comparativo_cfop && (
+                  <div className="space-y-4">
+                    {/* Status da validação */}
+                    <div className={`p-4 rounded-lg border flex items-center gap-3 ${
+                      validacao.status === 'OK' 
+                        ? 'bg-green-50 border-green-300' 
+                        : 'bg-yellow-50 border-yellow-300'
+                    }`}>
+                      {validacao.status === 'OK' ? (
+                        <>
+                          <CheckCircle className="w-8 h-8 text-green-600" />
+                          <div>
+                            <h4 className="font-bold text-green-800">✅ SPED Validado com Sucesso!</h4>
+                            <p className="text-sm text-green-700">O arquivo gerado está consistente com os dados do sistema.</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-8 h-8 text-yellow-600" />
+                          <div>
+                            <h4 className="font-bold text-yellow-800">⚠️ Divergências Encontradas</h4>
+                            <p className="text-sm text-yellow-700">{validacao.divergencias?.length || 0} divergência(s) entre o SPED e o sistema.</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Comparativo Totais */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <h4 className="font-semibold text-blue-800 mb-2">Totais do Sistema</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Entradas:</span>
+                            <span className="font-mono">R$ {validacao.totais_sistema?.entradas?.valor?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">ICMS Crédito:</span>
+                            <span className="font-mono text-green-700">R$ {validacao.totais_sistema?.entradas?.icms?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Saídas:</span>
+                            <span className="font-mono">R$ {validacao.totais_sistema?.saidas?.valor?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">ICMS Débito:</span>
+                            <span className="font-mono text-red-700">R$ {validacao.totais_sistema?.saidas?.icms?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                        <h4 className="font-semibold text-purple-800 mb-2">Totais no SPED Gerado</h4>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Entradas:</span>
+                            <span className="font-mono">R$ {validacao.totais_sped?.entradas?.valor?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">ICMS Crédito:</span>
+                            <span className="font-mono text-green-700">R$ {validacao.totais_sped?.entradas?.icms?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Saídas:</span>
+                            <span className="font-mono">R$ {validacao.totais_sped?.saidas?.valor?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">ICMS Débito:</span>
+                            <span className="font-mono text-red-700">R$ {validacao.totais_sped?.saidas?.icms?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Comparativo por CFOP - Entradas */}
+                    {validacao.comparativo_cfop?.entradas?.length > 0 && (
+                      <div className="bg-white rounded-lg border">
+                        <div className="p-3 bg-gray-50 border-b font-semibold text-gray-700">
+                          Comparativo por CFOP (Entradas)
+                        </div>
+                        <div className="max-h-60 overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-50 sticky top-0">
+                              <tr>
+                                <th className="px-3 py-2 text-left">CFOP</th>
+                                <th className="px-3 py-2 text-right">Valor Sistema</th>
+                                <th className="px-3 py-2 text-right">Valor SPED</th>
+                                <th className="px-3 py-2 text-right">ICMS Sistema</th>
+                                <th className="px-3 py-2 text-right">ICMS SPED</th>
+                                <th className="px-3 py-2 text-center">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {validacao.comparativo_cfop.entradas.map((item) => (
+                                <tr key={item.cfop} className={item.status === 'DIVERGENTE' ? 'bg-red-50' : ''}>
+                                  <td className="px-3 py-2 font-mono font-semibold">{item.cfop}</td>
+                                  <td className="px-3 py-2 text-right font-mono">R$ {item.sistema?.valor?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                  <td className="px-3 py-2 text-right font-mono">R$ {item.sped?.valor?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                  <td className="px-3 py-2 text-right font-mono text-green-700">R$ {item.sistema?.icms?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                  <td className="px-3 py-2 text-right font-mono text-green-700">R$ {item.sped?.icms?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                  <td className="px-3 py-2 text-center">
+                                    {item.status === 'OK' ? (
+                                      <span className="text-green-600 flex items-center justify-center gap-1">
+                                        <CheckCircle className="w-4 h-4" /> OK
+                                      </span>
+                                    ) : (
+                                      <span className="text-red-600 flex items-center justify-center gap-1">
+                                        <XCircle className="w-4 h-4" /> Divergente
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Comparativo por CFOP - Saídas */}
+                    {validacao.comparativo_cfop?.saidas?.length > 0 && (
+                      <div className="bg-white rounded-lg border">
+                        <div className="p-3 bg-gray-50 border-b font-semibold text-gray-700">
+                          Comparativo por CFOP (Saídas)
+                        </div>
+                        <div className="max-h-60 overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-50 sticky top-0">
+                              <tr>
+                                <th className="px-3 py-2 text-left">CFOP</th>
+                                <th className="px-3 py-2 text-right">Valor Sistema</th>
+                                <th className="px-3 py-2 text-right">Valor SPED</th>
+                                <th className="px-3 py-2 text-right">ICMS Sistema</th>
+                                <th className="px-3 py-2 text-right">ICMS SPED</th>
+                                <th className="px-3 py-2 text-center">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {validacao.comparativo_cfop.saidas.map((item) => (
+                                <tr key={item.cfop} className={item.status === 'DIVERGENTE' ? 'bg-red-50' : ''}>
+                                  <td className="px-3 py-2 font-mono font-semibold">{item.cfop}</td>
+                                  <td className="px-3 py-2 text-right font-mono">R$ {item.sistema?.valor?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                  <td className="px-3 py-2 text-right font-mono">R$ {item.sped?.valor?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                  <td className="px-3 py-2 text-right font-mono text-red-700">R$ {item.sistema?.icms?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                  <td className="px-3 py-2 text-right font-mono text-red-700">R$ {item.sped?.icms?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                  <td className="px-3 py-2 text-center">
+                                    {item.status === 'OK' ? (
+                                      <span className="text-green-600 flex items-center justify-center gap-1">
+                                        <CheckCircle className="w-4 h-4" /> OK
+                                      </span>
+                                    ) : (
+                                      <span className="text-red-600 flex items-center justify-center gap-1">
+                                        <XCircle className="w-4 h-4" /> Divergente
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Resultado da pré-validação (formato antigo) */}
+                {validacao && validacao.resumo && !validacao.comparativo_cfop && (
                   <div className="space-y-4">
                     {/* Resumo da Apuração */}
                     <div className="grid grid-cols-2 gap-4">
