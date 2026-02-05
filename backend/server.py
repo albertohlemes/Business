@@ -1687,17 +1687,28 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
     # Combinar todos os CFOPs sem direito a crédito de ICMS
     CFOPS_SEM_CREDITO_SPED = set(CFOPS_ST_SPED + CFOPS_DESPESA_SPED)
     
-    # Calcular totais - desconsiderando CFOPs sem crédito nas entradas
+    # Calcular totais de débitos (saídas)
     vl_debitos = sum(
         sum(float(p.get('v_icms', 0) or 0) for p in d.produtos)
         for d in documents if d.tipo == 'saida'
     )
-    vl_creditos = sum(
-        sum(float(p.get('v_icms', 0) or 0) 
-            for p in d.produtos 
-            if str(p.get('cfop', '')) not in CFOPS_SEM_CREDITO_SPED)
-        for d in documents if d.tipo == 'entrada'
-    )
+    
+    # Calcular totais de créditos (entradas) - aplicar flag de exclusão
+    if excluir_creditos_despesa_st:
+        # EXCLUIR créditos de CFOPs de despesa e ST (apuração conservadora)
+        vl_creditos = sum(
+            sum(float(p.get('v_icms', 0) or 0) 
+                for p in d.produtos 
+                if str(p.get('cfop', '')) not in CFOPS_SEM_CREDITO_SPED)
+            for d in documents if d.tipo == 'entrada'
+        )
+    else:
+        # INCLUIR todos os créditos (como vem no XML)
+        vl_creditos = sum(
+            sum(float(p.get('v_icms', 0) or 0) for p in d.produtos)
+            for d in documents if d.tipo == 'entrada'
+        )
+    
     vl_saldo = vl_debitos - vl_creditos
     vl_pagar = max(0, vl_saldo)
     vl_credito_acum = max(0, -vl_saldo)
