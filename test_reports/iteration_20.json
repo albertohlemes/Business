@@ -1,0 +1,78 @@
+{
+  "summary": "Completed testing for iteration 20 - Reimport functionality moved from Documents to Validação & IA page. All backend tests PASSED (8/8). Frontend UI verified: Documents page has NO reprocess button, Validação & IA page has 'Ações em Lote' section with 'Reimportar Tudo' button, button shows correct confirmation dialog, reimport resets status to 'pendente' and products to 'aprovado=False' with AI classification applied.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Backend: POST /api/xml/reimport-batch - Returns success with total, success, errors, classificados, entradas, saidas",
+    "Backend: POST /api/xml/reimport-batch with invalid company - Returns 0 documents",
+    "Backend: POST /api/xml/reimport-batch with invalid competencia - Returns 0 documents",
+    "Backend: Documents have status='pendente' after reimport",
+    "Backend: Products have aprovado=False after reimport",
+    "Backend: Products have AI classification (categoria_classificada) after reimport",
+    "Backend: GET /api/xml/documents - Endpoint still works",
+    "Backend: POST /api/xml/reprocess-batch - Old endpoint still exists",
+    "Frontend: Documents page has NO reprocess button (removed as expected)",
+    "Frontend: Validação & IA page has 'Ações em Lote' section",
+    "Frontend: 'Reimportar Tudo' button visible and enabled when company selected",
+    "Frontend: Confirmation dialog shows correct warning message about reimporting",
+    "Frontend: Products grouped by category (REVENDA, INSUMO, DESPESA) after reimport"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_reimport_batch.py",
+    "/app/test_reports/pytest/pytest_iteration20.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "reimport-batch endpoint correctly re-extracts ALL data from XML and applies AI classification",
+    "Products are reset with aprovado=False and status_validacao='pendente'",
+    "AI classification uses classify_products_with_cache function for entrada documents",
+    "Button correctly disabled when no company/competencia selected (opacity: 0.5)",
+    "Confirmation dialog provides clear warning about data reset"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_reimport_batch.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (8/8 tests passed)",
+    "frontend": "100% (all UI elements verified)"
+  },
+
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+
+  "seed_data_creation": "None - used existing ANZEN DISTRIBUIDORA data with 2 documents in 02/2026",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Reimport functionality successfully moved from Documents page to Validação & IA page. Test with ANZEN (72da3296-b8fa-42a4-8eaf-86e9ea8902f9) competencia 02/2026 which has 2 documents (NF 123 and NF 987). The 'Reimportar Tudo' button is in the 'Ações em Lote' section on Validação & IA page. After reimport, documents have status='pendente' and products have aprovado=False with AI classification applied.",
+
+  "features_verified": {
+    "documents_page_no_reprocess": "PASSED - No reprocess button on Documents page",
+    "validacao_ia_acoes_lote": "PASSED - 'Ações em Lote' section visible",
+    "reimportar_button": "PASSED - 'Reimportar Tudo' button visible and functional",
+    "confirmation_dialog": "PASSED - Shows warning about data reset",
+    "api_reimport_batch": "PASSED - Returns correct response structure",
+    "status_reset": "PASSED - Documents reset to status='pendente'",
+    "products_reset": "PASSED - Products reset with aprovado=False",
+    "ai_classification": "PASSED - AI classification applied to entrada products"
+  }
+}
