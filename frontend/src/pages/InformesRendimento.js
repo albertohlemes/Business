@@ -224,6 +224,13 @@ const InformesRendimento = () => {
                 </div>
               </div>
 
+              {/* Progress Bar */}
+              {uploading && (
+                <div className="py-2">
+                  <InformesProgress isProcessing={uploading} />
+                </div>
+              )}
+
               <Button
                 onClick={handleCompare}
                 disabled={!esocialFile || !sistemaFile || uploading}
@@ -233,7 +240,7 @@ const InformesRendimento = () => {
                 {uploading ? (
                   <>
                     <Loader2 className="animate-spin mr-2" size={18} />
-                    Comparando com IA...
+                    Processando...
                   </>
                 ) : (
                   <>
