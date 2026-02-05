@@ -480,7 +480,8 @@ const SociosEntrando = ({ dados, onChange }) => {
                             nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)',
                             dataNascimento: '', cidadeNascimento: '', estadoNascimento: '',
                             estadoCivil: '', regimeCasamento: '', profissao: 'Empresário(a)', participacao: '',
-                            endereco: { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' }
+                            endereco: { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' },
+                            administrador: false
                         }]
                     })}
                 >
