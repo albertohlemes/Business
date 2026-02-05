@@ -288,8 +288,24 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
   - **Solução:**
     1. **Coluna ✓/✗ na listagem** - primeira coluna mostra check verde ou X vermelho
     2. **Lógica corrigida** - compara soma dos produtos com (Valor NF - IPI - ST - Frete - Seguro - Outros)
-    3. **Card de resumo** - mostra "477 de 535 notas OK (58 com divergência)"
+    3. **Card de resumo** - mostra "481 de 535 notas OK (54 com divergência)"
     4. **Mensagem de divergência** - "Valor Produtos: NF R$ X ≠ Soma R$ Y (Dif: R$ Z)"
+
+- ✅ **ORDENAÇÃO E FILTROS NA PÁGINA DE DOCUMENTOS**
+  - **Problema:** Usuário queria ordenar por colunas e filtrar por integridade
+  - **Solução:**
+    1. **Ordenação clicável** - NF-e, Emitente, Valor, Data, Integridade (asc/desc)
+    2. **Ícones de ordenação** - Seta ↑/↓ indica direção atual
+    3. **Filtro de Integridade** - Todos / ✓ Validadas / ✗ Divergentes
+    4. **54 divergentes** e **481 validadas** na competência 12/2025
+
+- ✅ **RE-PROCESSAMENTO DE XMLS**
+  - **Problema:** ICMS-ST estava zerado porque os XMLs foram importados antes da extração desse campo
+  - **Solução:**
+    1. **Endpoint `/api/xml/reprocess-batch`** - Re-processa todos os XMLs de uma competência
+    2. **Botão "Re-processar XMLs"** - Visível na página de Documentos
+    3. **535 documentos re-processados** - 40 com ICMS-ST encontrado
+    4. **NF 30073**: ICMS-ST R$ 279,95 | BC ST R$ 2.485,33 (agora exibido corretamente)
 
 - ✅ **LINKS DE NF NA PÁGINA VALIDAÇÃO & IA**
   - **Problema:** Quando havia muitas NFs, mostrava "+1, +2" sem detalhes
