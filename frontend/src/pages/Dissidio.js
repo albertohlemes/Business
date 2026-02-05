@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { FileText, Upload, CheckCircle2, XCircle, Clock, Loader2, FileUp, TrendingUp, Users, DollarSign, Percent, Download, Eye } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useEmpresa } from '../contexts/EmpresaContext';
+import { DissidioProgress } from '../components/ProcessingBar';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
