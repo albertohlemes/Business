@@ -243,6 +243,53 @@ const Documents = ({ user, onLogout }) => {
           </div>
         </div>
 
+        {/* Card de Integridade - Discreto mas informativo */}
+        {integritySummary && integritySummary.total > 0 && (
+          <div className={`rounded-lg p-4 flex items-center justify-between ${
+            integritySummary.com_divergencia > 0 
+              ? 'bg-amber-50 border border-amber-200' 
+              : 'bg-green-50 border border-green-200'
+          }`}>
+            <div className="flex items-center gap-3">
+              <Shield className={`w-5 h-5 ${
+                integritySummary.com_divergencia > 0 ? 'text-amber-600' : 'text-green-600'
+              }`} />
+              <div>
+                <span className="font-medium text-gray-900">Integridade dos Valores: </span>
+                {loadingIntegrity ? (
+                  <span className="text-gray-500">Verificando...</span>
+                ) : integritySummary.com_divergencia > 0 ? (
+                  <span className="text-amber-700">
+                    {integritySummary.validos} de {integritySummary.total} notas OK 
+                    <span className="text-amber-600 font-medium ml-1">
+                      ({integritySummary.com_divergencia} com divergência)
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-green-700">
+                    Todas as {integritySummary.total} notas com valores íntegros ✓
+                  </span>
+                )}
+              </div>
+            </div>
+            {integritySummary.com_divergencia > 0 && (
+              <button 
+                onClick={() => {
+                  const divs = integritySummary.divergencias;
+                  if (divs && divs.length > 0) {
+                    alert(`Divergências encontradas:\n\n${divs.map(d => 
+                      `NF ${d.numero_nfe}: XML R$ ${d.valor_xml?.toFixed(2)} → DB R$ ${d.valor_db?.toFixed(2)} (dif: ${d.diferenca?.toFixed(2)})`
+                    ).join('\n')}`);
+                  }
+                }}
+                className="text-amber-700 hover:text-amber-900 text-sm font-medium underline"
+              >
+                Ver detalhes
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Documents List */}
         {loading ? (
           <div className="text-center py-12">
