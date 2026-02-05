@@ -969,7 +969,17 @@ Retorne APENAS o JSON válido, sem markdown, sem explicações.""",
         raise HTTPException(status_code=500, detail="Biblioteca de IA não disponível")
     except Exception as e:
         logger.error(f"Erro ao extrair dados: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro ao extrair dados: {str(e)}")
+        # Retornar estrutura vazia para permitir preenchimento manual
+        return {
+            "success": False,
+            "message": f"Não foi possível extrair dados automaticamente: {str(e)}",
+            "dados": {
+                "empresa": {},
+                "socios": [],
+                "clausulas": [],
+                "cnaes": []
+            }
+        }
 
 @api_router.get("/minutas", response_model=List[MinutaResponse])
 async def list_minutas(current_user: dict = Depends(get_current_user)):
