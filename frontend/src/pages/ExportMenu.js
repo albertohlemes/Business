@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { Download, FileText, Calendar, AlertCircle, ArrowUpRight, ArrowDownRight, FileSpreadsheet } from 'lucide-react';
+import { Download, FileText, Calendar, AlertCircle, ArrowUpRight, ArrowDownRight, FileSpreadsheet, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -17,6 +17,8 @@ const ExportMenu = ({ user, onLogout }) => {
   const [availableCompetencias, setAvailableCompetencias] = useState([]);
   const [activeTab, setActiveTab] = useState('sped'); // sped, entrada, saida
   const [excluirCreditosDespesaST, setExcluirCreditosDespesaST] = useState(true); // Default: excluir
+  const [validacao, setValidacao] = useState(null);
+  const [loadingValidacao, setLoadingValidacao] = useState(false);
 
   useEffect(() => {
     fetchCompanies();
