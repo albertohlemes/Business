@@ -3064,7 +3064,7 @@ async def reprocess_document(
 ):
     """
     Re-processa o XML original de um documento para extrair campos faltantes
-    (como ICMS-ST, endereços, etc.) que não existiam na versão anterior.
+    (como ICMS-ST, endereços, etc.) MANTENDO as classificações da IA e memórias.
     """
     document = await db.xml_documents.find_one({"id": document_id}, {"_id": 0})
     if not document:
@@ -3084,13 +3084,48 @@ async def reprocess_document(
         else:
             parsed = parse_xml_nfe(xml_content)
         
+        # Mesclar produtos: manter classificações da IA, adicionar campos novos do XML
+        produtos_atuais = document.get('produtos', [])
+        produtos_novos = parsed.get('produtos', [])
+        
+        # Criar mapa dos produtos atuais por código
+        produtos_map = {p.get('codigo', ''): p for p in produtos_atuais}
+        
+        # Mesclar: para cada produto do XML, preservar campos da IA
+        produtos_mesclados = []
+        for prod_novo in produtos_novos:
+            codigo = prod_novo.get('codigo', '')
+            prod_atual = produtos_map.get(codigo, {})
+            
+            # Campos que devem ser PRESERVADOS (classificações da IA)
+            campos_preservar = [
+                'classificacao',      # REVENDA, INSUMO, DESPESA, etc.
+                'cfop',               # CFOP classificado pela IA
+                'cfop_sugerido',      # Sugestão da IA
+                'justificativa_ia',   # Justificativa da classificação
+                'aprovado',           # Se foi aprovado pelo usuário
+                'reclassificado',     # Se foi reclassificado manualmente
+                'reclassificado_por', # Quem reclassificou
+                'data_reclassificacao', # Quando foi reclassificado
+            ]
+            
+            # Começar com os dados novos do XML
+            prod_mesclado = prod_novo.copy()
+            
+            # Preservar campos da IA que existem no produto atual
+            for campo in campos_preservar:
+                if campo in prod_atual and prod_atual[campo]:
+                    prod_mesclado[campo] = prod_atual[campo]
+            
+            produtos_mesclados.append(prod_mesclado)
+        
         # Atualizar o documento com os novos campos extraídos
         update_data = {
-            'produtos': parsed.get('produtos', []),
-            'emitente_ie': parsed.get('emitente_ie', ''),
-            'emitente_endereco': parsed.get('emitente_endereco', {}),
-            'destinatario_ie': parsed.get('destinatario_ie', ''),
-            'destinatario_endereco': parsed.get('destinatario_endereco', {}),
+            'produtos': produtos_mesclados,
+            'emitente_ie': parsed.get('emitente_ie', '') or document.get('emitente_ie', ''),
+            'emitente_endereco': parsed.get('emitente_endereco', {}) or document.get('emitente_endereco', {}),
+            'destinatario_ie': parsed.get('destinatario_ie', '') or document.get('destinatario_ie', ''),
+            'destinatario_endereco': parsed.get('destinatario_endereco', {}) or document.get('destinatario_endereco', {}),
             'total_ipi': parsed.get('total_ipi', 0),
             'total_icms_st': parsed.get('total_icms_st', 0),
             'total_frete': parsed.get('total_frete', 0),
@@ -3110,7 +3145,8 @@ async def reprocess_document(
             "numero_nfe": document.get('numero_nfe'),
             "campos_atualizados": list(update_data.keys()),
             "total_icms_st": update_data['total_icms_st'],
-            "produtos_com_st": sum(1 for p in update_data['produtos'] if p.get('v_icms_st', 0) > 0)
+            "produtos_com_st": sum(1 for p in update_data['produtos'] if p.get('v_icms_st', 0) > 0),
+            "classificacoes_preservadas": sum(1 for p in produtos_mesclados if p.get('classificacao'))
         }
         
     except Exception as e:
