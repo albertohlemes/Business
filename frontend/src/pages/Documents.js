@@ -545,7 +545,7 @@ const Documents = ({ user, onLogout }) => {
                         <tr key={cfop} className="hover:bg-gray-100">
                           <td className="px-3 py-2 font-mono font-medium">{cfop}</td>
                           <td className="px-3 py-2 text-center">{totals.count}</td>
-                          <td className="px-3 py-2 text-right">{formatCurrency(totals.valor)}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(totals.valor_total)}</td>
                           <td className="px-3 py-2 text-right">{formatCurrency(totals.bc_icms)}</td>
                           <td className="px-3 py-2 text-right">{formatCurrency(totals.v_icms)}</td>
                           <td className="px-3 py-2 text-right">{formatCurrency(totals.bc_st)}</td>
