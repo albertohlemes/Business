@@ -1769,6 +1769,298 @@ async def sieg_count_xmls(
 # ============== SIEG SYNC COM SSE ==============
 sieg_progress_store: Dict[str, Dict] = {}
 
+# ============== REIMPORT PROGRESS COM SSE ==============
+reimport_progress_store: Dict[str, Dict] = {}
+
+@api_router.post("/xml/reimport-init")
+async def reimport_init(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Inicializa uma sessão de reimportação e retorna um task_id para acompanhar o progresso"""
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Contar documentos
+    doc_count = await db.xml_documents.count_documents({"company_id": company_id, "competencia": competencia})
+    if doc_count == 0:
+        raise HTTPException(status_code=404, detail="Nenhum documento encontrado para esta competência")
+    
+    task_id = str(uuid.uuid4())
+    reimport_progress_store[task_id] = {
+        "status": "initialized",
+        "step": "Iniciando reimportação...",
+        "progress_percent": 0,
+        "company_id": company_id,
+        "competencia": competencia,
+        "total_docs": doc_count,
+        "processed": 0,
+        "classificados": 0,
+        "errors": 0,
+        "completed": False,
+        "results": None
+    }
+    
+    return {"task_id": task_id, "total_docs": doc_count}
+
+
+@api_router.get("/xml/reimport-progress/{task_id}")
+async def stream_reimport_progress(task_id: str):
+    """Stream de progresso da reimportação via Server-Sent Events"""
+    
+    async def generate():
+        last_progress = -1
+        while True:
+            if task_id not in reimport_progress_store:
+                yield f"data: {json.dumps({'error': 'Task não encontrada'})}\n\n"
+                break
+            
+            progress = reimport_progress_store[task_id]
+            current_progress = progress.get("progress_percent", 0)
+            
+            if current_progress != last_progress or progress.get("completed"):
+                event_data = {
+                    "status": progress["status"],
+                    "step": progress["step"],
+                    "progress_percent": progress["progress_percent"],
+                    "processed": progress["processed"],
+                    "total_docs": progress["total_docs"],
+                    "classificados": progress["classificados"],
+                    "errors": progress["errors"],
+                    "completed": progress.get("completed", False)
+                }
+                
+                if progress.get("completed") and progress.get("results"):
+                    event_data["results"] = progress["results"]
+                    yield f"data: {json.dumps(event_data)}\n\n"
+                    if task_id in reimport_progress_store:
+                        del reimport_progress_store[task_id]
+                    break
+                
+                yield f"data: {json.dumps(event_data)}\n\n"
+                last_progress = current_progress
+            
+            await asyncio.sleep(0.3)
+    
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
+    )
+
+
+@api_router.post("/xml/reimport-execute/{task_id}")
+async def reimport_execute(
+    task_id: str,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
+):
+    """Executa a reimportação com progresso em tempo real"""
+    if task_id not in reimport_progress_store:
+        raise HTTPException(status_code=404, detail="Task não encontrada")
+    
+    progress = reimport_progress_store[task_id]
+    company_id = progress["company_id"]
+    competencia = progress["competencia"]
+    
+    # Executar em background
+    background_tasks.add_task(execute_reimport_task, task_id, company_id, competencia)
+    
+    return {"message": "Reimportação iniciada", "task_id": task_id}
+
+
+async def execute_reimport_task(task_id: str, company_id: str, competencia: str):
+    """Função de background que executa a reimportação"""
+    progress = reimport_progress_store[task_id]
+    
+    try:
+        progress["status"] = "running"
+        progress["step"] = "Buscando documentos..."
+        
+        # Buscar documentos
+        documents = await db.xml_documents.find(
+            {"company_id": company_id, "competencia": competencia},
+            {"_id": 0}
+        ).to_list(2000)
+        
+        if not documents:
+            progress["status"] = "error"
+            progress["step"] = "Nenhum documento encontrado"
+            progress["completed"] = True
+            return
+        
+        # Buscar dados da empresa
+        company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+        if not company:
+            progress["status"] = "error"
+            progress["step"] = "Empresa não encontrada"
+            progress["completed"] = True
+            return
+        
+        uf_empresa = company.get('uf', 'SP')
+        total = len(documents)
+        progress["total_docs"] = total
+        
+        results = {
+            "total": total,
+            "success": 0,
+            "errors": 0,
+            "classificados": 0,
+            "entradas": 0,
+            "saidas": 0
+        }
+        
+        for i, doc in enumerate(documents):
+            try:
+                progress["step"] = f"Processando documento {i+1}/{total}..."
+                progress["processed"] = i + 1
+                progress["progress_percent"] = int((i + 1) / total * 100)
+                
+                xml_content = doc.get('xml_content', '')
+                if not xml_content:
+                    results['errors'] += 1
+                    progress["errors"] = results['errors']
+                    continue
+                
+                # Re-parsear o XML
+                modelo = doc.get('modelo', 'nfe')
+                if modelo == 'nfse':
+                    parsed = parse_xml_nfse(xml_content)
+                elif modelo == 'nfce':
+                    parsed = parse_xml_nfce(xml_content)
+                else:
+                    parsed = parse_xml_nfe(xml_content)
+                
+                # Determinar tipo
+                cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+                cnpj_emitente = parsed.get('cnpj_emitente', '').replace('.', '').replace('/', '').replace('-', '')
+                
+                if cnpj_emitente == cnpj_empresa:
+                    tipo = 'saida'
+                    results['saidas'] += 1
+                else:
+                    tipo = 'entrada'
+                    results['entradas'] += 1
+                
+                emitente_uf = parsed.get('emitente_uf', '')
+                produtos = parsed.get('produtos', [])
+                
+                # Para ENTRADAS: Classificar produtos
+                if tipo == 'entrada' and produtos:
+                    progress["step"] = f"Classificando produtos do doc {i+1}/{total}..."
+                    
+                    # Converter CFOPs
+                    for product in produtos:
+                        cfop = str(product.get('cfop', ''))
+                        if cfop.startswith('5') or cfop.startswith('6'):
+                            cfop_entrada = cfop.replace('5', '1', 1).replace('6', '2', 1)
+                            product['cfop_original'] = cfop
+                            product['cfop'] = cfop_entrada
+                    
+                    try:
+                        classifications, stats = await classify_products_with_cache(
+                            produtos, company_id, company, emitente_uf
+                        )
+                        
+                        for idx, product in enumerate(produtos):
+                            p_id = str(idx)
+                            if p_id in classifications:
+                                result = classifications[p_id]
+                                product['cfop_original'] = product.get('cfop_original', product.get('cfop', ''))
+                                product['cfop'] = result['cfop']
+                                product['cfop_sugerido'] = result['cfop']
+                                product['classificacao'] = result['categoria']
+                                product['categoria_classificada'] = result['categoria']
+                                product['justificativa_ia'] = result['justificativa']
+                                product['aprovado'] = False
+                                product['reclassificado'] = False
+                                results['classificados'] += 1
+                            else:
+                                is_interestadual = emitente_uf and emitente_uf != uf_empresa
+                                cfop_prefix = '2' if is_interestadual else '1'
+                                cst = product.get('cst', '')
+                                is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+                                cfop_novo = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
+                                
+                                product['cfop'] = cfop_novo
+                                product['cfop_sugerido'] = cfop_novo
+                                product['classificacao'] = 'revenda'
+                                product['categoria_classificada'] = 'revenda'
+                                product['justificativa_ia'] = 'Classificação padrão: REVENDA'
+                                product['aprovado'] = False
+                                product['reclassificado'] = False
+                                results['classificados'] += 1
+                                
+                        progress["classificados"] = results['classificados']
+                    except Exception as e:
+                        print(f"Erro na classificação: {e}")
+                        for product in produtos:
+                            is_interestadual = emitente_uf and emitente_uf != uf_empresa
+                            cfop_prefix = '2' if is_interestadual else '1'
+                            product['cfop'] = cfop_prefix + '102'
+                            product['cfop_sugerido'] = cfop_prefix + '102'
+                            product['classificacao'] = 'revenda'
+                            product['categoria_classificada'] = 'revenda'
+                            product['justificativa_ia'] = 'Classificação padrão: REVENDA (fallback)'
+                            product['aprovado'] = False
+                            product['reclassificado'] = False
+                
+                # Atualizar documento
+                update_data = {
+                    'tipo': tipo,
+                    'produtos': produtos,
+                    'valor_total': parsed.get('valor_total', 0),
+                    'data_emissao': parsed.get('data_emissao'),
+                    'numero_nfe': parsed.get('numero_nfe', ''),
+                    'chave_acesso': parsed.get('chave_acesso', ''),
+                    'emitente_nome': parsed.get('emitente_nome', ''),
+                    'emitente_cnpj': parsed.get('cnpj_emitente', ''),
+                    'emitente_uf': emitente_uf,
+                    'emitente_ie': parsed.get('emitente_ie', ''),
+                    'emitente_endereco': parsed.get('emitente_endereco', {}),
+                    'destinatario_nome': parsed.get('destinatario_nome', ''),
+                    'destinatario_cnpj': parsed.get('cnpj_destinatario', ''),
+                    'destinatario_ie': parsed.get('destinatario_ie', ''),
+                    'destinatario_endereco': parsed.get('destinatario_endereco', {}),
+                    'total_icms': parsed.get('total_icms', 0),
+                    'total_icms_st': parsed.get('total_icms_st', 0),
+                    'total_ipi': parsed.get('total_ipi', 0),
+                    'total_pis': parsed.get('total_pis', 0),
+                    'total_cofins': parsed.get('total_cofins', 0),
+                    'total_frete': parsed.get('total_frete', 0),
+                    'total_seguro': parsed.get('total_seguro', 0),
+                    'total_outras_despesas': parsed.get('total_outras_despesas', 0),
+                    'total_desconto': parsed.get('total_desconto', 0),
+                    'status_validacao': 'pendente',
+                    'updated_at': datetime.now(timezone.utc).isoformat()
+                }
+                
+                await db.xml_documents.update_one(
+                    {"id": doc['id']},
+                    {"$set": update_data}
+                )
+                
+                results['success'] += 1
+                
+            except Exception as e:
+                print(f"Erro ao reimportar documento: {e}")
+                results['errors'] += 1
+                progress["errors"] = results['errors']
+        
+        progress["status"] = "completed"
+        progress["step"] = "Reimportação concluída!"
+        progress["progress_percent"] = 100
+        progress["completed"] = True
+        progress["results"] = results
+        
+    except Exception as e:
+        progress["status"] = "error"
+        progress["step"] = f"Erro: {str(e)}"
+        progress["completed"] = True
+
+
 @api_router.post("/sieg/sync-init/{company_id}")
 async def sieg_sync_init(
     company_id: str,
