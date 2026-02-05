@@ -571,10 +571,118 @@ E-MAIL: ${sciForm.email || 'N/A'}
         setSciForm({
             codigoCliente: '', razaoSocial: '', nomeFantasia: '', cnpj: '',
             inscricaoEstadual: '', inscricaoMunicipal: '', regime: 'simples',
-            dataAbertura: '', capitalSocial: '', endereco: '', numero: '',
+            dataAbertura: '', capitalSocial: '', endereco: '', numero: '', complemento: '',
             bairro: '', cidade: '', estado: 'SP', cep: '', responsavel: '',
-            cpfResponsavel: '', telefone: '', email: ''
+            cpfResponsavel: '', telefone: '', email: '',
+            dataEntrada: '', dataConstituicao: '', dataRegistro: '', orgaoRegistro: '', numeroRegistro: ''
         });
+        setSciSocios([{ 
+            nome: '', cpf: '', rg: '', orgaoEmissor: 'SSP', ufEmissor: 'SP',
+            dataNascimento: '', naturalidade: '', estadoCivil: 'Solteiro(a)',
+            endereco: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '',
+            telefone: '', celular: '', email: '', administrador: true, participacao: ''
+        }]);
+    };
+
+    // Handlers SCI Sócios
+    const addSciSocio = () => {
+        setSciSocios(prev => [...prev, { 
+            nome: '', cpf: '', rg: '', orgaoEmissor: 'SSP', ufEmissor: 'SP',
+            dataNascimento: '', naturalidade: '', estadoCivil: 'Solteiro(a)',
+            endereco: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '',
+            telefone: '', celular: '', email: '', administrador: false, participacao: ''
+        }]);
+    };
+
+    const removeSciSocio = (index) => {
+        if (sciSocios.length > 1) {
+            setSciSocios(prev => prev.filter((_, i) => i !== index));
+        }
+    };
+
+    const updateSciSocio = (index, field, value) => {
+        setSciSocios(prev => prev.map((s, i) => i === index ? { ...s, [field]: value } : s));
+    };
+
+    // Exportar para arquivo JSON (para o robô)
+    const exportarParaRobo = async () => {
+        if (!sciForm.razaoSocial || !sciForm.cnpj) {
+            toast.error('Preencha pelo menos a Razão Social e CNPJ');
+            return;
+        }
+
+        setExportandoSci(true);
+        try {
+            const response = await axios.post(`${API_URL}/api/sci-unico/exportar`, {
+                codigo: sciForm.codigoCliente,
+                razao_social: sciForm.razaoSocial,
+                nome_fantasia: sciForm.nomeFantasia,
+                cnpj: sciForm.cnpj,
+                inscricao_estadual: sciForm.inscricaoEstadual,
+                inscricao_municipal: sciForm.inscricaoMunicipal,
+                data_entrada: sciForm.dataEntrada,
+                data_constituicao: sciForm.dataConstituicao || sciForm.dataAbertura,
+                data_registro: sciForm.dataRegistro,
+                orgao_registro: sciForm.orgaoRegistro,
+                numero_registro: sciForm.numeroRegistro,
+                email: sciForm.email,
+                telefone: sciForm.telefone,
+                cep: sciForm.cep,
+                endereco: sciForm.endereco,
+                numero: sciForm.numero,
+                complemento: sciForm.complemento,
+                bairro: sciForm.bairro,
+                cidade: sciForm.cidade,
+                estado: sciForm.estado,
+                socios: sciSocios
+            });
+
+            if (response.data.success) {
+                // Baixar arquivo JSON
+                const jsonData = JSON.stringify(response.data.data, null, 2);
+                const blob = new Blob([jsonData], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `sci_dados_${sciForm.codigoCliente || 'empresa'}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                toast.success('Arquivo exportado! Use o robô para preencher o SCI Único.');
+                carregarHistorico();
+            }
+        } catch (error) {
+            console.error('Erro ao exportar:', error);
+            toast.error('Erro ao exportar dados');
+        } finally {
+            setExportandoSci(false);
+        }
+    };
+
+    // Baixar script do robô
+    const baixarRobo = async () => {
+        try {
+            const response = await axios.get(`${API_URL}/api/sci-unico/download-script`, {
+                responseType: 'blob'
+            });
+            
+            const blob = new Blob([response.data], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sci_robo.py';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            toast.success('Script baixado! Instale Python e as dependências para usar.');
+        } catch (error) {
+            console.error('Erro ao baixar script:', error);
+            toast.error('Erro ao baixar o script');
+        }
     };
 
     // Formatar data
