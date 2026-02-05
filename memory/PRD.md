@@ -89,22 +89,32 @@ Portal para departamento societário com geração de documentos via IA.
 
 ## Testes Realizados (05/02/2026)
 
+### ✅ Melhorias Implementadas: QSA Multi-opção e Rascunho
+
+**1. QSA com Múltiplas Opções:**
+- Alterado de radio buttons para checkboxes
+- Permite selecionar Saída + Entrada + Redistribuição simultaneamente
+- Cada seção aparece independentemente
+
+**2. Redistribuição com Entrada Manual:**
+- Quando não há sócios extraídos, permite adicionar manualmente
+- Campos: Nome, CPF, Participação Atual, Nova Participação
+
+**3. Funcionalidade "Continuar de Onde Parou":**
+- Rascunho salvo automaticamente em localStorage
+- Ao reabrir wizard com rascunho, oferece opções:
+  - "Continuar" - restaura o estado anterior
+  - "Descartar" - começa novo processo
+- Rascunho limpo automaticamente após sucesso
+
+**4. Consolidação do Contrato:**
+- Cláusulas originais extraídas e preservadas
+- Prompt de geração mantém todas as cláusulas originais
+- Apenas informações alteradas são atualizadas
+
 ### Bug Corrigido: Formulário QSA sem sócios extraídos
 - **Status**: CORRIGIDO
-- **Problema**: Quando não havia sócios extraídos do contrato, o formulário de QSA ficava vazio sem opção de preenchimento manual
-- **Solução**: Adicionada seção "Sócio(s) Retirante(s)" com botão "Adicionar Retirante" para inserção manual dos dados
-- **Arquivos alterados**: `/app/frontend/src/components/processos/WizardAlteracao.js`
-
-### Bug Anterior: Seleção de Tipos no Wizard de Alteração
-- **Status**: BUG NÃO REPRODUZÍVEL
-- **Investigação**: A função `toggleAlteracao` (linha 1147) foi testada extensivamente
-- **Cenários testados**:
-  - Seleção simples de tipo ✅
-  - Seleção múltipla de tipos (até 4) ✅
-  - Toggle de desseleção ✅
-  - Feedback visual (destaque vermelho) ✅
-  - Botão "Próximo" habilitado quando tipos selecionados ✅
-- **Conclusão**: O código está funcionando corretamente.
+- Adicionada entrada manual para sócios retirantes e redistribuição
 
 ### Taxa de Sucesso dos Testes
 - Backend: 100% (10/10 testes)
