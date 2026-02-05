@@ -822,8 +822,13 @@ const Documents = ({ user, onLogout }) => {
                 <tbody className="divide-y divide-gray-200">
                   {sortedAndFilteredDocuments.map((doc) => {
                     const integrityCheck = quickCheckIntegrity(doc);
+                    const hasError = integrityCheck && !integrityCheck.valid;
                     return (
-                      <tr key={doc.id} data-testid={`document-row-${doc.id}`} className="hover:bg-gray-50">
+                      <tr 
+                        key={doc.id} 
+                        data-testid={`document-row-${doc.id}`} 
+                        className={`hover:bg-gray-50 ${hasError ? 'bg-red-50 hover:bg-red-100' : ''}`}
+                      >
                         <td className="px-4 py-4">
                           {integrityCheck === null ? (
                             <span className="text-gray-400" title="Sem itens para validar">-</span>
@@ -836,7 +841,7 @@ const Documents = ({ user, onLogout }) => {
                         <td className="px-4 py-4">
                           <button
                             onClick={() => fetchDocumentDetail(doc.id)}
-                            className="text-sm font-medium text-red-600 hover:text-red-800 hover:underline"
+                            className={`text-sm font-medium hover:underline ${hasError ? 'text-red-700 hover:text-red-900' : 'text-red-600 hover:text-red-800'}`}
                           >
                             {doc.numero_nfe}
                           </button>
