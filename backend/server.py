@@ -1604,6 +1604,436 @@ Identifique todas as divergências encontradas.""",
         logger.error(f"Erro na comparação: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao comparar documentos: {str(e)}")
 
+
+@api_router.post("/validacoes/validar-completa")
+async def validacao_completa(
+    holerite_atual: UploadFile = File(...),
+    holerite_anterior: Optional[UploadFile] = File(None),
+    apoio_files: Optional[List[UploadFile]] = File(None),
+    cliente_id: str = None,
+    mes_referencia: str = None,
+    ano_referencia: int = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Validação unificada de folha de pagamento.
+    - holerite_atual: Holerite do mês atual (OBRIGATÓRIO)
+    - holerite_anterior: Holerite do mês anterior (OPCIONAL)
+    - apoio_files: Lista de arquivos de apoio para comparação (OPCIONAL, múltiplos)
+    
+    A análise compara o holerite atual com todos os documentos enviados.
+    """
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        import asyncio
+        
+        # Validate required fields
+        if not cliente_id:
+            raise HTTPException(status_code=400, detail="cliente_id é obrigatório")
+        
+        # Verify cliente exists
+        cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Empresa não encontrada")
+        
+        # Read all files and save to temp
+        temp_files = []
+        file_info = []
+        
+        # Helper to save temp file and get mime type
+        def get_mime_type(suffix):
+            mime_types = {
+                ".pdf": "application/pdf",
+                ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ".xls": "application/vnd.ms-excel",
+                ".csv": "text/csv",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".png": "image/png",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+                ".txt": "text/plain",
+                ".eml": "message/rfc822",
+                ".msg": "application/vnd.ms-outlook"
+            }
+            mime = mime_types.get(suffix.lower())
+            if not mime:
+                mime = "application/pdf"  # Fallback
+            return mime
+        
+        try:
+            # Save holerite atual
+            holerite_atual_content = await holerite_atual.read()
+            holerite_atual_suffix = Path(holerite_atual.filename).suffix
+            with tempfile.NamedTemporaryFile(delete=False, suffix=holerite_atual_suffix) as tmp:
+                tmp.write(holerite_atual_content)
+                temp_files.append(tmp.name)
+                file_info.append({
+                    "path": tmp.name,
+                    "filename": holerite_atual.filename,
+                    "tipo": "holerite_atual",
+                    "mime": get_mime_type(holerite_atual_suffix)
+                })
+            
+            # Save holerite anterior if provided
+            has_anterior = False
+            if holerite_anterior and holerite_anterior.filename:
+                holerite_anterior_content = await holerite_anterior.read()
+                if holerite_anterior_content:
+                    has_anterior = True
+                    holerite_anterior_suffix = Path(holerite_anterior.filename).suffix
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=holerite_anterior_suffix) as tmp:
+                        tmp.write(holerite_anterior_content)
+                        temp_files.append(tmp.name)
+                        file_info.append({
+                            "path": tmp.name,
+                            "filename": holerite_anterior.filename,
+                            "tipo": "holerite_anterior",
+                            "mime": get_mime_type(holerite_anterior_suffix)
+                        })
+            
+            # Save apoio files if provided
+            apoio_filenames = []
+            if apoio_files:
+                for apoio in apoio_files:
+                    if apoio and apoio.filename:
+                        apoio_content = await apoio.read()
+                        if apoio_content:
+                            apoio_suffix = Path(apoio.filename).suffix
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=apoio_suffix) as tmp:
+                                tmp.write(apoio_content)
+                                temp_files.append(tmp.name)
+                                file_info.append({
+                                    "path": tmp.name,
+                                    "filename": apoio.filename,
+                                    "tipo": "apoio",
+                                    "mime": get_mime_type(apoio_suffix)
+                                })
+                                apoio_filenames.append(apoio.filename)
+            
+            has_apoio = len(apoio_filenames) > 0
+            
+            # Determine analysis type
+            if has_anterior and has_apoio:
+                tipo_analise = "completa"
+            elif has_anterior:
+                tipo_analise = "comparacao_mensal"
+            elif has_apoio:
+                tipo_analise = "comparacao_apoio"
+            else:
+                tipo_analise = "analise_isolada"
+            
+            # Build system prompt based on documents provided
+            system_parts = ["""Você é um auditor especializado em departamento pessoal brasileiro, com expertise em análise cirúrgica de folhas de pagamento.
+
+VOCÊ RECEBEU OS SEGUINTES DOCUMENTOS:"""]
+            
+            system_parts.append(f"1. HOLERITE ATUAL ({holerite_atual.filename}): O documento principal a ser validado")
+            
+            doc_num = 2
+            if has_anterior:
+                anterior_info = next(f for f in file_info if f["tipo"] == "holerite_anterior")
+                system_parts.append(f"{doc_num}. HOLERITE MÊS ANTERIOR ({anterior_info['filename']}): Para comparação mês a mês")
+                doc_num += 1
+            
+            if has_apoio:
+                for apoio_name in apoio_filenames:
+                    system_parts.append(f"{doc_num}. RELATÓRIO DE APOIO ({apoio_name}): Documento de referência para validação")
+                    doc_num += 1
+            
+            system_parts.append("""
+
+SUA ANÁLISE DEVE SER CIRÚRGICA E PRECISA:
+
+1. **EXTRAÇÃO DE DADOS**: Para cada documento, extraia TODOS os valores numéricos encontrados:
+   - Salário base, adicionais (noturno, insalubridade, periculosidade)
+   - Horas extras (50%, 100%), DSR sobre horas extras
+   - Comissões, gratificações, bonificações
+   - Descontos: INSS, IRRF, faltas, atrasos, VT, pensão alimentícia
+   - Benefícios: VR, VA, VT (valor e desconto)
+   - FGTS (base e valor)
+   - Totais: proventos, descontos, líquido
+
+2. **COMPARAÇÕES OBRIGATÓRIAS**:""")
+            
+            if has_anterior:
+                system_parts.append("""
+   COM MÊS ANTERIOR:
+   - Variação salarial (reajustes, promoções)
+   - Mudanças em benefícios
+   - Diferenças em horas extras/comissões
+   - Alterações em descontos fixos
+   - Qualquer valor que mudou significativamente""")
+            
+            if has_apoio:
+                system_parts.append("""
+   COM DOCUMENTOS DE APOIO:
+   - Cruze CADA valor encontrado nos documentos de apoio com o holerite
+   - Horas extras informadas vs horas extras pagas
+   - Comissões calculadas vs comissões no holerite
+   - Faltas/atrasos registrados vs descontos aplicados
+   - Qualquer referência numérica deve ser validada""")
+            
+            if not has_anterior and not has_apoio:
+                system_parts.append("""
+   ANÁLISE ISOLADA DO HOLERITE:
+   - Verificar consistência dos cálculos (base INSS, base IRRF)
+   - Conferir alíquotas aplicadas
+   - Validar somas de proventos e descontos
+   - Identificar valores atípicos ou zerados incorretamente""")
+            
+            system_parts.append("""
+
+3. **FORMATO DE RESPOSTA JSON**:
+{
+    "tipo_analise": "completa|comparacao_mensal|comparacao_apoio|analise_isolada",
+    "empresa": "nome da empresa se identificado",
+    "competencia": "MM/AAAA",
+    "funcionarios_analisados": número,
+    
+    "dados_extraidos": {
+        "holerite_atual": {
+            "funcionarios": [
+                {
+                    "nome": "...",
+                    "matricula": "...",
+                    "cargo": "...",
+                    "salario_base": 0.00,
+                    "proventos": [{"descricao": "...", "referencia": "...", "valor": 0.00}],
+                    "descontos": [{"descricao": "...", "referencia": "...", "valor": 0.00}],
+                    "total_proventos": 0.00,
+                    "total_descontos": 0.00,
+                    "liquido": 0.00,
+                    "base_inss": 0.00,
+                    "base_irrf": 0.00,
+                    "base_fgts": 0.00,
+                    "fgts": 0.00
+                }
+            ]
+        },
+        "holerite_anterior": { ... },  // se fornecido
+        "apoio": [ { "arquivo": "...", "dados_extraidos": {...} } ]  // se fornecido
+    },
+    
+    "comparacoes": {
+        "com_mes_anterior": [
+            {
+                "funcionario": "...",
+                "campo": "...",
+                "valor_anterior": 0.00,
+                "valor_atual": 0.00,
+                "diferenca": 0.00,
+                "percentual": 0.00,
+                "observacao": "..."
+            }
+        ],
+        "com_apoio": [
+            {
+                "funcionario": "...",
+                "arquivo_apoio": "...",
+                "campo": "...",
+                "valor_apoio": 0.00,
+                "valor_holerite": 0.00,
+                "diferenca": 0.00,
+                "status": "conferido|divergente",
+                "observacao": "..."
+            }
+        ]
+    },
+    
+    "divergencias": [
+        {
+            "funcionario": "...",
+            "tipo": "valor_incorreto|falta_lancamento|calculo_errado|diferenca_referencia",
+            "campo": "...",
+            "valor_esperado": "...",
+            "valor_encontrado": "...",
+            "fonte_referencia": "holerite_anterior|apoio:nome_arquivo",
+            "severidade": "alta|media|baixa",
+            "descricao": "descrição detalhada",
+            "impacto_financeiro": 0.00
+        }
+    ],
+    
+    "campos_conferidos": [
+        {
+            "campo": "...",
+            "funcionario": "...",
+            "valor": 0.00,
+            "fonte": "...",
+            "status": "ok"
+        }
+    ],
+    
+    "alertas": [
+        {
+            "tipo": "atencao|verificar|informativo",
+            "mensagem": "..."
+        }
+    ],
+    
+    "resumo_executivo": "Resumo em texto da análise realizada",
+    "total_divergencias": 0,
+    "total_conferidos": 0,
+    "total_alertas": 0,
+    "impacto_financeiro_total": 0.00,
+    
+    "recomendacoes": ["Lista de ações recomendadas"]
+}
+
+REGRAS IMPORTANTES:
+- Sempre extraia valores com 2 casas decimais
+- Identifique o funcionário sempre que possível
+- Se um valor aparecer em múltiplos documentos, COMPARE-OS
+- Calcule o impacto financeiro das divergências
+- Severidade ALTA: diferença > 5% ou > R$100, ou erro de cálculo
+- Severidade MÉDIA: diferença 1-5% ou R$10-100
+- Severidade BAIXA: diferença < 1% ou < R$10, ou diferença de arredondamento
+- Mesmo que os valores estejam corretos, LISTE-OS em campos_conferidos""")
+            
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"validacao-completa-{uuid.uuid4()}",
+                system_message="\n".join(system_parts)
+            ).with_model("gemini", "gemini-2.5-flash")
+            
+            # Prepare file contents
+            file_contents = []
+            for f in file_info:
+                file_contents.append(FileContentWithMimeType(file_path=f["path"], mime_type=f["mime"]))
+            
+            # Build user message
+            docs_list = "\n".join([f"- {f['tipo'].upper()}: {f['filename']}" for f in file_info])
+            user_message = f"""Analise os seguintes documentos e realize uma validação completa:
+
+{docs_list}
+
+Extraia todos os dados, compare os valores entre os documentos e identifique todas as divergências.
+Seja cirúrgico e preciso na análise."""
+            
+            # Send to LLM with retry
+            max_retries = 3
+            last_error = None
+            for attempt in range(max_retries):
+                try:
+                    response = await chat.send_message(UserMessage(
+                        text=user_message,
+                        file_contents=file_contents
+                    ))
+                    break
+                except Exception as e:
+                    last_error = e
+                    error_str = str(e)
+                    if "502" in error_str or "503" in error_str or "BadGateway" in error_str:
+                        if attempt < max_retries - 1:
+                            logger.warning(f"Tentativa {attempt + 1} falhou, tentando novamente...")
+                            await asyncio.sleep(2 ** attempt)
+                            continue
+                    raise e
+            else:
+                raise last_error if last_error else Exception("Falha após todas as tentativas")
+            
+            # Parse response
+            try:
+                response_text = response.strip()
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:]
+                if response_text.startswith("```"):
+                    response_text = response_text[3:]
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3]
+                
+                resultado = json.loads(response_text.strip())
+            except json.JSONDecodeError:
+                resultado = {
+                    "tipo_analise": tipo_analise,
+                    "funcionarios_analisados": 0,
+                    "divergencias": [],
+                    "campos_conferidos": [],
+                    "alertas": [],
+                    "resumo_executivo": response,
+                    "total_divergencias": 0,
+                    "total_conferidos": 0,
+                    "parsing_error": True
+                }
+            
+            # Save validation record
+            validacao_id = str(uuid.uuid4())
+            now = datetime.now(timezone.utc).isoformat()
+            
+            validacao_doc = {
+                "id": validacao_id,
+                "cliente_id": cliente_id,
+                "cliente_nome": cliente.get("nome_fantasia") or cliente.get("razao_social"),
+                "mes_referencia": mes_referencia or datetime.now().strftime("%m"),
+                "ano_referencia": ano_referencia or datetime.now().year,
+                "tipo_validacao": tipo_analise,
+                "status": "concluido",
+                
+                # Files info
+                "arquivos": {
+                    "holerite_atual": holerite_atual.filename,
+                    "holerite_anterior": file_info[1]["filename"] if has_anterior else None,
+                    "apoio": apoio_filenames if has_apoio else []
+                },
+                
+                # Results
+                "funcionarios_analisados": resultado.get("funcionarios_analisados", 0),
+                "dados_extraidos": resultado.get("dados_extraidos", {}),
+                "comparacoes": resultado.get("comparacoes", {}),
+                "divergencias": resultado.get("divergencias", []),
+                "campos_conferidos": resultado.get("campos_conferidos", []),
+                "alertas": resultado.get("alertas", []),
+                "resumo_executivo": resultado.get("resumo_executivo", ""),
+                "recomendacoes": resultado.get("recomendacoes", []),
+                
+                # Totals
+                "total_divergencias": resultado.get("total_divergencias", len(resultado.get("divergencias", []))),
+                "total_conferidos": resultado.get("total_conferidos", len(resultado.get("campos_conferidos", []))),
+                "total_alertas": resultado.get("total_alertas", len(resultado.get("alertas", []))),
+                "impacto_financeiro_total": resultado.get("impacto_financeiro_total", 0),
+                
+                "created_at": now,
+                "user_id": current_user["id"]
+            }
+            
+            await db.validacoes.insert_one(validacao_doc)
+            
+            return {
+                "id": validacao_id,
+                "success": True,
+                **resultado,
+                "message": f"Validação {tipo_analise.replace('_', ' ')} concluída"
+            }
+            
+        finally:
+            # Cleanup temp files
+            for tmp_path in temp_files:
+                try:
+                    os.unlink(tmp_path)
+                except:
+                    pass
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro na validação completa: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao validar folha: {str(e)}")
+
+
+@api_router.get("/validacoes/{validacao_id}")
+async def get_validacao_detalhes(validacao_id: str, current_user: dict = Depends(get_current_user)):
+    """Retorna detalhes completos de uma validação específica"""
+    validacao = await db.validacoes.find_one(
+        {"id": validacao_id, "user_id": current_user["id"]},
+        {"_id": 0, "user_id": 0}
+    )
+    if not validacao:
+        raise HTTPException(status_code=404, detail="Validação não encontrada")
+    return validacao
+
+
 @api_router.get("/validacoes", response_model=List[ValidacaoFolhaResponse])
 async def list_validacoes(cliente_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
     query = {"user_id": current_user["id"]}
