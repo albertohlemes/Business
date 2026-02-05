@@ -1,0 +1,139 @@
+<analysis>**original_problem_statement:**
+O usuário deseja criar um portal de departamento pessoal para seu escritório de contabilidade para automatizar processos. Os principais requisitos são:
+1.  **Aplicação de Dissídio Coletivo**: Automatizar o processo de leitura da convenção coletiva, extração do percentual de aumento, cálculo dos reajustes, e envio para aprovação do cliente.
+2.  **Admissão de Colaboradores com IA**: Extrair informações de documentos de admissão (imagens, PDFs, manuscritos) para preencher automaticamente os dados do novo colaborador, usando um template específico ().
+3.  **Cálculo de Médias Históricas**: Para novos clientes, recompor as médias salariais dos últimos 12-24 meses para evitar erros em cálculos de férias e rescisão.
+4.  **Validação de Folha de Pagamento**: Antes de enviar ao cliente, comparar a folha atual com a do mês anterior para identificar discrepâncias.
+5.  **Comparação de Informes de Rendimento**: Automatizar a comparação anual entre o relatório do eSocial e o do sistema interno.
+6.  O usuário solicitou que a interface e a funcionalidade de cadastro de empresas fossem semelhantes às de outro projeto, .
+
+**User's preferred language**: Portuguese. The next agent MUST respond in Portuguese.
+
+**what currently exists?**
+- Um aplicativo full-stack com backend em FastAPI e frontend em React.
+- Autenticação de usuário baseada em JWT (registro e login).
+- Funcionalidade de cadastro de clientes (empresas) com busca automática de dados na Receita Federal por CNPJ.
+- Um cabeçalho que permite ao usuário selecionar a empresa ativa e a competência (mês/ano) para trabalhar.
+- Páginas de placeholder para todas as principais funcionalidades solicitadas (Dissídio, Admissões, Médias, Validação, etc.).
+- Uma funcionalidade inicial de importação de colaboradores, onde o usuário pode fazer upload de um documento para extração de dados por IA.
+
+**Last working item**:
+-   **Last item agent was working**: O agente estava implementando a funcionalidade de admissão de novos colaboradores com base em um template Excel específico () fornecido pelo usuário. A tarefa consiste em usar IA para extrair todos os campos deste template, mesmo de documentos escaneados ou manuscritos. O agente já analisou o template e atualizou os modelos de dados () no backend para incluir todos os novos campos.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: both
+-   **User Testing Done**: N
+
+**All Pending/In progress Issue list**:
+Nenhum problema pendente foi identificado. O foco principal é a conclusão da tarefa em andamento.
+
+**In progress Task List**:
+-   **Task 1: Concluir a Funcionalidade de Admissão de Colaboradores via Template eSocial**
+    -   **Priority**: P0
+    -   **Where to resume**:
+        1.  Atualizar o endpoint de importação  em . A lógica de IA precisa ser implementada para extrair todos os campos do template da Ficha de Admissão eSocial a partir do documento enviado (PDF, JPG, PNG).
+        2.  Atualizar a página do frontend  (ou criar um novo componente/página) para exibir um formulário com todos os campos do template eSocial.
+        3.  Após o upload do documento, o frontend deve chamar o endpoint, receber os dados extraídos, e preencher o formulário para que o usuário possa revisar, corrigir e salvar o novo colaborador.
+    -   **What will be achieved with this?**: O processo de admissão será totalmente automatizado, seguindo o template exato fornecido pelo usuário, e permitirá a revisão humana antes da confirmação final.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: both
+
+**Upcoming and Future Tasks**
+-   **Upcoming Tasks**:
+    -   **P0: Automação do Dissídio Coletivo**:
+        -   **Files**: , 
+        -   **Description**: Implementar o upload do documento da convenção, extração por IA das regras e percentual, e cálculo dos novos salários para aprovação.
+    -   **P1: Validação da Folha de Pagamento**:
+        -   **Files**: , 
+        -   **Description**: Permitir o upload da folha de pagamento e compará-la com o mês anterior para sinalizar grandes discrepâncias.
+    -   **P1: Cálculo de Médias Históricas**:
+        -   **Files**: , 
+        -   **Description**: Implementar a importação de dados históricos (12-24 meses) para calcular médias para novos clientes.
+-   **Future Tasks**:
+    -   **P2: Comparação de Informes de Rendimento**:
+        -   **Files**: , 
+        -   **Description**: Criar uma ferramenta para comparar relatórios anuais do eSocial com os do sistema interno.
+
+**Completed work in this session**
+-   Criação da estrutura inicial do projeto full-stack (FastAPI + React).
+-   Implementação da autenticação de usuário com JWT.
+-   Desenvolvimento do cadastro de empresas com busca de CNPJ na Receita Federal, replicando o visual e a experiência do projeto .
+-   Criação de um seletor global de Empresa e Competência no cabeçalho.
+-   Implementação do formulário de cadastro de empresa detalhado.
+-   Criação da UI inicial e do endpoint para importação de colaboradores por documento.
+-   Atualização dos modelos de dados no backend para refletir o template detalhado da Ficha de Admissão eSocial.
+
+**Earlier issues found/mentioned but not fixed**
+-   None.
+
+**Known issue recurrence from previous fork**
+-   None.
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+-   **Backend**: FastAPI, Pydantic, JWT, Motor (para MongoDB assíncrono).
+-   **Frontend**: React, React Router, Axios, , Shadcn UI, TailwindCSS.
+-   **AI**: OpenAI GPT-5.2 (via ) para extração de dados de documentos.
+
+**key DB schema**
+-   ****: Armazena dados das empresas, incluindo CNPJ, Razão Social, Regime Tributário, etc.
+-   ****: Armazena dados dos funcionários. O esquema foi recentemente expandido para corresponder à Ficha de Admissão eSocial.
+-   ****: Armazena credenciais de login dos usuários do portal.
+
+**changes in tech stack**
+-   None.
+
+**All files of reference**
+-   : Contém toda a lógica do backend, endpoints e modelos de dados.
+-   : Implementa o formulário de cadastro de empresas com busca por CNPJ.
+-   : Contém a lista de colaboradores e o modal de importação de documentos. Precisa ser atualizado para refletir o novo formulário completo.
+-   : Define a estrutura principal da aplicação, incluindo o cabeçalho com o seletor de empresa.
+-    (artefato do usuário): O template de referência para a admissão de colaboradores.
+
+**Areas that need refactoring**:
+- O arquivo  está se tornando monolítico. Seria benéfico refatorá-lo, separando as rotas em módulos (ex: , ) e os modelos de dados em um arquivo .
+
+**key api endpoints**
+-    & 
+-   : Busca dados da empresa na Receita Federal.
+-   , 
+-   
+-   : Faz upload de um documento de colaborador para extração com IA (precisa ser atualizado).
+
+**Critical Info for New Agent**
+-   O projeto é um portal de automação de RH para um escritório de contabilidade brasileiro. A terminologia é específica do Brasil (, , ).
+-   A próxima tarefa é concluir a funcionalidade de admissão de colaboradores usando o template Excel fornecido pelo usuário. Isso requer a implementação da lógica de extração por IA no backend e a construção de um formulário completo no frontend para revisão dos dados extraídos.
+-   A IA deve ser capaz de processar documentos escaneados e manuscritos, conforme solicitado pelo usuário.
+
+**documents and test reports created in this job**
+-   /app/memory/PRD.md
+-   /app/test_reports/iteration_1.json
+-   /app/test_reports/iteration_2.json
+-   /app/test_reports/iteration_3.json
+-   /app/test_reports/iteration_4.json
+
+**Last 10 User Messages and any pending HUMAN messages**
+1.  **Usuário**: Pediu para importar colaboradores por ficha de registro ou holerite, mesmo com informações incompletas.
+2.  **Usuário**: Forneceu um template Excel () e pediu que a IA extraísse os dados dele, mesmo de arquivos escaneados ou manuscritos. (Esta é a tarefa atual).
+
+**Project Health Check:**
+-   **Broken**: Nenhum.
+-   **Mocked**: As principais funcionalidades de automação (Dissídio, Validação de Folha, Médias Históricas) existem apenas como páginas de placeholder. A lógica de extração de IA para o novo template eSocial ainda não foi implementada.
+
+**3rd Party Integrations**
+-   **OpenAI GPT-5.2**: Usado para extração de dados de documentos. Utiliza a .
+-   **API da Receita Federal** (provavelmente via ): Usado para buscar dados de empresas por CNPJ. Não requer chave de usuário.
+
+**Testing status**
+-   **Testing agent used after significant changes**: YES
+-   **Troubleshoot agent used after agent stuck in loop**: NO
+-   **Test files created**: None.
+-   **Known regressions**: None.
+
+**Credentials to test flow:**
+-   Novas contas de usuário podem ser criadas diretamente na página de registro da aplicação.
+
+**What agent forgot to execute**
+-   O agente atualizou os modelos de dados do backend para a nova ficha de admissão, mas ainda não implementou a lógica de extração por IA no endpoint  nem o formulário de revisão no frontend. As outras funcionalidades principais do  foram corretamente adiadas.</analysis>
