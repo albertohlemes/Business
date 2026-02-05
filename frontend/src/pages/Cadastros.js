@@ -414,6 +414,109 @@ E-MAIL: ${sciForm.email || 'N/A'}
         setSciForm(prev => ({ ...prev, [field]: value }));
     };
 
+    // Carregar dados do histórico para o formulário (Reenviar/Editar)
+    const carregarDoHistorico = (item) => {
+        const dados = item.dados_enviados || {};
+        
+        if (item.tipo === 'cadastro_direto_gclick') {
+            // Carregar no formulário GClick
+            // Separar nome e código se estiver no formato "CÓDIGO - RAZÃO SOCIAL"
+            let razaoSocial = dados.nome || '';
+            let codigoCliente = '';
+            if (razaoSocial.includes(' - ')) {
+                const parts = razaoSocial.split(' - ');
+                codigoCliente = parts[0];
+                razaoSocial = parts.slice(1).join(' - ');
+            }
+            
+            // Separar endereço se tiver número
+            let endereco = dados.endereco || '';
+            let numero = '';
+            let complemento = '';
+            if (endereco.includes(', ')) {
+                const parts = endereco.split(', ');
+                endereco = parts[0];
+                if (parts[1]) numero = parts[1];
+                if (parts[2]) complemento = parts[2];
+            }
+            
+            setGclickForm({
+                codigoCliente: codigoCliente,
+                razaoSocial: razaoSocial,
+                nomeFantasia: dados.nome_fantasia || '',
+                cnpj: dados.cpf_cnpj || '',
+                inscricaoEstadual: dados.inscricao_estadual || '',
+                inscricaoMunicipal: dados.inscricao_municipal || '',
+                endereco: endereco,
+                numero: numero,
+                complemento: complemento,
+                bairro: dados.bairro || '',
+                cidade: dados.cidade || '',
+                estado: dados.estado || 'SP',
+                cep: dados.cep || '',
+                telefone: dados.telefone || '',
+                email: dados.email || '',
+                observacoes: dados.observacoes || ''
+            });
+            
+            // Mudar para aba GClick
+            setActiveTab('gclick');
+            setShowHistorico(false);
+            toast.info('Dados carregados no formulário GClick. Faça as alterações e reenvie.');
+            
+        } else if (item.tipo === 'sci_unico') {
+            // Carregar no formulário SCI
+            let endereco = dados.endereco || '';
+            let numero = '';
+            if (endereco.includes(', ')) {
+                const parts = endereco.split(', ');
+                endereco = parts[0];
+                if (parts[1]) numero = parts[1];
+            }
+            
+            setSciForm({
+                codigoCliente: '',
+                razaoSocial: dados.razao_social || '',
+                nomeFantasia: dados.nome_fantasia || '',
+                cnpj: dados.cnpj || '',
+                inscricaoEstadual: dados.inscricao_estadual || '',
+                inscricaoMunicipal: dados.inscricao_municipal || '',
+                regime: dados.regime_tributario || 'simples',
+                dataAbertura: dados.data_abertura || '',
+                capitalSocial: dados.capital_social || '',
+                endereco: endereco,
+                numero: numero,
+                bairro: dados.bairro || '',
+                cidade: dados.cidade || '',
+                estado: dados.estado || 'SP',
+                cep: dados.cep || '',
+                responsavel: dados.responsavel || '',
+                cpfResponsavel: dados.cpf_responsavel || '',
+                telefone: dados.telefone || '',
+                email: dados.email || ''
+            });
+            
+            // Mudar para aba SCI
+            setActiveTab('sci');
+            setShowHistorico(false);
+            toast.info('Dados carregados no formulário SCI. Faça as alterações e exporte novamente.');
+        }
+    };
+
+    // Excluir do histórico
+    const excluirDoHistorico = async (id) => {
+        if (!window.confirm('Deseja remover este registro do histórico?')) return;
+        
+        try {
+            await axios.delete(`${API_URL}/api/cadastros/historico/${id}`);
+            toast.success('Registro removido do histórico');
+            carregarHistorico();
+        } catch (error) {
+            console.error('Erro ao excluir:', error);
+            toast.error('Erro ao remover registro');
+        }
+    };
+
     const limparFormularioSCI = () => {
         setSciForm({
             codigoCliente: '', razaoSocial: '', nomeFantasia: '', cnpj: '',
