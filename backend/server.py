@@ -1199,7 +1199,7 @@ Assim que tiver essas informações, poderei gerar a minuta de alteração."""
 
 @api_router.post("/minutas/{minuta_id}/gerar")
 async def gerar_minuta(minuta_id: str, current_user: dict = Depends(get_current_user)):
-    minuta = await db.minutas.find_one({"id": minuta_id, "user_id": current_user["id"]})
+    minuta = await db.minutas.find_one({"id": minuta_id})
     if not minuta:
         raise HTTPException(status_code=404, detail="Minuta não encontrada")
     
