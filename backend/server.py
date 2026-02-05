@@ -689,7 +689,14 @@ async def importar_colaborador_documento(
         google_ai_key = os.environ.get('GOOGLE_AI_API_KEY')
         emergent_key = os.environ.get('EMERGENT_LLM_KEY')
         
-        if use_ai and (not colaboradores or all(not c.get('nome') for c in colaboradores)):
+        # Filtra colaboradores inválidos (nomes que não parecem nomes de pessoas)
+        invalid_names = ['registro', 'colaboradores', 'empregado', 'funcionário', 'empresa', 'ficha']
+        colaboradores = [c for c in colaboradores if c.get('nome') and not any(inv in c.get('nome', '').lower() for inv in invalid_names)]
+        
+        # Verifica se tem colaboradores válidos suficientes
+        valid_count = sum(1 for c in colaboradores if c.get('nome') and len(c.get('nome', '').split()) >= 2)
+        
+        if use_ai and valid_count < 2:
             logger.info("OCR insuficiente, tentando IA...")
             
             # Tenta Google AI Studio primeiro (gratuito)
