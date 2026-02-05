@@ -953,6 +953,10 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
     }
 
 def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo: str) -> str:
+    """
+    Gera arquivo SPED Fiscal no layout versão 019 (válido para 2025)
+    Baseado na Nota Técnica 2024.001 v1.0 - Ato Cotepe nº 131/2024
+    """
     lines = []
     
     # Parsear período (MM/AAAA) para obter datas corretas
@@ -967,37 +971,50 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
         ultimo_dia = monthrange(ano, mes)[1]
         dt_fim = f"{ultimo_dia:02d}{mes:02d}{ano:04d}"
     except:
-        dt_inicio = "01012024"
-        dt_fim = "31012024"
+        dt_inicio = "01012025"
+        dt_fim = "31012025"
     
-    # Registro 0000 - Abertura do arquivo digital
-    cnpj_limpo = company.cnpj.replace('.','').replace('/','').replace('-','')
-    lines.append("|0000|014|0|{}|{}|{}||{}|{}|{}|||A|1|".format(
-        dt_inicio,
-        dt_fim,
-        company.razao_social[:100] if company.razao_social else '',
-        company.uf or 'SP',
-        cnpj_limpo,
-        company.inscricao_estadual or ''
+    # Limpar CNPJ
+    cnpj_limpo = company.cnpj.replace('.','').replace('/','').replace('-','') if company.cnpj else ''
+    
+    # Código do município IBGE (usar código padrão se não disponível)
+    cod_mun = getattr(company, 'cod_municipio', '') or '3550308'  # São Paulo como padrão
+    
+    # Indicador de atividade: 0=Industrial/equiparado, 1=Outros
+    ind_atividade = '1' if company.tipo_atividade == 'comercio' else '0'
+    
+    # Registro 0000 - Abertura do arquivo digital (Layout V019)
+    # |REG|COD_VER|COD_FIN|DT_INI|DT_FIM|NOME|CNPJ|CPF|UF|IE|COD_MUN|IM|SUFRAMA|IND_PERFIL|IND_ATIV|
+    lines.append("|0000|019|0|{}|{}|{}|{}||{}|{}|{}|||A|{}|".format(
+        dt_inicio,                                          # DT_INI
+        dt_fim,                                             # DT_FIM
+        (company.razao_social or '')[:100],                 # NOME
+        cnpj_limpo,                                         # CNPJ
+        company.uf or 'SP',                                 # UF
+        (company.inscricao_estadual or '').replace('.','').replace('-',''),  # IE
+        cod_mun,                                            # COD_MUN
+        ind_atividade                                       # IND_ATIV
     ))
+    
+    # Registro 0001 - Abertura do Bloco 0
     lines.append("|0001|0|")
-    lines.append("|0005|{}|{}|{}|{}|{}|{}|{}|{}||".format(
-        company.razao_social,
-        company.nome_fantasia or company.razao_social,
-        company.cep or '',
-        company.endereco or '',
-        '',
-        '',
-        '',
-        company.cidade or ''
-    ))
-    lines.append("|0015|{}|SP|{}|".format(
-        company.uf or 'SP',
-        company.inscricao_estadual or ''
+    
+    # Registro 0005 - Dados complementares da entidade
+    # |REG|FANTASIA|CEP|END|NUM|COMPL|BAIRRO|FONE|FAX|EMAIL|
+    lines.append("|0005|{}|{}|{}|{}|{}|{}|{}||{}|".format(
+        (company.nome_fantasia or company.razao_social or '')[:60],  # FANTASIA
+        (company.cep or '').replace('-',''),                         # CEP
+        (company.endereco or '')[:60],                               # END
+        (getattr(company, 'numero', '') or 'S/N')[:10],             # NUM
+        (getattr(company, 'complemento', '') or '')[:60],           # COMPL
+        (getattr(company, 'bairro', '') or '')[:60],                # BAIRRO
+        (getattr(company, 'telefone', '') or '').replace('(','').replace(')','').replace('-','').replace(' ',''),  # FONE
+        getattr(company, 'email', '') or ''                          # EMAIL
     ))
     
-    # Registro 0100 - Contador (dados genéricos)
-    lines.append("|0100|BUSINESS CONTABILIDADE|12345678000199|12345678|business@businessconta.com.br|1235123731|")
+    # Registro 0100 - Contador
+    # |REG|NOME|CPF|CRC|CNPJ|CEP|END|NUM|COMPL|BAIRRO|FONE|FAX|EMAIL|COD_MUN|
+    lines.append("|0100|BUSINESS CONTABILIDADE||CRC-SP|12345678000199|01310100|AV PAULISTA|1000|||BELA VISTA|1140787878||business@businessconta.com.br|3550308|")
     
     # Registro 0150 - Participantes (fornecedores/clientes)
     participantes = {}
@@ -1006,13 +1023,42 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
         dest_cnpj = doc.destinatario_cnpj.replace('.','').replace('/','').replace('-','') if doc.destinatario_cnpj else ''
         
         if emit_cnpj and emit_cnpj not in participantes:
-            participantes[emit_cnpj] = doc.emitente_nome or 'FORNECEDOR'
+            participantes[emit_cnpj] = {
+                'nome': (doc.emitente_nome or 'FORNECEDOR')[:60],
+                'uf': getattr(doc, 'emitente_uf', '') or 'SP'
+            }
         if dest_cnpj and dest_cnpj not in participantes:
-            participantes[dest_cnpj] = doc.destinatario_nome or 'CLIENTE'
+            participantes[dest_cnpj] = {
+                'nome': (doc.destinatario_nome or 'CLIENTE')[:60],
+                'uf': getattr(doc, 'destinatario_uf', '') or 'SP'
+            }
     
-    for cnpj, nome in participantes.items():
-        lines.append("|0150|{}|{}|SP|||{}|".format(cnpj, nome[:60], cnpj))
+    # |REG|COD_PART|NOME|COD_PAIS|CNPJ|CPF|IE|COD_MUN|SUFRAMA|END|NUM|COMPL|BAIRRO|
+    for cnpj, info in participantes.items():
+        lines.append("|0150|{}|{}|1058|{}|||{}||||||".format(
+            cnpj,           # COD_PART
+            info['nome'],   # NOME
+            cnpj,           # CNPJ
+            info['uf']      # UF (campo usado para identificar o participante)
+        ))
     
+    # Registro 0190 - Unidades de medida
+    unidades_usadas = set()
+    for doc in documents:
+        for prod in doc.produtos:
+            un = prod.get('unidade', 'UN') or 'UN'
+            unidades_usadas.add(un.upper()[:6])
+    
+    for un in unidades_usadas:
+        descricao_un = {
+            'UN': 'UNIDADE', 'KG': 'QUILOGRAMA', 'G': 'GRAMA', 'L': 'LITRO',
+            'ML': 'MILILITRO', 'M': 'METRO', 'M2': 'METRO QUADRADO', 'M3': 'METRO CUBICO',
+            'PC': 'PECA', 'CX': 'CAIXA', 'PCT': 'PACOTE', 'FD': 'FARDO',
+            'DZ': 'DUZIA', 'PAR': 'PAR', 'SC': 'SACO', 'LT': 'LATA'
+        }.get(un, un)
+        lines.append("|0190|{}|{}|".format(un, descricao_un))
+    
+    # Registro 0200 - Produtos
     all_products = {}
     for doc in documents:
         for prod in doc.produtos:
@@ -1020,79 +1066,215 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             if prod_code and prod_code not in all_products:
                 all_products[prod_code] = prod
     
+    # |REG|COD_ITEM|DESCR_ITEM|COD_BARRA|COD_ANT_ITEM|UNID_INV|TIPO_ITEM|COD_NCM|EX_IPI|COD_GEN|COD_LST|ALIQ_ICMS|CEST|
     for code, prod in all_products.items():
-        lines.append("|0200|{}|{}|UN|||{}||".format(
-            code,
-            prod.get('descricao', '')[:60],
-            prod.get('ncm', '')
+        ncm = prod.get('ncm', '') or ''
+        tipo_item = '00'  # 00=Mercadoria para Revenda
+        if prod.get('categoria_classificada', '').lower() == 'insumo':
+            tipo_item = '01'  # Matéria-prima
+        elif prod.get('categoria_classificada', '').lower() == 'despesa':
+            tipo_item = '06'  # Material de uso e consumo
+        elif prod.get('categoria_classificada', '').lower() == 'ativo_imobilizado':
+            tipo_item = '08'  # Ativo Imobilizado
+            
+        lines.append("|0200|{}|{}||{}|{}|{}|{}|||||{}|".format(
+            code[:60],                                  # COD_ITEM
+            (prod.get('descricao', '') or '')[:60],    # DESCR_ITEM
+            code[:60],                                  # COD_ANT_ITEM
+            (prod.get('unidade', 'UN') or 'UN')[:6],   # UNID_INV
+            tipo_item,                                  # TIPO_ITEM
+            ncm[:8],                                    # COD_NCM
+            prod.get('cest', '') or ''                 # CEST
         ))
     
-    lines.append("|0990|{}|".format(len([l for l in lines if l.startswith('|0')]) + 1))
+    # Registro 0990 - Encerramento do Bloco 0
+    qtd_linhas_bloco_0 = len([l for l in lines if l.startswith('|0')]) + 1
+    lines.append("|0990|{}|".format(qtd_linhas_bloco_0))
     
-    lines.append("|C001|0|")
+    # BLOCO C - Documentos Fiscais I (Mercadorias - ICMS/IPI)
+    lines.append("|C001|0|")  # 0 = com movimento
     
     for doc in documents:
-        tipo_doc = '1' if doc.tipo == 'saida' else '0'
-        data_emissao = doc.data_emissao[:10].replace('-', '')
+        # Indicador de operação: 0=Entrada, 1=Saída
+        ind_oper = '1' if doc.tipo == 'saida' else '0'
         
-        lines.append("|C100|{}|1|{}|55|00|{}|{}||{}|{}|{}|||||||{}||0|1||".format(
-            tipo_doc,
-            doc.numero_nfe,
-            doc.emitente_cnpj.replace('.','').replace('/','').replace('-',''),
-            doc.destinatario_cnpj.replace('.','').replace('/','').replace('-',''),
-            data_emissao,
-            data_emissao,
-            doc.valor_total,
-            doc.chave_nfe
+        # Indicador do emitente: 0=Emissão própria, 1=Terceiros
+        ind_emit = '0' if doc.tipo == 'saida' else '1'
+        
+        # Formatar data (DDMMAAAA)
+        data_emissao = ''
+        if doc.data_emissao:
+            try:
+                if '-' in doc.data_emissao:
+                    partes = doc.data_emissao[:10].split('-')
+                    data_emissao = f"{partes[2]}{partes[1]}{partes[0]}"
+                else:
+                    data_emissao = doc.data_emissao.replace('/','')
+            except:
+                data_emissao = dt_inicio
+        
+        emit_cnpj = doc.emitente_cnpj.replace('.','').replace('/','').replace('-','') if doc.emitente_cnpj else ''
+        
+        # Código situação: 00=Regular
+        cod_sit = '00'
+        
+        # Modelo documento: 55=NF-e, 65=NFC-e
+        modelo = doc.modelo if hasattr(doc, 'modelo') and doc.modelo else '55'
+        if modelo == 'nfce':
+            modelo = '65'
+        elif modelo == 'nfe':
+            modelo = '55'
+        
+        # Registro C100 - Nota Fiscal (código 01, 1B, 04, 55 e 65)
+        # |REG|IND_OPER|IND_EMIT|COD_PART|COD_MOD|COD_SIT|SER|NUM_DOC|CHV_NFE|DT_DOC|DT_E_S|VL_DOC|IND_PGTO|VL_DESC|VL_ABAT_NT|VL_MERC|IND_FRT|VL_FRT|VL_SEG|VL_OUT_DA|VL_BC_ICMS|VL_ICMS|VL_BC_ICMS_ST|VL_ICMS_ST|VL_IPI|VL_PIS|VL_COFINS|VL_PIS_ST|VL_COFINS_ST|
+        lines.append("|C100|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|0|0|0|{}|9|0|0|0|{}|{}|0|0|0|{}|{}|0|0|".format(
+            ind_oper,                                       # IND_OPER
+            ind_emit,                                       # IND_EMIT
+            emit_cnpj,                                      # COD_PART
+            modelo,                                         # COD_MOD
+            cod_sit,                                        # COD_SIT
+            doc.serie or '1',                               # SER
+            doc.numero_nfe or '',                           # NUM_DOC
+            doc.chave_nfe or '',                            # CHV_NFE
+            data_emissao,                                   # DT_DOC
+            data_emissao,                                   # DT_E_S
+            f"{doc.valor_total:.2f}".replace('.',','),     # VL_DOC
+            f"{doc.valor_total:.2f}".replace('.',','),     # VL_MERC
+            f"{sum(float(p.get('bc_icms', 0) or 0) for p in doc.produtos):.2f}".replace('.',','),  # VL_BC_ICMS
+            f"{sum(float(p.get('v_icms', 0) or 0) for p in doc.produtos):.2f}".replace('.',','),   # VL_ICMS
+            f"{sum(float(p.get('v_pis', 0) or 0) for p in doc.produtos):.2f}".replace('.',','),    # VL_PIS
+            f"{sum(float(p.get('v_cofins', 0) or 0) for p in doc.produtos):.2f}".replace('.',',')  # VL_COFINS
         ))
         
-        for prod in doc.produtos:
-            lines.append("|C170|{}|{}|{}|{}|{}|{}|||||||||||||||".format(
-                prod.get('codigo', ''),
-                prod.get('descricao', '')[:60],
-                prod.get('quantidade', 0),
-                prod.get('unidade', 'UN'),
-                prod.get('valor_total', 0),
-                prod.get('cfop', '')
+        # Registro C170 - Itens do documento
+        for idx, prod in enumerate(doc.produtos):
+            # |REG|NUM_ITEM|COD_ITEM|DESCR_COMPL|QTD|UNID|VL_ITEM|VL_DESC|IND_MOV|CST_ICMS|CFOP|COD_NAT|VL_BC_ICMS|ALIQ_ICMS|VL_ICMS|VL_BC_ICMS_ST|ALIQ_ST|VL_ICMS_ST|IND_APUR|CST_IPI|COD_ENQ|VL_BC_IPI|ALIQ_IPI|VL_IPI|CST_PIS|VL_BC_PIS|ALIQ_PIS|QUANT_BC_PIS|ALIQ_PIS_QUANT|VL_PIS|CST_COFINS|VL_BC_COFINS|ALIQ_COFINS|QUANT_BC_COFINS|ALIQ_COFINS_QUANT|VL_COFINS|COD_CTA|
+            cst_icms = prod.get('cst', '000') or '000'
+            cfop = prod.get('cfop', '') or ''
+            cst_pis = prod.get('cst_pis', '01') or '01'
+            cst_cofins = prod.get('cst_cofins', '01') or '01'
+            
+            lines.append("|C170|{}|{}||{}|{}|{}|0|0|{}|{}||{}|{}|{}|0|0|0|0|99|||0|||{}|{}|{}|||{}|{}|{}|{}||||{}||".format(
+                idx + 1,                                                    # NUM_ITEM
+                prod.get('codigo', '')[:60],                               # COD_ITEM
+                f"{float(prod.get('quantidade', 0) or 0):.4f}".replace('.',','),  # QTD
+                (prod.get('unidade', 'UN') or 'UN')[:6],                   # UNID
+                f"{float(prod.get('valor_total', 0) or 0):.2f}".replace('.',','),  # VL_ITEM
+                cst_icms,                                                   # CST_ICMS
+                cfop,                                                       # CFOP
+                f"{float(prod.get('bc_icms', 0) or 0):.2f}".replace('.',','),      # VL_BC_ICMS
+                f"{float(prod.get('aliq_icms', 0) or 0):.2f}".replace('.',','),    # ALIQ_ICMS
+                f"{float(prod.get('v_icms', 0) or 0):.2f}".replace('.',','),       # VL_ICMS
+                cst_pis,                                                    # CST_PIS
+                f"{float(prod.get('bc_pis', prod.get('valor_total', 0)) or 0):.2f}".replace('.',','),  # VL_BC_PIS
+                f"{float(prod.get('aliq_pis', 1.65) or 0):.2f}".replace('.',','),  # ALIQ_PIS
+                f"{float(prod.get('v_pis', 0) or 0):.2f}".replace('.',','),        # VL_PIS
+                cst_cofins,                                                 # CST_COFINS
+                f"{float(prod.get('bc_cofins', prod.get('valor_total', 0)) or 0):.2f}".replace('.',','),  # VL_BC_COFINS
+                f"{float(prod.get('aliq_cofins', 7.6) or 0):.2f}".replace('.',','),  # ALIQ_COFINS
+                f"{float(prod.get('v_cofins', 0) or 0):.2f}".replace('.',',')      # VL_COFINS
             ))
         
-        lines.append("|C190|{}|{}|{}|0.00|0.00|0.00|0.00|0.00|".format(
-            doc.produtos[0].get('cfop', '') if doc.produtos else '',
-            doc.produtos[0].get('cst', '000') if doc.produtos else '000',
-            doc.valor_total
-        ))
+        # Registro C190 - Registro analítico do documento
+        # Agrupar por CFOP + CST
+        cfop_cst_grupos = {}
+        for prod in doc.produtos:
+            cfop = prod.get('cfop', '') or ''
+            cst = prod.get('cst', '000') or '000'
+            chave = f"{cfop}_{cst}"
+            if chave not in cfop_cst_grupos:
+                cfop_cst_grupos[chave] = {
+                    'cfop': cfop, 'cst': cst,
+                    'vl_opr': 0, 'vl_bc_icms': 0, 'vl_icms': 0,
+                    'vl_bc_icms_st': 0, 'vl_icms_st': 0, 'vl_red_bc': 0, 'vl_ipi': 0
+                }
+            cfop_cst_grupos[chave]['vl_opr'] += float(prod.get('valor_total', 0) or 0)
+            cfop_cst_grupos[chave]['vl_bc_icms'] += float(prod.get('bc_icms', 0) or 0)
+            cfop_cst_grupos[chave]['vl_icms'] += float(prod.get('v_icms', 0) or 0)
+        
+        for grupo in cfop_cst_grupos.values():
+            # |REG|CST_ICMS|CFOP|ALIQ_ICMS|VL_OPR|VL_BC_ICMS|VL_ICMS|VL_BC_ICMS_ST|VL_ICMS_ST|VL_RED_BC|VL_IPI|COD_OBS|
+            aliq = 0
+            if grupo['vl_bc_icms'] > 0:
+                aliq = (grupo['vl_icms'] / grupo['vl_bc_icms']) * 100
+            
+            lines.append("|C190|{}|{}|{}|{}|{}|{}|0|0|0|0||".format(
+                grupo['cst'],
+                grupo['cfop'],
+                f"{aliq:.2f}".replace('.',','),
+                f"{grupo['vl_opr']:.2f}".replace('.',','),
+                f"{grupo['vl_bc_icms']:.2f}".replace('.',','),
+                f"{grupo['vl_icms']:.2f}".replace('.',',')
+            ))
     
-    lines.append("|C990|{}|".format(len([l for l in lines if l.startswith('|C')]) + 1))
+    # Registro C990 - Encerramento do Bloco C
+    qtd_linhas_bloco_c = len([l for l in lines if l.startswith('|C')]) + 1
+    lines.append("|C990|{}|".format(qtd_linhas_bloco_c))
     
-    lines.append("|E001|1|")
-    lines.append("|E990|2|")
+    # BLOCO E - Apuração do ICMS e do IPI
+    lines.append("|E001|0|")  # 0 = com movimento
     
-    lines.append("|H001|1|")
+    # Registro E100 - Período da apuração do ICMS
+    lines.append("|E100|{}|{}|".format(dt_inicio, dt_fim))
+    
+    # Registro E110 - Apuração do ICMS - Operações Próprias
+    # Calcular totais
+    vl_debitos = sum(
+        sum(float(p.get('v_icms', 0) or 0) for p in d.produtos)
+        for d in documents if d.tipo == 'saida'
+    )
+    vl_creditos = sum(
+        sum(float(p.get('v_icms', 0) or 0) for p in d.produtos)
+        for d in documents if d.tipo == 'entrada'
+    )
+    vl_saldo = vl_debitos - vl_creditos
+    vl_pagar = max(0, vl_saldo)
+    vl_credito_acum = max(0, -vl_saldo)
+    
+    lines.append("|E110|{}|0|0|{}|0|0|0|{}|0|0|0|0|{}|{}|".format(
+        f"{vl_debitos:.2f}".replace('.',','),
+        f"{vl_creditos:.2f}".replace('.',','),
+        f"{vl_saldo:.2f}".replace('.',','),
+        f"{vl_pagar:.2f}".replace('.',','),
+        f"{vl_credito_acum:.2f}".replace('.',',')
+    ))
+    
+    lines.append("|E990|{}|".format(len([l for l in lines if l.startswith('|E')]) + 1))
+    
+    # BLOCO H - Inventário Físico
+    lines.append("|H001|1|")  # 1 = sem movimento
     lines.append("|H990|2|")
     
+    # BLOCO K - Controle da Produção e do Estoque
+    lines.append("|K001|1|")  # 1 = sem movimento
+    lines.append("|K990|2|")
+    
+    # BLOCO 1 - Outras informações
+    lines.append("|1001|1|")  # 1 = sem movimento
+    lines.append("|1990|2|")
+    
+    # BLOCO 9 - Controle e encerramento do arquivo digital
     lines.append("|9001|0|")
-    lines.append("|9900|0000|1|")
-    lines.append("|9900|0001|1|")
-    lines.append("|9900|0005|1|")
-    lines.append("|9900|0015|1|")
-    lines.append("|9900|0100|1|")
-    lines.append("|9900|0150|1|")
-    lines.append("|9900|0200|{}|".format(len(all_products)))
-    lines.append("|9900|0990|1|")
-    lines.append("|9900|C001|1|")
-    lines.append("|9900|C100|{}|".format(len([d for d in documents])))
-    lines.append("|9900|C170|{}|".format(sum(len(d.produtos) for d in documents)))
-    lines.append("|9900|C190|{}|".format(len([d for d in documents])))
-    lines.append("|9900|C990|1|")
-    lines.append("|9900|E001|1|")
-    lines.append("|9900|E990|1|")
-    lines.append("|9900|H001|1|")
-    lines.append("|9900|H990|1|")
-    lines.append("|9900|9001|1|")
-    lines.append("|9900|9900|{}|".format(15))
+    
+    # Registro 9900 - Registros do arquivo
+    registros_count = {}
+    for line in lines:
+        reg = line.split('|')[1] if '|' in line else ''
+        if reg:
+            registros_count[reg] = registros_count.get(reg, 0) + 1
+    
+    for reg, count in sorted(registros_count.items()):
+        lines.append("|9900|{}|{}|".format(reg, count))
+    
+    # Adicionar contagem do próprio 9900
+    lines.append("|9900|9900|{}|".format(len(registros_count) + 1))
     lines.append("|9900|9990|1|")
     lines.append("|9900|9999|1|")
+    
+    # Registro 9990 - Encerramento do Bloco 9
     lines.append("|9990|{}|".format(len([l for l in lines if l.startswith('|9')]) + 2))
+    
+    # Registro 9999 - Encerramento do arquivo digital
     lines.append("|9999|{}|".format(len(lines) + 1))
     
     return '\n'.join(lines)
