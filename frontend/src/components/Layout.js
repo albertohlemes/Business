@@ -18,7 +18,6 @@ const Layout = ({ user, onLogout, children }) => {
     { name: 'Validação & IA', href: '/classificacao', icon: Brain, testId: 'nav-classificacao' },
     { name: 'Auditoria PIS/COFINS', href: '/analise-pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
     { name: 'Apuração Mensal', href: '/apuracao-mensal', icon: Calculator, testId: 'nav-apuracao-mensal' },
-    { name: 'Análise Tributária', href: '/analise-tributaria', icon: TrendingUp, testId: 'nav-analise' },
     { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
     { name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' },
   ];

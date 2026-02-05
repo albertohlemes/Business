@@ -403,21 +403,6 @@ const Dashboard = ({ user, onLogout }) => {
                   </p>
                 </div>
                 
-                <Link to="/analise-tributaria" className="block">
-                  <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-5 text-white hover:from-purple-700 hover:to-pink-700 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <Calculator className="w-12 h-12 bg-white/20 rounded-lg p-2" />
-                      <div>
-                        <h4 className="text-sm text-purple-100">Análise Completa</h4>
-                        <p className="text-lg font-bold">Ver Análise Tributária</p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-purple-200 mt-3">
-                      Análise detalhada com IA, alertas e recomendações
-                    </p>
-                  </div>
-                </Link>
-
                 <Link to="/reports" className="block">
                   <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:border-gray-300 transition-colors">
                     <div className="flex items-center gap-3">
