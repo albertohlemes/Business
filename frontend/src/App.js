@@ -14,6 +14,7 @@ import AnaliseSaidas from './pages/AnaliseSaidas';
 import AnalisePisCofins from './pages/AnalisePisCofins';
 import ApuracaoMensal from './pages/ApuracaoMensal';
 import AlertasCfop from './pages/AlertasCfop';
+import AnaliseTributariaIA from './pages/AnaliseTributariaIA';
 import './App.css';
 
 function App() {
