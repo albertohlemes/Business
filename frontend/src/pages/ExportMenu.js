@@ -250,6 +250,26 @@ const ExportMenu = ({ user, onLogout }) => {
                                 Gera o arquivo oficial para validação no PVA e importação no sistema contábil (SCI Único).
                                 Contém Blocos 0, C (Documentos), E (Apuração), H (Inventário) e 9.
                             </p>
+                            
+                            {/* Opção de Créditos ICMS */}
+                            <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200">
+                              <label className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={excluirCreditosDespesaST}
+                                  onChange={(e) => setExcluirCreditosDespesaST(e.target.checked)}
+                                  className="mt-1 w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                />
+                                <div>
+                                  <span className="font-medium text-gray-900">Excluir créditos de ICMS de Despesa e ST</span>
+                                  <p className="text-xs text-gray-500 mt-0.5">
+                                    {excluirCreditosDespesaST 
+                                      ? "✓ CFOPs 1556, 2556, 1403, 2403, etc. NÃO gerarão crédito na apuração (E110)" 
+                                      : "⚠ Todos os créditos do XML serão considerados na apuração (E110)"}
+                                  </p>
+                                </div>
+                              </label>
+                            </div>
                         </div>
                     </div>
                 )}
