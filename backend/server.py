@@ -2302,6 +2302,133 @@ class BaixaRequest(BaseModel):
     socios: List[SocioBaixa]
     baixa: DadosBaixa
 
+# ============ INTEGRAÇÃO GCLICK ============
+
+GCLICK_API_URL = "https://api.gestaoclick.com"
+GCLICK_CLIENT_ID = os.environ.get("GCLICK_CLIENT_ID", "")
+GCLICK_CLIENT_SECRET = os.environ.get("GCLICK_CLIENT_SECRET", "")
+
+class GClickEnvioRequest(BaseModel):
+    minuta_id: str
+
+@api_router.post("/gclick/enviar-empresa")
+async def enviar_empresa_gclick(
+    request: GClickEnvioRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Envia dados da empresa e sócios para o GClick"""
+    try:
+        # Buscar dados da minuta
+        minuta = await db.minutas.find_one({"id": request.minuta_id, "user_id": current_user["id"]})
+        if not minuta:
+            raise HTTPException(status_code=404, detail="Processo não encontrado")
+        
+        dados_empresa = minuta.get("dados_empresa", {})
+        dados_socios = minuta.get("dados_socios", [])
+        
+        if not dados_empresa:
+            raise HTTPException(status_code=400, detail="Dados da empresa não encontrados no processo")
+        
+        # Montar endereço completo
+        endereco = dados_empresa.get("endereco", {})
+        endereco_completo = ""
+        if isinstance(endereco, dict):
+            endereco_completo = f"{endereco.get('logradouro', '')}, {endereco.get('numero', '')}"
+            if endereco.get('complemento'):
+                endereco_completo += f", {endereco.get('complemento')}"
+        elif isinstance(endereco, str):
+            endereco_completo = endereco
+        
+        # Preparar dados para GClick
+        cliente_data = {
+            "tipo_pessoa": "PJ",
+            "nome": dados_empresa.get("razao_social", ""),
+            "nome_fantasia": dados_empresa.get("nome_fantasia", ""),
+            "cpf_cnpj": minuta.get("cnpj", ""),
+            "inscricao_estadual": dados_empresa.get("inscricao_estadual", ""),
+            "inscricao_municipal": dados_empresa.get("inscricao_municipal", ""),
+            "endereco": endereco_completo,
+            "bairro": endereco.get("bairro", "") if isinstance(endereco, dict) else "",
+            "cidade": endereco.get("cidade", "") if isinstance(endereco, dict) else "",
+            "estado": endereco.get("estado", "") if isinstance(endereco, dict) else "",
+            "cep": endereco.get("cep", "") if isinstance(endereco, dict) else "",
+            "observacoes": f"Capital Social: {dados_empresa.get('capital_social', '')}\nObjeto Social: {dados_empresa.get('objeto_social', '')[:500] if dados_empresa.get('objeto_social') else ''}"
+        }
+        
+        # Adicionar sócios nas observações
+        if dados_socios:
+            socios_texto = "\n\nSÓCIOS:\n"
+            for s in dados_socios:
+                socios_texto += f"- {s.get('nome', '')} (CPF: {s.get('cpf', '')}) - {s.get('participacao', '')}%"
+                if s.get('administrador'):
+                    socios_texto += " [ADMINISTRADOR]"
+                socios_texto += "\n"
+            cliente_data["observacoes"] += socios_texto
+        
+        # Enviar para GClick
+        headers = {
+            "Content-Type": "application/json",
+            "access-token": GCLICK_CLIENT_ID,
+            "secret-access-token": GCLICK_CLIENT_SECRET
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{GCLICK_API_URL}/clientes",
+                json=cliente_data,
+                headers=headers
+            )
+            
+            if response.status_code in [200, 201]:
+                result = response.json()
+                
+                # Atualizar minuta com info de envio
+                await db.minutas.update_one(
+                    {"id": request.minuta_id},
+                    {"$set": {
+                        "gclick_enviado": True,
+                        "gclick_data_envio": datetime.now(timezone.utc),
+                        "gclick_response": result
+                    }}
+                )
+                
+                return {
+                    "success": True,
+                    "message": "Empresa enviada com sucesso para o GClick",
+                    "gclick_id": result.get("id"),
+                    "data": result
+                }
+            else:
+                error_detail = response.text
+                logger.error(f"Erro GClick: {response.status_code} - {error_detail}")
+                return {
+                    "success": False,
+                    "message": f"Erro ao enviar para GClick: {response.status_code}",
+                    "error": error_detail
+                }
+                
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao enviar para GClick: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao enviar para GClick: {str(e)}")
+
+@api_router.get("/gclick/status/{minuta_id}")
+async def verificar_status_gclick(
+    minuta_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Verifica se a empresa já foi enviada para o GClick"""
+    minuta = await db.minutas.find_one({"id": minuta_id, "user_id": current_user["id"]})
+    if not minuta:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    return {
+        "enviado": minuta.get("gclick_enviado", False),
+        "data_envio": minuta.get("gclick_data_envio"),
+        "gclick_id": minuta.get("gclick_response", {}).get("id") if minuta.get("gclick_response") else None
+    }
+
 @api_router.post("/baixa/extrair-contrato")
 async def extrair_contrato_para_baixa(
     file: UploadFile = File(...),
