@@ -483,6 +483,15 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
         enderEmit = emit.get('enderEmit', {})
         emitente_uf = enderEmit.get('UF', '')
         
+        # Totais do documento (frete, seguro, outras despesas, desconto, IPI, ICMS-ST)
+        vFrete_total = float(total.get('vFrete', 0) or 0)
+        vSeg_total = float(total.get('vSeg', 0) or 0)
+        vOutro_total = float(total.get('vOutro', 0) or 0)
+        vDesc_total = float(total.get('vDesc', 0) or 0)
+        vIPI_total = float(total.get('vIPI', 0) or 0)
+        vST_total = float(total.get('vST', 0) or 0)
+        vICMSST_total = float(total.get('vICMSST', 0) or 0) or vST_total
+        
         if isinstance(det, dict):
             det = [det]
         
@@ -493,6 +502,7 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             icms = imposto.get('ICMS', {})
             pis = imposto.get('PIS', {})
             cofins = imposto.get('COFINS', {})
+            ipi = imposto.get('IPI', {})
             
             cfop = prod.get('CFOP', '')  # CFOP está no prod, não no ICMS
             cst_icms = ""
@@ -510,13 +520,26 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             
             v_icms = 0
             v_bc = 0
+            v_icms_st = 0
+            v_bc_st = 0
             v_pis = 0
             v_cofins = 0
+            v_ipi = 0
             
+            # Extrair ICMS próprio e ST
             for key in icms:
                 if isinstance(icms[key], dict):
                     v_icms = float(icms[key].get('vICMS', 0) or 0)
                     v_bc = float(icms[key].get('vBC', 0) or 0)
+                    # ICMS-ST
+                    v_icms_st = float(icms[key].get('vICMSST', 0) or 0)
+                    v_bc_st = float(icms[key].get('vBCST', 0) or 0)
+                    break
+            
+            # Extrair IPI
+            for key in ipi:
+                if isinstance(ipi[key], dict):
+                    v_ipi = float(ipi[key].get('vIPI', 0) or 0)
                     break
             
             for key in pis:
@@ -536,6 +559,19 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             # NCM para verificar alíquota zero
             ncm = prod.get('NCM', '')
             
+            # Valores do item (frete, seguro, outras despesas, desconto)
+            v_frete_item = float(prod.get('vFrete', 0) or 0)
+            v_seg_item = float(prod.get('vSeg', 0) or 0)
+            v_outro_item = float(prod.get('vOutro', 0) or 0)
+            v_desc_item = float(prod.get('vDesc', 0) or 0)
+            
+            # Valor do produto (vProd)
+            v_prod = float(prod.get('vProd', 0) or 0)
+            
+            # Valor total da mercadoria (soma todos os componentes que afetam custo)
+            # vProd + vIPI + vICMSST + vFrete + vSeg + vOutro - vDesc
+            valor_total_custo = v_prod + v_ipi + v_icms_st + v_frete_item + v_seg_item + v_outro_item - v_desc_item
+            
             produtos.append({
                 'codigo': prod.get('cProd', ''),
                 'descricao': prod.get('xProd', ''),
@@ -549,10 +585,18 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                 'ncm_aliq_zero': is_ncm_aliquota_zero(ncm),  # Flag de alíquota zero pelo NCM
                 'quantidade': float(prod.get('qCom', 0) or 0),
                 'valor_unitario': float(prod.get('vUnCom', 0) or 0),
-                'valor_total': float(prod.get('vProd', 0) or 0),
+                'valor_total': valor_total_custo,  # Valor total considerando todos os componentes
+                'valor_produto': v_prod,  # Valor do produto puro (vProd)
                 'unidade': prod.get('uCom', ''),
                 'v_bc_icms': v_bc,
                 'v_icms': v_icms,
+                'v_bc_icms_st': v_bc_st,
+                'v_icms_st': v_icms_st,
+                'v_ipi': v_ipi,
+                'v_frete': v_frete_item,
+                'v_seguro': v_seg_item,
+                'v_outras_despesas': v_outro_item,
+                'v_desconto': v_desc_item,
                 'v_pis': v_pis,
                 'v_cofins': v_cofins
             })
@@ -568,6 +612,13 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             'destinatario_cnpj': dest.get('CNPJ', ''),
             'destinatario_nome': dest.get('xNome', ''),
             'valor_total': float(total.get('vNF', 0)),
+            # Totais do documento
+            'total_frete': vFrete_total,
+            'total_seguro': vSeg_total,
+            'total_outras_despesas': vOutro_total,
+            'total_desconto': vDesc_total,
+            'total_ipi': vIPI_total,
+            'total_icms_st': vICMSST_total,
             'produtos': produtos
         }
     except Exception as e:
