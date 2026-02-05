@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Building2, Users, FileText, UserPlus, ClipboardCheck, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { useEmpresa } from '../contexts/EmpresaContext';
+import { Building2, Users, FileText, UserPlus, ClipboardCheck, TrendingUp, AlertCircle, CheckCircle2, Calendar } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import EmpresaSelectorModal from '../components/EmpresaSelectorModal';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const { empresaSelecionada, competencia } = useEmpresa();
 
   useEffect(() => {
     fetchDashboard();
@@ -23,6 +28,11 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const generateCode = (id) => {
+    if (!id) return '';
+    return `#${id.slice(0, 4).toUpperCase()}`;
   };
 
   const statCards = [
@@ -82,14 +92,68 @@ const Dashboard = () => {
     );
   }
 
+  // Show empresa selection prompt if none selected
+  if (!empresaSelecionada) {
+    return (
+      <div data-testid="dashboard-page" className="animate-fade-in">
+        {/* Header */}
+        <Card className="border-indigo-200 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white mb-6">
+          <CardContent className="p-6">
+            <h1 className="text-2xl font-bold">Dashboard</h1>
+            <p className="text-indigo-100 mt-1">Selecione uma empresa no header para ver as estatísticas</p>
+          </CardContent>
+        </Card>
+
+        {/* Selection Card */}
+        <Card className="border-slate-200 max-w-lg mx-auto">
+          <CardContent className="py-16 text-center">
+            <div className="w-20 h-20 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-6">
+              <Building2 className="text-amber-600" size={40} />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Selecione uma Empresa</h2>
+            <p className="text-slate-500 mb-6">
+              Clique no botão abaixo ou no header para selecionar a empresa e competência
+            </p>
+            <Button
+              onClick={() => setSelectorOpen(true)}
+              data-testid="select-empresa-btn"
+              className="bg-indigo-600 hover:bg-indigo-700 h-12 px-8 text-base"
+            >
+              <Building2 size={20} className="mr-2" />
+              Selecionar Empresa
+            </Button>
+          </CardContent>
+        </Card>
+
+        <EmpresaSelectorModal open={selectorOpen} onOpenChange={setSelectorOpen} />
+      </div>
+    );
+  }
+
   return (
     <div data-testid="dashboard-page" className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-500 mt-1">Visão geral do departamento pessoal</p>
-        </div>
-      </div>
+      {/* Header with selected empresa */}
+      <Card className="border-indigo-200 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">Dashboard</h1>
+              <div className="flex items-center gap-3 mt-2">
+                <span className="px-2 py-1 bg-white/20 rounded text-sm font-bold">
+                  {empresaSelecionada.codigo_interno || generateCode(empresaSelecionada.id)}
+                </span>
+                <span className="text-lg font-medium">
+                  {empresaSelecionada.nome_fantasia || empresaSelecionada.razao_social}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-lg">
+              <Calendar size={18} />
+              <span className="font-mono text-lg">Competência: {competencia}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
