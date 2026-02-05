@@ -159,12 +159,16 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, onEdit, emp
     };
 
     const deleteProcesso = async (id) => {
+        if (!window.confirm('Tem certeza que deseja excluir este processo? Esta ação não pode ser desfeita.')) {
+            return;
+        }
         try {
             await axios.delete(`${API_URL}/api/minutas/${id}`);
             toast.success('Processo removido');
             onRefresh();
         } catch (e) {
-            toast.error('Erro ao remover');
+            console.error('Erro ao deletar:', e);
+            toast.error('Erro ao remover processo');
         }
     };
 
