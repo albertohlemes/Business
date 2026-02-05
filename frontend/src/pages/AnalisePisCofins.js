@@ -245,17 +245,15 @@ const AnalisePisCofins = ({ user, onLogout }) => {
     return colors[tipo] || 'bg-gray-100 text-gray-800';
   };
 
-  // Header de coluna ordenável
-  const SortableHeader = ({ label, sortKey, className = '' }) => (
-    <th className={`px-3 py-2 text-xs font-semibold text-gray-600 ${className}`}>
-      <button 
-        onClick={() => requestSort(sortKey)} 
-        className="flex items-center gap-1 hover:text-gray-900 transition"
-      >
-        {label}
-        <SortIcon active={sortConfig.key === sortKey} direction={sortConfig.direction} />
-      </button>
-    </th>
+  // Header de coluna ordenável - função wrapper
+  const renderSortableHeader = (label, sortKey, className = '') => (
+    <SortableHeader 
+      label={label} 
+      sortKey={sortKey} 
+      sortConfig={sortConfig} 
+      onSort={requestSort} 
+      className={className} 
+    />
   );
 
   if (!selectedCompany || !selectedCompetencia) {
