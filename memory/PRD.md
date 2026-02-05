@@ -163,6 +163,18 @@ Portal para departamento societário com geração de documentos via IA.
 
 ## Implementações Recentes (05/02/2026)
 
+### ✅ Integração GClick
+- **Endpoint:** `POST /api/gclick/enviar-empresa` - Envia dados da empresa e sócios para o GClick
+- **Endpoint:** `GET /api/gclick/status/{minuta_id}` - Verifica se empresa já foi enviada
+- **Botão na lista:** Ícone de envio (avião) que fica verde quando já enviado
+- **Dados enviados:** Razão Social, Nome Fantasia, CNPJ, Endereço, Inscrição Estadual/Municipal, Sócios
+- **Credenciais:** Configuradas em `.env` (GCLICK_CLIENT_ID, GCLICK_CLIENT_SECRET)
+
+### ✅ Campos de Inscrição Estadual e Municipal
+- Adicionados no formulário de Constituição (Step 1 - Dados da Empresa)
+- Salvos em `dados_empresa` e enviados para o GClick
+- Carregados corretamente na edição
+
 ### ✅ Edição de Processos Concluídos
 - **Botão de Editar** adicionado na lista de processos (ícone de lápis)
 - Funciona para todos os tipos: Constituição, Alteração e Baixa
