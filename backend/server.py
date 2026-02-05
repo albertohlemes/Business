@@ -2512,9 +2512,13 @@ async def gerar_distrato_social(
         if baixa.distribuicao_patrimonio:
             patrimonio_distribuicao = baixa.distribuicao_patrimonio
         else:
+            total_perc = 0
             for s in socios:
                 if hasattr(s, 'participacao') and s.participacao:
+                    perc = float(s.participacao) if s.participacao else 0
+                    total_perc += perc
                     patrimonio_distribuicao += f"{s.nome.upper()} - {s.participacao}%\n"
+            patrimonio_distribuicao += f"----------------------------------------\nTOTAL - 100%"
         
         prompt = f"""Gere um DISTRATO SOCIAL seguindo EXATAMENTE este modelo:
 
