@@ -476,6 +476,7 @@ E-MAIL: ${sciForm.email || 'N/A'}
                 cnpj: dados.cpf_cnpj || '',
                 inscricaoEstadual: dados.inscricao_estadual || '',
                 inscricaoMunicipal: dados.inscricao_municipal || '',
+                dataFundacao: dados.data_fundacao || '',
                 endereco: endereco,
                 numero: numero,
                 complemento: complemento,
