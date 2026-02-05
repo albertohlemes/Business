@@ -1765,6 +1765,9 @@ class SocioConstituicao(BaseModel):
     estado_civil: Optional[str] = None
     regime_casamento: Optional[str] = None
     profissao: Optional[str] = None
+    data_nascimento: Optional[str] = None
+    cidade_nascimento: Optional[str] = None
+    estado_nascimento: Optional[str] = None
     endereco: Optional[str] = None
     participacao: str
     administrador: bool = False
