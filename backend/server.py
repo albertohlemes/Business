@@ -974,6 +974,114 @@ async def rejeitar_dissidio(dissidio_id: str, current_user: dict = Depends(get_c
         raise HTTPException(status_code=404, detail="Dissídio não encontrado")
     return {"message": "Dissídio rejeitado"}
 
+@api_router.get("/dissidios/{dissidio_id}/previa")
+async def previa_dissidio(dissidio_id: str, current_user: dict = Depends(get_current_user)):
+    """Get preview of salary adjustments for a dissídio before approval"""
+    dissidio = await db.dissidios.find_one({"id": dissidio_id, "user_id": current_user["id"]})
+    if not dissidio:
+        raise HTTPException(status_code=404, detail="Dissídio não encontrado")
+    
+    percentual = dissidio["percentual_reajuste"]
+    colaboradores = await db.colaboradores.find(
+        {"cliente_id": dissidio["cliente_id"]},
+        {"_id": 0, "id": 1, "nome": 1, "cpf": 1, "cargo": 1, "salario_base": 1}
+    ).to_list(1000)
+    
+    previa_colaboradores = []
+    total_atual = 0
+    total_novo = 0
+    total_diferenca = 0
+    
+    for colab in colaboradores:
+        salario_atual = colab.get("salario_base", 0) or 0
+        diferenca = round(salario_atual * (percentual / 100), 2)
+        salario_novo = round(salario_atual + diferenca, 2)
+        
+        total_atual += salario_atual
+        total_novo += salario_novo
+        total_diferenca += diferenca
+        
+        previa_colaboradores.append({
+            "id": colab.get("id"),
+            "nome": colab.get("nome", ""),
+            "cpf": colab.get("cpf", ""),
+            "cargo": colab.get("cargo", ""),
+            "salario_atual": salario_atual,
+            "salario_novo": salario_novo,
+            "diferenca": diferenca,
+            "percentual": percentual
+        })
+    
+    return {
+        "dissidio_id": dissidio_id,
+        "sindicato": dissidio.get("sindicato", ""),
+        "percentual_reajuste": percentual,
+        "data_base": dissidio.get("data_base", ""),
+        "colaboradores": previa_colaboradores,
+        "resumo": {
+            "total_colaboradores": len(previa_colaboradores),
+            "total_salarios_atual": round(total_atual, 2),
+            "total_salarios_novo": round(total_novo, 2),
+            "total_diferenca": round(total_diferenca, 2),
+            "percentual": percentual
+        }
+    }
+
+@api_router.post("/dissidios/simular")
+async def simular_dissidio(
+    cliente_id: str,
+    percentual_reajuste: float,
+    current_user: dict = Depends(get_current_user)
+):
+    """Simulate salary adjustments without creating a dissídio"""
+    cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    colaboradores = await db.colaboradores.find(
+        {"cliente_id": cliente_id},
+        {"_id": 0, "id": 1, "nome": 1, "cpf": 1, "cargo": 1, "salario_base": 1}
+    ).to_list(1000)
+    
+    previa_colaboradores = []
+    total_atual = 0
+    total_novo = 0
+    total_diferenca = 0
+    
+    for colab in colaboradores:
+        salario_atual = colab.get("salario_base", 0) or 0
+        diferenca = round(salario_atual * (percentual_reajuste / 100), 2)
+        salario_novo = round(salario_atual + diferenca, 2)
+        
+        total_atual += salario_atual
+        total_novo += salario_novo
+        total_diferenca += diferenca
+        
+        previa_colaboradores.append({
+            "id": colab.get("id"),
+            "nome": colab.get("nome", ""),
+            "cpf": colab.get("cpf", ""),
+            "cargo": colab.get("cargo", ""),
+            "salario_atual": salario_atual,
+            "salario_novo": salario_novo,
+            "diferenca": diferenca,
+            "percentual": percentual_reajuste
+        })
+    
+    return {
+        "cliente_id": cliente_id,
+        "cliente_nome": cliente.get("nome_fantasia") or cliente.get("razao_social"),
+        "percentual_reajuste": percentual_reajuste,
+        "colaboradores": previa_colaboradores,
+        "resumo": {
+            "total_colaboradores": len(previa_colaboradores),
+            "total_salarios_atual": round(total_atual, 2),
+            "total_salarios_novo": round(total_novo, 2),
+            "total_diferenca": round(total_diferenca, 2),
+            "percentual": percentual_reajuste
+        }
+    }
+
 # ==================== ADMISSÃO ROUTES ====================
 
 @api_router.post("/admissoes/extrair")
