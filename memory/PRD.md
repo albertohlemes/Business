@@ -143,6 +143,7 @@ Portal para departamento societário com geração de documentos via IA.
 - `/app/backend/tests/test_naturalidade_fields.py`
 - `/app/test_reports/iteration_4.json`
 - `/app/test_reports/iteration_5.json` (campos de naturalidade)
+- `/app/test_reports/iteration_6.json` (edição, profissão padrão, nome empresa)
 
 ## Backlog
 
