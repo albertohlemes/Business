@@ -1757,6 +1757,7 @@ class DadosEmpresaConstituicao(BaseModel):
     objeto_social: str
     inscricao_estadual: Optional[str] = None
     inscricao_municipal: Optional[str] = None
+    codigo_cliente: Optional[str] = None
 
 class SocioConstituicao(BaseModel):
     nome: str
