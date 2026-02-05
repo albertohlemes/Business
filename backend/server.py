@@ -1456,37 +1456,43 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             # Determinar UF de origem (do emitente) para cálculo de ICMS interestadual
             uf_origem = (getattr(doc, 'emitente_uf', '') or '').upper() or uf_empresa
             
-            # ==== CÁLCULO CORRETO DE ICMS ====
-            # Determinar a alíquota correta de ICMS baseado na operação
+            # ==== ICMS: USAR VALOR DO XML ====
+            # Pegar o ICMS original do XML
+            v_icms_xml = float(prod.get('v_icms', 0) or 0)
+            p_icms_xml = float(prod.get('p_icms', 0) or 0)
+            
+            # Determinar a alíquota de ICMS
             primeiro_digito_cfop = cfop[0] if cfop else ''
-            is_interestadual = primeiro_digito_cfop in ['2', '6']  # CFOP 2xxx ou 6xxx
-            is_importacao = primeiro_digito_cfop == '3'  # CFOP 3xxx
+            is_interestadual = primeiro_digito_cfop in ['2', '6']
             
             # CST de ICMS indica se há tributação
-            # 00, 10, 20, 70, 90 = tributado; 40, 41, 50, 60 = isento/suspenso/ST
             cst_icms_num = cst_icms[-2:] if len(cst_icms) >= 2 else cst_icms
             tem_icms = cst_icms_num in ['00', '10', '20', '70', '90']
             
-            if tem_icms:
+            # Se tem ICMS no XML, usar o valor do XML
+            # Se não tem, calcular baseado na alíquota padrão
+            if v_icms_xml > 0:
+                # Usar valores do XML
+                v_icms = v_icms_xml
+                bc_icms = vl_item
+                # Calcular alíquota a partir do valor (para exibição)
+                aliq_icms = round((v_icms_xml / vl_item) * 100, 2) if vl_item > 0 else 0
+            elif tem_icms:
+                # Não tem ICMS no XML mas CST indica tributado - calcular
                 if is_interestadual:
-                    # Operação interestadual: 7% (Sul/Sudeste → outros) ou 12% (demais)
                     if uf_origem in UF_SUL_SUDESTE and uf_empresa not in UF_SUL_SUDESTE:
                         aliq_icms = 7.0
                     else:
                         aliq_icms = 12.0
-                elif is_importacao:
-                    # Importação: usa alíquota interna do estado
-                    aliq_icms = ALIQ_ICMS_UF.get(uf_empresa, 18)
                 else:
-                    # Operação interna: usa alíquota do estado
                     aliq_icms = ALIQ_ICMS_UF.get(uf_empresa, 18)
+                bc_icms = vl_item
+                v_icms = round(bc_icms * aliq_icms / 100, 2)
             else:
-                # Sem ICMS (isento, ST, suspenso)
+                # Sem ICMS
                 aliq_icms = 0.0
-            
-            # Base de cálculo de ICMS = valor do item (simplificado)
-            bc_icms = vl_item if tem_icms else 0.0
-            v_icms = round(bc_icms * aliq_icms / 100, 2) if tem_icms else 0.0
+                bc_icms = 0.0
+                v_icms = 0.0
             
             # ==== CÁLCULO CORRETO DE PIS/COFINS ====
             # Determinar CST correto de PIS/COFINS baseado na operação
