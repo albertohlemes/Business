@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import { 
     LayoutDashboard, FileText, Shield, FileCheck,
-    LogOut, Building2, User, Database
+    LogOut, Building2, User, Database, Trash2
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -19,6 +19,7 @@ const Layout = ({ children }) => {
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/processos', label: 'Processos', icon: FileText },
         { path: '/cadastros', label: 'Cadastros', icon: Database },
+        { path: '/lixeira', label: 'Lixeira', icon: Trash2 },
         { path: '/certificados', label: 'Certificados', icon: Shield },
         { path: '/licencas', label: 'Licenças', icon: FileCheck },
     ];
