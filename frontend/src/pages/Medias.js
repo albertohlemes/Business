@@ -280,14 +280,12 @@ const Medias = () => {
               <div
                 {...getRootProps()}
                 data-testid="dropzone-medias"
-                className={`upload-zone ${isDragActive ? 'active' : ''} ${!selectedCliente ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`upload-zone ${isDragActive ? 'active' : ''} ${!selectedCliente ? 'opacity-50 cursor-not-allowed' : ''} ${uploading ? 'pointer-events-none' : ''}`}
               >
                 <input {...getInputProps()} disabled={!selectedCliente || uploading} />
                 {uploading ? (
-                  <div className="flex flex-col items-center">
-                    <Loader2 className="animate-spin text-indigo-600 mb-2" size={32} />
-                    <p className="text-slate-600">Extraindo dados com IA...</p>
-                    <p className="text-xs text-slate-400 mt-1">Analisando médias de horas extras, comissões, adicionais...</p>
+                  <div className="py-2">
+                    <ImportMediasProgress isProcessing={uploading} />
                   </div>
                 ) : (
                   <>
