@@ -1120,11 +1120,11 @@ E-MAIL: ${sciForm.email || 'N/A'}
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-2">
                                 <div className="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center">
-                                    <FileText className="w-5 h-5 text-blue-500" />
+                                    <Bot className="w-5 h-5 text-blue-500" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-white">Exportar para SCI Único</h2>
-                                    <p className="text-zinc-500 text-sm">Gere os dados formatados para importar manualmente no SCI</p>
+                                    <h2 className="text-lg font-semibold text-white">SCI Único - Automação</h2>
+                                    <p className="text-zinc-500 text-sm">Preencha os dados e exporte para o robô</p>
                                 </div>
                             </div>
                             <div className="flex gap-2">
@@ -1145,218 +1145,249 @@ E-MAIL: ${sciForm.email || 'N/A'}
                         </div>
 
                         <p className="text-xs text-zinc-500 mb-4 bg-zinc-800/50 p-2 rounded">
-                            💡 <strong>Selecione múltiplos documentos</strong> (Cartão CNPJ, Contrato Social, Certidão Junta). A IA consolida todas as informações automaticamente!
+                            💡 <strong>Selecione múltiplos documentos</strong> (Cartão CNPJ, Contrato Social, RG/CNH dos sócios). A IA consolida todas as informações!
                         </p>
 
-                        <div className="grid grid-cols-2 gap-6">
-                            {/* Coluna Esquerda */}
+                        {/* Dados da Empresa */}
+                        <div className="grid grid-cols-3 gap-6 mb-6">
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2 text-zinc-400 mb-2">
                                     <Building2 className="w-4 h-4" />
                                     <span className="text-sm font-medium">Dados da Empresa</span>
                                 </div>
 
-                                <div className="grid grid-cols-4 gap-3">
+                                <div className="grid grid-cols-3 gap-2">
                                     <div>
-                                        <Label className="text-zinc-500 text-xs">ID/Código</Label>
-                                        <Input
-                                            value={sciForm.codigoCliente}
-                                            onChange={(e) => handleSciChange('codigoCliente', e.target.value)}
-                                            placeholder="0000"
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
+                                        <Label className="text-zinc-500 text-xs">Código</Label>
+                                        <Input value={sciForm.codigoCliente} onChange={(e) => handleSciChange('codigoCliente', e.target.value)} placeholder="0000" className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
                                     </div>
-                                    <div className="col-span-3">
-                                        <Label className="text-zinc-500 text-xs">Razão Social <span className="text-red-500">*</span></Label>
-                                        <Input
-                                            value={sciForm.razaoSocial}
-                                            onChange={(e) => handleSciChange('razaoSocial', e.target.value.toUpperCase())}
-                                            placeholder="EMPRESA EXEMPLO LTDA"
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
+                                    <div className="col-span-2">
+                                        <Label className="text-zinc-500 text-xs">CNPJ <span className="text-red-500">*</span></Label>
+                                        <Input value={sciForm.cnpj} onChange={(e) => handleSciChange('cnpj', e.target.value)} placeholder="00.000.000/0001-00" className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <Label className="text-zinc-500 text-xs">Nome Fantasia</Label>
-                                    <Input
-                                        value={sciForm.nomeFantasia}
-                                        onChange={(e) => handleSciChange('nomeFantasia', e.target.value)}
-                                        placeholder="Nome comercial"
-                                        className="bg-zinc-800 border-zinc-700 mt-1"
-                                    />
+                                    <Label className="text-zinc-500 text-xs">Razão Social <span className="text-red-500">*</span></Label>
+                                    <Input value={sciForm.razaoSocial} onChange={(e) => handleSciChange('razaoSocial', e.target.value.toUpperCase())} placeholder="EMPRESA LTDA" className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                    <Label className="text-zinc-500 text-xs">Nome Fantasia</Label>
+                                    <Input value={sciForm.nomeFantasia} onChange={(e) => handleSciChange('nomeFantasia', e.target.value)} className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
                                     <div>
-                                        <Label className="text-zinc-500 text-xs">CNPJ <span className="text-red-500">*</span></Label>
-                                        <Input
-                                            value={sciForm.cnpj}
-                                            onChange={(e) => handleSciChange('cnpj', e.target.value)}
-                                            placeholder="00.000.000/0001-00"
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label className="text-zinc-500 text-xs flex items-center gap-1">
-                                            Insc. Estadual
-                                            {buscandoIE && <Loader2 className="w-3 h-3 animate-spin" />}
-                                        </Label>
-                                        <Input
-                                            value={sciForm.inscricaoEstadual}
-                                            onChange={(e) => handleSciChange('inscricaoEstadual', e.target.value)}
-                                            placeholder="Automático"
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
+                                        <Label className="text-zinc-500 text-xs">Insc. Estadual</Label>
+                                        <Input value={sciForm.inscricaoEstadual} onChange={(e) => handleSciChange('inscricaoEstadual', e.target.value)} className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
                                     </div>
                                     <div>
                                         <Label className="text-zinc-500 text-xs">Insc. Municipal</Label>
-                                        <Input
-                                            value={sciForm.inscricaoMunicipal}
-                                            onChange={(e) => handleSciChange('inscricaoMunicipal', e.target.value)}
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
+                                        <Input value={sciForm.inscricaoMunicipal} onChange={(e) => handleSciChange('inscricaoMunicipal', e.target.value)} className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-2 gap-2">
                                     <div>
-                                        <Label className="text-zinc-500 text-xs">Regime Tributário</Label>
-                                        <select
-                                            value={sciForm.regime}
-                                            onChange={(e) => handleSciChange('regime', e.target.value)}
-                                            className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 mt-1 text-white text-sm"
-                                        >
-                                            <option value="simples">Simples Nacional</option>
-                                            <option value="presumido">Lucro Presumido</option>
-                                            <option value="real">Lucro Real</option>
-                                        </select>
+                                        <Label className="text-zinc-500 text-xs">Data Entrada</Label>
+                                        <Input value={sciForm.dataEntrada} onChange={(e) => handleSciChange('dataEntrada', e.target.value)} placeholder="DD/MM/AAAA" className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
                                     </div>
                                     <div>
-                                        <Label className="text-zinc-500 text-xs">Data Abertura</Label>
-                                        <Input
-                                            type="date"
-                                            value={sciForm.dataAbertura}
-                                            onChange={(e) => handleSciChange('dataAbertura', e.target.value)}
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label className="text-zinc-500 text-xs">Capital Social</Label>
-                                        <Input
-                                            value={sciForm.capitalSocial}
-                                            onChange={(e) => handleSciChange('capitalSocial', e.target.value)}
-                                            placeholder="R$ 0,00"
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
+                                        <Label className="text-zinc-500 text-xs">Data Constituição</Label>
+                                        <Input value={sciForm.dataConstituicao} onChange={(e) => handleSciChange('dataConstituicao', e.target.value)} placeholder="DD/MM/AAAA" className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Coluna Direita */}
+                            {/* Endereço e Registro */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2 text-zinc-400 mb-2">
                                     <MapPin className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Endereço e Contato</span>
+                                    <span className="text-sm font-medium">Endereço e Registro</span>
                                 </div>
 
-                                <div className="grid grid-cols-4 gap-3">
-                                    <div className="col-span-3">
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <Label className="text-zinc-500 text-xs">CEP</Label>
+                                        <Input value={sciForm.cep} onChange={(e) => handleSciChange('cep', e.target.value)} className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
+                                    </div>
+                                    <div className="col-span-2">
                                         <Label className="text-zinc-500 text-xs">Logradouro</Label>
-                                        <Input
-                                            value={sciForm.endereco}
-                                            onChange={(e) => handleSciChange('endereco', e.target.value)}
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label className="text-zinc-500 text-xs">Número</Label>
-                                        <Input
-                                            value={sciForm.numero}
-                                            onChange={(e) => handleSciChange('numero', e.target.value)}
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
+                                        <Input value={sciForm.endereco} onChange={(e) => handleSciChange('endereco', e.target.value)} className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-4 gap-2">
                                     <div>
-                                        <Label className="text-zinc-500 text-xs">Bairro</Label>
-                                        <Input
-                                            value={sciForm.bairro}
-                                            onChange={(e) => handleSciChange('bairro', e.target.value)}
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
+                                        <Label className="text-zinc-500 text-xs">Nº</Label>
+                                        <Input value={sciForm.numero} onChange={(e) => handleSciChange('numero', e.target.value)} className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
                                     </div>
                                     <div>
+                                        <Label className="text-zinc-500 text-xs">Compl.</Label>
+                                        <Input value={sciForm.complemento} onChange={(e) => handleSciChange('complemento', e.target.value)} className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <Label className="text-zinc-500 text-xs">Bairro</Label>
+                                        <Input value={sciForm.bairro} onChange={(e) => handleSciChange('bairro', e.target.value)} className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="col-span-2">
                                         <Label className="text-zinc-500 text-xs">Cidade</Label>
-                                        <Input
-                                            value={sciForm.cidade}
-                                            onChange={(e) => handleSciChange('cidade', e.target.value)}
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
+                                        <Input value={sciForm.cidade} onChange={(e) => handleSciChange('cidade', e.target.value)} className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
                                     </div>
                                     <div>
                                         <Label className="text-zinc-500 text-xs">UF</Label>
-                                        <select
-                                            value={sciForm.estado}
-                                            onChange={(e) => handleSciChange('estado', e.target.value)}
-                                            className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 mt-1 text-white text-sm"
-                                        >
+                                        <select value={sciForm.estado} onChange={(e) => handleSciChange('estado', e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1 mt-1 text-white text-sm h-8">
                                             {ESTADOS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
                                         </select>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-2 gap-2">
                                     <div>
-                                        <Label className="text-zinc-500 text-xs">Responsável</Label>
-                                        <Input
-                                            value={sciForm.responsavel}
-                                            onChange={(e) => handleSciChange('responsavel', e.target.value)}
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
+                                        <Label className="text-zinc-500 text-xs">Órgão Registro (Junta)</Label>
+                                        <Input value={sciForm.orgaoRegistro} onChange={(e) => handleSciChange('orgaoRegistro', e.target.value)} placeholder="JUCESP" className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
                                     </div>
                                     <div>
-                                        <Label className="text-zinc-500 text-xs">CPF Responsável</Label>
-                                        <Input
-                                            value={sciForm.cpfResponsavel}
-                                            onChange={(e) => handleSciChange('cpfResponsavel', e.target.value)}
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
+                                        <Label className="text-zinc-500 text-xs">Nº Registro (NIRE)</Label>
+                                        <Input value={sciForm.numeroRegistro} onChange={(e) => handleSciChange('numeroRegistro', e.target.value)} className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-2 gap-2">
                                     <div>
-                                        <Label className="text-zinc-500 text-xs">Telefone</Label>
-                                        <Input
-                                            value={sciForm.telefone}
-                                            onChange={(e) => handleSciChange('telefone', e.target.value)}
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
+                                        <Label className="text-zinc-500 text-xs">Data Registro</Label>
+                                        <Input value={sciForm.dataRegistro} onChange={(e) => handleSciChange('dataRegistro', e.target.value)} placeholder="DD/MM/AAAA" className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
                                     </div>
                                     <div>
                                         <Label className="text-zinc-500 text-xs">E-mail</Label>
-                                        <Input
-                                            value={sciForm.email}
-                                            onChange={(e) => handleSciChange('email', e.target.value)}
-                                            className="bg-zinc-800 border-zinc-700 mt-1"
-                                        />
+                                        <Input value={sciForm.email} onChange={(e) => handleSciChange('email', e.target.value)} className="bg-zinc-800 border-zinc-700 mt-1 h-8 text-sm" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Ações */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-zinc-400 mb-2">
+                                    <Bot className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Automação</span>
+                                </div>
+
+                                <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4">
+                                    <h4 className="text-blue-400 font-medium text-sm mb-2">🤖 Robô de Preenchimento</h4>
+                                    <p className="text-zinc-400 text-xs mb-3">
+                                        1. Preencha os dados acima (ou use IA)<br/>
+                                        2. Exporte o arquivo JSON<br/>
+                                        3. Rode o robô no seu PC<br/>
+                                        4. O robô preenche o SCI Único!
+                                    </p>
+                                    <div className="space-y-2">
+                                        <Button onClick={exportarParaRobo} disabled={exportandoSci} className="w-full bg-blue-600 hover:bg-blue-700 h-9">
+                                            {exportandoSci ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                                            Exportar Dados (JSON)
+                                        </Button>
+                                        <Button onClick={baixarRobo} variant="outline" className="w-full border-blue-600/50 text-blue-400 hover:bg-blue-600/20 h-9">
+                                            <Bot className="w-4 h-4 mr-2" />
+                                            Baixar Robô (Python)
+                                        </Button>
                                     </div>
                                 </div>
 
-                                <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4 mt-4">
-                                    <p className="text-blue-400 text-sm mb-3">
-                                        <strong>Como funciona:</strong> Ao clicar em "Copiar Dados", os dados serão copiados em formato texto para você colar no SCI Único.
+                                <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+                                    <h4 className="text-zinc-300 font-medium text-sm mb-2">📋 Cópia Manual</h4>
+                                    <p className="text-zinc-500 text-xs mb-3">
+                                        Copie os dados formatados para colar manualmente no SCI Único.
                                     </p>
-                                    <Button 
-                                        onClick={handleExportarSCI}
-                                        className="w-full bg-blue-600 hover:bg-blue-700"
-                                    >
-                                        <Download className="w-4 h-4 mr-2" /> Copiar Dados para SCI Único
+                                    <Button onClick={handleExportarSCI} variant="outline" className="w-full border-zinc-600 h-9">
+                                        <Copy className="w-4 h-4 mr-2" />
+                                        Copiar Dados
                                     </Button>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Sócios */}
+                        <div className="border-t border-zinc-800 pt-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2 text-zinc-400">
+                                    <Users className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Sócios / Responsáveis</span>
+                                </div>
+                                <Button size="sm" variant="outline" onClick={addSciSocio} className="border-zinc-700 h-7">
+                                    <Plus className="w-3 h-3 mr-1" /> Adicionar Sócio
+                                </Button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 max-h-[400px] overflow-y-auto">
+                                {sciSocios.map((socio, idx) => (
+                                    <div key={idx} className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <span className="text-xs text-zinc-400 font-medium">Sócio {idx + 1}</span>
+                                            {sciSocios.length > 1 && (
+                                                <Button size="sm" variant="ghost" onClick={() => removeSciSocio(idx)} className="h-6 w-6 p-0 text-red-500">
+                                                    <Trash2 className="w-3 h-3" />
+                                                </Button>
+                                            )}
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2 mb-2">
+                                            <div className="col-span-2">
+                                                <Input value={socio.nome} onChange={(e) => updateSciSocio(idx, 'nome', e.target.value.toUpperCase())} placeholder="Nome completo" className="bg-zinc-900 border-zinc-700 h-8 text-sm" />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-2 mb-2">
+                                            <div>
+                                                <Input value={socio.cpf} onChange={(e) => updateSciSocio(idx, 'cpf', e.target.value)} placeholder="CPF" className="bg-zinc-900 border-zinc-700 h-8 text-sm" />
+                                            </div>
+                                            <div>
+                                                <Input value={socio.rg} onChange={(e) => updateSciSocio(idx, 'rg', e.target.value)} placeholder="RG" className="bg-zinc-900 border-zinc-700 h-8 text-sm" />
+                                            </div>
+                                            <div>
+                                                <Input value={socio.dataNascimento} onChange={(e) => updateSciSocio(idx, 'dataNascimento', e.target.value)} placeholder="Nasc. DD/MM/AAAA" className="bg-zinc-900 border-zinc-700 h-8 text-sm" />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2 mb-2">
+                                            <div>
+                                                <Input value={socio.naturalidade} onChange={(e) => updateSciSocio(idx, 'naturalidade', e.target.value)} placeholder="Naturalidade" className="bg-zinc-900 border-zinc-700 h-8 text-sm" />
+                                            </div>
+                                            <div>
+                                                <select value={socio.estadoCivil} onChange={(e) => updateSciSocio(idx, 'estadoCivil', e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-2 py-1 text-white text-sm h-8">
+                                                    <option value="Solteiro(a)">Solteiro(a)</option>
+                                                    <option value="Casado(a)">Casado(a)</option>
+                                                    <option value="Divorciado(a)">Divorciado(a)</option>
+                                                    <option value="Viúvo(a)">Viúvo(a)</option>
+                                                    <option value="União Estável">União Estável</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="mb-2">
+                                            <Input value={socio.endereco} onChange={(e) => updateSciSocio(idx, 'endereco', e.target.value)} placeholder="Endereço completo" className="bg-zinc-900 border-zinc-700 h-8 text-sm" />
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-2 mb-2">
+                                            <div>
+                                                <Input value={socio.telefone} onChange={(e) => updateSciSocio(idx, 'telefone', e.target.value)} placeholder="Telefone" className="bg-zinc-900 border-zinc-700 h-8 text-sm" />
+                                            </div>
+                                            <div>
+                                                <Input value={socio.email} onChange={(e) => updateSciSocio(idx, 'email', e.target.value)} placeholder="E-mail" className="bg-zinc-900 border-zinc-700 h-8 text-sm" />
+                                            </div>
+                                            <div>
+                                                <Input value={socio.participacao} onChange={(e) => updateSciSocio(idx, 'participacao', e.target.value)} placeholder="% Partic." className="bg-zinc-900 border-zinc-700 h-8 text-sm" />
+                                            </div>
+                                        </div>
+
+                                        <label className="flex items-center gap-2 text-xs text-zinc-400">
+                                            <input type="checkbox" checked={socio.administrador} onChange={(e) => updateSciSocio(idx, 'administrador', e.target.checked)} className="accent-blue-600" />
+                                            Responsável pela empresa
+                                        </label>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
