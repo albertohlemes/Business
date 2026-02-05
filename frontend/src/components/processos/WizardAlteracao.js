@@ -1912,19 +1912,33 @@ INSTRUÇÃO IMPORTANTE PARA CONSOLIDAÇÃO:
 A consolidação do contrato deve MANTER TODAS as cláusulas originais listadas acima, modificando APENAS as informações que foram alteradas. Não omita ou exclua cláusulas que não foram alteradas.
 ` : ''}
 
-ESTRUTURA OBRIGATÓRIA:
+ESTRUTURA OBRIGATÓRIA DO DOCUMENTO:
 
 1. TÍTULO CENTRALIZADO: ALTERAÇÃO DO CONTRATO SOCIAL DE ${empresa.razao_social || '[RAZÃO SOCIAL]'}
 
-2. PREÂMBULO: Identificação do instrumento e dos sócios
+2. Identificação do instrumento e qualificação completa de todos os sócios (atuais, retirantes e entrantes)
 
 3. CLÁUSULAS DE ALTERAÇÃO: Uma cláusula para cada tipo de alteração realizada
 
-4. CONSOLIDAÇÃO DO CONTRATO SOCIAL: Contrato social completo e atualizado, mantendo TODAS as cláusulas originais e atualizando apenas as informações que foram alteradas. A consolidação deve ser completa, incluindo todas as cláusulas do contrato original.
+4. CONSOLIDAÇÃO DO CONTRATO SOCIAL: Contrato social completo e atualizado, mantendo TODAS as cláusulas originais e atualizando apenas as informações que foram alteradas.
 
-5. ENCERRAMENTO: Local, data e espaço para assinaturas
+5. ENCERRAMENTO COM ASSINATURAS:
+   - Local e data
+   - Espaço para assinatura de TODOS os sócios envolvidos:
+     * Sócios que PERMANECEM na empresa
+     * Sócios RETIRANTES (que estão saindo)
+     * Novos sócios ENTRANTES (que estão entrando)
+   - Formato de cada assinatura:
+     _______________________________________
+     NOME COMPLETO DO SÓCIO
+     CPF: XXX.XXX.XXX-XX
+   - NÃO incluir testemunhas no documento
 
-Use linguagem jurídica formal. O documento deve estar pronto para registro na Junta Comercial.`;
+REGRAS DE FORMATAÇÃO:
+- NÃO usar o título "PREÂMBULO" no documento
+- NÃO incluir testemunhas
+- Use linguagem jurídica formal
+- O documento deve estar pronto para registro na Junta Comercial`;
 
             const chatRes = await axios.post(`${API_URL}/api/minutas/${minutaId}/chat`, {
                 message: prompt,
