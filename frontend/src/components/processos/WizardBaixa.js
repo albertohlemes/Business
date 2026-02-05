@@ -650,7 +650,7 @@ const WizardBaixa = ({ open, onClose, onComplete, processoEditando }) => {
                 <DialogHeader className="border-b border-zinc-800 pb-4">
                     <DialogTitle className="text-white flex items-center gap-2">
                         <XCircle className="w-5 h-5 text-red-500" />
-                        Distrato Social - Baixa de Empresa
+                        {modoEdicao ? 'Editar Distrato Social' : 'Distrato Social - Baixa de Empresa'}
                     </DialogTitle>
                     <div className="flex items-center gap-1 mt-4">
                         {[1,2,3,4,5,6].map(s => (
