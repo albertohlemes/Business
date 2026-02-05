@@ -1459,11 +1459,6 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
                 if bc_cofins > 0:
                     aliq_cofins = (v_cofins / bc_cofins) * 100
             
-            # Quantidade e valor do item
-            qtd = float(prod.get('quantidade', 0) or 0)
-            vl_item = float(prod.get('valor_total', 0) or 0)
-            unid = (prod.get('unidade', 'UN') or 'UN')[:6].upper()
-            
             # Descrição complementar (deixar vazio se não necessário)
             descr_compl = ''
             
@@ -1471,7 +1466,7 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             ind_mov = '0'
             
             # Valor do desconto (não existe em NFe padrão, então 0)
-            vl_desc = float(prod.get('v_desc', 0) or 0)
+            vl_desc = float(prod.get('v_desc', 0) or prod.get('v_desconto', 0) or 0)
             
             # VL_ABAT_NT - Valor do abatimento não tributado e não comercial (campo 38)
             # Não confundir com desconto! Só preencher se houver abatimento específico
