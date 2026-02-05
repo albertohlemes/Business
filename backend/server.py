@@ -4639,163 +4639,151 @@ async def gerar_distrato_social(
     request: BaixaRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    """Gera o distrato social completo usando IA"""
+    """Gera o distrato social completo no padrão Business Contabilidade"""
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        
-        emergent_api_key = os.environ.get("EMERGENT_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")
+        from datetime import datetime as dt
         
         empresa = request.empresa
         socios = request.socios
         baixa = request.baixa
         
-        # Formatar motivo
-        motivos_map = {
-            'vontade_socios': 'por deliberação unânime dos sócios',
-            'termino_prazo': 'pelo término do prazo de duração',
-            'falencia': 'por decretação de falência',
-            'incorporacao': 'por incorporação por outra sociedade',
-            'fusao': 'por fusão com outra sociedade',
-            'cisao_total': 'por cisão total',
-            'inatividade': 'por inatividade prolongada',
-            'outros': baixa.motivo_detalhado or 'por outros motivos'
-        }
-        motivo_texto = motivos_map.get(baixa.motivo, baixa.motivo)
-        
-        # Formatar data
+        # Formatar data de encerramento
         try:
-            from datetime import datetime as dt
             data_obj = dt.strptime(baixa.data_encerramento, '%Y-%m-%d')
-            data_formatada = data_obj.strftime('%d de %B de %Y').replace('January', 'janeiro').replace('February', 'fevereiro').replace('March', 'março').replace('April', 'abril').replace('May', 'maio').replace('June', 'junho').replace('July', 'julho').replace('August', 'agosto').replace('September', 'setembro').replace('October', 'outubro').replace('November', 'novembro').replace('December', 'dezembro')
+            data_encerramento_formatada = data_obj.strftime('%d/%m/%Y')
+            # Data por extenso para assinatura
+            meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 
+                     'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+            data_extenso = f"{data_obj.day} de {meses[data_obj.month-1]} de {data_obj.year}"
         except:
-            data_formatada = baixa.data_encerramento
+            data_encerramento_formatada = baixa.data_encerramento
+            data_extenso = baixa.data_encerramento
         
-        # Montar qualificação dos sócios
+        # Extrair cidade da sede para assinatura
+        cidade_sede = "São Paulo"
+        if empresa.endereco:
+            partes = empresa.endereco.split(',')
+            for parte in reversed(partes):
+                parte = parte.strip()
+                if '/' in parte:
+                    cidade_sede = parte.split('/')[0].strip()
+                    break
+                elif len(parte) > 3 and not parte.isdigit():
+                    cidade_sede = parte.strip()
+        
+        # ============ GERAR QUALIFICAÇÃO DOS SÓCIOS ============
         socios_qualificados = []
-        for s in socios:
-            qualif = f"{s.nome}, {s.nacionalidade or 'brasileiro(a)'}, {s.estado_civil or 'estado civil não informado'}"
-            if s.regime_casamento:
-                qualif += f", pelo regime de {s.regime_casamento}"
-            qualif += f", {s.profissao or 'profissão não informada'}"
-            if s.rg:
-                qualif += f", portador(a) da Cédula de Identidade RG nº {s.rg}"
-                if s.orgao_emissor:
-                    qualif += f" {s.orgao_emissor}"
-            qualif += f", inscrito(a) no CPF sob nº {s.cpf}"
-            if s.endereco:
-                qualif += f", residente e domiciliado(a) em {s.endereco}"
-            socios_qualificados.append(qualif)
+        assinaturas = []
         
-        # Data atual formatada
-        data_atual = datetime.now().strftime("%d de %B de %Y").replace(
-            'January', 'janeiro').replace('February', 'fevereiro').replace('March', 'março'
-        ).replace('April', 'abril').replace('May', 'maio').replace('June', 'junho'
-        ).replace('July', 'julho').replace('August', 'agosto').replace('September', 'setembro'
-        ).replace('October', 'outubro').replace('November', 'novembro').replace('December', 'dezembro')
-        
-        # Gerar qualificação completa de cada sócio
-        qualificacao_socios = ""
-        for i, s in enumerate(socios, 1):
-            qualif = f"{i}) {s.nome.upper()}, nacionalidade: {s.nacionalidade or 'brasileira'}"
-            # Naturalidade (cidade/estado de nascimento)
-            cidade_nasc = getattr(s, 'cidade_nascimento', None)
-            estado_nasc = getattr(s, 'estado_nascimento', None)
-            if cidade_nasc and estado_nasc:
-                qualif += f", natural de {cidade_nasc}/{estado_nasc}"
-            elif cidade_nasc:
-                qualif += f", natural de {cidade_nasc}"
-            # data_nascimento formatada
-            data_nasc = getattr(s, 'data_nascimento', None)
-            if data_nasc:
-                try:
-                    data_obj = dt.strptime(data_nasc, "%Y-%m-%d")
-                    data_nasc_formatada = data_obj.strftime("%d/%m/%Y")
-                    qualif += f", nascido(a) em {data_nasc_formatada}"
-                except:
-                    qualif += f", nascido(a) em {data_nasc}"
+        for i, s in enumerate(socios):
+            # Qualificação completa do sócio
+            qualif = f"{s.nome.upper()}, {s.nacionalidade or 'brasileira'}"
+            
             if s.estado_civil:
                 qualif += f", {s.estado_civil.lower()}"
                 if s.regime_casamento and 'casado' in s.estado_civil.lower():
-                    qualif += f" sob o regime de {s.regime_casamento}"
-            if s.profissao:
-                qualif += f", {s.profissao.lower()}"
+                    qualif += f", pelo regime de {s.regime_casamento}"
+            
+            # Naturalidade
+            cidade_nasc = getattr(s, 'cidade_nascimento', None) or getattr(s, 'naturalidade', None)
+            estado_nasc = getattr(s, 'estado_nascimento', None) or getattr(s, 'uf_nascimento', None)
+            if cidade_nasc:
+                qualif += f", natural de {cidade_nasc}"
+                if estado_nasc:
+                    qualif += f"/{estado_nasc}"
+            
+            # Data nascimento
+            data_nasc = getattr(s, 'data_nascimento', None)
+            if data_nasc:
+                try:
+                    data_nasc_obj = dt.strptime(data_nasc, "%Y-%m-%d")
+                    qualif += f", nascido(a) em {data_nasc_obj.strftime('%d/%m/%Y')}"
+                except:
+                    qualif += f", nascido(a) em {data_nasc}"
+            
+            # RG
             if s.rg:
-                qualif += f", portador(a) da Cédula de Identidade RG nº {s.rg}"
+                qualif += f", portador(a) da Cédula de Identidade nº {s.rg}"
                 if s.orgao_emissor:
                     qualif += f" {s.orgao_emissor}"
+            
+            # Profissão
+            if s.profissao:
+                qualif += f", {s.profissao}"
+            
+            # CPF
             qualif += f", inscrito(a) no CPF/MF sob o nº {s.cpf}"
+            
+            # Endereço
             if s.endereco:
-                qualif += f", residente e domiciliado(a) na {s.endereco}"
-            qualif += ";\n"
-            qualificacao_socios += qualif
+                qualif += f", residente e domiciliado(a) em {s.endereco}"
+            
+            socios_qualificados.append(qualif)
+            
+            # Assinatura
+            tipo_socio = "Sócio Administrador" if getattr(s, 'administrador', False) or i == 0 else "Sócio Pessoa Física Residente no Brasil"
+            assinaturas.append({
+                "nome": s.nome.upper(),
+                "tipo": tipo_socio
+            })
         
-        # Assinaturas
-        assinaturas = ""
-        for s in socios:
-            assinaturas += f"\n______________________________\n{s.nome.upper()}\nCPF : {s.cpf}\n"
+        # Determinar responsável pela guarda dos documentos (primeiro sócio se não especificado)
+        responsavel_guarda = baixa.responsavel_guarda or socios[0].nome.upper()
         
-        # Calcular patrimônio por sócio se houver
-        patrimonio_distribuicao = ""
-        if baixa.distribuicao_patrimonio:
-            patrimonio_distribuicao = baixa.distribuicao_patrimonio
-        else:
-            total_perc = 0
-            for s in socios:
-                if hasattr(s, 'participacao') and s.participacao:
-                    perc = float(s.participacao) if s.participacao else 0
-                    total_perc += perc
-                    patrimonio_distribuicao += f"{s.nome.upper()} - {s.participacao}%\n"
-            patrimonio_distribuicao += f"----------------------------------------\nTOTAL - 100%"
-        
-        prompt = f"""Gere um DISTRATO SOCIAL seguindo EXATAMENTE este modelo:
+        # ============ MONTAR DISTRATO NO PADRÃO ============
+        distrato = f"""DISTRATO DE SOCIEDADE LIMITADA
 
-DISTRATO SOCIAL
 {empresa.razao_social.upper()}
+CNPJ: {empresa.cnpj}
+NIRE: {empresa.nire or '[NIRE]'}
 
-{qualificacao_socios}
-Únicos componentes da sociedade empresária limitada denominada {empresa.razao_social.upper()}, com sede na {empresa.endereco or '[ENDEREÇO]'}, inscrita no CNPJ/MF sob o nº {empresa.cnpj}, e registrada na Junta Comercial {empresa.junta_comercial or 'do Estado'} sob o nº {empresa.nire or '[NIRE]'}, em {empresa.data_registro or '[DATA]'}, resolvem de comum acordo, dar por desfeita a sociedade que mantêm, declarando o que segue:
-
-CLÁUSULA PRIMEIRA – DA DISSOLUÇÃO DA SOCIEDADE
-Os sócios, por livre e espontânea vontade, resolvem {motivo_texto}, na forma do art. 1.033, inciso II, combinado com os arts. 1.087 do Código Civil brasileiro (Lei nº 10.406/2002), encerrando-se, dessa maneira, toda a atividade.
-
-CLÁUSULA SEGUNDA – DA CESSAÇÃO DAS ATIVIDADES
-A cessação das atividades ocorreu em {data_formatada}.
-
-CLÁUSULA TERCEIRA – DO ACERVO CONTÁBIL
-{baixa.destinacao_acervo or 'Os livros e documentos contábeis ficarão sob a guarda e responsabilidade do sócio indicado, pelo prazo legal.'}
-
-CLÁUSULA QUARTA – DO PASSIVO SOCIAL
-{"Os sócios declaram, sob as penas da lei, que a sociedade não possui qualquer débito ou obrigação pendente de pagamento perante terceiros, trabalhadores, fornecedores, instituições financeiras, Fazenda Pública Federal, Estadual ou Municipal, INSS e FGTS, assumindo a responsabilidade por eventuais débitos que venham a ser apurados posteriormente." if baixa.declaracao_quitacao else "Eventuais débitos existentes serão quitados pelos sócios na proporção de suas participações societárias."}
-
-CLÁUSULA QUINTA – DO PATRIMÔNIO REMANESCENTE
-{patrimonio_distribuicao if patrimonio_distribuicao else "O patrimônio líquido remanescente, se houver, será dividido entre os sócios na proporção de suas quotas."}
-
-CLÁUSULA SEXTA – DA RESPONSABILIDADE DOS SÓCIOS
-Os sócios assumem a responsabilidade solidária por quaisquer obrigações que porventura venham a ser identificadas e que sejam de responsabilidade da sociedade ora extinta, respondendo cada qual na proporção de sua participação no capital social.
-
-CLÁUSULA SÉTIMA – DA GUARDA DOS DOCUMENTOS
-Os livros e documentos da sociedade ficarão sob a guarda de {baixa.responsavel_guarda or 'sócio indicado'}, pelo prazo de {baixa.prazo_guarda or '5 (cinco) anos'}, conforme exigência legal, podendo ser requisitados a qualquer tempo por autoridades competentes.
-
-E, por estarem assim justos e contratados, assinam o presente instrumento particular de distrato em 02 (duas) vias de igual teor e forma, para um só efeito.
-
-{empresa.endereco.split(',')[-2].strip() if empresa.endereco and ',' in empresa.endereco else 'Local'}, {data_atual}.
-{assinaturas}
-
-IMPORTANTE: Gere o documento EXATAMENTE neste formato. NÃO adicione testemunhas. O título e nome da empresa devem estar CENTRALIZADOS."""
-
-        system_message = """Você é um advogado societário especialista em dissolução de empresas.
-Gere documentos formais, completos e prontos para registro na Junta Comercial.
-Use linguagem jurídica adequada. NÃO use Markdown."""
-
-        chat = LlmChat(
-            api_key=emergent_api_key,
-            session_id=f"distrato-{request.minuta_id}",
-            system_message=system_message
-        ).with_model("gemini", "gemini-2.5-flash")
+"""
         
-        response = await chat.send_message(UserMessage(text=prompt))
+        # Adicionar qualificação dos sócios
+        for i, qualif in enumerate(socios_qualificados):
+            distrato += qualif + "\n\n"
         
-        distrato = response.strip()
+        # Texto de abertura
+        distrato += f"""Únicos sócios da sociedade limitada {empresa.razao_social.upper()}, sediada na {empresa.endereco or '[ENDEREÇO]'}, CEP {empresa.cep or '[CEP]'}, com seu contrato social arquivado nessa Junta Comercial, devidamente inscrita no CNPJ sob nº {empresa.cnpj}, na melhor forma do direito e comum acordo, resolvem, por não mais interessar a continuidade da sociedade, dissolver e extinguir a sociedade, mediante as seguintes cláusulas:
+
+Cláusula Primeira
+
+A sociedade encerrou suas operações e atividades em: {data_encerramento_formatada}.
+
+Cláusula Segunda
+
+Procedida a liquidação da sociedade, não há bens a restituir.
+
+Cláusula Terceira
+
+Os sócios dão entre si e à sociedade plena, geral e irrevogável quitação, para nada mais reclamarem um do outro, seja a que título for, com fundamento no contrato social e suas alterações, declarando, ainda, extinta, para todos os efeitos a sociedade em referência, com o arquivamento deste distrato na Junta Comercial do Estado.
+
+Cláusula Quarta
+
+A responsabilidade pelo ativo e passivo porventura supervenientes, fica a cargo dos ex-sócios:
+"""
+        
+        # Adicionar responsabilidade dos sócios
+        for s in socios:
+            participacao = getattr(s, 'participacao', None) or "proporcional às suas quotas"
+            distrato += f"{s.nome.upper()} - {participacao}%\n"
+        
+        distrato += f"""
+Cláusula Quinta
+
+O sócio {responsavel_guarda}, acima qualificado(a), se compromete, também, manter em boa guarda os livros e documentos da sociedade ora distratada.
+
+E por estarem assim justos e acertados, assinam o presente instrumento de Distrato Social, obrigando-se ao seu fiel cumprimento.
+
+{cidade_sede}, {data_extenso}.
+
+"""
+        
+        # Adicionar assinaturas
+        for ass in assinaturas:
+            distrato += f"\n\n{ass['nome']}\n( {ass['tipo']} )\n"
+        
+        distrato = distrato.strip()
         
         # Salvar na minuta
         await db.minutas.update_one(
