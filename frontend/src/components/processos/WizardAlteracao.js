@@ -1692,9 +1692,16 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
                 if (tiposQSA.includes('redistribuicao')) {
                     descricaoCompleta += `\n[REDISTRIBUIÇÃO DE COTAS]\n`;
                     descricaoCompleta += `- Nova distribuição do capital social:\n`;
+                    // Sócios extraídos
                     Object.entries(dadosQSA.novasParticipacoes || {}).forEach(([idx, valor]) => {
                         descricaoCompleta += `  - ${socios[idx]?.nome || `Sócio ${parseInt(idx)+1}`}: ${valor}%\n`;
                     });
+                    // Sócios adicionados manualmente
+                    if (dadosQSA.sociosRedistribuicao?.length > 0) {
+                        dadosQSA.sociosRedistribuicao.forEach(s => {
+                            descricaoCompleta += `  - ${s.nome}${s.cpf ? `, CPF ${s.cpf}` : ''}: de ${s.participacaoAtual || '?'}% para ${s.novaParticipacao}%\n`;
+                        });
+                    }
                 }
             }
             
