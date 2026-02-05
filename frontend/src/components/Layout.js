@@ -12,6 +12,7 @@ import {
   Calculator, 
   ClipboardCheck, 
   FileSpreadsheet,
+  Download,
   LogOut,
   Menu,
   X,
