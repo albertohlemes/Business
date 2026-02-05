@@ -1892,6 +1892,9 @@ Use linguagem jurídica formal. O documento deve estar pronto para registro na J
             
             await axios.post(`${API_URL}/api/minutas/${minutaId}/gerar`);
             
+            // Limpar rascunho após sucesso
+            limparRascunho();
+            
             toast.success('Minuta gerada!');
             setStep(4);
             onComplete();
