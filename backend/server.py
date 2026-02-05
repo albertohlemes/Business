@@ -7310,9 +7310,7 @@ Seja direto, prático e específico para o perfil desta empresa. Use linguagem t
             system_message="Você é um consultor tributário especialista em legislação brasileira (ICMS, PIS, COFINS). Analise os dados e forneça insights estratégicos."
         ).with_model("openai", "gpt-4o")
         
-        response = await llm.send_async(
-            messages=[UserMessage(content=prompt)],
-        )
+        response = await llm.send_message(UserMessage(text=prompt))
         
         insights_ia = response.content
         
