@@ -43,6 +43,7 @@ const Cadastros = () => {
         cnpj: '',
         inscricaoEstadual: '',
         inscricaoMunicipal: '',
+        dataFundacao: '',
         endereco: '',
         numero: '',
         complemento: '',
@@ -55,7 +56,7 @@ const Cadastros = () => {
         observacoes: ''
     });
     const [gclickSocios, setGclickSocios] = useState([
-        { nome: '', cpf: '', participacao: '', administrador: true }
+        { nome: '', cpf: '', participacao: '', administrador: true, dataNascimento: '', endereco: '', naturalidade: '' }
     ]);
 
     // SCI Único Form State
