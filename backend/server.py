@@ -2692,13 +2692,14 @@ Você receberá MÚLTIPLOS documentos de uma mesma empresa. Sua tarefa é:
    - Cartão CNPJ: CNPJ, Razão Social, Nome Fantasia, Data Abertura, Situação
    - Contrato Social/Alteração: Sócios, Capital Social, Objeto Social, Administração
    - Certidão Junta: NIRE, dados complementares
-   - RG/CNH dos sócios: Nome completo, CPF, Data/Local Nascimento, Estado Civil
+   - RG/CNH dos sócios: Nome completo, CPF, Data/Local Nascimento, Estado Civil, ENDEREÇO RESIDENCIAL
    - Comprovante Endereço: Endereço atualizado
 
 IMPORTANTE: 
 - Se houver informações conflitantes entre documentos, priorize o documento mais oficial (Cartão CNPJ > Contrato > outros)
-- Para dados dos SÓCIOS, extraia de TODOS os documentos (RG, CNH, Contrato) e consolide
+- Para dados dos SÓCIOS, extraia de TODOS os documentos (RG, CNH, Contrato, Comprovante de Residência) e consolide
 - Inclua a naturalidade (cidade/estado de nascimento) dos sócios quando disponível
+- SEMPRE extraia o ENDEREÇO RESIDENCIAL de cada sócio (pode estar no RG, CNH, comprovante de residência ou contrato social)
 
 SEMPRE responda APENAS com um JSON válido, sem markdown, sem explicações.
 O JSON deve seguir esta estrutura:
@@ -2710,6 +2711,7 @@ O JSON deve seguir esta estrutura:
     "inscricao_estadual": "000.000.000.000 ou ISENTO",
     "inscricao_municipal": "000.000.000",
     "data_abertura": "DD/MM/AAAA",
+    "data_fundacao": "DD/MM/AAAA",
     "endereco": {
         "logradouro": "Rua/Av completo",
         "numero": "000",
@@ -2733,7 +2735,8 @@ O JSON deve seguir esta estrutura:
             "estado_civil": "Solteiro/Casado/etc",
             "profissao": "Empresário(a)",
             "participacao": "50",
-            "administrador": true
+            "administrador": true,
+            "endereco": "Rua Exemplo, 123 - Bairro, Cidade/UF - CEP 00000-000"
         }
     ],
     "nire": "00000000000",
