@@ -1527,7 +1527,7 @@ async def download_minuta_pdf(minuta_id: str, current_user: dict = Depends(get_c
     """Gera e baixa a minuta em formato PDF com formatação do template"""
     from jspdf_wrapper import gerar_pdf_simples
     
-    minuta = await db.minutas.find_one({"id": minuta_id, "user_id": current_user["id"]})
+    minuta = await db.minutas.find_one({"id": minuta_id})
     if not minuta:
         raise HTTPException(status_code=404, detail="Minuta não encontrada")
     
