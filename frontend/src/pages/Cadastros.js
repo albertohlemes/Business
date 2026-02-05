@@ -778,6 +778,16 @@ E-MAIL: ${sciForm.email || 'N/A'}
                                     </div>
                                 </div>
 
+                                <div>
+                                    <Label className="text-zinc-500 text-xs">Data de Fundação</Label>
+                                    <Input
+                                        value={gclickForm.dataFundacao}
+                                        onChange={(e) => handleGclickChange('dataFundacao', e.target.value)}
+                                        placeholder="DD/MM/AAAA"
+                                        className="bg-zinc-800 border-zinc-700 mt-1 w-40"
+                                    />
+                                </div>
+
                                 {/* Endereço */}
                                 <div className="flex items-center gap-2 text-zinc-400 mt-4 mb-2">
                                     <MapPin className="w-4 h-4" />
