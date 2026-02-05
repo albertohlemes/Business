@@ -298,3 +298,93 @@ Portal para departamento societário com geração de documentos via IA.
 - Dashboard renomeado ✅
 - **Menu Cadastros ✅ (NOVO)**
 - **Integração GClick Direta ✅ (NOVO)**
+- **Wizard de Perfil SCI Único ✅ (COMPLETO - 05/02/2026)**
+- **Robô Automação SCI Único v2.0 ✅ (COMPLETO - 05/02/2026)**
+
+### ✅ Wizard de Perfil SCI Único - COMPLETO (05/02/2026)
+
+**Objetivo:** Automatizar COMPLETAMENTE o preenchimento do sistema desktop SCI Único através de um "Wizard de Perfil" que determina todas as configurações baseado em perguntas simples.
+
+**7 Perfis Mapeados:**
+1. ✅ Comércio Lucro Real
+2. ✅ Indústria Lucro Real
+3. ✅ Serviços Lucro Real
+4. ✅ Comércio Lucro Presumido
+5. ✅ Serviços Lucro Presumido
+6. ✅ Simples Nacional - Comércio
+7. ✅ Simples Nacional - Serviços (com exceção Anexo IV)
+
+**Abas do SCI Mapeadas:**
+- ✅ Contadores (padrão fixo)
+- ✅ Planos (varia por perfil)
+- ✅ Enquadramento Federal (ME/Normal, Lucro Real/Presumido/Nenhum)
+- ✅ Lalur (apenas Lucro Real, índice SELIC vs UFIR)
+- ✅ Fiscal - Parâmetros (IR/CSLL, IPI, PIS/Cofins, Bloco M)
+- ✅ Fiscal - Federal (SPED ICMS/IPI, SPED Contribuições, Reinf, Dmed)
+- ✅ Fiscal - Estadual Gerais (Substituto tributário, Porte, ICMS, GIA ST)
+- ✅ Fiscal - Estadual SP (Configuração ST)
+- ✅ Fiscal - Municipal (ISS, IRRF, INSS)
+- ✅ Fiscal - Integração (Somar frete, Diferencial alíquota, CFOP)
+- ✅ Folha - GPS (FPAS, Terceiros, RAT, FAP, Classificação tributária)
+- ✅ Folha - Vínculos (Tabelas INSS/IRRF)
+- ✅ Folha - Proporcionalidades
+- ✅ Folha - Parâmetros de Cálculo
+- ✅ Folha - Parâmetros Gerais
+- ✅ Folha - eSocial (Faseamento por grupo, datas)
+
+**Exceção Importante - Anexo IV:**
+Quando Simples Nacional Serviços com Anexo IV:
+- GPS: FPAS=37, Terceiros=515, Percentuais=20%, RAT=1%, Classificação=2
+- Demais anexos (III, V): FPAS=35, Terceiros=507, Percentuais=0%, RAT=3%, Classificação=1
+
+**Perguntas do Wizard:**
+1. Regime Tributário: Simples / Lucro Presumido / Lucro Real
+2. Tipo de Atividade: Comércio / Serviços / Indústria / Misto
+3. Tem funcionários? (checkbox)
+4. Contribuinte ICMS? (checkbox)
+5. Enquadramento Simples: Anexo III / IV / V (quando Simples + Serviços)
+6. Código de Acesso Simples (quando Simples)
+
+**Backend:**
+- Função `gerar_configuracoes_perfil()` em `/app/backend/server.py` (linha ~2627)
+- Gera JSON completo com TODAS as configurações para cada perfil
+- Endpoint `POST /api/sci-unico/exportar` retorna dados + configurações
+
+**Frontend:**
+- Wizard integrado na aba SCI Único em `/app/frontend/src/pages/Cadastros.js`
+- Campos dinâmicos baseados nas respostas
+
+### ✅ Robô Automação SCI Único v2.0 (05/02/2026)
+
+**Melhorias:**
+- Script Python completo com pyautogui para preencher TODAS as abas
+- Menu interativo: Preencher tudo / Apenas empresa / Apenas configurações / Aba específica
+- Failsafe: Mova mouse para canto para cancelar
+- Instruções claras para navegar entre abas
+- Funções dedicadas para cada aba do SCI
+
+**Abas preenchidas pelo robô:**
+1. Cadastrais (Empresa + Sócios)
+2. Contadores
+3. Planos
+4. Enquadramento Federal
+5. Lalur (quando Lucro Real)
+6. Fiscal > Parâmetros
+7. Fiscal > Federal
+8. Fiscal > Estadual > Gerais
+9. Fiscal > Municipal
+10. Folha > GPS
+11. Folha > eSocial
+
+**Como usar:**
+1. Exporte dados do portal (JSON)
+2. Baixe o robô: `GET /api/sci-unico/download-script`
+3. Instale: `pip install pyautogui pyperclip`
+4. Execute: `python sci_robo.py dados_empresa.json`
+5. Siga instruções na tela
+
+**Testes Realizados:**
+- ✅ Exportação Simples Nacional Serviços Anexo IV (FPAS=37, Terceiros=515)
+- ✅ Exportação Comércio Lucro Real (IPI=1, PIS/Cofins=2, ECD=True, Grupo 2)
+- ✅ Download do script Python funcionando
+- ✅ Frontend com Wizard carregando corretamente
