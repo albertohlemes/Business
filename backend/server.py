@@ -173,13 +173,31 @@ class XMLDocument(BaseModel):
     modelo: str = "nfe"  # nfe, nfce, nfse
     chave_nfe: str
     numero_nfe: str
+    serie: str = ""
     data_emissao: str
+    # Dados do emitente
     emitente_cnpj: str
     emitente_nome: str
+    emitente_ie: str = ""
+    emitente_uf: str = ""
+    emitente_endereco: Dict[str, Any] = {}
+    # Dados do destinatário
     destinatario_cnpj: str
     destinatario_nome: str
+    destinatario_ie: str = ""
+    destinatario_uf: str = ""
+    destinatario_endereco: Dict[str, Any] = {}
+    # Valores
     valor_total: float
     valor_servicos: float = 0.0
+    # Totais extras (IPI, ST, frete, etc)
+    total_ipi: float = 0.0
+    total_icms_st: float = 0.0
+    total_frete: float = 0.0
+    total_seguro: float = 0.0
+    total_outras_despesas: float = 0.0
+    total_desconto: float = 0.0
+    # Conteúdo e itens
     xml_content: str
     produtos: List[Dict[str, Any]] = []
     servicos: List[Dict[str, Any]] = []
