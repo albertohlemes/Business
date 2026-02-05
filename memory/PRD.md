@@ -244,6 +244,22 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 33 (05/02/2026)
+- ✅ **FEATURE P0: Re-processar e Classificar com IA**
+  - **Problema:** O usuário queria que a funcionalidade de "reprocessar" também aplicasse a classificação da IA, similar ao upload inicial
+  - **Solução:**
+    1. Modificado endpoint `POST /api/xml/reprocess-batch` para aceitar parâmetro `classificar=true`
+    2. Quando `classificar=true`:
+       - Preserva classificações manuais existentes (campos: classificacao, cfop, justificativa_ia, aprovado, reclassificado)
+       - Aplica classificação da IA (GPT-4o) apenas em produtos sem classificação
+       - Usa regras memorizadas (memória da IA) para produtos já conhecidos
+       - Retorna contagem de `classificacoes_preservadas` e `classificacoes_novas`
+    3. Frontend: Botão dropdown "Re-processar" com duas opções:
+       - **Re-processar (Rápido)** - Extrai campos faltantes: ICMS-ST, endereços, etc.
+       - **Re-processar + Classificar (IA)** - Extrai dados e aplica classificação da IA com memória
+  - **Resultado:** 100% dos testes passaram (9/9 backend, 100% frontend). Testado com ANZEN competência 02/2026: 5 produtos classificados pela IA
+  - **Arquivos:** `/app/backend/server.py` (endpoint), `/app/frontend/src/pages/Documents.js` (UI)
+
 ### 02/2026 - Iteration 32 (05/02/2026)
 - ✅ **BUG FIX P0: Biblioteca thefuzz instalada**
   - **Problema:** O endpoint `/api/ai/smart-reclassify` falhava com `ModuleNotFoundError` porque `thefuzz` não estava instalado
