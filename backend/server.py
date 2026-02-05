@@ -1713,12 +1713,23 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
     vl_pagar = max(0, vl_saldo)
     vl_credito_acum = max(0, -vl_saldo)
     
-    lines.append("|E110|{}|0|0|{}|0|0|0|{}|0|0|0|0|{}|{}|".format(
-        f"{vl_debitos:.2f}".replace('.',','),
-        f"{vl_creditos:.2f}".replace('.',','),
-        f"{vl_saldo:.2f}".replace('.',','),
-        f"{vl_pagar:.2f}".replace('.',','),
-        f"{vl_credito_acum:.2f}".replace('.',',')
+    # Registro E110 - Apuração do ICMS - Operações Próprias
+    # Layout: |E110|VL_TOT_DEBITOS|VL_AJ_DEBITOS|VL_TOT_AJ_DEBITOS|VL_ESTORNOS_CRED|VL_TOT_CREDITOS|VL_AJ_CREDITOS|VL_TOT_AJ_CREDITOS|VL_ESTORNOS_DEB|VL_SLD_CREDOR_ANT|VL_SLD_APURADO|VL_TOT_DED|VL_ICMS_RECOLHER|VL_SLD_CREDOR_TRANSPORTAR|DEB_ESP|
+    lines.append("|E110|{}|0,00|0,00|0,00|{}|0,00|0,00|0,00|0,00|{}|0,00|{}|{}|0,00|".format(
+        f"{vl_debitos:.2f}".replace('.',','),      # 02 VL_TOT_DEBITOS
+        # 03 VL_AJ_DEBITOS = 0
+        # 04 VL_TOT_AJ_DEBITOS = 0
+        # 05 VL_ESTORNOS_CRED = 0
+        f"{vl_creditos:.2f}".replace('.',','),     # 06 VL_TOT_CREDITOS
+        # 07 VL_AJ_CREDITOS = 0
+        # 08 VL_TOT_AJ_CREDITOS = 0
+        # 09 VL_ESTORNOS_DEB = 0
+        # 10 VL_SLD_CREDOR_ANT = 0
+        f"{vl_saldo:.2f}".replace('.',','),        # 11 VL_SLD_APURADO
+        # 12 VL_TOT_DED = 0
+        f"{vl_pagar:.2f}".replace('.',','),        # 13 VL_ICMS_RECOLHER
+        f"{vl_credito_acum:.2f}".replace('.',',')  # 14 VL_SLD_CREDOR_TRANSPORTAR
+        # 15 DEB_ESP = 0
     ))
     
     lines.append("|E990|{}|".format(len([l for l in lines if l.startswith('|E')]) + 1))
