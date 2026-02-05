@@ -2451,8 +2451,10 @@ async def gerar_distrato_social(
                     qualif += f" sob o Regime de {s.regime_casamento}"
             if s.profissao:
                 qualif += f", {s.profissao.lower()}"
-            if s.data_nascimento:
-                qualif += f", nascido em {s.data_nascimento}"
+            # data_nascimento é opcional
+            data_nasc = getattr(s, 'data_nascimento', None)
+            if data_nasc:
+                qualif += f", nascido em {data_nasc}"
             if s.rg:
                 qualif += f", documento de identidade RG sob nº {s.rg}"
                 if s.orgao_emissor:
