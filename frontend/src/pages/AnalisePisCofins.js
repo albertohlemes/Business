@@ -427,13 +427,144 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                 </button>
               </div>
               
+              {/* Abas de Visualização */}
+              <div className="mt-4 flex gap-2 border-t border-gray-200 pt-4">
+                <button
+                  onClick={() => setVisualizacao('nf')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    visualizacao === 'nf' 
+                      ? 'bg-indigo-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Por Nota Fiscal
+                </button>
+                <button
+                  onClick={() => setVisualizacao('produto')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    visualizacao === 'produto' 
+                      ? 'bg-indigo-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Por Produto
+                </button>
+                <button
+                  onClick={() => setVisualizacao('ncm')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    visualizacao === 'ncm' 
+                      ? 'bg-indigo-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Por NCM
+                </button>
+              </div>
+              
               <div className="mt-3 text-sm text-gray-500">
                 {dados.total_divergentes} produtos com divergência em {divergenciasFiltradas.length} documentos
               </div>
             </div>
 
-            {/* Tabela de Divergências */}
-            {divergenciasFiltradas.length > 0 ? (
+            {/* Visualização por Produto */}
+            {visualizacao === 'produto' && dados.agrupamentos?.por_produto?.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Produto</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">NCM</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Ocorrências</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Valor Total</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Impacto PIS</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Impacto COFINS</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Impacto Total</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Tipo</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {dados.agrupamentos.por_produto.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-gray-900 truncate max-w-[250px]">{item.descricao}</div>
+                            <div className="text-xs text-gray-500">Cód: {item.codigo}</div>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">{item.ncm}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 bg-gray-100 rounded-full text-sm">{item.qtd_ocorrencias}</span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-gray-900">{formatCurrency(item.valor_total)}</td>
+                          <td className="px-4 py-3 text-right text-red-600">{formatCurrency(item.impacto_pis)}</td>
+                          <td className="px-4 py-3 text-right text-red-600">{formatCurrency(item.impacto_cofins)}</td>
+                          <td className="px-4 py-3 text-right font-bold text-red-700">{formatCurrency(item.impacto_total)}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getTipoDivergenciaColor(item.tipo_divergencia)}`}>
+                              {getTipoDivergenciaLabel(item.tipo_divergencia)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Visualização por NCM */}
+            {visualizacao === 'ncm' && dados.agrupamentos?.por_ncm?.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">NCM</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Produtos Exemplo</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Ocorrências</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Valor Total</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Impacto PIS</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Impacto COFINS</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Impacto Total</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Tipo / Motivo</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {dados.agrupamentos.por_ncm.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 font-mono font-bold text-gray-900">{item.ncm}</td>
+                          <td className="px-4 py-3">
+                            <div className="text-sm text-gray-600 max-w-[300px]">
+                              {item.produtos?.slice(0, 3).map((p, i) => (
+                                <div key={i} className="truncate">• {p}</div>
+                              ))}
+                              {item.produtos?.length > 3 && (
+                                <div className="text-gray-400">... +{item.produtos.length - 3} outros</div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-1 bg-gray-100 rounded-full text-sm">{item.qtd_ocorrencias}</span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-gray-900">{formatCurrency(item.valor_total)}</td>
+                          <td className="px-4 py-3 text-right text-red-600">{formatCurrency(item.impacto_pis)}</td>
+                          <td className="px-4 py-3 text-right text-red-600">{formatCurrency(item.impacto_cofins)}</td>
+                          <td className="px-4 py-3 text-right font-bold text-red-700">{formatCurrency(item.impacto_total)}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getTipoDivergenciaColor(item.tipo_divergencia)}`}>
+                              {getTipoDivergenciaLabel(item.tipo_divergencia)}
+                            </span>
+                            <div className="text-xs text-gray-500 mt-1 max-w-[200px] truncate">{item.motivo}</div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Visualização por NF (padrão) */}
+            {visualizacao === 'nf' && divergenciasFiltradas.length > 0 && (
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full">
