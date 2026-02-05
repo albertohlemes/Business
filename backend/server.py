@@ -768,17 +768,58 @@ REGRAS IMPORTANTES:
                 ".jpg": "image/jpeg",
                 ".jpeg": "image/jpeg",
                 ".png": "image/png",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+                ".bmp": "image/bmp",
+                ".tiff": "image/tiff",
+                ".tif": "image/tiff",
                 ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 ".xls": "application/vnd.ms-excel"
             }
-            mime_type = mime_types.get(suffix.lower(), "application/octet-stream")
+            mime_type = mime_types.get(suffix.lower())
+            
+            # Se não encontrou pelo suffix, tenta detectar pelo conteúdo
+            if not mime_type:
+                # Tenta identificar imagens pelo magic number
+                with open(tmp_path, 'rb') as f:
+                    header = f.read(16)
+                if header[:8] == b'\x89PNG\r\n\x1a\n':
+                    mime_type = "image/png"
+                elif header[:2] == b'\xff\xd8':
+                    mime_type = "image/jpeg"
+                elif header[:4] == b'%PDF':
+                    mime_type = "application/pdf"
+                elif header[:4] == b'GIF8':
+                    mime_type = "image/gif"
+                else:
+                    # Default para PDF se não conseguir detectar
+                    mime_type = "application/pdf"
+                    logger.warning(f"Tipo de arquivo não detectado para {file.filename}, usando PDF como fallback")
             
             file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
             
-            response = await chat.send_message(UserMessage(
-                text=f"Extraia TODOS os funcionários deste documento. {doc_context} Se houver múltiplos vínculos/colaboradores, extraia todos.",
-                file_contents=[file_content]
-            ))
+            # Retry logic para erros temporários (502, 503)
+            max_retries = 3
+            last_error = None
+            for attempt in range(max_retries):
+                try:
+                    response = await chat.send_message(UserMessage(
+                        text=f"Extraia TODOS os funcionários deste documento. {doc_context} Se houver múltiplos vínculos/colaboradores, extraia todos.",
+                        file_contents=[file_content]
+                    ))
+                    break  # Sucesso, sai do loop
+                except Exception as e:
+                    last_error = e
+                    error_str = str(e)
+                    if "502" in error_str or "503" in error_str or "BadGateway" in error_str:
+                        if attempt < max_retries - 1:
+                            logger.warning(f"Tentativa {attempt + 1} falhou com erro de gateway, tentando novamente...")
+                            import asyncio
+                            await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                            continue
+                    raise e
+            else:
+                raise last_error if last_error else Exception("Falha após todas as tentativas")
             
             # Parse JSON response
             try:
