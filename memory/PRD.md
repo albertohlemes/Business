@@ -273,11 +273,31 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - [ ] Validação de alíquota de ICMS por estado
 
 ### P3 - Baixa Prioridade
-- [ ] **Página "Análise Tributária" congela a interface** - Refatorar para processamento assíncrono com BackgroundTasks
+- [x] ~~**Página "Análise Tributária" congela a interface**~~ ✅ REMOVIDA (05/02/2026)
 - [ ] Tutorial de integração (Onboarding) para novos usuários
 - [ ] Histórico de alterações (Audit Log)
 
 ## Changelog
+
+### 02/2026 - Iteration 38 (05/02/2026)
+- ✅ **FEATURE: Validação de Totalizadores do SPED Fiscal**
+  - **Problema:** O usuário precisava de uma forma de validar se o SPED gerado está correto antes de importar no sistema contábil
+  - **Solução:**
+    1. Criado endpoint `GET /api/sped/validar/{company_id}` que confronta os totais do SPED com a apuração interna do sistema
+    2. Retorna:
+       - Resumo de Entradas (Créditos): Total Valor, ICMS Creditável, ICMS Excluído, PIS, COFINS
+       - Resumo de Saídas (Débitos): Total Valor, ICMS Débito, PIS, COFINS
+       - Apuração ICMS: Débitos, Créditos, Saldo, ICMS a Pagar, Crédito a Transportar
+       - Detalhamento por CFOP com status de crédito (OK/Excluído)
+    3. UI na página de Exportação com botão "Validar" que mostra os resultados em cards organizados
+  - **Resultado:** Usuário pode verificar totalizadores antes de exportar o SPED
+  - **Arquivos:** `/app/backend/server.py`, `/app/frontend/src/pages/ExportMenu.js`
+
+- ✅ **FIX: Página "Análise Tributária" removida**
+  - **Problema:** A página `/analise-tributaria` congelava a interface do usuário
+  - **Solução:** Removida a rota, o link do menu lateral e o link do Dashboard
+  - **Nota:** A funcionalidade foi substituída pela "Auditoria PIS/COFINS" que é mais eficiente
+  - **Arquivos:** `/app/frontend/src/App.js`, `/app/frontend/src/components/Layout.js`, `/app/frontend/src/pages/Dashboard.js`
 
 ### 02/2026 - Iteration 37 (06/02/2026)
 - ✅ **BUG FIX CRÍTICO: Estrutura incorreta do SPED Fiscal - ALÍQUOTAS APURADAS**
