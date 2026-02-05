@@ -1294,7 +1294,9 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
                     estadoCivil: s.estadoCivil || s.estado_civil || '',
                     regimeCasamento: s.regimeCasamento || s.regime_casamento || '',
                     profissao: s.profissao || 'Empresário(a)',
-                    endereco: s.endereco || { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' },
+                    endereco: typeof s.endereco === 'object' && s.endereco !== null 
+                        ? s.endereco 
+                        : { logradouro: s.endereco || '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' },
                     participacao: s.participacao || '',
                     administrador: s.administrador !== undefined ? s.administrador : idx === 0,
                     documentos: s.documentos || []
