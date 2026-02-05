@@ -391,7 +391,7 @@ const Documents = ({ user, onLogout }) => {
     });
 
     return filtered;
-  }, [documents, ctxCompany, selectedCompetencia, selectedStatus, selectedTipo, selectedIntegridade, sortField, sortDirection]);
+  }, [documents, ctxCompany, selectedCompetencia, selectedStatus, selectedTipo, selectedIntegridade, searchTerm, sortField, sortDirection]);
 
   // Calcular resumo de integridade
   const integritySummary = useMemo(() => {
