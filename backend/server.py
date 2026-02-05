@@ -1569,6 +1569,7 @@ async def validacao_completa(
             holerite_atual_suffix = Path(holerite_atual.filename).suffix
             with tempfile.NamedTemporaryFile(delete=False, suffix=holerite_atual_suffix) as tmp:
                 tmp.write(holerite_atual_content)
+                tmp.flush()  # Garantir que o conteúdo foi escrito no disco
                 temp_files.append(tmp.name)
                 arquivos_info["holerite_atual"] = holerite_atual.filename
                 
@@ -1592,6 +1593,7 @@ async def validacao_completa(
                     holerite_anterior_suffix = Path(holerite_anterior.filename).suffix
                     with tempfile.NamedTemporaryFile(delete=False, suffix=holerite_anterior_suffix) as tmp:
                         tmp.write(holerite_anterior_content)
+                        tmp.flush()  # Garantir que o conteúdo foi escrito no disco
                         temp_files.append(tmp.name)
                         arquivos_info["holerite_anterior"] = holerite_anterior.filename
                         
