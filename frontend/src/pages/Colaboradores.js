@@ -780,10 +780,10 @@ const Colaboradores = () => {
           </div>
           <div>
             <Label>Periculosidade (%)</Label>
-            <Select value={formData.periculosidade_percentual?.toString() || ''} onValueChange={(value) => setFormData({ ...formData, periculosidade_percentual: value })}>
+            <Select value={formData.periculosidade_percentual?.toString() || 'none'} onValueChange={(value) => setFormData({ ...formData, periculosidade_percentual: value === 'none' ? '' : value })}>
               <SelectTrigger><SelectValue placeholder="Não se aplica" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Não se aplica</SelectItem>
+                <SelectItem value="none">Não se aplica</SelectItem>
                 <SelectItem value="30">30%</SelectItem>
               </SelectContent>
             </Select>
