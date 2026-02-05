@@ -1127,6 +1127,12 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
         
         # Registro C100 - Nota Fiscal (código 01, 1B, 04, 55 e 65)
         # |REG|IND_OPER|IND_EMIT|COD_PART|COD_MOD|COD_SIT|SER|NUM_DOC|CHV_NFE|DT_DOC|DT_E_S|VL_DOC|IND_PGTO|VL_DESC|VL_ABAT_NT|VL_MERC|IND_FRT|VL_FRT|VL_SEG|VL_OUT_DA|VL_BC_ICMS|VL_ICMS|VL_BC_ICMS_ST|VL_ICMS_ST|VL_IPI|VL_PIS|VL_COFINS|VL_PIS_ST|VL_COFINS_ST|
+        
+        # Obter série da chave NFe (posição 22-24) ou usar '1' como padrão
+        serie = '1'
+        if doc.chave_nfe and len(doc.chave_nfe) >= 25:
+            serie = doc.chave_nfe[22:25].lstrip('0') or '1'
+        
         lines.append("|C100|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|0|0|0|{}|9|0|0|0|{}|{}|0|0|0|{}|{}|0|0|".format(
             ind_oper,                                       # IND_OPER
             ind_emit,                                       # IND_EMIT
