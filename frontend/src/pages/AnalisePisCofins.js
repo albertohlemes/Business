@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
@@ -11,6 +11,14 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// Componente de ícone de ordenação (fora do componente principal)
+const SortIconComponent = ({ sortKey, currentKey, direction }) => {
+  if (currentKey !== sortKey) return <ChevronUp className="w-4 h-4 opacity-30" />;
+  return direction === 'asc' 
+    ? <ChevronUp className="w-4 h-4" /> 
+    : <ChevronDown className="w-4 h-4" />;
+};
+
 const AnalisePisCofins = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia } = useAppContext();
   const [dados, setDados] = useState(null);
@@ -20,14 +28,29 @@ const AnalisePisCofins = ({ user, onLogout }) => {
   const [sortConfig, setSortConfig] = useState({ key: 'impacto_total', direction: 'desc' });
   const [expandedDoc, setExpandedDoc] = useState(null);
 
+  const fetchData = useCallback(async () => {
+    if (!selectedCompany) return;
+    
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/analise-pis-cofins-completa/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setDados(response.data);
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCompany, selectedCompetencia]);
+
   useEffect(() => {
     if (selectedCompany && selectedCompetencia) {
       fetchData();
     }
-  }, [selectedCompany, selectedCompetencia]);
-
-  const fetchData = async () => {
-    if (!selectedCompany) return;
+  }, [selectedCompany, selectedCompetencia, fetchData]);
     
     setLoading(true);
     try {
