@@ -279,6 +279,38 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 40 (05/02/2026)
+- ✅ **BUG FIX: ICMS de ST e Despesa no totalizador da Apuração Mensal**
+  - **Problema:** O usuário reportou que o ICMS de despesa e ST ainda aparecia somado no totalizador
+  - **Solução:** 
+    1. Backend já retornava dados corretos (`v_icms` excluindo ST/Despesa, `st_desconsiderado` e `despesa_desconsiderada` separados)
+    2. Frontend corrigido para mostrar **ICMS-ST** (fundo vermelho, riscado) e **ICMS Despesa** (fundo laranja, riscado) separadamente no TaxCard
+  - **Arquivos:** `/app/frontend/src/pages/ApuracaoMensal.js`
+
+- ✅ **BUG FIX: Seletor de competências não exibia todas as opções**
+  - **Problema:** A competência `12/2025` não aparecia no dropdown da página de Exportação
+  - **Causa:** Ordenação alfabética colocava `02/2025` antes de `12/2025`
+  - **Solução:** Implementada ordenação cronológica (mais recente primeiro: `02/2026, 12/2025, 02/2025`)
+  - **Arquivos:** `/app/frontend/src/pages/ExportMenu.js`
+
+- ✅ **MELHORIA: ExportMenu sincroniza com contexto global**
+  - **Problema:** A página de Exportação não vinha com empresa/competência do contexto global
+  - **Solução:** 
+    1. useEffect sincroniza `selectedCompany` e `competencia` do AppContext
+    2. Competência do contexto é preservada ao carregar a lista de competências disponíveis
+  - **Resultado:** Ao navegar para Exportação, empresa e competência já vêm selecionados do header
+  - **Arquivos:** `/app/frontend/src/pages/ExportMenu.js`
+
+- ✅ **MELHORIA: Botão "Corrigir" nos itens pendentes do SPED**
+  - **Problema:** Usuário queria tomar ação diretamente na tela de validação
+  - **Solução:**
+    1. Tabela de itens pendentes agora tem coluna "Ação" com botão "Corrigir"
+    2. Modal de correção com opções:
+       - "Manter como está" (ICMS = R$ 0,00 no SPED)
+       - "Ir para o Documento" (redireciona para a NF-e)
+    3. Backend atualizado para incluir `document_id`, `product_index`, `numero_nf` e `codigo_produto` nos itens pendentes
+  - **Arquivos:** `/app/frontend/src/pages/ExportMenu.js`, `/app/backend/server.py`
+
 ### 02/2026 - Iteration 39 (05/02/2026)
 - ✅ **FEATURE: Análise Tributária Inteligente por IA**
   - **Problema:** O usuário precisava de uma análise aprofundada da tributação da empresa, identificando "vilões tributários" (produtos com prejuízo tributário) e oportunidades de otimização.
