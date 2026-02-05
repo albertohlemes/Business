@@ -19,6 +19,19 @@ const SortIcon = ({ active, direction }) => {
     : <ChevronDown className="w-3 h-3" />;
 };
 
+// Header de coluna ordenável (fora do componente principal)
+const SortableHeader = ({ label, sortKey, sortConfig, onSort, className = '' }) => (
+  <th className={`px-3 py-2 text-xs font-semibold text-gray-600 ${className}`}>
+    <button 
+      onClick={() => onSort(sortKey)} 
+      className="flex items-center gap-1 hover:text-gray-900 transition"
+    >
+      {label}
+      <SortIcon active={sortConfig.key === sortKey} direction={sortConfig.direction} />
+    </button>
+  </th>
+);
+
 const AnalisePisCofins = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia } = useAppContext();
   const [dados, setDados] = useState(null);
