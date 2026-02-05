@@ -253,11 +253,19 @@ const ApuracaoMensal = ({ user, onLogout }) => {
     </div>
   );
 
-  // Tabela de detalhamento
+  // Tabela de detalhamento com totalizadores
   const DetailTable = ({ items, tipo }) => {
     if (!items || items.length === 0) {
       return <p className="text-gray-500 text-center py-4">Nenhum registro</p>;
     }
+    
+    // Calcular totais
+    const totais = items.reduce((acc, item) => ({
+      valor: acc.valor + (item.valor || 0),
+      v_icms: acc.v_icms + (item.v_icms || 0),
+      v_pis: acc.v_pis + (item.v_pis || item.pis || 0),
+      v_cofins: acc.v_cofins + (item.v_cofins || item.cofins || 0)
+    }), { valor: 0, v_icms: 0, v_pis: 0, v_cofins: 0 });
     
     return (
       <div className="overflow-x-auto">
@@ -295,6 +303,15 @@ const ApuracaoMensal = ({ user, onLogout }) => {
               );
             })}
           </tbody>
+          <tfoot>
+            <tr className="bg-gray-100 font-bold border-t-2 border-gray-300">
+              <td className="px-4 py-3">TOTAL ({items.length})</td>
+              <td className="px-4 py-3 text-right">{formatCurrency(totais.valor)}</td>
+              <td className="px-4 py-3 text-right">{formatCurrency(totais.v_icms)}</td>
+              <td className="px-4 py-3 text-right">{formatCurrency(totais.v_pis)}</td>
+              <td className="px-4 py-3 text-right">{formatCurrency(totais.v_cofins)}</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     );
