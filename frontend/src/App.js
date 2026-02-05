@@ -54,6 +54,7 @@ function App() {
               <Route path="medias" element={<Medias />} />
               <Route path="validacao" element={<ValidacaoFolha />} />
               <Route path="informes" element={<InformesRendimento />} />
+              <Route path="relatorios" element={<Relatorios />} />
             </Route>
           </Routes>
         </BrowserRouter>
