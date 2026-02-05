@@ -92,7 +92,7 @@ const ClienteCard = ({ cliente, onView, onEdit, onDownloadWord, onDownloadPDF, o
     );
 };
 
-const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, emptyMessage, emptyDescription }) => {
+const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, onEdit, emptyMessage, emptyDescription }) => {
     const [viewOpen, setViewOpen] = useState(false);
     const [viewContent, setViewContent] = useState('');
     const [viewProcessoId, setViewProcessoId] = useState(null);
@@ -102,11 +102,12 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, emptyMessag
         const grupos = {};
         for (let i = 0; i < minutas.length; i++) {
             const m = minutas[i];
-            const key = m.cnpj || m.razao_social || 'sem-identificacao';
+            const key = m.cnpj || m.razao_social || m.nome_empresa || 'sem-identificacao';
             if (!grupos[key]) {
                 grupos[key] = {
                     cnpj: m.cnpj,
-                    razao_social: m.razao_social,
+                    razao_social: m.razao_social || m.nome_empresa,
+                    nome_empresa: m.nome_empresa,
                     processos: []
                 };
             }
