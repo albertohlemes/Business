@@ -89,32 +89,33 @@ Portal para departamento societário com geração de documentos via IA.
 
 ## Testes Realizados (05/02/2026)
 
-### ✅ Melhorias Implementadas: QSA Multi-opção e Rascunho
+### ✅ Melhorias nos Documentos Exportados (05/02/2026)
 
-**1. QSA com Múltiplas Opções:**
-- Alterado de radio buttons para checkboxes
-- Permite selecionar Saída + Entrada + Redistribuição simultaneamente
-- Cada seção aparece independentemente
+**Alterações aplicadas em TODOS os modelos (Constituição, Alteração, Baixa):**
 
-**2. Redistribuição com Entrada Manual:**
-- Quando não há sócios extraídos, permite adicionar manualmente
-- Campos: Nome, CPF, Participação Atual, Nova Participação
+1. **Assinaturas Completas:**
+   - Sócios que PERMANECEM
+   - Sócios RETIRANTES (que estão saindo)
+   - Novos sócios ENTRANTES (que estão entrando)
+   - Formato padronizado: linha + nome + CPF
 
-**3. Funcionalidade "Continuar de Onde Parou":**
-- Rascunho salvo automaticamente em localStorage
-- Ao reabrir wizard com rascunho, oferece opções:
-  - "Continuar" - restaura o estado anterior
-  - "Descartar" - começa novo processo
-- Rascunho limpo automaticamente após sucesso
+2. **Removido "PREÂMBULO":**
+   - Título não aparece mais nos documentos
+   - Conteúdo mantido (identificação do instrumento)
 
-**4. Consolidação do Contrato:**
-- Cláusulas originais extraídas e preservadas
-- Prompt de geração mantém todas as cláusulas originais
-- Apenas informações alteradas são atualizadas
+3. **Removidas TESTEMUNHAS:**
+   - Sem espaço para testemunhas em nenhum documento
 
-### Bug Corrigido: Formulário QSA sem sócios extraídos
-- **Status**: CORRIGIDO
-- Adicionada entrada manual para sócios retirantes e redistribuição
+4. **Quadro de Quotas Reformatado:**
+   - Formato mais claro e legível
+   - Nome do sócio em maiúsculas
+   - Quantidade de quotas com extenso
+   - Percentual com extenso
+   - Valor em reais
+
+### Arquivos Alterados
+- `/app/backend/server.py` (prompts de Constituição e Baixa)
+- `/app/frontend/src/components/processos/WizardAlteracao.js` (prompt de Alteração)
 
 ### Taxa de Sucesso dos Testes
 - Backend: 100% (10/10 testes)
