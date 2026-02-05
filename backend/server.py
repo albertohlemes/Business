@@ -7347,9 +7347,9 @@ async def analise_tributaria_ia(
         'total_saidas': len(saidas),
         'valor_entradas': round(total_entrada_valor, 2),
         'valor_saidas': round(total_saida_valor, 2),
-        'credito_icms': round(total_entrada_icms, 2),
+        'credito_icms': round(total_entrada_icms_creditavel, 2),  # Apenas crédito válido
         'debito_icms': round(total_saida_icms, 2),
-        'saldo_icms': round(total_saida_icms - total_entrada_icms, 2),
+        'saldo_icms': round(total_saida_icms - total_entrada_icms_creditavel, 2),
         'total_viloes': len(viloes),
         'impacto_viloes': round(sum(v.get('impacto_negativo', 0) for v in viloes), 2),
         'total_oportunidades': len(oportunidades),
