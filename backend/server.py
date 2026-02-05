@@ -4986,7 +4986,8 @@ async def apuracao_periodo(
                         'v_cofins': 0,
                         'qtd_itens': 0,
                         'is_st': is_st,
-                        'sem_credito_icms': is_st
+                        'is_despesa': is_despesa,
+                        'sem_credito_icms': sem_credito
                     }
                 cfop_saidas[cfop_key]['valor'] += valor
                 cfop_saidas[cfop_key]['bc_icms'] += bc_icms
