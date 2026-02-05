@@ -983,8 +983,9 @@ Retorne APENAS o JSON válido, sem markdown, sem explicações.""",
 
 @api_router.get("/minutas", response_model=List[MinutaResponse])
 async def list_minutas(current_user: dict = Depends(get_current_user)):
+    # Listar TODOS os processos (visível para todos os usuários)
     minutas = await db.minutas.find(
-        {"user_id": current_user["id"]},
+        {},
         {"_id": 0, "user_id": 0, "mensagens": 0}
     ).sort("numero_alteracao", -1).to_list(100)
     
@@ -1004,8 +1005,9 @@ async def list_minutas(current_user: dict = Depends(get_current_user)):
 
 @api_router.get("/minutas/{minuta_id}")
 async def get_minuta(minuta_id: str, current_user: dict = Depends(get_current_user)):
+    # Permitir acesso a qualquer processo (visível para todos)
     minuta = await db.minutas.find_one(
-        {"id": minuta_id, "user_id": current_user["id"]},
+        {"id": minuta_id},
         {"_id": 0, "user_id": 0}
     )
     if not minuta:
