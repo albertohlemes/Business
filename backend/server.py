@@ -5513,6 +5513,11 @@ async def analise_pis_cofins_completa(
         bc_pis = float(produto.get('v_bc_pis', valor_produto) or valor_produto)
         bc_cofins = float(produto.get('v_bc_cofins', valor_produto) or valor_produto)
         
+        # CSTs que indicam não-tributação (não geram débito)
+        csts_nao_tributados = ['04', '05', '06', '07', '08', '09', '49']
+        cst_pis_nao_tributado = cst_pis_atual in csts_nao_tributados
+        cst_cofins_nao_tributado = cst_cofins_atual in csts_nao_tributados
+        
         resultado = {
             'descricao': produto.get('descricao', ''),
             'codigo': produto.get('codigo', ''),
@@ -5555,7 +5560,9 @@ async def analise_pis_cofins_completa(
             resultado['v_cofins_correto'] = 0
             resultado['motivo'] = f"CFOP {cfop_str}: {info['motivo']}"
             
-            if v_pis_atual > 0 or v_cofins_atual > 0:
+            # Só é divergência se PAGOU imposto quando não deveria
+            # Se o CST atual já é não-tributado E valor é zero, está correto
+            if v_pis_atual > 0.01 or v_cofins_atual > 0.01:
                 resultado['divergente'] = True
                 resultado['tipo_divergencia'] = 'CFOP_SEM_DEBITO'
                 resultado['impacto_pis'] = v_pis_atual
@@ -5574,7 +5581,8 @@ async def analise_pis_cofins_completa(
             resultado['v_cofins_correto'] = 0
             resultado['motivo'] = f"{info['tipo']}: {info['motivo']}"
             
-            if v_pis_atual > 0 or v_cofins_atual > 0:
+            # Só é divergência se PAGOU imposto quando não deveria
+            if v_pis_atual > 0.01 or v_cofins_atual > 0.01:
                 resultado['divergente'] = True
                 resultado['tipo_divergencia'] = 'NCM_MONOFASICO'
                 resultado['impacto_pis'] = v_pis_atual
@@ -5593,7 +5601,8 @@ async def analise_pis_cofins_completa(
             resultado['v_cofins_correto'] = 0
             resultado['motivo'] = info['motivo']
             
-            if v_pis_atual > 0 or v_cofins_atual > 0:
+            # Só é divergência se PAGOU imposto quando não deveria
+            if v_pis_atual > 0.01 or v_cofins_atual > 0.01:
                 resultado['divergente'] = True
                 resultado['tipo_divergencia'] = 'NCM_ALIQUOTA_ZERO'
                 resultado['impacto_pis'] = v_pis_atual
