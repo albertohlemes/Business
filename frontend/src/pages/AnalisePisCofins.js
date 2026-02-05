@@ -21,10 +21,10 @@ const SortHeader = ({ label, sortKey, sortConfig, onSort, className = '' }) => (
       <span>{label}</span>
       {sortConfig.key === sortKey ? (
         sortConfig.direction === 'asc' ? 
-          <ChevronUp className="w-3 h-3 text-red-600" /> : 
-          <ChevronDown className="w-3 h-3 text-red-600" />
+          <ChevronUp className="w-3 h-3 text-red-600) : 
+          <ChevronDown className="w-3 h-3 text-red-600)
       ) : (
-        <ChevronUp className="w-3 h-3 opacity-20" />
+        <ChevronUp className="w-3 h-3 opacity-20)
       )}
     </div>
   </th>
@@ -188,7 +188,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
       <Layout user={user} onLogout={onLogout}>
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
-            <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+            <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4)
             <h2 className="text-xl font-semibold text-gray-700">Selecione uma empresa e competência</h2>
           </div>
         </div>
@@ -203,13 +203,13 @@ const AnalisePisCofins = ({ user, onLogout }) => {
 
   return (
     <Layout user={user} onLogout={onLogout}>
-      <div data-testid="analise-pis-cofins-page" className="space-y-4">
+      <div data-testid="analise-pis-cofins-page, "space-y-4">
         {/* Header */}
         <div className="bg-gradient-to-r from-red-700 to-red-800 rounded-xl p-5 text-white">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold flex items-center gap-2">
-                <DollarSign className="w-6 h-6" />
+                <DollarSign className="w-6 h-6)
                 Auditoria de PIS/COFINS nas Operações de Saída
               </h1>
               <p className="text-red-100 text-sm mt-1">
@@ -224,7 +224,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center h-64"><RefreshCw className="w-8 h-8 animate-spin text-red-600" /></div>
+          <div className="flex items-center justify-center h-64"><RefreshCw className="w-8 h-8 animate-spin text-red-600)</div>
         ) : dados ? (
           <>
             {/* Cards Resumo */}
@@ -251,7 +251,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
               </div>
               <div className={`rounded-lg p-3 border ${pagoAMais > 0 ? 'bg-green-50 border-green-300' : 'bg-gray-50'}`}>
                 <p className="text-[10px] text-green-700 uppercase font-semibold flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" /> Tributo Pago a Maior
+                  <TrendingUp className="w-3 h-3) Tributo Pago a Maior
                 </p>
                 <p className={`text-base font-bold ${pagoAMais > 0 ? 'text-green-600' : 'text-gray-400'}`}>
                   {formatCurrency(pagoAMais)}
@@ -260,7 +260,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
               </div>
               <div className={`rounded-lg p-3 border ${pagoAMenos > 0 ? 'bg-red-50 border-red-300' : 'bg-gray-50'}`}>
                 <p className="text-[10px] text-red-700 uppercase font-semibold flex items-center gap-1">
-                  <TrendingDown className="w-3 h-3" /> Tributo Pago a Menor
+                  <TrendingDown className="w-3 h-3) Tributo Pago a Menor
                 </p>
                 <p className={`text-base font-bold ${pagoAMenos > 0 ? 'text-red-600' : 'text-gray-400'}`}>
                   {formatCurrency(pagoAMenos)}
@@ -294,13 +294,13 @@ const AnalisePisCofins = ({ user, onLogout }) => {
             <div className="bg-white rounded-lg p-3 border">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="relative flex-1 min-w-[180px] max-w-sm">
-                  <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-gray-400)
                   <input type="text" placeholder="Buscar..." value={busca} onChange={(e) => setBusca(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 border rounded text-sm" />
+                    className="w-full pl-8 pr-3 py-1.5 border rounded text-sm)
                 </div>
                 <button onClick={exportCSV} disabled={!produtosDivergentes.length}
                   className="px-3 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 flex items-center gap-1 disabled:opacity-50">
-                  <Download className="w-3 h-3" /> CSV
+                  <Download className="w-3 h-3) CSV
                 </button>
                 <div className="flex gap-1 ml-auto">
                   {['nf', 'produto', 'ncm'].map(v => (
@@ -321,24 +321,24 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                   <table className="w-full text-xs">
                     <thead className="bg-gray-100">
                       <tr>
-                        <SortHeader label="NF" sortKey="numero_nfe" />
-                        <SortHeader label="Produto" sortKey="descricao" />
-                        <SortHeader label="NCM" sortKey="ncm" />
-                        <SortHeader label="Valor" sortKey="valor_produto" />
-                        <SortHeader label="CST PIS XML" sortKey="cst_pis_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="CST PIS OK" sortKey="cst_pis_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="Alíq PIS XML" sortKey="aliq_pis_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="Alíq PIS OK" sortKey="aliq_pis_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="PIS XML" sortKey="v_pis_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="PIS OK" sortKey="v_pis_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="CST COF XML" sortKey="cst_cofins_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="CST COF OK" sortKey="cst_cofins_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="Alíq COF XML" sortKey="aliq_cofins_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="Alíq COF OK" sortKey="aliq_cofins_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="COF XML" sortKey="v_cofins_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="COF OK" sortKey="v_cofins_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="Impacto" sortKey="impacto_total" className="bg-amber-50" />
-                        <SortHeader label="Tipo" sortKey="tipo_divergencia" />
+                        {renderSortHeader("NF, "numero_nfe)
+                        {renderSortHeader("Produto, "descricao)
+                        {renderSortHeader("NCM, "ncm)
+                        {renderSortHeader("Valor, "valor_produto)
+                        {renderSortHeader("CST PIS XML, "cst_pis_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("CST PIS OK, "cst_pis_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("Alíq PIS XML, "aliq_pis_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("Alíq PIS OK, "aliq_pis_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("PIS XML, "v_pis_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("PIS OK, "v_pis_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("CST COF XML, "cst_cofins_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("CST COF OK, "cst_cofins_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("Alíq COF XML, "aliq_cofins_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("Alíq COF OK, "aliq_cofins_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("COF XML, "v_cofins_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("COF OK, "v_cofins_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("Impacto, "impacto_total, "bg-amber-50)
+                        {renderSortHeader("Tipo, "tipo_divergencia)
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -377,24 +377,24 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                   <table className="w-full text-xs">
                     <thead className="bg-gray-100">
                       <tr>
-                        <SortHeader label="Produto" sortKey="descricao" />
-                        <SortHeader label="NCM" sortKey="ncm" />
-                        <SortHeader label="Qtd" sortKey="qtd_ocorrencias" />
-                        <SortHeader label="Valor Total" sortKey="valor_total" />
-                        <SortHeader label="CST PIS XML" sortKey="cst_pis_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="CST PIS OK" sortKey="cst_pis_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="Alíq PIS XML" sortKey="aliq_pis_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="Alíq PIS OK" sortKey="aliq_pis_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="PIS XML" sortKey="v_pis_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="PIS OK" sortKey="v_pis_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="CST COF XML" sortKey="cst_cofins_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="CST COF OK" sortKey="cst_cofins_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="Alíq COF XML" sortKey="aliq_cofins_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="Alíq COF OK" sortKey="aliq_cofins_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="COF XML" sortKey="v_cofins_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="COF OK" sortKey="v_cofins_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="Impacto" sortKey="impacto_total" className="bg-amber-50" />
-                        <SortHeader label="Tipo" sortKey="tipo_divergencia" />
+                        {renderSortHeader("Produto, "descricao)
+                        {renderSortHeader("NCM, "ncm)
+                        {renderSortHeader("Qtd, "qtd_ocorrencias)
+                        {renderSortHeader("Valor Total, "valor_total)
+                        {renderSortHeader("CST PIS XML, "cst_pis_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("CST PIS OK, "cst_pis_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("Alíq PIS XML, "aliq_pis_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("Alíq PIS OK, "aliq_pis_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("PIS XML, "v_pis_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("PIS OK, "v_pis_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("CST COF XML, "cst_cofins_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("CST COF OK, "cst_cofins_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("Alíq COF XML, "aliq_cofins_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("Alíq COF OK, "aliq_cofins_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("COF XML, "v_cofins_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("COF OK, "v_cofins_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("Impacto, "impacto_total, "bg-amber-50)
+                        {renderSortHeader("Tipo, "tipo_divergencia)
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -433,24 +433,24 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                   <table className="w-full text-xs">
                     <thead className="bg-gray-100">
                       <tr>
-                        <SortHeader label="NCM" sortKey="ncm" />
+                        {renderSortHeader("NCM, "ncm)
                         <th className="px-2 py-2 text-xs font-semibold text-gray-600">Produtos</th>
-                        <SortHeader label="Qtd" sortKey="qtd_ocorrencias" />
-                        <SortHeader label="Valor Total" sortKey="valor_total" />
-                        <SortHeader label="CST PIS XML" sortKey="cst_pis_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="CST PIS OK" sortKey="cst_pis_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="Alíq PIS XML" sortKey="aliq_pis_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="Alíq PIS OK" sortKey="aliq_pis_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="PIS XML" sortKey="v_pis_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="PIS OK" sortKey="v_pis_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="CST COF XML" sortKey="cst_cofins_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="CST COF OK" sortKey="cst_cofins_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="Alíq COF XML" sortKey="aliq_cofins_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="Alíq COF OK" sortKey="aliq_cofins_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="COF XML" sortKey="v_cofins_atual" className="text-red-600 bg-red-50" />
-                        <SortHeader label="COF OK" sortKey="v_cofins_correto" className="text-green-600 bg-green-50" />
-                        <SortHeader label="Impacto" sortKey="impacto_total" className="bg-amber-50" />
-                        <SortHeader label="Tipo" sortKey="tipo_divergencia" />
+                        {renderSortHeader("Qtd, "qtd_ocorrencias)
+                        {renderSortHeader("Valor Total, "valor_total)
+                        {renderSortHeader("CST PIS XML, "cst_pis_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("CST PIS OK, "cst_pis_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("Alíq PIS XML, "aliq_pis_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("Alíq PIS OK, "aliq_pis_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("PIS XML, "v_pis_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("PIS OK, "v_pis_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("CST COF XML, "cst_cofins_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("CST COF OK, "cst_cofins_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("Alíq COF XML, "aliq_cofins_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("Alíq COF OK, "aliq_cofins_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("COF XML, "v_cofins_atual, "text-red-600 bg-red-50)
+                        {renderSortHeader("COF OK, "v_cofins_correto, "text-green-600 bg-green-50)
+                        {renderSortHeader("Impacto, "impacto_total, "bg-amber-50)
+                        {renderSortHeader("Tipo, "tipo_divergencia)
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -485,7 +485,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
             {/* Sem divergências */}
             {dados.total_divergentes === 0 && (
               <div className="bg-white rounded-xl p-10 border text-center">
-                <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-3" />
+                <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-3)
                 <h2 className="text-lg font-semibold text-gray-900">Nenhuma divergência identificada</h2>
                 <p className="text-gray-500 text-sm mt-1">Todos os produtos estão com CST e alíquotas corretos.</p>
               </div>
@@ -493,7 +493,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
           </>
         ) : (
           <div className="bg-white rounded-xl p-10 border text-center">
-            <Info className="w-14 h-14 text-gray-400 mx-auto mb-3" />
+            <Info className="w-14 h-14 text-gray-400 mx-auto mb-3)
             <h2 className="text-lg font-semibold text-gray-700">Carregando dados...</h2>
           </div>
         )}
