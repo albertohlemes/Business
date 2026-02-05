@@ -4076,9 +4076,9 @@ if __name__ == "__main__":
 async def listar_historico_cadastros(
     current_user: dict = Depends(get_current_user)
 ):
-    """Lista todas as empresas cadastradas via ferramenta de Cadastros"""
+    """Lista todas as empresas cadastradas via ferramenta de Cadastros (visível para todos)"""
     cadastros = await db.cadastros_externos.find(
-        {"user_id": current_user["id"]},
+        {},
         {"_id": 0}
     ).sort("created_at", -1).to_list(200)
     
@@ -4089,9 +4089,9 @@ async def get_cadastro_detalhe(
     cadastro_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Retorna detalhes de um cadastro específico"""
+    """Retorna detalhes de um cadastro específico (visível para todos)"""
     cadastro = await db.cadastros_externos.find_one(
-        {"id": cadastro_id, "user_id": current_user["id"]},
+        {"id": cadastro_id},
         {"_id": 0}
     )
     if not cadastro:
@@ -4103,9 +4103,9 @@ async def delete_cadastro_historico(
     cadastro_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Remove um cadastro do histórico"""
+    """Remove um cadastro do histórico (qualquer usuário pode remover)"""
     result = await db.cadastros_externos.delete_one(
-        {"id": cadastro_id, "user_id": current_user["id"]}
+        {"id": cadastro_id}
     )
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Cadastro não encontrado")
