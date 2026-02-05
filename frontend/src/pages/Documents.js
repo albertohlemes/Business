@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { FileText, Eye, Filter, Trash2, CheckCircle2, XCircle, Shield, X, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { FileText, Eye, Filter, Trash2, CheckCircle2, XCircle, Shield, X, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, Cpu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 
@@ -18,6 +18,8 @@ const Documents = ({ user, onLogout }) => {
   const [selectedIntegridade, setSelectedIntegridade] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [reprocessing, setReprocessing] = useState(false);
+  const [showReprocessMenu, setShowReprocessMenu] = useState(false);
+  const reprocessMenuRef = useRef(null);
   
   // Ordenação
   const [sortField, setSortField] = useState('numero_nfe');
