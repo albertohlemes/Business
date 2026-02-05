@@ -282,6 +282,39 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 41 (05/02/2026)
+- ✅ **BUG FIX: Totalizador da tabela de detalhamento agora exclui ICMS de ST/Despesa**
+  - **Problema:** Na tabela de detalhamento por CFOP, o total de ICMS incluía valores de ST e Despesa
+  - **Solução:** Modificado o `DetailTable` para excluir itens com `is_st`, `is_despesa` ou `sem_credito_icms` do total de ICMS
+  - **Resultado:** Linha TOTAL mostra "(ICMS s/ crédito: R$ X)" quando houver valores excluídos
+  - **Arquivo:** `/app/frontend/src/pages/ApuracaoMensal.js`
+
+- ✅ **MELHORIA: Análise Tributária IA completamente refatorada**
+  - **Problemas corrigidos:**
+    1. Crédito de ST estava sendo incluído no resumo
+    2. Não identificava produtos com diferença de alíquota (ex: farinha 12% entrada, 18% saída)
+    3. Tabela "Por NCM" tinha coluna "Descrição" que não faz sentido para agrupamento
+  - **Solução:**
+    1. Backend agora agrupa por NCM (não por NCM+descrição)
+    2. Calcula `total_icms_creditavel` excluindo ST e Despesa
+    3. Detecta vilões com diferença de alíquota ≥ 3pp
+    4. Detecta vilões ST→Tributado e Tributado→ST
+    5. Crédito no resumo usa apenas crédito válido
+  - **Frontend:** Tabela NCM agora mostra colunas: NCM, Alíq. Entrada, Alíq. Saída, Créd. ICMS, Déb. ICMS, Saldo
+  - **Resultado:** 11 vilões identificados com R$ 18.599,24 de impacto negativo (NCM 21031090 = 12%→18%)
+  - **Arquivos:** `/app/backend/server.py`, `/app/frontend/src/pages/AnaliseTributariaIA.js`
+
+- ✅ **MELHORIA: Ponto de Equilíbrio com "Despesa Máxima"**
+  - Adicionado card verde mostrando "Despesa Máx. (lucro=0)" = Lucro Bruto - Impostos
+  - Dica explicativa: "Se suas despesas ultrapassarem R$ X, você terá prejuízo"
+  - Valor flutua conforme estoque e compras do período
+  - **Arquivo:** `/app/frontend/src/pages/ApuracaoMensal.js`
+
+- ✅ **MELHORIA: Items pendentes removidos instantaneamente ao corrigir**
+  - Ao clicar "Manter como está" no modal de correção, o item é removido da lista local
+  - Não requer refresh da página
+  - **Arquivo:** `/app/frontend/src/pages/ExportMenu.js`
+
 ### 02/2026 - Iteration 40 (05/02/2026)
 - ✅ **BUG FIX: ICMS de ST e Despesa no totalizador da Apuração Mensal**
   - **Problema:** O usuário reportou que o ICMS de despesa e ST ainda aparecia somado no totalizador
