@@ -323,12 +323,24 @@ class ValidacaoFolhaCreate(BaseModel):
 class ValidacaoFolhaResponse(BaseModel):
     id: str
     cliente_id: Optional[str] = None
+    cliente_nome: Optional[str] = None
     mes_referencia: str
     ano_referencia: int
+    tipo_validacao: Optional[str] = None
     status: str
+    arquivos: Optional[Dict[str, Any]] = None
+    funcionarios_analisados: Optional[int] = 0
     discrepancias: List[Dict[str, Any]] = []
+    divergencias: List[Dict[str, Any]] = []
+    campos_conferidos: List[Dict[str, Any]] = []
+    alertas: List[Dict[str, Any]] = []
     total_verificados: int = 0
     total_erros: int = 0
+    total_divergencias: int = 0
+    total_conferidos: int = 0
+    total_alertas: int = 0
+    impacto_financeiro_total: float = 0.0
+    resumo_executivo: Optional[str] = None
     created_at: str
 
 # Média Models
