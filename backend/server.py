@@ -7306,12 +7306,11 @@ Seja direto, prático e específico para o perfil desta empresa. Use linguagem t
 
         llm = LlmChat(
             api_key=os.environ.get('EMERGENT_LLM_KEY'),
-            model="gpt-4o"
-        )
+            session_id=f"analise_tributaria_{company_id}_{competencia}_{datetime.now().timestamp()}",
+        ).with_model("openai", "gpt-4o")
         
         response = await llm.send_async(
             messages=[UserMessage(content=prompt)],
-            session_id=f"analise_tributaria_{company_id}_{competencia}_{datetime.now().timestamp()}",
         )
         
         insights_ia = response.content
