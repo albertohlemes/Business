@@ -312,8 +312,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                         }`}
                       >
                         {getTipoDivergenciaLabel(tipo)}: {info.qtd} • {formatCurrency(info.impacto_total)}
-                        </div>
-                      </div>
+                      </button>
                     )
                   ))}
                 </div>
@@ -321,43 +320,26 @@ const AnalisePisCofins = ({ user, onLogout }) => {
             )}
 
             {/* Filtros e Busca */}
-            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-5 h-5 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">Filtrar:</span>
-                </div>
-                
-                <select
-                  value={filtroTipo}
-                  onChange={(e) => setFiltroTipo(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="todos">Todos os tipos</option>
-                  <option value="CFOP_SEM_DEBITO">CFOP sem débito</option>
-                  <option value="NCM_MONOFASICO">NCM Monofásico</option>
-                  <option value="NCM_ALIQUOTA_ZERO">NCM Alíquota Zero</option>
-                  <option value="ALIQUOTA_INCORRETA">Alíquota Incorreta</option>
-                </select>
-                
-                <div className="flex-1 min-w-[200px]">
-                  <div className="relative">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Buscar por NF, cliente, produto, NCM..."
-                      value={busca}
-                      onChange={(e) => setBusca(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative flex-1 min-w-[200px] max-w-md">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar NF, produto, NCM..."
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
                 </div>
                 
                 <button
                   onClick={exportCSV}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 flex items-center gap-2"
+                  className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 flex items-center gap-1"
                 >
                   <Download className="w-4 h-4" />
+                  CSV
+                </button>
                   Exportar CSV
                 </button>
               </div>
