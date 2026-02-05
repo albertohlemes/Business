@@ -284,7 +284,7 @@ const Cadastros = () => {
     };
 
     const addSocio = () => {
-        setGclickSocios(prev => [...prev, { nome: '', cpf: '', participacao: '', administrador: false }]);
+        setGclickSocios(prev => [...prev, { nome: '', cpf: '', participacao: '', administrador: false, dataNascimento: '', endereco: '', naturalidade: '' }]);
     };
 
     const removeSocio = (index) => {
