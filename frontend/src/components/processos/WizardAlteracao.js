@@ -1530,10 +1530,11 @@ const FormularioOutras = ({ dados, onChange, dadosExtraidos }) => {
 };
 
 // Componente principal do Wizard
-const WizardAlteracao = ({ open, onClose, onComplete }) => {
+const WizardAlteracao = ({ open, onClose, onComplete, processoEditando }) => {
     const [step, setStep] = useState(1);
     const [processing, setProcessing] = useState(false);
     const [buscandoCnpj, setBuscandoCnpj] = useState(false);
+    const [modoEdicao, setModoEdicao] = useState(false);
     
     // Step 1 - Contrato
     const [contratoFile, setContratoFile] = useState(null);
