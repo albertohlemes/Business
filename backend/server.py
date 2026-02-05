@@ -712,13 +712,21 @@ async def importar_colaborador_documento(
                 except Exception as e:
                     logger.warning(f"Google AI falhou: {e}")
             
-            # Se Google AI não disponível/falhou, tenta Emergent (pago)
-            if (not colaboradores or all(not c.get('nome') for c in colaboradores)) and emergent_key:
+            # Se Google AI não disponível/falhou, tenta Emergent (pago) - com timeout
+            if (not colaboradores or valid_count < 2) and emergent_key:
                 try:
-                    colaboradores = await _extract_with_emergent_ai(tmp_path, suffix, tipo_documento, emergent_key)
-                    if colaboradores:
+                    import asyncio
+                    # Timeout de 30 segundos para não travar
+                    colaboradores_ai = await asyncio.wait_for(
+                        _extract_with_emergent_ai(tmp_path, suffix, tipo_documento, emergent_key),
+                        timeout=30.0
+                    )
+                    if colaboradores_ai:
+                        colaboradores = colaboradores_ai
                         confianca = "alta"
                         logger.info(f"Emergent AI extraiu {len(colaboradores)} colaborador(es)")
+                except asyncio.TimeoutError:
+                    logger.warning("Emergent AI timeout - usando resultado do OCR")
                 except Exception as e:
                     logger.error(f"Emergent AI falhou: {e}")
                     # Retorna o que OCR conseguiu
