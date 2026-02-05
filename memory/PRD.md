@@ -260,7 +260,10 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - [x] ~~**Download via SIEG:** Implementar download e processamento automático de XMLs do SIEG~~ ✅ CONCLUÍDO
 - [x] ~~**Crédito PIS/COFINS divergente:** Dashboard vs Apuração Mensal~~ ✅ CONCLUÍDO (Iteration 31)
 - [x] ~~**Limpeza de arquivos obsoletos:** Excluir páginas antigas~~ ✅ CONCLUÍDO (Iteration 31)
-- [x] **SPED: Correção apuração ICMS** - CFOPs de despesa agora são desconsiderados nos créditos ✅ CONCLUÍDO
+- [x] ~~**SPED: Correção apuração ICMS** - CFOPs de despesa agora são desconsiderados nos créditos~~ ✅ CONCLUÍDO
+- [x] ~~**BUG: ICMS ST/Despesa no totalizador** - Corrigido na Iteration 40~~ ✅ CONCLUÍDO
+- [x] ~~**BUG: Seletor de competências** - Corrigido na Iteration 40~~ ✅ CONCLUÍDO
+- [x] ~~**ExportMenu sincroniza contexto** - Implementado na Iteration 40~~ ✅ CONCLUÍDO
 - [ ] Finalizar e testar a funcionalidade de exportação do **SPED Fiscal**
 - [ ] Barras de pesquisa nas páginas Documentos e Validação (UI adicionada, lint corrigido)
 - [ ] Hiperlink da NF deve abrir documento específico
