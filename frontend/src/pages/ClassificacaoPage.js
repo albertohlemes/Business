@@ -520,6 +520,10 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     const { approved, total } = countProductApprovals(product.codigo);
     const allApproved = approved === total;
     
+    // Extrair números das NFs das ocorrências
+    const nfsStr = product.ocorrencias.slice(0, 3).map(o => o.nf || o.numero_nfe || '?').join(', ');
+    const maisNFs = product.ocorrencias.length > 3 ? ` +${product.ocorrencias.length - 3}` : '';
+    
     return (
       <div className={`px-6 py-3 border-b border-gray-100 hover:bg-gray-50 flex items-center justify-between ${allApproved ? 'bg-green-50/50' : ''}`}>
         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -536,7 +540,10 @@ const ClassificacaoPage = ({ user, onLogout }) => {
           <div className="min-w-0 flex-1">
             <p className="font-medium text-gray-900 truncate">{product.descricao}</p>
             <p className="text-xs text-gray-500">
-              Código: {product.codigo} • NCM: {product.ncm} • CFOP: {product.cfop}
+              Código: {product.codigo} • NCM: <span className="font-mono">{product.ncm}</span> • CFOP: {product.cfop}
+            </p>
+            <p className="text-xs text-blue-600">
+              NFs: {nfsStr}{maisNFs}
             </p>
           </div>
         </div>
