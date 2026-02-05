@@ -1431,10 +1431,28 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             aliq_pis = float(prod.get('p_pis', 0) or prod.get('aliq_pis', 0) or 0)
             v_pis = float(prod.get('v_pis', 0) or 0)
             
+            # Se não tem alíquota de PIS mas tem base e valor, calcular
+            if aliq_pis == 0 and bc_pis > 0 and v_pis > 0:
+                aliq_pis = (v_pis / bc_pis) * 100
+            # Se não tem base de PIS mas tem valor, usar o valor do item como base
+            if bc_pis == 0 and v_pis > 0:
+                bc_pis = vl_item
+                if bc_pis > 0:
+                    aliq_pis = (v_pis / bc_pis) * 100
+            
             # Valores de COFINS do XML
             bc_cofins = float(prod.get('v_bc_cofins', 0) or prod.get('bc_cofins', 0) or 0)
             aliq_cofins = float(prod.get('p_cofins', 0) or prod.get('aliq_cofins', 0) or 0)
             v_cofins = float(prod.get('v_cofins', 0) or 0)
+            
+            # Se não tem alíquota de COFINS mas tem base e valor, calcular
+            if aliq_cofins == 0 and bc_cofins > 0 and v_cofins > 0:
+                aliq_cofins = (v_cofins / bc_cofins) * 100
+            # Se não tem base de COFINS mas tem valor, usar o valor do item como base
+            if bc_cofins == 0 and v_cofins > 0:
+                bc_cofins = vl_item
+                if bc_cofins > 0:
+                    aliq_cofins = (v_cofins / bc_cofins) * 100
             
             # Quantidade e valor do item
             qtd = float(prod.get('quantidade', 0) or 0)
