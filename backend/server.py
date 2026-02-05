@@ -6795,6 +6795,165 @@ async def export_sped(
         "excluir_creditos_despesa_st": excluir_creditos_despesa_st
     }
 
+
+@api_router.get("/sped/validar/{company_id}")
+async def validar_sped(
+    company_id: str,
+    competencia: Optional[str] = None,
+    excluir_creditos_despesa_st: bool = False,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Valida o SPED gerado confrontando com a apuração do sistema.
+    Retorna comparativo de totalizadores por CFOP.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    query = {"company_id": company_id}
+    if competencia:
+        query['competencia'] = competencia
+    
+    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(10000)
+    
+    # CFOPs sem crédito de ICMS (despesa e ST)
+    CFOPS_SEM_CREDITO = {
+        '1403', '1409', '2403', '2409', '3403', '3409',
+        '1407', '2407', '1556', '2556', '1557', '2557',
+        '1128', '2128', '1551', '2551', '1553', '2553',
+        '1554', '2554', '1406', '2406', '1408', '2408'
+    }
+    
+    # Calcular totais do sistema (fonte: documentos XML)
+    totais_sistema = {
+        'entradas': {'valor': 0, 'icms': 0, 'icms_excluido': 0, 'pis': 0, 'cofins': 0, 'por_cfop': {}},
+        'saidas': {'valor': 0, 'icms': 0, 'pis': 0, 'cofins': 0, 'por_cfop': {}}
+    }
+    
+    for doc in documents:
+        tipo = 'entradas' if doc.get('tipo') == 'entrada' else 'saidas'
+        
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            valor = float(prod.get('valor_total', 0) or 0)
+            v_icms = float(prod.get('v_icms', 0) or 0)
+            v_pis = float(prod.get('v_pis', 0) or 0)
+            v_cofins = float(prod.get('v_cofins', 0) or 0)
+            
+            # Totais gerais
+            totais_sistema[tipo]['valor'] += valor
+            totais_sistema[tipo]['pis'] += v_pis
+            totais_sistema[tipo]['cofins'] += v_cofins
+            
+            # ICMS com lógica de exclusão
+            if tipo == 'entradas' and excluir_creditos_despesa_st and cfop in CFOPS_SEM_CREDITO:
+                totais_sistema[tipo]['icms_excluido'] += v_icms
+            else:
+                totais_sistema[tipo]['icms'] += v_icms
+            
+            # Totais por CFOP
+            if cfop not in totais_sistema[tipo]['por_cfop']:
+                totais_sistema[tipo]['por_cfop'][cfop] = {
+                    'cfop': cfop,
+                    'qtd_notas': 0,
+                    'qtd_itens': 0,
+                    'valor': 0,
+                    'icms': 0,
+                    'pis': 0,
+                    'cofins': 0,
+                    'credito_excluido': cfop in CFOPS_SEM_CREDITO if tipo == 'entradas' else False
+                }
+            
+            totais_sistema[tipo]['por_cfop'][cfop]['qtd_itens'] += 1
+            totais_sistema[tipo]['por_cfop'][cfop]['valor'] += valor
+            totais_sistema[tipo]['por_cfop'][cfop]['icms'] += v_icms
+            totais_sistema[tipo]['por_cfop'][cfop]['pis'] += v_pis
+            totais_sistema[tipo]['por_cfop'][cfop]['cofins'] += v_cofins
+    
+    # Contar notas por CFOP
+    notas_por_cfop = {'entradas': {}, 'saidas': {}}
+    for doc in documents:
+        tipo = 'entradas' if doc.get('tipo') == 'entrada' else 'saidas'
+        cfops_na_nota = set()
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            if cfop:
+                cfops_na_nota.add(cfop)
+        for cfop in cfops_na_nota:
+            if cfop in totais_sistema[tipo]['por_cfop']:
+                totais_sistema[tipo]['por_cfop'][cfop]['qtd_notas'] += 1
+    
+    # Calcular apuração
+    total_debitos = totais_sistema['saidas']['icms']
+    total_creditos = totais_sistema['entradas']['icms']
+    total_creditos_excluidos = totais_sistema['entradas']['icms_excluido']
+    
+    saldo_icms = total_debitos - total_creditos
+    icms_a_pagar = max(0, saldo_icms)
+    icms_a_compensar = max(0, -saldo_icms)
+    
+    # Preparar resposta
+    return {
+        "empresa": company.get('razao_social'),
+        "competencia": competencia,
+        "excluir_creditos_despesa_st": excluir_creditos_despesa_st,
+        "resumo": {
+            "entradas": {
+                "total_valor": round(totais_sistema['entradas']['valor'], 2),
+                "total_icms_creditavel": round(totais_sistema['entradas']['icms'], 2),
+                "total_icms_excluido": round(totais_sistema['entradas']['icms_excluido'], 2),
+                "total_pis": round(totais_sistema['entradas']['pis'], 2),
+                "total_cofins": round(totais_sistema['entradas']['cofins'], 2),
+                "qtd_cfops": len(totais_sistema['entradas']['por_cfop'])
+            },
+            "saidas": {
+                "total_valor": round(totais_sistema['saidas']['valor'], 2),
+                "total_icms": round(totais_sistema['saidas']['icms'], 2),
+                "total_pis": round(totais_sistema['saidas']['pis'], 2),
+                "total_cofins": round(totais_sistema['saidas']['cofins'], 2),
+                "qtd_cfops": len(totais_sistema['saidas']['por_cfop'])
+            },
+            "apuracao_icms": {
+                "debitos": round(total_debitos, 2),
+                "creditos": round(total_creditos, 2),
+                "creditos_excluidos": round(total_creditos_excluidos, 2),
+                "saldo": round(saldo_icms, 2),
+                "icms_a_pagar": round(icms_a_pagar, 2),
+                "icms_a_compensar": round(icms_a_compensar, 2)
+            }
+        },
+        "detalhamento_cfop": {
+            "entradas": sorted(
+                [
+                    {
+                        **v,
+                        'valor': round(v['valor'], 2),
+                        'icms': round(v['icms'], 2),
+                        'pis': round(v['pis'], 2),
+                        'cofins': round(v['cofins'], 2)
+                    }
+                    for v in totais_sistema['entradas']['por_cfop'].values()
+                ],
+                key=lambda x: x['cfop']
+            ),
+            "saidas": sorted(
+                [
+                    {
+                        **v,
+                        'valor': round(v['valor'], 2),
+                        'icms': round(v['icms'], 2),
+                        'pis': round(v['pis'], 2),
+                        'cofins': round(v['cofins'], 2)
+                    }
+                    for v in totais_sistema['saidas']['por_cfop'].values()
+                ],
+                key=lambda x: x['cfop']
+            )
+        }
+    }
+
+
 @api_router.get("/export/csv/saida")
 async def export_csv_saida(
     company_id: str, 
