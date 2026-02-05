@@ -502,12 +502,12 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b">
                       <tr>
-                        <SortableHeader label="Produto" sortKey="descricao" className="text-left" />
-                        <SortableHeader label="NCM" sortKey="ncm" className="text-left" />
-                        <SortableHeader label="Ocorrências" sortKey="qtd_ocorrencias" className="text-center" />
-                        <SortableHeader label="Valor Total" sortKey="valor_total" className="text-right" />
-                        <SortableHeader label="Impacto Total" sortKey="impacto_total" className="text-right" />
-                        <SortableHeader label="Tipo" sortKey="tipo_divergencia" className="text-left" />
+                        {renderSortableHeader("Produto", "descricao", "text-left")}
+                        {renderSortableHeader("NCM", "ncm", "text-left")}
+                        {renderSortableHeader("Ocorrências", "qtd_ocorrencias", "text-center")}
+                        {renderSortableHeader("Valor Total", "valor_total", "text-right")}
+                        {renderSortableHeader("Impacto Total", "impacto_total", "text-right")}
+                        {renderSortableHeader("Tipo", "tipo_divergencia", "text-left")}
                       </tr>
                     </thead>
                     <tbody className="divide-y">
