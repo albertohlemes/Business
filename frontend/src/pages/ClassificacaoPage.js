@@ -243,9 +243,22 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     return Object.values(groups);
   }, [documents]);
 
-  // Produtos ordenados
+  // Produtos ordenados e filtrados
   const sortedProducts = useMemo(() => {
-    const sorted = [...groupedProducts];
+    let sorted = [...groupedProducts];
+    
+    // Aplicar filtro de busca
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      sorted = sorted.filter(p => 
+        p.descricao?.toLowerCase().includes(term) ||
+        p.codigo?.toLowerCase().includes(term) ||
+        p.ncm?.includes(term) ||
+        p.cfop?.includes(term) ||
+        p.categoria?.toLowerCase().includes(term) ||
+        p.ocorrencias?.some(o => o.numero_nfe?.includes(term) || o.emitente?.toLowerCase().includes(term))
+      );
+    }
     
     sorted.sort((a, b) => {
       let aVal, bVal;
@@ -288,7 +301,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     });
     
     return sorted;
-  }, [groupedProducts, sortConfig]);
+  }, [groupedProducts, sortConfig, searchTerm]);
 
   // Agrupar produtos por categoria para visualização agrupada
   const productsByCategoria = useMemo(() => {
