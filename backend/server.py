@@ -1223,6 +1223,175 @@ async def analisar_folha(
         logger.error(f"Erro na validação: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao analisar folha: {str(e)}")
 
+@api_router.post("/validacoes/comparar-apoio")
+async def comparar_holerite_apoio(
+    holerite: UploadFile = File(...),
+    apoio: UploadFile = File(...),
+    cliente_id: str = None,
+    mes_referencia: str = None,
+    ano_referencia: int = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Compare holerite with support document (email, spreadsheet, image, etc.) to validate data"""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        
+        # Read both files
+        holerite_content = await holerite.read()
+        apoio_content = await apoio.read()
+        
+        holerite_suffix = Path(holerite.filename).suffix
+        apoio_suffix = Path(apoio.filename).suffix
+        
+        # Save to temp files
+        with tempfile.NamedTemporaryFile(delete=False, suffix=holerite_suffix) as tmp1:
+            tmp1.write(holerite_content)
+            holerite_path = tmp1.name
+            
+        with tempfile.NamedTemporaryFile(delete=False, suffix=apoio_suffix) as tmp2:
+            tmp2.write(apoio_content)
+            apoio_path = tmp2.name
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"comparar-apoio-{uuid.uuid4()}",
+                system_message="""Você é um auditor especializado em departamento pessoal brasileiro.
+                
+Você receberá DOIS documentos:
+1. HOLERITE/FOLHA DE PAGAMENTO: O documento oficial gerado pelo sistema de folha
+2. RELATÓRIO DE APOIO: Um documento de referência (pode ser email, planilha, imagem, PDF) com informações que devem constar no holerite
+
+Sua tarefa é COMPARAR os dois documentos e identificar DIVERGÊNCIAS, verificando se as informações do relatório de apoio estão corretamente refletidas no holerite.
+
+Exemplos de verificações:
+- Horas extras informadas no apoio vs horas extras no holerite
+- Comissões de vendas no apoio vs comissões no holerite
+- Faltas/atrasos no apoio vs descontos no holerite
+- Adicional noturno, DSR, gratificações
+- Valores de benefícios (VT, VR, VA)
+- Qualquer outra referência numérica ou informação que possa ser cruzada
+
+Retorne em JSON com a estrutura:
+{
+    "tipo_validacao": "comparacao_apoio",
+    "total_verificados": número de itens/valores verificados,
+    "divergencias_encontradas": número de divergências encontradas,
+    "divergencias": [
+        {
+            "campo": "nome do campo (ex: horas_extras, comissao, falta)",
+            "funcionario": "nome do funcionário se identificável",
+            "tipo": "tipo da divergência",
+            "descricao": "descrição detalhada da divergência",
+            "valor_holerite": "valor encontrado no holerite",
+            "valor_apoio": "valor encontrado no relatório de apoio",
+            "severidade": "alta/media/baixa"
+        }
+    ],
+    "campos_conferidos": ["lista dos campos que foram verificados e estão corretos"],
+    "resumo": "resumo geral da comparação",
+    "recomendacoes": ["lista de ações recomendadas para corrigir as divergências"]
+}
+
+IMPORTANTE:
+- Se não conseguir identificar valores específicos, descreva o que foi possível verificar
+- Considere variações de formatação (1.500,00 vs 1500.00)
+- Se o documento de apoio for uma imagem ou manuscrito, extraia o máximo possível
+- Severidade ALTA: valores muito diferentes ou que impactam significativamente
+- Severidade MÉDIA: pequenas diferenças ou arredondamentos
+- Severidade BAIXA: divergências menores ou de formatação"""
+            ).with_model("gemini", "gemini-2.5-flash")
+            
+            # Determine MIME types
+            mime_types = {
+                ".pdf": "application/pdf",
+                ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ".xls": "application/vnd.ms-excel",
+                ".csv": "text/csv",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".png": "image/png",
+                ".txt": "text/plain",
+                ".eml": "message/rfc822",
+                ".msg": "application/vnd.ms-outlook"
+            }
+            
+            holerite_mime = mime_types.get(holerite_suffix.lower(), "application/octet-stream")
+            apoio_mime = mime_types.get(apoio_suffix.lower(), "application/octet-stream")
+            
+            holerite_file_content = FileContentWithMimeType(file_path=holerite_path, mime_type=holerite_mime)
+            apoio_file_content = FileContentWithMimeType(file_path=apoio_path, mime_type=apoio_mime)
+            
+            response = await chat.send_message(UserMessage(
+                text=f"""Compare os dois documentos anexados:
+
+DOCUMENTO 1 (HOLERITE): {holerite.filename}
+DOCUMENTO 2 (RELATÓRIO DE APOIO): {apoio.filename}
+
+Verifique se as informações do relatório de apoio estão corretamente refletidas no holerite.
+Identifique todas as divergências encontradas.""",
+                file_contents=[holerite_file_content, apoio_file_content]
+            ))
+            
+            # Parse response
+            try:
+                response_text = response.strip()
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:]
+                if response_text.startswith("```"):
+                    response_text = response_text[3:]
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3]
+                
+                resultado = json.loads(response_text.strip())
+            except json.JSONDecodeError:
+                resultado = {
+                    "tipo_validacao": "comparacao_apoio",
+                    "total_verificados": 0,
+                    "divergencias_encontradas": 0,
+                    "divergencias": [],
+                    "resumo": response
+                }
+            
+            # Save validation record
+            validacao_id = str(uuid.uuid4())
+            now = datetime.now(timezone.utc).isoformat()
+            
+            validacao_doc = {
+                "id": validacao_id,
+                "cliente_id": cliente_id,
+                "mes_referencia": mes_referencia or datetime.now().strftime("%m"),
+                "ano_referencia": ano_referencia or datetime.now().year,
+                "tipo_validacao": "comparacao_apoio",
+                "status": "concluido",
+                "discrepancias": resultado.get("divergencias", []),
+                "total_verificados": resultado.get("total_verificados", 0),
+                "total_erros": resultado.get("divergencias_encontradas", 0),
+                "resumo": resultado.get("resumo", ""),
+                "recomendacoes": resultado.get("recomendacoes", []),
+                "campos_conferidos": resultado.get("campos_conferidos", []),
+                "holerite_filename": holerite.filename,
+                "apoio_filename": apoio.filename,
+                "created_at": now,
+                "user_id": current_user["id"]
+            }
+            await db.validacoes.insert_one(validacao_doc)
+            
+            return {
+                "id": validacao_id,
+                **resultado,
+                "message": "Comparação concluída"
+            }
+            
+        finally:
+            os.unlink(holerite_path)
+            os.unlink(apoio_path)
+            
+    except Exception as e:
+        logger.error(f"Erro na comparação: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao comparar documentos: {str(e)}")
+
 @api_router.get("/validacoes", response_model=List[ValidacaoFolhaResponse])
 async def list_validacoes(cliente_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
     query = {"user_id": current_user["id"]}
