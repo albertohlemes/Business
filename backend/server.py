@@ -1887,14 +1887,36 @@ async def extrair_dados_socio(
         file_content = await file.read()
         file_base64 = base64.b64encode(file_content).decode('utf-8')
         
-        # Determinar tipo de arquivo
+        # Determinar tipo de arquivo pelo nome e content_type
+        filename = file.filename or ''
         content_type = file.content_type or ''
-        if 'pdf' in content_type:
+        
+        # Mapeamento de extensões para MIME types suportados pelo Gemini
+        ext = filename.lower().split('.')[-1] if '.' in filename else ''
+        mime_mapping = {
+            'pdf': 'application/pdf',
+            'png': 'image/png',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+            'heic': 'image/heic',
+            'heif': 'image/heif',
+            'doc': 'application/msword',
+            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        }
+        
+        if ext in mime_mapping:
+            mime_type = mime_mapping[ext]
+        elif 'pdf' in content_type:
             mime_type = 'application/pdf'
         elif 'image' in content_type:
             mime_type = content_type
+        elif 'word' in content_type or 'document' in content_type:
+            mime_type = content_type
         else:
-            mime_type = 'application/octet-stream'
+            # Para arquivos não suportados, tentar como imagem PNG (pode funcionar para screenshots)
+            mime_type = 'image/png'
         
         prompt = """Analise este documento (CNH, RG, comprovante de endereço ou certidão) e extraia os dados pessoais.
 
