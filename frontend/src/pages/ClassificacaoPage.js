@@ -868,8 +868,8 @@ const ClassificacaoPage = ({ user, onLogout }) => {
             <div className="flex items-center gap-3">
               <RefreshCw className="w-5 h-5 text-gray-600" />
               <div>
-                <h3 className="font-semibold text-gray-900">Ações em Lote</h3>
-                <p className="text-sm text-gray-500">Reprocessar ou reimportar todos os documentos da competência</p>
+                <h3 className="font-semibold text-gray-900">Reimportar Entradas</h3>
+                <p className="text-sm text-gray-500">Reprocessa e classifica apenas notas de ENTRADA (saídas são ignoradas)</p>
               </div>
             </div>
             <button
@@ -877,10 +877,10 @@ const ClassificacaoPage = ({ user, onLogout }) => {
               onClick={handleReimportBatch}
               disabled={reimporting || !selectedCompany || !selectedCompetencia}
               className="px-5 py-2.5 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 flex items-center gap-2"
-              title="Reimporta todos os documentos como se fossem novos (apaga classificações)"
+              title="Reimporta documentos de ENTRADA como se fossem novos (apaga classificações)"
             >
               <RefreshCw className={`w-4 h-4 ${reimporting ? 'animate-spin' : ''}`} />
-              {reimporting ? 'Reimportando...' : 'Reimportar Tudo'}
+              {reimporting ? 'Reimportando...' : 'Reimportar Entradas'}
             </button>
           </div>
           
