@@ -247,9 +247,11 @@ Portal para departamento societário com geração de documentos via IA.
   
 - **Extração de Dados por IA:**
   - Botão "Preencher com IA" em ambas as abas (GClick e SCI Único)
-  - Aceita: Cartão CNPJ, Certidão Inteiro Teor, Contrato Social, Comprovante de Endereço
-  - IA extrai: Razão Social, CNPJ, Endereço, Sócios, Capital Social, Regime Tributário, etc.
-  - **Endpoint:** `POST /api/cadastros/extrair-dados` (usa Gemini via Emergent LLM Key)
+  - **SUPORTA MÚLTIPLOS DOCUMENTOS** - Selecione vários arquivos de uma vez!
+  - Aceita: Cartão CNPJ, Certidão Inteiro Teor, Contrato Social, RG/CNH dos sócios, Comprovante de Endereço
+  - IA extrai e **CONSOLIDA** automaticamente: Razão Social, CNPJ, Endereço, Sócios (com naturalidade), Capital Social, Regime Tributário, etc.
+  - Prioriza dados mais oficiais em caso de conflito (Cartão CNPJ > Contrato > outros)
+  - **Endpoint:** `POST /api/cadastros/extrair-dados-multiplos` (usa Gemini via Emergent LLM Key)
   
 - **Busca Automática de IE (SINTEGRA):**
   - Após extração, busca automaticamente a Inscrição Estadual
