@@ -3157,11 +3157,13 @@ async def reprocess_document(
 async def reprocess_batch(
     company_id: str,
     competencia: str,
+    classificar: bool = False,
     current_user: User = Depends(get_current_user)
 ):
     """
     Re-processa todos os XMLs de uma competência para extrair campos faltantes.
-    MANTÉM as classificações da IA e memórias aprendidas.
+    Se classificar=True, também aplica classificação da IA usando memória aprendida.
+    MANTÉM as classificações existentes que foram feitas manualmente.
     """
     # Buscar documentos COM os produtos atuais para preservar classificações
     documents = await db.xml_documents.find(
@@ -3172,7 +3174,21 @@ async def reprocess_batch(
     if not documents:
         return {"success": False, "error": "Nenhum documento encontrado"}
     
-    results = {"total": len(documents), "success": 0, "errors": 0, "with_st": 0, "classificacoes_preservadas": 0}
+    # Buscar dados da empresa para classificação
+    company = None
+    if classificar:
+        company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+        if not company:
+            return {"success": False, "error": "Empresa não encontrada para classificação"}
+    
+    results = {
+        "total": len(documents), 
+        "success": 0, 
+        "errors": 0, 
+        "with_st": 0, 
+        "classificacoes_preservadas": 0,
+        "classificacoes_novas": 0
+    }
     
     for doc in documents:
         try:
@@ -3189,14 +3205,14 @@ async def reprocess_batch(
             else:
                 parsed = parse_xml_nfe(xml_content)
             
-            # Mesclar produtos: manter classificações da IA, adicionar campos novos do XML
+            # Mesclar produtos: manter classificações existentes, adicionar campos novos do XML
             produtos_atuais = doc.get('produtos', [])
             produtos_novos = parsed.get('produtos', [])
             
             # Criar mapa dos produtos atuais por código
             produtos_map = {p.get('codigo', ''): p for p in produtos_atuais}
             
-            # Campos que devem ser PRESERVADOS (classificações da IA)
+            # Campos que devem ser PRESERVADOS se existirem
             campos_preservar = [
                 'classificacao', 'cfop', 'cfop_sugerido', 'justificativa_ia',
                 'aprovado', 'reclassificado', 'reclassificado_por', 'data_reclassificacao'
@@ -3204,18 +3220,55 @@ async def reprocess_batch(
             
             # Mesclar produtos
             produtos_mesclados = []
+            produtos_para_classificar = []
+            
             for prod_novo in produtos_novos:
                 codigo = prod_novo.get('codigo', '')
                 prod_atual = produtos_map.get(codigo, {})
                 
                 prod_mesclado = prod_novo.copy()
+                has_classification = False
+                
                 for campo in campos_preservar:
                     if campo in prod_atual and prod_atual[campo]:
                         prod_mesclado[campo] = prod_atual[campo]
+                        if campo == 'classificacao':
+                            has_classification = True
                 
                 produtos_mesclados.append(prod_mesclado)
-                if prod_mesclado.get('classificacao'):
+                
+                if has_classification:
                     results['classificacoes_preservadas'] += 1
+                elif classificar:
+                    # Marcar para classificação
+                    produtos_para_classificar.append(prod_mesclado)
+            
+            # Classificar produtos pendentes se solicitado
+            if classificar and produtos_para_classificar and doc.get('tipo') == 'entrada':
+                emitente_uf = doc.get('emitente_uf', '') or parsed.get('emitente_uf', '')
+                
+                try:
+                    classifications, stats = await classify_products_with_cache(
+                        produtos_para_classificar,
+                        company_id,
+                        company,
+                        emitente_uf
+                    )
+                    
+                    # Aplicar classificações
+                    for prod in produtos_mesclados:
+                        if prod in produtos_para_classificar:
+                            idx = str(produtos_para_classificar.index(prod))
+                            if idx in classifications:
+                                result = classifications[idx]
+                                prod['classificacao'] = result.get('categoria', 'revenda')
+                                prod['cfop'] = result.get('cfop', '')
+                                prod['cfop_sugerido'] = result.get('cfop', '')
+                                prod['justificativa_ia'] = result.get('justificativa', 'Classificado por IA no re-processamento')
+                                results['classificacoes_novas'] += 1
+                except Exception as e:
+                    # Se falhar a classificação, continua sem classificar
+                    pass
             
             update_data = {
                 'produtos': produtos_mesclados,
