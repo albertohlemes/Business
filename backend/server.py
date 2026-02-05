@@ -5195,6 +5195,227 @@ Analise os produtos e aplique a instrução do usuário. Retorne o JSON com as r
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro na análise com IA: {str(e)}")
 
+class SmartReclassifyRequest(BaseModel):
+    company_id: str
+    competencia: str
+    comando: str  # Ex: "reclassificar todas as esponjas como revenda"
+    aplicar: bool = True  # Aplicar as alterações imediatamente
+    sobrepor_regras: bool = True  # Sobrepor regras existentes
+
+@api_router.post("/ai/smart-reclassify")
+async def ai_smart_reclassify(
+    request: SmartReclassifyRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Reclassificação inteligente em lote usando busca semântica.
+    A IA identifica produtos relacionados ao termo buscado e reclassifica todos de uma vez.
+    """
+    company = await db.companies.find_one({"id": request.company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar todos os documentos da competência
+    query = {"company_id": request.company_id, "competencia": request.competencia}
+    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(10000)
+    
+    if not documents:
+        raise HTTPException(status_code=404, detail="Nenhum documento encontrado")
+    
+    # Coletar todos os produtos únicos
+    produtos_unicos = {}
+    for doc in documents:
+        for idx, prod in enumerate(doc.get('produtos', [])):
+            codigo = prod.get('codigo', f"sem_codigo_{idx}")
+            if codigo not in produtos_unicos:
+                produtos_unicos[codigo] = {
+                    'codigo': codigo,
+                    'descricao': prod.get('descricao', ''),
+                    'ncm': prod.get('ncm', ''),
+                    'categoria_atual': prod.get('categoria_classificada', 'não classificado'),
+                    'cfop_atual': prod.get('cfop', ''),
+                    'ocorrencias': []
+                }
+            produtos_unicos[codigo]['ocorrencias'].append({
+                'doc_id': doc['id'],
+                'idx': idx
+            })
+    
+    # Preparar lista de produtos para a IA analisar
+    lista_produtos = []
+    for codigo, prod in produtos_unicos.items():
+        lista_produtos.append({
+            'codigo': codigo,
+            'descricao': prod['descricao'],
+            'ncm': prod['ncm'],
+            'categoria_atual': prod['categoria_atual'],
+            'qtd_ocorrencias': len(prod['ocorrencias'])
+        })
+    
+    # Prompt para a IA identificar produtos relacionados e classificar
+    system_message = """Você é um especialista em classificação fiscal e busca semântica de produtos.
+
+Sua tarefa é:
+1. Analisar o comando do usuário para entender quais produtos ele quer reclassificar
+2. Usar busca SEMÂNTICA (não apenas exata) para encontrar todos os produtos relacionados
+3. Considerar sinônimos, variações, abreviações e termos relacionados
+
+Exemplos de busca semântica:
+- "esponja" deve encontrar: esponja de aço, esponja multiuso, bucha, esponja limpeza, esponja abrasiva
+- "papel" deve encontrar: papel toalha, papel higiênico, papel sulfite, papel A4, folha de papel
+- "limpeza" deve encontrar: detergente, desinfetante, água sanitária, sabão, limpa vidro
+
+Categorias válidas:
+- REVENDA: produtos para revender (CFOP 1102/2102 ou 1403/2403 se ST)
+- INSUMO: matéria-prima para produção (CFOP 1101/2101 ou 1401/2401 se ST)
+- DESPESA: uso e consumo da empresa (CFOP 1556/2556 ou 1407/2407 se ST)
+- ATIVO_IMOBILIZADO: bens duráveis (CFOP 1551/2551 ou 1406/2406 se ST)
+- COMBUSTIVEL: combustíveis (CFOP 1653/2653)
+
+Responda APENAS com JSON válido no formato:
+{
+    "termo_buscado": "termo extraído do comando",
+    "categoria_destino": "CATEGORIA em maiúsculo",
+    "cfop_padrao": "CFOP padrão para esta categoria",
+    "produtos_encontrados": [
+        {"codigo": "código", "descricao": "descrição", "motivo_match": "por que este produto foi selecionado"}
+    ],
+    "regra_para_memorizar": {
+        "padrao": "padrão de descrição para aplicar em futuros produtos",
+        "categoria": "CATEGORIA",
+        "cfop": "CFOP"
+    }
+}"""
+
+    user_prompt = f"""Empresa: {company.get('razao_social', '')}
+Atividade: {company.get('cnae_principal_descricao', '')}
+
+COMANDO DO USUÁRIO: "{request.comando}"
+
+Lista de produtos disponíveis (total: {len(lista_produtos)}):
+{json.dumps(lista_produtos[:100], ensure_ascii=False, indent=2)}
+
+Analise o comando e identifique TODOS os produtos que correspondem semanticamente ao termo buscado.
+Seja abrangente na busca - inclua variações, sinônimos e produtos relacionados."""
+
+    try:
+        chat = await get_ai_chat(
+            session_id=f"smart_reclassify_{request.company_id}_{datetime.now().timestamp()}",
+            system_message=system_message
+        )
+        
+        response = await chat.send_message(UserMessage(text=user_prompt))
+        
+        # Extrair JSON da resposta
+        response_text = response.strip()
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+        
+        result = json.loads(response_text)
+        
+        produtos_reclassificados = []
+        
+        if request.aplicar and result.get('produtos_encontrados'):
+            categoria_nova = result.get('categoria_destino', '').lower()
+            cfop_novo = result.get('cfop_padrao', '')
+            
+            # Aplicar reclassificação em lote
+            for prod_match in result['produtos_encontrados']:
+                codigo = prod_match.get('codigo', '')
+                if codigo in produtos_unicos:
+                    prod_info = produtos_unicos[codigo]
+                    
+                    # Determinar CFOP baseado em estadual/interestadual
+                    for occ in prod_info['ocorrencias']:
+                        doc = await db.xml_documents.find_one({"id": occ['doc_id']})
+                        if doc:
+                            produtos = doc.get('produtos', [])
+                            if occ['idx'] < len(produtos):
+                                cfop_atual = produtos[occ['idx']].get('cfop', '')
+                                is_interestadual = cfop_atual.startswith('2') if cfop_atual else False
+                                
+                                # Calcular CFOP correto
+                                prefix = '2' if is_interestadual else '1'
+                                cfop_map = {
+                                    'revenda': prefix + '102',
+                                    'revenda_st': prefix + '403',
+                                    'insumo': prefix + '101',
+                                    'insumo_st': prefix + '401',
+                                    'despesa': prefix + '556',
+                                    'despesa_st': prefix + '407',
+                                    'ativo_imobilizado': prefix + '551',
+                                    'ativo_imobilizado_st': prefix + '406',
+                                    'combustivel': prefix + '653',
+                                }
+                                cfop_aplicar = cfop_map.get(categoria_nova, cfop_novo or prefix + '102')
+                                
+                                # Atualizar produto
+                                produtos[occ['idx']]['categoria_classificada'] = categoria_nova.upper()
+                                produtos[occ['idx']]['cfop'] = cfop_aplicar
+                                produtos[occ['idx']]['reclassificado_por_ia'] = True
+                                produtos[occ['idx']]['motivo_reclassificacao'] = f"Smart reclassify: {request.comando}"
+                                produtos[occ['idx']]['justificativa'] = f"IA identificou como '{prod_match.get('motivo_match', 'relacionado ao termo buscado')}'"
+                                
+                                await db.xml_documents.update_one(
+                                    {"id": occ['doc_id']},
+                                    {"$set": {"produtos": produtos}}
+                                )
+                    
+                    produtos_reclassificados.append({
+                        'codigo': codigo,
+                        'descricao': prod_info['descricao'],
+                        'categoria_nova': categoria_nova.upper(),
+                        'ocorrencias_atualizadas': len(prod_info['ocorrencias']),
+                        'motivo': prod_match.get('motivo_match', '')
+                    })
+            
+            # Salvar regra para aplicação futura (sobrepondo existentes se solicitado)
+            if result.get('regra_para_memorizar'):
+                regra = result['regra_para_memorizar']
+                
+                if request.sobrepor_regras:
+                    # Remover regras existentes com padrão similar
+                    await db.learned_rules.delete_many({
+                        "company_id": request.company_id,
+                        "produto_descricao": {"$regex": regra.get('padrao', ''), "$options": "i"}
+                    })
+                
+                # Inserir nova regra
+                await db.learned_rules.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "company_id": request.company_id,
+                    "produto_descricao": regra.get('padrao', result.get('termo_buscado', '')),
+                    "categoria_correta": regra.get('categoria', categoria_nova).upper(),
+                    "cfop_correto": regra.get('cfop', cfop_novo),
+                    "motivo": f"Regra automática: {request.comando}",
+                    "aprendido_de": "smart_reclassify",
+                    "created_by": current_user.id,
+                    "created_at": datetime.now(timezone.utc)
+                })
+        
+        return {
+            "success": True,
+            "termo_buscado": result.get('termo_buscado', ''),
+            "categoria_destino": result.get('categoria_destino', ''),
+            "total_produtos_encontrados": len(result.get('produtos_encontrados', [])),
+            "produtos_reclassificados": produtos_reclassificados,
+            "regra_memorizada": result.get('regra_para_memorizar'),
+            "mensagem": f"Encontrados {len(result.get('produtos_encontrados', []))} produtos. {len(produtos_reclassificados)} reclassificados."
+        }
+        
+    except json.JSONDecodeError as e:
+        return {
+            "success": False,
+            "error": f"Erro ao processar resposta da IA: {str(e)}",
+            "resposta_raw": response_text if 'response_text' in dir() else ""
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na reclassificação inteligente: {str(e)}")
+
 @api_router.post("/ai/validate-taxes")
 async def ai_validate_taxes(
     request: TaxValidationRequest,
