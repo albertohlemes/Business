@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useEmpresa } from '../contexts/EmpresaContext';
+import { getErrorMessage } from '../utils/errorHandler';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
