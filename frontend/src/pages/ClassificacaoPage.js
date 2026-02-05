@@ -1263,12 +1263,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                     {/* Lista de produtos expandida */}
                     {expandedCategoria === categoria && (
                       <div className="bg-white">
-                        {produtos.map((product) => (
-                          <ProductRow 
-                            key={product.codigo} 
-                            product={product} 
-                          />
-                        ))}
+                        {produtos.map((product) => renderProductRow(product))}
                       </div>
                     )}
                   </div>
