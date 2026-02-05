@@ -11,6 +11,7 @@ import Admissoes from "./pages/Admissoes";
 import Medias from "./pages/Medias";
 import ValidacaoFolha from "./pages/ValidacaoFolha";
 import InformesRendimento from "./pages/InformesRendimento";
+import Relatorios from "./pages/Relatorios";
 import Layout from "./components/Layout";
 import "@/App.css";
 
