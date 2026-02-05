@@ -32,10 +32,10 @@ const ExportMenu = ({ user, onLogout }) => {
     if (ctxCompetencia) {
       setCompetencia(ctxCompetencia);
     }
-    // Depois carregar documentos se tiver empresa
+    // Depois carregar documentos se tiver empresa (passar competência para evitar reset)
     if (ctxCompany) {
       setSelectedCompany(ctxCompany.id);
-      fetchDocumentsAndCompetencias(ctxCompany.id);
+      fetchDocumentsAndCompetencias(ctxCompany.id, ctxCompetencia);
     }
   }, [ctxCompany, ctxCompetencia]);
 
