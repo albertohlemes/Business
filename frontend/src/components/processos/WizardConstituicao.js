@@ -1168,10 +1168,11 @@ const SeletorCNAEs = ({ cnaes, onAdd, onRemove }) => {
     );
 };
 
-const WizardConstituicao = ({ open, onClose, onComplete }) => {
+const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => {
     const [step, setStep] = useState(1);
     const [processing, setProcessing] = useState(false);
     const [processoId, setProcessoId] = useState(null);
+    const [modoEdicao, setModoEdicao] = useState(false);
     
     // Step 1 - Dados da Empresa
     const [razaoSocial, setRazaoSocial] = useState('');
