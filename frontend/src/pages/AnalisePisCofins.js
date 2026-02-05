@@ -446,17 +446,17 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 border-b">
                       <tr>
-                        <SortableHeader label="NF" sortKey="numero_nfe" className="text-left" />
-                        <SortableHeader label="Produto" sortKey="descricao" className="text-left" />
-                        <SortableHeader label="NCM" sortKey="ncm" className="text-left" />
-                        <SortableHeader label="CFOP" sortKey="cfop" className="text-center" />
-                        <SortableHeader label="Valor" sortKey="valor_produto" className="text-right" />
-                        <SortableHeader label="PIS Atual" sortKey="v_pis_atual" className="text-right" />
-                        <SortableHeader label="PIS Correto" sortKey="v_pis_correto" className="text-right" />
-                        <SortableHeader label="COFINS Atual" sortKey="v_cofins_atual" className="text-right" />
-                        <SortableHeader label="COFINS Correto" sortKey="v_cofins_correto" className="text-right" />
-                        <SortableHeader label="Impacto" sortKey="impacto_total" className="text-right" />
-                        <SortableHeader label="Tipo" sortKey="tipo_divergencia" className="text-left" />
+                        {renderSortableHeader("NF", "numero_nfe", "text-left")}
+                        {renderSortableHeader("Produto", "descricao", "text-left")}
+                        {renderSortableHeader("NCM", "ncm", "text-left")}
+                        {renderSortableHeader("CFOP", "cfop", "text-center")}
+                        {renderSortableHeader("Valor", "valor_produto", "text-right")}
+                        {renderSortableHeader("PIS Atual", "v_pis_atual", "text-right")}
+                        {renderSortableHeader("PIS Correto", "v_pis_correto", "text-right")}
+                        {renderSortableHeader("COFINS Atual", "v_cofins_atual", "text-right")}
+                        {renderSortableHeader("COFINS Correto", "v_cofins_correto", "text-right")}
+                        {renderSortableHeader("Impacto", "impacto_total", "text-right")}
+                        {renderSortableHeader("Tipo", "tipo_divergencia", "text-left")}
                       </tr>
                     </thead>
                     <tbody className="divide-y">
