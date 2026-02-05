@@ -1372,8 +1372,25 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             # |REG|NUM_ITEM|COD_ITEM|DESCR_COMPL|QTD|UNID|VL_ITEM|VL_DESC|IND_MOV|CST_ICMS|CFOP|COD_NAT|VL_BC_ICMS|ALIQ_ICMS|VL_ICMS|VL_BC_ICMS_ST|ALIQ_ST|VL_ICMS_ST|IND_APUR|CST_IPI|COD_ENQ|VL_BC_IPI|ALIQ_IPI|VL_IPI|CST_PIS|VL_BC_PIS|ALIQ_PIS|QUANT_BC_PIS|ALIQ_PIS_QUANT|VL_PIS|CST_COFINS|VL_BC_COFINS|ALIQ_COFINS|QUANT_BC_COFINS|ALIQ_COFINS_QUANT|VL_COFINS|COD_CTA|
             cst_icms = prod.get('cst', '000') or '000'
             cfop = prod.get('cfop', '') or ''
-            cst_pis = prod.get('cst_pis', '01') or '01'
-            cst_cofins = prod.get('cst_cofins', '01') or '01'
+            
+            # Valores de ICMS do XML
+            bc_icms = float(prod.get('v_bc_icms', 0) or prod.get('bc_icms', 0) or prod.get('v_bc', 0) or 0)
+            aliq_icms = float(prod.get('p_icms', 0) or prod.get('aliq_icms', 0) or 0)
+            v_icms = float(prod.get('v_icms', 0) or 0)
+            
+            # CST de PIS/COFINS do XML
+            cst_pis = str(prod.get('cst_pis', '') or '01')
+            cst_cofins = str(prod.get('cst_cofins', '') or '01')
+            
+            # Valores de PIS do XML
+            bc_pis = float(prod.get('v_bc_pis', 0) or prod.get('bc_pis', 0) or 0)
+            aliq_pis = float(prod.get('p_pis', 0) or prod.get('aliq_pis', 0) or 0)
+            v_pis = float(prod.get('v_pis', 0) or 0)
+            
+            # Valores de COFINS do XML
+            bc_cofins = float(prod.get('v_bc_cofins', 0) or prod.get('bc_cofins', 0) or 0)
+            aliq_cofins = float(prod.get('p_cofins', 0) or prod.get('aliq_cofins', 0) or 0)
+            v_cofins = float(prod.get('v_cofins', 0) or 0)
             
             lines.append("|C170|{}|{}||{}|{}|{}|0|0|{}|{}||{}|{}|{}|0|0|0|0|99|||0|||{}|{}|{}|||{}|{}|{}|{}||||{}||".format(
                 idx + 1,                                                    # NUM_ITEM
@@ -1383,17 +1400,17 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
                 f"{float(prod.get('valor_total', 0) or 0):.2f}".replace('.',','),  # VL_ITEM
                 cst_icms,                                                   # CST_ICMS
                 cfop,                                                       # CFOP
-                f"{float(prod.get('bc_icms', 0) or 0):.2f}".replace('.',','),      # VL_BC_ICMS
-                f"{float(prod.get('aliq_icms', 0) or 0):.2f}".replace('.',','),    # ALIQ_ICMS
-                f"{float(prod.get('v_icms', 0) or 0):.2f}".replace('.',','),       # VL_ICMS
+                f"{bc_icms:.2f}".replace('.',','),                         # VL_BC_ICMS
+                f"{aliq_icms:.2f}".replace('.',','),                       # ALIQ_ICMS
+                f"{v_icms:.2f}".replace('.',','),                          # VL_ICMS
                 cst_pis,                                                    # CST_PIS
-                f"{float(prod.get('bc_pis', prod.get('valor_total', 0)) or 0):.2f}".replace('.',','),  # VL_BC_PIS
-                f"{float(prod.get('aliq_pis', 1.65) or 0):.2f}".replace('.',','),  # ALIQ_PIS
-                f"{float(prod.get('v_pis', 0) or 0):.2f}".replace('.',','),        # VL_PIS
+                f"{bc_pis:.2f}".replace('.',','),                          # VL_BC_PIS
+                f"{aliq_pis:.2f}".replace('.',','),                        # ALIQ_PIS
+                f"{v_pis:.2f}".replace('.',','),                           # VL_PIS
                 cst_cofins,                                                 # CST_COFINS
-                f"{float(prod.get('bc_cofins', prod.get('valor_total', 0)) or 0):.2f}".replace('.',','),  # VL_BC_COFINS
-                f"{float(prod.get('aliq_cofins', 7.6) or 0):.2f}".replace('.',','),  # ALIQ_COFINS
-                f"{float(prod.get('v_cofins', 0) or 0):.2f}".replace('.',',')      # VL_COFINS
+                f"{bc_cofins:.2f}".replace('.',','),                       # VL_BC_COFINS
+                f"{aliq_cofins:.2f}".replace('.',','),                     # ALIQ_COFINS
+                f"{v_cofins:.2f}".replace('.',',')                         # VL_COFINS
             ))
         
         # Registro C190 - Registro analítico do documento
