@@ -4913,8 +4913,10 @@ async def apuracao_periodo(
                 v_pis = round(valor * 0.0065, 2)  # PIS Lucro Presumido: 0,65%
                 v_cofins = round(valor * 0.03, 2)  # COFINS Lucro Presumido: 3%
             
-            # Verificar se é CFOP de Substituição Tributária
+            # Verificar se é CFOP de Substituição Tributária ou Despesa
             is_st = cfop in CFOPS_ST
+            is_despesa = cfop in CFOPS_DESPESA
+            sem_credito = cfop in CFOPS_SEM_CREDITO
             
             # Determinar se é entrada ou saída pelo TIPO DO DOCUMENTO (não pelo CFOP)
             # Isso é importante porque em notas de entrada, o CFOP vem do emitente (que é saída para ele)
