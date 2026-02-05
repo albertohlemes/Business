@@ -253,15 +253,21 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     }
   };
 
-  // Agrupar produtos
+  // Agrupar produtos - usando código + NCM + descricao para evitar colisões
   const groupedProducts = useMemo(() => {
     const groups = {};
     
     documents.forEach(doc => {
       (doc.produtos || []).forEach((prod, prodIndex) => {
+        // Usar código + NCM + primeiros 30 chars da descrição como chave única
+        // Isso evita que produtos diferentes de fornecedores diferentes colidam
         const code = prod.codigo || 'SEM_CODIGO';
-        if (!groups[code]) {
-          groups[code] = {
+        const ncm = prod.ncm || 'SEM_NCM';
+        const descPrefix = (prod.descricao || '').substring(0, 30).trim();
+        const uniqueKey = `${code}_${ncm}_${descPrefix}`;
+        
+        if (!groups[uniqueKey]) {
+          groups[uniqueKey] = {
             codigo: code,
             descricao: prod.descricao,
             ncm: prod.ncm,
@@ -272,7 +278,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
             valor_total: 0
           };
         }
-        groups[code].ocorrencias.push({
+        groups[uniqueKey].ocorrencias.push({
           doc_id: doc.id,
           numero_nfe: doc.numero_nfe,
           emitente: doc.emitente_nome,
@@ -281,10 +287,10 @@ const ClassificacaoPage = ({ user, onLogout }) => {
           cfop: prod.cfop,
           product_index: prodIndex
         });
-        groups[code].quantidade_total += prod.quantidade || 0;
-        groups[code].valor_total += prod.valor_total || 0;
+        groups[uniqueKey].quantidade_total += prod.quantidade || 0;
+        groups[uniqueKey].valor_total += prod.valor_total || 0;
         if (prod.categoria_classificada) {
-          groups[code].categoria = prod.categoria_classificada;
+          groups[uniqueKey].categoria = prod.categoria_classificada;
         }
       });
     });
