@@ -387,6 +387,8 @@ const ExportMenu = ({ user, onLogout }) => {
                     <div className={`p-4 rounded-lg border flex items-center gap-3 ${
                       validacao.status === 'OK' 
                         ? 'bg-green-50 border-green-300' 
+                        : validacao.status === 'PENDENTE'
+                        ? 'bg-orange-50 border-orange-300'
                         : 'bg-yellow-50 border-yellow-300'
                     }`}>
                       {validacao.status === 'OK' ? (
@@ -395,6 +397,17 @@ const ExportMenu = ({ user, onLogout }) => {
                           <div>
                             <h4 className="font-bold text-green-800">✅ SPED Validado com Sucesso!</h4>
                             <p className="text-sm text-green-700">O arquivo gerado está consistente com os dados do sistema.</p>
+                          </div>
+                        </>
+                      ) : validacao.status === 'PENDENTE' ? (
+                        <>
+                          <AlertTriangle className="w-8 h-8 text-orange-600" />
+                          <div>
+                            <h4 className="font-bold text-orange-800">⚠️ Itens Pendentes de Correção</h4>
+                            <p className="text-sm text-orange-700">
+                              {validacao.total_itens_pendentes} item(ns) com CST tributado mas ICMS = R$ 0,00. 
+                              Verifique e corrija antes de enviar o SPED.
+                            </p>
                           </div>
                         </>
                       ) : (
@@ -406,6 +419,48 @@ const ExportMenu = ({ user, onLogout }) => {
                           </div>
                         </>
                       )}
+                    </div>
+
+                    {/* Itens Pendentes de Correção */}
+                    {validacao.itens_pendentes && validacao.itens_pendentes.length > 0 && (
+                      <div className="bg-orange-50 rounded-lg border border-orange-200">
+                        <div className="p-3 bg-orange-100 border-b border-orange-200 font-semibold text-orange-800 flex items-center gap-2">
+                          <AlertTriangle className="w-5 h-5" />
+                          Itens com ICMS Zerado (CST indica tributação)
+                        </div>
+                        <div className="max-h-60 overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-orange-100 sticky top-0">
+                              <tr>
+                                <th className="px-3 py-2 text-left">Tipo</th>
+                                <th className="px-3 py-2 text-left">CFOP</th>
+                                <th className="px-3 py-2 text-left">Descrição</th>
+                                <th className="px-3 py-2 text-left">NCM</th>
+                                <th className="px-3 py-2 text-right">Valor</th>
+                                <th className="px-3 py-2 text-center">CST</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-orange-200">
+                              {validacao.itens_pendentes.map((item, idx) => (
+                                <tr key={idx} className="hover:bg-orange-100">
+                                  <td className="px-3 py-2 capitalize">{item.tipo}</td>
+                                  <td className="px-3 py-2 font-mono">{item.cfop}</td>
+                                  <td className="px-3 py-2 truncate max-w-[200px]">{item.descricao}</td>
+                                  <td className="px-3 py-2 font-mono">{item.ncm}</td>
+                                  <td className="px-3 py-2 text-right font-mono">R$ {item.valor?.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                  <td className="px-3 py-2 text-center font-mono text-orange-700 font-bold">{item.cst}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {validacao.total_itens_pendentes > 100 && (
+                          <div className="p-2 bg-orange-100 text-center text-sm text-orange-700">
+                            Mostrando 100 de {validacao.total_itens_pendentes} itens pendentes
+                          </div>
+                        )}
+                      </div>
+                    )}
                     </div>
 
                     {/* Comparativo Totais */}
