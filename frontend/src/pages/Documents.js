@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { FileText, Eye, Filter, Trash2, CheckCircle2, XCircle, Shield, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { FileText, Eye, Filter, Trash2, CheckCircle2, XCircle, Shield, X, ArrowUpDown, ArrowUp, ArrowDown, Search } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -10,6 +10,9 @@ const API = `${BACKEND_URL}/api`;
 
 const Documents = ({ user, onLogout }) => {
   const { selectedCompany: ctxCompany, selectedCompetencia } = useAppContext();
+  const [searchParams] = useSearchParams();
+  const highlightDocId = searchParams.get('highlight');
+  
   const [documents, setDocuments] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +20,7 @@ const Documents = ({ user, onLogout }) => {
   const [selectedTipo, setSelectedTipo] = useState('');
   const [selectedIntegridade, setSelectedIntegridade] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(''); // Busca
   
   // Ordenação
   const [sortField, setSortField] = useState('numero_nfe');
@@ -29,6 +33,16 @@ const Documents = ({ user, onLogout }) => {
   useEffect(() => {
     fetchData();
   }, [ctxCompany]);
+  
+  // Auto-abrir documento se highlight estiver na URL
+  useEffect(() => {
+    if (highlightDocId && documents.length > 0) {
+      const docToOpen = documents.find(d => d.id === highlightDocId);
+      if (docToOpen) {
+        fetchDocumentDetail(highlightDocId);
+      }
+    }
+  }, [highlightDocId, documents]);
 
   const fetchData = async () => {
     try {
