@@ -722,7 +722,7 @@ async def upload_documento_suporte(
     current_user: dict = Depends(get_current_user)
 ):
     """Upload de documento de suporte (CNH, comprovante, CNAEs, etc.)"""
-    minuta = await db.minutas.find_one({"id": minuta_id, "user_id": current_user["id"]})
+    minuta = await db.minutas.find_one({"id": minuta_id})
     if not minuta:
         raise HTTPException(status_code=404, detail="Minuta não encontrada")
     
@@ -755,7 +755,7 @@ async def list_documentos_suporte(
 ):
     """Lista documentos de suporte de uma minuta"""
     minuta = await db.minutas.find_one(
-        {"id": minuta_id, "user_id": current_user["id"]},
+        {"id": minuta_id},
         {"_id": 0, "documentos_suporte": 1}
     )
     if not minuta:
@@ -771,7 +771,7 @@ async def delete_documento_suporte(
 ):
     """Remove um documento de suporte"""
     result = await db.minutas.update_one(
-        {"id": minuta_id, "user_id": current_user["id"]},
+        {"id": minuta_id},
         {"$pull": {"documentos_suporte": {"id": doc_id}}}
     )
     if result.modified_count == 0:
