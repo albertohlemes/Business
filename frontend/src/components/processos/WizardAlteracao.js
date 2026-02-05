@@ -1915,16 +1915,24 @@ const WizardAlteracao = ({ open, onClose, onComplete, processoEditando }) => {
                 if (tiposQSA.includes('redistribuicao')) {
                     descricaoCompleta += `\n[REDISTRIBUIÇÃO DE COTAS]\n`;
                     descricaoCompleta += `- Nova distribuição do capital social:\n`;
+                    let totalParticipacao = 0;
                     // Sócios extraídos
                     Object.entries(dadosQSA.novasParticipacoes || {}).forEach(([idx, valor]) => {
+                        const perc = parseFloat(valor) || 0;
+                        totalParticipacao += perc;
                         descricaoCompleta += `  - ${socios[idx]?.nome || `Sócio ${parseInt(idx)+1}`}: ${valor}%\n`;
                     });
                     // Sócios adicionados manualmente
                     if (dadosQSA.sociosRedistribuicao?.length > 0) {
                         dadosQSA.sociosRedistribuicao.forEach(s => {
+                            const perc = parseFloat(s.novaParticipacao) || 0;
+                            totalParticipacao += perc;
                             descricaoCompleta += `  - ${s.nome}${s.cpf ? `, CPF ${s.cpf}` : ''}: de ${s.participacaoAtual || '?'}% para ${s.novaParticipacao}%\n`;
                         });
                     }
+                    // Linha de TOTAL
+                    descricaoCompleta += `  ----------------------------------------\n`;
+                    descricaoCompleta += `  TOTAL: ${totalParticipacao}%\n`;
                 }
             }
             
