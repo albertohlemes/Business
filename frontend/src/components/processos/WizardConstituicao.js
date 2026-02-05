@@ -1222,6 +1222,7 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
                 for (let i = prevSocios.length; i < numSocios; i++) {
                     novos.push({ 
                         nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)', 
+                        dataNascimento: '', cidadeNascimento: '', estadoNascimento: '',
                         estadoCivil: '', regimeCasamento: '', profissao: '', 
                         endereco: { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' },
                         participacao: '', administrador: false, documentos: [] 
