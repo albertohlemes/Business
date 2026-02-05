@@ -4939,10 +4939,13 @@ async def apuracao_periodo(
             else:
                 cfop_key = cfop if cfop else f"SEM CFOP ({doc_tipo.upper()})"
             
-            # Verificar ST no CFOP convertido
+            # Verificar ST/Despesa no CFOP convertido
             if is_entrada:
                 cfops_st_entrada = ['1403', '1409', '2403', '2409', '3403', '3409']
+                cfops_despesa_entrada = ['1407', '2407', '1556', '2556', '1557', '2557', '1128', '2128', '1551', '2551', '1406', '2406']
                 is_st = cfop_key in cfops_st_entrada
+                is_despesa = cfop_key in cfops_despesa_entrada
+                sem_credito = is_st or is_despesa
             
             if is_entrada:
                 # Entrada
