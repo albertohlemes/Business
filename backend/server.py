@@ -2650,8 +2650,8 @@ async def get_dashboard_stats(
     regime_tributario = company.get('regime_tributario', 'lucro_presumido')
     
     # Créditos (entradas)
-    # CSTs de ICMS-ST que NÃO geram direito a crédito de ICMS
-    CST_ICMS_ST = ['10', '30', '60', '70', '201', '202', '203', '500']
+    # CFOPs de Substituição Tributária (mesma lista usada na apuração)
+    CFOPS_ST = ['1403', '1409', '2403', '2409', '5403', '5405', '5409', '6403', '6404', '6409']
     
     credito_icms = 0
     credito_icms_st_desconsiderado = 0  # Para mostrar quanto foi desconsiderado
@@ -2660,11 +2660,12 @@ async def get_dashboard_stats(
     
     for doc in nfe_entrada:
         for prod in doc.get('produtos', []):
-            cst = str(prod.get('cst', ''))
+            cfop = str(prod.get('cfop', ''))
             v_icms = float(prod.get('v_icms', 0) or 0)
             
-            # ICMS-ST não gera crédito - mercadoria já teve imposto retido na fonte
-            if cst in CST_ICMS_ST:
+            # ICMS-ST não gera crédito - usar CFOP para determinar ST (igual apuração)
+            is_st = cfop in CFOPS_ST
+            if is_st:
                 credito_icms_st_desconsiderado += v_icms
             else:
                 credito_icms += v_icms
