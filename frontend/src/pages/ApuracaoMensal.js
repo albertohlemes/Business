@@ -221,7 +221,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
   );
 
   // Card de imposto
-  const TaxCard = ({ title, credito, debito, aPagar, color, stDesconsiderado }) => (
+  const TaxCard = ({ title, credito, debito, aPagar, color, stDesconsiderado, despesaDesconsiderada }) => (
     <div className={`bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200`}>
       <div className={`${color} text-white px-4 py-3`}>
         <h3 className="font-bold">{title}</h3>
@@ -239,6 +239,16 @@ const ApuracaoMensal = ({ user, onLogout }) => {
               ICMS-ST (sem crédito)
             </span>
             <span className="font-medium text-red-500 line-through">{formatCurrency(stDesconsiderado)}</span>
+          </div>
+        )}
+        {/* ICMS Despesa Desconsiderado - riscado em vermelho */}
+        {despesaDesconsiderada > 0 && (
+          <div className="flex justify-between items-center bg-orange-50 -mx-4 px-4 py-2 border-y border-orange-200">
+            <span className="text-sm text-orange-600 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              ICMS Despesa (sem crédito)
+            </span>
+            <span className="font-medium text-orange-500 line-through">{formatCurrency(despesaDesconsiderada)}</span>
           </div>
         )}
         <div className="flex justify-between items-center">
