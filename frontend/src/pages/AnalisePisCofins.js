@@ -65,10 +65,6 @@ const AnalisePisCofins = ({ user, onLogout }) => {
       direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
     }));
   };
-    return sortConfig.direction === 'asc' 
-      ? <ChevronUp className="w-4 h-4" /> 
-      : <ChevronDown className="w-4 h-4" />;
-  };
 
   // Filtrar e ordenar divergências
   const divergenciasFiltradas = useMemo(() => {
