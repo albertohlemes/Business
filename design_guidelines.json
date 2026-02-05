@@ -1,0 +1,128 @@
+{
+  "identity": {
+    "name": "E1",
+    "archetype": "The Performance Pro (Accounting Edition)",
+    "core_philosophy": "Tactical Minimalism. Precision over decoration. Speed over flair.",
+    "language": "pt-BR"
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Plus Jakarta Sans, sans-serif",
+      "body": "Inter, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "import_instruction": "Add to index.css: @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap');",
+    "usage_rules": {
+      "headings": "Use Plus Jakarta Sans for all h1-h6. Tracking tight (-0.02em). Weight 600 or 700.",
+      "body": "Use Inter for all paragraphs and UI labels. Tracking normal.",
+      "numbers": "Use JetBrains Mono for all financial data, dates, and ID codes. This is CRITICAL for accounting legibility."
+    }
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#0F172A",
+        "foreground": "#F8FAFC"
+      },
+      "secondary": {
+        "DEFAULT": "#F1F5F9",
+        "foreground": "#0F172A"
+      },
+      "accent": {
+        "DEFAULT": "#4F46E5",
+        "foreground": "#FFFFFF"
+      },
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "error": "#EF4444",
+      "background": "#F8FAFC",
+      "surface": "#FFFFFF"
+    },
+    "usage": {
+      "primary_action": "bg-accent hover:bg-accent/90 text-white shadow-sm",
+      "secondary_action": "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50",
+      "sidebar": "bg-slate-900 text-slate-300",
+      "sidebar_active": "bg-accent text-white"
+    }
+  },
+  "layout_strategy": {
+    "dashboard": {
+      "type": "Bento Grid Mode B (High Density)",
+      "grid_cols": "grid-cols-1 md:grid-cols-4",
+      "gap": "gap-4",
+      "rules": [
+        "Summary Cards: col-span-1. Minimalist, just the number and trend.",
+        "Main Chart: col-span-2 row-span-2. Use Recharts.",
+        "Task List: col-span-1 row-span-2. Vertical list with status badges."
+      ]
+    },
+    "forms": {
+      "type": "Split Screen (Document | Form)",
+      "layout": "grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-4rem)]",
+      "left_panel": "Document Preview (PDF/Image). Sticky position.",
+      "right_panel": "Form Inputs. Scrollable. Use Shadcn Form components."
+    },
+    "spacing": {
+      "container_padding": "p-6 md:p-8",
+      "section_gap": "gap-8"
+    }
+  },
+  "components": {
+    "buttons": {
+      "style": "h-10 px-4 py-2 rounded-md font-medium transition-all active:scale-95",
+      "primary": "bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm hover:shadow-md",
+      "ghost": "hover:bg-slate-100 text-slate-600"
+    },
+    "cards": {
+      "style": "bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200",
+      "header": "p-6 border-b border-slate-100",
+      "content": "p-6"
+    },
+    "inputs": {
+      "style": "h-10 rounded-md border-slate-200 focus:border-indigo-500 focus:ring-indigo-500"
+    },
+    "status_badge": {
+      "base": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+      "variants": {
+        "pending": "bg-amber-100 text-amber-800",
+        "success": "bg-emerald-100 text-emerald-800",
+        "error": "bg-rose-100 text-rose-800",
+        "processing": "bg-blue-100 text-blue-800 animate-pulse"
+      }
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": "Use sparingly. Only for sticky headers: bg-white/80 backdrop-blur-md border-b border-slate-200/50.",
+    "shadows": "Use 'shadow-sm' for cards, 'shadow-lg' for dropdowns/modals. Avoid heavy shadows.",
+    "borders": "1px solid slate-200. Crisp, clean edges.",
+    "radius": "rounded-lg (0.5rem) for containers, rounded-md (0.375rem) for internal elements."
+  },
+  "media": {
+    "image_urls": {
+      "login_background": "https://images.unsplash.com/photo-1763850407744-d2e14b99b1b9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBtaW5pbWFsaXN0JTIwb2ZmaWNlJTIwYXJjaGl0ZWN0dXJlJTIwY29uY3JldGUlMjBnbGFzc3xlbnwwfHx8fDE3NzAzMDcxNzB8MA&ixlib=rb-4.1.0&q=85",
+      "empty_state_abstract": "https://images.pexels.com/photos/18069816/pexels-photo-18069816.png",
+      "team_photo": "https://images.pexels.com/photos/5256687/pexels-photo-5256687.jpeg"
+    },
+    "icons": "Use Lucide React (already installed). Stroke width 1.5px for a refined look."
+  },
+  "accessibility": {
+    "contrast": "Ensure text is slate-600 or darker on white backgrounds.",
+    "focus_states": "Ring-2 ring-indigo-500 ring-offset-2",
+    "labels": "All inputs must have visible labels or aria-labels."
+  },
+  "instructions_to_main_agent": [
+    "LANGUAGE: The entire UI must be in Portuguese (PT-BR).",
+    "LIBRARIES: Use 'recharts' for charts, 'react-hook-form' + 'zod' for forms, 'sonner' for toasts.",
+    "ROUTING: Use 'react-router-dom'. Create a layout wrapper for the dashboard sidebar.",
+    "THEME: Default to Light Mode. It is better for data density in accounting apps.",
+    "DATA DISPLAY: Use tables heavily. Use 'TanStack Table' (if available) or standard HTML tables with Tailwind styling for the 'Folha de Pagamento' validation.",
+    "MOCKING: Mock all backend API calls with 'axios-mock-adapter' or simple timeouts to demonstrate the UI flow.",
+    "TESTING: Add 'data-testid' to all buttons, inputs, and cards."
+  ],
+  "universal_guidelines": [
+    "Do not use gradients for backgrounds. Use solid colors or subtle noise.",
+    "Do not center text in cards. Left align is better for readability.",
+    "Use 'gap-4' or 'gap-6' for form fields. Don't cram them.",
+    "Add loading states (skeletons) for all data fetching operations."
+  ]
+}
