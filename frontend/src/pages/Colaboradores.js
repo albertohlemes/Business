@@ -487,10 +487,19 @@ const Colaboradores = () => {
                 <Card className="border-indigo-200 bg-indigo-50"><CardContent className="p-3 text-sm text-indigo-800"><p className="font-medium">Suporte a múltiplos vínculos!</p><p className="text-indigo-600">Envie uma ficha de registro com vários colaboradores. A IA extrai todos automaticamente.</p></CardContent></Card>
                 <div><Label>Empresa</Label><Select value={formData.cliente_id || empresaSelecionada?.id || ''} onValueChange={(v) => setFormData({ ...formData, cliente_id: v })}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{sortClientesBySelection(clientes, empresaSelecionada?.id).map(c => <SelectItem key={c.id} value={c.id}><span className="font-mono text-xs text-indigo-600 mr-2">{generateEmpresaCode(c.id, c.codigo_interno)}</span>{c.nome_fantasia || c.razao_social}</SelectItem>)}</SelectContent></Select></div>
                 <div><Label>Tipo de Documento</Label><Select value={tipoDocumento} onValueChange={setTipoDocumento}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="auto">Detectar automaticamente</SelectItem><SelectItem value="ficha_registro">Ficha de Registro (multi-vínculos)</SelectItem><SelectItem value="ficha_esocial">Ficha eSocial</SelectItem><SelectItem value="holerite">Holerite</SelectItem></SelectContent></Select></div>
-                <div {...getRootProps()} className={`upload-zone ${isDragActive ? 'active' : ''} ${!formData.cliente_id && !empresaSelecionada?.id ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                  <input {...getInputProps()} disabled={(!formData.cliente_id && !empresaSelecionada?.id) || uploading} />
-                  {uploading ? <div className="flex flex-col items-center"><Loader2 className="animate-spin text-indigo-600 mb-2" size={32} /><p className="text-slate-600">Extraindo colaboradores com IA...</p></div> : <><FileUp className="mx-auto text-slate-400 mb-2" size={32} /><p className="text-slate-600">Arraste o documento ou clique</p><p className="text-xs text-slate-400 mt-1">PDF, JPG, PNG, Excel</p></>}
-                </div>
+                
+                {uploading ? (
+                  <div className="py-4">
+                    <ImportColaboradoresProgress isProcessing={uploading} />
+                  </div>
+                ) : (
+                  <div {...getRootProps()} className={`upload-zone ${isDragActive ? 'active' : ''} ${!formData.cliente_id && !empresaSelecionada?.id ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <input {...getInputProps()} disabled={(!formData.cliente_id && !empresaSelecionada?.id) || uploading} />
+                    <FileUp className="mx-auto text-slate-400 mb-2" size={32} />
+                    <p className="text-slate-600">Arraste o documento ou clique</p>
+                    <p className="text-xs text-slate-400 mt-1">PDF, JPG, PNG, Excel</p>
+                  </div>
+                )}
               </div>
             </DialogContent>
           </Dialog>
