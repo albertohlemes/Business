@@ -1955,6 +1955,20 @@ async def list_validacoes(cliente_id: Optional[str] = None, current_user: dict =
     validacoes = await db.validacoes.find(query, {"_id": 0, "user_id": 0, "resumo": 0}).to_list(1000)
     return [ValidacaoFolhaResponse(**v) for v in validacoes]
 
+
+@api_router.delete("/validacoes/{validacao_id}")
+async def delete_validacao(validacao_id: str, current_user: dict = Depends(get_current_user)):
+    """Exclui uma validação"""
+    result = await db.validacoes.delete_one({
+        "id": validacao_id,
+        "user_id": current_user["id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Validação não encontrada")
+    
+    return {"message": "Validação excluída com sucesso", "id": validacao_id}
+
 # ==================== MÉDIAS ROUTES ====================
 
 @api_router.post("/medias/importar")
