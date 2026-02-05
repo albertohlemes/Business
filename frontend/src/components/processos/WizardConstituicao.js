@@ -1195,6 +1195,8 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
     const [nomeFantasia, setNomeFantasia] = useState('');
     const [capitalSocial, setCapitalSocial] = useState('');
     const [capitalExtenso, setCapitalExtenso] = useState('');
+    const [inscricaoEstadual, setInscricaoEstadual] = useState('');
+    const [inscricaoMunicipal, setInscricaoMunicipal] = useState('');
     
     // Step 2 - Sócios
     const [numSocios, setNumSocios] = useState(2);
