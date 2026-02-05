@@ -1667,7 +1667,7 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
             // Extração estruturada
             const extractRes = await axios.post(`${API_URL}/api/minutas/${uploadRes.data.id}/extrair-dados`);
             
-            if (extractRes.data.success && extractRes.data.dados) {
+            if (extractRes.data.dados) {
                 const dados = extractRes.data.dados;
                 setDadosExtraidos(dados);
                 
@@ -1679,32 +1679,44 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
                     setTextoContratoOriginal(textoClausulas);
                 }
                 
-                // Se extraiu CNPJ, buscar CNAEs automaticamente na Receita
-                if (dados.empresa?.cnpj) {
-                    setCnpjInput(dados.empresa.cnpj);
-                    try {
-                        const cnpjLimpo = dados.empresa.cnpj.replace(/\D/g, '');
-                        if (cnpjLimpo.length === 14) {
-                            const receitaRes = await axios.get(`${API_URL}/api/cnpj/${cnpjLimpo}`);
-                            if (receitaRes.data.success) {
-                                setDadosExtraidos(prev => ({
-                                    ...prev,
-                                    cnaes: receitaRes.data.cnaes,
-                                    empresa: {
-                                        ...prev?.empresa,
-                                        ...receitaRes.data.empresa
-                                    }
-                                }));
-                                toast.success(`CNAEs carregados da Receita Federal: ${receitaRes.data.cnaes?.length || 0} atividade(s)`);
+                if (extractRes.data.success) {
+                    // Se extraiu CNPJ, buscar CNAEs automaticamente na Receita
+                    if (dados.empresa?.cnpj) {
+                        setCnpjInput(dados.empresa.cnpj);
+                        try {
+                            const cnpjLimpo = dados.empresa.cnpj.replace(/\D/g, '');
+                            if (cnpjLimpo.length === 14) {
+                                const receitaRes = await axios.get(`${API_URL}/api/cnpj/${cnpjLimpo}`);
+                                if (receitaRes.data.success) {
+                                    setDadosExtraidos(prev => ({
+                                        ...prev,
+                                        cnaes: receitaRes.data.cnaes,
+                                        empresa: {
+                                            ...prev?.empresa,
+                                            ...receitaRes.data.empresa
+                                        }
+                                    }));
+                                    toast.success(`CNAEs carregados da Receita Federal: ${receitaRes.data.cnaes?.length || 0} atividade(s)`);
+                                }
                             }
+                        } catch (receitaError) {
+                            console.log('Não foi possível buscar CNAEs na Receita:', receitaError.message);
                         }
-                    } catch (receitaError) {
-                        console.log('Não foi possível buscar CNAEs na Receita:', receitaError.message);
                     }
+                    
+                    toast.success('Contrato analisado com sucesso!');
+                } else {
+                    // Extração falhou mas temos estrutura básica
+                    toast.warning('Não foi possível extrair dados automaticamente. Preencha manualmente.');
                 }
-                
-                toast.success('Contrato analisado com sucesso!');
             } else {
+                // Sem dados, criar estrutura vazia
+                setDadosExtraidos({
+                    empresa: {},
+                    socios: [],
+                    clausulas: [],
+                    cnaes: []
+                });
                 toast.warning('Análise parcial. Alguns dados podem não estar disponíveis.');
             }
         } catch (e) {
