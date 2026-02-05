@@ -901,6 +901,84 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                     </div>
                   )}
                 </div>
+
+                {/* Separador visual entre Entradas e Saídas */}
+                <div className="bg-gradient-to-r from-purple-600/10 to-pink-600/10 px-5 py-2">
+                  <span className="text-sm font-semibold text-purple-700 flex items-center gap-2">
+                    <ArrowUpCircle className="w-4 h-4" />
+                    SAÍDAS (DÉBITOS)
+                  </span>
+                </div>
+
+                {/* Com Débito (CST 01 - Tributável) */}
+                <div className="border-b border-gray-200">
+                  <button
+                    onClick={() => setPisCofinsExpanded(pisCofinsExpanded === 'debito' ? null : 'debito')}
+                    className="w-full px-5 py-4 flex items-center justify-between bg-red-50 hover:bg-red-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                      <span className="font-semibold text-red-900">Operações Tributadas</span>
+                      <span className="text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded font-medium">CST 01</span>
+                      <span className="text-sm text-red-600">
+                        {(pisCofinsData?.debitos?.com_debito?.[`por_${pisCofinsViewMode}`] || []).length} registros
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <span className="text-xs text-gray-500 block">PIS</span>
+                        <span className="font-bold text-red-700">{formatCurrency(pisCofinsData?.debitos?.com_debito?.pis || 0)}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs text-gray-500 block">COFINS</span>
+                        <span className="font-bold text-red-700">{formatCurrency(pisCofinsData?.debitos?.com_debito?.cofins || 0)}</span>
+                      </div>
+                      {pisCofinsExpanded === 'debito' ? <ChevronDown className="w-5 h-5 text-red-600" /> : <ChevronRight className="w-5 h-5 text-red-600" />}
+                    </div>
+                  </button>
+                  {pisCofinsExpanded === 'debito' && (
+                    <div className="p-4 bg-red-50/50">
+                      <PisCofinsTable 
+                        items={pisCofinsData?.debitos?.com_debito?.[`por_${pisCofinsViewMode}`] || []} 
+                        tipo="debito"
+                        viewMode={pisCofinsViewMode}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Sem Débito (Alíquota Zero / Isentas) */}
+                <div>
+                  <button
+                    onClick={() => setPisCofinsExpanded(pisCofinsExpanded === 'debito_zero' ? null : 'debito_zero')}
+                    className="w-full px-5 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                      <span className="font-semibold text-gray-700">Operações Não Tributadas</span>
+                      <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded font-medium">CST 04/06/49</span>
+                      <span className="text-sm text-gray-500">
+                        {(pisCofinsData?.debitos?.aliquota_zero?.[`por_${pisCofinsViewMode}`] || []).length} registros
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <span className="text-xs text-gray-500 block">Total</span>
+                        <span className="font-bold text-gray-600">{formatCurrency(pisCofinsData?.debitos?.aliquota_zero?.total || 0)}</span>
+                      </div>
+                      {pisCofinsExpanded === 'debito_zero' ? <ChevronDown className="w-5 h-5 text-gray-500" /> : <ChevronRight className="w-5 h-5 text-gray-500" />}
+                    </div>
+                  </button>
+                  {pisCofinsExpanded === 'debito_zero' && (
+                    <div className="p-4">
+                      <PisCofinsTable 
+                        items={pisCofinsData?.debitos?.aliquota_zero?.[`por_${pisCofinsViewMode}`] || []} 
+                        tipo="debito_zero"
+                        viewMode={pisCofinsViewMode}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
