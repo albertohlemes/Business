@@ -364,11 +364,11 @@ const Cadastros = () => {
     const limparFormularioGClick = () => {
         setGclickForm({
             codigoCliente: '', razaoSocial: '', nomeFantasia: '', cnpj: '',
-            inscricaoEstadual: '', inscricaoMunicipal: '', endereco: '', numero: '',
+            inscricaoEstadual: '', inscricaoMunicipal: '', dataFundacao: '', endereco: '', numero: '',
             complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '',
             telefone: '', email: '', observacoes: ''
         });
-        setGclickSocios([{ nome: '', cpf: '', participacao: '', administrador: true }]);
+        setGclickSocios([{ nome: '', cpf: '', participacao: '', administrador: true, dataNascimento: '', endereco: '', naturalidade: '' }]);
     };
 
     // Handler SCI Único - Exportar dados
