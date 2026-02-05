@@ -339,6 +339,283 @@ class DocumentProcessor:
             dados['liquido'] = round(dados['total_proventos'] - dados['total_descontos'], 2)
         
         return dados
+    
+    def parse_folha_multiplos_colaboradores(self, text: str) -> List[Dict[str, Any]]:
+        """
+        Extrai dados de MÚLTIPLOS colaboradores de uma folha de pagamento.
+        Retorna lista de colaboradores com seus respectivos proventos, descontos e totais.
+        """
+        colaboradores = []
+        
+        # Função auxiliar para converter valores
+        def parse_valor(valor_str: str) -> float:
+            valor_str = valor_str.strip()
+            if ',' in valor_str and '.' in valor_str:
+                return float(valor_str.replace('.', '').replace(',', '.'))
+            if ',' in valor_str:
+                partes = valor_str.split(',')
+                if len(partes) == 2 and len(partes[1]) <= 2:
+                    return float(valor_str.replace(',', '.'))
+                return float(valor_str.replace(',', ''))
+            if '.' in valor_str:
+                partes = valor_str.split('.')
+                if len(partes) == 2 and len(partes[1]) <= 2:
+                    return float(valor_str)
+                elif len(partes) > 2 or (len(partes) == 2 and len(partes[1]) == 3):
+                    return float(valor_str.replace('.', ''))
+                return float(valor_str)
+            return float(valor_str)
+        
+        # Padrões para identificar início de cada colaborador
+        # Padrão 1: Nome em maiúsculas seguido de dados
+        # Padrão 2: Matrícula + Nome
+        # Padrão 3: CPF + Nome
+        
+        # Dividir texto em blocos por colaborador
+        # Estratégia: procurar por padrões de separação comuns
+        
+        # Tentar dividir por padrões de "NOME:" ou linhas com nomes em maiúsculas
+        lines = text.split('\n')
+        current_block = []
+        blocks = []
+        
+        # Padrões que indicam início de novo colaborador
+        nome_patterns = [
+            r'^(?:Funcionário|Nome|FUNCIONÁRIO|NOME)[:\s]+([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{3,40})',
+            r'^(\d{3,6})\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{3,40})',  # Matrícula + Nome
+            r'^([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{5,40})\s+\d{3}\.\d{3}\.\d{3}-\d{2}',  # Nome + CPF
+        ]
+        
+        cpf_pattern = r'\b(\d{3})[.\s]?(\d{3})[.\s]?(\d{3})[-.\s]?(\d{2})\b'
+        
+        # Encontrar todos os CPFs no texto como separadores
+        cpf_matches = list(re.finditer(cpf_pattern, text))
+        
+        if len(cpf_matches) > 1:
+            # Múltiplos CPFs = múltiplos colaboradores
+            for i, match in enumerate(cpf_matches):
+                start = max(0, match.start() - 200)  # Pegar contexto antes do CPF
+                end = cpf_matches[i + 1].start() if i + 1 < len(cpf_matches) else len(text)
+                block = text[start:end]
+                blocks.append(block)
+        else:
+            # Tentar dividir por linhas em branco ou padrões de cabeçalho
+            current_block = []
+            for line in lines:
+                # Verificar se é início de novo colaborador
+                is_new = False
+                for pattern in nome_patterns:
+                    if re.match(pattern, line.strip(), re.IGNORECASE):
+                        if current_block:
+                            blocks.append('\n'.join(current_block))
+                        current_block = [line]
+                        is_new = True
+                        break
+                
+                if not is_new:
+                    current_block.append(line)
+            
+            if current_block:
+                blocks.append('\n'.join(current_block))
+        
+        # Se não conseguiu dividir, tratar como um único colaborador
+        if not blocks:
+            blocks = [text]
+        
+        # Processar cada bloco
+        for block in blocks:
+            colab = self._extract_colaborador_from_block(block, parse_valor)
+            if colab and (colab.get('nome') or colab.get('cpf')):
+                colaboradores.append(colab)
+        
+        # Remover duplicatas por CPF
+        seen = set()
+        unique = []
+        for c in colaboradores:
+            key = c.get('cpf') or c.get('nome', '')
+            if key and key not in seen:
+                seen.add(key)
+                unique.append(c)
+        
+        return unique if unique else [self.parse_holerite_from_text(text)]  # Fallback para parser simples
+    
+    def _extract_colaborador_from_block(self, block: str, parse_valor) -> Dict[str, Any]:
+        """Extrai dados de um colaborador de um bloco de texto"""
+        colab = {
+            'nome': '',
+            'cpf': '',
+            'matricula': '',
+            'cargo': '',
+            'competencia': '',
+            'proventos': [],
+            'descontos': [],
+            'total_proventos': 0,
+            'total_descontos': 0,
+            'liquido': 0,
+            'horas_extras': 0,
+            'horas_extras_50': 0,
+            'horas_extras_100': 0,
+            'adicional_noturno': 0,
+            'vale_transporte': 0,
+            'vale_refeicao': 0,
+            'vale_alimentacao': 0,
+            'salario_base': 0,
+            'inss': 0,
+            'irrf': 0,
+            'fgts': 0
+        }
+        
+        # Extrair nome
+        nome_match = re.search(r'(?:Funcionário|Nome|FUNCIONÁRIO|NOME)[:\s]*([A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ\s]+)', block)
+        if nome_match:
+            colab['nome'] = nome_match.group(1).strip().split('\n')[0].strip()[:50]
+        else:
+            # Tentar encontrar nome em maiúsculas
+            for line in block.split('\n'):
+                line = line.strip()
+                if re.match(r'^[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{5,40}$', line):
+                    if not any(x in line for x in ['PROVENTOS', 'DESCONTOS', 'TOTAL', 'LÍQUIDO', 'SALÁRIO', 'CARGO']):
+                        colab['nome'] = line.title()
+                        break
+        
+        # Extrair CPF
+        cpf_match = re.search(r'(\d{3})[.\s]?(\d{3})[.\s]?(\d{3})[-.\s]?(\d{2})', block)
+        if cpf_match:
+            colab['cpf'] = f"{cpf_match.group(1)}.{cpf_match.group(2)}.{cpf_match.group(3)}-{cpf_match.group(4)}"
+        
+        # Extrair matrícula
+        mat_match = re.search(r'(?:Matrícula|Mat|MATRÍCULA|MAT)[:\s]*(\d{3,10})', block, re.IGNORECASE)
+        if mat_match:
+            colab['matricula'] = mat_match.group(1)
+        
+        # Extrair cargo
+        cargo_match = re.search(r'(?:Cargo|CARGO|Função|FUNÇÃO)[:\s]*([A-Za-záéíóúâêôãõç\s]{3,40})', block, re.IGNORECASE)
+        if cargo_match:
+            colab['cargo'] = cargo_match.group(1).strip()
+        
+        # Extrair competência
+        comp_match = re.search(r'(?:Competência|Referência|MÊS|Competencia)[:\s]*(\d{2}/\d{2,4})', block, re.IGNORECASE)
+        if comp_match:
+            colab['competencia'] = comp_match.group(1)
+        
+        # Palavras-chave para campos específicos
+        campos_especificos = {
+            'salario_base': ['SALÁRIO BASE', 'SALARIO BASE', 'SAL.BASE', 'SALÁRIO', 'SALARIO'],
+            'horas_extras': ['HORAS EXTRAS', 'HORA EXTRA', 'HE ', 'H.E.', 'H.EXTRAS'],
+            'horas_extras_50': ['HE 50%', 'HORA EXTRA 50', 'H.E. 50', 'HORAS EXTRAS 50'],
+            'horas_extras_100': ['HE 100%', 'HORA EXTRA 100', 'H.E. 100', 'HORAS EXTRAS 100'],
+            'adicional_noturno': ['ADICIONAL NOTURNO', 'AD.NOTURNO', 'ADIC.NOT'],
+            'vale_transporte': ['VALE TRANSPORTE', 'VT', 'V.T.', 'VALE TRANSP'],
+            'vale_refeicao': ['VALE REFEIÇÃO', 'VR', 'V.R.', 'VALE REF'],
+            'vale_alimentacao': ['VALE ALIMENTAÇÃO', 'VA', 'V.A.', 'VALE ALIM'],
+            'inss': ['INSS', 'PREV.SOCIAL'],
+            'irrf': ['IRRF', 'IR', 'IMP.RENDA'],
+            'fgts': ['FGTS', 'F.G.T.S.']
+        }
+        
+        palavras_desconto = ['INSS', 'IRRF', 'IR ', 'DESC', 'FALTA', 'ATRASO', 'VT', 'PENSÃO', 
+                           'VALE TRANSPORTE', 'CONTRIBUIÇÃO', 'EMPRÉSTIMO', 'ADIANTAMENTO', 'DESCONTO']
+        
+        palavras_total = ['TOTAL PROVENTOS', 'TOTAL DESCONTOS', 'LÍQUIDO', 'LIQUIDO', 'TOTAL PROV', 
+                         'A RECEBER', 'VALOR LIQUIDO', 'TOTAL DESC']
+        
+        # Extrair valores monetários
+        valores = re.findall(r'([A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ\s%\d.]+?)\s{2,}([\d.,]+)\s*$', block, re.MULTILINE)
+        
+        for desc, valor in valores:
+            try:
+                desc_upper = desc.upper().strip()
+                v = parse_valor(valor)
+                
+                if v <= 0.01 or v > 100000:
+                    continue
+                
+                # Verificar campos específicos
+                for campo, keywords in campos_especificos.items():
+                    if any(kw in desc_upper for kw in keywords):
+                        colab[campo] = v
+                        break
+                
+                # Extrair totais
+                if 'TOTAL PROVENTOS' in desc_upper or 'TOTAL PROV' in desc_upper:
+                    colab['total_proventos'] = v
+                elif 'TOTAL DESCONTOS' in desc_upper or 'TOTAL DESC' in desc_upper:
+                    colab['total_descontos'] = v
+                elif 'LÍQUIDO' in desc_upper or 'LIQUIDO' in desc_upper or 'A RECEBER' in desc_upper:
+                    colab['liquido'] = v
+                elif not any(t in desc_upper for t in palavras_total):
+                    # Classificar como provento ou desconto
+                    item = {'descricao': desc.strip(), 'valor': v}
+                    if any(x in desc_upper for x in palavras_desconto):
+                        colab['descontos'].append(item)
+                    else:
+                        colab['proventos'].append(item)
+            except:
+                pass
+        
+        # Calcular totais se não extraídos
+        if colab['total_proventos'] == 0 and colab['proventos']:
+            colab['total_proventos'] = round(sum(p['valor'] for p in colab['proventos']), 2)
+        if colab['total_descontos'] == 0 and colab['descontos']:
+            colab['total_descontos'] = round(sum(d['valor'] for d in colab['descontos']), 2)
+        if colab['liquido'] == 0 and (colab['total_proventos'] or colab['total_descontos']):
+            colab['liquido'] = round(colab['total_proventos'] - colab['total_descontos'], 2)
+        
+        return colab
+    
+    def parse_apoio_referencias(self, text: str) -> List[Dict[str, Any]]:
+        """
+        Extrai referências de valores do documento de apoio.
+        Procura por padrões como "Fulano - 10 horas extras" ou "Beltrano: R$ 200 vale"
+        """
+        referencias = []
+        
+        # Padrões para extrair referências
+        patterns = [
+            # Nome - quantidade tipo
+            r'([A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ\s]+?)\s*[-:]\s*(\d+(?:[.,]\d+)?)\s*(horas?\s*extras?|HE|h\.?e\.?)',
+            r'([A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ\s]+?)\s*[-:]\s*(\d+(?:[.,]\d+)?)\s*(faltas?)',
+            r'([A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ\s]+?)\s*[-:]\s*(\d+(?:[.,]\d+)?)\s*(atrasos?)',
+            r'([A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ\s]+?)\s*[-:]\s*R?\$?\s*(\d+(?:[.,]\d+)?)\s*(vale|vt|vr|va|comiss|bonif)',
+            # Matrícula + quantidade
+            r'(?:Mat|Matr)[:\s]*(\d+)\s*[-:]\s*(\d+(?:[.,]\d+)?)\s*(horas?\s*extras?|HE)',
+        ]
+        
+        for pattern in patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            for match in matches:
+                nome_ou_mat = match[0].strip() if match[0] else ''
+                valor = match[1].replace(',', '.')
+                tipo = match[2].lower()
+                
+                # Normalizar tipo
+                tipo_normalizado = ''
+                if 'hora' in tipo or 'he' in tipo:
+                    tipo_normalizado = 'horas_extras'
+                elif 'falta' in tipo:
+                    tipo_normalizado = 'faltas'
+                elif 'atraso' in tipo:
+                    tipo_normalizado = 'atrasos'
+                elif 'vale' in tipo or 'vt' in tipo:
+                    tipo_normalizado = 'vale_transporte'
+                elif 'vr' in tipo:
+                    tipo_normalizado = 'vale_refeicao'
+                elif 'va' in tipo:
+                    tipo_normalizado = 'vale_alimentacao'
+                elif 'comiss' in tipo:
+                    tipo_normalizado = 'comissao'
+                elif 'bonif' in tipo:
+                    tipo_normalizado = 'bonificacao'
+                
+                if nome_ou_mat and tipo_normalizado:
+                    referencias.append({
+                        'identificador': nome_ou_mat,
+                        'tipo': tipo_normalizado,
+                        'valor': float(valor),
+                        'texto_original': ' '.join(match)
+                    })
+        
+        return referencias
 
 
 class GoogleAIProcessor:
