@@ -1244,6 +1244,64 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
         ajustarSocios();
     }, [ajustarSocios]);
 
+    // Carregar dados do processo para edição
+    useEffect(() => {
+        if (open && processoEditando && processoEditando.tipo_processo === 'constituicao') {
+            setModoEdicao(true);
+            setProcessoId(processoEditando.id);
+            
+            // Carregar dados da empresa
+            setRazaoSocial(processoEditando.razao_social || processoEditando.nome_empresa || '');
+            setNomeFantasia(processoEditando.nome_fantasia || '');
+            setCapitalSocial(processoEditando.capital_social || '');
+            
+            // Carregar sócios
+            if (processoEditando.socios && processoEditando.socios.length > 0) {
+                const sociosFormatados = processoEditando.socios.map((s, idx) => ({
+                    nome: s.nome || '',
+                    cpf: s.cpf || '',
+                    rg: s.rg || '',
+                    orgaoEmissor: s.orgaoEmissor || s.orgao_emissor || '',
+                    nacionalidade: s.nacionalidade || 'Brasileiro(a)',
+                    dataNascimento: s.dataNascimento || s.data_nascimento || '',
+                    cidadeNascimento: s.cidadeNascimento || s.cidade_nascimento || '',
+                    estadoNascimento: s.estadoNascimento || s.estado_nascimento || '',
+                    estadoCivil: s.estadoCivil || s.estado_civil || '',
+                    regimeCasamento: s.regimeCasamento || s.regime_casamento || '',
+                    profissao: s.profissao || 'Empresário(a)',
+                    endereco: s.endereco || { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' },
+                    participacao: s.participacao || '',
+                    administrador: s.administrador || idx === 0,
+                    documentos: s.documentos || []
+                }));
+                setSocios(sociosFormatados);
+                setNumSocios(sociosFormatados.length);
+            }
+            
+            // Carregar endereço
+            if (processoEditando.endereco) {
+                setEndereco(processoEditando.endereco);
+            }
+            
+            // Carregar CNAEs
+            if (processoEditando.cnaes && processoEditando.cnaes.length > 0) {
+                setCnaes(processoEditando.cnaes);
+            }
+            
+            // Carregar objeto social
+            if (processoEditando.objeto_social) {
+                setObjetoSocial(processoEditando.objeto_social);
+            }
+            
+            // Carregar contrato gerado
+            if (processoEditando.conteudo_gerado) {
+                setContratoGerado(processoEditando.conteudo_gerado);
+            }
+        } else if (open && !processoEditando) {
+            setModoEdicao(false);
+        }
+    }, [open, processoEditando]);
+
     const resetWizard = () => {
         setStep(1);
         setRazaoSocial('');
