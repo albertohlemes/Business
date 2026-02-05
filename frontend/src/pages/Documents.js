@@ -188,10 +188,10 @@ const Documents = ({ user, onLogout }) => {
     (produtos || []).forEach(prod => {
       const cfop = prod.cfop || 'N/A';
       if (!totals[cfop]) {
-        totals[cfop] = { count: 0, valor: 0, bc_icms: 0, v_icms: 0, bc_st: 0, v_st: 0, v_ipi: 0, v_pis: 0, v_cofins: 0 };
+        totals[cfop] = { count: 0, valor_total: 0, bc_icms: 0, v_icms: 0, bc_st: 0, v_st: 0, v_ipi: 0, v_pis: 0, v_cofins: 0 };
       }
       totals[cfop].count++;
-      totals[cfop].valor += parseFloat(prod.valor_total || 0);
+      totals[cfop].valor_total += parseFloat(prod.valor_total || 0);
       totals[cfop].bc_icms += parseFloat(prod.v_bc_icms || 0);
       totals[cfop].v_icms += parseFloat(prod.v_icms || 0);
       totals[cfop].bc_st += parseFloat(prod.v_bc_icms_st || prod.v_bc_st || 0);
