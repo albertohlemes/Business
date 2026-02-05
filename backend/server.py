@@ -679,6 +679,40 @@ def parse_xml_nfce(xml_content: str) -> Dict[str, Any]:
         total = nfce.get('total', {}).get('ICMSTot', {})
         det = nfce.get('det', [])
         
+        # Extrair dados completos do emitente
+        enderEmit = emit.get('enderEmit', {})
+        emitente_uf = enderEmit.get('UF', '')
+        emitente_endereco = {
+            'logradouro': enderEmit.get('xLgr', ''),
+            'numero': enderEmit.get('nro', ''),
+            'complemento': enderEmit.get('xCpl', ''),
+            'bairro': enderEmit.get('xBairro', ''),
+            'cidade': enderEmit.get('xMun', ''),
+            'cod_municipio': enderEmit.get('cMun', ''),
+            'uf': emitente_uf,
+            'cep': enderEmit.get('CEP', ''),
+            'pais': enderEmit.get('xPais', 'BRASIL'),
+            'cod_pais': enderEmit.get('cPais', '1058'),
+            'telefone': enderEmit.get('fone', '')
+        }
+        
+        # Extrair dados completos do destinatário (NFC-e geralmente é consumidor final)
+        enderDest = dest.get('enderDest', {}) if dest else {}
+        destinatario_uf = enderDest.get('UF', '') if enderDest else ''
+        destinatario_endereco = {
+            'logradouro': enderDest.get('xLgr', ''),
+            'numero': enderDest.get('nro', ''),
+            'complemento': enderDest.get('xCpl', ''),
+            'bairro': enderDest.get('xBairro', ''),
+            'cidade': enderDest.get('xMun', ''),
+            'cod_municipio': enderDest.get('cMun', ''),
+            'uf': destinatario_uf,
+            'cep': enderDest.get('CEP', ''),
+            'pais': enderDest.get('xPais', 'BRASIL'),
+            'cod_pais': enderDest.get('cPais', '1058'),
+            'telefone': enderDest.get('fone', '')
+        }
+        
         if isinstance(det, dict):
             det = [det]
         
