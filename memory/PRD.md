@@ -217,6 +217,24 @@ Portal para departamento societário com geração de documentos via IA.
 - **Geração de documentos**: Campos opcionais incluídos quando fornecidos
 - **Testes**: 100% passaram (backend e frontend)
 
+### ✅ Menu e Página "Cadastros" (05/02/2026)
+- **Nova página dedicada** para integrações com sistemas externos
+- **Rota:** `/cadastros` (App.js atualizado com import e ProtectedRoute)
+- **Menu lateral** com ícone Database no Layout.js
+- **Aba GClick:**
+  - Formulário completo para cadastro direto: ID/Código, Razão Social, Nome Fantasia, CNPJ, Inscrições
+  - Seção de endereço: Logradouro, Número, Complemento, Bairro, Cidade, UF, CEP, Telefone, E-mail
+  - Seção de sócios: Adicionar/remover sócios com Nome, CPF, Participação, flag Administrador
+  - Campo de Observações
+  - Botão "Enviar para GClick" → chama `/api/gclick/cadastrar-direto`
+  - **Endpoint novo:** `POST /api/gclick/cadastrar-direto` (server.py linha ~2455)
+- **Aba SCI Único:**
+  - Formulário com campos específicos: Regime Tributário (dropdown), Data Abertura, Capital Social
+  - Seção de contato: Responsável, CPF Responsável
+  - Botão "Copiar Dados para SCI Único" → copia texto formatado para clipboard
+  - Mensagem informativa sobre integração manual (sistema desktop)
+- **Testes:** 100% passaram (backend e frontend) - iteration_7.json
+
 ## Status: COMPLETO ✅
 - Constituição ✅
 - Alteração ✅ (reformulado, com busca CNPJ e cláusulas)
@@ -231,3 +249,5 @@ Portal para departamento societário com geração de documentos via IA.
 - Nome da Empresa na Listagem ✅
 - Múltiplos Processos Simultâneos ✅
 - Dashboard renomeado ✅
+- **Menu Cadastros ✅ (NOVO)**
+- **Integração GClick Direta ✅ (NOVO)**
