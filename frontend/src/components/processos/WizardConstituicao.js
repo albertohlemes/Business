@@ -1602,7 +1602,7 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
                 <DialogHeader className="border-b border-zinc-800 pb-4">
                     <DialogTitle className="text-white flex items-center gap-2">
                         <Building2 className="w-5 h-5 text-red-500" />
-                        Nova Constituição de Empresa
+                        {modoEdicao ? 'Editar Constituição de Empresa' : 'Nova Constituição de Empresa'}
                     </DialogTitle>
                     <div className="flex items-center gap-1 mt-4">
                         {[1,2,3,4,5,6].map(s => (
