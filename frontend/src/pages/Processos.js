@@ -36,6 +36,9 @@ const Processos = () => {
     const [wizardAlteracaoOpen, setWizardAlteracaoOpen] = useState(false);
     const [wizardConstituicaoOpen, setWizardConstituicaoOpen] = useState(false);
     const [wizardBaixaOpen, setWizardBaixaOpen] = useState(false);
+    
+    // Processo em edição
+    const [processoEditando, setProcessoEditando] = useState(null);
 
     useEffect(() => {
         fetchData();
