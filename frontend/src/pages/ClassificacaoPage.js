@@ -19,6 +19,8 @@ const ClassificacaoPage = ({ user, onLogout }) => {
   
   // Modo de visualização
   const [viewMode, setViewMode] = useState('produto'); // 'nf' ou 'produto'
+  const [displayMode, setDisplayMode] = useState('agrupado'); // 'agrupado' ou 'lista'
+  const [expandedCategoria, setExpandedCategoria] = useState(null);
   const [showOnlyPending, setShowOnlyPending] = useState(false);
   
   // Aprovações
