@@ -67,27 +67,34 @@ const Documents = ({ user, onLogout }) => {
     }
   };
 
-  const handleReprocessBatch = async () => {
+  const handleReprocessBatch = async (classificar = false) => {
     if (!ctxCompany || !selectedCompetencia) {
       alert('Selecione uma empresa e competência');
       return;
     }
     
-    if (!window.confirm(`Re-processar todos os XMLs da competência ${selectedCompetencia}?\n\nIsso irá extrair novamente os campos de ICMS-ST, endereços e outros dados dos XMLs originais.`)) {
+    const acao = classificar 
+      ? `Re-processar e CLASSIFICAR todos os XMLs da competência ${selectedCompetencia}?\n\n⚠️ Isso irá:\n• Extrair campos de ICMS-ST, endereços, etc.\n• Aplicar classificação da IA (memória aprendida)\n• Preservar classificações já feitas manualmente`
+      : `Re-processar todos os XMLs da competência ${selectedCompetencia}?\n\nIsso irá extrair novamente os campos de ICMS-ST, endereços e outros dados dos XMLs originais.`;
+    
+    if (!window.confirm(acao)) {
       return;
     }
     
     setReprocessing(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post(
-        `${API}/xml/reprocess-batch?company_id=${ctxCompany.id}&competencia=${encodeURIComponent(selectedCompetencia)}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const url = `${API}/xml/reprocess-batch?company_id=${ctxCompany.id}&competencia=${encodeURIComponent(selectedCompetencia)}${classificar ? '&classificar=true' : ''}`;
+      const res = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
       
       if (res.data.success !== false) {
-        alert(`Re-processamento concluído!\n\n✅ Total: ${res.data.total}\n✅ Sucesso: ${res.data.success}\n📦 Com ICMS-ST: ${res.data.with_st}\n🤖 Classificações IA preservadas: ${res.data.classificacoes_preservadas || 0}\n❌ Erros: ${res.data.errors}`);
+        let msg = `Re-processamento concluído!\n\n✅ Total: ${res.data.total}\n✅ Sucesso: ${res.data.success}\n📦 Com ICMS-ST: ${res.data.with_st}`;
+        if (classificar) {
+          msg += `\n🤖 Classificações preservadas: ${res.data.classificacoes_preservadas || 0}`;
+          msg += `\n✨ Classificações novas (IA): ${res.data.classificacoes_novas || 0}`;
+        }
+        msg += `\n❌ Erros: ${res.data.errors}`;
+        alert(msg);
         fetchData();
       } else {
         alert('Erro: ' + res.data.error);
