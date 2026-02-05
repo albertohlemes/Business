@@ -795,72 +795,80 @@ REGRAS IMPORTANTES:
                 resultado = {
                     "tipo_documento_detectado": "desconhecido",
                     "confianca": "baixa",
-                    "dados": {},
+                    "colaboradores": [],
                     "raw_response": response,
                     "parsing_error": True
                 }
             
-            # Process and normalize extracted data
-            dados = resultado.get("dados", {})
+            # Get colaboradores array - handle both old format (dados) and new format (colaboradores)
+            colaboradores = resultado.get("colaboradores", [])
             
-            # Process salary if present
-            if dados.get("salario_base"):
-                try:
-                    salario_str = str(dados["salario_base"])
-                    salario_str = salario_str.replace("R$", "").replace(".", "").replace(",", ".").strip()
-                    dados["salario_base"] = float(salario_str)
-                except:
-                    dados["salario_base"] = 0
+            # Backward compatibility: if old format with "dados", convert to array
+            if not colaboradores and resultado.get("dados"):
+                colaboradores = [resultado.get("dados")]
             
-            # Process percentages
-            for field in ["insalubridade_percentual", "periculosidade_percentual"]:
-                if dados.get(field):
+            # Process and normalize each colaborador
+            processed_colaboradores = []
+            for colab in colaboradores:
+                # Process salary
+                if colab.get("salario_base"):
                     try:
-                        dados[field] = float(str(dados[field]).replace("%", "").strip())
+                        salario_str = str(colab["salario_base"])
+                        salario_str = salario_str.replace("R$", "").replace(".", "").replace(",", ".").strip()
+                        colab["salario_base"] = float(salario_str)
                     except:
-                        dados[field] = None
-            
-            # Process boolean fields
-            bool_fields = ["deficiencia", "recebendo_seguro_desemprego", "horista", 
-                          "vale_transporte", "adiantamento_salarial", "desconto_sindical"]
-            for field in bool_fields:
-                if field in dados:
-                    val = dados[field]
-                    if isinstance(val, str):
-                        dados[field] = val.lower() in ["true", "sim", "s", "x", "1", "marcado"]
-                    elif isinstance(val, bool):
-                        pass
-                    else:
-                        dados[field] = bool(val)
-            
-            # Process dependentes array
-            if dados.get("dependentes"):
-                try:
-                    deps = dados["dependentes"]
-                    if isinstance(deps, list):
-                        processed_deps = []
-                        for dep in deps:
-                            if isinstance(dep, dict):
-                                # Process boolean fields in dependentes
-                                for bf in ["ir", "salario_familia"]:
-                                    if bf in dep:
-                                        val = dep[bf]
-                                        if isinstance(val, str):
-                                            dep[bf] = val.lower() in ["true", "sim", "s", "x", "1"]
-                                processed_deps.append(dep)
-                        dados["dependentes"] = processed_deps
-                except:
-                    dados["dependentes"] = []
+                        colab["salario_base"] = 0
+                
+                # Process percentages
+                for field in ["insalubridade_percentual", "periculosidade_percentual"]:
+                    if colab.get(field):
+                        try:
+                            colab[field] = float(str(colab[field]).replace("%", "").strip())
+                        except:
+                            colab[field] = None
+                
+                # Process boolean fields
+                bool_fields = ["deficiencia", "recebendo_seguro_desemprego", "horista", 
+                              "vale_transporte", "adiantamento_salarial", "desconto_sindical"]
+                for field in bool_fields:
+                    if field in colab:
+                        val = colab[field]
+                        if isinstance(val, str):
+                            colab[field] = val.lower() in ["true", "sim", "s", "x", "1", "marcado"]
+                        elif isinstance(val, bool):
+                            pass
+                        else:
+                            colab[field] = bool(val) if val else False
+                
+                # Process dependentes array
+                if colab.get("dependentes"):
+                    try:
+                        deps = colab["dependentes"]
+                        if isinstance(deps, list):
+                            processed_deps = []
+                            for dep in deps:
+                                if isinstance(dep, dict):
+                                    for bf in ["ir", "salario_familia"]:
+                                        if bf in dep:
+                                            val = dep[bf]
+                                            if isinstance(val, str):
+                                                dep[bf] = val.lower() in ["true", "sim", "s", "x", "1"]
+                                    processed_deps.append(dep)
+                            colab["dependentes"] = processed_deps
+                    except:
+                        colab["dependentes"] = []
+                
+                processed_colaboradores.append(colab)
             
             return {
                 "success": True,
                 "tipo_documento": resultado.get("tipo_documento_detectado", "desconhecido"),
                 "confianca": resultado.get("confianca", "baixa"),
-                "dados_extraidos": dados,
-                "campos_extraidos": resultado.get("campos_extraidos", []),
-                "campos_incertos": resultado.get("campos_incertos", []),
+                "total_colaboradores": len(processed_colaboradores),
+                "colaboradores": processed_colaboradores,
+                "campos_comuns_extraidos": resultado.get("campos_comuns_extraidos", resultado.get("campos_extraidos", [])),
                 "observacoes": resultado.get("observacoes", ""),
-                "message": "Dados extraídos. Revise antes de salvar."
+                "message": f"{len(processed_colaboradores)} colaborador(es) extraído(s). Revise antes de salvar."
             }
             
         finally:
@@ -869,6 +877,64 @@ REGRAS IMPORTANTES:
     except Exception as e:
         logger.error(f"Erro na importação: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao processar documento: {str(e)}")
+
+@api_router.post("/colaboradores/salvar-lote")
+async def salvar_colaboradores_lote(
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Salva múltiplos colaboradores de uma vez"""
+    try:
+        cliente_id = data.get("cliente_id")
+        colaboradores = data.get("colaboradores", [])
+        
+        if not colaboradores:
+            raise HTTPException(status_code=400, detail="Nenhum colaborador para salvar")
+        
+        if not cliente_id:
+            raise HTTPException(status_code=400, detail="cliente_id é obrigatório")
+        
+        # Verify cliente exists
+        cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Empresa não encontrada")
+        
+        saved = []
+        errors = []
+        
+        for colab in colaboradores:
+            try:
+                colab_id = str(uuid.uuid4())
+                now = datetime.now(timezone.utc).isoformat()
+                
+                colab_doc = {
+                    "id": colab_id,
+                    "cliente_id": cliente_id,
+                    "user_id": current_user["id"],
+                    **colab,
+                    "created_at": now,
+                    "updated_at": now
+                }
+                
+                await db.colaboradores.insert_one(colab_doc)
+                saved.append({"id": colab_id, "nome": colab.get("nome", "")})
+            except Exception as e:
+                errors.append({"nome": colab.get("nome", ""), "erro": str(e)})
+        
+        return {
+            "success": True,
+            "total_salvos": len(saved),
+            "total_erros": len(errors),
+            "salvos": saved,
+            "erros": errors,
+            "message": f"{len(saved)} colaborador(es) salvo(s) com sucesso."
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao salvar colaboradores em lote: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar: {str(e)}")
 
 @api_router.post("/colaboradores/importar-lote")
 async def importar_colaboradores_lote(
