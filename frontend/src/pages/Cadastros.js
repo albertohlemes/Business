@@ -1167,6 +1167,102 @@ E-MAIL: ${sciForm.email || 'N/A'}
                             💡 <strong>Selecione múltiplos documentos</strong> (Cartão CNPJ, Contrato Social, RG/CNH dos sócios). A IA consolida todas as informações!
                         </p>
 
+                        {/* Perfil do Cliente - Wizard */}
+                        <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-600/30 rounded-lg p-4 mb-6">
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-8 h-8 bg-purple-600/30 rounded-lg flex items-center justify-center">
+                                    <Sparkles className="w-4 h-4 text-purple-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-purple-300 font-medium text-sm">Perfil do Cliente</h3>
+                                    <p className="text-zinc-500 text-xs">Configure uma vez, preenche TODAS as abas automaticamente!</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-5 gap-4">
+                                <div>
+                                    <Label className="text-zinc-400 text-xs mb-1 block">Regime Tributário</Label>
+                                    <select 
+                                        value={perfilCliente.regimeTributario} 
+                                        onChange={(e) => setPerfilCliente(prev => ({...prev, regimeTributario: e.target.value}))}
+                                        className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-white text-sm"
+                                    >
+                                        <option value="simples">Simples Nacional</option>
+                                        <option value="presumido">Lucro Presumido</option>
+                                        <option value="real">Lucro Real</option>
+                                    </select>
+                                </div>
+
+                                {perfilCliente.regimeTributario === 'simples' && (
+                                    <div>
+                                        <Label className="text-zinc-400 text-xs mb-1 block">Cód. Acesso Simples</Label>
+                                        <Input 
+                                            value={perfilCliente.codigoAcessoSimples} 
+                                            onChange={(e) => setPerfilCliente(prev => ({...prev, codigoAcessoSimples: e.target.value}))}
+                                            placeholder="Código"
+                                            className="bg-zinc-800 border-zinc-700 h-8 text-sm"
+                                        />
+                                    </div>
+                                )}
+
+                                <div>
+                                    <Label className="text-zinc-400 text-xs mb-1 block">Tipo Atividade</Label>
+                                    <select 
+                                        value={perfilCliente.tipoAtividade} 
+                                        onChange={(e) => setPerfilCliente(prev => ({...prev, tipoAtividade: e.target.value}))}
+                                        className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-white text-sm"
+                                    >
+                                        <option value="comercio">Comércio</option>
+                                        <option value="servicos">Serviços</option>
+                                        <option value="industria">Indústria</option>
+                                        <option value="misto">Misto</option>
+                                    </select>
+                                </div>
+
+                                <div className="flex flex-col justify-center">
+                                    <label className="flex items-center gap-2 text-xs text-zinc-400 mb-2">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={perfilCliente.temFuncionarios}
+                                            onChange={(e) => setPerfilCliente(prev => ({...prev, temFuncionarios: e.target.checked}))}
+                                            className="accent-purple-600"
+                                        />
+                                        Tem funcionários?
+                                    </label>
+                                    <label className="flex items-center gap-2 text-xs text-zinc-400">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={perfilCliente.contribuinteICMS}
+                                            onChange={(e) => setPerfilCliente(prev => ({...prev, contribuinteICMS: e.target.checked}))}
+                                            className="accent-purple-600"
+                                        />
+                                        Contribuinte ICMS?
+                                    </label>
+                                </div>
+
+                                {perfilCliente.regimeTributario === 'simples' && (
+                                    <div>
+                                        <Label className="text-zinc-400 text-xs mb-1 block">Enquadramento</Label>
+                                        <select 
+                                            value={perfilCliente.enquadramentoSimples} 
+                                            onChange={(e) => setPerfilCliente(prev => ({...prev, enquadramentoSimples: e.target.value}))}
+                                            className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-2 py-1.5 text-white text-sm"
+                                        >
+                                            <option value="anexo1">Anexo I (Comércio)</option>
+                                            <option value="anexo2">Anexo II (Indústria)</option>
+                                            <option value="anexo3">Anexo III (Serviços)</option>
+                                            <option value="anexo4">Anexo IV (Serviços)</option>
+                                            <option value="anexo5">Anexo V (Serviços)</option>
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+
+                            <p className="text-xs text-purple-400/70 mt-3">
+                                ✨ Com base nestas respostas, o robô preenche: Contador, Planos, Enquadramento, SPED, eSocial, GPS e mais!
+                            </p>
+                        </div>
+
                         {/* Dados da Empresa */}
                         <div className="grid grid-cols-3 gap-6 mb-6">
                             <div className="space-y-4">
