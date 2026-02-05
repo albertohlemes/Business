@@ -1497,8 +1497,78 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
     
     // Step 4 - Resultado
     const [minutaGerada, setMinutaGerada] = useState('');
+    const [temRascunhoSalvo, setTemRascunhoSalvo] = useState(false);
     
     const contratoInputRef = useRef(null);
+    
+    const STORAGE_KEY = 'wizard_alteracao_rascunho';
+
+    // Verificar se há rascunho salvo ao abrir
+    useEffect(() => {
+        if (open) {
+            const rascunho = localStorage.getItem(STORAGE_KEY);
+            if (rascunho) {
+                setTemRascunhoSalvo(true);
+            }
+        }
+    }, [open]);
+
+    // Salvar rascunho automaticamente quando houver progresso
+    useEffect(() => {
+        if (step > 1 || dadosExtraidos || alteracoesSelecionadas.length > 0) {
+            const rascunho = {
+                step,
+                minutaId,
+                dadosExtraidos,
+                alteracoesSelecionadas,
+                dadosQSA,
+                dadosEndereco,
+                dadosAtividades,
+                dadosCapital,
+                dadosNome,
+                dadosAdministracao,
+                dadosOutras,
+                cnpjInput,
+                textoContratoOriginal,
+                savedAt: new Date().toISOString()
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(rascunho));
+        }
+    }, [step, minutaId, dadosExtraidos, alteracoesSelecionadas, dadosQSA, dadosEndereco, dadosAtividades, dadosCapital, dadosNome, dadosAdministracao, dadosOutras, cnpjInput, textoContratoOriginal]);
+
+    // Função para restaurar rascunho
+    const restaurarRascunho = () => {
+        const rascunhoStr = localStorage.getItem(STORAGE_KEY);
+        if (rascunhoStr) {
+            try {
+                const rascunho = JSON.parse(rascunhoStr);
+                setStep(rascunho.step || 1);
+                setMinutaId(rascunho.minutaId);
+                setDadosExtraidos(rascunho.dadosExtraidos);
+                setAlteracoesSelecionadas(rascunho.alteracoesSelecionadas || []);
+                setDadosQSA(rascunho.dadosQSA || { tiposQSA: [], sociosSaindo: [], sociosEntrando: [], sociosRetirantes: [], sociosRedistribuicao: [], novasParticipacoes: {} });
+                setDadosEndereco(rascunho.dadosEndereco || {});
+                setDadosAtividades(rascunho.dadosAtividades || { cnaesExcluir: [], cnaesAdicionar: [] });
+                setDadosCapital(rascunho.dadosCapital || { tipoCapital: 'aumento', novoCapital: '', motivoCapital: '' });
+                setDadosNome(rascunho.dadosNome || { novaRazaoSocial: '', novoNomeFantasia: '' });
+                setDadosAdministracao(rascunho.dadosAdministracao || { novosAdministradores: [], poderesAdmin: '' });
+                setDadosOutras(rascunho.dadosOutras || { clausulasParaAlterar: [], clausulaManualTitulo: '', clausulaManualTexto: '' });
+                setCnpjInput(rascunho.cnpjInput || '');
+                setTextoContratoOriginal(rascunho.textoContratoOriginal || '');
+                setTemRascunhoSalvo(false);
+                toast.success('Rascunho restaurado! Continue de onde parou.');
+            } catch (e) {
+                console.error('Erro ao restaurar rascunho:', e);
+                toast.error('Erro ao restaurar rascunho');
+            }
+        }
+    };
+
+    // Limpar rascunho
+    const limparRascunho = () => {
+        localStorage.removeItem(STORAGE_KEY);
+        setTemRascunhoSalvo(false);
+    };
 
     const resetWizard = () => {
         setStep(1);
