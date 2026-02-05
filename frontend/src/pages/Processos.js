@@ -291,22 +291,25 @@ const Processos = () => {
             {/* Wizard de Alteração */}
             <WizardAlteracao 
                 open={wizardAlteracaoOpen}
-                onClose={() => setWizardAlteracaoOpen(false)}
+                onClose={() => handleCloseWizard(setWizardAlteracaoOpen)}
                 onComplete={handleMinutaCriada}
+                processoEditando={processoEditando}
             />
 
             {/* Wizard de Constituição */}
             <WizardConstituicao
                 open={wizardConstituicaoOpen}
-                onClose={() => setWizardConstituicaoOpen(false)}
+                onClose={() => handleCloseWizard(setWizardConstituicaoOpen)}
                 onComplete={handleMinutaCriada}
+                processoEditando={processoEditando}
             />
 
             {/* Wizard de Baixa */}
             <WizardBaixa
                 open={wizardBaixaOpen}
-                onClose={() => setWizardBaixaOpen(false)}
+                onClose={() => handleCloseWizard(setWizardBaixaOpen)}
                 onComplete={handleMinutaCriada}
+                processoEditando={processoEditando}
             />
         </div>
     );
