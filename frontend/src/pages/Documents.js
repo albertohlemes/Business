@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { FileText, Eye, Filter, Trash2, CheckCircle2, XCircle, Shield, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { FileText, Eye, Filter, Trash2, CheckCircle2, XCircle, Shield, X, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 
@@ -15,7 +15,13 @@ const Documents = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedTipo, setSelectedTipo] = useState('');
+  const [selectedIntegridade, setSelectedIntegridade] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [reprocessing, setReprocessing] = useState(false);
+  
+  // Ordenação
+  const [sortField, setSortField] = useState('numero_nfe');
+  const [sortDirection, setSortDirection] = useState('asc');
   
   // Modal de detalhamento
   const [selectedDocument, setSelectedDocument] = useState(null);
@@ -61,6 +67,39 @@ const Documents = ({ user, onLogout }) => {
     }
   };
 
+  const handleReprocessBatch = async () => {
+    if (!ctxCompany || !selectedCompetencia) {
+      alert('Selecione uma empresa e competência');
+      return;
+    }
+    
+    if (!window.confirm(`Re-processar todos os XMLs da competência ${selectedCompetencia}?\n\nIsso irá extrair novamente os campos de ICMS-ST, endereços e outros dados dos XMLs originais.`)) {
+      return;
+    }
+    
+    setReprocessing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        `${API}/xml/reprocess-batch/${ctxCompany.id}/${selectedCompetencia}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (res.data.success !== false) {
+        alert(`Re-processamento concluído!\n\nTotal: ${res.data.total}\nSucesso: ${res.data.success}\nCom ICMS-ST: ${res.data.with_st}\nErros: ${res.data.errors}`);
+        fetchData();
+      } else {
+        alert('Erro: ' + res.data.error);
+      }
+    } catch (err) {
+      console.error('Erro ao re-processar:', err);
+      alert(err.response?.data?.detail || 'Erro ao re-processar documentos');
+    } finally {
+      setReprocessing(false);
+    }
+  };
+
   const handleDeleteDocument = async (docId, numeroNfe) => {
     if (!window.confirm(`Tem certeza que deseja apagar a NF-e ${numeroNfe}?`)) {
       return;
@@ -94,7 +133,7 @@ const Documents = ({ user, onLogout }) => {
     else if (selectedStatus === 'validado') statusLabel = ' VALIDADOS';
     else if (selectedStatus === 'com_excecao') statusLabel = ' com EXCEÇÃO';
     
-    const docsToDelete = filteredDocuments.length;
+    const docsToDelete = sortedAndFilteredDocuments.length;
     
     if (!window.confirm(`Tem certeza que deseja apagar ${docsToDelete} documento(s)${tipoLabel}${statusLabel} da competência ${selectedCompetencia}?\n\nEssa ação não pode ser desfeita.`)) {
       return;
@@ -143,14 +182,6 @@ const Documents = ({ user, onLogout }) => {
     );
   };
 
-  const filteredDocuments = documents.filter(doc => {
-    if (ctxCompany && doc.company_id !== ctxCompany.id) return false;
-    if (selectedCompetencia && doc.competencia !== selectedCompetencia) return false;
-    if (selectedStatus && doc.status_validacao !== selectedStatus) return false;
-    if (selectedTipo && doc.tipo !== selectedTipo) return false;
-    return true;
-  });
-
   // Função para calcular totalizadores por CFOP (inclui ICMS-ST)
   const calculateCFOPTotals = (produtos) => {
     const totals = {};
@@ -194,9 +225,8 @@ const Documents = ({ user, onLogout }) => {
     const itemsSum = calculateItemsSum(doc.produtos);
     const errors = [];
     const fieldStatus = {};
-    const tolerance = 0.02; // Tolerância para arredondamento
+    const tolerance = 0.02;
     
-    // Totais da NF (podem estar no documento ou calculados)
     const totaisNF = {
       valor: parseFloat(doc.valor_total || 0),
       v_ipi: parseFloat(doc.total_ipi || 0),
@@ -206,11 +236,8 @@ const Documents = ({ user, onLogout }) => {
       v_outro: parseFloat(doc.total_outras_despesas || 0)
     };
     
-    // O valor total da NF = valor produtos + IPI + ST + frete + seguro + outras - desconto
-    // Vamos verificar se a soma dos produtos bate com valor dos produtos
     const valorProdutosEsperado = totaisNF.valor - totaisNF.v_ipi - totaisNF.v_st - totaisNF.v_frete - totaisNF.v_seg - totaisNF.v_outro;
     
-    // Verificar valor dos produtos
     if (Math.abs(valorProdutosEsperado - itemsSum.valor) > tolerance && valorProdutosEsperado > 0) {
       errors.push({
         campo: 'Valor Produtos',
@@ -223,7 +250,6 @@ const Documents = ({ user, onLogout }) => {
       fieldStatus.valor = 'ok';
     }
     
-    // Verificar IPI
     if (Math.abs(totaisNF.v_ipi - itemsSum.v_ipi) > tolerance) {
       errors.push({
         campo: 'IPI',
@@ -236,7 +262,6 @@ const Documents = ({ user, onLogout }) => {
       fieldStatus.v_ipi = 'ok';
     }
     
-    // Verificar ICMS-ST
     if (Math.abs(totaisNF.v_st - itemsSum.v_st) > tolerance) {
       errors.push({
         campo: 'ICMS-ST',
@@ -249,7 +274,6 @@ const Documents = ({ user, onLogout }) => {
       fieldStatus.v_st = 'ok';
     }
     
-    // Marcar outros campos como OK (não temos total na NF para comparar)
     fieldStatus.bc_icms = 'ok';
     fieldStatus.v_icms = 'ok';
     fieldStatus.bc_st = 'ok';
@@ -259,9 +283,8 @@ const Documents = ({ user, onLogout }) => {
     return { valid: errors.length === 0, errors, fieldStatus };
   };
 
-  // Verificação rápida de integridade para a listagem (usa produtos do doc se disponível)
   const quickCheckIntegrity = (doc) => {
-    if (!doc.produtos || doc.produtos.length === 0) return null; // Sem produtos para verificar
+    if (!doc.produtos || doc.produtos.length === 0) return null;
     return checkDocIntegrity(doc);
   };
 
@@ -269,19 +292,99 @@ const Documents = ({ user, onLogout }) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   };
 
-  // Calcular resumo de integridade
-  const integritySummary = filteredDocuments.reduce((acc, doc) => {
-    const check = quickCheckIntegrity(doc);
-    if (check === null) {
-      acc.semProdutos++;
-    } else if (check.valid) {
-      acc.validos++;
+  // Handler de ordenação
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      acc.divergentes++;
+      setSortField(field);
+      setSortDirection('asc');
     }
-    acc.total++;
-    return acc;
-  }, { total: 0, validos: 0, divergentes: 0, semProdutos: 0 });
+  };
+
+  // Ícone de ordenação
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-gray-400" />;
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="w-3 h-3 text-red-600" />
+      : <ArrowDown className="w-3 h-3 text-red-600" />;
+  };
+
+  // Filtrar e ordenar documentos
+  const sortedAndFilteredDocuments = useMemo(() => {
+    let filtered = documents.filter(doc => {
+      if (ctxCompany && doc.company_id !== ctxCompany.id) return false;
+      if (selectedCompetencia && doc.competencia !== selectedCompetencia) return false;
+      if (selectedStatus && doc.status_validacao !== selectedStatus) return false;
+      if (selectedTipo && doc.tipo !== selectedTipo) return false;
+      
+      // Filtro de integridade
+      if (selectedIntegridade) {
+        const check = quickCheckIntegrity(doc);
+        if (selectedIntegridade === 'ok' && (check === null || !check.valid)) return false;
+        if (selectedIntegridade === 'divergente' && (check === null || check.valid)) return false;
+        if (selectedIntegridade === 'sem_produtos' && check !== null) return false;
+      }
+      
+      return true;
+    });
+
+    // Ordenar
+    filtered.sort((a, b) => {
+      let valA, valB;
+      
+      switch (sortField) {
+        case 'numero_nfe':
+          valA = parseInt(a.numero_nfe) || 0;
+          valB = parseInt(b.numero_nfe) || 0;
+          break;
+        case 'valor_total':
+          valA = a.valor_total || 0;
+          valB = b.valor_total || 0;
+          break;
+        case 'data_emissao':
+          valA = new Date(a.data_emissao).getTime();
+          valB = new Date(b.data_emissao).getTime();
+          break;
+        case 'emitente_nome':
+          valA = (a.emitente_nome || '').toLowerCase();
+          valB = (b.emitente_nome || '').toLowerCase();
+          break;
+        case 'integridade':
+          const checkA = quickCheckIntegrity(a);
+          const checkB = quickCheckIntegrity(b);
+          valA = checkA === null ? 2 : (checkA.valid ? 0 : 1);
+          valB = checkB === null ? 2 : (checkB.valid ? 0 : 1);
+          break;
+        default:
+          valA = a[sortField] || '';
+          valB = b[sortField] || '';
+      }
+      
+      if (typeof valA === 'string') {
+        return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      return sortDirection === 'asc' ? valA - valB : valB - valA;
+    });
+
+    return filtered;
+  }, [documents, ctxCompany, selectedCompetencia, selectedStatus, selectedTipo, selectedIntegridade, sortField, sortDirection]);
+
+  // Calcular resumo de integridade
+  const integritySummary = useMemo(() => {
+    return sortedAndFilteredDocuments.reduce((acc, doc) => {
+      const check = quickCheckIntegrity(doc);
+      if (check === null) {
+        acc.semProdutos++;
+      } else if (check.valid) {
+        acc.validos++;
+      } else {
+        acc.divergentes++;
+      }
+      acc.total++;
+      return acc;
+    }, { total: 0, validos: 0, divergentes: 0, semProdutos: 0 });
+  }, [sortedAndFilteredDocuments]);
 
   // Modal de detalhamento do documento
   const DocumentDetailModal = () => {
@@ -292,7 +395,6 @@ const Documents = ({ user, onLogout }) => {
     const itemsSum = calculateItemsSum(produtos);
     const integrity = checkDocIntegrity(selectedDocument);
     
-    // Helper para classe de cor baseado no status
     const getFieldClass = (field, defaultClass = '') => {
       if (integrity.fieldStatus[field] === 'error') return 'text-red-600 bg-red-50';
       if (integrity.fieldStatus[field] === 'ok') return 'text-green-700 bg-green-50';
@@ -311,7 +413,6 @@ const Documents = ({ user, onLogout }) => {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              {/* Indicador de integridade */}
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${
                 integrity.valid ? 'bg-green-500/20 text-green-100' : 'bg-red-500/30 text-red-100'
               }`}>
@@ -519,6 +620,19 @@ const Documents = ({ user, onLogout }) => {
     );
   };
 
+  // Header de coluna clicável para ordenação
+  const SortableHeader = ({ field, children, className = '' }) => (
+    <th 
+      className={`px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase cursor-pointer hover:bg-gray-100 select-none ${className}`}
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        <SortIcon field={field} />
+      </div>
+    </th>
+  );
+
   return (
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="documents-page" className="space-y-6">
@@ -545,19 +659,33 @@ const Documents = ({ user, onLogout }) => {
               <h2 className="font-semibold text-gray-900">Filtros</h2>
             </div>
             
-            {ctxCompany && selectedCompetencia && user.role === 'admin' && (
-              <button
-                data-testid="btn-apagar-lote"
-                onClick={handleDeleteAllCompetencia}
-                disabled={deleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 flex items-center gap-2 disabled:opacity-50"
-              >
-                <Trash2 className="w-4 h-4" />
-                {deleting ? 'Apagando...' : 'Apagar em Lote'}
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {ctxCompany && selectedCompetencia && (
+                <button
+                  onClick={handleReprocessBatch}
+                  disabled={reprocessing}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
+                  title="Re-processar XMLs para extrair campos faltantes (ICMS-ST, endereços, etc.)"
+                >
+                  <RefreshCw className={`w-4 h-4 ${reprocessing ? 'animate-spin' : ''}`} />
+                  {reprocessing ? 'Re-processando...' : 'Re-processar XMLs'}
+                </button>
+              )}
+              
+              {ctxCompany && selectedCompetencia && user.role === 'admin' && (
+                <button
+                  data-testid="btn-apagar-lote"
+                  onClick={handleDeleteAllCompetencia}
+                  disabled={deleting}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {deleting ? 'Apagando...' : 'Apagar em Lote'}
+                </button>
+              )}
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
               <select
@@ -585,11 +713,29 @@ const Documents = ({ user, onLogout }) => {
                 <option value="saida">Saída</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Integridade</label>
+              <select
+                data-testid="filter-integridade-select"
+                value={selectedIntegridade}
+                onChange={(e) => setSelectedIntegridade(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="">Todos</option>
+                <option value="ok">✓ Validadas</option>
+                <option value="divergente">✗ Divergentes</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">{sortedAndFilteredDocuments.length}</span> documentos
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Card de Integridade - Baseado na validação real */}
-        {filteredDocuments.length > 0 && integritySummary.total > integritySummary.semProdutos && (
+        {/* Card de Integridade */}
+        {sortedAndFilteredDocuments.length > 0 && integritySummary.total > integritySummary.semProdutos && (
           <div className={`rounded-lg p-4 flex items-center justify-between ${
             integritySummary.divergentes > 0 
               ? 'bg-amber-50 border border-amber-200' 
@@ -623,7 +769,7 @@ const Documents = ({ user, onLogout }) => {
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
           </div>
-        ) : filteredDocuments.length === 0 ? (
+        ) : sortedAndFilteredDocuments.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-xl">
             <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-600">Nenhum documento encontrado</p>
@@ -634,23 +780,22 @@ const Documents = ({ user, onLogout }) => {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase w-10">✓</th>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase">NF-e</th>
+                    <SortableHeader field="integridade" className="w-10">✓</SortableHeader>
+                    <SortableHeader field="numero_nfe">NF-e</SortableHeader>
                     <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Empresa</th>
                     <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Tipo</th>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Emitente</th>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Valor</th>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Data</th>
+                    <SortableHeader field="emitente_nome">Emitente</SortableHeader>
+                    <SortableHeader field="valor_total">Valor</SortableHeader>
+                    <SortableHeader field="data_emissao">Data</SortableHeader>
                     <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
                     <th className="px-4 py-4 text-left text-xs font-semibold text-gray-700 uppercase">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredDocuments.map((doc) => {
+                  {sortedAndFilteredDocuments.map((doc) => {
                     const integrityCheck = quickCheckIntegrity(doc);
                     return (
                       <tr key={doc.id} data-testid={`document-row-${doc.id}`} className="hover:bg-gray-50">
-                        {/* Coluna de Integridade */}
                         <td className="px-4 py-4">
                           {integrityCheck === null ? (
                             <span className="text-gray-400" title="Sem itens para validar">-</span>
@@ -714,29 +859,29 @@ const Documents = ({ user, onLogout }) => {
         )}
 
         {/* Summary */}
-        {!loading && filteredDocuments.length > 0 && (
+        {!loading && sortedAndFilteredDocuments.length > 0 && (
           <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
               <div>
                 <p className="text-gray-600 text-sm mb-1">Total de Documentos</p>
-                <p className="text-2xl font-bold text-gray-900">{filteredDocuments.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{sortedAndFilteredDocuments.length}</p>
               </div>
               <div>
                 <p className="text-gray-600 text-sm mb-1">Valor Total</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(filteredDocuments.reduce((sum, doc) => sum + doc.valor_total, 0))}
+                  {formatCurrency(sortedAndFilteredDocuments.reduce((sum, doc) => sum + doc.valor_total, 0))}
                 </p>
               </div>
               <div>
                 <p className="text-gray-600 text-sm mb-1">Entradas</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {filteredDocuments.filter(d => d.tipo === 'entrada').length}
+                  {sortedAndFilteredDocuments.filter(d => d.tipo === 'entrada').length}
                 </p>
               </div>
               <div>
                 <p className="text-gray-600 text-sm mb-1">Saídas</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {filteredDocuments.filter(d => d.tipo === 'saida').length}
+                  {sortedAndFilteredDocuments.filter(d => d.tipo === 'saida').length}
                 </p>
               </div>
             </div>
