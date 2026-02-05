@@ -7260,60 +7260,84 @@ async def analise_tributaria_ia(
     # ===== ANÁLISE POR NCM =====
     analise_ncm = {}
     
-    for key, prod in produtos_entrada.items():
-        ncm = prod['ncm']
+    # Usar os dados já agrupados por NCM
+    for ncm, prod in produtos_entrada.items():
         if ncm not in analise_ncm:
             analise_ncm[ncm] = {
                 'ncm': ncm,
-                'descricao': prod['descricao'],
+                'descricoes': [],
                 'entrada_valor': 0,
                 'entrada_icms': 0,
+                'entrada_icms_creditavel': 0,
                 'entrada_qtd': 0,
                 'saida_valor': 0,
                 'saida_icms': 0,
                 'saida_qtd': 0,
                 'saldo_icms': 0,
-                'margem_icms': 0
+                'margem_icms': 0,
+                'tem_st_entrada': False,
+                'tem_tributado_entrada': False,
+                'aliq_entrada': 0,
+                'aliq_saida': 0
             }
+        analise_ncm[ncm]['descricoes'].extend(list(prod.get('descricoes', set()))[:2])
         analise_ncm[ncm]['entrada_valor'] += prod['total_valor']
         analise_ncm[ncm]['entrada_icms'] += prod['total_icms']
+        analise_ncm[ncm]['entrada_icms_creditavel'] += prod.get('total_icms_creditavel', 0)
         analise_ncm[ncm]['entrada_qtd'] += prod['qtd_itens']
+        analise_ncm[ncm]['tem_st_entrada'] = prod.get('tem_st', False)
+        analise_ncm[ncm]['tem_tributado_entrada'] = prod.get('tem_tributado', False)
+        analise_ncm[ncm]['aliq_entrada'] = prod.get('aliq_creditavel', prod.get('aliq_icms_media', 0))
     
-    for key, prod in produtos_saida.items():
-        ncm = prod['ncm']
+    for ncm, prod in produtos_saida.items():
         if ncm not in analise_ncm:
             analise_ncm[ncm] = {
                 'ncm': ncm,
-                'descricao': prod['descricao'],
+                'descricoes': [],
                 'entrada_valor': 0,
                 'entrada_icms': 0,
+                'entrada_icms_creditavel': 0,
                 'entrada_qtd': 0,
                 'saida_valor': 0,
                 'saida_icms': 0,
                 'saida_qtd': 0,
                 'saldo_icms': 0,
-                'margem_icms': 0
+                'margem_icms': 0,
+                'tem_st_entrada': False,
+                'tem_tributado_entrada': False,
+                'aliq_entrada': 0,
+                'aliq_saida': 0
             }
+        analise_ncm[ncm]['descricoes'].extend(list(prod.get('descricoes', set()))[:2])
         analise_ncm[ncm]['saida_valor'] += prod['total_valor']
         analise_ncm[ncm]['saida_icms'] += prod['total_icms']
         analise_ncm[ncm]['saida_qtd'] += prod['qtd_itens']
+        analise_ncm[ncm]['aliq_saida'] = prod.get('aliq_icms_media', 0)
     
-    # Calcular saldo e margem
+    # Calcular saldo e margem usando crédito correto (excluindo ST)
     for ncm, dados in analise_ncm.items():
-        dados['saldo_icms'] = round(dados['saida_icms'] - dados['entrada_icms'], 2)
+        # Saldo = débito - crédito VÁLIDO (não conta ST/Despesa)
+        credito_valido = dados['entrada_icms_creditavel']
+        dados['saldo_icms'] = round(dados['saida_icms'] - credito_valido, 2)
         dados['entrada_valor'] = round(dados['entrada_valor'], 2)
         dados['entrada_icms'] = round(dados['entrada_icms'], 2)
+        dados['entrada_icms_creditavel'] = round(credito_valido, 2)
         dados['saida_valor'] = round(dados['saida_valor'], 2)
         dados['saida_icms'] = round(dados['saida_icms'], 2)
+        dados['aliq_entrada'] = round(dados['aliq_entrada'], 2)
+        dados['aliq_saida'] = round(dados['aliq_saida'], 2)
         # Margem = quanto % do valor de saída virou imposto líquido
         if dados['saida_valor'] > 0:
             dados['margem_icms'] = round((dados['saldo_icms'] / dados['saida_valor']) * 100, 2)
+        # Limitar descrições únicas a 3
+        dados['descricoes'] = list(set(dados['descricoes']))[:3]
     
     analise_ncm_list = sorted(analise_ncm.values(), key=lambda x: x['saldo_icms'], reverse=True)
     
     # ===== RESUMO GERAL =====
+    # Usar crédito creditável (excluindo ST/Despesa) no resumo
     total_entrada_valor = sum(p['total_valor'] for p in produtos_entrada.values())
-    total_entrada_icms = sum(p['total_icms'] for p in produtos_entrada.values())
+    total_entrada_icms_creditavel = sum(p.get('total_icms_creditavel', 0) for p in produtos_entrada.values())
     total_saida_valor = sum(p['total_valor'] for p in produtos_saida.values())
     total_saida_icms = sum(p['total_icms'] for p in produtos_saida.values())
     
