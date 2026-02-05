@@ -17,11 +17,19 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboard();
-  }, []);
+  }, [empresaSelecionada, competencia]);
 
   const fetchDashboard = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/dashboard`);
+      const params = new URLSearchParams();
+      if (empresaSelecionada?.id) {
+        params.append('cliente_id', empresaSelecionada.id);
+      }
+      if (competencia) {
+        params.append('competencia', competencia);
+      }
+      const queryString = params.toString();
+      const response = await axios.get(`${API_URL}/api/dashboard${queryString ? '?' + queryString : ''}`);
       setStats(response.data);
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
