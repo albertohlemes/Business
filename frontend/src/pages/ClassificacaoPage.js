@@ -612,13 +612,23 @@ const ClassificacaoPage = ({ user, onLogout }) => {
         </div>
         
         {/* Produto */}
-        <div className="col-span-4">
+        <div className="col-span-3">
           <p className="font-semibold text-gray-900 text-sm truncate" title={product.descricao}>
             {product.descricao}
           </p>
           <p className="text-xs text-gray-500">
-            Cód: {product.codigo} | NCM: {product.ncm}
+            Cód: {product.codigo}
           </p>
+          <p className="text-xs text-blue-600">
+            NFs: {product.ocorrencias?.slice(0, 2).map(o => o.nf || o.numero_nfe || '?').join(', ')}{product.ocorrencias?.length > 2 ? ` +${product.ocorrencias.length - 2}` : ''}
+          </p>
+        </div>
+        
+        {/* NCM */}
+        <div className="col-span-1">
+          <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+            {product.ncm || '-'}
+          </span>
         </div>
         
         {/* Classificação */}
