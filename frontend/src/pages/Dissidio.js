@@ -8,8 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
-import { FileText, Upload, CheckCircle2, XCircle, Clock, Loader2, FileUp, TrendingUp } from 'lucide-react';
+import { FileText, Upload, CheckCircle2, XCircle, Clock, Loader2, FileUp, TrendingUp, Users, DollarSign, Percent, Download, Eye } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
+import { useEmpresa } from '../contexts/EmpresaContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -20,8 +21,11 @@ const Dissidio = () => {
   const [uploading, setUploading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [previaDialogOpen, setPreviaDialogOpen] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
   const [selectedCliente, setSelectedCliente] = useState('');
+  const [previaData, setPreviaData] = useState(null);
+  const [loadingPrevia, setLoadingPrevia] = useState(false);
   const [formData, setFormData] = useState({
     cliente_id: '',
     sindicato: '',
@@ -29,10 +33,17 @@ const Dissidio = () => {
     data_base: '',
     observacoes: ''
   });
+  const { empresaSelecionada } = useEmpresa();
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (empresaSelecionada && !selectedCliente) {
+      setSelectedCliente(empresaSelecionada.id);
+    }
+  }, [empresaSelecionada]);
 
   const fetchData = async () => {
     try {
@@ -110,11 +121,34 @@ const Dissidio = () => {
     }
   };
 
-  const handleAprovar = async (id) => {
-    if (!window.confirm('Tem certeza que deseja aprovar este dissídio? Os salários serão atualizados.')) return;
+  const handleVerPrevia = async (dissidioId) => {
+    setLoadingPrevia(true);
     try {
-      await axios.put(`${API_URL}/api/dissidios/${id}/aprovar`);
+      const response = await axios.get(`${API_URL}/api/dissidios/${dissidioId}/previa`);
+      setPreviaData(response.data);
+      setPreviaDialogOpen(true);
+    } catch (error) {
+      toast.error('Erro ao carregar prévia');
+    } finally {
+      setLoadingPrevia(false);
+    }
+  };
+
+  const handleAprovar = async (id) => {
+    // First show preview
+    await handleVerPrevia(id);
+  };
+
+  const confirmarAprovacao = async () => {
+    if (!previaData) return;
+    
+    if (!window.confirm(`Tem certeza que deseja aprovar este dissídio?\n\nIsso aplicará o reajuste de ${previaData.percentual_reajuste}% para ${previaData.resumo.total_colaboradores} colaboradores.\n\nValor total do reajuste: R$ ${previaData.resumo.total_diferenca.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)) return;
+    
+    try {
+      await axios.put(`${API_URL}/api/dissidios/${previaData.dissidio_id}/aprovar`);
       toast.success('Dissídio aprovado! Salários atualizados.');
+      setPreviaDialogOpen(false);
+      setPreviaData(null);
       fetchData();
     } catch (error) {
       toast.error('Erro ao aprovar dissídio');
@@ -132,6 +166,24 @@ const Dissidio = () => {
     }
   };
 
+  const handleDownloadPrevia = async (dissidioId) => {
+    try {
+      const response = await axios.get(`${API_URL}/api/relatorios/dissidio/${dissidioId}/previa/excel`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `previa_dissidio_${dissidioId.substring(0, 8)}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('Relatório baixado!');
+    } catch (error) {
+      toast.error('Erro ao baixar relatório');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       cliente_id: '',
@@ -141,7 +193,7 @@ const Dissidio = () => {
       observacoes: ''
     });
     setExtractedData(null);
-    setSelectedCliente('');
+    setSelectedCliente(empresaSelecionada?.id || '');
   };
 
   const getClienteName = (clienteId) => {
@@ -185,7 +237,7 @@ const Dissidio = () => {
           <p className="text-slate-500 mt-1">Gerencie reajustes salariais por convenção coletiva</p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={uploadDialogOpen} onOpenChange={(open) => { setUploadDialogOpen(open); if (!open) { setExtractedData(null); setSelectedCliente(''); } }}>
+          <Dialog open={uploadDialogOpen} onOpenChange={(open) => { setUploadDialogOpen(open); if (!open) { setExtractedData(null); setSelectedCliente(empresaSelecionada?.id || ''); } }}>
             <DialogTrigger asChild>
               <Button data-testid="upload-convencao-btn" variant="outline" className="border-indigo-200 text-indigo-600 hover:bg-indigo-50">
                 <Upload size={18} className="mr-2" />
@@ -344,6 +396,139 @@ const Dissidio = () => {
         </div>
       </div>
 
+      {/* Prévia Dialog */}
+      <Dialog open={previaDialogOpen} onOpenChange={setPreviaDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="text-indigo-600" size={20} />
+              Prévia do Reajuste Salarial
+            </DialogTitle>
+          </DialogHeader>
+          {previaData && (
+            <div className="space-y-4 mt-4">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="border-indigo-200 bg-indigo-50">
+                  <CardContent className="p-4 text-center">
+                    <Percent className="mx-auto text-indigo-600 mb-1" size={24} />
+                    <p className="text-2xl font-bold text-indigo-700 font-mono">{previaData.percentual_reajuste}%</p>
+                    <p className="text-xs text-slate-500">Reajuste</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-slate-200">
+                  <CardContent className="p-4 text-center">
+                    <Users className="mx-auto text-slate-500 mb-1" size={24} />
+                    <p className="text-2xl font-bold text-slate-700 font-mono">{previaData.resumo.total_colaboradores}</p>
+                    <p className="text-xs text-slate-500">Colaboradores</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-emerald-200 bg-emerald-50">
+                  <CardContent className="p-4 text-center">
+                    <TrendingUp className="mx-auto text-emerald-600 mb-1" size={24} />
+                    <p className="text-lg font-bold text-emerald-700 font-mono">{formatCurrency(previaData.resumo.total_diferenca)}</p>
+                    <p className="text-xs text-slate-500">Total Reajuste</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-slate-200">
+                  <CardContent className="p-4 text-center">
+                    <DollarSign className="mx-auto text-slate-500 mb-1" size={24} />
+                    <p className="text-lg font-bold text-slate-700 font-mono">{formatCurrency(previaData.resumo.total_salarios_novo)}</p>
+                    <p className="text-xs text-slate-500">Nova Folha</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Info */}
+              <div className="flex items-center justify-between text-sm text-slate-500">
+                <div>
+                  <span className="font-medium text-slate-700">{previaData.sindicato}</span> • Data-base: {previaData.data_base}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDownloadPrevia(previaData.dissidio_id)}
+                  className="text-indigo-600"
+                >
+                  <Download size={14} className="mr-1" /> Excel
+                </Button>
+              </div>
+
+              {/* Employees Table */}
+              <Card className="border-slate-200 overflow-hidden">
+                <div className="overflow-x-auto max-h-[300px]">
+                  <table className="table-dp text-sm">
+                    <thead className="sticky top-0 bg-white">
+                      <tr>
+                        <th>Colaborador</th>
+                        <th>Cargo</th>
+                        <th className="text-right">Salário Atual</th>
+                        <th className="text-center">%</th>
+                        <th className="text-right">Diferença</th>
+                        <th className="text-right">Novo Salário</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previaData.colaboradores.map((colab, idx) => (
+                        <tr key={colab.id || idx}>
+                          <td>
+                            <div>
+                              <p className="font-medium text-slate-900">{colab.nome}</p>
+                              <p className="text-xs text-slate-400 font-mono">{colab.cpf}</p>
+                            </div>
+                          </td>
+                          <td className="text-slate-600">{colab.cargo || '-'}</td>
+                          <td className="text-right font-mono">{formatCurrency(colab.salario_atual)}</td>
+                          <td className="text-center">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                              +{colab.percentual}%
+                            </span>
+                          </td>
+                          <td className="text-right font-mono text-emerald-600">+{formatCurrency(colab.diferenca)}</td>
+                          <td className="text-right font-mono font-medium text-slate-900">{formatCurrency(colab.salario_novo)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t-2 border-slate-200 bg-slate-50">
+                      <tr>
+                        <td colSpan={2} className="font-bold">TOTAL</td>
+                        <td className="text-right font-mono font-bold">{formatCurrency(previaData.resumo.total_salarios_atual)}</td>
+                        <td></td>
+                        <td className="text-right font-mono font-bold text-emerald-600">+{formatCurrency(previaData.resumo.total_diferenca)}</td>
+                        <td className="text-right font-mono font-bold">{formatCurrency(previaData.resumo.total_salarios_novo)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </Card>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button variant="outline" onClick={() => setPreviaDialogOpen(false)}>
+                  Fechar
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => { setPreviaDialogOpen(false); handleRejeitar(previaData.dissidio_id); }}
+                  className="text-rose-600 hover:bg-rose-50"
+                >
+                  <XCircle size={16} className="mr-1" />
+                  Rejeitar
+                </Button>
+                <Button
+                  onClick={confirmarAprovacao}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                  data-testid="confirmar-aprovacao-btn"
+                >
+                  <CheckCircle2 size={16} className="mr-1" />
+                  Aprovar e Aplicar Reajuste
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Dissídios List */}
       {dissidios.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -384,6 +569,16 @@ const Dissidio = () => {
                 {dissidio.status === 'pendente' && (
                   <div className="flex gap-2 pt-4 border-t border-slate-100">
                     <Button
+                      onClick={() => handleVerPrevia(dissidio.id)}
+                      variant="outline"
+                      className="flex-1 text-indigo-600"
+                      disabled={loadingPrevia}
+                      data-testid={`ver-previa-${dissidio.id}`}
+                    >
+                      {loadingPrevia ? <Loader2 className="animate-spin mr-1" size={16} /> : <Eye size={16} className="mr-1" />}
+                      Ver Prévia
+                    </Button>
+                    <Button
                       onClick={() => handleAprovar(dissidio.id)}
                       className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                       data-testid={`aprovar-${dissidio.id}`}
@@ -391,14 +586,18 @@ const Dissidio = () => {
                       <CheckCircle2 size={16} className="mr-1" />
                       Aprovar
                     </Button>
+                  </div>
+                )}
+
+                {dissidio.status !== 'pendente' && (
+                  <div className="flex gap-2 pt-4 border-t border-slate-100">
                     <Button
+                      onClick={() => handleDownloadPrevia(dissidio.id)}
                       variant="outline"
-                      onClick={() => handleRejeitar(dissidio.id)}
-                      className="flex-1 text-rose-600 hover:bg-rose-50"
-                      data-testid={`rejeitar-${dissidio.id}`}
+                      className="flex-1 text-indigo-600"
                     >
-                      <XCircle size={16} className="mr-1" />
-                      Rejeitar
+                      <Download size={16} className="mr-1" />
+                      Baixar Relatório
                     </Button>
                   </div>
                 )}
