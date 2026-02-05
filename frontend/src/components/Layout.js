@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import { 
     LayoutDashboard, FileText, Shield, FileCheck,
-    LogOut, Building2, User
+    LogOut, Building2, User, Database
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -18,6 +18,7 @@ const Layout = ({ children }) => {
     const navItems = [
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/processos', label: 'Processos', icon: FileText },
+        { path: '/cadastros', label: 'Cadastros', icon: Database },
         { path: '/certificados', label: 'Certificados', icon: Shield },
         { path: '/licencas', label: 'Licenças', icon: FileCheck },
     ];
