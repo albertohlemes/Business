@@ -74,6 +74,14 @@ function AppRoutes() {
                 } 
             />
             <Route 
+                path="/cadastros" 
+                element={
+                    <ProtectedRoute>
+                        <Cadastros />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
                 path="/minutas" 
                 element={<Navigate to="/processos" replace />}
             />
