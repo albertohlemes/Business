@@ -72,6 +72,7 @@ const Cadastros = () => {
         capitalSocial: '',
         endereco: '',
         numero: '',
+        complemento: '',
         bairro: '',
         cidade: '',
         estado: 'SP',
@@ -79,8 +80,27 @@ const Cadastros = () => {
         responsavel: '',
         cpfResponsavel: '',
         telefone: '',
-        email: ''
+        email: '',
+        // Campos extras SCI Único
+        dataEntrada: '',
+        dataConstituicao: '',
+        dataRegistro: '',
+        orgaoRegistro: '',
+        numeroRegistro: ''
     });
+    
+    // Sócios SCI Único
+    const [sciSocios, setSciSocios] = useState([
+        { 
+            nome: '', cpf: '', rg: '', orgaoEmissor: 'SSP', ufEmissor: 'SP',
+            dataNascimento: '', naturalidade: '', estadoCivil: 'Solteiro(a)',
+            endereco: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '',
+            telefone: '', celular: '', email: '', administrador: true, participacao: ''
+        }
+    ]);
+    
+    // Estado de exportação SCI
+    const [exportandoSci, setExportandoSci] = useState(false);
 
     // Carregar histórico ao montar
     useEffect(() => {
