@@ -1318,6 +1318,7 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
         setObjetoSocial('');
         setContratoGerado('');
         setProcessoId(null);
+        setModoEdicao(false);
     };
 
     const handleClose = () => {
