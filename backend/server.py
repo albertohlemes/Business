@@ -1536,12 +1536,11 @@ async def validacao_completa(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Validação unificada de folha de pagamento usando OCR local.
-    - holerite_atual: Holerite do mês atual (OBRIGATÓRIO)
-    - holerite_anterior: Holerite do mês anterior (OPCIONAL)
-    - apoio_files: Lista de arquivos de apoio para comparação (OPCIONAL, múltiplos)
-    
-    Usa OCR local (Tesseract) para extração - gratuito e rápido.
+    Validação unificada de folha de pagamento com suporte a MÚLTIPLOS COLABORADORES.
+    - Extrai todos os colaboradores da folha atual
+    - Compara cada colaborador individualmente com o mês anterior
+    - Cruza dados de apoio por colaborador (HE, vale, etc.)
+    - Retorna uma tabela organizada por colaborador
     """
     try:
         from document_processor import doc_processor
@@ -1552,39 +1551,23 @@ async def validacao_completa(
             raise HTTPException(status_code=404, detail="Empresa não encontrada")
         
         temp_files = []
-        extracted_data = {
-            "atual": None,
-            "anterior": None,
-            "apoio": []
-        }
-        arquivos_info = {
-            "holerite_atual": None,
-            "holerite_anterior": None,
-            "apoio": []
-        }
         
         try:
-            # 1. Processar holerite atual (obrigatório)
+            # 1. Processar holerite atual - MÚLTIPLOS COLABORADORES
             holerite_atual_content = await holerite_atual.read()
             holerite_atual_suffix = Path(holerite_atual.filename).suffix
             with tempfile.NamedTemporaryFile(delete=False, suffix=holerite_atual_suffix) as tmp:
                 tmp.write(holerite_atual_content)
-                tmp.flush()  # Garantir que o conteúdo foi escrito no disco
+                tmp.flush()
                 temp_files.append(tmp.name)
-                arquivos_info["holerite_atual"] = holerite_atual.filename
                 
-                # Extrair texto com OCR
-                logger.info(f"Extraindo texto de {holerite_atual.filename}...")
+                logger.info(f"Extraindo colaboradores de {holerite_atual.filename}...")
                 texto_atual = doc_processor.extract_text(tmp.name)
-                dados_atual = doc_processor.parse_holerite_from_text(texto_atual)
-                extracted_data["atual"] = {
-                    "texto": texto_atual,
-                    "dados": dados_atual,
-                    "filename": holerite_atual.filename
-                }
-                logger.info(f"Extraídos {len(texto_atual)} caracteres, funcionário: {dados_atual.get('funcionario', 'N/I')}")
+                colaboradores_atual = doc_processor.parse_folha_multiplos_colaboradores(texto_atual)
+                logger.info(f"Encontrados {len(colaboradores_atual)} colaborador(es) na folha atual")
             
-            # 2. Processar holerite anterior (opcional)
+            # 2. Processar holerite anterior (se fornecido)
+            colaboradores_anterior = []
             has_anterior = False
             if holerite_anterior and holerite_anterior.filename:
                 holerite_anterior_content = await holerite_anterior.read()
@@ -1593,21 +1576,18 @@ async def validacao_completa(
                     holerite_anterior_suffix = Path(holerite_anterior.filename).suffix
                     with tempfile.NamedTemporaryFile(delete=False, suffix=holerite_anterior_suffix) as tmp:
                         tmp.write(holerite_anterior_content)
-                        tmp.flush()  # Garantir que o conteúdo foi escrito no disco
+                        tmp.flush()
                         temp_files.append(tmp.name)
-                        arquivos_info["holerite_anterior"] = holerite_anterior.filename
                         
-                        logger.info(f"Extraindo texto de {holerite_anterior.filename}...")
+                        logger.info(f"Extraindo colaboradores de {holerite_anterior.filename}...")
                         texto_anterior = doc_processor.extract_text(tmp.name)
-                        dados_anterior = doc_processor.parse_holerite_from_text(texto_anterior)
-                        extracted_data["anterior"] = {
-                            "texto": texto_anterior,
-                            "dados": dados_anterior,
-                            "filename": holerite_anterior.filename
-                        }
+                        colaboradores_anterior = doc_processor.parse_folha_multiplos_colaboradores(texto_anterior)
+                        logger.info(f"Encontrados {len(colaboradores_anterior)} colaborador(es) na folha anterior")
             
-            # 3. Processar arquivos de apoio (opcional)
+            # 3. Processar arquivos de apoio
+            referencias_apoio = []
             has_apoio = False
+            apoio_filenames = []
             if apoio_files:
                 for apoio in apoio_files:
                     if apoio and apoio.filename:
@@ -1617,18 +1597,206 @@ async def validacao_completa(
                             apoio_suffix = Path(apoio.filename).suffix
                             with tempfile.NamedTemporaryFile(delete=False, suffix=apoio_suffix) as tmp:
                                 tmp.write(apoio_content)
-                                tmp.flush()  # Garantir que o conteúdo foi escrito no disco
+                                tmp.flush()
                                 temp_files.append(tmp.name)
-                                arquivos_info["apoio"].append(apoio.filename)
+                                apoio_filenames.append(apoio.filename)
                                 
-                                logger.info(f"Extraindo texto de {apoio.filename}...")
+                                logger.info(f"Extraindo referências de {apoio.filename}...")
                                 texto_apoio = doc_processor.extract_text(tmp.name)
-                                extracted_data["apoio"].append({
-                                    "texto": texto_apoio,
-                                    "filename": apoio.filename
-                                })
+                                refs = doc_processor.parse_apoio_referencias(texto_apoio)
+                                for ref in refs:
+                                    ref['arquivo'] = apoio.filename
+                                referencias_apoio.extend(refs)
+                                logger.info(f"Encontradas {len(refs)} referências em {apoio.filename}")
             
-            # Determinar tipo de análise
+            # 4. Criar índice de colaboradores anteriores por nome/CPF
+            idx_anterior = {}
+            for c in colaboradores_anterior:
+                key = c.get('cpf') or c.get('nome', '').upper().strip()
+                if key:
+                    idx_anterior[key] = c
+                    # Também indexar por nome normalizado
+                    if c.get('nome'):
+                        idx_anterior[c['nome'].upper().strip()] = c
+            
+            # 5. Processar cada colaborador da folha atual
+            resultado_colaboradores = []
+            total_divergencias = 0
+            total_conferidos = 0
+            impacto_total = 0
+            
+            for colab in colaboradores_atual:
+                nome = colab.get('nome', 'Sem Nome')
+                cpf = colab.get('cpf', '')
+                
+                colab_resultado = {
+                    'nome': nome,
+                    'cpf': cpf,
+                    'matricula': colab.get('matricula', ''),
+                    'cargo': colab.get('cargo', ''),
+                    'status': 'ok',  # ok, atencao, divergente
+                    'dados_atuais': {
+                        'salario_base': colab.get('salario_base', 0),
+                        'horas_extras': colab.get('horas_extras', 0),
+                        'horas_extras_50': colab.get('horas_extras_50', 0),
+                        'horas_extras_100': colab.get('horas_extras_100', 0),
+                        'adicional_noturno': colab.get('adicional_noturno', 0),
+                        'vale_transporte': colab.get('vale_transporte', 0),
+                        'vale_refeicao': colab.get('vale_refeicao', 0),
+                        'vale_alimentacao': colab.get('vale_alimentacao', 0),
+                        'inss': colab.get('inss', 0),
+                        'irrf': colab.get('irrf', 0),
+                        'fgts': colab.get('fgts', 0),
+                        'total_proventos': colab.get('total_proventos', 0),
+                        'total_descontos': colab.get('total_descontos', 0),
+                        'liquido': colab.get('liquido', 0),
+                        'proventos': colab.get('proventos', []),
+                        'descontos': colab.get('descontos', [])
+                    },
+                    'comparacao_anterior': None,
+                    'divergencias_apoio': [],
+                    'divergencias': [],
+                    'conferidos': []
+                }
+                
+                # Conferidos básicos
+                if colab.get('total_proventos'):
+                    colab_resultado['conferidos'].append({'campo': 'Total Proventos', 'valor': colab['total_proventos']})
+                    total_conferidos += 1
+                if colab.get('total_descontos'):
+                    colab_resultado['conferidos'].append({'campo': 'Total Descontos', 'valor': colab['total_descontos']})
+                    total_conferidos += 1
+                if colab.get('liquido'):
+                    colab_resultado['conferidos'].append({'campo': 'Líquido', 'valor': colab['liquido']})
+                    total_conferidos += 1
+                
+                # 5a. Comparar com mês anterior
+                if has_anterior:
+                    key_busca = cpf or nome.upper().strip()
+                    colab_ant = idx_anterior.get(key_busca)
+                    
+                    if colab_ant:
+                        comp = {
+                            'encontrado': True,
+                            'campos': []
+                        }
+                        
+                        campos_comparar = [
+                            ('total_proventos', 'Total Proventos'),
+                            ('total_descontos', 'Total Descontos'),
+                            ('liquido', 'Líquido'),
+                            ('salario_base', 'Salário Base'),
+                            ('horas_extras', 'Horas Extras'),
+                            ('inss', 'INSS'),
+                            ('irrf', 'IRRF')
+                        ]
+                        
+                        for campo, nome_campo in campos_comparar:
+                            val_atual = colab.get(campo, 0) or 0
+                            val_anterior = colab_ant.get(campo, 0) or 0
+                            
+                            if val_atual or val_anterior:
+                                diff = val_atual - val_anterior
+                                perc = ((val_atual / val_anterior) - 1) * 100 if val_anterior else (100 if val_atual else 0)
+                                
+                                comp['campos'].append({
+                                    'campo': nome_campo,
+                                    'anterior': val_anterior,
+                                    'atual': val_atual,
+                                    'diferenca': round(diff, 2),
+                                    'percentual': round(perc, 2)
+                                })
+                                
+                                # Divergência significativa
+                                if abs(perc) > 10 and abs(diff) > 50:
+                                    colab_resultado['status'] = 'divergente'
+                                    colab_resultado['divergencias'].append({
+                                        'tipo': 'variacao_mensal',
+                                        'campo': nome_campo,
+                                        'esperado': val_anterior,
+                                        'encontrado': val_atual,
+                                        'diferenca': diff,
+                                        'percentual': perc,
+                                        'severidade': 'alta' if abs(perc) > 20 else 'media'
+                                    })
+                                    total_divergencias += 1
+                                    impacto_total += abs(diff)
+                                elif abs(perc) > 5:
+                                    if colab_resultado['status'] == 'ok':
+                                        colab_resultado['status'] = 'atencao'
+                        
+                        colab_resultado['comparacao_anterior'] = comp
+                    else:
+                        colab_resultado['comparacao_anterior'] = {
+                            'encontrado': False,
+                            'mensagem': 'Colaborador não encontrado na folha anterior (pode ser admissão)'
+                        }
+                
+                # 5b. Cruzar com arquivos de apoio
+                if has_apoio and referencias_apoio:
+                    nome_upper = nome.upper().strip()
+                    nome_parts = nome_upper.split()
+                    
+                    for ref in referencias_apoio:
+                        ref_id = ref.get('identificador', '').upper().strip()
+                        
+                        # Verificar se referência é para este colaborador
+                        match = False
+                        if ref_id == nome_upper:
+                            match = True
+                        elif ref_id in nome_upper or nome_upper in ref_id:
+                            match = True
+                        elif nome_parts and ref_id in nome_parts:
+                            match = True
+                        elif ref_id == colab.get('matricula', ''):
+                            match = True
+                        
+                        if match:
+                            tipo_ref = ref.get('tipo', '')
+                            valor_apoio = ref.get('valor', 0)
+                            
+                            # Mapear tipo para campo do holerite
+                            campo_holerite = {
+                                'horas_extras': 'horas_extras',
+                                'vale_transporte': 'vale_transporte',
+                                'vale_refeicao': 'vale_refeicao',
+                                'vale_alimentacao': 'vale_alimentacao',
+                                'faltas': 'faltas',
+                                'atrasos': 'atrasos',
+                                'comissao': 'comissao',
+                                'bonificacao': 'bonificacao'
+                            }.get(tipo_ref, tipo_ref)
+                            
+                            valor_holerite = colab.get(campo_holerite, 0)
+                            
+                            # Se for horas extras, também checar os campos específicos
+                            if tipo_ref == 'horas_extras' and valor_holerite == 0:
+                                valor_holerite = colab.get('horas_extras_50', 0) + colab.get('horas_extras_100', 0)
+                            
+                            diff = valor_holerite - valor_apoio
+                            
+                            if abs(diff) > 0.01:
+                                colab_resultado['status'] = 'divergente'
+                                colab_resultado['divergencias_apoio'].append({
+                                    'campo': tipo_ref.replace('_', ' ').title(),
+                                    'valor_apoio': valor_apoio,
+                                    'valor_holerite': valor_holerite,
+                                    'diferenca': round(diff, 2),
+                                    'arquivo': ref.get('arquivo', ''),
+                                    'severidade': 'alta' if abs(diff) > 100 else 'media'
+                                })
+                                total_divergencias += 1
+                            else:
+                                colab_resultado['conferidos'].append({
+                                    'campo': tipo_ref.replace('_', ' ').title(),
+                                    'valor': valor_apoio,
+                                    'fonte': ref.get('arquivo', '')
+                                })
+                                total_conferidos += 1
+                
+                resultado_colaboradores.append(colab_resultado)
+            
+            # 6. Determinar tipo de análise
             if has_anterior and has_apoio:
                 tipo_analise = "completa"
             elif has_anterior:
@@ -1638,238 +1806,29 @@ async def validacao_completa(
             else:
                 tipo_analise = "analise_isolada"
             
-            # 4. Construir resultado da análise
-            dados_atual = extracted_data["atual"]["dados"]
+            # 7. Gerar resumo executivo
+            total_ok = len([c for c in resultado_colaboradores if c['status'] == 'ok'])
+            total_atencao = len([c for c in resultado_colaboradores if c['status'] == 'atencao'])
+            total_divergente = len([c for c in resultado_colaboradores if c['status'] == 'divergente'])
             
-            resultado = {
-                "tipo_analise": tipo_analise,
-                "empresa": cliente.get("nome_fantasia") or cliente.get("razao_social"),
-                "competencia": f"{mes_referencia}/{ano_referencia}",
-                "funcionarios_analisados": 1 if dados_atual.get("funcionario") else 0,
-                "dados_extraidos": {
-                    "holerite_atual": dados_atual
-                },
-                "comparacoes": {"com_mes_anterior": [], "com_apoio": []},
-                "divergencias": [],
-                "campos_conferidos": [],
-                "alertas": [],
-                "resumo_executivo": "",
-                "recomendacoes": []
-            }
+            resumo = f"Validação {tipo_analise.replace('_', ' ')} de {len(resultado_colaboradores)} colaborador(es). "
+            if total_divergente > 0:
+                resumo += f"⚠️ {total_divergente} com divergências. "
+            if total_atencao > 0:
+                resumo += f"⚡ {total_atencao} requer atenção. "
+            if total_ok > 0:
+                resumo += f"✅ {total_ok} OK. "
+            if impacto_total > 0:
+                resumo += f"Impacto total: R$ {impacto_total:.2f}"
             
-            # Campos conferidos do holerite atual
-            funcionario_nome = dados_atual.get("funcionario", "Funcionário")
-            if dados_atual.get("total_proventos"):
-                resultado["campos_conferidos"].append({
-                    "campo": "Total Proventos",
-                    "funcionario": funcionario_nome,
-                    "valor": dados_atual["total_proventos"],
-                    "status": "ok"
-                })
-            if dados_atual.get("total_descontos"):
-                resultado["campos_conferidos"].append({
-                    "campo": "Total Descontos",
-                    "funcionario": funcionario_nome,
-                    "valor": dados_atual["total_descontos"],
-                    "status": "ok"
-                })
-            if dados_atual.get("liquido"):
-                resultado["campos_conferidos"].append({
-                    "campo": "Líquido",
-                    "funcionario": funcionario_nome,
-                    "valor": dados_atual["liquido"],
-                    "status": "ok"
-                })
+            # 8. Gerar recomendações
+            recomendacoes = []
+            if total_divergente > 0:
+                recomendacoes.append(f"Revisar {total_divergente} colaborador(es) com divergências antes de fechar a folha.")
+            if has_apoio and any(c['divergencias_apoio'] for c in resultado_colaboradores):
+                recomendacoes.append("Verificar diferenças entre documentos de apoio e holerite.")
             
-            # Adicionar proventos e descontos individuais
-            for p in dados_atual.get("proventos", []):
-                resultado["campos_conferidos"].append({
-                    "campo": p.get("descricao", "Provento"),
-                    "funcionario": funcionario_nome,
-                    "valor": p.get("valor", 0),
-                    "status": "ok"
-                })
-            for d in dados_atual.get("descontos", []):
-                resultado["campos_conferidos"].append({
-                    "campo": d.get("descricao", "Desconto"),
-                    "funcionario": funcionario_nome,
-                    "valor": d.get("valor", 0),
-                    "status": "ok"
-                })
-            
-            # 5. Comparar com mês anterior
-            if has_anterior and extracted_data["anterior"]:
-                dados_anterior = extracted_data["anterior"]["dados"]
-                resultado["dados_extraidos"]["holerite_anterior"] = dados_anterior
-                
-                campos_comparar = [
-                    ("total_proventos", "Total Proventos"),
-                    ("total_descontos", "Total Descontos"),
-                    ("liquido", "Líquido")
-                ]
-                
-                impacto_total = 0
-                for campo, nome in campos_comparar:
-                    val_atual = dados_atual.get(campo, 0) or 0
-                    val_anterior = dados_anterior.get(campo, 0) or 0
-                    
-                    if val_atual or val_anterior:
-                        diferenca = val_atual - val_anterior
-                        percentual = ((val_atual / val_anterior) - 1) * 100 if val_anterior else 0
-                        
-                        resultado["comparacoes"]["com_mes_anterior"].append({
-                            "funcionario": funcionario_nome,
-                            "campo": nome,
-                            "valor_anterior": val_anterior,
-                            "valor_atual": val_atual,
-                            "diferenca": round(diferenca, 2),
-                            "percentual": round(percentual, 2)
-                        })
-                        
-                        # Detectar divergências significativas
-                        if abs(percentual) > 10 and abs(diferenca) > 50:
-                            severidade = "alta" if abs(percentual) > 20 or abs(diferenca) > 200 else "media"
-                            resultado["divergencias"].append({
-                                "funcionario": funcionario_nome,
-                                "tipo": "variacao_significativa",
-                                "campo": nome,
-                                "valor_esperado": f"R$ {val_anterior:.2f}",
-                                "valor_encontrado": f"R$ {val_atual:.2f}",
-                                "fonte_referencia": "holerite_anterior",
-                                "severidade": severidade,
-                                "descricao": f"{nome} variou {percentual:.1f}% ({'+' if diferenca > 0 else ''}{diferenca:.2f})",
-                                "impacto_financeiro": abs(diferenca)
-                            })
-                            impacto_total += abs(diferenca)
-                        elif abs(percentual) > 5:
-                            resultado["alertas"].append({
-                                "tipo": "atencao",
-                                "mensagem": f"{nome} variou {percentual:.1f}% em relação ao mês anterior"
-                            })
-                
-                resultado["impacto_financeiro_total"] = round(impacto_total, 2)
-            
-            # 6. Análise de arquivos de apoio
-            if has_apoio:
-                resultado["dados_extraidos"]["apoio"] = []
-                for apoio_data in extracted_data["apoio"]:
-                    texto_apoio = apoio_data["texto"]
-                    filename = apoio_data["filename"]
-                    
-                    resultado["dados_extraidos"]["apoio"].append({
-                        "arquivo": filename,
-                        "texto_extraido": texto_apoio[:500] + "..." if len(texto_apoio) > 500 else texto_apoio
-                    })
-                    
-                    # Procurar valores monetários no texto de apoio
-                    import re
-                    valores_apoio = re.findall(r'R\$\s*([\d.,]+)|(\d{1,3}(?:\.\d{3})*(?:,\d{2}))', texto_apoio)
-                    valores_encontrados = []
-                    for val in valores_apoio:
-                        val_str = val[0] or val[1]
-                        if val_str:
-                            try:
-                                val_clean = val_str.replace('.', '').replace(',', '.')
-                                val_float = float(val_clean)
-                                if 10 < val_float < 50000:
-                                    valores_encontrados.append(val_float)
-                            except:
-                                pass
-                    
-                    if valores_encontrados:
-                        resultado["alertas"].append({
-                            "tipo": "informativo",
-                            "mensagem": f"Encontrados {len(valores_encontrados)} valores em {filename}: {', '.join([f'R$ {v:.2f}' for v in valores_encontrados[:3]])}"
-                        })
-                        
-                        # Comparar com valores do holerite
-                        holerite_valores = [
-                            dados_atual.get("total_proventos", 0),
-                            dados_atual.get("total_descontos", 0),
-                            dados_atual.get("liquido", 0)
-                        ]
-                        holerite_valores += [p.get("valor", 0) for p in dados_atual.get("proventos", [])]
-                        holerite_valores += [d.get("valor", 0) for d in dados_atual.get("descontos", [])]
-                        
-                        for val_apoio in valores_encontrados:
-                            # Verificar se valor existe no holerite
-                            encontrado = any(abs(val_apoio - hv) < 0.05 for hv in holerite_valores if hv)
-                            if encontrado:
-                                resultado["comparacoes"]["com_apoio"].append({
-                                    "funcionario": funcionario_nome,
-                                    "arquivo_apoio": filename,
-                                    "campo": "Valor identificado",
-                                    "valor_apoio": val_apoio,
-                                    "valor_holerite": val_apoio,
-                                    "diferenca": 0,
-                                    "status": "conferido",
-                                    "observacao": "Valor encontrado no holerite"
-                                })
-            
-            # 7. Validações básicas do holerite
-            if dados_atual.get("total_proventos") and dados_atual.get("total_descontos") and dados_atual.get("liquido"):
-                liquido_calculado = dados_atual["total_proventos"] - dados_atual["total_descontos"]
-                diferenca_liquido = abs(dados_atual["liquido"] - liquido_calculado)
-                
-                if diferenca_liquido > 1:  # Tolerância de R$ 1 para arredondamento
-                    resultado["divergencias"].append({
-                        "funcionario": funcionario_nome,
-                        "tipo": "calculo_errado",
-                        "campo": "Líquido",
-                        "valor_esperado": f"R$ {liquido_calculado:.2f}",
-                        "valor_encontrado": f"R$ {dados_atual['liquido']:.2f}",
-                        "fonte_referencia": "calculo_interno",
-                        "severidade": "alta" if diferenca_liquido > 10 else "baixa",
-                        "descricao": f"Líquido não confere: Proventos ({dados_atual['total_proventos']:.2f}) - Descontos ({dados_atual['total_descontos']:.2f}) = {liquido_calculado:.2f}",
-                        "impacto_financeiro": diferenca_liquido
-                    })
-            
-            # 8. Gerar resumo executivo
-            resumo_parts = []
-            resumo_parts.append(f"Validação {tipo_analise.replace('_', ' ')} concluída com sucesso.")
-            
-            if dados_atual.get("funcionario"):
-                resumo_parts.append(f"Funcionário: {dados_atual['funcionario']}.")
-            
-            if dados_atual.get("competencia"):
-                resumo_parts.append(f"Competência do holerite: {dados_atual['competencia']}.")
-            
-            if dados_atual.get("liquido"):
-                resumo_parts.append(f"Valor líquido: R$ {dados_atual['liquido']:.2f}.")
-            
-            if has_anterior:
-                comparacoes_mensal = len(resultado["comparacoes"]["com_mes_anterior"])
-                resumo_parts.append(f"Comparação com mês anterior: {comparacoes_mensal} campo(s) analisado(s).")
-            
-            if has_apoio:
-                resumo_parts.append(f"Analisado(s) {len(arquivos_info['apoio'])} documento(s) de apoio.")
-            
-            total_div = len(resultado["divergencias"])
-            total_conf = len(resultado["campos_conferidos"])
-            
-            if total_div > 0:
-                resumo_parts.append(f"⚠️ Encontrada(s) {total_div} divergência(s) que requerem atenção.")
-            else:
-                resumo_parts.append(f"✅ Nenhuma divergência encontrada. {total_conf} campo(s) conferido(s).")
-            
-            resultado["resumo_executivo"] = " ".join(resumo_parts)
-            
-            # 9. Gerar recomendações
-            if len(resultado["divergencias"]) > 0:
-                resultado["recomendacoes"].append("Revisar as divergências identificadas antes de fechar a folha.")
-            if has_anterior and len(resultado["comparacoes"]["com_mes_anterior"]) > 0:
-                variacoes = [c for c in resultado["comparacoes"]["com_mes_anterior"] if abs(c.get("percentual", 0)) > 5]
-                if variacoes:
-                    resultado["recomendacoes"].append("Verificar justificativas para as variações significativas em relação ao mês anterior.")
-            if not dados_atual.get("funcionario"):
-                resultado["recomendacoes"].append("Não foi possível identificar o funcionário no documento. Verifique a qualidade do scan.")
-            
-            # Totais
-            resultado["total_divergencias"] = len(resultado["divergencias"])
-            resultado["total_conferidos"] = len(resultado["campos_conferidos"])
-            resultado["total_alertas"] = len(resultado["alertas"])
-            
-            # 10. Salvar no banco de dados
+            # 9. Salvar no banco
             validacao_id = str(uuid.uuid4())
             now = datetime.now(timezone.utc).isoformat()
             
@@ -1881,35 +1840,57 @@ async def validacao_completa(
                 "ano_referencia": ano_referencia,
                 "tipo_validacao": tipo_analise,
                 "status": "concluido",
-                "arquivos": arquivos_info,
-                "funcionarios_analisados": resultado["funcionarios_analisados"],
-                "dados_extraidos": resultado["dados_extraidos"],
-                "comparacoes": resultado["comparacoes"],
-                "divergencias": resultado["divergencias"],
-                "campos_conferidos": resultado["campos_conferidos"],
-                "alertas": resultado["alertas"],
-                "resumo_executivo": resultado["resumo_executivo"],
-                "recomendacoes": resultado["recomendacoes"],
-                "total_divergencias": resultado["total_divergencias"],
-                "total_conferidos": resultado["total_conferidos"],
-                "total_alertas": resultado["total_alertas"],
-                "impacto_financeiro_total": resultado.get("impacto_financeiro_total", 0),
+                "arquivos": {
+                    "holerite_atual": holerite_atual.filename,
+                    "holerite_anterior": holerite_anterior.filename if has_anterior else None,
+                    "apoio": apoio_filenames
+                },
+                "funcionarios_analisados": len(resultado_colaboradores),
+                "colaboradores": resultado_colaboradores,
+                "referencias_apoio": referencias_apoio,
+                "resumo_executivo": resumo,
+                "recomendacoes": recomendacoes,
+                "total_divergencias": total_divergencias,
+                "total_conferidos": total_conferidos,
+                "total_alertas": total_atencao,
+                "impacto_financeiro_total": round(impacto_total, 2),
+                "estatisticas": {
+                    "total_colaboradores": len(resultado_colaboradores),
+                    "ok": total_ok,
+                    "atencao": total_atencao,
+                    "divergente": total_divergente
+                },
                 "created_at": now,
                 "user_id": current_user["id"]
             }
             
             await db.validacoes.insert_one(validacao_doc)
-            logger.info(f"Validação {validacao_id} salva com sucesso")
+            logger.info(f"Validação {validacao_id} salva com {len(resultado_colaboradores)} colaboradores")
             
             return {
                 "id": validacao_id,
                 "success": True,
-                **resultado,
-                "message": f"Validação {tipo_analise.replace('_', ' ')} concluída"
+                "tipo_analise": tipo_analise,
+                "empresa": cliente.get("nome_fantasia") or cliente.get("razao_social"),
+                "competencia": f"{mes_referencia}/{ano_referencia}",
+                "funcionarios_analisados": len(resultado_colaboradores),
+                "colaboradores": resultado_colaboradores,
+                "referencias_apoio": referencias_apoio if has_apoio else [],
+                "resumo_executivo": resumo,
+                "recomendacoes": recomendacoes,
+                "total_divergencias": total_divergencias,
+                "total_conferidos": total_conferidos,
+                "impacto_financeiro_total": round(impacto_total, 2),
+                "estatisticas": {
+                    "total_colaboradores": len(resultado_colaboradores),
+                    "ok": total_ok,
+                    "atencao": total_atencao,
+                    "divergente": total_divergente
+                },
+                "message": f"Validação concluída para {len(resultado_colaboradores)} colaborador(es)"
             }
             
         finally:
-            # Limpar arquivos temporários
             for tmp_path in temp_files:
                 try:
                     os.unlink(tmp_path)
