@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 
 class BusinessPortalTester:
-    def __init__(self, base_url="https://sociallegal.preview.emergentagent.com"):
+    def __init__(self, base_url="https://corporegister.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.user_id = None
