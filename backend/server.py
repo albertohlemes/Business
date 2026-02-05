@@ -2528,6 +2528,267 @@ async def cadastrar_direto_gclick(
         logger.error(f"Erro ao cadastrar direto no GClick: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao cadastrar no GClick: {str(e)}")
 
+# ============ HISTÓRICO DE CADASTROS ============
+
+@api_router.get("/cadastros/historico")
+async def listar_historico_cadastros(
+    current_user: dict = Depends(get_current_user)
+):
+    """Lista todas as empresas cadastradas via ferramenta de Cadastros"""
+    cadastros = await db.cadastros_externos.find(
+        {"user_id": current_user["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(200)
+    
+    return {"cadastros": cadastros}
+
+@api_router.get("/cadastros/historico/{cadastro_id}")
+async def get_cadastro_detalhe(
+    cadastro_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Retorna detalhes de um cadastro específico"""
+    cadastro = await db.cadastros_externos.find_one(
+        {"id": cadastro_id, "user_id": current_user["id"]},
+        {"_id": 0}
+    )
+    if not cadastro:
+        raise HTTPException(status_code=404, detail="Cadastro não encontrado")
+    return cadastro
+
+@api_router.delete("/cadastros/historico/{cadastro_id}")
+async def delete_cadastro_historico(
+    cadastro_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Remove um cadastro do histórico"""
+    result = await db.cadastros_externos.delete_one(
+        {"id": cadastro_id, "user_id": current_user["id"]}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Cadastro não encontrado")
+    return {"message": "Cadastro removido do histórico"}
+
+# ============ EXTRAÇÃO POR IA PARA CADASTROS ============
+
+@api_router.post("/cadastros/extrair-dados")
+async def extrair_dados_cadastro(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Extrai dados de documentos empresariais usando IA.
+    Aceita: Cartão CNPJ, Certidão Inteiro Teor, Contrato Social, Comprovante de Endereço
+    """
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        import tempfile
+        import json as json_lib
+        
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not api_key:
+            raise HTTPException(status_code=500, detail="Chave de API não configurada")
+        
+        # Determinar tipo MIME
+        content_type = file.content_type or ''
+        filename = file.filename or ''
+        
+        if 'pdf' in content_type or filename.endswith('.pdf'):
+            mime_type = 'application/pdf'
+            suffix = '.pdf'
+        elif 'png' in content_type or filename.endswith('.png'):
+            mime_type = 'image/png'
+            suffix = '.png'
+        elif 'jpeg' in content_type or 'jpg' in content_type or filename.endswith(('.jpg', '.jpeg')):
+            mime_type = 'image/jpeg'
+            suffix = '.jpg'
+        else:
+            mime_type = 'application/pdf'
+            suffix = '.pdf'
+        
+        # Salvar arquivo temporariamente
+        file_content = await file.read()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(file_content)
+            tmp_path = tmp.name
+        
+        system_message = """Você é um especialista em análise de documentos empresariais brasileiros.
+Sua tarefa é extrair TODOS os dados relevantes de documentos como:
+- Cartão CNPJ (Comprovante de Inscrição e de Situação Cadastral)
+- Certidão Simplificada ou Inteiro Teor da Junta Comercial
+- Contrato Social ou Última Alteração Contratual
+- Comprovante de Endereço
+
+EXTRAIA TODOS OS DADOS DISPONÍVEIS, especialmente:
+- CNPJ (formato: 00.000.000/0001-00)
+- Razão Social completa
+- Nome Fantasia (se houver)
+- Inscrição Estadual (se constar)
+- Inscrição Municipal (se constar)
+- Data de Abertura
+- Endereço completo (logradouro, número, complemento, bairro, cidade, UF, CEP)
+- Telefone e E-mail (se houver)
+- Capital Social
+- Objeto Social / Atividades (CNAEs)
+- Sócios com: Nome, CPF, participação percentual, se é administrador
+- NIRE (se houver)
+
+SEMPRE responda APENAS com um JSON válido, sem markdown, sem explicações.
+O JSON deve seguir esta estrutura:
+
+{
+    "cnpj": "00.000.000/0001-00",
+    "razao_social": "NOME DA EMPRESA LTDA",
+    "nome_fantasia": "Nome Fantasia",
+    "inscricao_estadual": "000.000.000.000 ou ISENTO",
+    "inscricao_municipal": "000.000.000",
+    "data_abertura": "DD/MM/AAAA",
+    "endereco": {
+        "logradouro": "Rua/Av completo",
+        "numero": "000",
+        "complemento": "Sala/Andar",
+        "bairro": "Bairro",
+        "cidade": "Cidade",
+        "estado": "UF",
+        "cep": "00000-000"
+    },
+    "telefone": "(00) 00000-0000",
+    "email": "email@empresa.com",
+    "capital_social": "R$ 0.000,00",
+    "objeto_social": "Descrição das atividades",
+    "socios": [
+        {
+            "nome": "NOME COMPLETO",
+            "cpf": "000.000.000-00",
+            "participacao": "50",
+            "administrador": true
+        }
+    ],
+    "nire": "00000000000",
+    "regime_tributario": "Simples Nacional / Lucro Presumido / Lucro Real",
+    "situacao_cadastral": "ATIVA"
+}
+
+Se algum campo não for encontrado no documento, use null."""
+
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"cadastro-extract-{uuid.uuid4()}",
+            system_message=system_message
+        ).with_model("gemini", "gemini-2.5-flash")
+        
+        user_message = UserMessage(
+            text="Extraia TODOS os dados deste documento empresarial. Retorne APENAS JSON válido.",
+            file_contents=[FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)]
+        )
+        
+        response = await chat.send_message(user_message)
+        
+        # Limpar arquivo temporário
+        os.unlink(tmp_path)
+        
+        # Parsear JSON da resposta
+        try:
+            json_str = response.strip()
+            if json_str.startswith('```'):
+                json_str = json_str.split('```')[1]
+                if json_str.startswith('json'):
+                    json_str = json_str[4:]
+            if json_str.endswith('```'):
+                json_str = json_str[:-3]
+            
+            dados = json_lib.loads(json_str.strip())
+        except json_lib.JSONDecodeError:
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', response)
+            if json_match:
+                dados = json_lib.loads(json_match.group())
+            else:
+                dados = {"raw_text": response}
+        
+        return {
+            "success": True,
+            "dados": dados
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao extrair dados do documento: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Erro na extração: {str(e)}",
+            "dados": {}
+        }
+
+# ============ CONSULTA SINTEGRA (Inscrição Estadual) ============
+
+@api_router.get("/sintegra/{uf}/{cnpj}")
+async def consultar_sintegra(
+    uf: str,
+    cnpj: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Consulta a Inscrição Estadual no SINTEGRA.
+    Retorna a IE se encontrada, ou null se não houver/isento.
+    """
+    cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+    uf = uf.upper()
+    
+    if len(cnpj_limpo) != 14:
+        raise HTTPException(status_code=400, detail="CNPJ deve ter 14 dígitos")
+    
+    if uf not in ESTADOS:
+        raise HTTPException(status_code=400, detail="UF inválida")
+    
+    try:
+        # Usar API pública do SINTEGRA (via proxy ou scraping básico)
+        # Nota: SINTEGRA não tem API oficial, então usamos ReceitaWS que pode ter IE
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            # Primeiro tentar ReceitaWS que às vezes tem IE
+            try:
+                response = await client.get(
+                    f"https://receitaws.com.br/v1/cnpj/{cnpj_limpo}",
+                    headers={"Accept": "application/json"}
+                )
+                
+                if response.status_code == 200:
+                    dados = response.json()
+                    if dados.get("status") != "ERROR":
+                        # ReceitaWS não retorna IE diretamente, mas podemos extrair de outros campos
+                        # Se a empresa está ativa e é do estado, provavelmente tem IE
+                        return {
+                            "success": True,
+                            "cnpj": cnpj,
+                            "uf": uf,
+                            "inscricao_estadual": None,  # ReceitaWS não fornece IE
+                            "razao_social": dados.get("nome", ""),
+                            "situacao": dados.get("situacao", ""),
+                            "message": "SINTEGRA não possui API pública. Verifique diretamente no site: https://www.sintegra.gov.br/"
+                        }
+            except Exception as e:
+                logger.warning(f"Erro ao consultar ReceitaWS: {e}")
+        
+        # Retornar informação de que precisa consulta manual
+        return {
+            "success": True,
+            "cnpj": cnpj,
+            "uf": uf,
+            "inscricao_estadual": None,
+            "message": f"Consulte manualmente em: http://www.sintegra.gov.br/",
+            "url_sintegra": f"http://www.sintegra.gov.br/"
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao consultar SINTEGRA: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Erro na consulta: {str(e)}",
+            "inscricao_estadual": None
+        }
+
+# Variável para os estados (usado no endpoint SINTEGRA)
+ESTADOS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO']
+
 @api_router.post("/baixa/extrair-contrato")
 async def extrair_contrato_para_baixa(
     file: UploadFile = File(...),
