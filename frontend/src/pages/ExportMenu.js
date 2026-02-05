@@ -225,9 +225,19 @@ const ExportMenu = ({ user, onLogout }) => {
     
     if (acao === 'manter') {
       // O usuário decidiu manter como está (ICMS = 0)
-      // Podemos registrar essa decisão ou simplesmente fechar o modal
+      // Remover o item da lista de pendentes no estado local
+      if (validacao && validacao.itens_pendentes) {
+        const novosItensPendentes = validacao.itens_pendentes.filter(
+          item => !(item.document_id === modalCorrecao.document_id && item.product_index === modalCorrecao.product_index)
+        );
+        setValidacao({
+          ...validacao,
+          itens_pendentes: novosItensPendentes,
+          total_itens_pendentes: novosItensPendentes.length
+        });
+      }
       setModalCorrecao(null);
-      alert('Item mantido. O ICMS continuará como R$ 0,00 no SPED.');
+      // Não mostrar alert, apenas remover da lista
       return;
     }
     
