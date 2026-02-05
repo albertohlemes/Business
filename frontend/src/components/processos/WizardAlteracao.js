@@ -820,6 +820,22 @@ const SocioCardAlteracao = ({ socio, index, onChange, onRemove }) => {
                 />
             </div>
             
+            {/* Flag Sócio Administrador */}
+            <div className="pt-4 border-t border-zinc-800">
+                <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={socio.administrador || false}
+                        onChange={(e) => onChange({ ...socio, administrador: e.target.checked })}
+                        className="w-5 h-5 accent-green-600 rounded"
+                    />
+                    <div>
+                        <span className="text-white font-medium">Sócio Administrador?</span>
+                        <p className="text-xs text-zinc-500">Se marcado, este sócio constará na cláusula de administração</p>
+                    </div>
+                </label>
+            </div>
+            
             {/* Endereço do Sócio */}
             <div className="pt-4 border-t border-zinc-800">
                 <div className="flex items-center justify-between mb-3">
