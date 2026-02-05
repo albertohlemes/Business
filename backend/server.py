@@ -1641,23 +1641,113 @@ async def validacao_completa(
             else:
                 tipo_analise = "analise_isolada"
             
-            # Build system prompt based on documents provided
-            system_parts = ["""Você é um auditor especializado em departamento pessoal brasileiro, com expertise em análise cirúrgica de folhas de pagamento.
-
-VOCÊ RECEBEU OS SEGUINTES DOCUMENTOS:"""]
+            # EXTRAIR TEXTO COM OCR LOCAL (gratuito e rápido)
+            logger.info("Extraindo texto dos documentos com OCR local...")
+            for f in file_info:
+                try:
+                    text = doc_processor.extract_text(f["path"])
+                    extracted_texts[f["tipo"]] = {
+                        "filename": f["filename"],
+                        "text": text,
+                        "dados": doc_processor.parse_holerite_from_text(text) if text else {}
+                    }
+                    logger.info(f"Extraído {len(text)} caracteres de {f['filename']}")
+                except Exception as e:
+                    logger.error(f"Erro ao extrair {f['filename']}: {e}")
+                    extracted_texts[f["tipo"]] = {"filename": f["filename"], "text": "", "dados": {}}
             
-            system_parts.append(f"1. HOLERITE ATUAL ({holerite_atual.filename}): O documento principal a ser validado")
+            # Analisar dados extraídos
+            resultado = {
+                "tipo_analise": tipo_analise,
+                "empresa": cliente.get("nome_fantasia") or cliente.get("razao_social"),
+                "competencia": f"{mes_referencia}/{ano_referencia}",
+                "funcionarios_analisados": 0,
+                "dados_extraidos": {},
+                "comparacoes": {"com_mes_anterior": [], "com_apoio": []},
+                "divergencias": [],
+                "campos_conferidos": [],
+                "alertas": [],
+                "resumo_executivo": "",
+                "recomendacoes": []
+            }
             
-            doc_num = 2
+            # Processar holerite atual
+            atual_data = extracted_texts.get("holerite_atual", {}).get("dados", {})
+            if atual_data:
+                resultado["dados_extraidos"]["holerite_atual"] = atual_data
+                resultado["funcionarios_analisados"] = 1 if atual_data.get("funcionario") else 0
+                
+                # Adicionar campos conferidos
+                if atual_data.get("total_proventos"):
+                    resultado["campos_conferidos"].append({
+                        "campo": "Total Proventos",
+                        "valor": atual_data["total_proventos"],
+                        "status": "ok"
+                    })
+                if atual_data.get("total_descontos"):
+                    resultado["campos_conferidos"].append({
+                        "campo": "Total Descontos", 
+                        "valor": atual_data["total_descontos"],
+                        "status": "ok"
+                    })
+                if atual_data.get("liquido"):
+                    resultado["campos_conferidos"].append({
+                        "campo": "Líquido",
+                        "valor": atual_data["liquido"],
+                        "status": "ok"
+                    })
+            
+            # Comparar com mês anterior se disponível
             if has_anterior:
-                anterior_info = next(f for f in file_info if f["tipo"] == "holerite_anterior")
-                system_parts.append(f"{doc_num}. HOLERITE MÊS ANTERIOR ({anterior_info['filename']}): Para comparação mês a mês")
-                doc_num += 1
+                anterior_data = extracted_texts.get("holerite_anterior", {}).get("dados", {})
+                if anterior_data and atual_data:
+                    resultado["dados_extraidos"]["holerite_anterior"] = anterior_data
+                    
+                    # Comparar valores
+                    campos_comparar = [
+                        ("total_proventos", "Total Proventos"),
+                        ("total_descontos", "Total Descontos"),
+                        ("liquido", "Líquido")
+                    ]
+                    
+                    for campo, nome in campos_comparar:
+                        val_atual = atual_data.get(campo, 0)
+                        val_anterior = anterior_data.get(campo, 0)
+                        if val_atual and val_anterior:
+                            diferenca = val_atual - val_anterior
+                            percentual = ((val_atual / val_anterior) - 1) * 100 if val_anterior else 0
+                            
+                            resultado["comparacoes"]["com_mes_anterior"].append({
+                                "funcionario": atual_data.get("funcionario", ""),
+                                "campo": nome,
+                                "valor_anterior": val_anterior,
+                                "valor_atual": val_atual,
+                                "diferenca": diferenca,
+                                "percentual": round(percentual, 2)
+                            })
+                            
+                            # Alertar se variação > 10%
+                            if abs(percentual) > 10:
+                                resultado["alertas"].append({
+                                    "tipo": "atencao",
+                                    "mensagem": f"{nome} variou {percentual:.1f}% em relação ao mês anterior"
+                                })
             
+            # Gerar resumo
+            resumo_parts = [f"Análise {tipo_analise.replace('_', ' ')} realizada com sucesso."]
+            if atual_data.get("funcionario"):
+                resumo_parts.append(f"Funcionário: {atual_data['funcionario']}")
+            if atual_data.get("liquido"):
+                resumo_parts.append(f"Valor líquido: R$ {atual_data['liquido']:.2f}")
+            if has_anterior:
+                resumo_parts.append("Comparação com mês anterior realizada.")
             if has_apoio:
-                for apoio_name in apoio_filenames:
-                    system_parts.append(f"{doc_num}. RELATÓRIO DE APOIO ({apoio_name}): Documento de referência para validação")
-                    doc_num += 1
+                resumo_parts.append(f"Analisados {len(apoio_filenames)} documento(s) de apoio.")
+            
+            resultado["resumo_executivo"] = " ".join(resumo_parts)
+            resultado["total_divergencias"] = len(resultado["divergencias"])
+            resultado["total_conferidos"] = len(resultado["campos_conferidos"])
+            resultado["total_alertas"] = len(resultado["alertas"])
             
             system_parts.append("""
 
