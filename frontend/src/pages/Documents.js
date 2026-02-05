@@ -326,6 +326,21 @@ const Documents = ({ user, onLogout }) => {
       if (selectedStatus && doc.status_validacao !== selectedStatus) return false;
       if (selectedTipo && doc.tipo !== selectedTipo) return false;
       
+      // Filtro de busca
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const matchNF = doc.numero_nfe?.toLowerCase().includes(term);
+        const matchEmitente = doc.emitente_nome?.toLowerCase().includes(term);
+        const matchCNPJ = doc.emitente_cnpj?.includes(term);
+        const matchChave = doc.chave_nfe?.includes(term);
+        const matchProduto = doc.produtos?.some(p => 
+          p.descricao?.toLowerCase().includes(term) ||
+          p.ncm?.includes(term) ||
+          p.codigo?.toLowerCase().includes(term)
+        );
+        if (!matchNF && !matchEmitente && !matchCNPJ && !matchChave && !matchProduto) return false;
+      }
+      
       // Filtro de integridade
       if (selectedIntegridade) {
         const check = quickCheckIntegrity(doc);
