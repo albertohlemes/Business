@@ -1374,19 +1374,24 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
         ))
         
         # Registro C170 - Itens do documento
+        # Layout: REG|NUM_ITEM|COD_ITEM|DESCR_COMPL|QTD|UNID|VL_ITEM|VL_DESC|IND_MOV|CST_ICMS|CFOP|COD_NAT|VL_BC_ICMS|ALIQ_ICMS|VL_ICMS|VL_BC_ICMS_ST|ALIQ_ST|VL_ICMS_ST|IND_APUR|CST_IPI|COD_ENQ|VL_BC_IPI|ALIQ_IPI|VL_IPI|CST_PIS|VL_BC_PIS|ALIQ_PIS|QUANT_BC_PIS|ALIQ_PIS_R$|VL_PIS|CST_COFINS|VL_BC_COFINS|ALIQ_COFINS|QUANT_BC_COFINS|ALIQ_COFINS_R$|VL_COFINS|COD_CTA|VL_ABAT_NT
         for idx, prod in enumerate(doc.produtos):
-            # |REG|NUM_ITEM|COD_ITEM|DESCR_COMPL|QTD|UNID|VL_ITEM|VL_DESC|IND_MOV|CST_ICMS|CFOP|COD_NAT|VL_BC_ICMS|ALIQ_ICMS|VL_ICMS|VL_BC_ICMS_ST|ALIQ_ST|VL_ICMS_ST|IND_APUR|CST_IPI|COD_ENQ|VL_BC_IPI|ALIQ_IPI|VL_IPI|CST_PIS|VL_BC_PIS|ALIQ_PIS|QUANT_BC_PIS|ALIQ_PIS_QUANT|VL_PIS|CST_COFINS|VL_BC_COFINS|ALIQ_COFINS|QUANT_BC_COFINS|ALIQ_COFINS_QUANT|VL_COFINS|COD_CTA|
-            cst_icms = prod.get('cst', '000') or '000'
-            cfop = prod.get('cfop', '') or ''
+            # CST ICMS (3 dígitos, ex: 000, 020, 060, 090)
+            cst_icms = str(prod.get('cst', '') or prod.get('cst_icms', '') or '000').zfill(3)
+            cfop = str(prod.get('cfop', '') or '')
             
             # Valores de ICMS do XML
             bc_icms = float(prod.get('v_bc_icms', 0) or prod.get('bc_icms', 0) or prod.get('v_bc', 0) or 0)
             aliq_icms = float(prod.get('p_icms', 0) or prod.get('aliq_icms', 0) or 0)
             v_icms = float(prod.get('v_icms', 0) or 0)
             
-            # CST de PIS/COFINS do XML
-            cst_pis = str(prod.get('cst_pis', '') or '01')
-            cst_cofins = str(prod.get('cst_cofins', '') or '01')
+            # Se não tem alíquota mas tem base e valor, calcular
+            if aliq_icms == 0 and bc_icms > 0 and v_icms > 0:
+                aliq_icms = (v_icms / bc_icms) * 100
+            
+            # CST de PIS/COFINS do XML (2 dígitos)
+            cst_pis = str(prod.get('cst_pis', '') or '01').zfill(2)
+            cst_cofins = str(prod.get('cst_cofins', '') or '01').zfill(2)
             
             # Valores de PIS do XML
             bc_pis = float(prod.get('v_bc_pis', 0) or prod.get('bc_pis', 0) or 0)
@@ -1398,26 +1403,59 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             aliq_cofins = float(prod.get('p_cofins', 0) or prod.get('aliq_cofins', 0) or 0)
             v_cofins = float(prod.get('v_cofins', 0) or 0)
             
-            lines.append("|C170|{}|{}||{}|{}|{}|0|0|{}|{}||{}|{}|{}|0|0|0|0|99|||0|||{}|{}|{}|||{}|{}|{}|{}||||{}||".format(
-                idx + 1,                                                    # NUM_ITEM
-                prod.get('codigo', '')[:60],                               # COD_ITEM
-                f"{float(prod.get('quantidade', 0) or 0):.4f}".replace('.',','),  # QTD
-                (prod.get('unidade', 'UN') or 'UN')[:6],                   # UNID
-                f"{float(prod.get('valor_total', 0) or 0):.2f}".replace('.',','),  # VL_ITEM
-                cst_icms,                                                   # CST_ICMS
-                cfop,                                                       # CFOP
-                f"{bc_icms:.2f}".replace('.',','),                         # VL_BC_ICMS
-                f"{aliq_icms:.2f}".replace('.',','),                       # ALIQ_ICMS
-                f"{v_icms:.2f}".replace('.',','),                          # VL_ICMS
-                cst_pis,                                                    # CST_PIS
-                f"{bc_pis:.2f}".replace('.',','),                          # VL_BC_PIS
-                f"{aliq_pis:.2f}".replace('.',','),                        # ALIQ_PIS
-                f"{v_pis:.2f}".replace('.',','),                           # VL_PIS
-                cst_cofins,                                                 # CST_COFINS
-                f"{bc_cofins:.2f}".replace('.',','),                       # VL_BC_COFINS
-                f"{aliq_cofins:.2f}".replace('.',','),                     # ALIQ_COFINS
-                f"{v_cofins:.2f}".replace('.',',')                         # VL_COFINS
-            ))
+            # Quantidade e valor do item
+            qtd = float(prod.get('quantidade', 0) or 0)
+            vl_item = float(prod.get('valor_total', 0) or 0)
+            unid = (prod.get('unidade', 'UN') or 'UN')[:6].upper()
+            
+            # Descrição complementar (deixar vazio se não necessário)
+            descr_compl = ''
+            
+            # IND_MOV: 0=com movimentação física, 1=sem
+            ind_mov = '0'
+            
+            # Valor do desconto (não existe em NFe padrão, então 0)
+            vl_desc = float(prod.get('v_desc', 0) or 0)
+            
+            # VL_ABAT_NT - Valor do abatimento não tributado e não comercial (campo 38)
+            # Não confundir com desconto! Só preencher se houver abatimento específico
+            vl_abat_nt = 0
+            
+            # Formatar linha C170 com TODOS os 38 campos
+            # Campos vazios: COD_NAT(12), VL_BC_ICMS_ST(16), ALIQ_ST(17), VL_ICMS_ST(18), 
+            #                IND_APUR(19), CST_IPI(20), COD_ENQ(21), VL_BC_IPI(22), ALIQ_IPI(23), VL_IPI(24),
+            #                QUANT_BC_PIS(28), ALIQ_PIS_R$(29), QUANT_BC_COFINS(34), ALIQ_COFINS_R$(35), COD_CTA(37)
+            
+            linha_c170 = "|C170|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}||{}|{}|{}|||||||||{}|{}|{}|||{}|{}|{}|{}|||{}||{}|".format(
+                idx + 1,                                                    # 02 NUM_ITEM
+                str(prod.get('codigo', ''))[:60],                          # 03 COD_ITEM
+                descr_compl[:60] if descr_compl else '',                   # 04 DESCR_COMPL
+                f"{qtd:.5f}".replace('.',','),                             # 05 QTD
+                unid,                                                       # 06 UNID
+                f"{vl_item:.2f}".replace('.',','),                         # 07 VL_ITEM
+                f"{vl_desc:.2f}".replace('.',',') if vl_desc > 0 else '',  # 08 VL_DESC
+                ind_mov,                                                    # 09 IND_MOV
+                cst_icms,                                                   # 10 CST_ICMS
+                cfop,                                                       # 11 CFOP
+                # 12 COD_NAT vazio
+                f"{bc_icms:.2f}".replace('.',','),                         # 13 VL_BC_ICMS
+                f"{aliq_icms:.2f}".replace('.',','),                       # 14 ALIQ_ICMS
+                f"{v_icms:.2f}".replace('.',','),                          # 15 VL_ICMS
+                # 16-24 vazios (ST, IPI)
+                cst_pis,                                                    # 25 CST_PIS
+                f"{bc_pis:.2f}".replace('.',','),                          # 26 VL_BC_PIS
+                f"{aliq_pis:.4f}".replace('.',','),                        # 27 ALIQ_PIS (4 decimais)
+                # 28-29 vazios (QUANT_BC_PIS, ALIQ_PIS em R$)
+                f"{v_pis:.2f}".replace('.',','),                           # 30 VL_PIS
+                cst_cofins,                                                 # 31 CST_COFINS
+                f"{bc_cofins:.2f}".replace('.',','),                       # 32 VL_BC_COFINS
+                f"{aliq_cofins:.4f}".replace('.',','),                     # 33 ALIQ_COFINS (4 decimais)
+                # 34-35 vazios (QUANT_BC_COFINS, ALIQ_COFINS em R$)
+                f"{v_cofins:.2f}".replace('.',','),                        # 36 VL_COFINS
+                # 37 COD_CTA vazio
+                f"{vl_abat_nt:.2f}".replace('.',',') if vl_abat_nt > 0 else ''  # 38 VL_ABAT_NT
+            )
+            lines.append(linha_c170)
         
         # Registro C190 - Registro analítico do documento
         # Agrupar por CFOP + CST
