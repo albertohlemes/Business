@@ -76,8 +76,31 @@ const ExportMenu = ({ user, onLogout }) => {
 
   const handleCompanyChange = (companyId) => {
     setSelectedCompany(companyId);
+    setValidacao(null); // Limpar validação ao trocar empresa
     if (companyId) {
       fetchDocumentsAndCompetencias(companyId);
+    }
+  };
+
+  const handleValidar = async () => {
+    if (!selectedCompany || !competencia) {
+      alert('Selecione uma empresa e competência');
+      return;
+    }
+
+    setLoadingValidacao(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/sped/validar/${selectedCompany}?competencia=${competencia}&excluir_creditos_despesa_st=${excluirCreditosDespesaST}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setValidacao(response.data);
+    } catch (error) {
+      console.error('Erro na validação:', error);
+      alert('Erro ao validar SPED');
+    } finally {
+      setLoadingValidacao(false);
     }
   };
 
