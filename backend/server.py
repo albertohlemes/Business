@@ -1749,7 +1749,12 @@ IMPORTANTE:
             )
             
             response = await chat.send_message(UserMessage(
-                text="Compare estes dois documentos de informe de rendimentos. O primeiro é do eSocial e o segundo é do sistema interno.",
+                text=f"""Compare estes dois documentos de informe de rendimentos:
+
+DOCUMENTO 1 (eSocial): {file_esocial.filename}
+DOCUMENTO 2 (SCI Único): {file_sistema.filename}
+
+Identifique todas as divergências entre os valores do eSocial e do SCI Único.""",
                 file_contents=[file1, file2]
             ))
             
