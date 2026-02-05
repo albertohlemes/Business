@@ -1348,6 +1348,12 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
         if doc.chave_nfe and len(doc.chave_nfe) >= 25:
             serie = doc.chave_nfe[22:25].lstrip('0') or '1'
         
+        # Calcular totais da nota a partir dos produtos
+        total_bc_icms = sum(float(p.get('v_bc_icms', 0) or p.get('bc_icms', 0) or p.get('v_bc', 0) or 0) for p in doc.produtos)
+        total_v_icms = sum(float(p.get('v_icms', 0) or 0) for p in doc.produtos)
+        total_v_pis = sum(float(p.get('v_pis', 0) or 0) for p in doc.produtos)
+        total_v_cofins = sum(float(p.get('v_cofins', 0) or 0) for p in doc.produtos)
+        
         lines.append("|C100|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|0|0|0|{}|9|0|0|0|{}|{}|0|0|0|{}|{}|0|0|".format(
             ind_oper,                                       # IND_OPER
             ind_emit,                                       # IND_EMIT
@@ -1361,10 +1367,10 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             data_emissao,                                   # DT_E_S
             f"{doc.valor_total:.2f}".replace('.',','),     # VL_DOC
             f"{doc.valor_total:.2f}".replace('.',','),     # VL_MERC
-            f"{sum(float(p.get('bc_icms', 0) or 0) for p in doc.produtos):.2f}".replace('.',','),  # VL_BC_ICMS
-            f"{sum(float(p.get('v_icms', 0) or 0) for p in doc.produtos):.2f}".replace('.',','),   # VL_ICMS
-            f"{sum(float(p.get('v_pis', 0) or 0) for p in doc.produtos):.2f}".replace('.',','),    # VL_PIS
-            f"{sum(float(p.get('v_cofins', 0) or 0) for p in doc.produtos):.2f}".replace('.',',')  # VL_COFINS
+            f"{total_bc_icms:.2f}".replace('.',','),       # VL_BC_ICMS
+            f"{total_v_icms:.2f}".replace('.',','),        # VL_ICMS
+            f"{total_v_pis:.2f}".replace('.',','),         # VL_PIS
+            f"{total_v_cofins:.2f}".replace('.',',')       # VL_COFINS
         ))
         
         # Registro C170 - Itens do documento
