@@ -12,6 +12,55 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL + '/api';
 
+// Componente para renderizar lista de NFs com links - movido para fora do componente principal
+const NFsList = ({ ocorrencias, maxVisible = 999 }) => {
+  const [expanded, setExpanded] = useState(false);
+  const hasMore = ocorrencias.length > maxVisible && !expanded;
+  const visibleNFs = expanded ? ocorrencias : ocorrencias.slice(0, maxVisible);
+  
+  return (
+    <span className="text-xs">
+      {visibleNFs.map((o, idx) => (
+        <span key={idx}>
+          <Link
+            to={`/documents?doc=${o.doc_id}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              window.location.href = `/documents?highlight=${o.doc_id}`;
+            }}
+            className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+          >
+            {o.nf || o.numero_nfe || '?'}
+          </Link>
+          {idx < visibleNFs.length - 1 && <span className="text-gray-400">, </span>}
+        </span>
+      ))}
+      {hasMore && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded(true);
+          }}
+          className="ml-1 text-purple-600 hover:text-purple-800 font-medium"
+        >
+          +{ocorrencias.length - maxVisible} mais
+        </button>
+      )}
+      {expanded && ocorrencias.length > maxVisible && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded(false);
+          }}
+          className="ml-1 text-gray-500 hover:text-gray-700"
+        >
+          (ocultar)
+        </button>
+      )}
+    </span>
+  );
+};
+
 const ClassificacaoPage = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia } = useAppContext();
   const [documents, setDocuments] = useState([]);
