@@ -512,6 +512,183 @@ async def delete_colaborador(colaborador_id: str, current_user: dict = Depends(g
         raise HTTPException(status_code=404, detail="Colaborador não encontrado")
     return {"message": "Colaborador excluído com sucesso"}
 
+@api_router.post("/colaboradores/importar")
+async def importar_colaborador_documento(
+    file: UploadFile = File(...),
+    cliente_id: str = None,
+    tipo_documento: str = "auto",  # auto, ficha_registro, holerite
+    current_user: dict = Depends(get_current_user)
+):
+    """Importa colaborador a partir de ficha de registro ou holerite usando IA"""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        
+        # Validate cliente
+        if cliente_id:
+            cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
+            if not cliente:
+                raise HTTPException(status_code=404, detail="Empresa não encontrada")
+        
+        content = await file.read()
+        suffix = Path(file.filename).suffix
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            
+            # Determine document type for better extraction
+            doc_context = ""
+            if tipo_documento == "ficha_registro":
+                doc_context = "Este é uma FICHA DE REGISTRO DE EMPREGADO."
+            elif tipo_documento == "holerite":
+                doc_context = "Este é um HOLERITE/CONTRACHEQUE. Extraia os dados do cabeçalho e identificação do funcionário."
+            else:
+                doc_context = "Este documento pode ser uma FICHA DE REGISTRO DE EMPREGADO ou um HOLERITE/CONTRACHEQUE. Identifique o tipo e extraia os dados."
+            
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"importar-colab-{uuid.uuid4()}",
+                system_message=f"""Você é um especialista em departamento pessoal. {doc_context}
+
+Extraia TODAS as informações possíveis do documento, mesmo que algumas estejam incompletas ou ilegíveis.
+
+Retorne em formato JSON com os seguintes campos (deixe em branco "" os campos não encontrados):
+{{
+    "tipo_documento_detectado": "ficha_registro" ou "holerite",
+    "confianca": "alta", "media" ou "baixa",
+    "dados": {{
+        "nome": "nome completo do funcionário",
+        "cpf": "CPF (apenas números ou formatado)",
+        "rg": "RG",
+        "data_nascimento": "data de nascimento (DD/MM/AAAA)",
+        "cargo": "cargo ou função",
+        "departamento": "setor ou departamento",
+        "salario_base": "salário base (apenas número)",
+        "data_admissao": "data de admissão (DD/MM/AAAA)",
+        "pis": "número do PIS/PASEP",
+        "ctps": "número da CTPS e série",
+        "endereco": "endereço completo",
+        "telefone": "telefone",
+        "email": "email",
+        "banco": "nome do banco",
+        "agencia": "número da agência",
+        "conta": "número da conta",
+        "cbo": "código CBO",
+        "escolaridade": "grau de escolaridade",
+        "estado_civil": "estado civil",
+        "nacionalidade": "nacionalidade",
+        "nome_mae": "nome da mãe",
+        "nome_pai": "nome do pai"
+    }},
+    "campos_extraidos": ["lista dos campos que conseguiu extrair com confiança"],
+    "campos_incertos": ["lista dos campos com extração duvidosa"],
+    "observacoes": "qualquer observação sobre a qualidade da extração"
+}}
+
+IMPORTANTE: 
+- Extraia o MÁXIMO possível de informações
+- Se o salário estiver em formato "R$ 1.500,00", retorne apenas "1500.00"
+- Datas devem estar no formato DD/MM/AAAA
+- Mesmo dados parciais são úteis, não deixe de extrair"""
+            ).with_model("gemini", "gemini-2.5-flash")
+            
+            mime_types = {
+                ".pdf": "application/pdf",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".png": "image/png"
+            }
+            mime_type = mime_types.get(suffix.lower(), "application/octet-stream")
+            
+            file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
+            
+            response = await chat.send_message(UserMessage(
+                text=f"Extraia os dados do funcionário deste documento. {doc_context}",
+                file_contents=[file_content]
+            ))
+            
+            # Parse JSON response
+            try:
+                response_text = response.strip()
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:]
+                if response_text.startswith("```"):
+                    response_text = response_text[3:]
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3]
+                
+                resultado = json.loads(response_text.strip())
+            except json.JSONDecodeError:
+                resultado = {
+                    "tipo_documento_detectado": "desconhecido",
+                    "confianca": "baixa",
+                    "dados": {},
+                    "raw_response": response,
+                    "parsing_error": True
+                }
+            
+            # Process salary if present
+            dados = resultado.get("dados", {})
+            if dados.get("salario_base"):
+                try:
+                    salario_str = str(dados["salario_base"])
+                    salario_str = salario_str.replace("R$", "").replace(".", "").replace(",", ".").strip()
+                    dados["salario_base"] = float(salario_str)
+                except:
+                    dados["salario_base"] = 0
+            
+            return {
+                "success": True,
+                "tipo_documento": resultado.get("tipo_documento_detectado", "desconhecido"),
+                "confianca": resultado.get("confianca", "baixa"),
+                "dados_extraidos": dados,
+                "campos_extraidos": resultado.get("campos_extraidos", []),
+                "campos_incertos": resultado.get("campos_incertos", []),
+                "observacoes": resultado.get("observacoes", ""),
+                "message": "Dados extraídos. Revise antes de salvar."
+            }
+            
+        finally:
+            os.unlink(tmp_path)
+            
+    except Exception as e:
+        logger.error(f"Erro na importação: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao processar documento: {str(e)}")
+
+@api_router.post("/colaboradores/importar-lote")
+async def importar_colaboradores_lote(
+    files: List[UploadFile] = File(...),
+    cliente_id: str = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Importa múltiplos colaboradores de uma vez"""
+    resultados = []
+    for file in files:
+        try:
+            # Reuse single import logic
+            result = await importar_colaborador_documento(file, cliente_id, "auto", current_user)
+            resultados.append({
+                "arquivo": file.filename,
+                "sucesso": True,
+                "dados": result
+            })
+        except Exception as e:
+            resultados.append({
+                "arquivo": file.filename,
+                "sucesso": False,
+                "erro": str(e)
+            })
+    
+    return {
+        "total": len(files),
+        "sucesso": len([r for r in resultados if r["sucesso"]]),
+        "falhas": len([r for r in resultados if not r["sucesso"]]),
+        "resultados": resultados
+    }
+
 # ==================== DISSÍDIO ROUTES ====================
 
 @api_router.post("/dissidios", response_model=DissidioResponse)
