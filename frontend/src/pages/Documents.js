@@ -87,7 +87,7 @@ const Documents = ({ user, onLogout }) => {
       );
       
       if (res.data.success !== false) {
-        alert(`Re-processamento concluído!\n\nTotal: ${res.data.total}\nSucesso: ${res.data.success}\nCom ICMS-ST: ${res.data.with_st}\nErros: ${res.data.errors}`);
+        alert(`Re-processamento concluído!\n\n✅ Total: ${res.data.total}\n✅ Sucesso: ${res.data.success}\n📦 Com ICMS-ST: ${res.data.with_st}\n🤖 Classificações IA preservadas: ${res.data.classificacoes_preservadas || 0}\n❌ Erros: ${res.data.errors}`);
         fetchData();
       } else {
         alert('Erro: ' + res.data.error);
