@@ -1179,8 +1179,8 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
     // Step 2 - Sócios
     const [numSocios, setNumSocios] = useState(2);
     const [socios, setSocios] = useState([
-        { nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)', estadoCivil: '', regimeCasamento: '', profissao: '', endereco: { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' }, participacao: '50', administrador: true, documentos: [] },
-        { nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)', estadoCivil: '', regimeCasamento: '', profissao: '', endereco: { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' }, participacao: '50', administrador: false, documentos: [] }
+        { nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)', dataNascimento: '', cidadeNascimento: '', estadoNascimento: '', estadoCivil: '', regimeCasamento: '', profissao: '', endereco: { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' }, participacao: '50', administrador: true, documentos: [] },
+        { nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)', dataNascimento: '', cidadeNascimento: '', estadoNascimento: '', estadoCivil: '', regimeCasamento: '', profissao: '', endereco: { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' }, participacao: '50', administrador: false, documentos: [] }
     ]);
     
     // Step 4 - Endereço da Empresa
