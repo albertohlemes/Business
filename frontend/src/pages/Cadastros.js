@@ -101,6 +101,25 @@ const Cadastros = () => {
     
     // Estado de exportação SCI
     const [exportandoSci, setExportandoSci] = useState(false);
+    
+    // Perfil do Cliente (Wizard)
+    const [perfilCliente, setPerfilCliente] = useState({
+        regimeTributario: 'simples',  // simples, presumido, real
+        codigoAcessoSimples: '',       // só para Simples Nacional
+        tipoAtividade: 'servicos',     // comercio, servicos, industria, misto
+        temFuncionarios: false,
+        contribuinteICMS: false,
+        enquadramentoSimples: 'anexo3' // anexo1, anexo2, anexo3, anexo4, anexo5
+    });
+    
+    // Valores Padrão SCI Único (fixos)
+    const PADROES_SCI = {
+        contador: '6',                    // ALBERTO HENRIQUE
+        planoContabilizacao: '51',        // Plano Business
+        planoContas: '90113',             // Plano de contas SCI - Departamentalizado
+        planoHistoricos: '9001',          // Histórico padrão SCI
+        centroCusto: ''
+    };
 
     // Carregar histórico ao montar
     useEffect(() => {
