@@ -214,6 +214,7 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, onEdit, emp
                                 key={cliente.key}
                                 cliente={cliente}
                                 onView={viewProcesso}
+                                onEdit={onEdit}
                                 onDownloadWord={downloadWord}
                                 onDownloadPDF={downloadPDF}
                                 onDelete={deleteProcesso}
