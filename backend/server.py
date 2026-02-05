@@ -7312,7 +7312,7 @@ Seja direto, prático e específico para o perfil desta empresa. Use linguagem t
         
         response = await llm.send_message(UserMessage(text=prompt))
         
-        insights_ia = response.content
+        insights_ia = response if isinstance(response, str) else str(response)
         
     except Exception as e:
         logging.error(f"Erro ao gerar insights IA: {e}")
