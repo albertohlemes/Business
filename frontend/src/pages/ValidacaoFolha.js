@@ -524,15 +524,26 @@ const ValidacaoFolha = () => {
                                 </div>
                               )}
                               
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => { e.stopPropagation(); fetchValidacaoDetail(v.id); }}
-                                disabled={loadingDetail}
-                              >
-                                {loadingDetail ? <Loader2 className="animate-spin mr-2" size={14} /> : <Eye size={14} className="mr-2" />}
-                                Ver detalhes completos
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => { e.stopPropagation(); fetchValidacaoDetail(v.id); }}
+                                  disabled={loadingDetail}
+                                >
+                                  {loadingDetail ? <Loader2 className="animate-spin mr-2" size={14} /> : <Eye size={14} className="mr-2" />}
+                                  Ver detalhes
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                  onClick={(e) => deleteValidacao(v.id, e)}
+                                  data-testid={`delete-validacao-${v.id}`}
+                                >
+                                  <Trash2 size={14} />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         )}
