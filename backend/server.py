@@ -2634,74 +2634,501 @@ PADROES_SCI = {
 }
 
 def gerar_configuracoes_perfil(perfil: PerfilClienteSCI):
-    """Gera todas as configurações baseadas no perfil do cliente"""
-    config = {
-        # Aba Contadores
-        "contadores": {
-            "contador_contabil": PADROES_SCI["contador"],
-            "contador_fiscal": PADROES_SCI["contador"],
-            "contador_rh": PADROES_SCI["contador"]
-        },
-        # Aba Planos
-        "planos": {
-            "plano_contabilizacao": PADROES_SCI["plano_contabilizacao"],
-            "plano_contas": PADROES_SCI["plano_contas"],
-            "plano_historicos": PADROES_SCI["plano_historicos"],
-            "centro_custo": PADROES_SCI["centro_custo"]
-        },
-        # Aba Enquadramento Federal
-        "enquadramento": {
-            "me_epp": "ME/EPP" if perfil.regime_tributario == "simples" else "",
-            "simples_nacional": perfil.regime_tributario == "simples",
-            "codigo_acesso_simples": perfil.codigo_acesso_simples or ""
-        },
-        # Aba Fiscal - Federal
-        "fiscal_federal": {
-            "sped_contribuicoes": perfil.regime_tributario != "simples",
-            "sped_ecf": perfil.regime_tributario != "simples",
-            "reinf": True,
-            "dmed": False
-        },
-        # Aba Fiscal - Estadual
-        "fiscal_estadual": {
-            "contribuinte_icms": perfil.contribuinte_icms,
-            "sped_icms_ipi": perfil.contribuinte_icms,
-            "substituicao_tributaria": False
-        },
-        # Aba Fiscal - Municipal
-        "fiscal_municipal": {
-            "contribuinte_iss": perfil.tipo_atividade in ["servicos", "misto"],
-            "retencao_iss": perfil.tipo_atividade in ["servicos", "misto"]
-        },
-        # Aba Folha - eSocial
-        "esocial": {
-            "ativo": perfil.tem_funcionarios,
-            "faseamento": "4" if perfil.tem_funcionarios else "",
-            "dctfweb": perfil.tem_funcionarios
-        },
-        # Aba Folha - GPS
-        "gps": {
-            "simples": perfil.regime_tributario == "simples",
-            "fpas": "515" if perfil.tipo_atividade == "comercio" else "515",
-            "rat": "1",
-            "fap": "1.0000"
-        },
-        # Aba Folha - Parâmetros
-        "folha_parametros": {
-            "ferias_proporcionais": True,
-            "decimo_terceiro": True,
-            "aviso_previo": True
-        }
+    """
+    Gera TODAS as configurações baseadas no perfil do cliente.
+    
+    Perfis suportados:
+    - Comércio Lucro Real
+    - Indústria Lucro Real
+    - Serviços Lucro Real
+    - Comércio Lucro Presumido
+    - Serviços Lucro Presumido
+    - Simples Nacional - Comércio
+    - Simples Nacional - Serviços (com exceção Anexo IV)
+    """
+    
+    regime = perfil.regime_tributario  # simples, presumido, real
+    atividade = perfil.tipo_atividade  # comercio, servicos, industria, misto
+    anexo = perfil.enquadramento_simples  # anexo3, anexo4, anexo5
+    is_servicos = atividade in ["servicos", "misto"]
+    is_comercio = atividade in ["comercio", "industria"]
+    is_anexo_iv = anexo == "anexo4" and regime == "simples"
+    
+    # ========== ABA CONTADORES (Padrão para todos) ==========
+    contadores = {
+        "contador_contabil": PADROES_SCI["contador"],
+        "contador_fiscal": PADROES_SCI["contador"],
+        "contador_rh": PADROES_SCI["contador"]
     }
     
-    # Configurações específicas por regime
-    if perfil.regime_tributario == "simples":
-        config["enquadramento"]["anexo"] = perfil.enquadramento_simples
-    elif perfil.regime_tributario == "presumido":
-        config["fiscal_federal"]["lalur"] = False
-    elif perfil.regime_tributario == "real":
-        config["fiscal_federal"]["lalur"] = True
-        config["fiscal_federal"]["sped_ecf"] = True
+    # ========== ABA PLANOS ==========
+    planos = {
+        "plano_contabilizacao": PADROES_SCI["plano_contabilizacao"],
+        "plano_contas": PADROES_SCI["plano_contas"],
+        "plano_historicos": PADROES_SCI["plano_historicos"],
+        "centro_custo": PADROES_SCI["centro_custo"],
+        "plano_tributario": "",
+        "plano_contas_referencial": ""
+    }
+    
+    # Plano tributário baseado no perfil
+    if regime == "simples":
+        planos["plano_tributario"] = "1"  # Empresa Simples Nacional
+        planos["plano_contas_referencial"] = "PJ em Geral"
+    elif regime == "presumido":
+        if is_servicos:
+            planos["plano_tributario"] = "20"  # Industria, Comercio e Servicos LP - SP
+        else:
+            planos["plano_tributario"] = "20"  # Industria, Comercio e Servicos LP - SP
+        planos["plano_contas_referencial"] = "PJ em Geral - Lucro Presumido"
+    elif regime == "real":
+        planos["plano_tributario"] = "12"  # Industria, Comercio e Servicos LR - SP
+        planos["plano_contas_referencial"] = "PJ em Geral"
+    
+    # ========== ABA ENQUADRAMENTO FEDERAL ==========
+    enquadramento = {
+        "enquadramento_federal": "Normal" if regime != "simples" else "ME",
+        "forma_tributacao": "Lucro real" if regime == "real" else ("Lucro presumido" if regime == "presumido" else "Nenhum"),
+        "atividade_comercio": is_comercio if regime == "simples" else False,
+        "atividade_industria": atividade == "industria",
+        "atividade_servico": is_servicos if regime == "simples" else False,
+        # Anexos de prestação de serviços (apenas para Simples Serviços)
+        "anexo_folha_iii": is_servicos and regime == "simples" and anexo in ["anexo3", "anexo4", "anexo5"],
+        "anexo_folha_iv": is_servicos and regime == "simples" and anexo == "anexo4",
+        "anexo_folha_v": is_servicos and regime == "simples" and anexo in ["anexo3", "anexo5"],
+        "anexo_fiscal_iii": is_servicos and regime == "simples" and anexo in ["anexo3", "anexo4", "anexo5"],
+        "anexo_fiscal_iv": is_servicos and regime == "simples" and anexo == "anexo4",
+        "anexo_fiscal_v": is_servicos and regime == "simples" and anexo in ["anexo3", "anexo5"],
+        "relacao_folha_faturamento_anexo_iii": is_servicos and regime == "simples",
+        "empresa_optante_rtt": False,
+        "exportar_fcont": False,
+        "optante_ret": False,
+        "empresas_afetadas_eua": False,
+        "codigo_acesso_simples": perfil.codigo_acesso_simples or ""
+    }
+    
+    # ========== ABA LALUR (apenas para Lucro Real) ==========
+    lalur = {
+        "plano_integracao_contabil": "4",
+        "parte_a": "90001",
+        "parte_a_estimado": "90002",
+        "parte_b": "90001",
+        "tributacao": "90001",
+        "indice": "1" if regime != "real" else "4",  # UFIR para outros, SELIC para Lucro Real
+        "indice_descricao": "UFIR" if regime != "real" else "SELIC",
+        "data_incorporacao": ""
+    }
+    
+    # ========== ABA FISCAL - PARÂMETROS ==========
+    fiscal_parametros = {
+        "ir_csll": "",
+        "ir_csll_descricao": "",
+        "ipi": "",
+        "ipi_descricao": "",
+        "pis_cofins_lr": "",
+        "pis_cofins_lr_descricao": "",
+        "sped_fiscal": "1",
+        "sped_fiscal_descricao": "ICMS normal SCI",
+        "ciap": "",
+        "bloco_p": "",
+        "cprb_reinf": "2",
+        "cprb_reinf_descricao": "CPRB - Reinf",
+        "bloco_m": "",
+        "bloco_m_descricao": "",
+        "lancar_produtos_entradas": True,
+        "lancar_produtos_saidas": True,
+        "tipo_apuracao_impostos_federais": "competencia",
+        "contabilizar_pis_cofins_regime_caixa": False,
+        "tipo_apuracao_retencoes_pis_cofins_csll": "competencia",
+        "deduzir_pis": True,
+        "deduzir_cofins": True,
+        "deduzir_csll": True,
+        "deduzir_irrf": True,
+        "deduzir_issqn": True,
+        "deduzir_inss": True,
+        "deduzir_funrural": False,
+        "tipo_apuracao_irrf_emitido": "competencia",
+        "tipo_apuracao_irrf_recebido": "competencia"
+    }
+    
+    # IR/CSLL baseado no perfil
+    if regime == "presumido":
+        if is_servicos:
+            fiscal_parametros["ir_csll"] = "10"
+            fiscal_parametros["ir_csll_descricao"] = "IR/CSLL 8%/32% Padrão SCI - Clínicas"
+        else:
+            fiscal_parametros["ir_csll"] = "3"
+            fiscal_parametros["ir_csll_descricao"] = "IR/CSLL 8%/32% Padrão SCI"
+    
+    # IPI e PIS/Cofins para Lucro Real
+    if regime == "real":
+        fiscal_parametros["ipi"] = "1"
+        fiscal_parametros["ipi_descricao"] = "IPI Mensal"
+        fiscal_parametros["pis_cofins_lr"] = "2"
+        fiscal_parametros["pis_cofins_lr_descricao"] = "Não-Cumulativo"
+        if atividade == "industria":
+            fiscal_parametros["sped_fiscal"] = "2"
+            fiscal_parametros["sped_fiscal_descricao"] = "ICMS substituição tributária SCI"
+    
+    # Bloco M baseado na atividade
+    if atividade == "industria":
+        fiscal_parametros["bloco_m"] = "1"
+        fiscal_parametros["bloco_m_descricao"] = "Bloco M Indústria"
+    elif is_comercio:
+        fiscal_parametros["bloco_m"] = "2"
+        fiscal_parametros["bloco_m_descricao"] = "Bloco M Comércio"
+    elif is_servicos:
+        fiscal_parametros["bloco_m"] = "3"
+        fiscal_parametros["bloco_m_descricao"] = "Bloco M Serviço"
+    
+    # ========== ABA FISCAL - FEDERAL ==========
+    fiscal_federal = {
+        # Sped ICMS/IPI
+        "sped_icms_ipi_perfil": "A - Perfil A",
+        "sped_icms_ipi_atividade": "0" if atividade == "industria" else "1",
+        "sped_icms_ipi_atividade_descricao": "Industrial ou equiparado a industrial" if atividade == "industria" else "Outros",
+        "sped_icms_ipi_data_obrigatoriedade": "01/01/2022" if regime == "real" else "",
+        "sped_icms_ipi_classificacao": "08 - Equiparado a industrial" if atividade == "industria" else "",
+        "preencher_cfop_cst_c425": False,
+        # Sped Contribuições
+        "natureza_pessoa_juridica": "00 - Sociedade empresária em geral",
+        "atividade_preponderante": "",
+        "atividade_preponderante_descricao": "",
+        "tipo_incidencia": "1 - Apuração somente sobre a receita bruta",
+        "sped_contribuicoes_data_obrigatoriedade": "",
+        # Reinf
+        "reinf_data_obrigatoriedade": "01/07/2023",
+        "entrega_ecd": regime == "real",
+        # Dmed
+        "dmed_tipo_declarante": "0 - Não se aplica",
+        "dmed_tipo_descricao": "Não se aplica",
+        # Simples Nacional
+        "simples_codigo_acesso": perfil.codigo_acesso_simples or "",
+        "simples_codigo_configuracao": "1" if regime == "simples" else "",
+        "contabilizar_icms_iss_sublimite": False,
+        "nao_utiliza_reducao_iss": False
+    }
+    
+    # Atividade preponderante baseado no perfil
+    if atividade == "industria":
+        fiscal_federal["atividade_preponderante"] = "0"
+        fiscal_federal["atividade_preponderante_descricao"] = "Industrial ou equiparado a industrial"
+    elif is_comercio:
+        fiscal_federal["atividade_preponderante"] = "2"
+        fiscal_federal["atividade_preponderante_descricao"] = "Atividade de comércio"
+    elif is_servicos:
+        fiscal_federal["atividade_preponderante"] = "1" if regime == "real" else "1"
+        fiscal_federal["atividade_preponderante_descricao"] = "Prestador de serviços" if regime == "presumido" else "Outros"
+    
+    # Datas de obrigatoriedade
+    if regime == "real":
+        fiscal_federal["sped_contribuicoes_data_obrigatoriedade"] = "01/01/2022"
+        fiscal_federal["reinf_data_obrigatoriedade"] = "01/01/2022"
+    elif regime == "presumido":
+        fiscal_federal["sped_contribuicoes_data_obrigatoriedade"] = "01/07/2023"
+    
+    # Dmed para serviços de saúde
+    if is_servicos and regime == "presumido":
+        fiscal_federal["dmed_tipo_declarante"] = "1 - Prestador de serviço de saúde"
+        fiscal_federal["dmed_tipo_descricao"] = "Prestador de serviço de saúde"
+    
+    # ========== ABA FISCAL - ESTADUAL GERAIS ==========
+    fiscal_estadual_gerais = {
+        "substituto_tributario": is_comercio and regime != "simples",
+        "porte_empresa": "3" if (is_comercio and regime != "simples") else "1",
+        "porte_empresa_descricao": "Normal" if (is_comercio and regime != "simples") else "ME",
+        "lancar_base_icms_valor_contabil": False,
+        "icms_lancar_em": "Outras" if (is_comercio and regime != "simples") else "Isentas",
+        "antecipacao_imposto": False,
+        "reducao_base_icms_entradas": "0,0000",
+        "reducao_base_icms_saidas": "0,0000",
+        "considerar_icms_monofasico": False,
+        # Parâmetros ICMS
+        "dia_vencimento": "20" if (is_comercio and regime != "simples") else "00",
+        "antecipar_sabados_domingos_feriados": is_comercio and regime != "simples",
+        "vence_no_mes": "No mês seguinte",
+        # Juros
+        "juros_a_partir_de": "00",
+        "juros_percentual": "0,0000",
+        "juros_percentual_ao": "Dia",
+        "juros_indice": "Nenhum",
+        # Multa
+        "multa_a_partir_de": "00",
+        "multa_percentual": "0,0000",
+        "multa_percentual_ao": "Dia",
+        "multa_maxima": "0,0000",
+        # GIA ST
+        "apura_gia_st": is_comercio and regime != "simples",
+        "distribuidor_combustiveis": False,
+        "declara_ec87_15": False,
+        "configuracao_gia_st": "1" if (is_comercio and regime != "simples") else ""
+    }
+    
+    # ========== ABA FISCAL - ESTADUAL SP ==========
+    fiscal_estadual_sp = {
+        "codigo_configuracao": "2" if (is_comercio and regime != "simples") else "",
+        "codigo_configuracao_descricao": "Configuração com Substituição Tributária" if (is_comercio and regime != "simples") else "",
+        "e_credac_cat_207_09": False,
+        "plano_configuracao_cat_66_2018": "1" if (is_comercio and regime != "simples") else "",
+        "manter_c197_d197_c597": False,
+        "calculo_st_retido": False,
+        "st_percentual": "0,0000",
+        "configuracao_cat_42_2018": "",
+        "consolidar_1200_cupom_fiscal": False,
+        "dipam_b_saidas_revendedores": False
+    }
+    
+    # ========== ABA FISCAL - MUNICIPAL ==========
+    fiscal_municipal = {
+        "movimenta_servicos": True,
+        "aliquota_iss": "0,0000",
+        "reducao_base_issqn": "0,0000",
+        "movimenta_irrf": True,
+        "aliquota_irrf": "0,0000",
+        "irrf_isento": "0,0000",
+        "retencao_inss": True,
+        "valor_minimo_inss": "0,0000",
+        "aliquota_inss": "0,0000",
+        "valor_iss_fixo": "0,00",
+        "lancar_nota_servico_tomados": False,
+        "importacao_continua": False
+    }
+    
+    # ========== ABA FISCAL - INTEGRAÇÃO ==========
+    fiscal_integracao = {
+        # Somar frete
+        "somar_frete_valor_contabil": True,
+        "somar_frete_base_icms": is_comercio or regime == "simples",
+        # Somar valor notas de importação
+        "somar_pis_cofins": False,
+        "somar_imposto_importacao": False,
+        "somar_icms_importacao": False,
+        "somar_afrmm": False,
+        # Lançar notas Vista/Outras
+        "lancar_parcelas_automaticamente": True,
+        "manter_parcelas_notas": True,
+        "plano_pagamento": "1",
+        "plano_pagamento_descricao": "Padrão SCI 30 dias",
+        # Simples Nacional - Importar valores de
+        "importar_icms": False,
+        "importar_icms_st": False,
+        "importar_iss": False,
+        # Somar ao valor do produto
+        "somar_ipi": False,
+        "somar_st": False,
+        # Ratear valores E14 nos itens E15
+        "ratear_desconto": False,
+        "ratear_acrescimos": False,
+        # NF-e/NFC-e
+        "venda_cooperado": False,
+        # Planos de importação
+        "cfop_de_para": "14" if regime == "simples" else "",
+        "cfop_de_para_descricao": "GRUPO CONVENIENCIAS" if regime == "simples" else "",
+        "acao_inconsistencia": "1" if regime != "simples" else "",
+        "acao_inconsistencia_descricao": "IMPORTACAO SPED FISCAL" if regime != "simples" else "",
+        "centro_custo_automatico": "",
+        "e115": "",
+        "ajustes_sped": "",
+        "planos_vinculados": "1" if (is_comercio and regime != "simples") or (regime == "simples" and is_comercio) else "0",
+        "nao_arredondar_plano_trocas": False,
+        # Diferencial de Alíquota
+        "diferencial_aliquota_tipo": "Por Dentro" if regime != "simples" else "Por Fora",
+        "calcular_diferencial_aliquota": False,
+        "diferencial_base": "Base de ICMS",
+        "nao_gerar_ajuste_c197": False,
+        # NF-e de entradas
+        "manter_codigo_produto_original": False,
+        "consistir_produtos_mesmo_codigo": False,
+        # CT-e de saídas
+        "importar_cte_subcontratado": False,
+        # Calcular antecipação
+        "calcular_antecipacao_icms": False,
+        "considerar_ipi_base_calculo": False,
+        # Factoring
+        "nao_validar_lancamento_sem_contrato": False
+    }
+    
+    # Ajuste para Serviços
+    if is_servicos and regime != "simples":
+        fiscal_integracao["diferencial_aliquota_tipo"] = "Por Fora" if regime == "presumido" else "Por Dentro"
+    
+    # ========== ABA FOLHA - GPS ==========
+    folha_gps = {
+        "fpas": "35",
+        "terceiros": "507",
+        "terceiros_valor": "0,00",
+        "simples_optante": regime == "simples",
+        "empresa_tomador_desoneracao": False,
+        "rateio_13_salario": "Utilizar os dados da empresa - não ratear",
+        "pro_laboristas_percentual": "0,00",
+        "autonomos_percentual": "0,00",
+        "colaboradores_percentual": "0,00",
+        "rat_percentual": "3,00",
+        "fap_percentual": "0,5000",
+        "rat_x_fap_percentual": "1,5000",
+        "indenizacao_compensatoria": "0,00",
+        "classificacao_tributaria": "1",
+        "classificacao_tributaria_descricao": "Empresas enquadradas no regime de tributação Simples com tributação",
+        "cooperativa": "0 - Não",
+        "construtora": False,
+        "contribuicao_previdenciaria_rural": "0 - Não informado"
+    }
+    
+    # Exceção Anexo IV - GPS diferenciado
+    if is_anexo_iv:
+        folha_gps["fpas"] = "37"
+        folha_gps["terceiros"] = "515"
+        folha_gps["pro_laboristas_percentual"] = "20,00"
+        folha_gps["autonomos_percentual"] = "20,00"
+        folha_gps["colaboradores_percentual"] = "20,00"
+        folha_gps["rat_percentual"] = "1,00"
+        folha_gps["rat_x_fap_percentual"] = "0,5000"
+        folha_gps["classificacao_tributaria"] = "2"
+        folha_gps["classificacao_tributaria_descricao"] = "Empresas enquadradas no regime de tributação Simples com tributação"
+    
+    # GPS para Lucro Real/Presumido
+    if regime != "simples":
+        folha_gps["fpas"] = "515" if is_comercio else "515"
+        folha_gps["terceiros"] = "0115"
+        folha_gps["simples_optante"] = False
+        folha_gps["classificacao_tributaria"] = "0"
+        folha_gps["classificacao_tributaria_descricao"] = "Empresa em Geral"
+    
+    # ========== ABA FOLHA - VÍNCULOS ==========
+    folha_vinculos = {
+        "plano_funcoes": "",  # Código da empresa
+        "tabela_inss": "1",
+        "tabela_inss_descricao": "Tabela de INSS 1",
+        "tabela_irrf": "1",
+        "tabela_irrf_descricao": "Tabela de IR 1",
+        "mensagem_aniversario": "1",
+        "mensagem_aniversario_descricao": "Aniversário",
+        "mensagem": "",
+        "indice_jam": "3",
+        "indice_jam_descricao": "Coeficiente JAM",
+        "plano_horarios": "",  # Código da empresa
+        "plano_convenios_saude": "1",
+        "plano_convenios_saude_descricao": "Plano importação planos de saúde",
+        "plano_baixa_calculos": "",
+        "indice_compensacao": "",
+        "plano_alerta_vencimentos": ""
+    }
+    
+    # ========== ABA FOLHA - PROPORCIONALIDADES ==========
+    folha_proporcionalidades = {
+        "admissao": "Divisão por 30 dias considerando meses com no máximo 30 dias",
+        "ferias": "Divisão por 30",
+        "rescisao": "Divisão por 30",
+        "situacao": "Divisão por 30",
+        "folha_por_tomador": "Divisão por 30",
+        "dias_trabalhados_adiantamento": "15"
+    }
+    
+    # ========== ABA FOLHA - PARÂMETROS DE CÁLCULO ==========
+    folha_parametros_calculo = {
+        "fechamento_mes": "",
+        "fechamento_vale_transporte": "",
+        "pagamento_folha": "Mês da competência da folha",
+        "pagamento_folha_pro_labore": "Mês da competência da folha",
+        "arredondamento": "Centavos",
+        "tipo_arredondamento": "Para cima - desconta no mês seguinte",
+        "limite_desc_parcelamentos": "0,00",
+        "arredonda_folha_normal": True,
+        "arredonda_folha_complementar": True,
+        "arredonda_ferias": True,
+        "arredonda_adiantamento_13": True,
+        "arredonda_13_salario": True,
+        "arredonda_complemento_13": True,
+        "arredonda_adiantamento_salarial": True,
+        "arredonda_servicos": True,
+        "arredonda_folha_avulsa": True,
+        "arredonda_folha_intermitente": False,
+        "semana_desconto_dsr": "Semana atual",
+        "referencia_em_horas": True,
+        "corrige_dsr_horas_extras": False,
+        "estouro_provento_rescisao": True,
+        "calcula_13_integral_suspensao_bem": False,
+        "nao_altera_periodo_aquisitivo_bem": False,
+        "considerar_feriados_cidade_tomador": False,
+        "complemento_13_salario_dezembro": False,
+        "descontar_complemento_13_negativo": False,
+        "desconta_liquido_complemento_13_dezembro": False,
+        "descontar_faltas_dias_horas_diarias": False,
+        "alterar_faixa_plano_saude_aniversario": False
+    }
+    
+    # ========== ABA FOLHA - PARÂMETROS GERAIS ==========
+    folha_parametros_gerais = {
+        "tipo_calculo_ferias": "Convencional (anual)",
+        "somente_salario_ferias": False,
+        "tipo_calculo_adicional_13": "Convencional (anual)",
+        "somente_salario_13": False,
+        "aviso_previo_proporcionalidade": "Após o primeiro ano de serviço",
+        "liminar_aviso_previo": "Não possui",
+        "ferias_coletivas_saldo_inferior": "Encerrar período aquisitivo",
+        "ferias_coletivas_saldo_superior": "Deixar período aquisitivo em aberto",
+        "indicativo_situacao_pj": "0 - Situação normal",
+        "codigo_empresa_importacao_ponto": "",
+        "considerar_nome_social": False,
+        "habilitar_pdf_senha": "Não utiliza"
+    }
+    
+    # ========== ABA FOLHA - ESOCIAL ==========
+    folha_esocial = {
+        # Faseamento
+        "eventos_tabela": "01/01/2019" if regime == "simples" else "01/07/2018",
+        "eventos_nao_periodicos": "10/04/2019" if regime == "simples" else "01/10/2018",
+        "eventos_periodicos": "01/05/2021" if regime == "simples" else "01/01/2019",
+        "dctfweb": "07/2021" if regime == "simples" else "04/2019",
+        "seguranca_saude_trabalho": "10/01/2022" if regime == "simples" else "08/09/2021",
+        "reclamatoria_trabalhista": "01/10/2023" if regime == "simples" else "01/07/2023",
+        "fgts_digital": "01/03/2024",
+        "exame_toxicologico": "01/08/2024",
+        "grupo": "Grupo 3" if regime == "simples" else "Grupo 2",
+        # Ambiente
+        "tipo_ambiente": "Produção - Real",
+        "empresa_sincronizada_em": "",
+        "integrar_apenas_reclamatoria": False,
+        "estabelecimento_fora_base": False,
+        # Indicativo de contratação
+        "aprendiz": "Dispensado de acordo com a lei",
+        "aprendiz_contratacao_entidade": False,
+        "pcd": "Dispensado de acordo com a lei",
+        # Registro eletrônico
+        "indicativo_registro_eletronico": "Optou pelo registro eletrônico de empregados",
+        "situacao_esocial": "Ativa eSocial",
+        # Produção rural
+        "entidade_paa": False
+    }
+    
+    # ========== MONTAR CONFIGURAÇÃO FINAL ==========
+    config = {
+        "contadores": contadores,
+        "planos": planos,
+        "enquadramento": enquadramento,
+        "lalur": lalur,
+        "fiscal_parametros": fiscal_parametros,
+        "fiscal_federal": fiscal_federal,
+        "fiscal_estadual_gerais": fiscal_estadual_gerais,
+        "fiscal_estadual_sp": fiscal_estadual_sp,
+        "fiscal_municipal": fiscal_municipal,
+        "fiscal_integracao": fiscal_integracao,
+        "folha_gps": folha_gps,
+        "folha_vinculos": folha_vinculos,
+        "folha_proporcionalidades": folha_proporcionalidades,
+        "folha_parametros_calculo": folha_parametros_calculo,
+        "folha_parametros_gerais": folha_parametros_gerais,
+        "folha_esocial": folha_esocial,
+        # Metadados do perfil
+        "perfil_info": {
+            "regime_tributario": regime,
+            "tipo_atividade": atividade,
+            "enquadramento_simples": anexo if regime == "simples" else None,
+            "is_anexo_iv": is_anexo_iv,
+            "tem_funcionarios": perfil.tem_funcionarios,
+            "contribuinte_icms": perfil.contribuinte_icms
+        }
+    }
     
     return config
 
