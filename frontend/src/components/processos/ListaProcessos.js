@@ -261,6 +261,7 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, onEdit, emp
                                 onDownloadWord={downloadWord}
                                 onDownloadPDF={downloadPDF}
                                 onDelete={deleteProcesso}
+                                onEnviarGClick={enviarParaGClick}
                             />
                         ))}
                     </div>
