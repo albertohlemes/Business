@@ -428,6 +428,7 @@ class DocumentProcessor:
             'irrf': 0,
             'fgts': 0,
             'faltas': 0,
+            'faltas_dias': 0,
             'contribuicao_assistencial': 0,
             'vale': 0,
         }
@@ -439,12 +440,11 @@ class DocumentProcessor:
             if 'nome do colaborador' in line.lower():
                 if i + 1 < len(lines):
                     nome = lines[i + 1].strip()
-                    # Nome deve ser em maiúsculas e ter mais de 3 caracteres
                     if nome and len(nome) > 3 and not any(x in nome.lower() for x in ['pis:', 'ctps:', 'cpf:']):
                         colab['nome'] = nome
                         break
         
-        # Extrair código/matrícula (formato: "Código\n000XXX")
+        # Extrair código/matrícula
         for i, line in enumerate(lines):
             line_strip = line.strip()
             if line_strip.lower() == 'código':
@@ -453,10 +453,6 @@ class DocumentProcessor:
                     if mat.isdigit() and len(mat) >= 4:
                         colab['matricula'] = mat
                         break
-            # Ou formato direto: "000013" após "Código"
-            match = re.match(r'^(\d{5,6})$', line_strip)
-            if match:
-                colab['matricula'] = match.group(1)
         
         # Extrair CPF
         cpf_match = re.search(r'CPF[:\s]*(\d{3})[.\s]?(\d{3})[.\s]?(\d{3})[-.\s]?(\d{2})', block)
@@ -467,97 +463,65 @@ class DocumentProcessor:
         funcao_match = re.search(r'Fun[çc][aã]o[:\s]*([A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ\s\(\)\-]+)', block, re.IGNORECASE)
         if funcao_match:
             funcao = funcao_match.group(1).strip()
-            # Limpar função (remover endereço se colado)
             if 'rua' in funcao.lower():
                 funcao = funcao.split('RUA')[0].strip()
             colab['funcao'] = funcao
             colab['cargo'] = funcao
         
-        # Extrair salário líquido (formato: "SALÁRIO LÍQUIDO\nR$ 1.926,00")
+        # Extrair salário líquido
         liquido_match = re.search(r'SAL[AÁ]RIO\s+L[IÍ]QUIDO\s*\n?\s*R\$\s*([\d.,]+)', block, re.IGNORECASE)
         if liquido_match:
             colab['liquido'] = parse_valor(liquido_match.group(1))
         
-        # ===== EXTRAÇÃO DE VALORES DA TABELA SCI =====
-        # Formato da tabela:
-        # DESCRIÇÃO\nCÓDIGO_RUBRICA\n[REFERÊNCIA]\nVALOR_PROVENTO\n[VALOR_DESCONTO]
-        # Exemplo: "Salário mensalista\n06111\n30,00\n2.266,00"
-        # Exemplo: "Vale compras\n382\n81,43" (só desconto)
+        # ===== EXTRAÇÃO DE VALORES - FORMATO SCI =====
+        # No formato SCI extraído por OCR, o VALOR aparece ANTES da descrição
+        # Padrão: "VALOR\n DESCRIÇÃO\nCÓDIGO"
         
-        # Processar linhas sequencialmente buscando padrões
-        i = 0
-        while i < len(lines):
-            line = lines[i].strip().lower()
-            
-            # Mapear descrições para campos
-            campo_map = {
-                'salário mensalista': ('salario_base', 'provento'),
-                'salario mensalista': ('salario_base', 'provento'),
-                'quebra de caixa': ('quebra_caixa', 'provento'),
-                'quebra caixa': ('quebra_caixa', 'provento'),
-                'vale compras': ('vale_compras', 'desconto'),
-                'vale transporte': ('vale_transporte', 'desconto'),
-                'vale refeição': ('vale_refeicao', 'desconto'),
-                'vale refeicao': ('vale_refeicao', 'desconto'),
-                'vale alimentação': ('vale_alimentacao', 'desconto'),
-                'vale alimentacao': ('vale_alimentacao', 'desconto'),
-                'horas extras 50': ('horas_extras_50', 'provento'),
-                'horas extras 100': ('horas_extras_100', 'provento'),
-                'hora extra': ('horas_extras', 'provento'),
-                'dsr horas extras': ('dsr_horas_extras', 'provento'),
-                'dsr h.e': ('dsr_horas_extras', 'provento'),
-                'adicional noturno': ('adicional_noturno', 'provento'),
-                'inss': ('inss', 'desconto'),
-                'irrf': ('irrf', 'desconto'),
-                'contribuição assistencial': ('contribuicao_assistencial', 'desconto'),
-                'contribuicao assistencial': ('contribuicao_assistencial', 'desconto'),
-                'faltas não justificadas': ('faltas', 'desconto'),
-                'faltas nao justificadas': ('faltas', 'desconto'),
-                'dsr faltas': ('faltas', 'desconto'),
-                'vale\n': ('vale', 'desconto'),  # Vale genérico
-            }
-            
-            for desc, (campo, tipo) in campo_map.items():
-                if desc in line or line.startswith(desc.split()[0]):
-                    # Encontrou uma descrição, agora buscar valores nas próximas linhas
-                    valores = []
-                    for j in range(i + 1, min(i + 6, len(lines))):
-                        next_line = lines[j].strip()
-                        # Verificar se é um valor monetário
-                        if re.match(r'^[\d.,]+$', next_line):
-                            valor = parse_valor(next_line)
-                            if valor > 0:
-                                valores.append(valor)
-                        # Parar se encontrar outra descrição
-                        elif any(d in next_line.lower() for d in ['salário', 'salario', 'vale', 'inss', 'irrf', 'horas', 'falta', 'contribuição', 'contribuicao', 'quebra', 'adicional']):
-                            break
-                    
-                    if valores:
-                        # Para proventos, normalmente o último valor grande é o valor
-                        # Para descontos, o primeiro valor é geralmente o valor
-                        if tipo == 'provento':
-                            # Pegar o maior valor (geralmente o valor real)
-                            valor = max(valores)
-                            if valor > 10:  # Ignorar referências pequenas
-                                colab[campo] = valor
-                        else:
-                            # Para desconto, pegar o primeiro valor > 1 (ignorar porcentagens)
-                            for v in valores:
-                                if v > 1 and v < 10000:  # Valor razoável para desconto
-                                    colab[campo] = v
-                                    break
-                    break
-            
-            i += 1
-        # Extrair Valor FGTS específico
+        # Buscar cada campo com valor ANTES da descrição
+        extrair_campos = [
+            # (regex, campo, é_desconto)
+            (r'([\d.,]+)\s*\n\s*Vale compras', 'vale_compras', True),
+            (r'([\d.,]+)\s*\n\s*Vale transporte', 'vale_transporte', True),
+            (r'([\d.,]+)\s*\n\s*Vale refeição', 'vale_refeicao', True),
+            (r'([\d.,]+)\s*\n\s*Vale alimentação', 'vale_alimentacao', True),
+            (r'([\d.,]+)\s*\n\s*Vale\n', 'vale', True),  # Vale genérico
+            (r'([\d.,]+)\s*\n\s*INSS', 'inss', True),
+            (r'([\d.,]+)\s*\n\s*IRRF', 'irrf', True),
+            (r'([\d.,]+)\s*\n\s*Contribui[çc][aã]o Assistencial', 'contribuicao_assistencial', True),
+            (r'([\d.,]+)\s*\n\s*Faltas n[aã]o justificadas dias', 'faltas_dias', True),
+            (r'([\d.,]+)\s*\n\s*Faltas n[aã]o justificadas horas', 'faltas', True),
+            (r'([\d.,]+)\s*\n\s*DSR faltas', 'dsr_faltas', True),
+            (r'([\d.,]+)\s*\n\s*Sal[aá]rio mensalista', 'salario_mensalista', False),
+            (r'([\d.,]+)\s*\n\s*Quebra de caixa', 'quebra_caixa', False),
+            (r'([\d.,]+)\s*\n\s*Horas extras 50', 'horas_extras_50', False),
+            (r'([\d.,]+)\s*\n\s*Horas extras 100', 'horas_extras_100', False),
+            (r'([\d.,]+)\s*\n\s*DSR horas extras', 'dsr_horas_extras', False),
+            (r'([\d.,]+)\s*\n\s*Adicional noturno', 'adicional_noturno', False),
+        ]
+        
+        for pattern, campo, is_desconto in extrair_campos:
+            match = re.search(pattern, block, re.IGNORECASE)
+            if match:
+                valor = parse_valor(match.group(1))
+                # Validar: descontos geralmente < 5000, proventos podem ser maiores
+                if is_desconto and 0.01 < valor < 5000:
+                    colab[campo] = valor
+                elif not is_desconto and 0.01 < valor < 50000:
+                    colab[campo] = valor
+        
+        # Extrair Valor FGTS
         valor_fgts_match = re.search(r'Valor\s+FGTS\s*\n?\s*([\d.,]+)', block, re.IGNORECASE)
         if valor_fgts_match:
             colab['fgts'] = parse_valor(valor_fgts_match.group(1))
         
-        # Extrair salário base do rodapé (mais confiável)
+        # Extrair salário base do rodapé
         salario_base_match = re.search(r'Sal[aá]rio\s+base\s*\n?\s*([\d.,]+)', block, re.IGNORECASE)
         if salario_base_match:
             colab['salario_base'] = parse_valor(salario_base_match.group(1))
+        
+        # Se não extraiu salário base do rodapé, usar salário mensalista
+        if colab['salario_base'] == 0 and colab.get('salario_mensalista', 0) > 0:
+            colab['salario_base'] = colab['salario_mensalista']
         
         # Calcular totais
         if colab['total_proventos'] == 0:
@@ -568,7 +532,8 @@ class DocumentProcessor:
         
         if colab['total_descontos'] == 0:
             descontos = [colab['inss'], colab['irrf'], colab['contribuicao_assistencial'], 
-                        colab['faltas'], colab['vale_transporte'], colab['vale_compras'], colab['vale']]
+                        colab['faltas'], colab['faltas_dias'], colab['vale_transporte'], 
+                        colab['vale_compras'], colab['vale']]
             colab['total_descontos'] = round(sum(d for d in descontos if d > 0), 2)
         
         return colab
