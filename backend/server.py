@@ -4861,6 +4861,24 @@ async def apuracao_periodo(
     # CFOPs de Substituição Tributária (não dão direito a crédito de ICMS)
     CFOPS_ST = ['1403', '1409', '2403', '2409', '5403', '5405', '5409', '6403', '6404', '6409']
     
+    # CFOPs de Despesa/Uso e Consumo (não dão direito a crédito de ICMS)
+    CFOPS_DESPESA = [
+        '1407', '2407',  # Compra para uso/consumo com ST
+        '1556', '2556',  # Compra para uso/consumo
+        '1557', '2557',  # Transferência para uso/consumo
+        '1128', '2128',  # Compra para ativo imobilizado
+        '1551', '2551',  # Compra ativo imobilizado
+        '1553', '2553',  # Devolução de venda ativo imobilizado
+        '1554', '2554',  # Retorno de remessa ativo imobilizado
+        '1406', '2406',  # Compra energia elétrica para uso/consumo
+        '1408', '2408',  # Transferência energia elétrica
+        '1501', '2501',  # Entrada de mercadoria recebida com fim específico de exportação
+        '1503', '2503',  # Entrada decorrente de devolução de produto remetido com fim específico de exportação
+    ]
+    
+    # Combinar todos os CFOPs sem direito a crédito de ICMS
+    CFOPS_SEM_CREDITO = set(CFOPS_ST + CFOPS_DESPESA)
+    
     # Agrupar por CFOP
     cfop_entradas = {}  # CFOPs de entrada (1xxx, 2xxx, 3xxx)
     cfop_saidas = {}    # CFOPs de saída (5xxx, 6xxx, 7xxx)
