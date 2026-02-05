@@ -1250,14 +1250,23 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
             setModoEdicao(true);
             setProcessoId(processoEditando.id);
             
-            // Carregar dados da empresa
-            setRazaoSocial(processoEditando.razao_social || processoEditando.nome_empresa || '');
-            setNomeFantasia(processoEditando.nome_fantasia || '');
-            setCapitalSocial(processoEditando.capital_social || '');
+            // Carregar dados da empresa (pode estar em dados_empresa ou diretamente no objeto)
+            const dadosEmpresa = processoEditando.dados_empresa || {};
+            setRazaoSocial(dadosEmpresa.razao_social || processoEditando.razao_social || processoEditando.nome_empresa || '');
+            setNomeFantasia(dadosEmpresa.nome_fantasia || processoEditando.nome_fantasia || '');
+            setCapitalSocial(dadosEmpresa.capital_social || processoEditando.capital_social || '');
             
-            // Carregar sócios
-            if (processoEditando.socios && processoEditando.socios.length > 0) {
-                const sociosFormatados = processoEditando.socios.map((s, idx) => ({
+            // Carregar endereço da empresa
+            if (dadosEmpresa.endereco) {
+                setEndereco(dadosEmpresa.endereco);
+            } else if (processoEditando.endereco) {
+                setEndereco(processoEditando.endereco);
+            }
+            
+            // Carregar sócios (pode estar em dados_socios ou socios)
+            const sociosData = processoEditando.dados_socios || processoEditando.socios || [];
+            if (sociosData.length > 0) {
+                const sociosFormatados = sociosData.map((s, idx) => ({
                     nome: s.nome || '',
                     cpf: s.cpf || '',
                     rg: s.rg || '',
@@ -1271,16 +1280,11 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
                     profissao: s.profissao || 'Empresário(a)',
                     endereco: s.endereco || { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' },
                     participacao: s.participacao || '',
-                    administrador: s.administrador || idx === 0,
+                    administrador: s.administrador !== undefined ? s.administrador : idx === 0,
                     documentos: s.documentos || []
                 }));
                 setSocios(sociosFormatados);
                 setNumSocios(sociosFormatados.length);
-            }
-            
-            // Carregar endereço
-            if (processoEditando.endereco) {
-                setEndereco(processoEditando.endereco);
             }
             
             // Carregar CNAEs
@@ -1289,8 +1293,8 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
             }
             
             // Carregar objeto social
-            if (processoEditando.objeto_social) {
-                setObjetoSocial(processoEditando.objeto_social);
+            if (dadosEmpresa.objeto_social || processoEditando.objeto_social) {
+                setObjetoSocial(dadosEmpresa.objeto_social || processoEditando.objeto_social);
             }
             
             // Carregar contrato gerado
