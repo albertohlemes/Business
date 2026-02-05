@@ -1662,7 +1662,356 @@ async def get_medias_colaborador(colaborador_id: str, meses: int = 12, current_u
         "media_total": round((total_salario + total_extras + total_comissoes + total_adicionais) / count, 2) if count else 0
     }
 
-# ==================== INFORMES DE RENDIMENTO ====================
+@api_router.get("/medias/importacoes")
+async def listar_importacoes_medias(current_user: dict = Depends(get_current_user)):
+    """List all media imports"""
+    importacoes = await db.importacoes_medias.find(
+        {"user_id": current_user["id"]},
+        {"_id": 0, "user_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return importacoes
+
+@api_router.post("/medias/extrair")
+async def extrair_medias_documento(
+    file: UploadFile = File(...),
+    cliente_id: str = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Extract salary averages data from document using AI"""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+        
+        content = await file.read()
+        suffix = Path(file.filename).suffix
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"medias-extrair-{uuid.uuid4()}",
+                system_message="""Você é um especialista em departamento pessoal brasileiro, focado em extração de dados de médias salariais.
+
+Extraia do documento todas as informações de MÉDIAS SALARIAIS de funcionários. O documento pode ser:
+- Relatório de médias da antiga contabilidade
+- Histórico de proventos
+- Planilha de variáveis
+- Holerites consolidados
+
+Para CADA FUNCIONÁRIO encontrado, extraia:
+- Nome completo
+- CPF (se disponível)
+- Matrícula (se disponível)
+- Para cada mês/competência disponível:
+  - Competência (MM/AAAA)
+  - Salário bruto
+  - Horas extras (50%, 100%, etc - some tudo)
+  - Comissões
+  - DSR sobre variáveis
+  - Adicional noturno
+  - Outros proventos variáveis
+
+Retorne em JSON:
+{
+    "confianca": "alta/media/baixa",
+    "funcionarios": [
+        {
+            "nome": "Nome Completo",
+            "cpf": "000.000.000-00",
+            "matricula": "12345",
+            "medias": [
+                {
+                    "competencia": "01/2024",
+                    "salario_bruto": 2500.00,
+                    "horas_extras": 350.00,
+                    "comissoes": 500.00,
+                    "dsr": 150.00,
+                    "adicional_noturno": 0,
+                    "outros": 0
+                }
+            ]
+        }
+    ],
+    "periodo_encontrado": "01/2024 a 12/2024",
+    "observacoes": "observações sobre a extração, campos não encontrados, etc"
+}
+
+IMPORTANTE:
+- Extraia TODOS os funcionários encontrados no documento
+- Extraia TODOS os meses disponíveis (idealmente 12-24 meses)
+- Valores devem ser numéricos (sem R$, pontos de milhar, etc)
+- Se um valor não existir, use 0
+- Se não conseguir identificar algum campo, deixe em branco"""
+            ).with_model("gemini", "gemini-2.5-flash")
+            
+            mime_types = {
+                ".pdf": "application/pdf",
+                ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ".xls": "application/vnd.ms-excel",
+                ".csv": "text/csv",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".png": "image/png",
+                ".txt": "text/plain"
+            }
+            
+            mime_type = mime_types.get(suffix.lower(), "application/octet-stream")
+            file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
+            
+            response = await chat.send_message(UserMessage(
+                text=f"Extraia os dados de médias salariais do documento: {file.filename}",
+                file_contents=[file_content]
+            ))
+            
+            # Parse response
+            try:
+                response_text = response.strip()
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:]
+                if response_text.startswith("```"):
+                    response_text = response_text[3:]
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3]
+                
+                resultado = json.loads(response_text.strip())
+            except json.JSONDecodeError:
+                resultado = {
+                    "confianca": "baixa",
+                    "funcionarios": [],
+                    "observacoes": response
+                }
+            
+            return {
+                "success": True,
+                "confianca": resultado.get("confianca", "media"),
+                "funcionarios": resultado.get("funcionarios", []),
+                "periodo_encontrado": resultado.get("periodo_encontrado", ""),
+                "observacoes": resultado.get("observacoes", ""),
+                "message": "Dados extraídos. Revise antes de gerar o arquivo."
+            }
+            
+        finally:
+            os.unlink(tmp_path)
+            
+    except Exception as e:
+        logger.error(f"Erro na extração de médias: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao extrair médias: {str(e)}")
+
+@api_router.post("/medias/salvar")
+async def salvar_medias_extraidas(
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Save extracted media data to database"""
+    try:
+        cliente_id = data.get("cliente_id")
+        funcionarios = data.get("funcionarios", [])
+        
+        if not funcionarios:
+            raise HTTPException(status_code=400, detail="Nenhum funcionário para salvar")
+        
+        # Save import record
+        importacao_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        
+        total_meses = sum(len(f.get("medias", [])) for f in funcionarios)
+        
+        importacao_doc = {
+            "id": importacao_id,
+            "cliente_id": cliente_id,
+            "user_id": current_user["id"],
+            "total_funcionarios": len(funcionarios),
+            "total_meses": total_meses,
+            "formato_exportado": None,
+            "created_at": now
+        }
+        await db.importacoes_medias.insert_one(importacao_doc)
+        
+        # Save individual media records
+        for func in funcionarios:
+            for media in func.get("medias", []):
+                media_doc = {
+                    "id": str(uuid.uuid4()),
+                    "importacao_id": importacao_id,
+                    "cliente_id": cliente_id,
+                    "funcionario_nome": func.get("nome"),
+                    "funcionario_cpf": func.get("cpf"),
+                    "funcionario_matricula": func.get("matricula"),
+                    "competencia": media.get("competencia"),
+                    "salario_bruto": media.get("salario_bruto", 0),
+                    "horas_extras": media.get("horas_extras", 0),
+                    "comissoes": media.get("comissoes", 0),
+                    "dsr": media.get("dsr", 0),
+                    "adicional_noturno": media.get("adicional_noturno", 0),
+                    "outros": media.get("outros", 0),
+                    "user_id": current_user["id"],
+                    "created_at": now
+                }
+                await db.medias_extraidas.insert_one(media_doc)
+        
+        return {
+            "success": True,
+            "importacao_id": importacao_id,
+            "total_funcionarios": len(funcionarios),
+            "total_meses": total_meses
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao salvar médias: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar médias: {str(e)}")
+
+@api_router.post("/medias/gerar-importacao")
+async def gerar_arquivo_importacao_sci(
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate import file for SCI Único (Excel or TXT format)"""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from io import BytesIO
+        from fastapi.responses import StreamingResponse
+        
+        cliente_id = data.get("cliente_id")
+        funcionarios = data.get("funcionarios", [])
+        formato = data.get("formato", "xlsx")
+        
+        if not funcionarios:
+            raise HTTPException(status_code=400, detail="Nenhum funcionário para exportar")
+        
+        if formato == "xlsx":
+            # Generate Excel file
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Importação Médias SCI"
+            
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill(start_color="059669", end_color="059669", fill_type="solid")
+            border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+            
+            # Headers - Format for SCI Único import
+            headers = ["MATRÍCULA", "CPF", "NOME", "COMPETÊNCIA", "SALÁRIO", "HE", "COMISSÕES", "DSR", "AD.NOTURNO", "OUTROS", "TOTAL"]
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col, value=header)
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = Alignment(horizontal='center')
+                cell.border = border
+            
+            row = 2
+            for func in funcionarios:
+                for media in func.get("medias", []):
+                    total = (
+                        (media.get("salario_bruto") or 0) +
+                        (media.get("horas_extras") or 0) +
+                        (media.get("comissoes") or 0) +
+                        (media.get("dsr") or 0) +
+                        (media.get("adicional_noturno") or 0) +
+                        (media.get("outros") or 0)
+                    )
+                    
+                    data_row = [
+                        func.get("matricula", ""),
+                        func.get("cpf", ""),
+                        func.get("nome", ""),
+                        media.get("competencia", ""),
+                        media.get("salario_bruto", 0),
+                        media.get("horas_extras", 0),
+                        media.get("comissoes", 0),
+                        media.get("dsr", 0),
+                        media.get("adicional_noturno", 0),
+                        media.get("outros", 0),
+                        total
+                    ]
+                    
+                    for col, value in enumerate(data_row, 1):
+                        cell = ws.cell(row=row, column=col, value=value)
+                        cell.border = border
+                        if col >= 5:  # Numeric columns
+                            cell.number_format = '#,##0.00'
+                    
+                    row += 1
+            
+            # Adjust column widths
+            ws.column_dimensions['A'].width = 12
+            ws.column_dimensions['B'].width = 15
+            ws.column_dimensions['C'].width = 30
+            ws.column_dimensions['D'].width = 12
+            for col in ['E', 'F', 'G', 'H', 'I', 'J', 'K']:
+                ws.column_dimensions[col].width = 12
+            
+            output = BytesIO()
+            wb.save(output)
+            output.seek(0)
+            
+            return StreamingResponse(
+                output,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": "attachment; filename=importacao_medias_sci_unico.xlsx"}
+            )
+            
+        else:
+            # Generate TXT file (pipe-delimited for SCI Único)
+            lines = []
+            
+            # Header
+            header = "MATRICULA|CPF|NOME|COMPETENCIA|SALARIO|HE|COMISSOES|DSR|ADNOTURNO|OUTROS|TOTAL"
+            lines.append(header)
+            
+            for func in funcionarios:
+                for media in func.get("medias", []):
+                    total = (
+                        (media.get("salario_bruto") or 0) +
+                        (media.get("horas_extras") or 0) +
+                        (media.get("comissoes") or 0) +
+                        (media.get("dsr") or 0) +
+                        (media.get("adicional_noturno") or 0) +
+                        (media.get("outros") or 0)
+                    )
+                    
+                    line = "|".join([
+                        str(func.get("matricula", "")),
+                        str(func.get("cpf", "")).replace(".", "").replace("-", ""),
+                        str(func.get("nome", "")),
+                        str(media.get("competencia", "")),
+                        f"{media.get('salario_bruto', 0):.2f}",
+                        f"{media.get('horas_extras', 0):.2f}",
+                        f"{media.get('comissoes', 0):.2f}",
+                        f"{media.get('dsr', 0):.2f}",
+                        f"{media.get('adicional_noturno', 0):.2f}",
+                        f"{media.get('outros', 0):.2f}",
+                        f"{total:.2f}"
+                    ])
+                    lines.append(line)
+            
+            content = "\n".join(lines)
+            output = BytesIO(content.encode('utf-8'))
+            
+            return StreamingResponse(
+                output,
+                media_type="text/plain",
+                headers={"Content-Disposition": "attachment; filename=importacao_medias_sci_unico.txt"}
+            )
+        
+        # Update import record with format
+        if cliente_id:
+            await db.importacoes_medias.update_one(
+                {"cliente_id": cliente_id, "user_id": current_user["id"]},
+                {"$set": {"formato_exportado": formato}},
+                upsert=False
+            )
+        
+    except Exception as e:
+        logger.error(f"Erro ao gerar arquivo: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar arquivo: {str(e)}")
 
 @api_router.post("/informes/comparar")
 async def comparar_informes(
