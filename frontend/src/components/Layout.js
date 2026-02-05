@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Building2, Home, FileText, Upload, Download, LogOut, Menu, X, BarChart3, Brain, ChevronDown, TrendingUp, ArrowUpCircle, Calculator, AlertTriangle, Calendar, DollarSign } from 'lucide-react';
+import { Building2, Home, FileText, Upload, Download, LogOut, Menu, X, BarChart3, Brain, ChevronDown, ArrowUpCircle, Calculator, AlertTriangle, Calendar, DollarSign } from 'lucide-react';
 import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 
