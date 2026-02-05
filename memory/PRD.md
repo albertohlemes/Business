@@ -167,7 +167,15 @@ Portal para departamento societário com geração de documentos via IA.
 - **Botão de Editar** adicionado na lista de processos (ícone de lápis)
 - Funciona para todos os tipos: Constituição, Alteração e Baixa
 - Ao clicar, abre o wizard correspondente em **modo edição** com dados pré-preenchidos
+- **Carrega TODOS os dados**: razão social, nome fantasia, capital, endereço, sócios, CNAEs, etc.
+- Dados são carregados de `dados_empresa` e `dados_socios` salvos no banco
 - Permite regenerar documentos após edições
+
+### ✅ Flag "Sócio Administrador"
+- Checkbox visível no formulário de cada sócio (Step 2)
+- Descrição: "Se marcado, este sócio constará na cláusula de administração do contrato"
+- Se não marcado, o sócio NÃO aparece na cláusula de administração
+- Presente em WizardConstituicao e WizardAlteracao (entrada de sócios)
 
 ### ✅ Profissão Padrão "Empresário(a)"
 - Campo profissão nos formulários de sócios vem preenchido com "Empresário(a)" por padrão
