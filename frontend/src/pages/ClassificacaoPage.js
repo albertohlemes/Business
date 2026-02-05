@@ -883,6 +883,30 @@ const ClassificacaoPage = ({ user, onLogout }) => {
               {reimporting ? 'Reimportando...' : 'Reimportar Tudo'}
             </button>
           </div>
+          
+          {/* Barra de Progresso */}
+          {reimportProgress && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">{reimportProgress.step}</span>
+                <span className="text-sm text-gray-500">
+                  {reimportProgress.processed}/{reimportProgress.total} docs ({reimportProgress.percent}%)
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="bg-orange-500 h-3 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${reimportProgress.percent}%` }}
+                />
+              </div>
+              <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                <span>🤖 Classificados: {reimportProgress.classificados || 0}</span>
+                {reimportProgress.errors > 0 && (
+                  <span className="text-red-500">❌ Erros: {reimportProgress.errors}</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Painel de Comando IA */}
