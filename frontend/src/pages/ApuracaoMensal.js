@@ -701,6 +701,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                   aPagar={calculos.icms.aPagar}
                   color="bg-blue-600"
                   stDesconsiderado={calculos.icms.stDesconsiderado}
+                  despesaDesconsiderada={calculos.icms.despesaDesconsiderada}
                 />
                 <TaxCard
                   title="PIS"
