@@ -45,7 +45,9 @@ Portal para departamento societário com geração de documentos via IA.
 
 **Entrada de Sócios - FORMULÁRIO COMPLETO (igual à Constituição):**
 - Botão "✨ Preencher com IA" para extração de documentos (CNH, RG)
-- Dados pessoais: Nome, CPF, RG, Órgão Emissor, Nacionalidade, Estado Civil, Regime de Casamento, Profissão, Participação
+- Dados pessoais: Nome, CPF, RG, Órgão Emissor, Nacionalidade
+- Naturalidade: Data de Nascimento, Cidade de Nascimento, Estado de Nascimento
+- Estado Civil, Regime de Casamento (se casado), Profissão, Participação
 - Seção de Endereço Residencial completa:
   - Botão "✨ Preencher Endereço com IA"
   - Logradouro, Número, Complemento, Bairro, Cidade, Estado, CEP
@@ -138,7 +140,9 @@ Portal para departamento societário com geração de documentos via IA.
 
 ## Arquivos de Teste
 - `/app/backend/tests/test_alteracao.py`
+- `/app/backend/tests/test_naturalidade_fields.py`
 - `/app/test_reports/iteration_4.json`
+- `/app/test_reports/iteration_5.json` (campos de naturalidade)
 
 ## Backlog
 
@@ -156,6 +160,16 @@ Portal para departamento societário com geração de documentos via IA.
 - Email: teste@teste.com
 - Senha: teste123
 
+## Implementações Recentes (05/02/2026)
+
+### ✅ Campos de Naturalidade para Sócios
+- **Novos campos**: Data de Nascimento, Cidade de Nascimento, Estado de Nascimento
+- **WizardConstituicao.js**: SocioCard (linhas 774-807)
+- **WizardAlteracao.js**: SocioCardAlteracao (linhas 733-772), SociosEntrando (linhas 477-484)
+- **Backend (server.py)**: Modelo SocioConstituicao (linhas 1768-1770)
+- **Geração de documentos**: Campos opcionais incluídos quando fornecidos
+- **Testes**: 100% passaram (backend e frontend)
+
 ## Status: COMPLETO ✅
 - Constituição ✅
 - Alteração ✅ (reformulado, com busca CNPJ e cláusulas)
@@ -163,4 +177,5 @@ Portal para departamento societário com geração de documentos via IA.
 - Banco de CNAEs ✅ (350+)
 - Busca de CEP ✅
 - Busca de CNPJ ✅
+- Campos de Naturalidade ✅
 - Dashboard renomeado ✅
