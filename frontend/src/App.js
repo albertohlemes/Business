@@ -110,6 +110,10 @@ function App() {
               path="/analise-pis-cofins"
               element={user ? <AnalisePisCofins user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/analise-tributaria-ia"
+              element={user ? <AnaliseTributariaIA user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
             {/* Rotas antigas redirecionam */}
             <Route path="/analise-aliquotas-saida" element={<Navigate to="/analise-saidas" />} />
             <Route path="/divergencias-saida" element={<Navigate to="/analise-pis-cofins" />} />
