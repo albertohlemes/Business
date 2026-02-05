@@ -284,14 +284,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                 <p className="text-xs text-amber-500">Risco fiscal</p>
               </div>
             </div>
-                      <TrendingUp className="w-6 h-6 text-red-600" />
-                    ) : dados.resumo.diferenca_total < 0 ? (
-                      <TrendingDown className="w-6 h-6 text-green-600" />
-                    ) : (
-                      <CheckCircle className="w-6 h-6 text-gray-600" />
-                    )}
-                  </div>
-                </div>
+
             {/* Resumo por Tipo de Divergência - Compacto */}
             {dados.total_divergentes > 0 && (
               <div className="bg-white rounded-lg p-4 border border-gray-200">
