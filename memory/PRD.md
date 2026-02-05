@@ -263,6 +263,25 @@ Portal para departamento societário com geração de documentos via IA.
 
 - **Testes:** 100% passaram (19/19 backend, UI verificada) - iteration_8.json
 
+### ✅ Robô SCI Único - Automação Desktop (05/02/2026)
+- **Nova aba "SCI Único - Automação"** com formulário completo espelhando o SCI
+- **Campos da Empresa:** Código, CNPJ, Razão Social, Nome Fantasia, Inscrições, Data Entrada, Data Constituição, Órgão/Nº Registro, Data Registro
+- **Campos de Endereço:** CEP, Logradouro, Nº, Complemento, Bairro, Cidade, UF, E-mail
+- **Seção de Sócios completa:** Nome, CPF, RG, Data Nascimento, Naturalidade, Estado Civil, Endereço, Telefone, E-mail, Participação, Flag Administrador
+- **Duas opções de automação:**
+  1. **Robô Python** - Baixa script que preenche automaticamente o SCI Único
+  2. **Cópia Manual** - Copia dados formatados para colar
+- **Endpoints:** 
+  - `POST /api/sci-unico/exportar` - Gera JSON formatado para o robô
+  - `GET /api/sci-unico/download-script` - Baixa o script Python do robô
+- **Como usar o robô:**
+  1. Preencha os dados no portal (ou use IA)
+  2. Clique "Exportar Dados (JSON)" 
+  3. Baixe o robô (Python) e instale dependências: `pip install pyautogui pyperclip`
+  4. Abra o SCI Único na tela de cadastro
+  5. Execute: `python sci_robo.py sci_dados_XXXX.json`
+  6. O robô preenche tudo automaticamente!
+
 ## Status: COMPLETO ✅
 - Constituição ✅
 - Alteração ✅ (reformulado, com busca CNPJ e cláusulas)
