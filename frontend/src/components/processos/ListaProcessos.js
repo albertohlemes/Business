@@ -185,6 +185,32 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, onEdit, emp
         }
     };
 
+    const enviarParaGClick = async (processoId) => {
+        if (!window.confirm('Deseja enviar os dados desta empresa para o GClick?')) {
+            return;
+        }
+        
+        setEnviandoGClick(processoId);
+        try {
+            const response = await axios.post(`${API_URL}/api/gclick/enviar-empresa`, {
+                minuta_id: processoId
+            });
+            
+            if (response.data.success) {
+                toast.success('Empresa enviada com sucesso para o GClick!');
+                onRefresh();
+            } else {
+                toast.error(response.data.message || 'Erro ao enviar para GClick');
+            }
+        } catch (e) {
+            console.error('Erro ao enviar para GClick:', e);
+            const errorMsg = e.response?.data?.detail || 'Erro ao enviar para GClick';
+            toast.error(errorMsg);
+        } finally {
+            setEnviandoGClick(null);
+        }
+    };
+
     const viewProcesso = async (processo) => {
         try {
             const res = await axios.get(`${API_URL}/api/minutas/${processo.id}`);
