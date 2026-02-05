@@ -62,6 +62,9 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
+  // Estado para reimportação
+  const [reimporting, setReimporting] = useState(false);
+
   // Carregar dados quando empresa/competência mudar
   useEffect(() => {
     if (selectedCompany && selectedCompetencia) {
