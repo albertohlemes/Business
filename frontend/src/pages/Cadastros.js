@@ -176,19 +176,24 @@ const Cadastros = () => {
         }
     };
 
-    // Extração por IA - SCI Único
+    // Extração por IA - SCI Único (Múltiplos documentos)
     const handleExtrairIASci = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
         
         setExtraindoSci(true);
-        toast.info('Extraindo dados do documento com IA...');
+        const qtdArquivos = files.length;
+        toast.info(`Extraindo dados de ${qtdArquivos} documento${qtdArquivos > 1 ? 's' : ''} com IA...`);
         
         try {
             const formData = new FormData();
-            formData.append('file', file);
             
-            const response = await axios.post(`${API_URL}/api/cadastros/extrair-dados`, formData, {
+            // Adicionar todos os arquivos
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+            
+            const response = await axios.post(`${API_URL}/api/cadastros/extrair-dados-multiplos`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             
@@ -217,7 +222,13 @@ const Cadastros = () => {
                     email: dados.email || prev.email
                 }));
                 
-                toast.success('Dados extraídos com sucesso!');
+                // Mostrar quais documentos foram analisados
+                const docsAnalisados = dados.documentos_analisados;
+                if (docsAnalisados && docsAnalisados.length > 0) {
+                    toast.success(`Dados consolidados de ${qtdArquivos} documento${qtdArquivos > 1 ? 's' : ''}: ${docsAnalisados.join(', ')}`);
+                } else {
+                    toast.success(`Dados extraídos de ${qtdArquivos} documento${qtdArquivos > 1 ? 's' : ''}!`);
+                }
                 
                 // Buscar IE automaticamente
                 if (dados.cnpj && dados.endereco?.estado) {
