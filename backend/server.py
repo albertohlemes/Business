@@ -2835,7 +2835,7 @@ import os
 # Configurações
 DELAY_ENTRE_CAMPOS = 0.1  # segundos entre cada TAB
 DELAY_DIGITACAO = 0.02    # segundos entre cada caractere
-API_URL = "https://corporegister.preview.emergentagent.com"
+API_URL = "https://process-manager-15.preview.emergentagent.com"
 
 def digitar_texto(texto):
     """Digita texto de forma segura"""

@@ -1,146 +1,158 @@
 <analysis>**original_problem_statement:**
-O usuário, da Business Contabilidade, solicitou um portal para seu departamento societário. O escopo evoluiu de uma simples ferramenta de IA para gerar minutas para um portal completo de Processos com três módulos: Constituição, Alteração e Baixa.
+O usuário, da Business Contabilidade, solicitou a criação de um portal para seu departamento societário, que evoluiu para uma aplicação completa de gerenciamento de Processos (Constituição, Alteração, Baixa). Subsequentemente, foi solicitado um menu de Cadastros para integrações diretas com sistemas de terceiros, como GClick. A demanda mais recente e complexa é a automação do preenchimento de um sistema desktop chamado SCI Único. Para isso, o usuário está fornecendo capturas de tela detalhadas para que um Wizard de Perfil na aplicação web possa gerar configurações completas, que serão utilizadas por um robô (script Python executável localmente) para preencher automaticamente todas as abas e campos do sistema SCI Único.
 
-**PRODUCT REQUIREMENTS (Evolved during the session):**
-1.  **Módulos de Processos:** Aplicação centrada na página Processos com abas para Constituição, Alteração e Baixa.
-2.  **Wizard de Constituição:** Fluxo completo para criar empresas, com extração de dados por IA, busca de CEP, banco de CNAEs, e formulário de sócios detalhado.
-3.  **Wizard de Alteração (Reformulado):** Fluxo dinâmico onde o usuário seleciona múltiplos tipos de alteração (Endereço, QSA, etc.). Os formulários correspondentes são exibidos, com opções de preenchimento por IA e busca de CNAEs por CNPJ. O formulário de QSA deve permitir múltiplas seleções (saída, entrada, redistribuição). O formulário de entrada de sócio deve ser idêntico ao da constituição.
-4.  **Wizard de Baixa:** Fluxo para dissolução de empresas.
-5.  **Templates de Documentos:** A geração de documentos (Constituição e Distrato) deve seguir rigorosamente os modelos .docx e .pdf fornecidos pelo usuário. As testemunhas devem ser removidas e as assinaturas ajustadas para incluir sócios que entram e saem. A formatação de tabelas deve ser corrigida.
-6.  **Melhorias de Usabilidade:**
-    *   O processo do wizard deve ser salvo como rascunho (localmente) para que o usuário possa continuar de onde parou em caso de erro ou fechamento acidental.
-    *   A extração de dados do contrato social (PDF, DOCX, imagem) deve ser mais robusta e reconhecer os sócios com qualificação completa.
-    *   Adicionar os campos data de nascimento, cidade de nascimento e estado de nascimento ao cadastro de sócios.
+**PRODUCT REQUIREMENTS:**
+1.  **Portal de Processos:** Módulos de Constituição, Alteração e Baixa.
+2.  **Menu de Cadastros:** Uma seção independente para cadastro direto em sistemas de terceiros (GClick, SCI Único).
+3.  **Extração de Dados por IA:** Extrair dados da empresa e sócios de múltiplos documentos (Cartão CNPJ, Contrato Social, RG, etc.) para preencher formulários.
+4.  **Integração GClick:** Enviar dados de processos ou cadastros diretos para a API do GClick.
+5.  **Automação SCI Único (Desktop):**
+    *   Criar um formulário no portal que espelha os campos do sistema SCI Único.
+    *   Desenvolver um Wizard de Perfil com perguntas-chave (regime tributário, atividade, etc.).
+    *   Com base nas respostas do wizard, gerar automaticamente TODAS as configurações necessárias para as abas Fiscal, Folha, Contábil, etc., do SCI Único.
+    *   Gerar um arquivo JSON com todos os dados e configurações.
+    *   Gerar um script Python (robô executável) que o usuário possa baixar e rodar localmente para preencher o sistema desktop usando os dados do arquivo JSON.
 
 **User's preferred language**: Portuguese (pt-BR)
 
 **what currently exists?**
-Uma aplicação full-stack (React + FastAPI + MongoDB) com um portal de Processos. Os wizards de Constituição e Baixa estão funcionais. O wizard de Alteração foi profundamente reformulado e melhorado, agora com:
-- Seleção múltipla de tipos de alteração (QSA, Endereço, etc.) usando checkboxes.
-- Um formulário de Entrada de Sócio idêntico ao do wizard de Constituição, com preenchimento por IA e campos de endereço detalhados.
-- Tratamento de erro aprimorado para quando a extração de dados do contrato falha (mostrando formulários de inserção manual em vez de quebrar a aplicação).
-- Uma funcionalidade de continuar de onde parou que salva o estado do wizard no .
-- Os prompts de backend para geração de documentos de Constituição e Distrato foram substituídos para seguir os templates exatos fornecidos pelo usuário.
+Uma aplicação full-stack (React + FastAPI + MongoDB) funcional. A página de Processos está madura. A página Cadastros foi extensivamente desenvolvida e agora contém:
+1.  Um formulário completo para cadastro direto no **GClick**.
+2.  Um formulário espelhado para automação do **SCI Único**.
+3.  Um **Wizard de Perfil do Cliente** dentro da aba SCI, que faz perguntas para determinar as configurações fiscais e de folha.
+4.  Funcionalidades de extração de dados por IA (múltiplos documentos), histórico de cadastros (com editar/excluir) e busca automática de Inscrição Estadual (Sintegra).
+5.  O backend gera um arquivo JSON detalhado com base nas respostas do Wizard e um script Python para automação local.
+O agente estava no processo de mapear as regras de configuração para diferentes perfis de empresa (ex: Comércio Lucro Real) com base em prints fornecidos pelo usuário.
 
 **Last working item**:
--   **Last item agent was working:** Adicionando os campos cidade de nascimento e estado de nascimento para os sócios. O agente atualizou o modelo Pydantic no backend ( em ), os prompts de geração de documentos (Constituição e Distrato) para incluir os novos dados, e o formulário de sócios no frontend ().
+-   **Last item agent was working:** Mapeamento das regras de configuração para o **Wizard de Perfil do SCI Único**. O agente concluiu o mapeamento das abas Fiscal e Folha para o perfil **Comércio Lucro Real** com base nas capturas de tela e anotações do usuário.
 -   **Status:** IN PROGRESS
--   **Agent Testing Done:** N
--   **Which testing method agent to use?** both
+-   **Agent Testing Done:** N/A (A tarefa é de mapeamento de dados, aguardando mais input do usuário).
+-   **Which testing method agent to use?** Backend testing agent. Após o mapeamento de todos os perfis, será necessário usar o testing agent para validar que o endpoint  gera o JSON de configuração correto para cada combinação de perfil.
 -   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1:** (P0) Finalizar a implementação dos campos de naturalidade (cidade/estado de nascimento) dos sócios.
--   **Issue 2:** (P1) Validar a robustez da extração de dados e a correção de bugs no Wizard de Alteração.
--   **Issue 3:** (P2) Validar as melhorias nos documentos exportados (formato e conteúdo).
--   **Issue 4:** (P3) Validar a correção da exportação de PDF (logo e alinhamento do rodapé) que estava pendente.
--   **Issue 5:** (P3) O plugin do Babel  permanece desativado.
--   **Issue 6:** (P3) A automação REDESIM está quebrada e foi pausada pelo usuário.
+-   **Issue 1:** (P0) Concluir o mapeamento de todos os perfis de cliente para o Wizard do SCI Único.
+-   **Issue 2:** (P1) Erro ao deletar múltiplos processos em rápida sucessão.
 
 **Issues Detail:**
--   **Issue 1: Finalizar campos de naturalidade do sócio.**
-    -   **Attempted fixes:** O agente editou  para adicionar  e  ao modelo  e aos prompts de geração de documentos. No frontend, modificou  para incluir os novos campos no formulário.
+-   **Issue 1: Concluir mapeamento do Wizard SCI Único**
+    -   **Attempted fixes:** O agente criou a UI do wizard e a lógica de backend para um perfil de teste. O mapeamento para Comércio Lucro Real foi concluído.
     -   **Next debug checklist:**
-        1.  O formulário de sócio no  () também precisa ser atualizado com os novos campos para manter a paridade com o de Constituição. O agente só alterou .
-        2.  Verificar a compilação do frontend após as alterações.
-        3.  Testar o fluxo E2E: preencher os novos campos na UI (em Constituição e Alteração), gerar o documento e confirmar que os dados aparecem corretamente no arquivo .docx final.
-    -   **Why fix this issue and what will be achieved with the fix?** Atende a um requisito explícito do usuário para qualificação mais completa dos sócios.
+        1.  Aguardar o envio de prints pelo usuário para o próximo perfil (ex: Serviços Lucro Presumido, Comércio Simples Nacional, etc.).
+        2.  Para cada perfil, mapear todas as configurações correspondentes nas abas Fiscal, Folha, Contábil, eSocial, etc.
+        3.  Implementar essa lógica de regras no endpoint  no arquivo , expandindo a estrutura  para cobrir todos os perfis.
+        4.  Garantir que o script Python gerado pelo endpoint  seja capaz de ler e utilizar todos os novos campos de configuração.
+    -   **Why fix this issue and what will be achieved with the fix?** É a principal funcionalidade solicitada pelo usuário e visa automatizar uma tarefa manual extremamente complexa e demorada, agregando enorme valor à ferramenta.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None
+    -   **Should Test frontend/backend/both after fix?** backend
+    -   **Blocked on other issue:** Não. Bloqueado aguardando input do usuário (próximos prints de perfis).
 
--   **Issue 2: Validar correções no Wizard de Alteração.**
-    -   **Attempted fixes:** O agente corrigiu um erro de renderização no React (Objects are not valid as a React child) relacionado ao campo  dos sócios. Também tornou a extração de dados no backend mais robusta, retornando uma resposta de sucesso com dados vazios em vez de um erro 520 quando a análise do documento falha.
+-   **Issue 2: Erro ao deletar múltiplos processos**
+    -   **Attempted fixes:** Um diálogo de confirmação foi adicionado em  como paliativo.
     -   **Next debug checklist:**
-        1.  Realizar um teste completo usando um **documento válido (PDF/DOCX)** para simular o cenário real do usuário.
-        2.  Verificar se a extração de dados preenche a lista de sócios corretamente para as opções Saída de Sócio e Redistribuição.
-        3.  Confirmar que não há mais crashes ou comportamentos inesperados ao selecionar essas opções.
-    -   **Why fix this issue and what will be achieved with the fix?** Garante que a funcionalidade principal do wizard de alteração, que foi o foco de múltiplos pedidos do usuário, está estável e funcional.
+        1.  Criar 3 ou mais processos.
+        2.  Tentar deletá-los em rápida sucessão.
+        3.  Inspecionar o console do navegador e os logs do backend em busca de erros de requisição ou de estado.
+        4.  Revisar a lógica de atualização de estado no componente  para evitar condições de corrida.
+    -   **Why fix this issue and what will be achieved with the fix?** Corrige um bug em uma funcionalidade CRUD básica do sistema.
     -   **Status:** TESTING PENDING
-    -   **Is recurring issue?** Y (O usuário reportou bugs nesta área múltiplas vezes)
-    -   **Should Test frontend/backend/both after fix?** both
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** frontend
     -   **Blocked on other issue:** None
 
 **In progress Task List**:
--   **Task 1: Sincronizar formulário de sócio em .**
-    -   **Where to resume:** Replicar as adições de campos (, , ) do  em  para o  em .
-    -   **What will be achieved with this?** Mantém a consistência entre os formulários, conforme solicitado pelo usuário.
-    -   **Status:** NOT STARTED
-    -   **Should Test frontend/backend/both after fix?** frontend
-    -   **Blocked on something:** None
+-   **Task 1: Mapear todos os perfis do SCI Único**
+    -   **Where to resume:** Aguardando o usuário enviar as capturas de tela do próximo perfil a ser configurado.
+    -   **What will be achieved with this?** Um conjunto completo de regras para configurar automaticamente qualquer tipo de cliente no SCI Único, finalizando a lógica do Wizard.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** backend
+    -   **Blocked on something:** Input do usuário (prints dos perfis).
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P2) Validar com o usuário o formato final dos documentos DOCX/PDF gerados após as últimas alterações nos templates.
+    -   (P0) Implementar no backend () a lógica para todos os perfis do SCI Único mapeados.
+    -   (P1) Atualizar o script Python do robô para que ele utilize todas as novas configurações geradas pelo wizard.
+    -   (P2) Validar a correção do bug de deleção múltipla de processos.
 -   **Future Tasks:**
-    -   (P3) Reativar e consertar a automação REDESIM (quando o usuário solicitar).
-    -   (P3) Tentar reativar o plugin do Babel  em .
-    -   (P3) Adicionar um histórico de versões para os documentos gerados.
-    -   (P3) Criar uma visão no dashboard que agrupe todos os processos por CNPJ.
+    -   Adicionar um campo de busca/filtro na lista do histórico de cadastros.
+    -   Reativar e consertar a automação REDESIM.
+    -   Adicionar um histórico de versões para os documentos gerados.
+    -   Criar uma visão no dashboard que agrupe todos os processos por CNPJ.
 
 **Completed work in this session**
--   **Feature (QSA Múltiplo):** Reformulado o formulário QSA em  para usar checkboxes, permitindo selecionar Saída, Entrada e Redistribuição simultaneamente.
--   **Feature (Form Sócio Unificado):** O formulário de Entrada de Sócio no wizard de Alteração agora é idêntico ao de Constituição, incluindo preenchimento por IA e campos de endereço.
--   **Feature (Rascunho):** Implementada a funcionalidade continuar de onde parou no , salvando o estado do formulário no .
--   **Feature (Templates Padronizados):** Os prompts de backend para Constituição e Distrato foram completamente substituídos para gerar documentos que seguem os modelos exatos fornecidos pelo usuário.
--   **Bug Fix (Renderização React):** Corrigido o erro Objects are not valid as a React child que ocorria ao exibir sócios cuja participação era um objeto.
--   **Bug Fix (Extração de Dados):** O backend foi modificado para não retornar erro 500 em caso de falha na extração de dados do contrato, tornando a UI mais robusta.
--   **Bug Fix (Geração de Contrato):** Corrigido um  no backend que impedia a geração de contratos por tentar acessar o campo  que não existia no modelo Pydantic.
--   **Enhancement (Documentos):** Removidas as seções PREÂMBULO e TESTEMUNHAS de todos os modelos de documentos e ajustada a cláusula de assinaturas.
+-   **Feature (Página Cadastros):** Implementada a página com formulários para GClick e SCI Único, extração de dados por IA (múltiplos arquivos) e um histórico funcional com ações de editar e excluir.
+-   **Feature (Wizard SCI Único):** Criada a interface do Wizard de Perfil do Cliente, que faz perguntas e exibe campos contextuais (ex: Código de Acesso do Simples).
+-   **Feature (Automação SCI Único):** Implementado o backend para gerar um JSON de configuração detalhado e um script Python para automação local, com base nas respostas do wizard.
+-   **Enhancement (IA):** A extração por IA e o formulário foram atualizados para incluir novos campos: data de fundação, e data de nascimento e endereço dos sócios.
+-   **Bug Fix (Rotas):** Corrigido o problema que impedia o carregamento da página , adicionando a rota e o import ao .
+
+**Earlier issues found/mentioned but not fixed**
+-   **Issue 1: Erro ao deletar múltiplos processos.**
+    -   **Debug checklist:** Criar múltiplos processos e tentar deletá-los rapidamente, observando console e logs.
+    -   **Why to solve this issue and what will be achieved with this?** É um bug funcional em uma operação CRUD essencial.
+    -   **Should Test frontend/backend/both after fix:** frontend
+    -   **Is recurring issue?** Y
+
+**Known issue recurrence from previous fork**
+-   **Issue recurrence in previous fork:** Budget has been exceeded! para a chave do Emergent LLM.
+-   **Recurrence count:** 2
+-   **Status:** RESOLVED (temporariamente). O usuário foi notificado sobre a necessidade de adicionar saldo. Pode ocorrer novamente.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend:** React, TailwindCSS, Shadcn/UI, Axios, Lucide React
--   **Backend:** FastAPI (Python), Pydantic
+-   **Frontend:** React, TailwindCSS, Shadcn/UI, Axios
+-   **Backend:** FastAPI (Python)
 -   **Database:** MongoDB
--   **Geração de Documentos:**  para Word,  para PDF, com prompts de IA para conteúdo.
--   **IA:**  (Gemini) para extração de dados e geração de texto.
+-   **Automação:** Geração de script Python para automação de desktop (a biblioteca de automação, como , ainda não foi adicionada ao script gerado).
 
 **key DB schema**
--   **minutas**: Armazena os dados de cada processo, incluindo o  ('constituicao', 'alteracao', 'baixa'), dados extraídos e gerados.
+-   **minutas**: Armazena dados dos processos do portal.
+-   **cadastros_externos**: Nova coleção para o histórico da página Cadastros. Armazena , , ,  (gclick ou sci_unico).
 
 **All files of reference**
--   : Foco principal das últimas interações. Contém a lógica do wizard de alteração, incluindo os formulários de QSA.
--   : Contém o formulário de sócio de referência que precisa ser mantido em paridade.
--   : Contém toda a lógica de backend, incluindo os endpoints de extração de dados e os prompts de geração de documentos que foram recentemente substituídos.
+-   : Arquivo central para a tarefa atual, contém a UI do Wizard.
+-   : Arquivo central do backend, onde a lógica dos perfis do SCI Único será implementada.
+
+**Areas that need refactoring**:
+-   ****: O arquivo se tornou muito grande e complexo. Seria benéfico dividi-lo em componentes menores e mais gerenciáveis (ex: , , ).
+-   ****: A lógica para gerar as configurações do SCI Único está crescendo. Pode ser movida para um módulo de regras separado para melhorar a organização e manutenção.
+
+**key api endpoints**
+-   : Extrai dados de múltiplos arquivos via IA.
+-   : Lista os cadastros salvos.
+-   : **Endpoint chave.** Gera o JSON de configuração para o robô SCI com base nos dados do formulário e nas respostas do wizard.
+-   : **Endpoint chave.** Gera e disponibiliza o script Python do robô para download.
 
 **Critical Info for New Agent**
--   **Prioridade 1:** A implementação dos campos de naturalidade (, ) está incompleta. O  também precisa ser atualizado para manter a consistência com .
--   **Prioridade 2:** Os bugs no wizard de alteração reportados pelo usuário foram teoricamente corrigidos, mas a validação final deve ser feita com um **documento válido** (PDF/DOCX), não com arquivos de texto simples, para garantir que o fluxo de extração de sócios funciona como esperado.
--   **Templates de Documentos:** O usuário é muito específico sobre a formatação. Qualquer alteração nos documentos deve ser validada cuidadosamente contra os modelos que ele forneceu.
+-   **Sua tarefa prioritária é continuar o diálogo com o usuário para mapear os perfis restantes do SCI Único.** Você deve aguardar os próximos prints e continuar o processo de mapeamento.
+-   Após o mapeamento, a lógica deve ser implementada no endpoint  em . A estrutura de regras precisa ser robusta para lidar com todas as combinações de perfis.
+-   O script Python gerado pelo robô precisa ser atualizado para usar todos os novos campos de configuração. Atualmente, ele parece não conter uma biblioteca de automação real (como ); isso deve ser adicionado para que o robô funcione como o usuário espera.
+-   O bug de deleção múltipla ainda está pendente e deve ser tratado após a conclusão da funcionalidade do wizard.
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **Usuário:** solicita a inserção de cidade/Estado de nascimento.
-9.  **Usuário:** informa que a geração de contrato para sócio único está com erro.
-8.  **Usuário:** solicita melhorias nos modelos de documentos exportados (remover preâmbulo/testemunhas, ajustar assinaturas e tabela de sócios).
-7.  **Usuário:** informa que o modelo de distrato está errado.
-6.  **Usuário:** envia os arquivos de template corretos para Constituição (1 sócio e 2+ sócios) e Distrato, solicitando que sejam usados como padrão.
-5.  **Usuário:** reporta um bug ao selecionar saída ou redistribuição e pede melhoria na extração de sócios do contrato.
-4.  **Usuário:** reporta bug ao selecionar entrada ou redistribuicao e sugere a funcionalidade de continuar de onde parou.
-3.  **Usuário:** solicita que o QSA permita múltiplas opções (saída+entrada), que o formulário de novo sócio seja igual ao da constituição, e que a minuta final consolide o contrato original.
-2.  **Usuário:** informa que alteraçao qsa está com erro.
-1.  **Usuário:** confirma o plano para investigar o bug inicial (que não foi reproduzido).
+-   O usuário está ativamente engajado, fornecendo capturas de tela para mapear as configurações do sistema SCI Único. A conversa atual é um fluxo de trabalho colaborativo onde o usuário envia um perfil (ex: Comércio Lucro Real - Fiscal), o agente mapeia e confirma, e aguarda o próximo. O usuário acabou de fornecer prints para as abas Fiscal e Folha e o agente confirmou o mapeamento, aguardando o próximo perfil ou as abas restantes.
 
 **Project Health Check:**
--   **Broken:** N/A. Os principais bugs reportados foram abordados, mas a validação final está pendente.
--   **Mocked:** N/A
--   **Tech Debt:** O plugin Babel  está desativado; a automação REDESIM está pausada.
+-   **Broken:** A funcionalidade de deletar múltiplos processos pode estar instável.
+-   **Mocked:** O script Python do robô gerado para o usuário não parece conter uma biblioteca de automação real (como ), apenas a lógica de dados. Ele não irá controlar o mouse e teclado do usuário em seu estado atual sem essa adição.
+-   **Tech Debt:** Os arquivos  e  estão se tornando monolíticos e candidatos à refatoração.
 
 **3rd Party Integrations**
--   **Emergent LLM Key:** Usado para integração com LLMs (Gemini) para extração de dados e geração de texto.
--   **ViaCEP:** API pública para consulta de endereços por CEP.
--   **ReceitaWS:** API pública para consulta de dados de empresas por CNPJ.
+-   **Emergent LLM Key:** Usado para extração de dados por IA.
+-   **GestãoClick (GClick):** Integração via API para cadastro de clientes.
+-   **SCI Único (Desktop App):** O alvo da automação. A integração é indireta, através de um script Python local.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES, no início da sessão para investigar o bug não reproduzível.
--   **Test files created:**  (criado pelo testing agent).
--   **Known regressions:** Nenhuma conhecida, mas a área de QSA no Wizard de Alteração foi recentemente refatorada e requer testes completos.
+-   **Testing agent used after significant changes:** YES (para a página de cadastros, antes do wizard de perfil).
+-   **Test files created:** None.
+-   **Known regressions:** A deleção múltipla de processos.
 
 **Credentials to test flow:**
--   Usuário:  / Senha: . Um novo usuário pode ser criado na página de login.
+-   Usuário:  / Senha: 
 
 **What agent forgot to execute**
--   O agente esqueceu de aplicar as novas adições de campos (, ) ao formulário de sócio do , aplicando-as apenas ao , quebrando a paridade solicitada pelo usuário.</analysis>
+-   O agente não adicionou uma biblioteca de automação de GUI (como  ou ) ao script Python gerado para o robô do SCI Único. O usuário espera que o robô preencha os campos automaticamente, mas o script atual provavelmente só estrutura os dados sem ter a capacidade de interagir com a interface do sistema desktop.</analysis>
