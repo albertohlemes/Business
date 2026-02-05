@@ -287,8 +287,11 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
        - Cards de resumo: Documentos, Crédito ICMS, Débito ICMS, Saldo ICMS
        - Cards de alerta: Vilões Tributários e Oportunidades
        - Abas: Vilões, Oportunidades, Por NCM, Insights IA
+       - **Filtros:** Por NCM (dropdown) e por Produto (busca)
+       - **Colunas ordenáveis:** Clique no cabeçalho para ordenar ASC/DESC
     2. **Endpoint `GET /api/analise-tributaria-ia/{company_id}`** que:
-       - Cruza produtos de entrada e saída para identificar vilões:
+       - Cruza produtos de entrada e saída **por NCM e descrição** (não por código)
+       - Identifica vilões:
          - Alíquota desfavorável: entrada 12% → saída 18% (crédito < débito)
          - ST entrada → tributado saída (sem crédito, com débito)
        - Identifica oportunidades:
@@ -301,7 +304,7 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
          - Recomendações estratégicas
          - Análise de precificação
          - Oportunidades legais
-  - **Arquivos:** `/app/backend/server.py`, `/app/frontend/src/pages/AnaliseTributariaIA.js`, `/app/frontend/src/App.js`, `/app/frontend/src/components/Layout.js`
+  - **Arquivos:** `/app/backend/server.py`, `/app/frontend/src/pages/AnaliseTributariaIA.js`
 
 - ✅ **FEATURE: Validação Pós-Exportação do SPED**
   - **Problema:** O usuário precisava garantir que o arquivo SPED gerado estava correto antes de importar no sistema contábil.
@@ -315,8 +318,12 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
        - Mostra status da validação (OK ou Divergente)
        - Exibe Totais do Sistema vs Totais no SPED Gerado
        - Tabela de comparativo por CFOP com status por linha
-  - **Nota:** Há um refinamento pendente no parse do campo ICMS do C170
   - **Arquivos:** `/app/backend/server.py`, `/app/frontend/src/pages/ExportMenu.js`
+
+- ✅ **BUG FIX: ICMS zerado na validação do SPED**
+  - **Problema:** O parse do C170 estava lendo o campo errado (17 em vez de 15) para o ICMS
+  - **Solução:** Corrigido para ler o campo 15 (VL_ICMS) do registro C170
+  - **Arquivo:** `/app/backend/server.py`
 
 ### 02/2026 - Iteration 38 (05/02/2026)
 - ✅ **FEATURE: Validação de Totalizadores do SPED Fiscal**
