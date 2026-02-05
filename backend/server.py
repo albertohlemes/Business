@@ -330,10 +330,10 @@ class ValidacaoFolhaResponse(BaseModel):
     status: str
     arquivos: Optional[Dict[str, Any]] = None
     funcionarios_analisados: Optional[int] = 0
-    discrepancias: List[Dict[str, Any]] = []
-    divergencias: List[Dict[str, Any]] = []
-    campos_conferidos: List[Dict[str, Any]] = []
-    alertas: List[Dict[str, Any]] = []
+    discrepancias: List[Any] = []
+    divergencias: List[Any] = []
+    campos_conferidos: List[Any] = []
+    alertas: List[Any] = []
     total_verificados: int = 0
     total_erros: int = 0
     total_divergencias: int = 0
