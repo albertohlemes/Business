@@ -1337,6 +1337,7 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
         setCapitalExtenso('');
         setInscricaoEstadual('');
         setInscricaoMunicipal('');
+        setCodigoCliente('');
         setNumSocios(2);
         setSocios([
             { nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)', dataNascimento: '', cidadeNascimento: '', estadoNascimento: '', estadoCivil: '', regimeCasamento: '', profissao: 'Empresário(a)', endereco: { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' }, participacao: '50', administrador: true, documentos: [] },
