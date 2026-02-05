@@ -120,14 +120,79 @@ class ClienteResponse(BaseModel):
     created_at: str
     total_colaboradores: int = 0
 
-# Colaborador Models
+# Colaborador Models - Completo eSocial
 class ColaboradorCreate(BaseModel):
     cliente_id: str
+    # Dados Cadastrais
     nome: str
     cpf: str
+    endereco: Optional[str] = None
+    numero: Optional[str] = None
+    bairro: Optional[str] = None
+    complemento: Optional[str] = None
+    cep: Optional[str] = None
+    cidade: Optional[str] = None
+    uf: Optional[str] = None
+    email: Optional[str] = None
+    celular: Optional[str] = None
+    ddd: Optional[str] = None
+    # Dados Admissionais
+    deficiencia: Optional[bool] = False
+    tipo_deficiencia: Optional[str] = None
+    cidade_nascimento: Optional[str] = None
+    uf_nascimento: Optional[str] = None
     data_nascimento: Optional[str] = None
+    estado_civil: Optional[str] = None
+    grau_instrucao: Optional[str] = None
+    data_admissao: Optional[str] = None
     cargo: Optional[str] = None
+    etnia: Optional[str] = None
+    recebendo_seguro_desemprego: Optional[bool] = False
+    sexo: Optional[str] = None
+    # Documentos
+    rg: Optional[str] = None
+    rg_orgao_emissor: Optional[str] = None
+    rg_data_emissao: Optional[str] = None
+    rg_uf: Optional[str] = None
+    reservista: Optional[str] = None
+    pis: Optional[str] = None
+    ctps: Optional[str] = None
+    ctps_serie: Optional[str] = None
+    ctps_data_emissao: Optional[str] = None
+    ctps_uf: Optional[str] = None
+    titulo_eleitor: Optional[str] = None
+    titulo_zona: Optional[str] = None
+    titulo_secao: Optional[str] = None
+    cnh: Optional[str] = None
+    cnh_uf: Optional[str] = None
+    cnh_categoria: Optional[str] = None
+    cnh_vencimento: Optional[str] = None
+    cnh_emissao: Optional[str] = None
+    cnh_primeira_habilitacao: Optional[str] = None
+    # Dados Adicionais
+    nome_mae: Optional[str] = None
+    nome_pai: Optional[str] = None
+    nome_conjuge: Optional[str] = None
+    # Informações Contratuais
     salario_base: float = 0.0
+    horista: Optional[bool] = False
+    insalubridade_percentual: Optional[float] = None
+    periculosidade_percentual: Optional[float] = None
+    prazo_experiencia: Optional[str] = None
+    quadro_horario: Optional[str] = None
+    vale_transporte: Optional[bool] = False
+    adiantamento_salarial: Optional[bool] = False
+    desconto_sindical: Optional[bool] = False
+    data_exame_admissional: Optional[str] = None
+    # Dados Bancários
+    banco: Optional[str] = None
+    agencia: Optional[str] = None
+    conta: Optional[str] = None
+    # Dependentes (JSON array)
+    dependentes: Optional[List[Dict[str, Any]]] = None
+    # Campos legados
+    departamento: Optional[str] = None
+    telefone: Optional[str] = None
     data_admissao: Optional[str] = None
     departamento: Optional[str] = None
     pis: Optional[str] = None
