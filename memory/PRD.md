@@ -235,6 +235,28 @@ Portal para departamento societário com geração de documentos via IA.
   - Mensagem informativa sobre integração manual (sistema desktop)
 - **Testes:** 100% passaram (backend e frontend) - iteration_7.json
 
+### ✅ Histórico + Extração IA + SINTEGRA (05/02/2026)
+- **Histórico de Cadastros:**
+  - Botão "Ver Histórico" no topo da página (com contador de registros)
+  - Lista todos os cadastros feitos (GClick e SCI Único)
+  - Exibe: Data/hora, Razão Social, CNPJ, Tipo (GClick/SCI), Status de envio
+  - Botão de refresh para atualizar lista
+  - **Endpoints:** `GET/DELETE /api/cadastros/historico`, `GET /api/cadastros/historico/{id}`
+  
+- **Extração de Dados por IA:**
+  - Botão "Preencher com IA" em ambas as abas (GClick e SCI Único)
+  - Aceita: Cartão CNPJ, Certidão Inteiro Teor, Contrato Social, Comprovante de Endereço
+  - IA extrai: Razão Social, CNPJ, Endereço, Sócios, Capital Social, Regime Tributário, etc.
+  - **Endpoint:** `POST /api/cadastros/extrair-dados` (usa Gemini via Emergent LLM Key)
+  
+- **Busca Automática de IE (SINTEGRA):**
+  - Após extração, busca automaticamente a Inscrição Estadual
+  - Se não encontrar, deixa em branco (como solicitado pelo usuário)
+  - **Endpoint:** `GET /api/sintegra/{uf}/{cnpj}`
+  - Nota: SINTEGRA não tem API pública, retorna orientação para consulta manual
+
+- **Testes:** 100% passaram (19/19 backend, UI verificada) - iteration_8.json
+
 ## Status: COMPLETO ✅
 - Constituição ✅
 - Alteração ✅ (reformulado, com busca CNPJ e cláusulas)
