@@ -1584,7 +1584,7 @@ async def validacao_completa(
                         colaboradores_anterior = doc_processor.parse_folha_multiplos_colaboradores(texto_anterior)
                         logger.info(f"Encontrados {len(colaboradores_anterior)} colaborador(es) na folha anterior")
             
-            # 3. Processar arquivos de apoio
+            # 3. Processar arquivos de apoio COM IA
             referencias_apoio = []
             has_apoio = False
             apoio_filenames = []
@@ -1601,9 +1601,9 @@ async def validacao_completa(
                                 temp_files.append(tmp.name)
                                 apoio_filenames.append(apoio.filename)
                                 
-                                logger.info(f"Extraindo referências de {apoio.filename}...")
-                                texto_apoio = doc_processor.extract_text(tmp.name)
-                                refs = doc_processor.parse_apoio_referencias(texto_apoio)
+                                logger.info(f"Extraindo referências de {apoio.filename} com IA...")
+                                # Usar IA para extrair referências do arquivo de apoio
+                                refs = await doc_processor.extrair_referencias_apoio_ia(tmp.name)
                                 for ref in refs:
                                     ref['arquivo'] = apoio.filename
                                 referencias_apoio.extend(refs)
