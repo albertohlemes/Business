@@ -102,11 +102,13 @@ const Colaboradores = () => {
     formDataUpload.append('file', file);
     formDataUpload.append('cliente_id', clienteId);
     formDataUpload.append('tipo_documento', tipoDocumento);
+    formDataUpload.append('use_ai', 'false'); // Usa OCR local primeiro (gratuito e rápido)
 
     setUploading(true);
     try {
       const response = await axios.post(`${API_URL}/api/colaboradores/importar`, formDataUpload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000 // 60 segundos timeout
       });
       
       setImportResult(response.data);
