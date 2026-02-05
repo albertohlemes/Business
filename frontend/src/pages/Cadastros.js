@@ -132,6 +132,7 @@ const Cadastros = () => {
                     cnpj: dados.cnpj || prev.cnpj,
                     inscricaoEstadual: dados.inscricao_estadual || prev.inscricaoEstadual,
                     inscricaoMunicipal: dados.inscricao_municipal || prev.inscricaoMunicipal,
+                    dataFundacao: dados.data_abertura || dados.data_fundacao || prev.dataFundacao,
                     endereco: dados.endereco?.logradouro || prev.endereco,
                     numero: dados.endereco?.numero || prev.numero,
                     complemento: dados.endereco?.complemento || prev.complemento,
@@ -143,13 +144,17 @@ const Cadastros = () => {
                     email: dados.email || prev.email
                 }));
                 
-                // Preencher sócios se houver
+                // Preencher sócios se houver (com data nascimento e endereço)
                 if (dados.socios && dados.socios.length > 0) {
                     setGclickSocios(dados.socios.map(s => ({
                         nome: s.nome || '',
                         cpf: s.cpf || '',
                         participacao: s.participacao || '',
-                        administrador: s.administrador || false
+                        administrador: s.administrador || false,
+                        dataNascimento: s.data_nascimento || '',
+                        naturalidade: s.naturalidade || '',
+                        endereco: s.endereco ? (typeof s.endereco === 'string' ? s.endereco : 
+                            `${s.endereco.logradouro || ''}${s.endereco.numero ? ', ' + s.endereco.numero : ''}${s.endereco.bairro ? ' - ' + s.endereco.bairro : ''}${s.endereco.cidade ? ', ' + s.endereco.cidade : ''}${s.endereco.estado ? '/' + s.endereco.estado : ''}`) : ''
                     })));
                 }
                 
