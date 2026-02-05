@@ -11,6 +11,25 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// Componente de header ordenável (fora do componente principal)
+const SortHeader = ({ label, sortKey, sortConfig, onSort, className = '' }) => (
+  <th 
+    className={`px-2 py-2 text-xs font-semibold text-gray-600 cursor-pointer hover:bg-gray-200 select-none ${className}`}
+    onClick={() => onSort(sortKey)}
+  >
+    <div className="flex items-center gap-1 justify-center">
+      <span>{label}</span>
+      {sortConfig.key === sortKey ? (
+        sortConfig.direction === 'asc' ? 
+          <ChevronUp className="w-3 h-3 text-red-600" /> : 
+          <ChevronDown className="w-3 h-3 text-red-600" />
+      ) : (
+        <ChevronUp className="w-3 h-3 opacity-20" />
+      )}
+    </div>
+  </th>
+);
+
 const AnalisePisCofins = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia } = useAppContext();
   const [dados, setDados] = useState(null);
