@@ -5718,8 +5718,23 @@ async def analise_pis_cofins_completa(
                     'codigo': codigo,
                     'descricao': prod.get('descricao', ''),
                     'ncm': prod.get('ncm', ''),
+                    'cfop': prod.get('cfop', ''),
                     'qtd_ocorrencias': 0,
                     'valor_total': 0,
+                    # CST e Alíquotas (média/moda)
+                    'cst_pis_atual': prod.get('cst_pis_atual', ''),
+                    'cst_pis_correto': prod.get('cst_pis_correto', ''),
+                    'cst_cofins_atual': prod.get('cst_cofins_atual', ''),
+                    'cst_cofins_correto': prod.get('cst_cofins_correto', ''),
+                    'aliq_pis_atual': prod.get('aliq_pis_atual', 0),
+                    'aliq_pis_correto': prod.get('aliq_pis_correto', 0),
+                    'aliq_cofins_atual': prod.get('aliq_cofins_atual', 0),
+                    'aliq_cofins_correto': prod.get('aliq_cofins_correto', 0),
+                    # Valores
+                    'v_pis_atual': 0,
+                    'v_pis_correto': 0,
+                    'v_cofins_atual': 0,
+                    'v_cofins_correto': 0,
                     'impacto_pis': 0,
                     'impacto_cofins': 0,
                     'tipo_divergencia': prod.get('tipo_divergencia', ''),
@@ -5727,6 +5742,10 @@ async def analise_pis_cofins_completa(
                 }
             agrup_produto[codigo]['qtd_ocorrencias'] += 1
             agrup_produto[codigo]['valor_total'] += prod.get('valor_produto', 0)
+            agrup_produto[codigo]['v_pis_atual'] += prod.get('v_pis_atual', 0)
+            agrup_produto[codigo]['v_pis_correto'] += prod.get('v_pis_correto', 0)
+            agrup_produto[codigo]['v_cofins_atual'] += prod.get('v_cofins_atual', 0)
+            agrup_produto[codigo]['v_cofins_correto'] += prod.get('v_cofins_correto', 0)
             agrup_produto[codigo]['impacto_pis'] += prod.get('impacto_pis', 0)
             agrup_produto[codigo]['impacto_cofins'] += prod.get('impacto_cofins', 0)
             
@@ -5735,9 +5754,24 @@ async def analise_pis_cofins_completa(
             if ncm and ncm not in agrup_ncm:
                 agrup_ncm[ncm] = {
                     'ncm': ncm,
+                    'ncm_completo': prod.get('ncm', ''),
                     'produtos': set(),
                     'qtd_ocorrencias': 0,
                     'valor_total': 0,
+                    # CST e Alíquotas
+                    'cst_pis_atual': prod.get('cst_pis_atual', ''),
+                    'cst_pis_correto': prod.get('cst_pis_correto', ''),
+                    'cst_cofins_atual': prod.get('cst_cofins_atual', ''),
+                    'cst_cofins_correto': prod.get('cst_cofins_correto', ''),
+                    'aliq_pis_atual': prod.get('aliq_pis_atual', 0),
+                    'aliq_pis_correto': prod.get('aliq_pis_correto', 0),
+                    'aliq_cofins_atual': prod.get('aliq_cofins_atual', 0),
+                    'aliq_cofins_correto': prod.get('aliq_cofins_correto', 0),
+                    # Valores
+                    'v_pis_atual': 0,
+                    'v_pis_correto': 0,
+                    'v_cofins_atual': 0,
+                    'v_cofins_correto': 0,
                     'impacto_pis': 0,
                     'impacto_cofins': 0,
                     'tipo_divergencia': prod.get('tipo_divergencia', ''),
@@ -5747,12 +5781,20 @@ async def analise_pis_cofins_completa(
                 agrup_ncm[ncm]['produtos'].add(prod.get('descricao', '')[:50])
                 agrup_ncm[ncm]['qtd_ocorrencias'] += 1
                 agrup_ncm[ncm]['valor_total'] += prod.get('valor_produto', 0)
+                agrup_ncm[ncm]['v_pis_atual'] += prod.get('v_pis_atual', 0)
+                agrup_ncm[ncm]['v_pis_correto'] += prod.get('v_pis_correto', 0)
+                agrup_ncm[ncm]['v_cofins_atual'] += prod.get('v_cofins_atual', 0)
+                agrup_ncm[ncm]['v_cofins_correto'] += prod.get('v_cofins_correto', 0)
                 agrup_ncm[ncm]['impacto_pis'] += prod.get('impacto_pis', 0)
                 agrup_ncm[ncm]['impacto_cofins'] += prod.get('impacto_cofins', 0)
     
     # Converter sets para listas e arredondar valores
     for codigo in agrup_produto:
         agrup_produto[codigo]['valor_total'] = round(agrup_produto[codigo]['valor_total'], 2)
+        agrup_produto[codigo]['v_pis_atual'] = round(agrup_produto[codigo]['v_pis_atual'], 2)
+        agrup_produto[codigo]['v_pis_correto'] = round(agrup_produto[codigo]['v_pis_correto'], 2)
+        agrup_produto[codigo]['v_cofins_atual'] = round(agrup_produto[codigo]['v_cofins_atual'], 2)
+        agrup_produto[codigo]['v_cofins_correto'] = round(agrup_produto[codigo]['v_cofins_correto'], 2)
         agrup_produto[codigo]['impacto_pis'] = round(agrup_produto[codigo]['impacto_pis'], 2)
         agrup_produto[codigo]['impacto_cofins'] = round(agrup_produto[codigo]['impacto_cofins'], 2)
         agrup_produto[codigo]['impacto_total'] = round(
@@ -5762,6 +5804,10 @@ async def analise_pis_cofins_completa(
     for ncm in agrup_ncm:
         agrup_ncm[ncm]['produtos'] = list(agrup_ncm[ncm]['produtos'])[:5]  # Max 5 exemplos
         agrup_ncm[ncm]['valor_total'] = round(agrup_ncm[ncm]['valor_total'], 2)
+        agrup_ncm[ncm]['v_pis_atual'] = round(agrup_ncm[ncm]['v_pis_atual'], 2)
+        agrup_ncm[ncm]['v_pis_correto'] = round(agrup_ncm[ncm]['v_pis_correto'], 2)
+        agrup_ncm[ncm]['v_cofins_atual'] = round(agrup_ncm[ncm]['v_cofins_atual'], 2)
+        agrup_ncm[ncm]['v_cofins_correto'] = round(agrup_ncm[ncm]['v_cofins_correto'], 2)
         agrup_ncm[ncm]['impacto_pis'] = round(agrup_ncm[ncm]['impacto_pis'], 2)
         agrup_ncm[ncm]['impacto_cofins'] = round(agrup_ncm[ncm]['impacto_cofins'], 2)
         agrup_ncm[ncm]['impacto_total'] = round(
