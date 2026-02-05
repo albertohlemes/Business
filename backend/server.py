@@ -1617,6 +1617,7 @@ async def validacao_completa(
                             apoio_suffix = Path(apoio.filename).suffix
                             with tempfile.NamedTemporaryFile(delete=False, suffix=apoio_suffix) as tmp:
                                 tmp.write(apoio_content)
+                                tmp.flush()  # Garantir que o conteúdo foi escrito no disco
                                 temp_files.append(tmp.name)
                                 arquivos_info["apoio"].append(apoio.filename)
                                 
