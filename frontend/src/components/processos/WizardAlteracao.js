@@ -1591,7 +1591,11 @@ const WizardAlteracao = ({ open, onClose, onComplete }) => {
     };
 
     const handleClose = () => {
-        resetWizard();
+        // Não resetar automaticamente - manter o rascunho para continuar depois
+        // O rascunho só é limpo quando:
+        // 1. O usuário clica em "Descartar" no banner
+        // 2. A minuta é gerada com sucesso
+        // 3. O usuário clica em "Novo Processo" após finalizar
         onClose();
     };
 
