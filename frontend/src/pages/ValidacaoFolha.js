@@ -412,8 +412,72 @@ const ValidacaoFolha = () => {
                                 </div>
                               )}
                               
-                              {/* Divergências resumidas */}
-                              {(v.divergencias?.length > 0 || v.discrepancias?.length > 0) && (
+                              {/* Tabela de Colaboradores (se existir) */}
+                              {v.colaboradores?.length > 0 && (
+                                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                                  <div className="bg-indigo-50 px-3 py-2 border-b border-slate-200">
+                                    <p className="text-sm font-medium text-indigo-700">Validação por Colaborador</p>
+                                  </div>
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full text-xs">
+                                      <thead className="bg-slate-50">
+                                        <tr>
+                                          <th className="text-left p-2 font-medium">Status</th>
+                                          <th className="text-left p-2 font-medium">Colaborador</th>
+                                          <th className="text-right p-2 font-medium">Líquido</th>
+                                          <th className="text-center p-2 font-medium">Var.</th>
+                                          <th className="text-left p-2 font-medium">Problemas</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-100">
+                                        {v.colaboradores.slice(0, 5).map((colab, idx) => (
+                                          <tr key={idx} className={colab.status === 'divergente' ? 'bg-rose-50/50' : colab.status === 'atencao' ? 'bg-amber-50/50' : ''}>
+                                            <td className="p-2">
+                                              {colab.status === 'ok' && <CheckCircle2 className="text-emerald-500" size={14} />}
+                                              {colab.status === 'atencao' && <AlertTriangle className="text-amber-500" size={14} />}
+                                              {colab.status === 'divergente' && <XCircle className="text-rose-500" size={14} />}
+                                            </td>
+                                            <td className="p-2">
+                                              <span className="font-medium">{colab.nome}</span>
+                                            </td>
+                                            <td className="p-2 text-right font-mono">
+                                              {formatCurrency(colab.dados_atuais?.liquido || 0)}
+                                            </td>
+                                            <td className="p-2 text-center">
+                                              {colab.comparacao_anterior?.encontrado ? (
+                                                colab.comparacao_anterior.campos?.filter(c => c.campo === 'Líquido').map((c, i) => (
+                                                  <span key={i} className={c.percentual > 0 ? 'text-emerald-600' : c.percentual < 0 ? 'text-rose-600' : 'text-slate-500'}>
+                                                    {c.percentual > 0 ? '+' : ''}{c.percentual.toFixed(1)}%
+                                                  </span>
+                                                ))
+                                              ) : colab.comparacao_anterior?.encontrado === false ? (
+                                                <span className="text-blue-500">Novo</span>
+                                              ) : '-'}
+                                            </td>
+                                            <td className="p-2">
+                                              {(colab.divergencias?.length > 0 || colab.divergencias_apoio?.length > 0) ? (
+                                                <span className="text-rose-600">
+                                                  {(colab.divergencias?.length || 0) + (colab.divergencias_apoio?.length || 0)} problema(s)
+                                                </span>
+                                              ) : (
+                                                <span className="text-emerald-600">OK</span>
+                                              )}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                    {v.colaboradores.length > 5 && (
+                                      <div className="px-3 py-2 bg-slate-50 text-xs text-slate-500 text-center">
+                                        ... e mais {v.colaboradores.length - 5} colaborador(es)
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Divergências resumidas (fallback para validações antigas sem colaboradores) */}
+                              {!v.colaboradores?.length && (v.divergencias?.length > 0 || v.discrepancias?.length > 0) && (
                                 <div className="bg-rose-50 rounded-lg p-3">
                                   <p className="text-sm font-medium text-rose-700 mb-2">Divergências encontradas:</p>
                                   <ul className="space-y-1">
