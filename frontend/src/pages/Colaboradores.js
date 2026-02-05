@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -7,7 +7,9 @@ import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Users, Pencil, Trash2, Search, X, Briefcase, Phone, Mail } from 'lucide-react';
+import { Plus, Users, Pencil, Trash2, Search, X, Upload, FileUp, Loader2, CheckCircle2, AlertTriangle, FileText } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
+import { useEmpresa } from '../contexts/EmpresaContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -16,9 +18,16 @@ const Colaboradores = () => {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [editingColaborador, setEditingColaborador] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCliente, setFilterCliente] = useState('all');
+  const [uploading, setUploading] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [tipoDocumento, setTipoDocumento] = useState('auto');
+  const { empresaSelecionada } = useEmpresa();
+
   const [formData, setFormData] = useState({
     cliente_id: '',
     nome: '',
@@ -43,6 +52,14 @@ const Colaboradores = () => {
     fetchData();
   }, [filterCliente]);
 
+  // Auto-select empresa when one is selected in header
+  useEffect(() => {
+    if (empresaSelecionada && !formData.cliente_id) {
+      setFormData(prev => ({ ...prev, cliente_id: empresaSelecionada.id }));
+      setFilterCliente(empresaSelecionada.id);
+    }
+  }, [empresaSelecionada]);
+
   const fetchData = async () => {
     try {
       const [colabRes, clientesRes] = await Promise.all([
@@ -57,6 +74,72 @@ const Colaboradores = () => {
       setLoading(false);
     }
   };
+
+  const onDrop = useCallback(async (acceptedFiles) => {
+    if (acceptedFiles.length === 0) return;
+    
+    const clienteId = formData.cliente_id || empresaSelecionada?.id;
+    if (!clienteId) {
+      toast.error('Selecione uma empresa primeiro');
+      return;
+    }
+
+    const file = acceptedFiles[0];
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', file);
+    formDataUpload.append('cliente_id', clienteId);
+    formDataUpload.append('tipo_documento', tipoDocumento);
+
+    setUploading(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/colaboradores/importar`, formDataUpload, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setImportResult(response.data);
+      
+      // Pre-fill form with extracted data
+      const dados = response.data.dados_extraidos || {};
+      setFormData(prev => ({
+        ...prev,
+        cliente_id: clienteId,
+        nome: dados.nome || '',
+        cpf: dados.cpf || '',
+        rg: dados.rg || '',
+        data_nascimento: dados.data_nascimento || '',
+        cargo: dados.cargo || '',
+        departamento: dados.departamento || '',
+        salario_base: dados.salario_base?.toString() || '',
+        data_admissao: dados.data_admissao || '',
+        pis: dados.pis || '',
+        ctps: dados.ctps || '',
+        endereco: dados.endereco || '',
+        telefone: dados.telefone || '',
+        email: dados.email || '',
+        banco: dados.banco || '',
+        agencia: dados.agencia || '',
+        conta: dados.conta || ''
+      }));
+      
+      setImportDialogOpen(false);
+      setReviewDialogOpen(true);
+      toast.success('Documento processado! Revise os dados extraídos.');
+      
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Erro ao processar documento');
+    } finally {
+      setUploading(false);
+    }
+  }, [formData.cliente_id, empresaSelecionada, tipoDocumento]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'image/*': ['.jpg', '.jpeg', '.png']
+    },
+    maxFiles: 1
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -74,6 +157,7 @@ const Colaboradores = () => {
         toast.success('Colaborador cadastrado com sucesso!');
       }
       setDialogOpen(false);
+      setReviewDialogOpen(false);
       resetForm();
       fetchData();
     } catch (error) {
@@ -118,8 +202,9 @@ const Colaboradores = () => {
 
   const resetForm = () => {
     setEditingColaborador(null);
+    setImportResult(null);
     setFormData({
-      cliente_id: '',
+      cliente_id: empresaSelecionada?.id || '',
       nome: '',
       cpf: '',
       data_nascimento: '',
@@ -170,23 +255,39 @@ const Colaboradores = () => {
           <h1 className="text-2xl font-bold text-slate-900">Colaboradores</h1>
           <p className="text-slate-500 mt-1">Gerencie os funcionários das empresas</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button data-testid="add-colaborador-btn" className="bg-indigo-600 hover:bg-indigo-700" disabled={clientes.length === 0}>
-              <Plus size={18} className="mr-2" />
-              Novo Colaborador
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingColaborador ? 'Editar Colaborador' : 'Novo Colaborador'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="sm:col-span-2">
-                  <Label htmlFor="cliente_id">Empresa *</Label>
-                  <Select value={formData.cliente_id} onValueChange={(value) => setFormData({ ...formData, cliente_id: value })}>
-                    <SelectTrigger data-testid="select-cliente">
+        <div className="flex gap-2">
+          {/* Import Button */}
+          <Dialog open={importDialogOpen} onOpenChange={(open) => { setImportDialogOpen(open); if (!open) { setImportResult(null); setTipoDocumento('auto'); } }}>
+            <DialogTrigger asChild>
+              <Button 
+                data-testid="import-colaborador-btn" 
+                variant="outline" 
+                className="border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                disabled={clientes.length === 0}
+              >
+                <Upload size={18} className="mr-2" />
+                Importar Documento
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <FileText size={24} className="text-indigo-600" />
+                  Importar Colaborador por Documento
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
+                <p className="text-sm text-slate-500">
+                  Faça upload de uma <strong>Ficha de Registro</strong> ou <strong>Holerite</strong> para extrair automaticamente os dados do colaborador.
+                </p>
+
+                <div>
+                  <Label>Empresa</Label>
+                  <Select 
+                    value={formData.cliente_id || empresaSelecionada?.id || ''} 
+                    onValueChange={(value) => setFormData({ ...formData, cliente_id: value })}
+                  >
+                    <SelectTrigger data-testid="select-cliente-import">
                       <SelectValue placeholder="Selecione a empresa" />
                     </SelectTrigger>
                     <SelectContent>
@@ -198,170 +299,450 @@ const Colaboradores = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="sm:col-span-2">
-                  <Label htmlFor="nome">Nome Completo *</Label>
-                  <Input
-                    id="nome"
-                    data-testid="input-nome"
-                    value={formData.nome}
-                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                    required
-                  />
-                </div>
+
                 <div>
-                  <Label htmlFor="cpf">CPF *</Label>
-                  <Input
-                    id="cpf"
-                    data-testid="input-cpf"
-                    value={formData.cpf}
-                    onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                    required
-                  />
+                  <Label>Tipo de Documento</Label>
+                  <Select value={tipoDocumento} onValueChange={setTipoDocumento}>
+                    <SelectTrigger data-testid="select-tipo-doc">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Detectar automaticamente</SelectItem>
+                      <SelectItem value="ficha_registro">Ficha de Registro</SelectItem>
+                      <SelectItem value="holerite">Holerite / Contracheque</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div>
-                  <Label htmlFor="rg">RG</Label>
-                  <Input
-                    id="rg"
-                    data-testid="input-rg"
-                    value={formData.rg}
-                    onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
-                  />
+
+                <div
+                  {...getRootProps()}
+                  data-testid="dropzone-colaborador"
+                  className={`upload-zone ${isDragActive ? 'active' : ''} ${!formData.cliente_id && !empresaSelecionada?.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <input {...getInputProps()} disabled={(!formData.cliente_id && !empresaSelecionada?.id) || uploading} />
+                  {uploading ? (
+                    <div className="flex flex-col items-center">
+                      <Loader2 className="animate-spin text-indigo-600 mb-2" size={32} />
+                      <p className="text-slate-600">Extraindo dados com IA...</p>
+                      <p className="text-xs text-slate-400 mt-1">Analisando documento</p>
+                    </div>
+                  ) : (
+                    <>
+                      <FileUp className="mx-auto text-slate-400 mb-2" size={32} />
+                      <p className="text-slate-600">Arraste o documento ou clique para selecionar</p>
+                      <p className="text-xs text-slate-400 mt-1">PDF, JPG ou PNG (Ficha de Registro ou Holerite)</p>
+                    </>
+                  )}
                 </div>
-                <div>
-                  <Label htmlFor="data_nascimento">Data de Nascimento</Label>
-                  <Input
-                    id="data_nascimento"
-                    data-testid="input-data-nascimento"
-                    type="date"
-                    value={formData.data_nascimento}
-                    onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="data_admissao">Data de Admissão</Label>
-                  <Input
-                    id="data_admissao"
-                    data-testid="input-data-admissao"
-                    type="date"
-                    value={formData.data_admissao}
-                    onChange={(e) => setFormData({ ...formData, data_admissao: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="cargo">Cargo</Label>
-                  <Input
-                    id="cargo"
-                    data-testid="input-cargo"
-                    value={formData.cargo}
-                    onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="departamento">Departamento</Label>
-                  <Input
-                    id="departamento"
-                    data-testid="input-departamento"
-                    value={formData.departamento}
-                    onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="salario_base">Salário Base (R$)</Label>
-                  <Input
-                    id="salario_base"
-                    data-testid="input-salario"
-                    type="number"
-                    step="0.01"
-                    value={formData.salario_base}
-                    onChange={(e) => setFormData({ ...formData, salario_base: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="pis">PIS/PASEP</Label>
-                  <Input
-                    id="pis"
-                    data-testid="input-pis"
-                    value={formData.pis}
-                    onChange={(e) => setFormData({ ...formData, pis: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="ctps">CTPS</Label>
-                  <Input
-                    id="ctps"
-                    data-testid="input-ctps"
-                    value={formData.ctps}
-                    onChange={(e) => setFormData({ ...formData, ctps: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="telefone">Telefone</Label>
-                  <Input
-                    id="telefone"
-                    data-testid="input-telefone"
-                    value={formData.telefone}
-                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    data-testid="input-email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <Label htmlFor="endereco">Endereço</Label>
-                  <Input
-                    id="endereco"
-                    data-testid="input-endereco"
-                    value={formData.endereco}
-                    onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="banco">Banco</Label>
-                  <Input
-                    id="banco"
-                    data-testid="input-banco"
-                    value={formData.banco}
-                    onChange={(e) => setFormData({ ...formData, banco: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="agencia">Agência</Label>
-                  <Input
-                    id="agencia"
-                    data-testid="input-agencia"
-                    value={formData.agencia}
-                    onChange={(e) => setFormData({ ...formData, agencia: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="conta">Conta</Label>
-                  <Input
-                    id="conta"
-                    data-testid="input-conta"
-                    value={formData.conta}
-                    onChange={(e) => setFormData({ ...formData, conta: e.target.value })}
-                  />
-                </div>
+
+                <Card className="border-amber-200 bg-amber-50">
+                  <CardContent className="p-3 text-sm text-amber-800">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Dica:</p>
+                        <p className="text-amber-700">Mesmo com dados incompletos no documento, o sistema extrairá o máximo possível de informações.</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" data-testid="save-colaborador-btn" className="bg-indigo-600 hover:bg-indigo-700">
-                  {editingColaborador ? 'Atualizar' : 'Cadastrar'}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+
+          {/* Manual Add Button */}
+          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button data-testid="add-colaborador-btn" className="bg-indigo-600 hover:bg-indigo-700" disabled={clientes.length === 0}>
+                <Plus size={18} className="mr-2" />
+                Novo Colaborador
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingColaborador ? 'Editar Colaborador' : 'Novo Colaborador'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="cliente_id">Empresa *</Label>
+                    <Select value={formData.cliente_id} onValueChange={(value) => setFormData({ ...formData, cliente_id: value })}>
+                      <SelectTrigger data-testid="select-cliente">
+                        <SelectValue placeholder="Selecione a empresa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clientes.map(c => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome_fantasia || c.razao_social}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="nome">Nome Completo *</Label>
+                    <Input
+                      id="nome"
+                      data-testid="input-nome"
+                      value={formData.nome}
+                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cpf">CPF *</Label>
+                    <Input
+                      id="cpf"
+                      data-testid="input-cpf"
+                      value={formData.cpf}
+                      onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="rg">RG</Label>
+                    <Input
+                      id="rg"
+                      data-testid="input-rg"
+                      value={formData.rg}
+                      onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="data_nascimento">Data de Nascimento</Label>
+                    <Input
+                      id="data_nascimento"
+                      data-testid="input-data-nascimento"
+                      type="date"
+                      value={formData.data_nascimento}
+                      onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="data_admissao">Data de Admissão</Label>
+                    <Input
+                      id="data_admissao"
+                      data-testid="input-data-admissao"
+                      type="date"
+                      value={formData.data_admissao}
+                      onChange={(e) => setFormData({ ...formData, data_admissao: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cargo">Cargo</Label>
+                    <Input
+                      id="cargo"
+                      data-testid="input-cargo"
+                      value={formData.cargo}
+                      onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="departamento">Departamento</Label>
+                    <Input
+                      id="departamento"
+                      data-testid="input-departamento"
+                      value={formData.departamento}
+                      onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="salario_base">Salário Base (R$)</Label>
+                    <Input
+                      id="salario_base"
+                      data-testid="input-salario"
+                      type="number"
+                      step="0.01"
+                      value={formData.salario_base}
+                      onChange={(e) => setFormData({ ...formData, salario_base: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="pis">PIS/PASEP</Label>
+                    <Input
+                      id="pis"
+                      data-testid="input-pis"
+                      value={formData.pis}
+                      onChange={(e) => setFormData({ ...formData, pis: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="ctps">CTPS</Label>
+                    <Input
+                      id="ctps"
+                      data-testid="input-ctps"
+                      value={formData.ctps}
+                      onChange={(e) => setFormData({ ...formData, ctps: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="telefone">Telefone</Label>
+                    <Input
+                      id="telefone"
+                      data-testid="input-telefone"
+                      value={formData.telefone}
+                      onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      data-testid="input-email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="endereco">Endereço</Label>
+                    <Input
+                      id="endereco"
+                      data-testid="input-endereco"
+                      value={formData.endereco}
+                      onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="banco">Banco</Label>
+                    <Input
+                      id="banco"
+                      data-testid="input-banco"
+                      value={formData.banco}
+                      onChange={(e) => setFormData({ ...formData, banco: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="agencia">Agência</Label>
+                    <Input
+                      id="agencia"
+                      data-testid="input-agencia"
+                      value={formData.agencia}
+                      onChange={(e) => setFormData({ ...formData, agencia: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="conta">Conta</Label>
+                    <Input
+                      id="conta"
+                      data-testid="input-conta"
+                      value={formData.conta}
+                      onChange={(e) => setFormData({ ...formData, conta: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" data-testid="save-colaborador-btn" className="bg-indigo-600 hover:bg-indigo-700">
+                    {editingColaborador ? 'Atualizar' : 'Cadastrar'}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
+
+      {/* Review Dialog - After Import */}
+      <Dialog open={reviewDialogOpen} onOpenChange={(open) => { setReviewDialogOpen(open); if (!open) resetForm(); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="text-emerald-600" size={24} />
+              Revisar Dados Extraídos
+            </DialogTitle>
+          </DialogHeader>
+          
+          {importResult && (
+            <div className="space-y-4 mt-4">
+              {/* Extraction Info */}
+              <Card className={`border-2 ${importResult.confianca === 'alta' ? 'border-emerald-200 bg-emerald-50' : importResult.confianca === 'media' ? 'border-amber-200 bg-amber-50' : 'border-rose-200 bg-rose-50'}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">
+                        Tipo de Documento: <span className="text-indigo-600">{importResult.tipo_documento === 'ficha_registro' ? 'Ficha de Registro' : importResult.tipo_documento === 'holerite' ? 'Holerite' : importResult.tipo_documento}</span>
+                      </p>
+                      <p className="text-sm text-slate-500">
+                        Confiança da extração: <span className={`font-medium ${importResult.confianca === 'alta' ? 'text-emerald-600' : importResult.confianca === 'media' ? 'text-amber-600' : 'text-rose-600'}`}>{importResult.confianca}</span>
+                      </p>
+                    </div>
+                    {importResult.confianca === 'alta' ? (
+                      <CheckCircle2 className="text-emerald-600" size={24} />
+                    ) : (
+                      <AlertTriangle className={importResult.confianca === 'media' ? 'text-amber-600' : 'text-rose-600'} size={24} />
+                    )}
+                  </div>
+                  {importResult.campos_extraidos?.length > 0 && (
+                    <p className="text-xs text-slate-500 mt-2">
+                      Campos extraídos: {importResult.campos_extraidos.join(', ')}
+                    </p>
+                  )}
+                  {importResult.observacoes && (
+                    <p className="text-xs text-slate-400 mt-1 italic">{importResult.observacoes}</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Form to review and edit */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <Label>Empresa *</Label>
+                    <Select value={formData.cliente_id} onValueChange={(value) => setFormData({ ...formData, cliente_id: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a empresa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clientes.map(c => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome_fantasia || c.razao_social}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>Nome Completo *</Label>
+                    <Input
+                      data-testid="review-nome"
+                      value={formData.nome}
+                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                      required
+                      className={!formData.nome ? 'border-amber-300 bg-amber-50' : ''}
+                    />
+                  </div>
+                  <div>
+                    <Label>CPF *</Label>
+                    <Input
+                      data-testid="review-cpf"
+                      value={formData.cpf}
+                      onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                      required
+                      className={!formData.cpf ? 'border-amber-300 bg-amber-50' : ''}
+                    />
+                  </div>
+                  <div>
+                    <Label>RG</Label>
+                    <Input
+                      value={formData.rg}
+                      onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Data de Nascimento</Label>
+                    <Input
+                      value={formData.data_nascimento}
+                      onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
+                      placeholder="DD/MM/AAAA"
+                    />
+                  </div>
+                  <div>
+                    <Label>Data de Admissão</Label>
+                    <Input
+                      value={formData.data_admissao}
+                      onChange={(e) => setFormData({ ...formData, data_admissao: e.target.value })}
+                      placeholder="DD/MM/AAAA"
+                    />
+                  </div>
+                  <div>
+                    <Label>Cargo</Label>
+                    <Input
+                      value={formData.cargo}
+                      onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Departamento</Label>
+                    <Input
+                      value={formData.departamento}
+                      onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Salário Base (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.salario_base}
+                      onChange={(e) => setFormData({ ...formData, salario_base: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>PIS/PASEP</Label>
+                    <Input
+                      value={formData.pis}
+                      onChange={(e) => setFormData({ ...formData, pis: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>CTPS</Label>
+                    <Input
+                      value={formData.ctps}
+                      onChange={(e) => setFormData({ ...formData, ctps: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Telefone</Label>
+                    <Input
+                      value={formData.telefone}
+                      onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>Endereço</Label>
+                    <Input
+                      value={formData.endereco}
+                      onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Banco</Label>
+                    <Input
+                      value={formData.banco}
+                      onChange={(e) => setFormData({ ...formData, banco: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Agência</Label>
+                    <Input
+                      value={formData.agencia}
+                      onChange={(e) => setFormData({ ...formData, agencia: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Conta</Label>
+                    <Input
+                      value={formData.conta}
+                      onChange={(e) => setFormData({ ...formData, conta: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                  <Button type="button" variant="outline" onClick={() => setReviewDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" data-testid="confirm-import-btn" className="bg-emerald-600 hover:bg-emerald-700">
+                    <CheckCircle2 size={16} className="mr-2" />
+                    Confirmar e Cadastrar
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
@@ -470,7 +851,7 @@ const Colaboradores = () => {
               {searchTerm || filterCliente !== 'all' ? 'Nenhum colaborador encontrado' : 'Nenhum colaborador cadastrado'}
             </p>
             <p className="text-sm text-slate-400 mt-1">
-              {clientes.length === 0 ? 'Cadastre um cliente primeiro' : 'Clique em "Novo Colaborador" para começar'}
+              {clientes.length === 0 ? 'Cadastre uma empresa primeiro' : 'Importe um documento ou cadastre manualmente'}
             </p>
           </CardContent>
         </Card>
