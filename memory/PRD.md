@@ -280,6 +280,12 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 ## Changelog
 
 ### 02/2026 - Iteration 37 (06/02/2026)
+- ✅ **BUG FIX CRÍTICO: Inconsistência de dados entre "Documentos" e "Validação"**
+  - **Problema:** Produtos diferentes de fornecedores diferentes com mesmo código interno (ex: código 4) eram agrupados incorretamente. Um produto "TONER" era sobrescrito por "OLEO DIESEL" na visualização agrupada.
+  - **Causa raiz:** A chave de agrupamento usava apenas `prod.codigo`, que não é único entre diferentes fornecedores/XMLs.
+  - **Solução:** Alterada a chave de agrupamento em `ClassificacaoPage.js` para incluir `codigo + ncm + descricao` (primeiros 30 chars), tornando a identificação única.
+  - **Resultado:** Busca por "TONER" agora retorna corretamente 4 produtos (R$ 7.515,00).
+
 - ✅ **REFATORAÇÃO DO BACKEND - FASE 1**
   - Criada estrutura modular: `models/`, `routers/`, `services/`, `utils/`
   - `models/schemas.py`: Todos os modelos Pydantic movidos
