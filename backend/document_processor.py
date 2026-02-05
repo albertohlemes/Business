@@ -201,36 +201,118 @@ class DocumentProcessor:
             'liquido': 0
         }
         
-        # Extrai nome do funcionário
+        # Extrai nome do funcionário (limita a 50 chars e remove quebras de linha)
         nome_match = re.search(r'(?:Funcionário|Nome|FUNCIONÁRIO|NOME)[:\s]*([A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ\s]+)', text)
         if nome_match:
-            dados['funcionario'] = nome_match.group(1).strip()
+            nome = nome_match.group(1).strip().split('\n')[0].strip()
+            dados['funcionario'] = nome[:50]
         
-        # Extrai competência (MM/AAAA)
-        comp_match = re.search(r'(?:Competência|Referência|MÊS)[:\s]*(\d{2}/\d{4})', text)
+        # Extrai competência (MM/AAAA ou MM/AA)
+        comp_match = re.search(r'(?:Competência|Referência|MÊS|Competencia)[:\s]*(\d{2}/\d{2,4})', text, re.IGNORECASE)
         if comp_match:
             dados['competencia'] = comp_match.group(1)
         
-        # Extrai valores monetários
-        valores = re.findall(r'([A-Za-záéíóúâêôãõç\s.]+?)\s+([\d.,]+)\s*$', text, re.MULTILINE)
+        def parse_valor(valor_str: str) -> float:
+            """Converte string de valor para float, detectando formato BR ou US"""
+            valor_str = valor_str.strip()
+            
+            # Se tem vírgula E ponto, é formato brasileiro (1.234,56)
+            if ',' in valor_str and '.' in valor_str:
+                return float(valor_str.replace('.', '').replace(',', '.'))
+            
+            # Se só tem vírgula, verifica se é decimal ou milhar
+            if ',' in valor_str:
+                partes = valor_str.split(',')
+                if len(partes) == 2 and len(partes[1]) <= 2:
+                    # Formato brasileiro: 1234,56
+                    return float(valor_str.replace(',', '.'))
+                else:
+                    # Vírgula como separador de milhar: 1,234
+                    return float(valor_str.replace(',', ''))
+            
+            # Se só tem ponto, verifica se é decimal ou milhar
+            if '.' in valor_str:
+                partes = valor_str.split('.')
+                if len(partes) == 2 and len(partes[1]) <= 2:
+                    # Formato americano com 2 casas: 1234.56
+                    return float(valor_str)
+                elif len(partes) > 2:
+                    # Múltiplos pontos = separador de milhar BR: 1.234.567
+                    return float(valor_str.replace('.', ''))
+                else:
+                    # Um ponto com mais de 2 casas = milhar: 1.234 (mil)
+                    if len(partes[1]) == 3:
+                        return float(valor_str.replace('.', ''))
+                    return float(valor_str)
+            
+            # Sem separadores
+            return float(valor_str)
+        
+        # Extrai valores monetários - padrões mais específicos
+        # Padrão 1: "Descrição    valor" (espaços entre texto e número)
+        valores = re.findall(r'([A-Za-záéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ\s%\d]+?)\s{2,}([\d.,]+)\s*$', text, re.MULTILINE)
+        
+        # Padrão 2: "R$ valor" ou "RS valor"  
+        valores_rs = re.findall(r'(?:R\$|RS)\s*([\d.,]+)', text, re.IGNORECASE)
+        
+        # Palavras-chave para descontos
+        palavras_desconto = ['INSS', 'IRRF', 'IR ', 'DESC', 'FALTA', 'ATRASO', 'VT', 'PENSÃO', 'VALE TRANSPORTE', 
+                           'CONTRIBUIÇÃO', 'EMPRÉSTIMO', 'ADIANTAMENTO', 'DESCONTO', 'TOTAL DESC']
+        
+        # Palavras-chave para totais (não incluir como itens individuais)
+        palavras_total = ['TOTAL PROVENTOS', 'TOTAL DESCONTOS', 'LÍQUIDO', 'LIQUIDO', 'TOTAL PROV', 
+                         'A RECEBER', 'VALOR LIQUIDO']
+        
+        proventos_adicionados = set()
+        descontos_adicionados = set()
         
         for desc, valor in valores:
             try:
-                v = float(valor.replace('.', '').replace(',', '.'))
-                if v > 0:
-                    item = {'descricao': desc.strip(), 'valor': v}
-                    # Classifica como provento ou desconto baseado em palavras-chave
-                    if any(x in desc.upper() for x in ['INSS', 'IRRF', 'IR', 'DESC', 'FALTA', 'ATRASO', 'VT', 'PENSÃO']):
+                desc_upper = desc.upper().strip()
+                v = parse_valor(valor)
+                
+                # Ignorar valores muito baixos ou muito altos (provavelmente erros)
+                if v <= 0.01 or v > 100000:
+                    continue
+                
+                # Verificar se é um total - extrair mas não adicionar às listas
+                is_total = any(t in desc_upper for t in palavras_total)
+                
+                if 'TOTAL PROVENTOS' in desc_upper or 'TOTAL PROV' in desc_upper:
+                    dados['total_proventos'] = v
+                    continue
+                elif 'TOTAL DESCONTOS' in desc_upper or 'TOTAL DESC' in desc_upper:
+                    dados['total_descontos'] = v
+                    continue
+                elif 'LÍQUIDO' in desc_upper or 'LIQUIDO' in desc_upper or 'A RECEBER' in desc_upper:
+                    dados['liquido'] = v
+                    continue
+                
+                if is_total:
+                    continue
+                
+                item = {'descricao': desc.strip(), 'valor': v}
+                
+                # Classifica como provento ou desconto
+                if any(x in desc_upper for x in palavras_desconto):
+                    if valor not in descontos_adicionados:
                         dados['descontos'].append(item)
-                    else:
+                        descontos_adicionados.add(valor)
+                else:
+                    if valor not in proventos_adicionados:
                         dados['proventos'].append(item)
-            except:
+                        proventos_adicionados.add(valor)
+            except Exception as e:
+                logger.debug(f"Erro ao parsear valor '{valor}': {e}")
                 pass
         
-        # Calcula totais
-        dados['total_proventos'] = sum(p['valor'] for p in dados['proventos'])
-        dados['total_descontos'] = sum(d['valor'] for d in dados['descontos'])
-        dados['liquido'] = dados['total_proventos'] - dados['total_descontos']
+        # Se não extraiu totais específicos, calcula
+        if dados['total_proventos'] == 0 and dados['proventos']:
+            dados['total_proventos'] = round(sum(p['valor'] for p in dados['proventos']), 2)
+        if dados['total_descontos'] == 0 and dados['descontos']:
+            dados['total_descontos'] = round(sum(d['valor'] for d in dados['descontos']), 2)
+        if dados['liquido'] == 0 and (dados['total_proventos'] or dados['total_descontos']):
+            dados['liquido'] = round(dados['total_proventos'] - dados['total_descontos'], 2)
         
         return dados
 
