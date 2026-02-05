@@ -349,6 +349,8 @@ class DocumentProcessor:
         
         def parse_valor(valor_str: str) -> float:
             """Converte string de valor brasileiro para float"""
+            if not valor_str:
+                return 0.0
             valor_str = valor_str.strip().replace(' ', '')
             if not valor_str or valor_str == '-':
                 return 0.0
@@ -361,31 +363,26 @@ class DocumentProcessor:
                 return 0.0
         
         # ===== FORMATO SCI ÚNICO =====
-        # Padrão: "Código Nome do Colaborador" seguido de "XXXXXX NOME COMPLETO"
-        # Cada colaborador tem uma seção com seus proventos e descontos
+        # Separar por "Nome do Colaborador" ou "RECIBO DE PAGAMENTO"
+        # Cada colaborador aparece 2 vezes (duplicado)
         
-        # Dividir por "Código Nome do Colaborador" - marca início de cada funcionário
-        pattern_sci = r'C[oó]digo\s+Nome\s+do\s+Colaborador'
-        parts = re.split(pattern_sci, text, flags=re.IGNORECASE)
+        # Padrão para encontrar blocos de colaborador
+        # Formato: "Nome do Colaborador\nNOME_AQUI" ou "Código\n000XXX"
         
-        # Se não encontrou padrão SCI, tentar padrão genérico por CPF
-        if len(parts) <= 1:
-            cpf_pattern = r'\b(\d{3})[.\s]?(\d{3})[.\s]?(\d{3})[-.\s]?(\d{2})\b'
-            cpf_matches = list(re.finditer(cpf_pattern, text))
-            
-            if len(cpf_matches) > 1:
-                parts = []
-                for i, match in enumerate(cpf_matches):
-                    start = max(0, match.start() - 300)
-                    end = cpf_matches[i + 1].start() if i + 1 < len(cpf_matches) else len(text)
-                    parts.append(text[start:end])
+        # Dividir por padrão de início de recibo
+        partes = re.split(r'RECIBO DE PAGAMENTO DE SALÁRIO', text, flags=re.IGNORECASE)
         
-        # Processar cada parte/colaborador
-        for part in parts:
-            if len(part.strip()) < 50:  # Muito curto, provavelmente não é um colaborador
+        # Se não dividiu, tentar por "Nome do Colaborador"
+        if len(partes) <= 1:
+            partes = re.split(r'Nome do Colaborador\n', text, flags=re.IGNORECASE)
+        
+        logger.info(f"Encontradas {len(partes)} partes no documento")
+        
+        for parte in partes:
+            if len(parte.strip()) < 100:  # Muito curto
                 continue
             
-            colab = self._extract_colaborador_sci(part, parse_valor)
+            colab = self._extract_colaborador_sci_v2(parte, parse_valor)
             if colab and colab.get('nome'):
                 colaboradores.append(colab)
         
@@ -393,12 +390,13 @@ class DocumentProcessor:
         seen = set()
         unique = []
         for c in colaboradores:
-            key = c.get('cpf') or c.get('nome', '').upper().strip()
+            # Usar CPF ou matrícula como chave
+            key = c.get('cpf') or c.get('matricula') or c.get('nome', '').upper().strip()
             if key and key not in seen:
                 seen.add(key)
                 unique.append(c)
         
-        logger.info(f"Extraídos {len(unique)} colaboradores únicos do documento")
+        logger.info(f"Extraídos {len(unique)} colaboradores únicos")
         return unique if unique else [self.parse_holerite_from_text(text)]
     
     def _extract_colaborador_sci(self, block: str, parse_valor) -> Dict[str, Any]:
