@@ -4960,7 +4960,8 @@ async def apuracao_periodo(
                         'v_cofins': 0,
                         'qtd_itens': 0,
                         'is_st': is_st,  # Marcar como ST
-                        'sem_credito_icms': is_st  # Não dá crédito
+                        'is_despesa': is_despesa,  # Marcar como Despesa
+                        'sem_credito_icms': sem_credito  # Não dá crédito (ST ou Despesa)
                     }
                 cfop_entradas[cfop_key]['valor'] += valor
                 cfop_entradas[cfop_key]['bc_icms'] += bc_icms
