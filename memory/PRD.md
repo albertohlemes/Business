@@ -89,33 +89,32 @@ Portal para departamento societário com geração de documentos via IA.
 
 ## Testes Realizados (05/02/2026)
 
-### ✅ Melhorias nos Documentos Exportados (05/02/2026)
+### ✅ Modelos de Documentos Padronizados (05/02/2026)
 
-**Alterações aplicadas em TODOS os modelos (Constituição, Alteração, Baixa):**
+**Baseados nos modelos fornecidos pelo usuário:**
 
-1. **Assinaturas Completas:**
-   - Sócios que PERMANECEM
-   - Sócios RETIRANTES (que estão saindo)
-   - Novos sócios ENTRANTES (que estão entrando)
-   - Formato padronizado: linha + nome + CPF
+**CONSTITUIÇÃO (2+ sócios):**
+- Título: "ATO CONSTITUTIVO DE SOCIEDADE EMPRESÁRIA LIMITADA"
+- 13 cláusulas padrão: Denominação, Sede, Objeto, Duração, Capital, Administração, Pró-Labore, Desimpedimento, Filiais, Exercício Social, Resolução de Quotas, Dissolução, Foro
+- Adaptação automática para singular/plural conforme número de sócios
+- Sem testemunhas
 
-2. **Removido "PREÂMBULO":**
-   - Título não aparece mais nos documentos
-   - Conteúdo mantido (identificação do instrumento)
+**CONSTITUIÇÃO (1 sócio - Unipessoal):**
+- Mesma estrutura adaptada para sócio único
+- Linguagem no singular
+- "Sociedade Empresária Limitada Unipessoal"
 
-3. **Removidas TESTEMUNHAS:**
-   - Sem espaço para testemunhas em nenhum documento
+**DISTRATO:**
+- Título: "DISTRATO SOCIAL" + Nome da empresa centralizado
+- Qualificação completa dos sócios no início
+- 7 cláusulas: Dissolução, Cessação, Acervo Contábil, Passivo Social, Patrimônio Remanescente, Responsabilidade, Guarda de Documentos
+- Assinatura de todos os sócios (linha + nome + CPF)
+- Sem testemunhas
 
-4. **Quadro de Quotas Reformatado:**
-   - Formato mais claro e legível
-   - Nome do sócio em maiúsculas
-   - Quantidade de quotas com extenso
-   - Percentual com extenso
-   - Valor em reais
-
-### Arquivos Alterados
-- `/app/backend/server.py` (prompts de Constituição e Baixa)
-- `/app/frontend/src/components/processos/WizardAlteracao.js` (prompt de Alteração)
+**ALTERAÇÃO:**
+- Assinaturas: Sócios permanentes + Retirantes + Entrantes
+- Sem título "PREÂMBULO"
+- Consolidação mantendo cláusulas originais
 
 ### Taxa de Sucesso dos Testes
 - Backend: 100% (10/10 testes)
