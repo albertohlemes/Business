@@ -1732,65 +1732,95 @@ async def validacao_completa(
                             'mensagem': 'Colaborador não encontrado na folha anterior (pode ser admissão)'
                         }
                 
-                # 5b. Cruzar com arquivos de apoio
+                # 5b. Cruzar com arquivos de apoio (usando dados extraídos por IA)
                 if has_apoio and referencias_apoio:
                     nome_upper = nome.upper().strip()
-                    nome_parts = nome_upper.split()
+                    nome_parts = [p for p in nome_upper.split() if len(p) > 2]  # Partes do nome com mais de 2 chars
+                    primeiro_nome = nome_parts[0] if nome_parts else ''
                     
                     for ref in referencias_apoio:
-                        ref_id = ref.get('identificador', '').upper().strip()
+                        # IA retorna 'nome' do colaborador
+                        ref_nome = ref.get('nome', '').upper().strip()
+                        ref_nome_parts = [p for p in ref_nome.split() if len(p) > 2]
                         
                         # Verificar se referência é para este colaborador
                         match = False
-                        if ref_id == nome_upper:
+                        
+                        # Match exato
+                        if ref_nome == nome_upper:
                             match = True
-                        elif ref_id in nome_upper or nome_upper in ref_id:
+                        # Match parcial (nome contido)
+                        elif ref_nome and (ref_nome in nome_upper or nome_upper in ref_nome):
                             match = True
-                        elif nome_parts and ref_id in nome_parts:
-                            match = True
-                        elif ref_id == colab.get('matricula', ''):
-                            match = True
+                        # Match por primeiro nome
+                        elif primeiro_nome and ref_nome_parts:
+                            if primeiro_nome == ref_nome_parts[0] or primeiro_nome in ref_nome:
+                                match = True
+                        # Match por qualquer parte do nome
+                        elif nome_parts and ref_nome:
+                            for parte in nome_parts:
+                                if parte in ref_nome or ref_nome in parte:
+                                    match = True
+                                    break
                         
                         if match:
-                            tipo_ref = ref.get('tipo', '')
+                            campo_ref = ref.get('campo', '')  # Ex: vale_compras, horas_extras
                             valor_apoio = ref.get('valor', 0)
                             
-                            # Mapear tipo para campo do holerite
-                            campo_holerite = {
-                                'horas_extras': 'horas_extras',
-                                'vale_transporte': 'vale_transporte',
-                                'vale_refeicao': 'vale_refeicao',
-                                'vale_alimentacao': 'vale_alimentacao',
-                                'faltas': 'faltas',
-                                'atrasos': 'atrasos',
-                                'comissao': 'comissao',
-                                'bonificacao': 'bonificacao'
-                            }.get(tipo_ref, tipo_ref)
+                            # Mapear campo do apoio para campo do holerite
+                            campo_map = {
+                                'horas_extras': ['horas_extras', 'horas_extras_50', 'horas_extras_100'],
+                                'vale_compras': ['vale_compras'],
+                                'vale_transporte': ['vale_transporte'],
+                                'vale_refeicao': ['vale_refeicao'],
+                                'vale_alimentacao': ['vale_alimentacao'],
+                                'faltas': ['faltas'],
+                                'atrasos': ['atrasos'],
+                                'comissao': ['comissao'],
+                                'quebra_caixa': ['quebra_caixa'],
+                                'adicional_noturno': ['adicional_noturno'],
+                            }
                             
-                            valor_holerite = colab.get(campo_holerite, 0)
+                            campos_holerite = campo_map.get(campo_ref, [campo_ref])
                             
-                            # Se for horas extras, também checar os campos específicos
-                            if tipo_ref == 'horas_extras' and valor_holerite == 0:
-                                valor_holerite = colab.get('horas_extras_50', 0) + colab.get('horas_extras_100', 0)
+                            # Buscar valor no holerite
+                            valor_holerite = 0
+                            for campo_h in campos_holerite:
+                                v = colab.get(campo_h, 0)
+                                if v:
+                                    valor_holerite = v
+                                    break
                             
-                            diff = valor_holerite - valor_apoio
+                            # Também buscar na lista de proventos/descontos
+                            if valor_holerite == 0:
+                                for p in colab.get('proventos', []):
+                                    if campo_ref.replace('_', ' ') in p.get('descricao', '').lower():
+                                        valor_holerite = p.get('valor', 0)
+                                        break
                             
-                            if abs(diff) > 0.01:
+                            diff = abs(valor_holerite - valor_apoio)
+                            
+                            # Formatar nome do campo para exibição
+                            campo_display = campo_ref.replace('_', ' ').title()
+                            
+                            if diff > 0.50:  # Tolerância de R$ 0,50
                                 colab_resultado['status'] = 'divergente'
                                 colab_resultado['divergencias_apoio'].append({
-                                    'campo': tipo_ref.replace('_', ' ').title(),
+                                    'campo': campo_display,
                                     'valor_apoio': valor_apoio,
                                     'valor_holerite': valor_holerite,
                                     'diferenca': round(diff, 2),
                                     'arquivo': ref.get('arquivo', ''),
-                                    'severidade': 'alta' if abs(diff) > 100 else 'media'
+                                    'severidade': 'alta' if diff > 100 else 'media',
+                                    'texto_original': ref.get('texto_original', '')
                                 })
                                 total_divergencias += 1
                             else:
                                 colab_resultado['conferidos'].append({
-                                    'campo': tipo_ref.replace('_', ' ').title(),
+                                    'campo': campo_display,
                                     'valor': valor_apoio,
-                                    'fonte': ref.get('arquivo', '')
+                                    'fonte': ref.get('arquivo', ''),
+                                    'status': 'ok'
                                 })
                                 total_conferidos += 1
                 
