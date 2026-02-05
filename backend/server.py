@@ -1139,7 +1139,7 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             emit_cnpj,                                      # COD_PART
             modelo,                                         # COD_MOD
             cod_sit,                                        # COD_SIT
-            doc.serie or '1',                               # SER
+            serie,                                          # SER
             doc.numero_nfe or '',                           # NUM_DOC
             doc.chave_nfe or '',                            # CHV_NFE
             data_emissao,                                   # DT_DOC
