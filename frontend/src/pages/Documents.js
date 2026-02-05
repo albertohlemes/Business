@@ -30,17 +30,6 @@ const Documents = ({ user, onLogout }) => {
     fetchData();
   }, [ctxCompany]);
 
-  // Fechar menu de reprocessamento ao clicar fora
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (reprocessMenuRef.current && !reprocessMenuRef.current.contains(event.target)) {
-        setShowReprocessMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -74,46 +63,6 @@ const Documents = ({ user, onLogout }) => {
       console.error('Erro ao carregar detalhes:', err);
     } finally {
       setLoadingDetail(false);
-    }
-  };
-
-  const handleReprocessBatch = async (classificar = false) => {
-    if (!ctxCompany || !selectedCompetencia) {
-      alert('Selecione uma empresa e competência');
-      return;
-    }
-    
-    const acao = classificar 
-      ? `Re-processar e CLASSIFICAR todos os XMLs da competência ${selectedCompetencia}?\n\n⚠️ Isso irá:\n• Extrair campos de ICMS-ST, endereços, etc.\n• Aplicar classificação da IA (memória aprendida)\n• Preservar classificações já feitas manualmente`
-      : `Re-processar todos os XMLs da competência ${selectedCompetencia}?\n\nIsso irá extrair novamente os campos de ICMS-ST, endereços e outros dados dos XMLs originais.`;
-    
-    if (!window.confirm(acao)) {
-      return;
-    }
-    
-    setReprocessing(true);
-    try {
-      const token = localStorage.getItem('token');
-      const url = `${API}/xml/reprocess-batch?company_id=${ctxCompany.id}&competencia=${encodeURIComponent(selectedCompetencia)}${classificar ? '&classificar=true' : ''}`;
-      const res = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
-      
-      if (res.data.success !== false) {
-        let msg = `Re-processamento concluído!\n\n✅ Total: ${res.data.total}\n✅ Sucesso: ${res.data.success}\n📦 Com ICMS-ST: ${res.data.with_st}`;
-        if (classificar) {
-          msg += `\n🤖 Classificações preservadas: ${res.data.classificacoes_preservadas || 0}`;
-          msg += `\n✨ Classificações novas (IA): ${res.data.classificacoes_novas || 0}`;
-        }
-        msg += `\n❌ Erros: ${res.data.errors}`;
-        alert(msg);
-        fetchData();
-      } else {
-        alert('Erro: ' + res.data.error);
-      }
-    } catch (err) {
-      console.error('Erro ao re-processar:', err);
-      alert(err.response?.data?.detail || 'Erro ao re-processar documentos');
-    } finally {
-      setReprocessing(false);
     }
   };
 
