@@ -247,6 +247,7 @@ const Processos = () => {
                         loading={loading}
                         tipoProcesso="constituicao"
                         onRefresh={fetchData}
+                        onEdit={handleEditProcesso}
                         emptyMessage="Nenhuma constituição criada"
                         emptyDescription="Clique em 'Nova Constituição' para criar um contrato social"
                     />
@@ -259,6 +260,7 @@ const Processos = () => {
                         loading={loading}
                         tipoProcesso="alteracao"
                         onRefresh={fetchData}
+                        onEdit={handleEditProcesso}
                         emptyMessage="Nenhuma alteração contratual criada"
                         emptyDescription="Clique em 'Nova Alteração' para criar um processo de alteração contratual"
                     />
@@ -271,6 +273,7 @@ const Processos = () => {
                         loading={loading}
                         tipoProcesso="baixa"
                         onRefresh={fetchData}
+                        onEdit={handleEditProcesso}
                         emptyMessage="Nenhuma baixa de empresa criada"
                         emptyDescription="Clique em 'Nova Baixa' para gerar um distrato social"
                     />
