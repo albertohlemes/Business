@@ -285,8 +285,8 @@ class TestSintegra:
     
     def test_sintegra_valid_cnpj(self):
         """Test SINTEGRA with valid CNPJ format"""
-        # Using a formatted CNPJ
-        response = self.session.get(f"{BASE_URL}/api/sintegra/SP/12.345.678/0001-90")
+        # Using unformatted CNPJ (14 digits only - no special chars to avoid URL issues)
+        response = self.session.get(f"{BASE_URL}/api/sintegra/SP/12345678000190")
         
         assert response.status_code == 200, f"Expected 200, got {response.status_code}"
         data = response.json()
