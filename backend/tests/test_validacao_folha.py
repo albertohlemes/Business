@@ -110,8 +110,8 @@ class TestValidacaoEndpoints:
             files={"holerite_atual": ("test.pdf", test_file, "application/pdf")},
             data={"mes_referencia": "01", "ano_referencia": 2025}
         )
-        # Should fail with 400 because cliente_id is required
-        assert response.status_code == 400, f"Expected 400, got {response.status_code}: {response.text}"
+        # Should fail with 422 (validation error) because cliente_id is required
+        assert response.status_code == 422, f"Expected 422, got {response.status_code}: {response.text}"
         assert "cliente_id" in response.text.lower()
         print("✓ validar-completa correctly requires cliente_id")
     
