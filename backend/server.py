@@ -2033,14 +2033,18 @@ async def gerar_contrato_constituicao(
         socios_qualificacao = ""
         for socio in socios:
             qualif = f"{socio.nome.upper()}, nacionalidade: {socio.nacionalidade or 'brasileira'}"
+            # Naturalidade (cidade/estado de nascimento)
+            if socio.cidade_nascimento and socio.estado_nascimento:
+                qualif += f", natural de {socio.cidade_nascimento}/{socio.estado_nascimento}"
+            elif socio.cidade_nascimento:
+                qualif += f", natural de {socio.cidade_nascimento}"
             if socio.estado_civil:
                 qualif += f", {socio.estado_civil.lower()}"
                 if socio.regime_casamento and 'casado' in socio.estado_civil.lower():
                     qualif += f" sob o Regime de {socio.regime_casamento}"
-            # data_nascimento é opcional e pode não existir no modelo
-            data_nasc = getattr(socio, 'data_nascimento', None)
-            if data_nasc:
-                qualif += f", nascido em: {data_nasc}"
+            # data_nascimento é opcional
+            if socio.data_nascimento:
+                qualif += f", nascido em: {socio.data_nascimento}"
             if socio.profissao:
                 qualif += f", {socio.profissao.lower()}"
             if socio.rg:
