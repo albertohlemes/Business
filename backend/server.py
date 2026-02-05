@@ -322,7 +322,7 @@ class ValidacaoFolhaCreate(BaseModel):
 
 class ValidacaoFolhaResponse(BaseModel):
     id: str
-    cliente_id: str
+    cliente_id: Optional[str] = None
     mes_referencia: str
     ano_referencia: int
     status: str
