@@ -297,7 +297,7 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
     1. **Ordenação clicável** - NF-e, Emitente, Valor, Data, Integridade (asc/desc)
     2. **Ícones de ordenação** - Seta ↑/↓ indica direção atual
     3. **Filtro de Integridade** - Todos / ✓ Validadas / ✗ Divergentes
-    4. **54 divergentes** e **481 validadas** na competência 12/2025
+    4. **Linha vermelha** para NFs com divergência real (destaque visual)
 
 - ✅ **RE-PROCESSAMENTO DE XMLS**
   - **Problema:** ICMS-ST estava zerado porque os XMLs foram importados antes da extração desse campo
@@ -305,7 +305,16 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
     1. **Endpoint `/api/xml/reprocess-batch`** - Re-processa todos os XMLs de uma competência
     2. **Botão "Re-processar XMLs"** - Visível na página de Documentos
     3. **535 documentos re-processados** - 40 com ICMS-ST encontrado
-    4. **NF 30073**: ICMS-ST R$ 279,95 | BC ST R$ 2.485,33 (agora exibido corretamente)
+
+- ✅ **CORREÇÃO DA LÓGICA DE INTEGRIDADE**
+  - **Problema:** A validação estava gerando falsos positivos porque subtraía ICMS-ST do valor da NF
+  - **Causa:** O `valor_total` dos produtos já inclui ICMS-ST
+  - **Solução:**
+    1. Compara `valor_total` dos produtos diretamente com valor da NF
+    2. OU compara `valor_produto` + ST + IPI + frete + seg + outros com valor da NF
+    3. Tolerância de R$ 0,05 para arredondamentos
+  - **Resultado:** Todas as 535 notas passam na validação corretamente
+  - **NF 30073:** Valor Produtos = Valor NF = R$ 5.354,95 ✓
 
 - ✅ **LINKS DE NF NA PÁGINA VALIDAÇÃO & IA**
   - **Problema:** Quando havia muitas NFs, mostrava "+1, +2" sem detalhes
