@@ -1247,8 +1247,8 @@ const WizardConstituicao = ({ open, onClose, onComplete }) => {
         setCapitalExtenso('');
         setNumSocios(2);
         setSocios([
-            { nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)', estadoCivil: '', regimeCasamento: '', profissao: '', endereco: { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' }, participacao: '50', administrador: true, documentos: [] },
-            { nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)', estadoCivil: '', regimeCasamento: '', profissao: '', endereco: { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' }, participacao: '50', administrador: false, documentos: [] }
+            { nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)', dataNascimento: '', cidadeNascimento: '', estadoNascimento: '', estadoCivil: '', regimeCasamento: '', profissao: '', endereco: { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' }, participacao: '50', administrador: true, documentos: [] },
+            { nome: '', cpf: '', rg: '', orgaoEmissor: '', nacionalidade: 'Brasileiro(a)', dataNascimento: '', cidadeNascimento: '', estadoNascimento: '', estadoCivil: '', regimeCasamento: '', profissao: '', endereco: { logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' }, participacao: '50', administrador: false, documentos: [] }
         ]);
         setEndereco({ logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '' });
         setCnaes([]);
