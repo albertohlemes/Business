@@ -1755,6 +1755,8 @@ class DadosEmpresaConstituicao(BaseModel):
     capital_extenso: Optional[str] = None
     endereco: dict
     objeto_social: str
+    inscricao_estadual: Optional[str] = None
+    inscricao_municipal: Optional[str] = None
 
 class SocioConstituicao(BaseModel):
     nome: str
