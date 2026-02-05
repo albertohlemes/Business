@@ -2470,12 +2470,6 @@ async def gerar_distrato_social(
         qualificacao_socios = ""
         for i, s in enumerate(socios, 1):
             qualif = f"{i}) {s.nome.upper()}, nacionalidade: {s.nacionalidade or 'brasileira'}"
-            if s.estado_civil:
-                qualif += f", {s.estado_civil.lower()}"
-                if s.regime_casamento and 'casado' in s.estado_civil.lower():
-                    qualif += f" sob o Regime de {s.regime_casamento}"
-            if s.profissao:
-                qualif += f", {s.profissao.lower()}"
             # Naturalidade (cidade/estado de nascimento)
             cidade_nasc = getattr(s, 'cidade_nascimento', None)
             estado_nasc = getattr(s, 'estado_nascimento', None)
@@ -2483,17 +2477,28 @@ async def gerar_distrato_social(
                 qualif += f", natural de {cidade_nasc}/{estado_nasc}"
             elif cidade_nasc:
                 qualif += f", natural de {cidade_nasc}"
-            # data_nascimento é opcional
+            # data_nascimento formatada
             data_nasc = getattr(s, 'data_nascimento', None)
             if data_nasc:
-                qualif += f", nascido em {data_nasc}"
+                try:
+                    data_obj = dt.strptime(data_nasc, "%Y-%m-%d")
+                    data_nasc_formatada = data_obj.strftime("%d/%m/%Y")
+                    qualif += f", nascido(a) em {data_nasc_formatada}"
+                except:
+                    qualif += f", nascido(a) em {data_nasc}"
+            if s.estado_civil:
+                qualif += f", {s.estado_civil.lower()}"
+                if s.regime_casamento and 'casado' in s.estado_civil.lower():
+                    qualif += f" sob o regime de {s.regime_casamento}"
+            if s.profissao:
+                qualif += f", {s.profissao.lower()}"
             if s.rg:
-                qualif += f", documento de identidade RG sob nº {s.rg}"
+                qualif += f", portador(a) da Cédula de Identidade RG nº {s.rg}"
                 if s.orgao_emissor:
-                    qualif += f" Órgão Emissor: {s.orgao_emissor}"
-            qualif += f" e CPF {s.cpf}"
+                    qualif += f" {s.orgao_emissor}"
+            qualif += f", inscrito(a) no CPF/MF sob o nº {s.cpf}"
             if s.endereco:
-                qualif += f", residente e domiciliado na {s.endereco}"
+                qualif += f", residente e domiciliado(a) na {s.endereco}"
             qualif += ";\n"
             qualificacao_socios += qualif
         
