@@ -169,6 +169,8 @@ Portal para departamento societário com geração de documentos via IA.
 - Ao clicar, abre o wizard correspondente em **modo edição** com dados pré-preenchidos
 - **Carrega TODOS os dados**: razão social, nome fantasia, capital, endereço, sócios, CNAEs, etc.
 - Dados são carregados de `dados_empresa` e `dados_socios` salvos no banco
+- **Modo edição ATUALIZA** o processo existente (não cria novo)
+- Confirmação antes de excluir processos
 - Permite regenerar documentos após edições
 
 ### ✅ Flag "Sócio Administrador"
