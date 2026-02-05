@@ -5327,6 +5327,388 @@ async def relatorio_divergencias_saida(
         "divergencias": divergencias
     }
 
+
+# ============== ANÁLISE COMPLETA DE PIS/COFINS ==============
+
+# Tabela de NCMs com tributação MONOFÁSICA (alíquota zero na revenda)
+# Referência: Lei 10.147/2000, Lei 10.485/2002, Lei 10.833/2003
+NCMS_MONOFASICOS = {
+    # Combustíveis e derivados de petróleo
+    '2710': {'tipo': 'COMBUSTÍVEL', 'motivo': 'Gasolina, óleo diesel, GLP - Tributação concentrada'},
+    '2711': {'tipo': 'COMBUSTÍVEL', 'motivo': 'GLP, gás natural - Tributação concentrada'},
+    # Medicamentos e produtos farmacêuticos
+    '3001': {'tipo': 'MEDICAMENTO', 'motivo': 'Glândulas e órgãos para fins terapêuticos'},
+    '3002': {'tipo': 'MEDICAMENTO', 'motivo': 'Sangue humano, vacinas, soros'},
+    '3003': {'tipo': 'MEDICAMENTO', 'motivo': 'Medicamentos (exceto 3002, 3005, 3006)'},
+    '3004': {'tipo': 'MEDICAMENTO', 'motivo': 'Medicamentos dosados para venda a retalho'},
+    # Perfumaria, higiene pessoal e cosméticos
+    '3303': {'tipo': 'PERFUMARIA', 'motivo': 'Perfumes e águas-de-colônia'},
+    '3304': {'tipo': 'COSMÉTICOS', 'motivo': 'Produtos de beleza, maquiagem'},
+    '3305': {'tipo': 'COSMÉTICOS', 'motivo': 'Preparações capilares'},
+    '3306': {'tipo': 'HIGIENE', 'motivo': 'Preparações para higiene bucal'},
+    '3307': {'tipo': 'COSMÉTICOS', 'motivo': 'Preparações para barbear, desodorantes'},
+    # Bebidas frias
+    '2201': {'tipo': 'BEBIDA FRIA', 'motivo': 'Águas minerais e gaseificadas'},
+    '2202': {'tipo': 'BEBIDA FRIA', 'motivo': 'Refrigerantes, refrescos'},
+    '2203': {'tipo': 'BEBIDA FRIA', 'motivo': 'Cervejas de malte'},
+    # Veículos e autopeças (alguns)
+    '8702': {'tipo': 'VEÍCULO', 'motivo': 'Veículos para transporte de pessoas'},
+    '8703': {'tipo': 'VEÍCULO', 'motivo': 'Automóveis de passageiros'},
+    '8704': {'tipo': 'VEÍCULO', 'motivo': 'Veículos para transporte de mercadorias'},
+    '8711': {'tipo': 'VEÍCULO', 'motivo': 'Motocicletas'},
+    # Máquinas e equipamentos
+    '8443': {'tipo': 'EQUIPAMENTO', 'motivo': 'Máquinas de impressão'},
+    '8471': {'tipo': 'EQUIPAMENTO', 'motivo': 'Computadores e processadores de dados'},
+}
+
+# NCMs específicos de alíquota zero (não monofásicos, mas zerados por lei específica)
+NCMS_ALIQUOTA_ZERO_ESPECIFICOS = {
+    # Cesta básica - Lei 10.925/2004
+    '0203': {'motivo': 'Carnes de suínos - Cesta básica'},
+    '0207': {'motivo': 'Carnes de aves - Cesta básica'},
+    '0401': {'motivo': 'Leite e creme de leite - Cesta básica'},
+    '0402': {'motivo': 'Leite concentrado - Cesta básica'},
+    '0701': {'motivo': 'Batata - Cesta básica'},
+    '0702': {'motivo': 'Tomate - Cesta básica'},
+    '0703': {'motivo': 'Cebola, alho - Cesta básica'},
+    '0901': {'motivo': 'Café - Cesta básica'},
+    '1001': {'motivo': 'Trigo - Cesta básica'},
+    '1005': {'motivo': 'Milho - Cesta básica'},
+    '1006': {'motivo': 'Arroz - Cesta básica'},
+    '1101': {'motivo': 'Farinha de trigo - Cesta básica'},
+    '1507': {'motivo': 'Óleo de soja - Cesta básica'},
+    '1701': {'motivo': 'Açúcar - Cesta básica'},
+    '1901': {'motivo': 'Extratos de malte - Cesta básica'},
+    '1902': {'motivo': 'Massas alimentícias - Cesta básica'},
+    '1905': {'motivo': 'Pão - Cesta básica'},
+    '2009': {'motivo': 'Sucos de frutas - Cesta básica'},
+}
+
+# CFOPs que NÃO geram débito de PIS/COFINS nas saídas
+CFOPS_SEM_DEBITO_SAIDA = {
+    # Transferências
+    '5151': {'motivo': 'Transferência para industrialização', 'gera_debito': False},
+    '5152': {'motivo': 'Transferência para comercialização', 'gera_debito': False},
+    '5153': {'motivo': 'Transferência de energia elétrica', 'gera_debito': False},
+    '5155': {'motivo': 'Transferência de produção própria', 'gera_debito': False},
+    '5156': {'motivo': 'Transferência de mercadoria adquirida', 'gera_debito': False},
+    # Devoluções (estorno, não débito)
+    '5201': {'motivo': 'Devolução de compra industrialização', 'gera_debito': False},
+    '5202': {'motivo': 'Devolução de compra comercialização', 'gera_debito': False},
+    '5208': {'motivo': 'Devolução de mercadoria de terceiros', 'gera_debito': False},
+    '5209': {'motivo': 'Devolução de compra para ativo imobilizado', 'gera_debito': False},
+    '5210': {'motivo': 'Devolução de compra para uso/consumo', 'gera_debito': False},
+    '5411': {'motivo': 'Devolução de compra para comercialização ST', 'gera_debito': False},
+    '5412': {'motivo': 'Devolução de bem do ativo imobilizado', 'gera_debito': False},
+    # Remessas (não geram receita)
+    '5901': {'motivo': 'Remessa para industrialização por encomenda', 'gera_debito': False},
+    '5902': {'motivo': 'Retorno de mercadoria industrialização', 'gera_debito': False},
+    '5903': {'motivo': 'Retorno de mercadoria não industrializada', 'gera_debito': False},
+    '5904': {'motivo': 'Remessa para venda fora do estabelecimento', 'gera_debito': False},
+    '5905': {'motivo': 'Remessa para depósito fechado/armazém', 'gera_debito': False},
+    '5906': {'motivo': 'Retorno de mercadoria de depósito', 'gera_debito': False},
+    '5907': {'motivo': 'Retorno simbólico de depósito fechado', 'gera_debito': False},
+    '5908': {'motivo': 'Remessa de bem por conta de contrato de comodato', 'gera_debito': False},
+    '5909': {'motivo': 'Retorno de bem recebido por conta de comodato', 'gera_debito': False},
+    '5910': {'motivo': 'Remessa em bonificação, doação', 'gera_debito': False},
+    '5911': {'motivo': 'Remessa de amostra grátis', 'gera_debito': False},
+    '5912': {'motivo': 'Remessa de mercadoria para demonstração', 'gera_debito': False},
+    '5913': {'motivo': 'Retorno de mercadoria de demonstração', 'gera_debito': False},
+    '5914': {'motivo': 'Remessa para exposição/feira', 'gera_debito': False},
+    '5915': {'motivo': 'Remessa de mercadoria para consignação', 'gera_debito': False},
+    '5916': {'motivo': 'Retorno de mercadoria de consignação', 'gera_debito': False},
+    '5917': {'motivo': 'Remessa de consignação simbólica', 'gera_debito': False},
+    '5918': {'motivo': 'Devolução de consignação simbólica', 'gera_debito': False},
+    '5919': {'motivo': 'Devolução simbólica de consignação', 'gera_debito': False},
+    '5920': {'motivo': 'Remessa de vasilhame/sacaria', 'gera_debito': False},
+    '5921': {'motivo': 'Devolução de vasilhame/sacaria', 'gera_debito': False},
+    '5922': {'motivo': 'Lançamento simples faturamento', 'gera_debito': False},
+    '5923': {'motivo': 'Remessa por conta e ordem', 'gera_debito': False},
+    '5924': {'motivo': 'Remessa industrialização por conta e ordem', 'gera_debito': False},
+    '5925': {'motivo': 'Retorno de mercadoria de depósito fechado', 'gera_debito': False},
+    '5929': {'motivo': 'Lançamento de crédito relativo à NF', 'gera_debito': False},
+    '5949': {'motivo': 'Outra saída não especificada', 'gera_debito': False},
+}
+
+# CFOPs interestaduais (6xxx) - mesmas regras
+CFOPS_SEM_DEBITO_SAIDA.update({
+    '6' + cfop[1:]: {**info, 'motivo': info['motivo'] + ' (interestadual)'}
+    for cfop, info in CFOPS_SEM_DEBITO_SAIDA.items() if cfop.startswith('5')
+})
+
+# Alíquotas padrão de PIS/COFINS
+ALIQUOTAS_PADRAO = {
+    'lucro_real': {
+        'pis': 1.65,
+        'cofins': 7.60
+    },
+    'lucro_presumido': {
+        'pis': 0.65,
+        'cofins': 3.00
+    }
+}
+
+
+@api_router.get("/analise-pis-cofins-completa/{company_id}")
+async def analise_pis_cofins_completa(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Análise COMPLETA de PIS/COFINS nas saídas:
+    - Compara CST e alíquotas usados vs corretos por NCM e CFOP
+    - Identifica NCMs monofásicos tributados indevidamente
+    - Identifica CFOPs que não deveriam gerar débito
+    - Calcula impacto financeiro real
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    regime = company.get('regime_tributario', 'lucro_real').lower().replace(' ', '_')
+    if regime not in ALIQUOTAS_PADRAO:
+        regime = 'lucro_real'
+    
+    aliq_padrao = ALIQUOTAS_PADRAO[regime]
+    
+    # Buscar documentos de saída
+    documents = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "saida"
+    }, {"_id": 0}).to_list(10000)
+    
+    if not documents:
+        return {
+            "empresa": company.get('razao_social', ''),
+            "competencia": competencia,
+            "regime_tributario": regime,
+            "total_documentos": 0,
+            "total_produtos": 0,
+            "resumo": {},
+            "divergencias": []
+        }
+    
+    def get_ncm_prefix(ncm_str):
+        """Retorna o prefixo de 4 dígitos do NCM"""
+        ncm_clean = str(ncm_str).replace('.', '').replace('-', '').strip()
+        return ncm_clean[:4] if len(ncm_clean) >= 4 else ncm_clean
+    
+    def analisa_produto(produto, cfop):
+        """Analisa um produto e retorna a classificação correta"""
+        ncm = str(produto.get('ncm', '')).replace('.', '').replace('-', '').strip()
+        ncm_prefix = ncm[:4] if len(ncm) >= 4 else ncm
+        
+        cst_pis_atual = str(produto.get('cst_pis', '') or '')
+        cst_cofins_atual = str(produto.get('cst_cofins', '') or '')
+        
+        aliq_pis_atual = float(produto.get('p_pis', 0) or 0)
+        aliq_cofins_atual = float(produto.get('p_cofins', 0) or 0)
+        
+        v_pis_atual = float(produto.get('v_pis', 0) or 0)
+        v_cofins_atual = float(produto.get('v_cofins', 0) or 0)
+        
+        valor_produto = float(produto.get('valor_total', 0) or 0)
+        bc_pis = float(produto.get('v_bc_pis', valor_produto) or valor_produto)
+        bc_cofins = float(produto.get('v_bc_cofins', valor_produto) or valor_produto)
+        
+        resultado = {
+            'descricao': produto.get('descricao', ''),
+            'codigo': produto.get('codigo', ''),
+            'ncm': ncm,
+            'cfop': cfop,
+            'valor_produto': valor_produto,
+            'bc_pis': bc_pis,
+            'bc_cofins': bc_cofins,
+            # Valores ATUAIS
+            'cst_pis_atual': cst_pis_atual,
+            'cst_cofins_atual': cst_cofins_atual,
+            'aliq_pis_atual': aliq_pis_atual,
+            'aliq_cofins_atual': aliq_cofins_atual,
+            'v_pis_atual': v_pis_atual,
+            'v_cofins_atual': v_cofins_atual,
+            # Valores CORRETOS (a serem preenchidos)
+            'cst_pis_correto': '',
+            'cst_cofins_correto': '',
+            'aliq_pis_correto': 0,
+            'aliq_cofins_correto': 0,
+            'v_pis_correto': 0,
+            'v_cofins_correto': 0,
+            # Análise
+            'motivo': '',
+            'tipo_divergencia': None,
+            'divergente': False,
+            'impacto_pis': 0,
+            'impacto_cofins': 0
+        }
+        
+        # 1. Verificar se CFOP não gera débito
+        cfop_str = str(cfop)[:4]
+        if cfop_str in CFOPS_SEM_DEBITO_SAIDA:
+            info = CFOPS_SEM_DEBITO_SAIDA[cfop_str]
+            resultado['cst_pis_correto'] = '08'  # Sem incidência
+            resultado['cst_cofins_correto'] = '08'
+            resultado['aliq_pis_correto'] = 0
+            resultado['aliq_cofins_correto'] = 0
+            resultado['v_pis_correto'] = 0
+            resultado['v_cofins_correto'] = 0
+            resultado['motivo'] = f"CFOP {cfop_str}: {info['motivo']}"
+            
+            if v_pis_atual > 0 or v_cofins_atual > 0:
+                resultado['divergente'] = True
+                resultado['tipo_divergencia'] = 'CFOP_SEM_DEBITO'
+                resultado['impacto_pis'] = v_pis_atual
+                resultado['impacto_cofins'] = v_cofins_atual
+            
+            return resultado
+        
+        # 2. Verificar se NCM é monofásico
+        if ncm_prefix in NCMS_MONOFASICOS:
+            info = NCMS_MONOFASICOS[ncm_prefix]
+            resultado['cst_pis_correto'] = '04'  # Monofásico - alíquota zero
+            resultado['cst_cofins_correto'] = '04'
+            resultado['aliq_pis_correto'] = 0
+            resultado['aliq_cofins_correto'] = 0
+            resultado['v_pis_correto'] = 0
+            resultado['v_cofins_correto'] = 0
+            resultado['motivo'] = f"{info['tipo']}: {info['motivo']}"
+            
+            if v_pis_atual > 0 or v_cofins_atual > 0:
+                resultado['divergente'] = True
+                resultado['tipo_divergencia'] = 'NCM_MONOFASICO'
+                resultado['impacto_pis'] = v_pis_atual
+                resultado['impacto_cofins'] = v_cofins_atual
+            
+            return resultado
+        
+        # 3. Verificar se NCM é alíquota zero específico
+        if ncm_prefix in NCMS_ALIQUOTA_ZERO_ESPECIFICOS:
+            info = NCMS_ALIQUOTA_ZERO_ESPECIFICOS[ncm_prefix]
+            resultado['cst_pis_correto'] = '06'  # Alíquota zero
+            resultado['cst_cofins_correto'] = '06'
+            resultado['aliq_pis_correto'] = 0
+            resultado['aliq_cofins_correto'] = 0
+            resultado['v_pis_correto'] = 0
+            resultado['v_cofins_correto'] = 0
+            resultado['motivo'] = info['motivo']
+            
+            if v_pis_atual > 0 or v_cofins_atual > 0:
+                resultado['divergente'] = True
+                resultado['tipo_divergencia'] = 'NCM_ALIQUOTA_ZERO'
+                resultado['impacto_pis'] = v_pis_atual
+                resultado['impacto_cofins'] = v_cofins_atual
+            
+            return resultado
+        
+        # 4. Operação tributada normalmente
+        resultado['cst_pis_correto'] = '01'  # Tributável
+        resultado['cst_cofins_correto'] = '01'
+        resultado['aliq_pis_correto'] = aliq_padrao['pis']
+        resultado['aliq_cofins_correto'] = aliq_padrao['cofins']
+        resultado['v_pis_correto'] = round(bc_pis * aliq_padrao['pis'] / 100, 2)
+        resultado['v_cofins_correto'] = round(bc_cofins * aliq_padrao['cofins'] / 100, 2)
+        resultado['motivo'] = 'Operação tributável normal'
+        
+        # Verificar se está tributando menos que deveria
+        diff_pis = resultado['v_pis_correto'] - v_pis_atual
+        diff_cofins = resultado['v_cofins_correto'] - v_cofins_atual
+        
+        # Tolerância de R$ 0.50 para arredondamentos
+        if abs(diff_pis) > 0.50 or abs(diff_cofins) > 0.50:
+            resultado['divergente'] = True
+            resultado['tipo_divergencia'] = 'ALIQUOTA_INCORRETA'
+            resultado['impacto_pis'] = round(diff_pis, 2)
+            resultado['impacto_cofins'] = round(diff_cofins, 2)
+        
+        return resultado
+    
+    # Processar todos os documentos
+    divergencias = []
+    total_produtos = 0
+    total_divergentes = 0
+    
+    resumo = {
+        'total_valor_saidas': 0,
+        'total_pis_declarado': 0,
+        'total_cofins_declarado': 0,
+        'total_pis_correto': 0,
+        'total_cofins_correto': 0,
+        'por_tipo_divergencia': {
+            'CFOP_SEM_DEBITO': {'qtd': 0, 'impacto_pis': 0, 'impacto_cofins': 0},
+            'NCM_MONOFASICO': {'qtd': 0, 'impacto_pis': 0, 'impacto_cofins': 0},
+            'NCM_ALIQUOTA_ZERO': {'qtd': 0, 'impacto_pis': 0, 'impacto_cofins': 0},
+            'ALIQUOTA_INCORRETA': {'qtd': 0, 'impacto_pis': 0, 'impacto_cofins': 0}
+        }
+    }
+    
+    for doc in documents:
+        doc_info = {
+            'documento_id': doc.get('id', ''),
+            'numero_nfe': doc.get('numero_nfe', ''),
+            'serie': doc.get('serie', '1'),
+            'cliente': doc.get('destinatario_nome', ''),
+            'cnpj_cliente': doc.get('destinatario_cnpj', ''),
+            'data_emissao': doc.get('data_emissao', ''),
+            'valor_total': float(doc.get('valor_total', 0) or 0),
+            'produtos': []
+        }
+        
+        resumo['total_valor_saidas'] += doc_info['valor_total']
+        
+        for produto in doc.get('produtos', []):
+            total_produtos += 1
+            cfop = produto.get('cfop', '')
+            
+            analise = analisa_produto(produto, cfop)
+            
+            resumo['total_pis_declarado'] += analise['v_pis_atual']
+            resumo['total_cofins_declarado'] += analise['v_cofins_atual']
+            resumo['total_pis_correto'] += analise['v_pis_correto']
+            resumo['total_cofins_correto'] += analise['v_cofins_correto']
+            
+            if analise['divergente']:
+                total_divergentes += 1
+                doc_info['produtos'].append(analise)
+                
+                tipo = analise['tipo_divergencia']
+                if tipo in resumo['por_tipo_divergencia']:
+                    resumo['por_tipo_divergencia'][tipo]['qtd'] += 1
+                    resumo['por_tipo_divergencia'][tipo]['impacto_pis'] += analise['impacto_pis']
+                    resumo['por_tipo_divergencia'][tipo]['impacto_cofins'] += analise['impacto_cofins']
+        
+        if doc_info['produtos']:
+            divergencias.append(doc_info)
+    
+    # Arredondar valores do resumo
+    resumo['total_pis_declarado'] = round(resumo['total_pis_declarado'], 2)
+    resumo['total_cofins_declarado'] = round(resumo['total_cofins_declarado'], 2)
+    resumo['total_pis_correto'] = round(resumo['total_pis_correto'], 2)
+    resumo['total_cofins_correto'] = round(resumo['total_cofins_correto'], 2)
+    resumo['diferenca_pis'] = round(resumo['total_pis_declarado'] - resumo['total_pis_correto'], 2)
+    resumo['diferenca_cofins'] = round(resumo['total_cofins_declarado'] - resumo['total_cofins_correto'], 2)
+    resumo['diferenca_total'] = round(resumo['diferenca_pis'] + resumo['diferenca_cofins'], 2)
+    
+    for tipo in resumo['por_tipo_divergencia']:
+        resumo['por_tipo_divergencia'][tipo]['impacto_pis'] = round(resumo['por_tipo_divergencia'][tipo]['impacto_pis'], 2)
+        resumo['por_tipo_divergencia'][tipo]['impacto_cofins'] = round(resumo['por_tipo_divergencia'][tipo]['impacto_cofins'], 2)
+        resumo['por_tipo_divergencia'][tipo]['impacto_total'] = round(
+            resumo['por_tipo_divergencia'][tipo]['impacto_pis'] + resumo['por_tipo_divergencia'][tipo]['impacto_cofins'], 2
+        )
+    
+    return {
+        "empresa": company.get('razao_social', ''),
+        "competencia": competencia,
+        "regime_tributario": regime.replace('_', ' ').title(),
+        "aliquotas_regime": aliq_padrao,
+        "total_documentos": len(documents),
+        "total_produtos": total_produtos,
+        "total_divergentes": total_divergentes,
+        "resumo": resumo,
+        "divergencias": divergencias
+    }
+
+
 # CFOPs de operações distintas de venda (saída do emissor que virou entrada para nós)
 CFOPS_OPERACOES_DISTINTAS_GLOBAL = {
     # Remessas
