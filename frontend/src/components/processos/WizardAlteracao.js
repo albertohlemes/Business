@@ -1981,6 +1981,40 @@ Use linguagem jurídica formal. O documento deve estar pronto para registro na J
                     {/* Step 1: Upload Contrato */}
                     {step === 1 && (
                         <div className="space-y-6">
+                            {/* Banner para restaurar rascunho */}
+                            {temRascunhoSalvo && (
+                                <div className="bg-blue-950/30 border border-blue-500/30 rounded-lg p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <RefreshCw className="w-5 h-5 text-blue-500" />
+                                            <div>
+                                                <p className="text-white font-medium">Processo não finalizado encontrado</p>
+                                                <p className="text-zinc-400 text-xs">Você tem um rascunho salvo. Deseja continuar de onde parou?</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button 
+                                                type="button" 
+                                                size="sm" 
+                                                variant="outline" 
+                                                className="border-zinc-600"
+                                                onClick={() => { limparRascunho(); setTemRascunhoSalvo(false); }}
+                                            >
+                                                Descartar
+                                            </Button>
+                                            <Button 
+                                                type="button" 
+                                                size="sm" 
+                                                className="bg-blue-600 hover:bg-blue-700"
+                                                onClick={restaurarRascunho}
+                                            >
+                                                Continuar
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div>
                                 <h3 className="text-lg font-semibold text-white mb-2">Upload do Contrato Atual</h3>
                                 <p className="text-sm text-zinc-500 mb-4">
