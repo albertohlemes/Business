@@ -1064,9 +1064,16 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                   />
             </div>
             
-            <button onClick={() => toggleSort('descricao')} className="col-span-4 flex items-center gap-1 hover:text-purple-700">
+            <button onClick={() => toggleSort('descricao')} className="col-span-3 flex items-center gap-1 hover:text-purple-700">
               Produto
               {sortConfig.field === 'descricao' ? (
+                sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+              ) : <ArrowUpDown className="w-4 h-4 text-gray-400" />}
+            </button>
+            
+            <button onClick={() => toggleSort('ncm')} className="col-span-1 flex items-center gap-1 hover:text-purple-700">
+              NCM
+              {sortConfig.field === 'ncm' ? (
                 sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
               ) : <ArrowUpDown className="w-4 h-4 text-gray-400" />}
             </button>
@@ -1080,6 +1087,9 @@ const ClassificacaoPage = ({ user, onLogout }) => {
             
             <button onClick={() => toggleSort('cfop')} className="col-span-1 flex items-center gap-1 hover:text-purple-700">
               CFOP
+              {sortConfig.field === 'cfop' ? (
+                sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+              ) : <ArrowUpDown className="w-4 h-4 text-gray-400" />}
             </button>
             
             <button onClick={() => toggleSort('valor')} className="col-span-2 flex items-center gap-1 hover:text-purple-700 justify-end">
@@ -1091,6 +1101,9 @@ const ClassificacaoPage = ({ user, onLogout }) => {
             
             <button onClick={() => toggleSort('ocorrencias')} className="col-span-2 flex items-center gap-1 hover:text-purple-700 justify-end">
               NFs
+              {sortConfig.field === 'ocorrencias' ? (
+                sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+              ) : <ArrowUpDown className="w-4 h-4 text-gray-400" />}
             </button>
           </div>
           
