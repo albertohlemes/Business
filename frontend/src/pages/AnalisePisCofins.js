@@ -443,7 +443,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
             {visualizacao === 'nf' && produtosDivergentes.length > 0 && (
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-xs">
                     <thead className="bg-gray-50 border-b">
                       <tr>
                         {renderSortableHeader("NF", "numero_nfe", "text-left")}
@@ -451,39 +451,71 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                         {renderSortableHeader("NCM", "ncm", "text-left")}
                         {renderSortableHeader("CFOP", "cfop", "text-center")}
                         {renderSortableHeader("Valor", "valor_produto", "text-right")}
-                        {renderSortableHeader("PIS Atual", "v_pis_atual", "text-right")}
-                        {renderSortableHeader("PIS Correto", "v_pis_correto", "text-right")}
-                        {renderSortableHeader("COFINS Atual", "v_cofins_atual", "text-right")}
-                        {renderSortableHeader("COFINS Correto", "v_cofins_correto", "text-right")}
-                        {renderSortableHeader("Impacto", "impacto_total", "text-right")}
+                        <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 border-l border-gray-200" colSpan={2}>CST PIS</th>
+                        <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 border-l border-gray-200" colSpan={2}>Alíq. PIS (%)</th>
+                        <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 border-l border-gray-200" colSpan={2}>Valor PIS</th>
+                        <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 border-l border-gray-200" colSpan={2}>CST COFINS</th>
+                        <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 border-l border-gray-200" colSpan={2}>Alíq. COFINS (%)</th>
+                        <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 border-l border-gray-200" colSpan={2}>Valor COFINS</th>
+                        {renderSortableHeader("Impacto", "impacto_total", "text-right border-l border-gray-200")}
                         {renderSortableHeader("Tipo", "tipo_divergencia", "text-left")}
+                      </tr>
+                      <tr className="bg-gray-100 text-[10px]">
+                        <th></th><th></th><th></th><th></th><th></th>
+                        <th className="px-1 py-1 text-center text-red-600 border-l border-gray-200">XML</th>
+                        <th className="px-1 py-1 text-center text-green-600">Correto</th>
+                        <th className="px-1 py-1 text-center text-red-600 border-l border-gray-200">XML</th>
+                        <th className="px-1 py-1 text-center text-green-600">Correto</th>
+                        <th className="px-1 py-1 text-center text-red-600 border-l border-gray-200">XML</th>
+                        <th className="px-1 py-1 text-center text-green-600">Correto</th>
+                        <th className="px-1 py-1 text-center text-red-600 border-l border-gray-200">XML</th>
+                        <th className="px-1 py-1 text-center text-green-600">Correto</th>
+                        <th className="px-1 py-1 text-center text-red-600 border-l border-gray-200">XML</th>
+                        <th className="px-1 py-1 text-center text-green-600">Correto</th>
+                        <th className="px-1 py-1 text-center text-red-600 border-l border-gray-200">XML</th>
+                        <th className="px-1 py-1 text-center text-green-600">Correto</th>
+                        <th></th><th></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {produtosDivergentes.map((prod, idx) => (
                         <tr key={idx} className="hover:bg-gray-50">
-                          <td className="px-3 py-2">
+                          <td className="px-2 py-2">
                             <div className="font-semibold text-gray-900">{prod.numero_nfe}</div>
-                            <div className="text-xs text-gray-400 truncate max-w-[100px]" title={prod.cliente}>{prod.cliente}</div>
+                            <div className="text-[10px] text-gray-400 truncate max-w-[80px]" title={prod.cliente}>{prod.cliente}</div>
                           </td>
-                          <td className="px-3 py-2">
-                            <div className="font-medium text-gray-900 truncate max-w-[180px]" title={prod.descricao}>{prod.descricao}</div>
-                            <div className="text-xs text-gray-400">{prod.codigo}</div>
+                          <td className="px-2 py-2">
+                            <div className="font-medium text-gray-900 truncate max-w-[140px]" title={prod.descricao}>{prod.descricao}</div>
                           </td>
-                          <td className="px-3 py-2 font-mono text-xs text-gray-600">{prod.ncm}</td>
-                          <td className="px-3 py-2 text-center text-gray-600">{prod.cfop}</td>
-                          <td className="px-3 py-2 text-right text-gray-900">{formatCurrency(prod.valor_produto)}</td>
-                          <td className="px-3 py-2 text-right text-red-600 font-medium">{formatCurrency(prod.v_pis_atual)}</td>
-                          <td className="px-3 py-2 text-right text-green-600 font-medium">{formatCurrency(prod.v_pis_correto)}</td>
-                          <td className="px-3 py-2 text-right text-red-600 font-medium">{formatCurrency(prod.v_cofins_atual)}</td>
-                          <td className="px-3 py-2 text-right text-green-600 font-medium">{formatCurrency(prod.v_cofins_correto)}</td>
-                          <td className="px-3 py-2 text-right">
+                          <td className="px-2 py-2 font-mono text-gray-600">{prod.ncm}</td>
+                          <td className="px-2 py-2 text-center text-gray-600">{prod.cfop}</td>
+                          <td className="px-2 py-2 text-right text-gray-900">{formatCurrency(prod.valor_produto)}</td>
+                          {/* CST PIS */}
+                          <td className="px-2 py-2 text-center text-red-600 font-mono border-l border-gray-200">{prod.cst_pis_atual || '-'}</td>
+                          <td className="px-2 py-2 text-center text-green-600 font-mono">{prod.cst_pis_correto || '-'}</td>
+                          {/* Alíq PIS */}
+                          <td className="px-2 py-2 text-center text-red-600 border-l border-gray-200">{formatPercent(prod.aliq_pis_atual)}</td>
+                          <td className="px-2 py-2 text-center text-green-600">{formatPercent(prod.aliq_pis_correto)}</td>
+                          {/* Valor PIS */}
+                          <td className="px-2 py-2 text-right text-red-600 border-l border-gray-200">{formatCurrency(prod.v_pis_atual)}</td>
+                          <td className="px-2 py-2 text-right text-green-600">{formatCurrency(prod.v_pis_correto)}</td>
+                          {/* CST COFINS */}
+                          <td className="px-2 py-2 text-center text-red-600 font-mono border-l border-gray-200">{prod.cst_cofins_atual || '-'}</td>
+                          <td className="px-2 py-2 text-center text-green-600 font-mono">{prod.cst_cofins_correto || '-'}</td>
+                          {/* Alíq COFINS */}
+                          <td className="px-2 py-2 text-center text-red-600 border-l border-gray-200">{formatPercent(prod.aliq_cofins_atual)}</td>
+                          <td className="px-2 py-2 text-center text-green-600">{formatPercent(prod.aliq_cofins_correto)}</td>
+                          {/* Valor COFINS */}
+                          <td className="px-2 py-2 text-right text-red-600 border-l border-gray-200">{formatCurrency(prod.v_cofins_atual)}</td>
+                          <td className="px-2 py-2 text-right text-green-600">{formatCurrency(prod.v_cofins_correto)}</td>
+                          {/* Impacto */}
+                          <td className="px-2 py-2 text-right border-l border-gray-200">
                             <span className={`font-bold ${prod.impacto_total > 0 ? 'text-red-600' : 'text-amber-600'}`}>
                               {formatCurrency(prod.impacto_total)}
                             </span>
                           </td>
-                          <td className="px-3 py-2">
-                            <span className={`px-2 py-0.5 rounded text-xs ${getTipoDivergenciaColor(prod.tipo_divergencia)}`}>
+                          <td className="px-2 py-2">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] ${getTipoDivergenciaColor(prod.tipo_divergencia)}`}>
                               {getTipoDivergenciaLabel(prod.tipo_divergencia)}
                             </span>
                           </td>
