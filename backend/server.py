@@ -2435,6 +2435,99 @@ async def verificar_status_gclick(
         "gclick_id": minuta.get("gclick_response", {}).get("id") if minuta.get("gclick_response") else None
     }
 
+class GClickCadastroDiretoRequest(BaseModel):
+    """Modelo para cadastro direto no GClick sem processo associado"""
+    nome: str
+    nome_fantasia: Optional[str] = None
+    cpf_cnpj: str
+    inscricao_estadual: Optional[str] = None
+    inscricao_municipal: Optional[str] = None
+    endereco: Optional[str] = None
+    bairro: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    cep: Optional[str] = None
+    telefone: Optional[str] = None
+    email: Optional[str] = None
+    observacoes: Optional[str] = None
+
+@api_router.post("/gclick/cadastrar-direto")
+async def cadastrar_direto_gclick(
+    request: GClickCadastroDiretoRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Cadastra empresa diretamente no GClick sem precisar de um processo no portal"""
+    try:
+        if not GCLICK_CLIENT_ID or not GCLICK_CLIENT_SECRET:
+            raise HTTPException(status_code=500, detail="Credenciais do GClick não configuradas")
+        
+        # Preparar dados para GClick
+        cliente_data = {
+            "tipo_pessoa": "PJ" if len(request.cpf_cnpj.replace(".", "").replace("/", "").replace("-", "")) > 11 else "PF",
+            "nome": request.nome,
+            "nome_fantasia": request.nome_fantasia or "",
+            "cpf_cnpj": request.cpf_cnpj,
+            "inscricao_estadual": request.inscricao_estadual or "",
+            "inscricao_municipal": request.inscricao_municipal or "",
+            "endereco": request.endereco or "",
+            "bairro": request.bairro or "",
+            "cidade": request.cidade or "",
+            "estado": request.estado or "",
+            "cep": request.cep or "",
+            "telefone": request.telefone or "",
+            "email": request.email or "",
+            "observacoes": request.observacoes or ""
+        }
+        
+        # Enviar para GClick
+        headers = {
+            "Content-Type": "application/json",
+            "access-token": GCLICK_CLIENT_ID,
+            "secret-access-token": GCLICK_CLIENT_SECRET
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{GCLICK_API_URL}/clientes",
+                json=cliente_data,
+                headers=headers
+            )
+            
+            if response.status_code in [200, 201]:
+                result = response.json()
+                
+                # Salvar registro de envio no banco (para histórico)
+                cadastro_log = {
+                    "id": str(uuid.uuid4()),
+                    "tipo": "cadastro_direto_gclick",
+                    "user_id": current_user["id"],
+                    "dados_enviados": cliente_data,
+                    "gclick_response": result,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.cadastros_externos.insert_one(cadastro_log)
+                
+                return {
+                    "success": True,
+                    "message": "Empresa cadastrada com sucesso no GClick",
+                    "gclick_id": result.get("id"),
+                    "data": result
+                }
+            else:
+                error_detail = response.text
+                logger.error(f"Erro GClick cadastro direto: {response.status_code} - {error_detail}")
+                return {
+                    "success": False,
+                    "message": f"Erro ao cadastrar no GClick: {response.status_code}",
+                    "error": error_detail
+                }
+                
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao cadastrar direto no GClick: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao cadastrar no GClick: {str(e)}")
+
 @api_router.post("/baixa/extrair-contrato")
 async def extrair_contrato_para_baixa(
     file: UploadFile = File(...),
