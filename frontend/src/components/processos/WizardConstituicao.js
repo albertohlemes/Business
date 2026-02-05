@@ -1276,6 +1276,7 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
             setCapitalSocial(dadosEmpresa.capital_social || processoEditando.capital_social || '');
             setInscricaoEstadual(dadosEmpresa.inscricao_estadual || processoEditando.inscricao_estadual || '');
             setInscricaoMunicipal(dadosEmpresa.inscricao_municipal || processoEditando.inscricao_municipal || '');
+            setCodigoCliente(dadosEmpresa.codigo_cliente || processoEditando.codigo_cliente || '');
             
             // Carregar endereço da empresa
             if (dadosEmpresa.endereco) {
