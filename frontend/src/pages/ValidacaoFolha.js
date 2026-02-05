@@ -508,8 +508,9 @@ const ValidacaoFolha = () => {
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
-                    {clientes.map(c => (
+                    {sortClientesBySelection(clientes, empresaSelecionada?.id).map(c => (
                       <SelectItem key={c.id} value={c.id}>
+                        <span className="font-mono text-xs text-indigo-600 mr-2">{generateEmpresaCode(c.id, c.codigo_interno)}</span>
                         {c.nome_fantasia || c.razao_social}
                       </SelectItem>
                     ))}
