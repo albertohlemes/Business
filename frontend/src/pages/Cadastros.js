@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/button';
@@ -8,7 +8,8 @@ import { Textarea } from '../components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { 
     Database, Send, Building2, Users, MapPin, FileText, 
-    Loader2, CheckCircle, Download, Plus, Trash2
+    Loader2, CheckCircle, Download, Plus, Trash2, Sparkles,
+    History, RefreshCw, Eye, Search, Upload, Clock
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -18,6 +19,20 @@ const ESTADOS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG
 
 const Cadastros = () => {
     const [activeTab, setActiveTab] = useState('gclick');
+    const fileInputRef = useRef(null);
+    const sciFileInputRef = useRef(null);
+    
+    // Histórico
+    const [historico, setHistorico] = useState([]);
+    const [loadingHistorico, setLoadingHistorico] = useState(false);
+    const [showHistorico, setShowHistorico] = useState(false);
+    
+    // Extração IA
+    const [extraindo, setExtraindo] = useState(false);
+    const [extraindoSci, setExtraindoSci] = useState(false);
+    
+    // Busca IE
+    const [buscandoIE, setBuscandoIE] = useState(false);
     
     // GClick Form State
     const [gclickLoading, setGclickLoading] = useState(false);
@@ -65,6 +80,174 @@ const Cadastros = () => {
         telefone: '',
         email: ''
     });
+
+    // Carregar histórico ao montar
+    useEffect(() => {
+        carregarHistorico();
+    }, []);
+
+    const carregarHistorico = async () => {
+        setLoadingHistorico(true);
+        try {
+            const response = await axios.get(`${API_URL}/api/cadastros/historico`);
+            setHistorico(response.data.cadastros || []);
+        } catch (error) {
+            console.error('Erro ao carregar histórico:', error);
+        } finally {
+            setLoadingHistorico(false);
+        }
+    };
+
+    // Extração por IA - GClick
+    const handleExtrairIA = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        setExtraindo(true);
+        toast.info('Extraindo dados do documento com IA...');
+        
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const response = await axios.post(`${API_URL}/api/cadastros/extrair-dados`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            
+            if (response.data.success && response.data.dados) {
+                const dados = response.data.dados;
+                
+                // Preencher formulário GClick
+                setGclickForm(prev => ({
+                    ...prev,
+                    razaoSocial: dados.razao_social || prev.razaoSocial,
+                    nomeFantasia: dados.nome_fantasia || prev.nomeFantasia,
+                    cnpj: dados.cnpj || prev.cnpj,
+                    inscricaoEstadual: dados.inscricao_estadual || prev.inscricaoEstadual,
+                    inscricaoMunicipal: dados.inscricao_municipal || prev.inscricaoMunicipal,
+                    endereco: dados.endereco?.logradouro || prev.endereco,
+                    numero: dados.endereco?.numero || prev.numero,
+                    complemento: dados.endereco?.complemento || prev.complemento,
+                    bairro: dados.endereco?.bairro || prev.bairro,
+                    cidade: dados.endereco?.cidade || prev.cidade,
+                    estado: dados.endereco?.estado || prev.estado,
+                    cep: dados.endereco?.cep || prev.cep,
+                    telefone: dados.telefone || prev.telefone,
+                    email: dados.email || prev.email
+                }));
+                
+                // Preencher sócios se houver
+                if (dados.socios && dados.socios.length > 0) {
+                    setGclickSocios(dados.socios.map(s => ({
+                        nome: s.nome || '',
+                        cpf: s.cpf || '',
+                        participacao: s.participacao || '',
+                        administrador: s.administrador || false
+                    })));
+                }
+                
+                toast.success('Dados extraídos com sucesso!');
+                
+                // Buscar IE automaticamente se tiver CNPJ e estado
+                if (dados.cnpj && dados.endereco?.estado) {
+                    buscarInscricaoEstadual(dados.cnpj, dados.endereco.estado, 'gclick');
+                }
+            } else {
+                toast.error(response.data.message || 'Não foi possível extrair os dados');
+            }
+        } catch (error) {
+            console.error('Erro na extração:', error);
+            toast.error('Erro ao extrair dados do documento');
+        } finally {
+            setExtraindo(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    // Extração por IA - SCI Único
+    const handleExtrairIASci = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        setExtraindoSci(true);
+        toast.info('Extraindo dados do documento com IA...');
+        
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const response = await axios.post(`${API_URL}/api/cadastros/extrair-dados`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            
+            if (response.data.success && response.data.dados) {
+                const dados = response.data.dados;
+                
+                // Preencher formulário SCI
+                setSciForm(prev => ({
+                    ...prev,
+                    razaoSocial: dados.razao_social || prev.razaoSocial,
+                    nomeFantasia: dados.nome_fantasia || prev.nomeFantasia,
+                    cnpj: dados.cnpj || prev.cnpj,
+                    inscricaoEstadual: dados.inscricao_estadual || prev.inscricaoEstadual,
+                    inscricaoMunicipal: dados.inscricao_municipal || prev.inscricaoMunicipal,
+                    regime: dados.regime_tributario?.toLowerCase().includes('simples') ? 'simples' : 
+                            dados.regime_tributario?.toLowerCase().includes('presumido') ? 'presumido' : 'real',
+                    dataAbertura: dados.data_abertura || prev.dataAbertura,
+                    capitalSocial: dados.capital_social || prev.capitalSocial,
+                    endereco: dados.endereco?.logradouro || prev.endereco,
+                    numero: dados.endereco?.numero || prev.numero,
+                    bairro: dados.endereco?.bairro || prev.bairro,
+                    cidade: dados.endereco?.cidade || prev.cidade,
+                    estado: dados.endereco?.estado || prev.estado,
+                    cep: dados.endereco?.cep || prev.cep,
+                    telefone: dados.telefone || prev.telefone,
+                    email: dados.email || prev.email
+                }));
+                
+                toast.success('Dados extraídos com sucesso!');
+                
+                // Buscar IE automaticamente
+                if (dados.cnpj && dados.endereco?.estado) {
+                    buscarInscricaoEstadual(dados.cnpj, dados.endereco.estado, 'sci');
+                }
+            } else {
+                toast.error(response.data.message || 'Não foi possível extrair os dados');
+            }
+        } catch (error) {
+            console.error('Erro na extração:', error);
+            toast.error('Erro ao extrair dados do documento');
+        } finally {
+            setExtraindoSci(false);
+            if (sciFileInputRef.current) sciFileInputRef.current.value = '';
+        }
+    };
+
+    // Buscar Inscrição Estadual no SINTEGRA
+    const buscarInscricaoEstadual = async (cnpj, uf, form = 'gclick') => {
+        if (!cnpj || !uf) return;
+        
+        setBuscandoIE(true);
+        try {
+            const response = await axios.get(`${API_URL}/api/sintegra/${uf}/${cnpj}`);
+            
+            if (response.data.inscricao_estadual) {
+                if (form === 'gclick') {
+                    setGclickForm(prev => ({ ...prev, inscricaoEstadual: response.data.inscricao_estadual }));
+                } else {
+                    setSciForm(prev => ({ ...prev, inscricaoEstadual: response.data.inscricao_estadual }));
+                }
+                toast.success('Inscrição Estadual encontrada!');
+            } else {
+                // Deixar em branco se não encontrar
+                toast.info('IE não encontrada no SINTEGRA. Verifique manualmente se necessário.');
+            }
+        } catch (error) {
+            console.error('Erro ao buscar IE:', error);
+        } finally {
+            setBuscandoIE(false);
+        }
+    };
 
     // Handlers GClick
     const handleGclickChange = (field, value) => {
@@ -134,14 +317,10 @@ const Cadastros = () => {
 
             if (response.data.success) {
                 toast.success('Empresa cadastrada com sucesso no GClick!');
+                // Recarregar histórico
+                carregarHistorico();
                 // Limpar formulário
-                setGclickForm({
-                    codigoCliente: '', razaoSocial: '', nomeFantasia: '', cnpj: '',
-                    inscricaoEstadual: '', inscricaoMunicipal: '', endereco: '', numero: '',
-                    complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '',
-                    telefone: '', email: '', observacoes: ''
-                });
-                setGclickSocios([{ nome: '', cpf: '', participacao: '', administrador: true }]);
+                limparFormularioGClick();
             } else {
                 toast.error(response.data.message || 'Erro ao cadastrar no GClick');
             }
@@ -153,8 +332,18 @@ const Cadastros = () => {
         }
     };
 
+    const limparFormularioGClick = () => {
+        setGclickForm({
+            codigoCliente: '', razaoSocial: '', nomeFantasia: '', cnpj: '',
+            inscricaoEstadual: '', inscricaoMunicipal: '', endereco: '', numero: '',
+            complemento: '', bairro: '', cidade: '', estado: 'SP', cep: '',
+            telefone: '', email: '', observacoes: ''
+        });
+        setGclickSocios([{ nome: '', cpf: '', participacao: '', administrador: true }]);
+    };
+
     // Handler SCI Único - Exportar dados
-    const handleExportarSCI = () => {
+    const handleExportarSCI = async () => {
         if (!sciForm.razaoSocial || !sciForm.cnpj) {
             toast.error('Preencha pelo menos a Razão Social e CNPJ');
             return;
@@ -192,11 +381,54 @@ E-MAIL: ${sciForm.email || 'N/A'}
 
         // Copiar para clipboard
         navigator.clipboard.writeText(dados);
-        toast.success('Dados copiados para a área de transferência! Cole no SCI Único.');
+        toast.success('Dados copiados para a área de transferência!');
+
+        // Salvar no histórico
+        try {
+            await axios.post(`${API_URL}/api/cadastros/salvar-sci`, {
+                razao_social: sciForm.razaoSocial,
+                cnpj: sciForm.cnpj,
+                nome_fantasia: sciForm.nomeFantasia,
+                inscricao_estadual: sciForm.inscricaoEstadual,
+                inscricao_municipal: sciForm.inscricaoMunicipal,
+                regime_tributario: sciForm.regime,
+                data_abertura: sciForm.dataAbertura,
+                capital_social: sciForm.capitalSocial,
+                endereco: sciForm.endereco + (sciForm.numero ? `, ${sciForm.numero}` : ''),
+                bairro: sciForm.bairro,
+                cidade: sciForm.cidade,
+                estado: sciForm.estado,
+                cep: sciForm.cep,
+                responsavel: sciForm.responsavel,
+                cpf_responsavel: sciForm.cpfResponsavel,
+                telefone: sciForm.telefone,
+                email: sciForm.email
+            });
+            carregarHistorico();
+        } catch (error) {
+            console.error('Erro ao salvar histórico:', error);
+        }
     };
 
     const handleSciChange = (field, value) => {
         setSciForm(prev => ({ ...prev, [field]: value }));
+    };
+
+    const limparFormularioSCI = () => {
+        setSciForm({
+            codigoCliente: '', razaoSocial: '', nomeFantasia: '', cnpj: '',
+            inscricaoEstadual: '', inscricaoMunicipal: '', regime: 'simples',
+            dataAbertura: '', capitalSocial: '', endereco: '', numero: '',
+            bairro: '', cidade: '', estado: 'SP', cep: '', responsavel: '',
+            cpfResponsavel: '', telefone: '', email: ''
+        });
+    };
+
+    // Formatar data
+    const formatarData = (dataStr) => {
+        if (!dataStr) return '-';
+        const data = new Date(dataStr);
+        return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     };
 
     return (
@@ -209,7 +441,71 @@ E-MAIL: ${sciForm.email || 'N/A'}
                         <p className="text-zinc-500 text-sm">Integração com sistemas externos</p>
                     </div>
                 </div>
+                <Button 
+                    variant="outline" 
+                    onClick={() => setShowHistorico(!showHistorico)}
+                    className="border-zinc-700 gap-2"
+                >
+                    <History className="w-4 h-4" />
+                    {showHistorico ? 'Ocultar Histórico' : 'Ver Histórico'}
+                    {historico.length > 0 && (
+                        <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">{historico.length}</span>
+                    )}
+                </Button>
             </div>
+
+            {/* Histórico de Cadastros */}
+            {showHistorico && (
+                <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <Clock className="w-5 h-5 text-zinc-400" />
+                            <h2 className="text-lg font-semibold text-white">Histórico de Cadastros</h2>
+                        </div>
+                        <Button size="sm" variant="ghost" onClick={carregarHistorico} disabled={loadingHistorico}>
+                            <RefreshCw className={`w-4 h-4 ${loadingHistorico ? 'animate-spin' : ''}`} />
+                        </Button>
+                    </div>
+                    
+                    {loadingHistorico ? (
+                        <div className="flex justify-center py-8">
+                            <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+                        </div>
+                    ) : historico.length === 0 ? (
+                        <p className="text-zinc-500 text-center py-8">Nenhum cadastro realizado ainda</p>
+                    ) : (
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                            {historico.map((item) => (
+                                <div key={item.id} className="flex items-center justify-between bg-zinc-800/50 border border-zinc-700 rounded-lg p-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-8 h-8 rounded flex items-center justify-center ${item.tipo === 'cadastro_direto_gclick' ? 'bg-green-600/20' : 'bg-blue-600/20'}`}>
+                                            {item.tipo === 'cadastro_direto_gclick' ? (
+                                                <Send className="w-4 h-4 text-green-500" />
+                                            ) : (
+                                                <FileText className="w-4 h-4 text-blue-500" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <p className="text-white font-medium text-sm">
+                                                {item.dados_enviados?.nome || item.dados_enviados?.razao_social || 'Empresa'}
+                                            </p>
+                                            <p className="text-zinc-500 text-xs">
+                                                {item.dados_enviados?.cpf_cnpj || item.dados_enviados?.cnpj || '-'} • {item.tipo === 'cadastro_direto_gclick' ? 'GClick' : 'SCI Único'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-zinc-500 text-xs">{formatarData(item.created_at)}</span>
+                                        {item.gclick_response?.id && (
+                                            <CheckCircle className="w-4 h-4 text-green-500" title="Enviado com sucesso" />
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="bg-zinc-900 border border-zinc-800 mb-6">
@@ -226,15 +522,36 @@ E-MAIL: ${sciForm.email || 'N/A'}
                 {/* Aba GClick */}
                 <TabsContent value="gclick">
                     <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-                        <div className="flex items-center gap-2 mb-6">
-                            <div className="w-10 h-10 bg-green-600/20 rounded-lg flex items-center justify-center">
-                                <Send className="w-5 h-5 text-green-500" />
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-2">
+                                <div className="w-10 h-10 bg-green-600/20 rounded-lg flex items-center justify-center">
+                                    <Send className="w-5 h-5 text-green-500" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-semibold text-white">Cadastro GClick</h2>
+                                    <p className="text-zinc-500 text-sm">Envie dados diretamente para o GClick</p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className="text-lg font-semibold text-white">Cadastro GClick</h2>
-                                <p className="text-zinc-500 text-sm">Envie dados diretamente para o GClick</p>
+                            <div className="flex gap-2">
+                                <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleExtrairIA} />
+                                <Button 
+                                    variant="outline" 
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={extraindo}
+                                    className="border-red-600/50 text-red-500 hover:bg-red-600/20 gap-2"
+                                >
+                                    {extraindo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                    Preencher com IA
+                                </Button>
+                                <Button variant="ghost" onClick={limparFormularioGClick} className="text-zinc-500">
+                                    Limpar
+                                </Button>
                             </div>
                         </div>
+
+                        <p className="text-xs text-zinc-500 mb-4 bg-zinc-800/50 p-2 rounded">
+                            💡 Anexe Cartão CNPJ, Contrato Social ou Certidão da Junta para preenchimento automático
+                        </p>
 
                         <div className="grid grid-cols-2 gap-6">
                             {/* Coluna Esquerda - Dados da Empresa */}
@@ -286,11 +603,14 @@ E-MAIL: ${sciForm.email || 'N/A'}
                                         />
                                     </div>
                                     <div>
-                                        <Label className="text-zinc-500 text-xs">Insc. Estadual</Label>
+                                        <Label className="text-zinc-500 text-xs flex items-center gap-1">
+                                            Insc. Estadual
+                                            {buscandoIE && <Loader2 className="w-3 h-3 animate-spin" />}
+                                        </Label>
                                         <Input
                                             value={gclickForm.inscricaoEstadual}
                                             onChange={(e) => handleGclickChange('inscricaoEstadual', e.target.value)}
-                                            placeholder="000.000.000.000"
+                                            placeholder="Automático"
                                             className="bg-zinc-800 border-zinc-700 mt-1"
                                         />
                                     </div>
@@ -483,15 +803,36 @@ E-MAIL: ${sciForm.email || 'N/A'}
                 {/* Aba SCI Único */}
                 <TabsContent value="sci">
                     <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-                        <div className="flex items-center gap-2 mb-6">
-                            <div className="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center">
-                                <FileText className="w-5 h-5 text-blue-500" />
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-2">
+                                <div className="w-10 h-10 bg-blue-600/20 rounded-lg flex items-center justify-center">
+                                    <FileText className="w-5 h-5 text-blue-500" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-semibold text-white">Exportar para SCI Único</h2>
+                                    <p className="text-zinc-500 text-sm">Gere os dados formatados para importar manualmente no SCI</p>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className="text-lg font-semibold text-white">Exportar para SCI Único</h2>
-                                <p className="text-zinc-500 text-sm">Gere os dados formatados para importar manualmente no SCI</p>
+                            <div className="flex gap-2">
+                                <input ref={sciFileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleExtrairIASci} />
+                                <Button 
+                                    variant="outline" 
+                                    onClick={() => sciFileInputRef.current?.click()}
+                                    disabled={extraindoSci}
+                                    className="border-red-600/50 text-red-500 hover:bg-red-600/20 gap-2"
+                                >
+                                    {extraindoSci ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                    Preencher com IA
+                                </Button>
+                                <Button variant="ghost" onClick={limparFormularioSCI} className="text-zinc-500">
+                                    Limpar
+                                </Button>
                             </div>
                         </div>
+
+                        <p className="text-xs text-zinc-500 mb-4 bg-zinc-800/50 p-2 rounded">
+                            💡 Anexe Cartão CNPJ, Contrato Social ou Certidão da Junta para preenchimento automático
+                        </p>
 
                         <div className="grid grid-cols-2 gap-6">
                             {/* Coluna Esquerda */}
@@ -543,10 +884,14 @@ E-MAIL: ${sciForm.email || 'N/A'}
                                         />
                                     </div>
                                     <div>
-                                        <Label className="text-zinc-500 text-xs">Insc. Estadual</Label>
+                                        <Label className="text-zinc-500 text-xs flex items-center gap-1">
+                                            Insc. Estadual
+                                            {buscandoIE && <Loader2 className="w-3 h-3 animate-spin" />}
+                                        </Label>
                                         <Input
                                             value={sciForm.inscricaoEstadual}
                                             onChange={(e) => handleSciChange('inscricaoEstadual', e.target.value)}
+                                            placeholder="Automático"
                                             className="bg-zinc-800 border-zinc-700 mt-1"
                                         />
                                     </div>
