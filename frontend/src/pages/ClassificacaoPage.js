@@ -1204,6 +1204,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
               </button>
             </div>
           </div>
+        </div>
             
           {/* Campo de Busca */}
           <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
