@@ -97,9 +97,11 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - `POST /api/convencao/analisar`
 
 ### Validação de Folha
-- `GET /api/validacoes`
-- `POST /api/validacoes/analisar`
-- `POST /api/validacoes/comparar-apoio`
+- `GET /api/validacoes` - Lista validações (filtro por cliente opcional)
+- `GET /api/validacoes/{id}` - Detalhes completos de uma validação
+- `POST /api/validacoes/validar-completa` - Validação unificada (holerite_atual, holerite_anterior, apoio_files)
+- `POST /api/validacoes/analisar` - Análise simples (legado)
+- `POST /api/validacoes/comparar-apoio` - Comparação com apoio (legado)
 
 ### Informes de Rendimento
 - `GET /api/informes/historico`
