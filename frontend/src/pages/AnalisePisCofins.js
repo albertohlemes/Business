@@ -27,6 +27,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
   const [busca, setBusca] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'impacto_total', direction: 'desc' });
   const [expandedDoc, setExpandedDoc] = useState(null);
+  const [visualizacao, setVisualizacao] = useState('nf'); // 'nf', 'produto', 'ncm'
 
   const fetchData = useCallback(async () => {
     if (!selectedCompany) return;
