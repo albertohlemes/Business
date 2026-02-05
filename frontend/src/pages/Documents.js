@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { FileText, Eye, Filter, Calendar, Trash2, AlertTriangle } from 'lucide-react';
+import { FileText, Eye, Filter, Calendar, Trash2, AlertTriangle, CheckCircle2, XCircle, Shield, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 
