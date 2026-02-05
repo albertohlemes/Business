@@ -1725,6 +1725,32 @@ const WizardConstituicao = ({ open, onClose, onComplete, processoEditando }) => 
                                         />
                                     </div>
                                 </div>
+                                
+                                {/* Inscrições */}
+                                <div className="grid grid-cols-2 gap-4 mt-4">
+                                    <div>
+                                        <Label className="text-zinc-400 text-xs uppercase mb-2 block">
+                                            Inscrição Estadual
+                                        </Label>
+                                        <Input
+                                            value={inscricaoEstadual}
+                                            onChange={(e) => setInscricaoEstadual(e.target.value)}
+                                            placeholder="000.000.000.000"
+                                            className="bg-zinc-950 border-zinc-800"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label className="text-zinc-400 text-xs uppercase mb-2 block">
+                                            Inscrição Municipal
+                                        </Label>
+                                        <Input
+                                            value={inscricaoMunicipal}
+                                            onChange={(e) => setInscricaoMunicipal(e.target.value)}
+                                            placeholder="000.000.000"
+                                            className="bg-zinc-950 border-zinc-800"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
