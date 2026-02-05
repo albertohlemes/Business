@@ -94,7 +94,7 @@ const ExportMenu = ({ user, onLogout }) => {
       if (activeTab === 'sped') {
           const periodoFormatado = competencia.replace('/', '');
           response = await axios.get(
-            `${API}/sped/export/${selectedCompany}?competencia=${competencia}&periodo=${periodoFormatado}`,
+            `${API}/sped/export/${selectedCompany}?competencia=${competencia}&periodo=${periodoFormatado}&excluir_creditos_despesa_st=${excluirCreditosDespesaST}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           filename = response.data.filename;
