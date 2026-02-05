@@ -244,6 +244,29 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 32 (05/02/2026)
+- ✅ **BUG FIX P0: Biblioteca thefuzz instalada**
+  - **Problema:** O endpoint `/api/ai/smart-reclassify` falhava com `ModuleNotFoundError` porque `thefuzz` não estava instalado
+  - **Solução:** Instalado `thefuzz` (v0.22.1) e `python-Levenshtein` para performance
+  - **Resultado:** Funcionalidade de reclassificação inteligente restaurada
+
+- ✅ **SPED FISCAL: Dados completos dos participantes (Registro 0150)**
+  - **Problema:** O usuário reportou que os dados dos fornecedores estavam incompletos no SPED (sem endereço)
+  - **Solução:** 
+    1. Modificado `parse_xml_nfe()`, `parse_xml_nfce()` e `parse_xml_nfse()` para extrair dados completos de endereço:
+       - logradouro, numero, complemento, bairro, cidade, cod_municipio, uf, cep, ie
+    2. Atualizado modelo `XMLDocument` com novos campos: `emitente_ie`, `emitente_endereco`, `destinatario_ie`, `destinatario_endereco`
+    3. Modificado `generate_sped_fiscal()` para gerar registro 0150 com todos os campos:
+       - COD_PART, NOME, COD_PAIS, CNPJ, IE, COD_MUN, END, NUM, COMPL, BAIRRO
+  - **Resultado:** Registro 0150 agora inclui endereço completo dos participantes
+  - **Nota:** Documentos importados antes desta alteração não terão os novos campos. Apenas novos uploads terão os dados completos.
+
+- ✅ **TESTES: 12/12 testes passaram**
+  - Verificado: thefuzz instalado e funcionando
+  - Verificado: Extração de endereço do emitente e destinatário
+  - Verificado: SPED registro 0150 com dados completos
+  - Arquivo de teste: `/app/backend/tests/test_iteration14_features.py`
+
 ### 02/2026 - Iteration 31 (04/02/2026)
 - ✅ **CORREÇÃO: Crédito PIS/COFINS divergente entre Dashboard e Apuração**
   - **Problema:** O Dashboard mostrava valores de crédito diferentes da página "Apuração Mensal"
