@@ -125,7 +125,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
       return;
     }
     
-    const confirmMsg = `⚠️ REIMPORTAR DOCUMENTOS\n\nIsso irá:\n• Re-extrair TODOS os dados dos XMLs originais\n• APAGAR todas as classificações anteriores\n• Aplicar classificação da IA do zero\n• Resetar status para pendente\n\nÉ como se você apagasse e importasse novamente.\n\nDeseja continuar?`;
+    const confirmMsg = `⚠️ REIMPORTAR ENTRADAS\n\nIsso irá processar apenas notas de ENTRADA:\n• Re-extrair TODOS os dados dos XMLs originais\n• APAGAR todas as classificações anteriores\n• Aplicar classificação da IA do zero\n• Resetar status para pendente\n\nNotas de SAÍDA (emissão própria) serão IGNORADAS.\n\nDeseja continuar?`;
     
     if (!window.confirm(confirmMsg)) {
       return;
