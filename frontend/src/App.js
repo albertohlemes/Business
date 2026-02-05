@@ -83,6 +83,14 @@ function AppRoutes() {
                 } 
             />
             <Route 
+                path="/lixeira" 
+                element={
+                    <ProtectedRoute>
+                        <Lixeira />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
                 path="/minutas" 
                 element={<Navigate to="/processos" replace />}
             />
