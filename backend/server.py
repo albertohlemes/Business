@@ -3625,36 +3625,48 @@ async def reimport_batch(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Re-importa completamente todos os XMLs de uma competência.
+    Re-importa completamente todos os XMLs de ENTRADA de uma competência.
     Funciona como se os documentos fossem apagados e importados novamente:
     - Re-extrai TODOS os dados do XML original
     - APAGA todas as classificações anteriores
     - Aplica classificação da IA do zero
     - Atualiza status normalmente
+    NOTA: Saídas (emissão própria) são IGNORADAS - não precisam de classificação
     """
-    # Buscar documentos
-    documents = await db.xml_documents.find(
-        {"company_id": company_id, "competencia": competencia},
-        {"_id": 0}
-    ).to_list(2000)
-    
-    if not documents:
-        return {"success": False, "error": "Nenhum documento encontrado"}
-    
     # Buscar dados da empresa
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         return {"success": False, "error": "Empresa não encontrada"}
     
+    cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
     uf_empresa = company.get('uf', 'SP')
+    
+    # Buscar todos os documentos
+    all_documents = await db.xml_documents.find(
+        {"company_id": company_id, "competencia": competencia},
+        {"_id": 0}
+    ).to_list(2000)
+    
+    if not all_documents:
+        return {"success": False, "error": "Nenhum documento encontrado"}
+    
+    # Filtrar apenas documentos de ENTRADA
+    documents = []
+    for doc in all_documents:
+        cnpj_emit = (doc.get('emitente_cnpj') or doc.get('cnpj_emitente', '')).replace('.', '').replace('/', '').replace('-', '')
+        if cnpj_emit != cnpj_empresa:
+            documents.append(doc)
+    
+    if not documents:
+        return {"success": False, "error": "Nenhum documento de ENTRADA encontrado"}
     
     results = {
         "total": len(documents), 
         "success": 0, 
         "errors": 0, 
         "classificados": 0,
-        "entradas": 0,
-        "saidas": 0
+        "entradas": len(documents),
+        "saidas_ignoradas": len(all_documents) - len(documents)
     }
     
     for doc in documents:
@@ -3673,24 +3685,14 @@ async def reimport_batch(
             else:
                 parsed = parse_xml_nfe(xml_content)
             
-            # Determinar tipo (entrada/saída) baseado no CNPJ
-            cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
-            cnpj_emitente = parsed.get('cnpj_emitente', '').replace('.', '').replace('/', '').replace('-', '')
-            cnpj_destinatario = parsed.get('cnpj_destinatario', '').replace('.', '').replace('/', '').replace('-', '')
-            
-            if cnpj_emitente == cnpj_empresa:
-                tipo = 'saida'
-                results['saidas'] += 1
-            else:
-                tipo = 'entrada'
-                results['entradas'] += 1
-            
+            # Já sabemos que é ENTRADA (filtrado acima)
+            tipo = 'entrada'
             emitente_uf = parsed.get('emitente_uf', '')
             produtos = parsed.get('produtos', [])
             
-            # Para ENTRADAS: Classificar produtos com IA
-            if tipo == 'entrada' and produtos:
-                # Converter CFOPs de saída para entrada
+            # Classificar produtos de ENTRADA com IA
+            if produtos:
+                # Converter CFOPs de saída para entrada (o XML vem com CFOP do emitente)
                 for product in produtos:
                     cfop = str(product.get('cfop', ''))
                     if cfop.startswith('5') or cfop.startswith('6'):
