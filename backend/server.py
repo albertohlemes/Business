@@ -7547,6 +7547,12 @@ async def exportar_e_validar_sped(
                 'status': status_cfop
             })
     
+    # Adicionar itens pendentes (CST tributado mas ICMS = 0) à validação
+    if itens_pendentes:
+        validacao['status'] = 'PENDENTE'
+        validacao['itens_pendentes'] = itens_pendentes[:100]  # Limitar a 100 itens
+        validacao['total_itens_pendentes'] = len(itens_pendentes)
+    
     # Gerar filename
     cnpj_limpo = company.cnpj.replace('.', '').replace('/', '').replace('-', '')
     filename = f"SPED_{cnpj_limpo}_{competencia.replace('/', '')}.txt"
