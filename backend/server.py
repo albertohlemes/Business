@@ -479,9 +479,39 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
         total = nfe.get('total', {}).get('ICMSTot', {})
         det = nfe.get('det', [])
         
-        # Extrair UF do emitente
+        # Extrair dados completos do emitente (endereço)
         enderEmit = emit.get('enderEmit', {})
         emitente_uf = enderEmit.get('UF', '')
+        emitente_endereco = {
+            'logradouro': enderEmit.get('xLgr', ''),
+            'numero': enderEmit.get('nro', ''),
+            'complemento': enderEmit.get('xCpl', ''),
+            'bairro': enderEmit.get('xBairro', ''),
+            'cidade': enderEmit.get('xMun', ''),
+            'cod_municipio': enderEmit.get('cMun', ''),
+            'uf': emitente_uf,
+            'cep': enderEmit.get('CEP', ''),
+            'pais': enderEmit.get('xPais', 'BRASIL'),
+            'cod_pais': enderEmit.get('cPais', '1058'),
+            'telefone': enderEmit.get('fone', '')
+        }
+        
+        # Extrair dados completos do destinatário (endereço)
+        enderDest = dest.get('enderDest', {})
+        destinatario_uf = enderDest.get('UF', '')
+        destinatario_endereco = {
+            'logradouro': enderDest.get('xLgr', ''),
+            'numero': enderDest.get('nro', ''),
+            'complemento': enderDest.get('xCpl', ''),
+            'bairro': enderDest.get('xBairro', ''),
+            'cidade': enderDest.get('xMun', ''),
+            'cod_municipio': enderDest.get('cMun', ''),
+            'uf': destinatario_uf,
+            'cep': enderDest.get('CEP', ''),
+            'pais': enderDest.get('xPais', 'BRASIL'),
+            'cod_pais': enderDest.get('cPais', '1058'),
+            'telefone': enderDest.get('fone', '')
+        }
         
         # Totais do documento (frete, seguro, outras despesas, desconto, IPI, ICMS-ST)
         vFrete_total = float(total.get('vFrete', 0) or 0)
