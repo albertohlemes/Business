@@ -1,10 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { toast } from 'sonner';
-import { FileSpreadsheet, Upload, Loader2, FileUp, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { FileSpreadsheet, Upload, Loader2, FileUp, AlertTriangle, CheckCircle2, XCircle, Download, History, ArrowLeftRight } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -16,6 +16,23 @@ const InformesRendimento = () => {
   const [esocialFile, setEsocialFile] = useState(null);
   const [sistemaFile, setSistemaFile] = useState(null);
   const [comparisonResult, setComparisonResult] = useState(null);
+  const [historico, setHistorico] = useState([]);
+  const [loadingHistorico, setLoadingHistorico] = useState(true);
+
+  useEffect(() => {
+    fetchHistorico();
+  }, []);
+
+  const fetchHistorico = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/informes/historico`);
+      setHistorico(response.data);
+    } catch (error) {
+      console.error('Erro ao carregar histórico');
+    } finally {
+      setLoadingHistorico(false);
+    }
+  };
 
   const handleCompare = async () => {
     if (!esocialFile || !sistemaFile) {
@@ -36,6 +53,7 @@ const InformesRendimento = () => {
       setDialogOpen(false);
       setResultDialogOpen(true);
       toast.success('Comparação concluída!');
+      fetchHistorico();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Erro ao comparar informes');
     } finally {
@@ -47,12 +65,18 @@ const InformesRendimento = () => {
     const onDrop = useCallback((acceptedFiles) => {
       if (acceptedFiles.length > 0) {
         setEsocialFile(acceptedFiles[0]);
+        toast.success('Arquivo eSocial carregado');
       }
     }, []);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
       onDrop,
-      accept: { 'application/pdf': ['.pdf'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
+      accept: { 
+        'application/pdf': ['.pdf'], 
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+        'application/vnd.ms-excel': ['.xls'],
+        'text/csv': ['.csv']
+      },
       maxFiles: 1
     });
 
@@ -60,18 +84,20 @@ const InformesRendimento = () => {
       <div
         {...getRootProps()}
         data-testid="dropzone-esocial"
-        className={`upload-zone ${isDragActive ? 'active' : ''} ${esocialFile ? 'border-emerald-500 bg-emerald-50' : ''}`}
+        className={`upload-zone min-h-[120px] ${isDragActive ? 'active' : ''} ${esocialFile ? 'border-emerald-300 bg-emerald-50' : ''}`}
       >
         <input {...getInputProps()} />
         {esocialFile ? (
-          <div className="flex items-center gap-2 text-emerald-700">
-            <CheckCircle2 size={20} />
-            <span className="font-medium">{esocialFile.name}</span>
+          <div className="flex flex-col items-center text-emerald-700">
+            <CheckCircle2 size={24} className="mb-1" />
+            <span className="font-medium text-sm">{esocialFile.name}</span>
+            <span className="text-xs text-slate-400 mt-1">Clique para trocar</span>
           </div>
         ) : (
           <>
-            <FileUp className="mx-auto text-slate-400 mb-2" size={24} />
-            <p className="text-slate-600 text-sm">Arquivo do eSocial</p>
+            <FileUp className="mx-auto text-indigo-400 mb-2" size={28} />
+            <p className="text-slate-600 text-sm font-medium">eSocial</p>
+            <p className="text-xs text-slate-400">PDF, Excel ou CSV</p>
           </>
         )}
       </div>
@@ -82,12 +108,18 @@ const InformesRendimento = () => {
     const onDrop = useCallback((acceptedFiles) => {
       if (acceptedFiles.length > 0) {
         setSistemaFile(acceptedFiles[0]);
+        toast.success('Arquivo SCI Único carregado');
       }
     }, []);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
       onDrop,
-      accept: { 'application/pdf': ['.pdf'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
+      accept: { 
+        'application/pdf': ['.pdf'], 
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+        'application/vnd.ms-excel': ['.xls'],
+        'text/csv': ['.csv']
+      },
       maxFiles: 1
     });
 
@@ -95,18 +127,20 @@ const InformesRendimento = () => {
       <div
         {...getRootProps()}
         data-testid="dropzone-sistema"
-        className={`upload-zone ${isDragActive ? 'active' : ''} ${sistemaFile ? 'border-emerald-500 bg-emerald-50' : ''}`}
+        className={`upload-zone min-h-[120px] ${isDragActive ? 'active' : ''} ${sistemaFile ? 'border-emerald-300 bg-emerald-50' : ''}`}
       >
         <input {...getInputProps()} />
         {sistemaFile ? (
-          <div className="flex items-center gap-2 text-emerald-700">
-            <CheckCircle2 size={20} />
-            <span className="font-medium">{sistemaFile.name}</span>
+          <div className="flex flex-col items-center text-emerald-700">
+            <CheckCircle2 size={24} className="mb-1" />
+            <span className="font-medium text-sm">{sistemaFile.name}</span>
+            <span className="text-xs text-slate-400 mt-1">Clique para trocar</span>
           </div>
         ) : (
           <>
-            <FileUp className="mx-auto text-slate-400 mb-2" size={24} />
-            <p className="text-slate-600 text-sm">Arquivo do Sistema</p>
+            <FileUp className="mx-auto text-amber-500 mb-2" size={28} />
+            <p className="text-slate-600 text-sm font-medium">SCI Único</p>
+            <p className="text-xs text-slate-400">PDF, Excel ou CSV</p>
           </>
         )}
       </div>
@@ -137,6 +171,7 @@ const InformesRendimento = () => {
 
   const formatCurrency = (value) => {
     if (value === undefined || value === null) return 'N/A';
+    if (typeof value === 'string') return value;
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
@@ -145,7 +180,7 @@ const InformesRendimento = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Informes de Rendimento</h1>
-          <p className="text-slate-500 mt-1">Compare eSocial com o sistema interno e detecte divergências</p>
+          <p className="text-slate-500 mt-1">Compare eSocial com o SCI Único e detecte divergências</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEsocialFile(null); setSistemaFile(null); } }}>
           <Button
@@ -153,25 +188,37 @@ const InformesRendimento = () => {
             onClick={() => setDialogOpen(true)}
             className="bg-indigo-600 hover:bg-indigo-700"
           >
-            <FileSpreadsheet size={18} className="mr-2" />
+            <ArrowLeftRight size={18} className="mr-2" />
             Comparar Informes
           </Button>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Comparar Informes de Rendimento</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="text-indigo-600" size={20} />
+                Comparar Informes de Rendimento
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
-              <p className="text-sm text-slate-500">
-                Faça upload dos dois arquivos para comparação automática
-              </p>
+              <Card className="border-indigo-200 bg-indigo-50">
+                <CardContent className="p-3 text-sm text-indigo-800">
+                  <p className="font-medium">eSocial vs SCI Único</p>
+                  <p className="text-indigo-600">Faça upload dos relatórios para verificar divergências em rendimentos, IR, INSS e FGTS.</p>
+                </CardContent>
+              </Card>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-slate-700 mb-2">eSocial</p>
+                  <p className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                    Relatório eSocial
+                  </p>
                   <EsocialDropzone />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-700 mb-2">Sistema Interno</p>
+                  <p className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    Relatório SCI Único
+                  </p>
                   <SistemaDropzone />
                 </div>
               </div>
@@ -188,7 +235,10 @@ const InformesRendimento = () => {
                     Comparando com IA...
                   </>
                 ) : (
-                  'Iniciar Comparação'
+                  <>
+                    <ArrowLeftRight size={18} className="mr-2" />
+                    Iniciar Comparação
+                  </>
                 )}
               </Button>
             </div>
@@ -198,9 +248,9 @@ const InformesRendimento = () => {
 
       {/* Result Dialog */}
       <Dialog open={resultDialogOpen} onOpenChange={setResultDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Resultado da Comparação</DialogTitle>
+            <DialogTitle>Resultado da Comparação - eSocial vs SCI Único</DialogTitle>
           </DialogHeader>
           {comparisonResult && (
             <div className="space-y-4 mt-4">
@@ -209,7 +259,7 @@ const InformesRendimento = () => {
                 <Card className="border-slate-200">
                   <CardContent className="p-4 text-center">
                     <p className="text-2xl font-bold text-slate-900 font-mono">{comparisonResult.total_comparados || 0}</p>
-                    <p className="text-xs text-slate-500">Comparados</p>
+                    <p className="text-xs text-slate-500">Funcionários Comparados</p>
                   </CardContent>
                 </Card>
                 <Card className={`border-2 ${comparisonResult.divergencias_encontradas > 0 ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}`}>
@@ -234,6 +284,40 @@ const InformesRendimento = () => {
                 </Card>
               </div>
 
+              {/* Funcionários apenas em um sistema */}
+              {(comparisonResult.funcionarios_apenas_esocial?.length > 0 || comparisonResult.funcionarios_apenas_sci?.length > 0) && (
+                <div className="grid grid-cols-2 gap-4">
+                  {comparisonResult.funcionarios_apenas_esocial?.length > 0 && (
+                    <Card className="border-indigo-200">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm text-indigo-800">Apenas no eSocial</CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <ul className="text-sm text-indigo-700 space-y-1">
+                          {comparisonResult.funcionarios_apenas_esocial.map((f, i) => (
+                            <li key={i}>• {f}</li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {comparisonResult.funcionarios_apenas_sci?.length > 0 && (
+                    <Card className="border-amber-200">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm text-amber-800">Apenas no SCI Único</CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <ul className="text-sm text-amber-700 space-y-1">
+                          {comparisonResult.funcionarios_apenas_sci.map((f, i) => (
+                            <li key={i}>• {f}</li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
               {/* Divergências */}
               {comparisonResult.divergencias && comparisonResult.divergencias.length > 0 && (
                 <Card className="border-slate-200 overflow-hidden">
@@ -241,13 +325,13 @@ const InformesRendimento = () => {
                     <CardTitle className="text-base">Divergências Encontradas</CardTitle>
                   </CardHeader>
                   <div className="overflow-x-auto">
-                    <table className="table-dp">
+                    <table className="table-dp text-sm">
                       <thead>
                         <tr>
                           <th>Funcionário</th>
                           <th>Campo</th>
                           <th className="text-right">eSocial</th>
-                          <th className="text-right">Sistema</th>
+                          <th className="text-right">SCI Único</th>
                           <th className="text-right">Diferença</th>
                           <th>Severidade</th>
                         </tr>
@@ -261,7 +345,7 @@ const InformesRendimento = () => {
                             </td>
                             <td className="text-sm">{d.campo}</td>
                             <td className="text-right font-mono text-sm">{formatCurrency(d.valor_esocial)}</td>
-                            <td className="text-right font-mono text-sm">{formatCurrency(d.valor_sistema)}</td>
+                            <td className="text-right font-mono text-sm">{formatCurrency(d.valor_sci_unico || d.valor_sistema)}</td>
                             <td className="text-right font-mono text-sm font-semibold text-rose-600">
                               {formatCurrency(d.diferenca)}
                             </td>
@@ -305,26 +389,59 @@ const InformesRendimento = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Instructions Card */}
-      <Card className="border-slate-200">
-        <CardContent className="py-16 text-center">
-          <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-            <FileSpreadsheet className="text-slate-400" size={32} />
+      {/* Histórico de Comparações */}
+      {!loadingHistorico && historico.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <History size={18} />
+            Histórico de Comparações
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {historico.slice(0, 6).map((comp) => (
+              <Card key={comp.id} className="border-slate-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-slate-500">
+                      {new Date(comp.created_at).toLocaleDateString('pt-BR')}
+                    </span>
+                    {comp.divergencias_encontradas === 0 ? (
+                      <span className="badge-success"><CheckCircle2 size={12} className="mr-1" />OK</span>
+                    ) : (
+                      <span className="badge-error"><AlertTriangle size={12} className="mr-1" />{comp.divergencias_encontradas}</span>
+                    )}
+                  </div>
+                  <div className="text-sm text-slate-600 space-y-1">
+                    <p><span className="text-slate-400">Comparados:</span> <span className="font-mono">{comp.total_comparados || 0}</span></p>
+                    <p><span className="text-slate-400">Divergências:</span> <span className="font-mono">{comp.divergencias_encontradas || 0}</span></p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-          <p className="text-slate-500">Compare informes de rendimento</p>
-          <p className="text-sm text-slate-400 mt-1 max-w-md mx-auto">
-            Faça upload do arquivo gerado pelo eSocial e do relatório do seu sistema
-            para verificar automaticamente se os valores estão corretos
-          </p>
-          <Button
-            onClick={() => setDialogOpen(true)}
-            className="mt-6 bg-indigo-600 hover:bg-indigo-700"
-            data-testid="start-comparison-cta"
-          >
-            Iniciar Comparação
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+      )}
+
+      {/* Instructions Card - Only show if no history */}
+      {!loadingHistorico && historico.length === 0 && (
+        <Card className="border-slate-200">
+          <CardContent className="py-16 text-center">
+            <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+              <FileSpreadsheet className="text-slate-400" size={32} />
+            </div>
+            <p className="text-slate-500">Compare informes de rendimento</p>
+            <p className="text-sm text-slate-400 mt-1 max-w-md mx-auto">
+              Faça upload do arquivo gerado pelo <strong>eSocial</strong> e do relatório do <strong>SCI Único</strong> para verificar automaticamente se os valores estão corretos
+            </p>
+            <Button
+              onClick={() => setDialogOpen(true)}
+              className="mt-6 bg-indigo-600 hover:bg-indigo-700"
+              data-testid="start-comparison-cta"
+            >
+              Iniciar Comparação
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
