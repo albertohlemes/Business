@@ -2053,14 +2053,17 @@ async def gerar_contrato_constituicao(
         
         admin_texto = ", ".join([a.nome for a in administradores])
         
-        # Calcular quotas
+        # Calcular quotas - formato mais claro para o documento
         capital_valor = float(empresa.capital_social.replace('.', '').replace(',', '.'))
         quadro_quotas = ""
-        for socio in socios:
+        for i, socio in enumerate(socios):
             perc = float(socio.participacao)
             valor_quotas = capital_valor * perc / 100
             qtd_quotas = int(valor_quotas)  # 1 quota = R$ 1,00
-            quadro_quotas += f"- {socio.nome}: {qtd_quotas} quotas ({perc}%) = R$ {valor_quotas:,.2f}\n"
+            quadro_quotas += f"   {socio.nome.upper()}\n"
+            quadro_quotas += f"   {qtd_quotas:,} ({int(qtd_quotas)} por extenso) quotas\n"
+            quadro_quotas += f"   {perc:.0f}% ({perc:.0f} por cento) do capital social\n"
+            quadro_quotas += f"   R$ {valor_quotas:,.2f} ({valor_quotas:.2f} por extenso)\n\n"
         
         from emergentintegrations.llm.chat import LlmChat, UserMessage
         
