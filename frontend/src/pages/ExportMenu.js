@@ -66,7 +66,7 @@ const ExportMenu = ({ user, onLogout }) => {
     }
   };
 
-  const fetchDocumentsAndCompetencias = async (companyId) => {
+  const fetchDocumentsAndCompetencias = async (companyId, preserveCompetencia = null) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API}/xml/documents?company_id=${companyId}`, {
@@ -86,8 +86,10 @@ const ExportMenu = ({ user, onLogout }) => {
       setAvailableCompetencias(competencias);
       setDocumentsCount(response.data.length);
       
-      // Se a competência atual não existe na lista, selecionar a primeira (mais recente)
-      if (competencias.length > 0 && !competencias.includes(competencia)) {
+      // Se tem competência para preservar e ela existe na lista, manter
+      // Senão, se a competência atual não existe na lista, selecionar a primeira (mais recente)
+      const competenciaParaUsar = preserveCompetencia || competencia;
+      if (competencias.length > 0 && !competencias.includes(competenciaParaUsar)) {
         setCompetencia(competencias[0]);
       }
     } catch (err) {
