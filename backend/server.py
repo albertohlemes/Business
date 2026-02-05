@@ -14,7 +14,6 @@ import jwt
 import bcrypt
 import json
 import tempfile
-import aiofiles
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
