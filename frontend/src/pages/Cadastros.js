@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { 
     Database, Send, Building2, Users, MapPin, FileText, 
     Loader2, CheckCircle, Download, Plus, Trash2, Sparkles,
-    History, RefreshCw, Eye, Search, Upload, Clock
+    History, RefreshCw, Eye, Search, Upload, Clock, Bot, Copy
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
