@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
 import { 
   AlertTriangle, TrendingDown, TrendingUp, Brain, RefreshCw, 
   ChevronDown, ChevronUp, DollarSign, Package, FileText,
-  AlertCircle, CheckCircle, XCircle, Lightbulb, Target
+  AlertCircle, CheckCircle, XCircle, Lightbulb, Target,
+  ArrowUpDown, ArrowUp, ArrowDown, Search, Filter
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -18,7 +19,12 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
   const [error, setError] = useState(null);
   const [expandedVilao, setExpandedVilao] = useState(null);
   const [expandedOportunidade, setExpandedOportunidade] = useState(null);
-  const [activeTab, setActiveTab] = useState('viloes'); // viloes, oportunidades, ncm, insights
+  const [activeTab, setActiveTab] = useState('viloes');
+  
+  // Filtros e Ordenação
+  const [filtroNCM, setFiltroNCM] = useState('');
+  const [filtroProduto, setFiltroProduto] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const fetchAnalise = useCallback(async () => {
     if (!selectedCompany?.id || !selectedCompetencia) return;
@@ -49,6 +55,151 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+  };
+
+  // Extrair NCMs únicos para o filtro
+  const ncmsUnicos = useMemo(() => {
+    if (!data?.analise_por_ncm) return [];
+    const ncms = [...new Set(data.analise_por_ncm.map(item => item.ncm))];
+    return ncms.filter(ncm => ncm).sort();
+  }, [data]);
+
+  // Função de ordenação
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Renderizar ícone de ordenação
+  const SortIcon = ({ columnKey }) => {
+    if (sortConfig.key !== columnKey) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
+    }
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp className="w-4 h-4 text-blue-600" />
+      : <ArrowDown className="w-4 h-4 text-blue-600" />;
+  };
+
+  // Filtrar e ordenar dados NCM
+  const filteredNcmData = useMemo(() => {
+    if (!data?.analise_por_ncm) return [];
+    
+    let filtered = [...data.analise_por_ncm];
+    
+    // Aplicar filtro por NCM
+    if (filtroNCM) {
+      filtered = filtered.filter(item => item.ncm === filtroNCM);
+    }
+    
+    // Aplicar filtro por produto (descrição)
+    if (filtroProduto) {
+      const search = filtroProduto.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.descricao?.toLowerCase().includes(search)
+      );
+    }
+    
+    // Aplicar ordenação
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+        
+        // Converter para número se for valor numérico
+        if (typeof aValue === 'number' || !isNaN(parseFloat(aValue))) {
+          aValue = parseFloat(aValue) || 0;
+          bValue = parseFloat(bValue) || 0;
+        }
+        
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    
+    return filtered;
+  }, [data, filtroNCM, filtroProduto, sortConfig]);
+
+  // Filtrar e ordenar vilões
+  const filteredViloes = useMemo(() => {
+    if (!data?.viloes_tributarios) return [];
+    
+    let filtered = [...data.viloes_tributarios];
+    
+    if (filtroNCM) {
+      filtered = filtered.filter(item => item.ncm === filtroNCM);
+    }
+    
+    if (filtroProduto) {
+      const search = filtroProduto.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.descricao?.toLowerCase().includes(search)
+      );
+    }
+    
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+        
+        if (typeof aValue === 'number' || !isNaN(parseFloat(aValue))) {
+          aValue = parseFloat(aValue) || 0;
+          bValue = parseFloat(bValue) || 0;
+        }
+        
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    
+    return filtered;
+  }, [data, filtroNCM, filtroProduto, sortConfig]);
+
+  // Filtrar e ordenar oportunidades
+  const filteredOportunidades = useMemo(() => {
+    if (!data?.oportunidades) return [];
+    
+    let filtered = [...data.oportunidades];
+    
+    if (filtroNCM) {
+      filtered = filtered.filter(item => item.ncm === filtroNCM);
+    }
+    
+    if (filtroProduto) {
+      const search = filtroProduto.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.descricao?.toLowerCase().includes(search)
+      );
+    }
+    
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+        
+        if (typeof aValue === 'number' || !isNaN(parseFloat(aValue))) {
+          aValue = parseFloat(aValue) || 0;
+          bValue = parseFloat(bValue) || 0;
+        }
+        
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    
+    return filtered;
+  }, [data, filtroNCM, filtroProduto, sortConfig]);
+
+  // Limpar filtros
+  const clearFilters = () => {
+    setFiltroNCM('');
+    setFiltroProduto('');
+    setSortConfig({ key: null, direction: 'asc' });
   };
 
   if (!selectedCompany) {
@@ -208,6 +359,52 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
               </div>
             </div>
 
+            {/* Filtros */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-5 h-5 text-gray-500" />
+                  <span className="font-medium text-gray-700">Filtros:</span>
+                </div>
+                
+                {/* Filtro por NCM */}
+                <div className="flex-1 min-w-[200px] max-w-[250px]">
+                  <select
+                    value={filtroNCM}
+                    onChange={(e) => setFiltroNCM(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="">Todos os NCMs</option>
+                    {ncmsUnicos.map(ncm => (
+                      <option key={ncm} value={ncm}>{ncm}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Filtro por Produto */}
+                <div className="flex-1 min-w-[200px] max-w-[300px] relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por produto..."
+                    value={filtroProduto}
+                    onChange={(e) => setFiltroProduto(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+                
+                {/* Botão Limpar */}
+                {(filtroNCM || filtroProduto || sortConfig.key) && (
+                  <button
+                    onClick={clearFilters}
+                    className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
+                  >
+                    Limpar filtros
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Tabs */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100">
               <div className="border-b border-gray-200">
@@ -221,7 +418,7 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                     }`}
                   >
                     <AlertTriangle className="w-4 h-4 inline mr-2" />
-                    Vilões ({data.viloes_tributarios?.length || 0})
+                    Vilões ({filteredViloes.length})
                   </button>
                   <button
                     onClick={() => setActiveTab('oportunidades')}
@@ -232,7 +429,7 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                     }`}
                   >
                     <Lightbulb className="w-4 h-4 inline mr-2" />
-                    Oportunidades ({data.oportunidades?.length || 0})
+                    Oportunidades ({filteredOportunidades.length})
                   </button>
                   <button
                     onClick={() => setActiveTab('ncm')}
@@ -243,7 +440,7 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                     }`}
                   >
                     <Package className="w-4 h-4 inline mr-2" />
-                    Por NCM ({data.analise_por_ncm?.length || 0})
+                    Por NCM ({filteredNcmData.length})
                   </button>
                   <button
                     onClick={() => setActiveTab('insights')}
@@ -263,75 +460,103 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                 {/* Vilões Tab */}
                 {activeTab === 'viloes' && (
                   <div className="space-y-4">
-                    {data.viloes_tributarios?.length === 0 ? (
+                    {filteredViloes.length === 0 ? (
                       <div className="text-center py-8">
                         <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
                         <p className="text-gray-600">Nenhum vilão tributário identificado!</p>
                         <p className="text-gray-500 text-sm">Sua tributação está equilibrada.</p>
                       </div>
                     ) : (
-                      data.viloes_tributarios?.map((vilao, idx) => (
-                        <div key={idx} className="border border-red-200 rounded-lg overflow-hidden">
-                          <button
-                            onClick={() => setExpandedVilao(expandedVilao === idx ? null : idx)}
-                            className="w-full px-4 py-3 bg-red-50 flex items-center justify-between hover:bg-red-100 transition-colors"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
-                                {idx + 1}
-                              </div>
-                              <div className="text-left">
-                                <p className="font-semibold text-gray-900">{vilao.descricao}</p>
-                                <p className="text-sm text-gray-600">NCM: {vilao.ncm}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <div className="text-right">
-                                <p className="font-bold text-red-600">{formatCurrency(vilao.impacto_negativo)}</p>
-                                <p className="text-xs text-gray-500">impacto negativo</p>
-                              </div>
-                              {expandedVilao === idx ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                            </div>
+                      <>
+                        {/* Cabeçalho ordenável */}
+                        <div className="hidden md:grid grid-cols-6 gap-4 px-4 py-2 bg-gray-50 rounded-lg text-sm font-medium text-gray-600">
+                          <button onClick={() => handleSort('descricao')} className="flex items-center gap-1 text-left">
+                            Produto <SortIcon columnKey="descricao" />
                           </button>
-                          
-                          {expandedVilao === idx && (
-                            <div className="p-4 bg-white border-t border-red-200">
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                                <div className="bg-gray-50 p-3 rounded">
-                                  <p className="text-xs text-gray-500">Alíquota Entrada</p>
-                                  <p className="font-bold text-gray-900">{vilao.aliq_entrada}%</p>
-                                </div>
-                                <div className="bg-gray-50 p-3 rounded">
-                                  <p className="text-xs text-gray-500">Alíquota Saída</p>
-                                  <p className="font-bold text-gray-900">{vilao.aliq_saida}%</p>
-                                </div>
-                                <div className="bg-green-50 p-3 rounded">
-                                  <p className="text-xs text-gray-500">Crédito ICMS</p>
-                                  <p className="font-bold text-green-600">{formatCurrency(vilao.icms_credito)}</p>
-                                </div>
-                                <div className="bg-red-50 p-3 rounded">
-                                  <p className="text-xs text-gray-500">Débito ICMS</p>
-                                  <p className="font-bold text-red-600">{formatCurrency(vilao.icms_debito)}</p>
-                                </div>
-                              </div>
-                              
-                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                <div className="flex items-start gap-2">
-                                  <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
-                                  <p className="text-sm text-yellow-800">{vilao.explicacao}</p>
-                                </div>
-                              </div>
-                              
-                              <div className="mt-3 flex gap-4 text-sm text-gray-600">
-                                <span>Qtd Entrada: <strong>{vilao.qtd_entrada}</strong></span>
-                                <span>Valor Entrada: <strong>{formatCurrency(vilao.valor_entrada)}</strong></span>
-                                <span>Qtd Saída: <strong>{vilao.qtd_saida}</strong></span>
-                                <span>Valor Saída: <strong>{formatCurrency(vilao.valor_saida)}</strong></span>
-                              </div>
-                            </div>
-                          )}
+                          <button onClick={() => handleSort('ncm')} className="flex items-center gap-1">
+                            NCM <SortIcon columnKey="ncm" />
+                          </button>
+                          <button onClick={() => handleSort('aliq_entrada')} className="flex items-center gap-1">
+                            Alíq. Entrada <SortIcon columnKey="aliq_entrada" />
+                          </button>
+                          <button onClick={() => handleSort('aliq_saida')} className="flex items-center gap-1">
+                            Alíq. Saída <SortIcon columnKey="aliq_saida" />
+                          </button>
+                          <button onClick={() => handleSort('diferenca_aliquota')} className="flex items-center gap-1">
+                            Diferença <SortIcon columnKey="diferenca_aliquota" />
+                          </button>
+                          <button onClick={() => handleSort('impacto_negativo')} className="flex items-center gap-1">
+                            Impacto <SortIcon columnKey="impacto_negativo" />
+                          </button>
                         </div>
-                      ))
+                        
+                        {filteredViloes.map((vilao, idx) => (
+                          <div key={idx} className="border border-red-200 rounded-lg overflow-hidden">
+                            <button
+                              onClick={() => setExpandedVilao(expandedVilao === idx ? null : idx)}
+                              className="w-full px-4 py-3 bg-red-50 flex items-center justify-between hover:bg-red-100 transition-colors"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                  {idx + 1}
+                                </div>
+                                <div className="text-left">
+                                  <p className="font-semibold text-gray-900">{vilao.descricao}</p>
+                                  <p className="text-sm text-gray-600">NCM: {vilao.ncm}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <div className="hidden md:flex items-center gap-4 text-sm">
+                                  <span className="text-gray-600">{vilao.aliq_entrada}% → {vilao.aliq_saida}%</span>
+                                  <span className="text-red-600 font-medium">+{vilao.diferenca_aliquota}%</span>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold text-red-600">{formatCurrency(vilao.impacto_negativo)}</p>
+                                  <p className="text-xs text-gray-500">impacto negativo</p>
+                                </div>
+                                {expandedVilao === idx ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                              </div>
+                            </button>
+                            
+                            {expandedVilao === idx && (
+                              <div className="p-4 bg-white border-t border-red-200">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                  <div className="bg-gray-50 p-3 rounded">
+                                    <p className="text-xs text-gray-500">Alíquota Entrada</p>
+                                    <p className="font-bold text-gray-900">{vilao.aliq_entrada}%</p>
+                                  </div>
+                                  <div className="bg-gray-50 p-3 rounded">
+                                    <p className="text-xs text-gray-500">Alíquota Saída</p>
+                                    <p className="font-bold text-gray-900">{vilao.aliq_saida}%</p>
+                                  </div>
+                                  <div className="bg-green-50 p-3 rounded">
+                                    <p className="text-xs text-gray-500">Crédito ICMS</p>
+                                    <p className="font-bold text-green-600">{formatCurrency(vilao.icms_credito)}</p>
+                                  </div>
+                                  <div className="bg-red-50 p-3 rounded">
+                                    <p className="text-xs text-gray-500">Débito ICMS</p>
+                                    <p className="font-bold text-red-600">{formatCurrency(vilao.icms_debito)}</p>
+                                  </div>
+                                </div>
+                                
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                  <div className="flex items-start gap-2">
+                                    <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                                    <p className="text-sm text-yellow-800">{vilao.explicacao}</p>
+                                  </div>
+                                </div>
+                                
+                                <div className="mt-3 flex gap-4 text-sm text-gray-600">
+                                  <span>Qtd Entrada: <strong>{vilao.qtd_entrada}</strong></span>
+                                  <span>Valor Entrada: <strong>{formatCurrency(vilao.valor_entrada)}</strong></span>
+                                  <span>Qtd Saída: <strong>{vilao.qtd_saida}</strong></span>
+                                  <span>Valor Saída: <strong>{formatCurrency(vilao.valor_saida)}</strong></span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </>
                     )}
                   </div>
                 )}
@@ -339,14 +564,14 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                 {/* Oportunidades Tab */}
                 {activeTab === 'oportunidades' && (
                   <div className="space-y-4">
-                    {data.oportunidades?.length === 0 ? (
+                    {filteredOportunidades.length === 0 ? (
                       <div className="text-center py-8">
                         <Target className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                         <p className="text-gray-600">Nenhuma oportunidade identificada</p>
                         <p className="text-gray-500 text-sm">Continue monitorando para identificar benefícios.</p>
                       </div>
                     ) : (
-                      data.oportunidades?.map((op, idx) => (
+                      filteredOportunidades.map((op, idx) => (
                         <div key={idx} className="border border-green-200 rounded-lg overflow-hidden">
                           <button
                             onClick={() => setExpandedOportunidade(expandedOportunidade === idx ? null : idx)}
@@ -403,18 +628,50 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                     <table className="w-full">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">NCM</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Descrição</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Entrada (R$)</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">ICMS Créd.</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Saída (R$)</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">ICMS Déb.</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Saldo ICMS</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Margem %</th>
+                          <th className="px-4 py-3 text-left">
+                            <button onClick={() => handleSort('ncm')} className="flex items-center gap-1 text-xs font-semibold text-gray-600">
+                              NCM <SortIcon columnKey="ncm" />
+                            </button>
+                          </th>
+                          <th className="px-4 py-3 text-left">
+                            <button onClick={() => handleSort('descricao')} className="flex items-center gap-1 text-xs font-semibold text-gray-600">
+                              Descrição <SortIcon columnKey="descricao" />
+                            </button>
+                          </th>
+                          <th className="px-4 py-3 text-right">
+                            <button onClick={() => handleSort('entrada_valor')} className="flex items-center gap-1 justify-end text-xs font-semibold text-gray-600 w-full">
+                              Entrada (R$) <SortIcon columnKey="entrada_valor" />
+                            </button>
+                          </th>
+                          <th className="px-4 py-3 text-right">
+                            <button onClick={() => handleSort('entrada_icms')} className="flex items-center gap-1 justify-end text-xs font-semibold text-gray-600 w-full">
+                              ICMS Créd. <SortIcon columnKey="entrada_icms" />
+                            </button>
+                          </th>
+                          <th className="px-4 py-3 text-right">
+                            <button onClick={() => handleSort('saida_valor')} className="flex items-center gap-1 justify-end text-xs font-semibold text-gray-600 w-full">
+                              Saída (R$) <SortIcon columnKey="saida_valor" />
+                            </button>
+                          </th>
+                          <th className="px-4 py-3 text-right">
+                            <button onClick={() => handleSort('saida_icms')} className="flex items-center gap-1 justify-end text-xs font-semibold text-gray-600 w-full">
+                              ICMS Déb. <SortIcon columnKey="saida_icms" />
+                            </button>
+                          </th>
+                          <th className="px-4 py-3 text-right">
+                            <button onClick={() => handleSort('saldo_icms')} className="flex items-center gap-1 justify-end text-xs font-semibold text-gray-600 w-full">
+                              Saldo ICMS <SortIcon columnKey="saldo_icms" />
+                            </button>
+                          </th>
+                          <th className="px-4 py-3 text-right">
+                            <button onClick={() => handleSort('margem_icms')} className="flex items-center gap-1 justify-end text-xs font-semibold text-gray-600 w-full">
+                              Margem % <SortIcon columnKey="margem_icms" />
+                            </button>
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
-                        {data.analise_por_ncm?.map((ncm, idx) => (
+                        {filteredNcmData.map((ncm, idx) => (
                           <tr key={idx} className={ncm.saldo_icms > 0 ? 'bg-red-50' : ncm.saldo_icms < 0 ? 'bg-green-50' : ''}>
                             <td className="px-4 py-3 font-mono text-sm">{ncm.ncm}</td>
                             <td className="px-4 py-3 text-sm text-gray-700 truncate max-w-[200px]">{ncm.descricao}</td>
@@ -432,6 +689,12 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                         ))}
                       </tbody>
                     </table>
+                    {filteredNcmData.length === 0 && (
+                      <div className="text-center py-8">
+                        <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                        <p className="text-gray-600">Nenhum NCM encontrado</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
