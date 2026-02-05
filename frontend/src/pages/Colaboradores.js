@@ -630,7 +630,7 @@ const Colaboradores = () => {
         </div>
         <Select value={filterCliente} onValueChange={setFilterCliente}>
           <SelectTrigger className="w-full sm:w-64"><SelectValue placeholder="Filtrar por empresa" /></SelectTrigger>
-          <SelectContent><SelectItem value="all">Todas as empresas</SelectItem>{clientes.map(c => <SelectItem key={c.id} value={c.id}>{c.nome_fantasia || c.razao_social}</SelectItem>)}</SelectContent>
+          <SelectContent><SelectItem value="all">Todas as empresas</SelectItem>{sortClientesBySelection(clientes, empresaSelecionada?.id).map(c => <SelectItem key={c.id} value={c.id}><span className="font-mono text-xs text-indigo-600 mr-2">{generateEmpresaCode(c.id, c.codigo_interno)}</span>{c.nome_fantasia || c.razao_social}</SelectItem>)}</SelectContent>
         </Select>
       </div>
 
