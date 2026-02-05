@@ -82,7 +82,7 @@ const Layout = ({ children }) => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-auto">
+            <main className="flex-1 overflow-auto min-h-screen">
                 {children}
             </main>
         </div>
