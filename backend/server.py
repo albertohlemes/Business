@@ -7388,7 +7388,7 @@ async def exportar_e_validar_sped(
     for doc in documents:
         tipo = 'entradas' if doc.tipo == 'entrada' else 'saidas'
         
-        for prod in doc.produtos:
+        for prod_idx, prod in enumerate(doc.produtos):
             # Usar CFOP da classificação do sistema
             cfop = str(prod.get('cfop', ''))
             valor = float(prod.get('valor_total', 0) or 0)
@@ -7401,6 +7401,8 @@ async def exportar_e_validar_sped(
             
             if cst_icms_num in CSTS_TRIBUTADOS and v_icms == 0 and valor > 0:
                 itens_pendentes.append({
+                    'document_id': doc.id,
+                    'product_index': prod_idx,
                     'tipo': tipo,
                     'cfop': cfop,
                     'descricao': prod.get('descricao', '')[:50],
@@ -7408,8 +7410,9 @@ async def exportar_e_validar_sped(
                     'valor': round(valor, 2),
                     'cst': cst_icms,
                     'motivo': f'CST {cst_icms} indica tributação mas ICMS = R$ 0,00',
-                    'numero_nf': getattr(doc, 'numero', '') or '',
-                    'chave': getattr(doc, 'chave_acesso', '')[:20] if hasattr(doc, 'chave_acesso') else ''
+                    'numero_nf': doc.numero_nfe or '',
+                    'chave': (doc.chave_nfe or '')[:20],
+                    'codigo_produto': prod.get('codigo', '')
                 })
             
             sistema_totais[tipo]['total_valor'] += valor
