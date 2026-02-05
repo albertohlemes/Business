@@ -300,6 +300,16 @@ const SociosRetirantes = ({ dados, onChange, sociosAtuais }) => {
 
 // Sub-componente para redistribuição de cotas
 const RedistribuicaoCotas = ({ dados, onChange, sociosAtuais }) => {
+    // Helper para formatar participação (pode ser string ou objeto)
+    const formatarParticipacao = (participacao) => {
+        if (!participacao) return 'N/A';
+        if (typeof participacao === 'string') return participacao;
+        if (typeof participacao === 'object') {
+            return participacao.percentual || participacao.valor || `${participacao.quotas || 0} quotas`;
+        }
+        return String(participacao);
+    };
+
     return (
         <div className="bg-zinc-950 border border-blue-500/30 rounded-lg p-4">
             <h4 className="text-white font-medium mb-4 flex items-center gap-2">
@@ -314,7 +324,7 @@ const RedistribuicaoCotas = ({ dados, onChange, sociosAtuais }) => {
                         <div key={idx} className="flex items-center justify-between p-3 bg-zinc-900 rounded-lg">
                             <div className="flex-1">
                                 <p className="text-white font-medium">{socio.nome || `Sócio ${idx + 1}`}</p>
-                                <p className="text-zinc-500 text-xs">Participação atual: {socio.participacao || 'N/A'}</p>
+                                <p className="text-zinc-500 text-xs">Participação atual: {formatarParticipacao(socio.participacao)}</p>
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="text-zinc-500 text-sm">Nova %:</span>
