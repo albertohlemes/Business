@@ -343,16 +343,6 @@ const ApuracaoMensal = ({ user, onLogout }) => {
       </div>
     );
   };
-              <td className="px-4 py-3 text-right">{formatCurrency(totais.valor)}</td>
-              <td className="px-4 py-3 text-right">{formatCurrency(totais.v_icms)}</td>
-              <td className="px-4 py-3 text-right">{formatCurrency(totais.v_pis)}</td>
-              <td className="px-4 py-3 text-right">{formatCurrency(totais.v_cofins)}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    );
-  };
 
   // Tabela de detalhamento PIS/COFINS com ordenação
   const PisCofinsTable = ({ items, tipo, viewMode }) => {
