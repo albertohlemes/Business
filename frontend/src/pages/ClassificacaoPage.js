@@ -1345,9 +1345,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                 </p>
               </div>
             ) : (
-              sortedProducts.map((product) => (
-                <GroupedProductItem key={product.codigo} product={product} />
-              ))
+              sortedProducts.map((product) => renderGroupedProductItem(product))
             )}
           </div>
             </>
