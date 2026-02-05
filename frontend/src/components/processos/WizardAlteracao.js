@@ -1684,6 +1684,7 @@ const WizardAlteracao = ({ open, onClose, onComplete, processoEditando }) => {
         setCnpjInput('');
         setTextoContratoOriginal('');
         setTemRascunhoSalvo(false);
+        setModoEdicao(false);
         limparRascunho();
     };
 
