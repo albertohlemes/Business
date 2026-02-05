@@ -15,38 +15,58 @@ const steps = {
 const ProcessingBar = ({ 
   isProcessing, 
   currentStep = 'processing',
-  progress = null, // 0-100 or null for indeterminate
-  customSteps = null, // Array of custom step labels
-  estimatedTime = null, // Estimated time in seconds
+  progress = null,
+  customSteps = null,
+  estimatedTime = null,
   showPercentage = true
 }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [simulatedProgress, setSimulatedProgress] = useState(0);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [displayProgress, setDisplayProgress] = useState(0);
 
   useEffect(() => {
     let interval;
     if (isProcessing) {
       setElapsedTime(0);
-      setSimulatedProgress(0);
+      setCurrentStepIndex(0);
+      setDisplayProgress(0);
+      
       interval = setInterval(() => {
         setElapsedTime(prev => prev + 1);
-        // Simulate progress if not provided
-        setSimulatedProgress(prev => {
-          if (prev >= 95) return prev;
-          // Slower as it gets higher
-          const increment = Math.max(0.5, (100 - prev) / 50);
-          return Math.min(95, prev + increment);
+        
+        // Progresso mais suave que nunca trava
+        setDisplayProgress(prev => {
+          if (prev >= 99) return 99;
+          // Progresso logarítmico - começa rápido, desacelera gradualmente
+          const target = 99;
+          const speed = 0.3; // Velocidade base
+          const remaining = target - prev;
+          const increment = Math.max(0.1, remaining * speed * 0.1);
+          return Math.min(99, prev + increment);
         });
+        
+        // Avança os steps automaticamente
+        if (customSteps) {
+          setCurrentStepIndex(prev => {
+            const maxIndex = customSteps.length - 1;
+            // Muda de step a cada ~10 segundos
+            const newIndex = Math.min(maxIndex, Math.floor(elapsedTime / 10));
+            return newIndex;
+          });
+        }
       }, 1000);
     } else {
-      setSimulatedProgress(100);
+      setDisplayProgress(100);
+      if (customSteps) {
+        setCurrentStepIndex(customSteps.length - 1);
+      }
     }
     return () => clearInterval(interval);
-  }, [isProcessing]);
+  }, [isProcessing, customSteps, elapsedTime]);
 
-  if (!isProcessing && simulatedProgress < 100) return null;
+  if (!isProcessing && displayProgress < 100) return null;
 
-  const displayProgress = progress !== null ? progress : simulatedProgress;
+  const actualProgress = progress !== null ? progress : displayProgress;
   const stepInfo = steps[currentStep] || steps.processing;
   const StepIcon = stepInfo.icon;
 
@@ -57,6 +77,17 @@ const ProcessingBar = ({
     return `${mins}m ${secs}s`;
   };
 
+  // Mensagens dinâmicas baseadas no tempo
+  const getDynamicMessage = () => {
+    if (!isProcessing) return 'Concluído!';
+    if (elapsedTime < 10) return customSteps?.[0] || 'Iniciando...';
+    if (elapsedTime < 20) return customSteps?.[1] || 'Processando documento...';
+    if (elapsedTime < 40) return customSteps?.[2] || 'Analisando com IA...';
+    if (elapsedTime < 60) return customSteps?.[3] || 'Extraindo informações...';
+    if (elapsedTime < 90) return 'Quase lá, finalizando análise...';
+    return 'Processamento extenso, aguarde...';
+  };
+
   return (
     <div className="w-full space-y-3 animate-fade-in">
       {/* Step indicator */}
@@ -65,55 +96,52 @@ const ProcessingBar = ({
           {isProcessing ? (
             <Loader2 className="animate-spin text-indigo-600" size={18} />
           ) : (
-            <StepIcon className="text-emerald-600" size={18} />
+            <CheckCircle2 className="text-emerald-600" size={18} />
           )}
-          <span>{stepInfo.label}</span>
+          <span>{getDynamicMessage()}</span>
         </div>
         <div className="flex items-center gap-3 text-xs text-slate-500">
-          {showPercentage && (
-            <span className="font-mono font-semibold text-indigo-600">
-              {Math.round(displayProgress)}%
-            </span>
-          )}
           {isProcessing && (
             <span className="font-mono">
               {formatTime(elapsedTime)}
-              {estimatedTime && elapsedTime < estimatedTime && (
-                <span className="text-slate-400"> / ~{formatTime(estimatedTime)}</span>
-              )}
             </span>
           )}
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+      {/* Progress bar com animação contínua */}
+      <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
         <div 
-          className={`h-full rounded-full transition-all duration-500 ease-out ${
+          className={`h-full rounded-full transition-all duration-1000 ease-out relative ${
             isProcessing 
-              ? 'bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-500 animate-pulse' 
+              ? 'bg-gradient-to-r from-indigo-500 via-indigo-400 to-indigo-500' 
               : 'bg-emerald-500'
           }`}
-          style={{ width: `${displayProgress}%` }}
-        />
+          style={{ width: `${actualProgress}%` }}
+        >
+          {isProcessing && (
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+          )}
+        </div>
       </div>
 
-      {/* Custom steps indicator */}
+      {/* Steps indicator visual */}
       {customSteps && customSteps.length > 0 && (
-        <div className="flex justify-between text-xs text-slate-400 px-1">
+        <div className="flex justify-between items-center px-1">
           {customSteps.map((step, index) => {
-            const stepProgress = ((index + 1) / customSteps.length) * 100;
-            const isActive = displayProgress >= stepProgress - 10 && displayProgress < stepProgress + 10;
-            const isComplete = displayProgress >= stepProgress;
+            const isComplete = index < currentStepIndex || !isProcessing;
+            const isActive = index === currentStepIndex && isProcessing;
             return (
               <div 
                 key={index} 
-                className={`flex items-center gap-1 transition-colors ${
-                  isComplete ? 'text-emerald-600' : isActive ? 'text-indigo-600 font-medium' : ''
+                className={`flex items-center gap-1.5 text-xs transition-all duration-300 ${
+                  isComplete ? 'text-emerald-600' : isActive ? 'text-indigo-600 font-semibold' : 'text-slate-400'
                 }`}
               >
-                {isComplete && <CheckCircle2 size={12} />}
-                <span>{step}</span>
+                <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  isComplete ? 'bg-emerald-500' : isActive ? 'bg-indigo-500 animate-pulse' : 'bg-slate-300'
+                }`} />
+                <span className="hidden sm:inline">{step}</span>
               </div>
             );
           })}
@@ -128,8 +156,7 @@ export const ImportColaboradoresProgress = ({ isProcessing }) => (
   <ProcessingBar 
     isProcessing={isProcessing}
     currentStep={isProcessing ? 'extracting' : 'complete'}
-    customSteps={['Upload', 'Leitura IA', 'Extração', 'Revisão']}
-    estimatedTime={30}
+    customSteps={['Enviando', 'Lendo documento', 'Extraindo dados', 'Finalizando']}
   />
 );
 
@@ -137,8 +164,7 @@ export const ValidacaoFolhaProgress = ({ isProcessing }) => (
   <ProcessingBar 
     isProcessing={isProcessing}
     currentStep={isProcessing ? 'comparing' : 'complete'}
-    customSteps={['Upload', 'Análise', 'Comparação', 'Validação']}
-    estimatedTime={60}
+    customSteps={['Enviando', 'Analisando', 'Comparando', 'Validando']}
   />
 );
 
@@ -146,8 +172,7 @@ export const ImportMediasProgress = ({ isProcessing }) => (
   <ProcessingBar 
     isProcessing={isProcessing}
     currentStep={isProcessing ? 'extracting' : 'complete'}
-    customSteps={['Upload', 'Leitura', 'Extração', 'Processamento']}
-    estimatedTime={45}
+    customSteps={['Enviando', 'Lendo', 'Extraindo', 'Processando']}
   />
 );
 
@@ -155,8 +180,7 @@ export const DissidioProgress = ({ isProcessing }) => (
   <ProcessingBar 
     isProcessing={isProcessing}
     currentStep={isProcessing ? 'analyzing' : 'complete'}
-    customSteps={['Upload', 'Análise IA', 'Cálculos', 'Prévia']}
-    estimatedTime={40}
+    customSteps={['Enviando', 'Analisando', 'Calculando', 'Prévia']}
   />
 );
 
@@ -164,8 +188,7 @@ export const InformesProgress = ({ isProcessing }) => (
   <ProcessingBar 
     isProcessing={isProcessing}
     currentStep={isProcessing ? 'comparing' : 'complete'}
-    customSteps={['Upload', 'Leitura', 'Comparação', 'Relatório']}
-    estimatedTime={50}
+    customSteps={['Enviando', 'Lendo', 'Comparando', 'Relatório']}
   />
 );
 
