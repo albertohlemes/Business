@@ -7659,15 +7659,29 @@ async def exportar_e_validar_sped(
     # CSTs que indicam tributação de ICMS
     CSTS_TRIBUTADOS = ['00', '10', '20', '70', '90']
     
-    # CFOPs de despesas e outras operações que NÃO devem gerar inconsistência de ICMS
-    CFOPS_DESPESAS_IGNORAR = [
+    # CFOPs de despesas, ST e outras operações que NÃO devem gerar inconsistência de ICMS
+    # Esses CFOPs são desconsiderados no cálculo de crédito quando flag ativo
+    CFOPS_DESPESAS_ST_IGNORAR = [
+        # Despesas / Uso e Consumo
         '1556', '2556',  # Compras para uso/consumo
         '1407', '2407',  # Compra para ativo imobilizado
+        '1551', '2551',  # Compra de ativo imobilizado
+        '1552', '2552',  # Transferência de ativo
+        '1553', '2553',  # Devolução de ativo
+        '1557', '2557',  # Transferência material uso/consumo
         '1932', '2932',  # Aquisição de serviços
         '1933', '2933',  # Aquisição de serviços tributados
         '1949', '2949',  # Outras entradas não especificadas
+        # Substituição Tributária (ST)
+        '1401', '2401', '3401',  # Compra para industrialização com ST
         '1403', '2403', '3403',  # Compra p/ comercialização com ST
-        '1409', '2409', '3409',  # Transferência com ST
+        '1406', '2406',  # Compra para ativo com ST
+        '1407', '2407',  # Compra para uso/consumo com ST
+        '1408', '2408',  # Transferência para industrialização com ST
+        '1409', '2409', '3409',  # Transferência para comercialização com ST
+        '1410', '2410',  # Devolução de venda com ST
+        '1411', '2411',  # Devolução de venda p/ ZFM com ST
+        # Outras operações
         '1910', '2910',  # Entrada em bonificação
         '1911', '2911',  # Entrada de amostra grátis
         '1152', '2152',  # Transferência para comercialização
@@ -7675,11 +7689,6 @@ async def exportar_e_validar_sped(
         '1154', '2154',  # Transferência para industrialização
         '1201', '2201',  # Devolução de venda
         '1202', '2202',  # Devolução de venda - ativo
-        '1411', '2411',  # Devolução com ST
-        '1551', '2551',  # Compra de ativo imobilizado
-        '1552', '2552',  # Transferência de ativo
-        '1553', '2553',  # Devolução de ativo
-        '1557', '2557',  # Transferência material uso/consumo
         '1908', '2908',  # Entrada de embalagem
         '1909', '2909',  # Retorno de remessa
     ]
