@@ -245,7 +245,11 @@ const UploadXML = ({ user, onLogout }) => {
       document.getElementById('file-input').value = '';
 
     } catch (err) {
-      alert(err.response?.data?.detail || err.message || 'Erro ao enviar arquivos');
+      console.error('Upload error:', err);
+      const errorMessage = err.response?.data?.detail 
+        || err.message 
+        || 'Erro ao enviar arquivos';
+      alert(`Erro no upload: ${errorMessage}\n\nSe o problema persistir, tente com menos arquivos por vez.`);
       setUploading(false);
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
