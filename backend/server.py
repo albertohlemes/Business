@@ -1474,20 +1474,25 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             # Determinar a alíquota de ICMS
             primeiro_digito_cfop = cfop[0] if cfop else ''
             is_interestadual = primeiro_digito_cfop in ['2', '6']
+            is_entrada = primeiro_digito_cfop in ['1', '2', '3']
             
             # CST de ICMS indica se há tributação
             cst_icms_num = cst_icms[-2:] if len(cst_icms) >= 2 else cst_icms
             tem_icms = cst_icms_num in ['00', '10', '20', '70', '90']
             
-            # CFOPs de despesas (uso/consumo, ativo imobilizado) e ST que devem ter ICMS zerado
-            # quando o flag excluir_creditos_despesa_st estiver ativo
-            CFOPS_ZERAR_ICMS = [
+            # CFOPs de DESPESAS (uso/consumo, ativo imobilizado) - NÃO inclui ST de revenda
+            CFOPS_DESPESAS = [
                 # Uso e Consumo
                 '1556', '2556', '1557', '2557',
                 # Ativo Imobilizado
                 '1551', '2551', '1552', '2552', '1553', '2553',
                 '1406', '2406', '1407', '2407',
-                # Substituição Tributária
+                # Serviços e outras despesas
+                '1932', '2932', '1933', '2933', '1949', '2949',
+            ]
+            
+            # CFOPs de Substituição Tributária (ST)
+            CFOPS_ST = [
                 '1401', '2401', '3401',  # Compra para industrialização com ST
                 '1403', '2403', '3403',  # Compra para comercialização com ST
                 '1408', '2408',  # Transferência para industrialização com ST
@@ -1496,22 +1501,39 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
                 '1411', '2411',  # Devolução com ST
             ]
             
-            # Se flag ativo e CFOP é de despesa/ST, zerar ICMS no SPED
-            if excluir_creditos_despesa_st and cfop in CFOPS_ZERAR_ICMS:
-                v_icms = 0
-                bc_icms = 0
-                aliq_icms = 0
+            # Se flag ativo e é ENTRADA, aplicar regras especiais
+            if excluir_creditos_despesa_st and is_entrada:
+                if cfop in CFOPS_DESPESAS:
+                    # Despesas: zerar ICMS e alterar CST para 090
+                    v_icms = 0
+                    bc_icms = 0
+                    aliq_icms = 0
+                    cst_icms = '090'  # CST 090 para despesas
+                elif cfop in CFOPS_ST:
+                    # ST: zerar ICMS e alterar CST para 060
+                    v_icms = 0
+                    bc_icms = 0
+                    aliq_icms = 0
+                    cst_icms = '060'  # CST 060 para ST
+                else:
+                    # Demais CFOPs: usar valores do XML
+                    v_icms = v_icms_xml
+                    bc_icms = v_bc_icms_xml
+                    if p_icms_xml > 0:
+                        aliq_icms = p_icms_xml
+                    elif v_bc_icms_xml > 0 and v_icms_xml > 0:
+                        aliq_icms = round((v_icms_xml / v_bc_icms_xml) * 100)
+                    else:
+                        aliq_icms = 0
             else:
-                # USAR valores do XML normalmente
+                # Flag desativado ou é saída: usar valores do XML normalmente
                 v_icms = v_icms_xml
                 bc_icms = v_bc_icms_xml
                 
                 # Usar alíquota do XML se disponível
-                # Se não tiver p_icms no XML, calcular a partir de v_icms e v_bc_icms
                 if p_icms_xml > 0:
                     aliq_icms = p_icms_xml
                 elif v_bc_icms_xml > 0 and v_icms_xml > 0:
-                    # Calcular e arredondar para inteiro (12, 18, 7, 4, etc)
                     aliq_icms = round((v_icms_xml / v_bc_icms_xml) * 100)
                 else:
                     aliq_icms = 0
