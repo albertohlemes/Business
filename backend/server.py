@@ -720,18 +720,33 @@ IMPORTANTE:
             mime_type = convencao.content_type or "application/pdf"
             file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
             
-            response = await chat.send_message(UserMessage(
-                text="Analise esta Convencao Coletiva de Trabalho e extraia TODOS os dados conforme a estrutura solicitada. Seja o mais detalhado possivel.",
-                file_contents=[file_content]
-            ))
-            
-            response_text = response.strip() if response else ""
-            
-            # Log para debug
-            logger.info(f"Resposta da IA (primeiros 200 chars): {response_text[:200] if response_text else 'VAZIA'}")
+            # Tentar até 2 vezes
+            response_text = ""
+            last_error = None
+            for attempt in range(2):
+                try:
+                    response = await chat.send_message(UserMessage(
+                        text="Analise esta Convencao Coletiva de Trabalho e extraia TODOS os dados conforme a estrutura solicitada. Seja o mais detalhado possivel. Retorne APENAS o JSON, sem texto adicional.",
+                        file_contents=[file_content]
+                    ))
+                    
+                    response_text = response.strip() if response else ""
+                    
+                    # Log para debug
+                    logger.info(f"Tentativa {attempt+1} - Resposta da IA (primeiros 300 chars): {response_text[:300] if response_text else 'VAZIA'}")
+                    
+                    if response_text:
+                        break
+                except Exception as e:
+                    last_error = str(e)
+                    logger.error(f"Tentativa {attempt+1} falhou: {last_error}")
+                    if attempt == 0:
+                        await asyncio.sleep(2)  # Aguardar 2 segundos antes de tentar novamente
             
             if not response_text:
-                raise HTTPException(status_code=500, detail="A IA não retornou nenhuma resposta. Tente novamente ou use outro arquivo.")
+                error_msg = f"A IA não retornou resposta após 2 tentativas. Último erro: {last_error or 'resposta vazia'}"
+                logger.error(error_msg)
+                raise HTTPException(status_code=500, detail=error_msg)
             
             if response_text.startswith("```json"):
                 response_text = response_text[7:]
