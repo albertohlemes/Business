@@ -1048,16 +1048,26 @@ const ValidacaoFolha = () => {
                       <table className="w-full text-sm">
                         <thead className="bg-slate-800/50 border-b">
                           <tr>
-                            <th className="text-left p-3 font-medium">Status</th>
-                            <th className="text-left p-3 font-medium">Colaborador</th>
-                            <th className="text-right p-3 font-medium">Líquido</th>
-                            <th className="text-center p-3 font-medium">Var. Mês Ant.</th>
-                            <th className="text-left p-3 font-medium">Divergências</th>
+                            <th className="text-left p-3 font-medium text-slate-300">Status</th>
+                            <th className="text-left p-3 font-medium text-slate-300">Colaborador</th>
+                            <th className="text-right p-3 font-medium text-slate-300">Líquido</th>
+                            <th className="text-left p-3 font-medium border-l border-slate-600">
+                              <div className="flex items-center gap-1 text-amber-400">
+                                <FileText size={14} />
+                                <span>Divergências com Apoio</span>
+                              </div>
+                            </th>
+                            <th className="text-left p-3 font-medium border-l border-slate-600">
+                              <div className="flex items-center gap-1 text-blue-400">
+                                <History size={14} />
+                                <span>Variação vs Mês Anterior</span>
+                              </div>
+                            </th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-700">
                           {analysisResult.colaboradores.map((colab, idx) => (
-                            <tr key={idx} className={`hover:bg-slate-800/50 ${colab.status === 'divergente' ? 'bg-rose-50/50' : colab.status === 'atencao' ? 'bg-amber-50/50' : ''}`}>
+                            <tr key={idx} className={`hover:bg-slate-800/50 ${colab.status === 'divergente' ? 'bg-rose-900/20' : colab.status === 'atencao' ? 'bg-amber-900/20' : ''}`}>
                               <td className="p-3">
                                 {colab.status === 'ok' && <CheckCircle2 className="text-emerald-500" size={20} />}
                                 {colab.status === 'atencao' && <AlertTriangle className="text-amber-500" size={20} />}
@@ -1072,41 +1082,25 @@ const ValidacaoFolha = () => {
                                   </p>
                                 </div>
                               </td>
-                              <td className="p-3 text-right font-mono font-medium">
+                              <td className="p-3 text-right font-mono font-medium text-white">
                                 {formatCurrency(colab.dados_atuais?.liquido || 0)}
                               </td>
-                              <td className="p-3 text-center">
-                                {colab.comparacao_anterior?.encontrado ? (
-                                  <div className="flex flex-col items-center">
-                                    {colab.comparacao_anterior.campos?.filter(c => c.campo === 'Líquido').map((c, i) => (
-                                      <span key={i} className={`text-xs font-medium ${c.percentual > 0 ? 'text-emerald-600' : c.percentual < 0 ? 'text-rose-600' : 'text-slate-500'}`}>
-                                        {c.percentual > 0 ? '+' : ''}{c.percentual.toFixed(1)}%
-                                        <span className="block text-[10px] text-slate-400">
-                                          {c.diferenca > 0 ? '+' : ''}{formatCurrency(c.diferenca)}
-                                        </span>
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : colab.comparacao_anterior?.encontrado === false ? (
-                                  <Badge variant="outline" className="text-xs">Novo</Badge>
-                                ) : (
-                                  <span className="text-slate-400">-</span>
-                                )}
-                              </td>
-                              <td className="p-3">
-                                {(colab.divergencias?.length > 0 || colab.divergencias_apoio?.length > 0) ? (
-                                  <div className="space-y-1">
-                                    {colab.divergencias?.map((div, i) => (
-                                      <div key={`d-${i}`} className="text-xs text-rose-600 bg-rose-100 px-2 py-1 rounded">
-                                        <strong>{div.campo}:</strong> {div.esperado?.toLocaleString('pt-BR')} → {div.encontrado?.toLocaleString('pt-BR')}
-                                        {div.percentual && <span className="ml-1">({div.percentual > 0 ? '+' : ''}{div.percentual.toFixed(1)}%)</span>}
-                                      </div>
-                                    ))}
-                                    {colab.divergencias_apoio?.map((div, i) => (
-                                      <div key={`da-${i}`} className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded flex items-center justify-between gap-2">
-                                        <div>
-                                          <strong>{div.campo}:</strong> Apoio={div.valor_apoio} ≠ Holerite={div.valor_holerite}
-                                          <span className="block text-[10px] text-amber-600">{div.arquivo}</span>
+                              
+                              {/* COLUNA: Divergências com Apoio */}
+                              <td className="p-3 border-l border-slate-700 min-w-[250px]">
+                                {colab.divergencias_apoio?.length > 0 ? (
+                                  <div className="space-y-1.5">
+                                    {colab.divergencias_apoio.map((div, i) => (
+                                      <div key={`da-${i}`} className="text-xs bg-amber-500/20 border border-amber-500/30 px-2 py-1.5 rounded flex items-center justify-between gap-2">
+                                        <div className="text-amber-300">
+                                          <strong className="text-amber-200">{div.campo}:</strong>
+                                          <span className="block text-[11px]">
+                                            Apoio: <span className="text-emerald-400">{typeof div.valor_apoio === 'number' ? formatCurrency(div.valor_apoio) : div.valor_apoio}</span>
+                                          </span>
+                                          <span className="block text-[11px]">
+                                            Holerite: <span className="text-rose-400">{typeof div.valor_holerite === 'number' ? formatCurrency(div.valor_holerite) : div.valor_holerite}</span>
+                                          </span>
+                                          <span className="block text-[10px] text-amber-400/70 mt-0.5">{div.arquivo}</span>
                                         </div>
                                         <button
                                           onClick={() => marcarComoFixo(
@@ -1116,16 +1110,76 @@ const ValidacaoFolha = () => {
                                             div.campo,
                                             `${div.campo} - Recorrente para ${colab.nome}`
                                           )}
-                                          className="p-1 hover:bg-amber-200 rounded"
+                                          className="p-1.5 hover:bg-amber-500/30 rounded transition-colors"
                                           title="Marcar como item fixo (não precisa vir no apoio)"
                                         >
-                                          <Pin size={12} />
+                                          <Pin size={12} className="text-amber-400" />
                                         </button>
                                       </div>
                                     ))}
                                   </div>
                                 ) : (
-                                  <span className="text-emerald-600 text-xs">Sem divergências</span>
+                                  <span className="text-emerald-500 text-xs flex items-center gap-1">
+                                    <CheckCircle2 size={12} />
+                                    Confere com apoio
+                                  </span>
+                                )}
+                              </td>
+                              
+                              {/* COLUNA: Variação vs Mês Anterior */}
+                              <td className="p-3 border-l border-slate-700 min-w-[250px]">
+                                {colab.comparacao_anterior?.encontrado ? (
+                                  <div className="space-y-1.5">
+                                    {/* Variação do Líquido */}
+                                    {colab.comparacao_anterior.campos?.filter(c => c.campo === 'Líquido').map((c, i) => (
+                                      <div key={i} className={`text-xs px-2 py-1.5 rounded border ${
+                                        c.percentual > 5 ? 'bg-emerald-500/20 border-emerald-500/30' : 
+                                        c.percentual < -5 ? 'bg-rose-500/20 border-rose-500/30' : 
+                                        'bg-slate-700/50 border-slate-600'
+                                      }`}>
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-slate-400">Líquido</span>
+                                          <span className={`font-medium ${c.percentual > 0 ? 'text-emerald-400' : c.percentual < 0 ? 'text-rose-400' : 'text-slate-400'}`}>
+                                            {c.percentual > 0 ? '+' : ''}{c.percentual.toFixed(1)}%
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-[10px] mt-1">
+                                          <span className="text-slate-500">Diferença:</span>
+                                          <span className={c.diferenca > 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                                            {c.diferenca > 0 ? '+' : ''}{formatCurrency(c.diferenca)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    
+                                    {/* Outras divergências com mês anterior */}
+                                    {colab.divergencias?.length > 0 && (
+                                      <div className="space-y-1">
+                                        {colab.divergencias.map((div, i) => (
+                                          <div key={`d-${i}`} className="text-xs bg-blue-500/20 border border-blue-500/30 px-2 py-1.5 rounded">
+                                            <strong className="text-blue-200">{div.campo}:</strong>
+                                            <span className="block text-[11px] text-blue-300">
+                                              Era: <span className="text-slate-400">{typeof div.esperado === 'number' ? formatCurrency(div.esperado) : div.esperado}</span>
+                                              {' → '}
+                                              Ficou: <span className="text-white">{typeof div.encontrado === 'number' ? formatCurrency(div.encontrado) : div.encontrado}</span>
+                                            </span>
+                                            {div.percentual && (
+                                              <span className={`text-[10px] ${div.percentual > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                ({div.percentual > 0 ? '+' : ''}{div.percentual.toFixed(1)}%)
+                                              </span>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : colab.comparacao_anterior?.encontrado === false ? (
+                                  <Badge variant="outline" className="text-xs border-blue-500/50 text-blue-400 bg-blue-500/10">
+                                    <TrendingUp size={12} className="mr-1" />
+                                    Novo Colaborador
+                                  </Badge>
+                                ) : (
+                                  <span className="text-slate-500 text-xs">Sem folha anterior para comparar</span>
                                 )}
                               </td>
                             </tr>
