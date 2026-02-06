@@ -1018,36 +1018,36 @@ const Dissidio = () => {
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <p className="text-xs text-slate-500">Retroativo do Mês</p>
-                        <p className="font-mono font-bold text-lg text-blue-700">
+                        <p className="text-xs text-slate-400">Retroativo do Mês</p>
+                        <p className="font-mono font-bold text-lg text-blue-400">
                           R$ {mes.total_retroativo_mes?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
-                      <div className="w-8 h-8 rounded-full bg-slate-900 shadow flex items-center justify-center">
-                        {isExpanded(`mes-${mesIdx}`) ? <ChevronUp size={18} className="text-slate-600" /> : <ChevronDown size={18} className="text-slate-600" />}
+                      <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
+                        {isExpanded(`mes-${mesIdx}`) ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
                       </div>
                     </div>
                   </div>
                   
                   {isExpanded(`mes-${mesIdx}`) && (
-                    <div className="bg-slate-900 border-t">
+                    <div className="bg-slate-900 border-t border-slate-700">
                       {/* Subtotais do mês */}
-                      <div className="grid grid-cols-3 gap-4 p-4 bg-slate-800/50/50 border-b">
-                        <div className="text-center p-3 rounded-lg bg-slate-900 border">
-                          <p className="text-xs text-slate-500 mb-1">Soma Era</p>
-                          <p className="font-mono font-semibold text-slate-700">
+                      <div className="grid grid-cols-3 gap-4 p-4 bg-slate-800/50 border-b border-slate-700">
+                        <div className="text-center p-3 rounded-lg bg-slate-900 border border-slate-700">
+                          <p className="text-xs text-slate-400 mb-1">Folha Era</p>
+                          <p className="font-mono font-semibold text-slate-200">
                             R$ {mes.colaboradores?.reduce((acc, c) => acc + (c.total_valor_anterior || c.valor_base_reajuste || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </p>
                         </div>
-                        <div className="text-center p-3 rounded-lg bg-slate-900 border">
-                          <p className="text-xs text-slate-500 mb-1">Soma Ficou</p>
-                          <p className="font-mono font-semibold text-red-500">
+                        <div className="text-center p-3 rounded-lg bg-slate-900 border border-slate-700">
+                          <p className="text-xs text-slate-400 mb-1">Folha Ficou</p>
+                          <p className="font-mono font-semibold text-red-400">
                             R$ {mes.colaboradores?.reduce((acc, c) => acc + (c.total_valor_novo || (c.valor_base_reajuste || 0) * (1 + calculoResult.percentual_reajuste/100)), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </p>
                         </div>
-                        <div className="text-center p-3 rounded-lg bg-emerald-50 border border-emerald-200">
-                          <p className="text-xs text-emerald-600 mb-1">Total Retroativo</p>
-                          <p className="font-mono font-bold text-emerald-700">
+                        <div className="text-center p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                          <p className="text-xs text-emerald-400 mb-1">Total Retroativo</p>
+                          <p className="font-mono font-bold text-emerald-400">
                             R$ {mes.total_retroativo_mes?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </p>
                         </div>
@@ -1057,43 +1057,43 @@ const Dissidio = () => {
                       <div className="p-4">
                         <table className="w-full text-sm">
                           <thead>
-                            <tr className="text-xs uppercase tracking-wider text-slate-500">
+                            <tr className="text-xs uppercase tracking-wider text-slate-400 border-b border-slate-700">
                               <th className="text-left p-3 font-semibold">Colaborador</th>
                               <th className="text-left p-3 font-semibold">Verba</th>
                               <th className="text-right p-3 font-semibold">Era (R$)</th>
                               <th className="text-center p-3 font-semibold">Reajuste</th>
                               <th className="text-right p-3 font-semibold">Ficou (R$)</th>
-                              <th className="text-right p-3 font-semibold text-emerald-600">Diferença</th>
+                              <th className="text-right p-3 font-semibold text-emerald-400">Diferença</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100">
+                          <tbody className="divide-y divide-slate-800">
                             {mes.colaboradores?.map((colab, colabIdx) => (
                               <React.Fragment key={`colab-${colabIdx}`}>
                                 {colab.verbas?.map((verba, verbaIdx) => (
-                                  <tr key={`${colabIdx}-${verbaIdx}`} className="hover:bg-slate-800/50/50">
+                                  <tr key={`${colabIdx}-${verbaIdx}`} className="hover:bg-slate-800/50">
                                     {verbaIdx === 0 && (
                                       <td className="p-3 align-top" rowSpan={colab.verbas.length + 1}>
                                         <div className="flex items-center gap-2">
-                                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white text-xs font-bold">
+                                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center text-white text-xs font-bold">
                                             {colab.nome?.charAt(0)}
                                           </div>
-                                          <span className="font-medium text-slate-700">{colab.nome}</span>
+                                          <span className="font-medium text-white">{colab.nome}</span>
                                         </div>
                                       </td>
                                     )}
-                                    <td className="p-3 text-slate-600 capitalize">{verba.verba?.replace(/_/g, ' ')}</td>
-                                    <td className="p-3 text-right font-mono text-slate-500">
+                                    <td className="p-3 text-slate-300 capitalize">{verba.verba?.replace(/_/g, ' ')}</td>
+                                    <td className="p-3 text-right font-mono text-slate-400">
                                       {(verba.valor_anterior || verba.valor_original)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </td>
                                     <td className="p-3 text-center">
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-500/20 text-red-600 text-xs font-medium">
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-500/20 text-red-400 text-xs font-medium">
                                         +{calculoResult.percentual_reajuste}%
                                       </span>
                                     </td>
-                                    <td className="p-3 text-right font-mono text-red-500 font-medium">
+                                    <td className="p-3 text-right font-mono text-red-400 font-medium">
                                       {verba.valor_novo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '-'}
                                     </td>
-                                    <td className="p-3 text-right font-mono text-emerald-600 font-semibold">
+                                    <td className="p-3 text-right font-mono text-emerald-400 font-semibold">
                                       +{verba.diferenca?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </td>
                                   </tr>
