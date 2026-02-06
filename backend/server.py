@@ -5292,10 +5292,18 @@ async def apuracao_periodo(
             v_icms = float(prod.get('v_icms', 0) or 0)
             
             # PIS e COFINS - Crédito usa XML, Débito usa alíquota do regime
-            # Determinar tipo do documento antes de calcular PIS/COFINS
-            doc_tipo = doc.get('tipo', 'entrada')
-            is_entrada = doc_tipo == 'entrada'
-            is_saida = doc_tipo == 'saida'
+            # Determinar tipo PELO CFOP (mais confiável que tipo do documento)
+            primeiro_digito = cfop[0] if cfop else ''
+            
+            # CFOPs 1,2,3 = ENTRADA / CFOPs 5,6,7 = SAÍDA
+            is_entrada = primeiro_digito in ['1', '2', '3']
+            is_saida = primeiro_digito in ['5', '6', '7']
+            
+            # Se não tiver CFOP, usar tipo do documento como fallback
+            if not primeiro_digito:
+                doc_tipo = doc.get('tipo', 'entrada')
+                is_entrada = doc_tipo == 'entrada'
+                is_saida = doc_tipo == 'saida'
             
             if is_entrada:
                 # CRÉDITO: Usar valores do XML (o que foi destacado pelo fornecedor)
