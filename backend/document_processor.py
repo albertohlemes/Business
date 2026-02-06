@@ -475,9 +475,10 @@ class DocumentProcessor:
         
         # ===== EXTRAÇÃO DE VALORES - FORMATO SCI =====
         # No formato SCI extraído por OCR, o VALOR aparece ANTES da descrição
-        # Padrão: "VALOR\n DESCRIÇÃO\nCÓDIGO"
+        # Padrão: "VALOR\n DESCRIÇÃO\nCÓDIGO" ou "VALOR\n REF\n DESCRIÇÃO"
         
         # Buscar cada campo com valor ANTES da descrição
+        # Também captura a referência (quantidade) se disponível
         extrair_campos = [
             # (regex, campo, é_desconto)
             (r'([\d.,]+)\s*\n\s*Vale compras', 'vale_compras', True),
@@ -493,8 +494,6 @@ class DocumentProcessor:
             (r'([\d.,]+)\s*\n\s*DSR faltas', 'dsr_faltas', True),
             (r'([\d.,]+)\s*\n\s*Sal[aá]rio mensalista', 'salario_mensalista', False),
             (r'([\d.,]+)\s*\n\s*Quebra de caixa', 'quebra_caixa', False),
-            (r'([\d.,]+)\s*\n\s*Horas extras 50', 'horas_extras_50', False),
-            (r'([\d.,]+)\s*\n\s*Horas extras 100', 'horas_extras_100', False),
             (r'([\d.,]+)\s*\n\s*DSR horas extras', 'dsr_horas_extras', False),
             (r'([\d.,]+)\s*\n\s*Adicional noturno', 'adicional_noturno', False),
         ]
@@ -508,6 +507,42 @@ class DocumentProcessor:
                     colab[campo] = valor
                 elif not is_desconto and 0.01 < valor < 50000:
                     colab[campo] = valor
+        
+        # ===== EXTRAÇÃO ESPECIAL PARA HORAS EXTRAS COM REFERÊNCIA =====
+        # Padrão no SCI: "VALOR\n REF\n Horas extras 50%" ou "VALOR\n REF\n Horas extras 100%"
+        # Onde REF é a quantidade de horas (ex: 7,44)
+        
+        # Horas extras 50%
+        he50_match = re.search(r'([\d.,]+)\s*\n\s*([\d.,]+)\s*\n\s*Horas\s*extras\s*50', block, re.IGNORECASE)
+        if he50_match:
+            valor = parse_valor(he50_match.group(1))
+            ref = parse_valor(he50_match.group(2))
+            if 0.01 < valor < 50000:
+                colab['horas_extras_50'] = valor
+                colab['horas_extras_50_ref'] = ref  # Quantidade de horas
+        else:
+            # Fallback: só valor
+            he50_simple = re.search(r'([\d.,]+)\s*\n\s*Horas\s*extras\s*50', block, re.IGNORECASE)
+            if he50_simple:
+                valor = parse_valor(he50_simple.group(1))
+                if 0.01 < valor < 50000:
+                    colab['horas_extras_50'] = valor
+        
+        # Horas extras 100%
+        he100_match = re.search(r'([\d.,]+)\s*\n\s*([\d.,]+)\s*\n\s*Horas\s*extras\s*100', block, re.IGNORECASE)
+        if he100_match:
+            valor = parse_valor(he100_match.group(1))
+            ref = parse_valor(he100_match.group(2))
+            if 0.01 < valor < 50000:
+                colab['horas_extras_100'] = valor
+                colab['horas_extras_100_ref'] = ref  # Quantidade de horas
+        else:
+            # Fallback: só valor
+            he100_simple = re.search(r'([\d.,]+)\s*\n\s*Horas\s*extras\s*100', block, re.IGNORECASE)
+            if he100_simple:
+                valor = parse_valor(he100_simple.group(1))
+                if 0.01 < valor < 50000:
+                    colab['horas_extras_100'] = valor
         
         # Extrair Valor FGTS
         valor_fgts_match = re.search(r'Valor\s+FGTS\s*\n?\s*([\d.,]+)', block, re.IGNORECASE)
