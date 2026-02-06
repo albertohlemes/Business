@@ -4048,6 +4048,16 @@ async def exportar_resumo_convencao_pdf(
         fontName='Helvetica-Bold'
     )
     
+    # Helper para formatar valores monetários de forma segura
+    def formatar_valor(val):
+        if val is None:
+            return "N/A"
+        try:
+            valor_float = float(val)
+            return f"R$ {valor_float:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        except (ValueError, TypeError):
+            return str(val) if val else "N/A"
+    
     estilo_subtitulo = ParagraphStyle(
         'Subtitulo',
         parent=styles['Heading2'],
