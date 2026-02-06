@@ -175,7 +175,7 @@ class TestCalcularRetroativo:
             files=files,
             data={
                 "cliente_id": existing_cliente["id"],
-                "dados_convencao": json.dumps({})  # Missing percentual_reajuste
+                "convencao_dados": json.dumps({})  # Missing percentual_reajuste
             }
         )
         assert response.status_code == 400, f"Expected 400, got {response.status_code}"
@@ -216,7 +216,7 @@ Salário Base: R$ 2.000,00
             files=files,
             data={
                 "cliente_id": existing_cliente["id"],
-                "dados_convencao": json.dumps(dados_convencao)
+                "convencao_dados": json.dumps(dados_convencao)
             }
         )
         
@@ -364,7 +364,7 @@ Salário Base: R$ 3.000,00
             files=files,
             data={
                 "cliente_id": existing_cliente["id"],
-                "dados_convencao": json.dumps(dados_convencao)
+                "convencao_dados": json.dumps(dados_convencao)
             }
         )
         
