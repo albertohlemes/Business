@@ -542,63 +542,71 @@ class DocumentProcessor:
         """
         Usa IA (Gemini) para extrair referências de valores de qualquer tipo de arquivo de apoio.
         Funciona com prints, emails, planilhas, PDFs - qualquer formato.
+        Para imagens, envia diretamente para a IA sem OCR.
         """
         try:
-            # Primeiro extrair texto do arquivo
-            texto = self.extract_text(file_path)
-            if not texto:
-                logger.warning(f"Não foi possível extrair texto de {file_path}")
-                return []
+            suffix = Path(file_path).suffix.lower()
+            is_image = suffix in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
             
-            # Verificar se há chave de IA disponível
+            referencias = []
+            
+            # Verificar chaves de IA disponíveis
             google_key = os.environ.get('GOOGLE_AI_API_KEY')
             emergent_key = os.environ.get('EMERGENT_LLM_KEY')
             
             if not google_key and not emergent_key:
                 logger.warning("Nenhuma chave de IA disponível para análise de apoio")
-                # Fallback para parser simples
-                return self.parse_apoio_referencias(texto)
+                texto = self.extract_text(file_path)
+                return self.parse_apoio_referencias(texto) if texto else []
             
             prompt = """Analise este documento e extraia TODAS as referências de valores por colaborador/funcionário.
 
-O documento pode ser um email, planilha, print de tela, ou qualquer outro formato.
+O documento pode ser um email, planilha, print de tela, apontamento, ou qualquer outro formato.
 Procure por informações como:
 - Horas extras (quantidade ou valor)
-- Vale compras / vale transporte / vale refeição (valores)
-- Faltas / atrasos
+- Vale compras / vale transporte / vale refeição / vale alimentação (valores)
+- Faltas / atrasos (quantidade de dias ou horas)
 - Comissões / bonificações
 - Qualquer outro valor associado a um nome de pessoa
+
+IMPORTANTE: 
+- Extraia TODOS os colaboradores que encontrar
+- Use o nome EXATO como aparece no documento
+- Se houver valores, extraia o valor numérico
 
 RETORNE APENAS UM JSON no formato:
 {
   "referencias": [
     {
-      "nome": "Nome do colaborador",
-      "campo": "tipo do valor (ex: horas_extras, vale_compras, vale_transporte, faltas)",
+      "nome": "Nome do colaborador EXATAMENTE como aparece",
+      "campo": "tipo do valor (ex: vale_compras, horas_extras, vale_transporte, faltas)",
       "valor": 123.45,
       "unidade": "horas" ou "reais" ou "dias",
-      "texto_original": "trecho do texto onde encontrou"
+      "texto_original": "trecho onde encontrou a informação"
     }
   ]
 }
 
 Se não encontrar nenhuma referência, retorne: {"referencias": []}
-
-DOCUMENTO:
-""" + texto[:4000]  # Limitar texto para não exceder tokens
+"""
             
-            referencias = []
-            
-            # Tentar com Google AI primeiro (se disponível)
-            if google_key:
+            # Para imagens, usar a IA com a imagem diretamente
+            if is_image and google_key:
                 try:
                     import google.generativeai as genai
+                    import PIL.Image
+                    
                     genai.configure(api_key=google_key)
                     model = genai.GenerativeModel('gemini-1.5-flash')
-                    response = model.generate_content(prompt)
+                    
+                    # Carregar imagem
+                    img = PIL.Image.open(file_path)
+                    
+                    # Enviar imagem com prompt
+                    response = model.generate_content([prompt, img])
                     response_text = response.text
                     
-                    # Parsear JSON da resposta
+                    # Parsear JSON
                     if '```json' in response_text:
                         response_text = response_text.split('```json')[1].split('```')[0]
                     elif '```' in response_text:
@@ -607,41 +615,70 @@ DOCUMENTO:
                     import json
                     data = json.loads(response_text.strip())
                     referencias = data.get('referencias', [])
-                    logger.info(f"IA extraiu {len(referencias)} referências do arquivo de apoio")
+                    logger.info(f"IA (imagem) extraiu {len(referencias)} referências")
                     
                 except Exception as e:
-                    logger.error(f"Erro ao usar Google AI: {e}")
+                    logger.error(f"Erro ao usar Google AI com imagem: {e}")
             
-            # Fallback para Emergent LLM
-            if not referencias and emergent_key:
-                try:
-                    from emergentintegrations.llm.chat import LlmChat
-                    chat = LlmChat(
-                        api_key=emergent_key,
-                        session_id=f"apoio-extract-{os.urandom(4).hex()}",
-                        system_message="Você é um assistente que extrai dados estruturados de documentos."
-                    ).with_model("gemini", "gemini-2.5-flash")
-                    
-                    from emergentintegrations.llm.chat import UserMessage
-                    response = await chat.send_message(UserMessage(text=prompt))
-                    
-                    response_text = response
-                    if '```json' in response_text:
-                        response_text = response_text.split('```json')[1].split('```')[0]
-                    elif '```' in response_text:
-                        response_text = response_text.split('```')[1].split('```')[0]
-                    
-                    import json
-                    data = json.loads(response_text.strip())
-                    referencias = data.get('referencias', [])
-                    logger.info(f"Emergent LLM extraiu {len(referencias)} referências")
-                    
-                except Exception as e:
-                    logger.error(f"Erro ao usar Emergent LLM: {e}")
+            # Para outros arquivos ou fallback, extrair texto primeiro
+            if not referencias:
+                texto = self.extract_text(file_path)
+                if not texto:
+                    logger.warning(f"Não foi possível extrair texto de {file_path}")
+                    return []
+                
+                prompt_com_texto = prompt + "\n\nDOCUMENTO:\n" + texto[:4000]
+                
+                # Tentar com Google AI
+                if google_key and not referencias:
+                    try:
+                        import google.generativeai as genai
+                        genai.configure(api_key=google_key)
+                        model = genai.GenerativeModel('gemini-1.5-flash')
+                        response = model.generate_content(prompt_com_texto)
+                        response_text = response.text
+                        
+                        if '```json' in response_text:
+                            response_text = response_text.split('```json')[1].split('```')[0]
+                        elif '```' in response_text:
+                            response_text = response_text.split('```')[1].split('```')[0]
+                        
+                        import json
+                        data = json.loads(response_text.strip())
+                        referencias = data.get('referencias', [])
+                        logger.info(f"IA (texto) extraiu {len(referencias)} referências")
+                        
+                    except Exception as e:
+                        logger.error(f"Erro ao usar Google AI com texto: {e}")
+                
+                # Fallback para Emergent LLM
+                if not referencias and emergent_key:
+                    try:
+                        from emergentintegrations.llm.chat import LlmChat, UserMessage
+                        chat = LlmChat(
+                            api_key=emergent_key,
+                            session_id=f"apoio-{os.urandom(4).hex()}",
+                            system_message="Extraia dados estruturados de documentos."
+                        ).with_model("gemini", "gemini-2.5-flash")
+                        
+                        response = await chat.send_message(UserMessage(text=prompt_com_texto))
+                        
+                        response_text = response
+                        if '```json' in response_text:
+                            response_text = response_text.split('```json')[1].split('```')[0]
+                        elif '```' in response_text:
+                            response_text = response_text.split('```')[1].split('```')[0]
+                        
+                        import json
+                        data = json.loads(response_text.strip())
+                        referencias = data.get('referencias', [])
+                        logger.info(f"Emergent LLM extraiu {len(referencias)} referências")
+                        
+                    except Exception as e:
+                        logger.error(f"Erro ao usar Emergent LLM: {e}")
             
             # Normalizar campos
             for ref in referencias:
-                # Padronizar nome do campo
                 campo = ref.get('campo', '').lower().replace(' ', '_')
                 campo_map = {
                     'horas_extras': 'horas_extras',
@@ -654,6 +691,7 @@ DOCUMENTO:
                     'vr': 'vale_refeicao',
                     'vale_alimentacao': 'vale_alimentacao',
                     'va': 'vale_alimentacao',
+                    'vale': 'vale',
                     'falta': 'faltas',
                     'faltas': 'faltas',
                     'atraso': 'atrasos',
@@ -667,15 +705,22 @@ DOCUMENTO:
                 
                 # Garantir que valor é float
                 try:
-                    ref['valor'] = float(ref.get('valor', 0))
+                    val = ref.get('valor', 0)
+                    if isinstance(val, str):
+                        val = val.replace('.', '').replace(',', '.')
+                    ref['valor'] = float(val)
                 except:
                     ref['valor'] = 0
+                
+                # Normalizar nome (uppercase para comparação)
+                ref['nome_normalizado'] = ref.get('nome', '').upper().strip()
             
             return referencias
             
         except Exception as e:
-            logger.error(f"Erro ao extrair referências com IA: {e}")
-            return self.parse_apoio_referencias(self.extract_text(file_path))
+            logger.error(f"Erro ao extrair referências com IA: {e}", exc_info=True)
+            texto = self.extract_text(file_path)
+            return self.parse_apoio_referencias(texto) if texto else []
     
     def _extract_colaborador_from_block(self, block: str, parse_valor) -> Dict[str, Any]:
         """Extrai dados de um colaborador de um bloco de texto"""
