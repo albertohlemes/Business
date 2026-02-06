@@ -88,6 +88,8 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 
 ### P0 (Concluídos nesta sessão)
 - ✅ Exportação do resumo da convenção em PDF
+- ✅ Exportação de PDF a partir de cálculos anteriores
+- ✅ Validação de piso salarial no cálculo retroativo
 - ✅ Reorganização do menu em categorias
 - ✅ Conversão de Apontamentos
 - ✅ Conversão Admissional
