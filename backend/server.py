@@ -2045,6 +2045,44 @@ async def process_validacao_background(
                                 })
                                 total_divergencias += 1
             
+            # 5c. Verificar itens fixos - marcar como conferido automático
+            if itens_fixos:
+                nome_upper = nome.upper().strip()
+                campos_verificados = set(c.get('campo', '').lower() for c in colab_resultado['conferidos'])
+                campos_verificados.update(d.get('campo', '').lower() for d in colab_resultado['divergencias_apoio'])
+                
+                for item in itens_fixos:
+                    item_colab = (item.get('colaborador_nome') or '').upper().strip()
+                    item_campo = item.get('campo', '').lower()
+                    
+                    # Verificar se aplica a este colaborador
+                    if item_colab and item_colab not in nome_upper:
+                        continue
+                    
+                    # Verificar se já foi conferido/divergente
+                    if item_campo in campos_verificados:
+                        continue
+                    
+                    # Buscar valor no holerite
+                    valor_holerite = colab.get(item_campo, 0)
+                    if not valor_holerite:
+                        # Buscar em proventos/descontos
+                        campo_busca = item_campo.replace('_', ' ')
+                        for p in colab.get('proventos', []) + colab.get('descontos', []):
+                            if campo_busca in p.get('descricao', '').lower():
+                                valor_holerite = p.get('valor', 0)
+                                break
+                    
+                    if valor_holerite:
+                        colab_resultado['conferidos'].append({
+                            'campo': item_campo.replace('_', ' ').title(),
+                            'valor': valor_holerite,
+                            'fonte': 'Item Fixo',
+                            'status': 'fixo',
+                            'nota': item.get('descricao') or 'Marcado como item recorrente'
+                        })
+                        total_conferidos += 1
+            
             resultado_colaboradores.append(colab_resultado)
         
         validation_jobs[job_id]["progress"] = 85
