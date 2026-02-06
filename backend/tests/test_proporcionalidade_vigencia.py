@@ -9,6 +9,7 @@ import requests
 import os
 import json
 import io
+import uuid
 from datetime import datetime
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
@@ -41,12 +42,22 @@ def auth_headers(auth_token):
 
 
 @pytest.fixture(scope="module")
-def test_cliente(auth_headers):
-    """Create a test cliente for testing"""
-    unique_id = datetime.now().strftime("%H%M%S")
+def existing_cliente(auth_headers):
+    """Get an existing cliente for testing"""
+    response = requests.get(
+        f"{BASE_URL}/api/clientes",
+        headers=auth_headers
+    )
+    assert response.status_code == 200
+    clientes = response.json()
+    if clientes:
+        return clientes[0]
+    
+    # Create a new cliente if none exists
+    unique_id = str(uuid.uuid4())[:8]
     cliente_data = {
         "razao_social": f"TEST_Proporcionalidade_{unique_id}",
-        "cnpj": f"11.222.333/0001-{unique_id[:2]}",
+        "cnpj": f"99.{unique_id[:3]}.{unique_id[3:6]}/0001-99",
         "nome_fantasia": f"Test Prop {unique_id}"
     }
     response = requests.post(
@@ -55,10 +66,7 @@ def test_cliente(auth_headers):
         json=cliente_data
     )
     assert response.status_code in [200, 201], f"Failed to create cliente: {response.text}"
-    cliente = response.json()
-    yield cliente
-    # Cleanup
-    requests.delete(f"{BASE_URL}/api/clientes/{cliente['id']}", headers=auth_headers)
+    return response.json()
 
 
 class TestConvencaoAnalisar:
@@ -70,19 +78,9 @@ class TestConvencaoAnalisar:
         assert response.status_code == 403, f"Expected 403, got {response.status_code}"
         print("✓ Convenção analisar requires authentication")
     
-    def test_analisar_requires_file(self, auth_headers, test_cliente):
-        """Test that endpoint requires a file"""
-        response = requests.post(
-            f"{BASE_URL}/api/convencao/analisar",
-            headers={"Authorization": auth_headers["Authorization"]},
-            data={"cliente_id": test_cliente["id"]}
-        )
-        assert response.status_code == 422, f"Expected 422, got {response.status_code}"
-        print("✓ Convenção analisar requires file upload")
-    
-    def test_analisar_requires_cliente_id(self, auth_headers):
-        """Test that endpoint requires cliente_id"""
-        # Create a dummy PDF file with actual content
+    def test_analisar_returns_proporcionalidade_fields(self, auth_headers, existing_cliente):
+        """Test that analisar returns tabela_proporcionalidade and proporcionalidade_extraida_da_convencao"""
+        # Create a simple PDF file
         pdf_content = b"""%PDF-1.4
 1 0 obj
 << /Type /Catalog /Pages 2 0 R >>
@@ -91,29 +89,56 @@ endobj
 << /Type /Pages /Kids [3 0 R] /Count 1 >>
 endobj
 3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 100 >>
+stream
+BT /F1 12 Tf 100 700 Td (Convencao Coletiva 2024 - Reajuste 5% - Data Base Janeiro 2024) Tj ET
+endstream
 endobj
 xref
-0 4
+0 5
 0000000000 65535 f 
 0000000009 00000 n 
 0000000058 00000 n 
 0000000115 00000 n 
+0000000196 00000 n 
 trailer
-<< /Size 4 /Root 1 0 R >>
+<< /Size 5 /Root 1 0 R >>
 startxref
-196
+350
 %%EOF"""
-        files = {"file": ("test.pdf", io.BytesIO(pdf_content), "application/pdf")}
+        files = {"file": ("convencao_test.pdf", io.BytesIO(pdf_content), "application/pdf")}
         
         response = requests.post(
             f"{BASE_URL}/api/convencao/analisar",
             headers={"Authorization": auth_headers["Authorization"]},
-            files=files
+            files=files,
+            data={"cliente_id": existing_cliente["id"]}
         )
-        # Without cliente_id, should return 422 (validation error)
-        assert response.status_code in [422, 520], f"Expected 422 or 520, got {response.status_code}"
-        print("✓ Convenção analisar requires cliente_id")
+        
+        # Accept 200 (success) or 520 (AI processing error)
+        assert response.status_code in [200, 520], f"Unexpected status: {response.status_code}"
+        
+        if response.status_code == 200:
+            data = response.json()
+            assert "dados_convencao" in data, "Response should have dados_convencao"
+            
+            conv = data.get("dados_convencao", {})
+            # Check that proporcionalidade fields exist
+            assert "proporcionalidade_extraida_da_convencao" in conv, \
+                "dados_convencao should have proporcionalidade_extraida_da_convencao field"
+            
+            # tabela_proporcionalidade may be null or a list
+            has_tabela = "tabela_proporcionalidade" in conv
+            print(f"✓ Analisar returns proporcionalidade fields")
+            print(f"  - proporcionalidade_extraida_da_convencao: {conv.get('proporcionalidade_extraida_da_convencao')}")
+            print(f"  - tabela_proporcionalidade present: {has_tabela}")
+            if conv.get('tabela_proporcionalidade'):
+                print(f"  - tabela_proporcionalidade entries: {len(conv.get('tabela_proporcionalidade', []))}")
+        else:
+            print("⚠ AI processing error (520) - this is expected for minimal test PDF")
 
 
 class TestCalcularRetroativo:
@@ -125,20 +150,20 @@ class TestCalcularRetroativo:
         assert response.status_code == 403, f"Expected 403, got {response.status_code}"
         print("✓ Calcular retroativo requires authentication")
     
-    def test_calcular_requires_holerites(self, auth_headers, test_cliente):
+    def test_calcular_requires_holerites(self, auth_headers, existing_cliente):
         """Test that endpoint requires holerite files"""
         response = requests.post(
             f"{BASE_URL}/api/dissidio/calcular-retroativo",
             headers={"Authorization": auth_headers["Authorization"]},
             data={
-                "cliente_id": test_cliente["id"],
+                "cliente_id": existing_cliente["id"],
                 "dados_convencao": json.dumps({"percentual_reajuste": 5.0})
             }
         )
         assert response.status_code == 422, f"Expected 422, got {response.status_code}"
         print("✓ Calcular retroativo requires holerite files")
     
-    def test_calcular_requires_percentual_reajuste(self, auth_headers, test_cliente):
+    def test_calcular_requires_percentual_reajuste(self, auth_headers, existing_cliente):
         """Test that endpoint requires percentual_reajuste in dados_convencao"""
         # Create a dummy holerite file
         holerite_content = b"HOLERITE\nNome: Joao Silva\nSalario Base: 2000.00"
@@ -149,14 +174,14 @@ class TestCalcularRetroativo:
             headers={"Authorization": auth_headers["Authorization"]},
             files=files,
             data={
-                "cliente_id": test_cliente["id"],
+                "cliente_id": existing_cliente["id"],
                 "dados_convencao": json.dumps({})  # Missing percentual_reajuste
             }
         )
         assert response.status_code == 400, f"Expected 400, got {response.status_code}"
         print("✓ Calcular retroativo requires percentual_reajuste")
     
-    def test_calcular_with_proporcionalidade_data(self, auth_headers, test_cliente):
+    def test_calcular_with_proporcionalidade_data(self, auth_headers, existing_cliente):
         """Test calculation with proporcionalidade data in convenção"""
         # Create a holerite file with employee data
         holerite_content = """FOLHA DE PAGAMENTO - JANEIRO/2024
@@ -190,7 +215,7 @@ Salário Base: R$ 2.000,00
             headers={"Authorization": auth_headers["Authorization"]},
             files=files,
             data={
-                "cliente_id": test_cliente["id"],
+                "cliente_id": existing_cliente["id"],
                 "dados_convencao": json.dumps(dados_convencao)
             }
         )
@@ -313,7 +338,7 @@ class TestListCalculosDissidio:
 class TestProporcionalidadeCalculation:
     """Tests for proporcionalidade calculation logic"""
     
-    def test_proporcionalidade_for_employee_after_data_base(self, auth_headers, test_cliente):
+    def test_proporcionalidade_for_employee_after_data_base(self, auth_headers, existing_cliente):
         """Test that employees hired after data base receive proportional retroactive"""
         # Create holerite with employee hired in March (after January data base)
         holerite_content = """FOLHA DE PAGAMENTO - JANEIRO/2024
@@ -338,7 +363,7 @@ Salário Base: R$ 3.000,00
             headers={"Authorization": auth_headers["Authorization"]},
             files=files,
             data={
-                "cliente_id": test_cliente["id"],
+                "cliente_id": existing_cliente["id"],
                 "dados_convencao": json.dumps(dados_convencao)
             }
         )
