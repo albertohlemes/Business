@@ -165,8 +165,8 @@ const ConvencaoCard = ({ convencao, isAtual = false, isExpanded, onToggle, onRem
             </div>
           )}
 
-          {/* Benefícios */}
-          {convencao?.beneficios && (
+          {/* Benefícios - tratamento seguro */}
+          {convencao?.beneficios && typeof convencao.beneficios === 'object' && (
             <div className="bg-slate-800/30 rounded-lg p-3">
               <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
                 <Gift size={12} /> Benefícios
@@ -184,7 +184,7 @@ const ConvencaoCard = ({ convencao, isAtual = false, isExpanded, onToggle, onRem
                     <span className="text-white">{formatCurrency(convencao.beneficios.vale_alimentacao.valor)}</span>
                   </div>
                 )}
-                {convencao.beneficios.vale_transporte?.percentual_desconto && (
+                {typeof convencao.beneficios.vale_transporte?.percentual_desconto === 'number' && (
                   <div className="flex justify-between">
                     <span className="text-slate-400">VT Desconto:</span>
                     <span className="text-white">{convencao.beneficios.vale_transporte.percentual_desconto}%</span>
