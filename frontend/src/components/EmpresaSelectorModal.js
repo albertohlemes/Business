@@ -8,6 +8,12 @@ import { Building2, Calendar, Check, Search, ChevronRight } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Função helper para gerar código da empresa
+const getEmpresaCodigo = (id) => {
+  if (!id) return '';
+  return `#${id.slice(0, 4).toUpperCase()}`;
+};
+
 const EmpresaSelectorModal = ({ open, onOpenChange }) => {
   const [empresas, setEmpresas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +26,7 @@ const EmpresaSelectorModal = ({ open, onOpenChange }) => {
     if (open) {
       fetchEmpresas();
       setSelectedEmpresa(empresaSelecionada);
+      // Remover a barra para o input
       const compFormatted = competencia.replace('/', '');
       setCompetenciaInput(compFormatted);
     }
@@ -36,11 +43,32 @@ const EmpresaSelectorModal = ({ open, onOpenChange }) => {
     }
   };
 
+  // Formatar competência enquanto digita (MM/AAAA)
+  const handleCompetenciaChange = (e) => {
+    let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
+    
+    // Limita a 6 dígitos
+    if (value.length > 6) {
+      value = value.slice(0, 6);
+    }
+    
+    // Adiciona a barra automaticamente após 2 dígitos
+    if (value.length > 2) {
+      value = value.slice(0, 2) + '/' + value.slice(2);
+    }
+    
+    setCompetenciaInput(value);
+  };
+
   const handleConfirm = () => {
     if (!selectedEmpresa) return;
     
     let comp = competencia;
-    if (competenciaInput && competenciaInput.length >= 6) {
+    // Se o input tem o formato correto (MM/AAAA)
+    if (competenciaInput && competenciaInput.length >= 7) {
+      comp = competenciaInput;
+    } else if (competenciaInput && competenciaInput.length === 6 && !competenciaInput.includes('/')) {
+      // Se digitou sem barra (MMAAAA)
       const mes = competenciaInput.slice(0, 2);
       const ano = competenciaInput.slice(2, 6);
       comp = `${mes}/${ano}`;
@@ -50,15 +78,14 @@ const EmpresaSelectorModal = ({ open, onOpenChange }) => {
     onOpenChange(false);
   };
 
-  const filteredEmpresas = empresas.filter(e =>
-    e.razao_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    e.nome_fantasia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    e.cnpj?.includes(searchTerm)
-  );
-
-  const generateCode = (id) => {
-    return `#${id.slice(0, 4).toUpperCase()}`;
-  };
+  const filteredEmpresas = empresas.filter(e => {
+    const termo = searchTerm.toLowerCase();
+    const codigo = getEmpresaCodigo(e.id).toLowerCase();
+    return e.razao_social?.toLowerCase().includes(termo) ||
+           e.nome_fantasia?.toLowerCase().includes(termo) ||
+           e.cnpj?.includes(searchTerm) ||
+           codigo.includes(termo);
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -81,7 +108,7 @@ const EmpresaSelectorModal = ({ open, onOpenChange }) => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <Input
               data-testid="search-empresa-modal"
-              placeholder="Buscar por nome ou CNPJ..."
+              placeholder="Buscar por código, nome ou CNPJ..."
               className="pl-11 h-12 bg-slate-950 border-slate-700 text-white placeholder:text-slate-600 focus:border-red-500 focus:ring-red-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -123,6 +150,7 @@ const EmpresaSelectorModal = ({ open, onOpenChange }) => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-white truncate">
+                          <span className="text-red-500 font-mono mr-2">{getEmpresaCodigo(empresa.id)}</span>
                           {empresa.nome_fantasia || empresa.razao_social}
                         </p>
                         <p className="text-sm text-slate-500 font-mono">{empresa.cnpj}</p>
@@ -155,16 +183,14 @@ const EmpresaSelectorModal = ({ open, onOpenChange }) => {
             <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
               <Input
                 data-testid="competencia-input"
-                placeholder="MMAAAA"
+                placeholder="MM/AAAA"
                 value={competenciaInput}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                  setCompetenciaInput(value);
-                }}
-                className="text-center text-2xl font-mono tracking-[0.5em] h-14 bg-slate-950 border-slate-700 text-white placeholder:text-slate-600 focus:border-red-500 focus:ring-red-500"
+                onChange={handleCompetenciaChange}
+                maxLength={7}
+                className="text-center text-2xl font-mono tracking-[0.3em] h-14 bg-slate-950 border-slate-700 text-white placeholder:text-slate-600 focus:border-red-500 focus:ring-red-500"
               />
               <p className="text-xs text-slate-500 text-center mt-2">
-                Mês e ano (ex: 022026 → Fevereiro/2026)
+                Mês e ano (ex: 02/2026 → Fevereiro/2026)
               </p>
             </div>
           </div>
