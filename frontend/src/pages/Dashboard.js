@@ -284,6 +284,90 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Widget de Convenções Coletivas Vencendo */}
+      {convencoesVencendo.total_alertas > 0 && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-slate-900 to-red-500/10 border border-amber-500/30 rounded-2xl overflow-hidden">
+          <div className="p-6 border-b border-slate-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                  <Scale className="text-amber-500" size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    Convenções Coletivas
+                    <Badge variant="outline" className="border-amber-500 text-amber-400 bg-amber-500/10">
+                      {convencoesVencendo.total_alertas} alerta{convencoesVencendo.total_alertas > 1 ? 's' : ''}
+                    </Badge>
+                  </h3>
+                  <p className="text-xs text-slate-500">CCTs vencidas ou próximas do vencimento</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
+                Ver empresas
+                <ChevronRight size={16} className="ml-1" />
+              </Button>
+            </div>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {convencoesVencendo.alertas.slice(0, 6).map((alerta, index) => (
+                <div 
+                  key={index}
+                  data-testid={`cct-alert-${alerta.cliente_id}`}
+                  className={`p-4 rounded-xl border transition-all hover:scale-[1.02] ${
+                    alerta.status === 'vencida' 
+                      ? 'bg-red-500/10 border-red-500/30 hover:border-red-500/50' 
+                      : alerta.status === 'critico'
+                      ? 'bg-amber-500/10 border-amber-500/30 hover:border-amber-500/50'
+                      : 'bg-yellow-500/10 border-yellow-500/30 hover:border-yellow-500/50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-white truncate">{alerta.razao_social}</p>
+                      <p className="text-xs text-slate-500 truncate">{alerta.sindicato || 'Sindicato não informado'}</p>
+                    </div>
+                    <Badge 
+                      variant="outline" 
+                      className={`ml-2 shrink-0 ${
+                        alerta.status === 'vencida' 
+                          ? 'border-red-500 text-red-400 bg-red-500/10' 
+                          : alerta.status === 'critico'
+                          ? 'border-amber-500 text-amber-400 bg-amber-500/10'
+                          : 'border-yellow-500 text-yellow-400 bg-yellow-500/10'
+                      }`}
+                    >
+                      {alerta.status === 'vencida' ? (
+                        <><AlertTriangle size={12} className="mr-1" />Vencida</>
+                      ) : (
+                        <><Clock size={12} className="mr-1" />{alerta.dias}d</>
+                      )}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Vigência até:</span>
+                    <span className={`font-mono ${alerta.status === 'vencida' ? 'text-red-400' : 'text-amber-400'}`}>
+                      {alerta.data_fim}
+                    </span>
+                  </div>
+                  {alerta.status === 'vencida' && (
+                    <p className="text-xs text-red-400 mt-2">
+                      Vencida há {alerta.dias} dia{alerta.dias > 1 ? 's' : ''}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+            {convencoesVencendo.total_alertas > 6 && (
+              <p className="text-center text-sm text-slate-500 mt-4">
+                E mais {convencoesVencendo.total_alertas - 6} empresa{convencoesVencendo.total_alertas - 6 > 1 ? 's' : ''} com alertas...
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Second Row - Charts and Lists */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Próximos Dissídios */}
