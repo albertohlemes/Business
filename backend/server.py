@@ -5376,19 +5376,25 @@ ATENÇÃO: Extraia TODOS os dados visíveis no documento. Não deixe de incluir 
             output.seek(0)
             excel_base64 = base64.b64encode(output.read()).decode('utf-8')
             
-            # Preparar preview
-            preview_dados = registros[:20] if registros else []
+            # Preparar preview - TODOS os registros (sem limite)
+            preview_dados = registros
             
             # Usar o nome original do template
             original_filename = template_sci.filename
             output_filename = f"preenchido_{original_filename}" if original_filename else f"apontamentos_sci_{competencia or 'atual'}.xlsx"
+            
+            # Extrair eventos sem coluna e mapeamentos realizados
+            eventos_sem_coluna = dados.get("eventos_sem_coluna", [])
+            mapeamentos_realizados = dados.get("mapeamentos_realizados", [])
             
             return {
                 "success": True,
                 "registros_extraidos": len(registros),
                 "colaboradores_identificados": dados.get("colaboradores_identificados", len(registros)),
                 "eventos_identificados": dados.get("eventos_identificados", len(registros)),
-                "mapeamento_colunas": header_to_col,
+                "mapeamento_colunas": list(col_to_header.values()),
+                "eventos_sem_coluna": eventos_sem_coluna,
+                "mapeamentos_realizados": mapeamentos_realizados,
                 "observacoes": dados.get("observacoes", ""),
                 "preview_dados": preview_dados,
                 "arquivo_base64": excel_base64,
