@@ -1103,9 +1103,24 @@ const ValidacaoFolha = () => {
                                       </div>
                                     ))}
                                     {colab.divergencias_apoio?.map((div, i) => (
-                                      <div key={`da-${i}`} className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded">
-                                        <strong>{div.campo}:</strong> Apoio={div.valor_apoio} ≠ Holerite={div.valor_holerite}
-                                        <span className="block text-[10px] text-amber-600">{div.arquivo}</span>
+                                      <div key={`da-${i}`} className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded flex items-center justify-between gap-2">
+                                        <div>
+                                          <strong>{div.campo}:</strong> Apoio={div.valor_apoio} ≠ Holerite={div.valor_holerite}
+                                          <span className="block text-[10px] text-amber-600">{div.arquivo}</span>
+                                        </div>
+                                        <button
+                                          onClick={() => marcarComoFixo(
+                                            analysisResult.cliente_id || selectedCliente,
+                                            analysisResult.empresa,
+                                            colab.nome,
+                                            div.campo,
+                                            `${div.campo} - Recorrente para ${colab.nome}`
+                                          )}
+                                          className="p-1 hover:bg-amber-200 rounded"
+                                          title="Marcar como item fixo (não precisa vir no apoio)"
+                                        >
+                                          <Pin size={12} />
+                                        </button>
                                       </div>
                                     ))}
                                   </div>
