@@ -759,11 +759,62 @@ Retorne APENAS um JSON valido com a seguinte estrutura COMPLETA:
         },
         "auxilio_funeral": {
             "valor": 0.00,
+            "calculo": "X pisos/salarios ou valor fixo",
             "beneficiarios": "empregado/dependentes",
             "observacoes": ""
         },
+        "premio_tempo_servico": {
+            "possui": true,
+            "tabela": [
+                {"anos": 2, "percentual": 5, "valor_limite": 0.00, "observacao": ""},
+                {"anos": 3, "percentual": 8, "valor_limite": 0.00, "observacao": ""},
+                {"anos": 5, "percentual": 0, "valor_limite": 0.00, "observacao": ""},
+                {"anos": 10, "percentual": 0, "valor_limite": 0.00, "observacao": ""}
+            ],
+            "base_calculo": "salario base/salario normativo",
+            "limite_valor": "Teto se houver",
+            "forma_pagamento": "mensal/anual",
+            "observacoes": ""
+        },
+        "plr_participacao_lucros": {
+            "possui": true,
+            "valor_anual": 0.00,
+            "parcelas": [
+                {"mes": "Outubro", "valor": 0.00},
+                {"mes": "Abril", "valor": 0.00}
+            ],
+            "criterios": "Assiduidade, metas, etc",
+            "proporcionalidade": "Como calcula para admitidos no periodo",
+            "descontos_sindicais": "Valor descontado para filiados",
+            "observacoes": ""
+        },
+        "adicional_periculosidade": {
+            "percentual": 30,
+            "funcoes_aplicaveis": "Motorista, eletricista, etc",
+            "base_calculo": "salario base",
+            "observacoes": ""
+        },
+        "adicional_insalubridade": {
+            "grau_minimo": "minimo/medio/maximo",
+            "percentual_minimo": 10,
+            "percentual_medio": 20,
+            "percentual_maximo": 40,
+            "base_calculo": "salario minimo/piso",
+            "observacoes": ""
+        },
+        "auxilio_filho_excepcional": {
+            "valor": 0.00,
+            "condicoes": "",
+            "observacoes": ""
+        },
+        "diarias_viagem": {
+            "almoco": 0.00,
+            "jantar": 0.00,
+            "pernoite": 0.00,
+            "observacoes": ""
+        },
         "outros_beneficios": [
-            {"nome": "", "valor": 0.00, "condicoes": "", "observacoes": ""}
+            {"nome": "", "valor": 0.00, "percentual": 0, "condicoes": "", "observacoes": ""}
         ]
     },
     "jornada_trabalho": {
