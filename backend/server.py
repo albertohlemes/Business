@@ -5095,6 +5095,33 @@ async def apuracao_periodo(
     cfop_entradas = {}  # CFOPs de entrada (1xxx, 2xxx, 3xxx)
     cfop_saidas = {}    # CFOPs de saída (5xxx, 6xxx, 7xxx)
     
+    # Acumuladores para PIS/COFINS (calcular no final, igual Dashboard)
+    total_base_pis_cofins_saidas = 0
+    total_pis_credito_xml = 0
+    total_cofins_credito_xml = 0
+    
+    # CFOPs sem débito (mesma lista do Dashboard)
+    CFOPS_SAIDA_SEM_DEBITO_PIS = [
+        # Devoluções (não geram receita)
+        '5201', '5202', '5205', '5206', '5207', '5208', '5209', '5210',
+        '6201', '6202', '6205', '6206', '6207', '6208', '6209', '6210',
+        # Transferências (operação interna, não gera receita)
+        '5151', '5152', '5153', '5155', '5156', '5408', '5409', '5410',
+        '6151', '6152', '6153', '6155', '6156', '6408', '6409', '6410',
+        # Remessas (não são vendas)
+        '5901', '5902', '5903', '5904', '5905', '5906', '5907', '5908', '5909',
+        '5910', '5911', '5912', '5913', '5914', '5915', '5916', '5917', '5918',
+        '5919', '5920', '5921', '5922', '5923', '5924', '5925', '5926', '5927',
+        '5928', '5929', '5931', '5932', '5933', '5934', '5949',
+        '6901', '6902', '6903', '6904', '6905', '6906', '6907', '6908', '6909',
+        '6910', '6911', '6912', '6913', '6914', '6915', '6916', '6917', '6918',
+        '6919', '6920', '6921', '6922', '6923', '6924', '6925', '6929', '6931',
+        '6932', '6933', '6934', '6949',
+        # Exportações (alíquota zero por operação)
+        '7101', '7102', '7105', '7106', '7127', '7501', '7551', '7553', '7556',
+        '7651', '7654', '7667', '7930', '7949'
+    ]
+    
     for doc in documents:
         tipo_operacao = doc.get('tipo_operacao', doc.get('tipo', 'entrada'))
         
