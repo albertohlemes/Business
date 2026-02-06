@@ -1,0 +1,99 @@
+{
+  "summary": "Backend testing completed for new dissídio features: PDF Export and Piso Salarial Validation. All 17 tests passed (1 skipped due to no test data without convention data). Fixed a bug in error handling for calcular-retroativo endpoint.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/dissidio/calcular-retroativo",
+        "issue": "HTTPException was being caught by generic Exception handler and re-raised as 500 error",
+        "priority": "FIXED",
+        "fix_applied": "Added explicit HTTPException catch before generic Exception to preserve original status codes (404, 400)"
+      }
+    ]
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "GET /api/calculos-dissidio/{id}/exportar-convencao-pdf - requires authentication (403 without token)",
+    "GET /api/calculos-dissidio/{id}/exportar-convencao-pdf - returns 404 for non-existent calculation",
+    "GET /api/calculos-dissidio/{id}/exportar-convencao-pdf - exports valid PDF with correct content-type",
+    "GET /api/calculos-dissidio/{id}/exportar-convencao-pdf - PDF starts with %PDF header",
+    "GET /api/calculos-dissidio - lists calculations successfully",
+    "POST /api/dissidio/calcular-retroativo - requires authentication (403 without token)",
+    "POST /api/dissidio/calcular-retroativo - requires holerite files (422 without)",
+    "POST /api/dissidio/calcular-retroativo - requires cliente_id (422 without)",
+    "POST /api/dissidio/calcular-retroativo - returns 404 for non-existent cliente",
+    "POST /api/dissidio/calcular-retroativo - returns 400 when percentual_reajuste is missing",
+    "POST /api/dissidio/calcular-retroativo - creates calculation with alertas_piso field in response",
+    "Response structure includes alertas_piso as list",
+    "Calculation details include alertas_piso field",
+    "PDF export returns application/pdf content-type",
+    "Integration test: create cliente, colaborador, and calculation flow works"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_dissidio_pdf_piso.py",
+    "/app/backend/tests/test_dissidio_integration.py",
+    "/app/test_reports/pytest/pytest_dissidio_features.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "PDF export endpoint correctly uses reportlab library with Business Contabilidade branding",
+    "Piso salarial validation logic at lines 3781-3822 correctly checks both function-specific and general piso",
+    "alertas_piso field is properly included in both the calculation response and stored document",
+    "Error handling was improved - HTTPException now properly propagates instead of being wrapped in 500"
+  ],
+  
+  "updated_files": [
+    "/app/backend/server.py (line 3938-3940 - added HTTPException catch)",
+    "/app/backend/tests/test_dissidio_pdf_piso.py (new test file)",
+    "/app/backend/tests/test_dissidio_integration.py (new test file)"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (17/17 passed, 1 skipped)"
+  },
+  
+  "test_credentials": {
+    "email": "admin@teste.com",
+    "password": "admin123"
+  },
+  
+  "seed_data_creation": "Test creates temporary cliente and colaborador, then cleans up after tests",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "New dissídio features tested: 1) GET /api/calculos-dissidio/{id}/exportar-convencao-pdf - exports PDF from existing calculation with convention data. Returns 400 if calculation has no dados_convencao. 2) POST /api/dissidio/calcular-retroativo - includes alertas_piso in response when employees are below piso salarial. The piso validation checks both function-specific pisos (pisos_por_funcao) and general piso (piso_salarial). Fixed bug where HTTPException was being caught and re-raised as 500.",
+  
+  "features_tested": {
+    "pdf_export_from_calculo": {
+      "endpoint": "GET /api/calculos-dissidio/{calculo_id}/exportar-convencao-pdf",
+      "status": "WORKING",
+      "description": "Exports PDF with convention summary from existing calculation. Uses reportlab with Business Contabilidade branding.",
+      "requirements": "Calculation must have dados_convencao field populated"
+    },
+    "alertas_piso_validation": {
+      "endpoint": "POST /api/dissidio/calcular-retroativo",
+      "status": "WORKING",
+      "description": "Validates employee salaries against piso salarial during retroactive calculation. Returns alertas_piso array with details when employees are below piso.",
+      "validation_logic": "1) Checks function-specific piso (pisos_por_funcao), 2) Falls back to general piso (piso_salarial), 3) Compares new calculated salary against applicable piso"
+    }
+  },
+  
+  "bug_fixed": {
+    "location": "/app/backend/server.py line 3938-3940",
+    "issue": "HTTPException (404, 400) was being caught by generic Exception handler and re-raised as 500 Internal Server Error",
+    "fix": "Added explicit 'except HTTPException: raise' before generic Exception catch",
+    "impact": "Proper error codes now returned to client (404 for not found, 400 for bad request)"
+  }
+}
