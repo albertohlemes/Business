@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { useEmpresa } from '../contexts/EmpresaContext';
+import { getEmpresaCodigo, getEmpresaNome } from '../utils/empresaUtils';
 import { 
   Building2, 
   Users, 
