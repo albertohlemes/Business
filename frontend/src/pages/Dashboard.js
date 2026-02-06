@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
 import { useEmpresa } from '../contexts/EmpresaContext';
 import { getEmpresaCodigo, getEmpresaNome } from '../utils/empresaUtils';
 import { 
@@ -14,7 +15,10 @@ import {
   Briefcase,
   ChevronRight,
   Zap,
-  LineChart
+  LineChart,
+  Scale,
+  AlertTriangle,
+  Clock
 } from 'lucide-react';
 import { 
   BarChart, 

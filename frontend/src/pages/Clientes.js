@@ -7,9 +7,11 @@ import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Building2, Users, Pencil, Trash2, Search, X, RefreshCw, Loader2, MapPin, FileText, Briefcase, Upload, FileSpreadsheet, Download, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Building2, Users, Pencil, Trash2, Search, X, RefreshCw, Loader2, MapPin, FileText, Briefcase, Upload, FileSpreadsheet, Download, CheckCircle2, AlertCircle, Scale } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
+import ConvencaoColetiva from '../components/ConvencaoColetiva';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
