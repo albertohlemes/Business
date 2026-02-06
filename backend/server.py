@@ -5305,46 +5305,65 @@ ATENÇÃO: Extraia TODOS os dados visíveis no documento. Não deixe de incluir 
             dados = json.loads(response_text.strip())
             registros = dados.get("registros", [])
             
+            logger.info(f"Registros extraídos: {len(registros)}")
+            if registros:
+                logger.info(f"Primeiro registro: {registros[0]}")
+            
             # USAR O TEMPLATE ORIGINAL como base - preserva toda a estrutura, formatação, estilos
             wb_output = load_workbook(template_path)
             ws_output = wb_output.active
             
-            # Usar cabeçalhos do template
-            header_names = template_info.get("header_names", [])
-            if not header_names and registros:
-                header_names = list(registros[0].keys())
-            
-            # Criar mapeamento de coluna por nome do cabeçalho
+            # Criar mapeamento de coluna por nome do cabeçalho (case insensitive e normalizado)
             header_to_col = {}
-            for h in template_info.get("headers", []):
-                header_to_col[h["nome"]] = h["coluna"]
+            col_to_header = {}
+            for col in range(1, ws_output.max_column + 1):
+                header_value = ws_output.cell(row=1, column=col).value
+                if header_value:
+                    header_str = str(header_value).strip()
+                    header_to_col[header_str] = col
+                    header_to_col[header_str.lower()] = col  # Também mapeia lowercase
+                    header_to_col[header_str.upper()] = col  # Também mapeia uppercase
+                    col_to_header[col] = header_str
             
-            # Encontrar a primeira linha vazia após os dados existentes (ou após o cabeçalho)
-            start_row = 2  # Por padrão, começa na linha 2 (após cabeçalho)
+            logger.info(f"Colunas do template: {list(col_to_header.values())}")
             
-            # Se o template já tem dados de exemplo, encontrar a próxima linha vazia
-            # Ou limpar os dados existentes se for apenas template
-            if template_info.get("sample_rows"):
-                # Template tem dados de exemplo - limpar e começar do zero na linha 2
-                # Limpar linhas existentes (exceto cabeçalho)
-                for row in range(2, ws_output.max_row + 1):
-                    for col in range(1, ws_output.max_column + 1):
-                        ws_output.cell(row=row, column=col, value=None)
+            # Limpar dados existentes (exceto cabeçalho) se houver
+            for row in range(2, ws_output.max_row + 1):
+                for col in range(1, ws_output.max_column + 1):
+                    ws_output.cell(row=row, column=col, value=None)
             
-            # Escrever dados extraídos preservando a estrutura do template
-            for row_idx, reg in enumerate(registros, start_row):
-                for header in header_names:
-                    col_idx = header_to_col.get(header)
-                    if col_idx:
-                        value = reg.get(header)
-                        ws_output.cell(row=row_idx, column=col_idx, value=value)
+            # Escrever dados extraídos
+            for row_idx, reg in enumerate(registros, 2):  # Começa na linha 2
+                logger.info(f"Escrevendo linha {row_idx}: {reg}")
+                
+                for key, value in reg.items():
+                    if value is None or value == "" or value == "null":
+                        continue
+                    
+                    # Tentar encontrar a coluna correspondente
+                    col_idx = None
+                    
+                    # Primeiro: busca exata
+                    if key in header_to_col:
+                        col_idx = header_to_col[key]
+                    # Segundo: busca case insensitive
+                    elif key.lower() in header_to_col:
+                        col_idx = header_to_col[key.lower()]
+                    elif key.upper() in header_to_col:
+                        col_idx = header_to_col[key.upper()]
                     else:
-                        # Se o cabeçalho não foi mapeado, tentar encontrar pelo nome
-                        for col in range(1, ws_output.max_column + 1):
-                            if ws_output.cell(row=1, column=col).value == header:
-                                value = reg.get(header)
-                                ws_output.cell(row=row_idx, column=col, value=value)
-                                break
+                        # Terceiro: busca parcial (se o nome da coluna contém a key ou vice-versa)
+                        for header, col in header_to_col.items():
+                            if isinstance(header, str):
+                                if key.lower() in header.lower() or header.lower() in key.lower():
+                                    col_idx = col
+                                    break
+                    
+                    if col_idx:
+                        ws_output.cell(row=row_idx, column=col_idx, value=value)
+                        logger.info(f"  -> Coluna {col_idx} ({col_to_header.get(col_idx, '?')}): {value}")
+                    else:
+                        logger.warning(f"  -> Coluna não encontrada para '{key}': {value}")
             
             # Salvar como bytes - mantendo o formato original
             output = BytesIO()
@@ -5362,9 +5381,9 @@ ATENÇÃO: Extraia TODOS os dados visíveis no documento. Não deixe de incluir 
             return {
                 "success": True,
                 "registros_extraidos": len(registros),
-                "colaboradores_identificados": dados.get("colaboradores_identificados", len(set(r.get(header_names[0] if header_names else 'colaborador', '') for r in registros if r))),
-                "eventos_identificados": dados.get("eventos_identificados", 0),
-                "mapeamento_colunas": dados.get("mapeamento_colunas", {}),
+                "colaboradores_identificados": dados.get("colaboradores_identificados", len(registros)),
+                "eventos_identificados": dados.get("eventos_identificados", len(registros)),
+                "mapeamento_colunas": header_to_col,
                 "observacoes": dados.get("observacoes", ""),
                 "preview_dados": preview_dados,
                 "arquivo_base64": excel_base64,
