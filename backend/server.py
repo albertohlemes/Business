@@ -3935,6 +3935,9 @@ async def calcular_dissidio_retroativo(
         
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Dados da convenção inválidos")
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is (404, 400, etc.)
+        raise
     except Exception as e:
         logger.error(f"Erro no cálculo de dissídio: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erro ao calcular dissídio: {str(e)}")
