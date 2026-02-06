@@ -683,7 +683,12 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                               className={ncm.saldo_icms > 0 ? 'bg-red-50' : ncm.saldo_icms < 0 ? 'bg-green-50' : ''}
                               title={ncm.descricoes?.join(', ') || ''}
                             >
-                              <td className="px-4 py-3 font-mono text-sm font-medium">{ncm.ncm}</td>
+                              <td className="px-4 py-3">
+                                <div className="font-mono text-sm font-medium">{ncm.ncm}</div>
+                                {tituloProduto && (
+                                  <div className="text-xs text-gray-500 mt-0.5">{tituloProduto}</div>
+                                )}
+                              </td>
                               <td className="px-4 py-3 text-sm text-center">
                                 {ncm.aliq_entrada > 0 ? `${ncm.aliq_entrada}%` : 
                                   ncm.tem_st_entrada ? <span className="text-orange-600 text-xs">ST</span> : '-'}
