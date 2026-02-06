@@ -7172,11 +7172,12 @@ async def analise_tributaria_ia(
         entrada = produtos_entrada[ncm]
         saida = produtos_saida[ncm]
         
-        aliq_entrada = entrada['aliq_icms_media']
-        aliq_saida = saida['aliq_icms_media']
+        # Usar alíquotas PREDOMINANTES (valores inteiros reais do ICMS)
+        aliq_entrada = entrada.get('aliquota_predominante', 0)
+        aliq_saida = saida.get('aliquota_predominante', 0)
         aliq_creditavel = entrada.get('aliq_creditavel', 0)
         
-        # Usar ICMS creditável (exclui ST/Despesa) para cálculo de impacto
+        # Usar ICMS creditável (exclui ST/Despesa/Simples) para cálculo de impacto
         icms_credito = entrada['total_icms_creditavel']
         icms_debito = saida['total_icms']
         impacto = icms_debito - icms_credito
@@ -7187,7 +7188,7 @@ async def analise_tributaria_ia(
         descricao_principal = descricoes_entrada[0] if descricoes_entrada else (descricoes_saida[0] if descricoes_saida else ncm)
         
         # Vilão 1: Entrada com crédito menor que débito na saída (ex: entra 12%, sai 18%)
-        if aliq_creditavel > 0 and aliq_saida > 0 and aliq_creditavel < aliq_saida and impacto > 100:  # Impacto mínimo de R$ 100
+        if aliq_creditavel > 0 and aliq_saida > aliq_creditavel and impacto > 100:
             viloes.append({
                 'tipo': 'ALIQUOTA_DESFAVORAVEL',
                 'ncm': ncm,
@@ -7206,28 +7207,56 @@ async def analise_tributaria_ia(
                 'valor_saida': round(saida['total_valor'], 2),
                 'cfops_entrada': list(entrada['cfops']),
                 'cfops_saida': list(saida['cfops']),
-                'explicacao': f"NCM {ncm}: Entra com crédito de {aliq_creditavel}% e sai com débito de {aliq_saida}%. Diferença de {round(aliq_saida - aliq_creditavel, 2)}pp gera prejuízo de R$ {round(impacto, 2):,.2f}"
+                'explicacao': f"Entra com crédito de {aliq_creditavel}% e sai com débito de {aliq_saida}%. Diferença de {round(aliq_saida - aliq_creditavel)}pp gera prejuízo."
             })
         
         # Vilão 2: Entrada ST (sem crédito) → Saída tributada (com débito)
         if entrada['tem_st'] and not entrada['tem_tributado'] and saida['tem_tributado'] and icms_debito > 100:
-            viloes.append({
-                'tipo': 'ST_ENTRADA_TRIBUTADO_SAIDA',
-                'ncm': ncm,
-                'descricao': descricao_principal,
-                'descricoes_entrada': descricoes_entrada,
-                'descricoes_saida': descricoes_saida,
-                'aliq_entrada': 0,  # ST não gera crédito
-                'aliq_saida': aliq_saida,
-                'diferenca_aliquota': aliq_saida,
-                'icms_credito': 0,
-                'icms_debito': round(icms_debito, 2),
-                'impacto_negativo': round(icms_debito, 2),
-                'qtd_entrada': entrada['qtd_itens'],
-                'qtd_saida': saida['qtd_itens'],
-                'valor_entrada': round(entrada['total_valor'], 2),
-                'valor_saida': round(saida['total_valor'], 2),
-                'cfops_entrada': list(entrada['cfops']),
+            if not any(v['ncm'] == ncm for v in viloes):  # Evitar duplicatas
+                viloes.append({
+                    'tipo': 'ST_ENTRADA_TRIBUTADO_SAIDA',
+                    'ncm': ncm,
+                    'descricao': descricao_principal,
+                    'descricoes_entrada': descricoes_entrada,
+                    'descricoes_saida': descricoes_saida,
+                    'aliq_entrada': 0,
+                    'aliq_saida': aliq_saida,
+                    'diferenca_aliquota': aliq_saida,
+                    'icms_credito': 0,
+                    'icms_debito': round(icms_debito, 2),
+                    'impacto_negativo': round(icms_debito, 2),
+                    'qtd_entrada': entrada['qtd_itens'],
+                    'qtd_saida': saida['qtd_itens'],
+                    'valor_entrada': round(entrada['total_valor'], 2),
+                    'valor_saida': round(saida['total_valor'], 2),
+                    'cfops_entrada': list(entrada['cfops']),
+                    'cfops_saida': list(saida['cfops']),
+                    'explicacao': f"Entra com ST (sem crédito) mas sai tributado a {aliq_saida}%. Todo débito é prejuízo."
+                })
+        
+        # Vilão 3: Compra do SIMPLES NACIONAL (sem crédito) → Saída tributada
+        if entrada.get('tem_simples') and not entrada['tem_tributado'] and saida['tem_tributado'] and icms_debito > 100:
+            if not any(v['ncm'] == ncm for v in viloes):
+                viloes.append({
+                    'tipo': 'SIMPLES_ENTRADA_TRIBUTADO_SAIDA',
+                    'ncm': ncm,
+                    'descricao': descricao_principal,
+                    'descricoes_entrada': descricoes_entrada,
+                    'descricoes_saida': descricoes_saida,
+                    'aliq_entrada': 0,
+                    'aliq_saida': aliq_saida,
+                    'diferenca_aliquota': aliq_saida,
+                    'icms_credito': 0,
+                    'icms_debito': round(icms_debito, 2),
+                    'impacto_negativo': round(icms_debito, 2),
+                    'qtd_entrada': entrada['qtd_itens'],
+                    'qtd_saida': saida['qtd_itens'],
+                    'valor_entrada': round(entrada['total_valor'], 2),
+                    'valor_saida': round(saida['total_valor'], 2),
+                    'cfops_entrada': list(entrada['cfops']),
+                    'cfops_saida': list(saida['cfops']),
+                    'explicacao': f"Compra de fornecedor SIMPLES NACIONAL (sem crédito) mas sai tributado a {aliq_saida}%. Todo débito é prejuízo."
+                })
                 'cfops_saida': list(saida['cfops']),
                 'explicacao': f"NCM {ncm}: Entra com ST (sem crédito) mas sai tributado com {aliq_saida}%. Todo débito de R$ {round(icms_debito, 2):,.2f} é prejuízo tributário."
             })
