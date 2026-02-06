@@ -11,7 +11,7 @@ import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import { Plus, Building2, Users, Pencil, Trash2, Search, X, RefreshCw, Loader2, MapPin, FileText, Briefcase, Upload, FileSpreadsheet, Download, CheckCircle2, AlertCircle, Scale } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
-import ConvencaoColetiva from '../components/ConvencaoColetiva';
+import ConvencoesColetivas from '../components/ConvencoesColetivas';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
