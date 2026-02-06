@@ -226,6 +226,123 @@ const ApuracaoMensal = ({ user, onLogout }) => {
     setShowExportModal(false);
   };
   
+  // Função para exportar Relação de Notas (com status ativa/cancelada)
+  const exportRelacaoNotas = async () => {
+    if (!selectedCompany || !selectedCompetencia) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/relacao-notas/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}&incluir_canceladas=true`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      const dados = response.data;
+      const wb = XLSX.utils.book_new();
+      const empresa = selectedCompany?.razao_social || 'Empresa';
+      const competencia = selectedCompetencia || 'Competencia';
+      
+      // Função para formatar data
+      const formatDate = (dateStr) => {
+        if (!dateStr) return '';
+        try {
+          const date = new Date(dateStr);
+          return date.toLocaleDateString('pt-BR');
+        } catch {
+          return dateStr.split('T')[0] || dateStr;
+        }
+      };
+      
+      // Preparar dados de ENTRADAS
+      const entradasData = dados.entradas.map(nota => ({
+        'NF': nota.numero_nfe,
+        'Data': formatDate(nota.data_emissao),
+        'Emitente': (nota.emitente_nome || '').substring(0, 40),
+        'CNPJ Emitente': nota.emitente_cnpj,
+        'CFOP Principal': nota.cfop_principal,
+        'Valor Total': nota.valor_total,
+        'Status': nota.status,
+        'Motivo Cancel.': nota.xMotivo_cancelamento || ''
+      }));
+      
+      // Preparar dados de SAÍDAS
+      const saidasData = dados.saidas.map(nota => ({
+        'NF': nota.numero_nfe,
+        'Data': formatDate(nota.data_emissao),
+        'Destinatário': (nota.destinatario_nome || '').substring(0, 40),
+        'CNPJ Destinatário': nota.destinatario_cnpj,
+        'CFOP Principal': nota.cfop_principal,
+        'Valor Total': nota.valor_total,
+        'Status': nota.status,
+        'Motivo Cancel.': nota.xMotivo_cancelamento || ''
+      }));
+      
+      // Criar planilha de Entradas
+      if (entradasData.length > 0) {
+        const wsEntradas = XLSX.utils.json_to_sheet(entradasData);
+        
+        // Ajustar largura das colunas
+        wsEntradas['!cols'] = [
+          { wch: 12 }, // NF
+          { wch: 12 }, // Data
+          { wch: 40 }, // Emitente
+          { wch: 18 }, // CNPJ
+          { wch: 12 }, // CFOP
+          { wch: 15 }, // Valor
+          { wch: 12 }, // Status
+          { wch: 30 }  // Motivo
+        ];
+        
+        XLSX.utils.book_append_sheet(wb, wsEntradas, 'Entradas');
+      }
+      
+      // Criar planilha de Saídas
+      if (saidasData.length > 0) {
+        const wsSaidas = XLSX.utils.json_to_sheet(saidasData);
+        
+        wsSaidas['!cols'] = [
+          { wch: 12 },
+          { wch: 12 },
+          { wch: 40 },
+          { wch: 18 },
+          { wch: 12 },
+          { wch: 15 },
+          { wch: 12 },
+          { wch: 30 }
+        ];
+        
+        XLSX.utils.book_append_sheet(wb, wsSaidas, 'Saídas');
+      }
+      
+      // Criar planilha de Resumo
+      const resumoData = [
+        { 'Descrição': 'RESUMO DA COMPETÊNCIA', 'Quantidade': '', 'Valor': '' },
+        { 'Descrição': '', 'Quantidade': '', 'Valor': '' },
+        { 'Descrição': 'ENTRADAS', 'Quantidade': '', 'Valor': '' },
+        { 'Descrição': '  Notas Ativas', 'Quantidade': dados.resumo.entradas.ativas, 'Valor': dados.resumo.entradas.valor_ativas },
+        { 'Descrição': '  Notas Canceladas', 'Quantidade': dados.resumo.entradas.canceladas, 'Valor': dados.resumo.entradas.valor_canceladas },
+        { 'Descrição': '', 'Quantidade': '', 'Valor': '' },
+        { 'Descrição': 'SAÍDAS', 'Quantidade': '', 'Valor': '' },
+        { 'Descrição': '  Notas Ativas', 'Quantidade': dados.resumo.saidas.ativas, 'Valor': dados.resumo.saidas.valor_ativas },
+        { 'Descrição': '  Notas Canceladas', 'Quantidade': dados.resumo.saidas.canceladas, 'Valor': dados.resumo.saidas.valor_canceladas },
+        { 'Descrição': '', 'Quantidade': '', 'Valor': '' },
+        { 'Descrição': 'TOTAL DE NOTAS', 'Quantidade': dados.resumo.total_notas, 'Valor': '' }
+      ];
+      
+      const wsResumo = XLSX.utils.json_to_sheet(resumoData);
+      wsResumo['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 18 }];
+      XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
+      
+      // Baixar arquivo
+      XLSX.writeFile(wb, `Relacao_Notas_${empresa.substring(0, 20)}_${competencia.replace('/', '-')}.xlsx`);
+      setShowExportModal(false);
+      
+    } catch (err) {
+      console.error('Erro ao exportar relação de notas:', err);
+      setError('Erro ao exportar relação de notas');
+    }
+  };
+  
   // Função auxiliar para formatar moeda simples (sem R$)
   const formatCurrencySimple = (value) => {
     return (value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
