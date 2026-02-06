@@ -5176,58 +5176,63 @@ async def converter_apontamentos_com_template(
                 api_key=api_key,
                 session_id=f"apontamentos-sci-{uuid.uuid4()}",
                 system_message=f"""Você é um especialista em departamento pessoal e folha de pagamento.
-Sua tarefa é EXTRAIR DADOS de apontamentos e preencher uma planilha no formato específico do sistema SCI.
+Sua tarefa é EXTRAIR DADOS de apontamentos e MAPEAR para as colunas corretas da planilha SCI.
 
-=== ESTRUTURA DA PLANILHA DE DESTINO (TEMPLATE SCI) ===
-A planilha tem as seguintes colunas (na ordem):
+=== COLUNAS DISPONÍVEIS NO TEMPLATE SCI ===
 {json.dumps(header_names, ensure_ascii=False, indent=2)}
 
-{f"Exemplo de como os dados devem ficar: {json.dumps(template_info.get('sample_rows', [])[:2], ensure_ascii=False)}" if template_info.get('sample_rows') else ""}
+{f"Exemplo de dados existentes: {json.dumps(template_info.get('sample_rows', [])[:2], ensure_ascii=False)}" if template_info.get('sample_rows') else ""}
 
-=== O QUE VOCÊ DEVE FAZER ===
+=== MAPEAMENTO DE NOMES (MUITO IMPORTANTE!) ===
+Os nomes no apontamento podem ser DIFERENTES dos nomes das colunas. Faça o mapeamento inteligente:
 
-1. LEIA ATENTAMENTE o documento de apontamento enviado (imagem, PDF, planilha)
+EXEMPLOS DE EQUIVALÊNCIAS COMUNS:
+- "Atraso" ou "Atrasos" → pode ser "Falta Horas", "FH", "Horas Falta"
+- "Hora Extra" ou "HE" ou "H.E." → pode ser "HE 50%", "HE 100%", "Hora Extra"
+- "Falta" ou "Faltas" → pode ser "Falta Dias", "FD", "Dias Falta"
+- "Adicional Noturno" ou "Ad. Not." → pode ser "AN", "Adic. Noturno"
+- "DSR" ou "Descanso" → pode ser "DSR", "Repouso"
+- "Comissão" → pode ser "Comissões", "COM"
+- Nomes de funcionários podem vir abreviados ou com sobrenome apenas
 
-2. IDENTIFIQUE cada COLABORADOR mencionado:
-   - Nome completo
-   - Matrícula/código (se houver)
-   - Setor/departamento (se houver)
+USE AS COLUNAS DO TEMPLATE - analise qual coluna corresponde a cada evento!
 
-3. Para CADA colaborador, identifique TODOS os eventos/lançamentos:
-   - Horas extras (50%, 100%, noturnas)
-   - Faltas (justificadas, injustificadas)
-   - Atrasos
-   - Comissões
-   - Bonificações
-   - Adicionais (noturno, insalubridade, periculosidade)
-   - DSR
-   - Atestados médicos
-   - Férias
-   - Qualquer outro evento variável
-
-4. Para cada evento, identifique:
-   - Quantidade/Referência (horas, dias, %)
-   - Valor em R$ (se informado)
-   - Código do evento (se houver)
-
-5. MONTE OS REGISTROS no formato EXATO das colunas do template:
-   - Use os MESMOS NOMES de colunas
-   - Cada linha = 1 colaborador + 1 evento
-   - Se um colaborador tem 3 eventos, gere 3 linhas
+=== SUA TAREFA ===
+1. Leia o documento de apontamento
+2. Identifique cada COLABORADOR e cada EVENTO
+3. MAPEIE cada evento para a coluna CORRETA do template
+4. Se um evento NÃO TEM coluna correspondente, liste em "eventos_sem_coluna"
 
 === FORMATO DE SAÍDA (JSON) ===
-Retorne APENAS um JSON válido no formato:
 {{
     "registros": [
         {json.dumps(exemplo_registro, ensure_ascii=False)}
     ],
     "colaboradores_identificados": 0,
     "eventos_identificados": 0,
-    "observacoes": "detalhes sobre o que foi extraído"
+    "eventos_sem_coluna": [
+        {{
+            "evento_original": "Nome do evento no apontamento",
+            "colaborador": "Nome do colaborador",
+            "valor": "Valor/quantidade encontrado",
+            "sugestao_coluna": "Coluna mais próxima do template (se houver)"
+        }}
+    ],
+    "mapeamentos_realizados": [
+        {{
+            "evento_apontamento": "Nome no apontamento",
+            "coluna_template": "Coluna usada no template"
+        }}
+    ],
+    "observacoes": "detalhes sobre a extração"
 }}
 
-IMPORTANTE:
-- Extraia TODOS os colaboradores e TODOS os eventos do documento
+REGRAS:
+- Use EXATAMENTE os nomes das colunas do template nos registros
+- Se não souber mapear um evento, coloque em "eventos_sem_coluna"
+- Extraia TODOS os dados, não pule nenhum colaborador ou evento
+- Cada linha = 1 colaborador + 1 evento (se tem 3 eventos, gera 3 linhas)"""
+            ).with_model("gemini", "gemini-2.0-flash")
 - Se não conseguir identificar um campo, deixe como null
 - Não invente dados - extraia apenas o que está no documento
 - Mantenha os nomes das colunas EXATAMENTE como no template"""
