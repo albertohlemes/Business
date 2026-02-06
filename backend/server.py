@@ -3323,7 +3323,14 @@ async def upload_xml_batch(
             # Indicar se a nota foi importada já cancelada
             if doc.get('cancelada'):
                 result_entry['status'] = 'cancelada'
-                result_entry['mensagem'] = 'Nota importada como CANCELADA (evento de cancelamento encontrado)'
+                # Verificar a origem da detecção de cancelamento
+                if parsed_data.get('cancelada'):
+                    # Cancelamento detectado pelo protocolo no próprio XML
+                    motivo = parsed_data.get('xMotivo_cancelamento', 'Status de cancelamento no protocolo')
+                    result_entry['mensagem'] = f'Nota CANCELADA (detectado no XML: {motivo})'
+                else:
+                    # Cancelamento detectado por evento externo
+                    result_entry['mensagem'] = 'Nota importada como CANCELADA (evento de cancelamento encontrado)'
             
             results.append(result_entry)
             
@@ -3847,7 +3854,14 @@ async def upload_xml_with_progress(
             # Indicar se a nota foi importada já cancelada
             if doc.get('cancelada'):
                 result_entry['status'] = 'cancelada'
-                result_entry['mensagem'] = 'Nota importada como CANCELADA (evento de cancelamento encontrado)'
+                # Verificar a origem da detecção de cancelamento
+                if parsed_data.get('cancelada'):
+                    # Cancelamento detectado pelo protocolo no próprio XML
+                    motivo = parsed_data.get('xMotivo_cancelamento', 'Status de cancelamento no protocolo')
+                    result_entry['mensagem'] = f'Nota CANCELADA (detectado no XML: {motivo})'
+                else:
+                    # Cancelamento detectado por evento externo
+                    result_entry['mensagem'] = 'Nota importada como CANCELADA (evento de cancelamento encontrado)'
             
             results.append(result_entry)
             
