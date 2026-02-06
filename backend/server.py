@@ -4822,6 +4822,11 @@ async def apuracao_pis_cofins(
         "aliquota_zero": {"por_cfop": {}, "por_ncm": {}, "por_cst": {}, "total": 0, "cst": "06"}
     }
     
+    # Acumuladores para calcular PIS/COFINS sobre a base total (igual Dashboard)
+    # Isso evita diferenças de centavos causadas por arredondamento produto a produto
+    base_credito_acumulada = 0
+    base_debito_acumulada = 0
+    
     transferencias = {
         "entrada": {"por_cfop": {}, "por_ncm": {}, "total": 0},
         "saida": {"por_cfop": {}, "por_ncm": {}, "total": 0}
