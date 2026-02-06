@@ -49,25 +49,33 @@ const ValidacaoRescisao = () => {
   const termoDropzone = useDropzone({
     onDrop: useCallback((files) => { if (files.length > 0) setTermoRescisao(files[0]); }, []),
     accept: { 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'] },
-    multiple: false
+    multiple: false,
+    noClick: false,
+    noKeyboard: false
   });
   
   const apoioDropzone = useDropzone({
     onDrop: useCallback((files) => { setApoio(prev => [...prev, ...files]); }, []),
     accept: { 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
-    multiple: true
+    multiple: true,
+    noClick: false,
+    noKeyboard: false
   });
   
   const convencaoDropzone = useDropzone({
     onDrop: useCallback((files) => { if (files.length > 0) setConvencao(files[0]); }, []),
     accept: { 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'] },
-    multiple: false
+    multiple: false,
+    noClick: false,
+    noKeyboard: false
   });
   
   const fgtsDropzone = useDropzone({
     onDrop: useCallback((files) => { if (files.length > 0) setExtratoFgts(files[0]); }, []),
     accept: { 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'] },
-    multiple: false
+    multiple: false,
+    noClick: false,
+    noKeyboard: false
   });
 
   // Processar Etapa 1 - Termo de Rescisão
