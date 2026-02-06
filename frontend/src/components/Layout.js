@@ -64,11 +64,17 @@ const Layout = () => {
       <aside className={`sidebar transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out z-40`}>
         {/* Logo */}
         <div className="h-20 flex items-center px-6 border-b border-slate-800/50">
-          <img 
-            src={LOGO_URL} 
-            alt="Business Contabilidade" 
-            className="h-10 w-auto"
-          />
+          <div className="flex items-center gap-3">
+            <img 
+              src={LOGO_URL} 
+              alt="Business Contabilidade" 
+              className="h-12 w-auto"
+            />
+            <div className="flex flex-col">
+              <span className="text-xl font-bold text-white tracking-tight">BUSINESS</span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-[0.2em]">Contabilidade</span>
+            </div>
+          </div>
         </div>
 
         {/* Navigation */}
