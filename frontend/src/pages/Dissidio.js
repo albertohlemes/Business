@@ -495,8 +495,7 @@ const Dissidio = () => {
                 <Input 
                   placeholder="R$ 0,00"
                   value={convencaoData.piso_salarial_anterior ? formatarInputMoeda(String(Math.round(convencaoData.piso_salarial_anterior * 100))) : ''} 
-                  onChange={(e) => setConvencaoData({...convencaoData, piso_salarial_anterior: parseFloat(e.target.value) || null})}
-                  placeholder="1.412,00"
+                  onChange={(e) => setConvencaoData({...convencaoData, piso_salarial_anterior: parseMoeda(e.target.value) || null})}
                   className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                 />
               </div>
