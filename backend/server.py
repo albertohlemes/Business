@@ -1841,82 +1841,98 @@ async def process_validacao_background(
                         valor_apoio = ref.get('valor', 0)
                         unidade_apoio = ref.get('unidade', '').lower()
                         
-                        # Detectar se é campo de HORAS (quantidade) vs VALOR (R$)
-                        # Campos de horas: horas_extras, horas_50, horas_100, etc
-                        # No apoio vem quantidade (7.44 = 7h44min), no holerite vem valor em R$
-                        campos_horas = ['horas_extras', 'horas_50', 'horas_100', 'hora_extra', 'he', 'h.e', 'h.e.']
-                        is_campo_horas = any(h in campo_ref for h in campos_horas) or unidade_apoio == 'horas'
+                        # ===== CLASSIFICAÇÃO: REFERÊNCIA vs VALOR =====
+                        # REFERÊNCIA = quantidade que a contabilidade usa para CALCULAR (horas, dias)
+                        # VALOR = dinheiro direto em R$
+                        
+                        campos_referencia = [
+                            'horas_extras', 'horas_50', 'horas_100', 'hora_extra', 'he',
+                            'atrasos', 'atraso',
+                            'faltas', 'falta',
+                            'adicional_noturno'  # pode ser horas também
+                        ]
+                        
+                        campos_valor = [
+                            'vale_compras', 'vale_transporte', 'vale_refeicao', 'vale_alimentacao',
+                            'adiantamento', 'vale_adiantamento', 'adiantamento_salarial',
+                            'gratificacao', 'bonificacao', 'bonus',
+                            'quebra_caixa', 'quebra_de_caixa',
+                            'comissao', 'comissoes',
+                            'desconto', 'descontos'
+                        ]
+                        
+                        # Determinar se é referência ou valor
+                        is_referencia = any(r in campo_ref for r in campos_referencia) or unidade_apoio in ['horas', 'dias', 'minutos']
+                        is_valor = any(v in campo_ref for v in campos_valor) or unidade_apoio == 'reais'
+                        
+                        # Se não classificou, assumir pelo contexto
+                        if not is_referencia and not is_valor:
+                            # Se tem "h" no texto original ou unidade é horas, é referência
+                            texto_orig = ref.get('texto_original', '').lower()
+                            if 'h' in texto_orig or ':' in texto_orig:
+                                is_referencia = True
+                            else:
+                                is_valor = True  # default
                         
                         # Mapeamento de campos
-                        campo_map = {
-                            'horas_extras': ['horas_extras', 'horas_extras_50', 'horas_extras_100'],
-                            'horas_50': ['horas_extras_50', 'horas_extras'],
-                            'horas_100': ['horas_extras_100', 'horas_extras'],
+                        campo_map_ref = {
+                            'horas_50': 'horas_extras_50_ref',
+                            'horas_100': 'horas_extras_100_ref',
+                            'horas_extras': 'horas_extras_50_ref',  # fallback
+                            'atrasos': 'atrasos_ref',
+                            'atraso': 'atrasos_ref',
+                            'faltas': 'faltas_ref',
+                            'falta': 'faltas_ref',
+                        }
+                        
+                        campo_map_valor = {
                             'vale_compras': ['vale_compras'],
-                            'vale_adiantamento_salarial': ['vale_adiantamento', 'adiantamento'],
+                            'vale_adiantamento_salarial': ['vale_adiantamento', 'adiantamento', 'adiantamento_salarial'],
+                            'vale_adiantamento': ['vale_adiantamento', 'adiantamento'],
+                            'adiantamento': ['adiantamento', 'vale_adiantamento'],
                             'vale_transporte': ['vale_transporte'],
                             'vale_refeicao': ['vale_refeicao'],
                             'vale_alimentacao': ['vale_alimentacao'],
-                            'faltas': ['faltas'],
-                            'atrasos': ['atrasos'],
-                            'comissao': ['comissao'],
                             'quebra_caixa': ['quebra_caixa', 'quebra_de_caixa'],
-                            'adicional_noturno': ['adicional_noturno'],
+                            'quebra_de_caixa': ['quebra_caixa'],
+                            'comissao': ['comissao'],
+                            'gratificacao': ['gratificacao'],
                         }
                         
-                        campos_holerite = campo_map.get(campo_ref, [campo_ref])
-                        
-                        # Buscar valor/referência no holerite
-                        valor_holerite = 0
-                        ref_holerite = 0  # Para horas, buscar a referência (quantidade)
-                        campo_encontrado = None
-                        
-                        for campo_h in campos_holerite:
-                            v = colab.get(campo_h, 0)
-                            if v:
-                                valor_holerite = v
-                                campo_encontrado = campo_h
-                                break
-                        
-                        # Buscar também na lista de proventos/descontos
-                        if valor_holerite == 0:
-                            campo_busca = campo_ref.replace('_', ' ').lower()
-                            for p in colab.get('proventos', []):
-                                desc = p.get('descricao', '').lower()
-                                if campo_busca in desc or any(c.replace('_', ' ') in desc for c in campos_holerite):
-                                    valor_holerite = p.get('valor', 0)
-                                    ref_holerite = p.get('referencia', 0)  # Ex: 7.44 horas
-                                    campo_encontrado = p.get('descricao')
-                                    break
-                        
-                        # Decisão de comparação
                         campo_display = campo_ref.replace('_', ' ').title()
                         
-                        if is_campo_horas:
-                            # Para campos de horas, comparar quantidade de horas
-                            # Buscar referência de horas no holerite
+                        if is_referencia:
+                            # ===== COMPARAR REFERÊNCIA (quantidade) =====
                             ref_holerite = 0
+                            valor_monetario = 0
                             
-                            # Mapear campo do apoio para campo de referência no holerite
+                            # Buscar a referência no holerite
                             if 'horas_100' in campo_ref or '100' in campo_ref:
                                 ref_holerite = colab.get('horas_extras_100_ref', 0)
-                                valor_holerite = colab.get('horas_extras_100', 0)
+                                valor_monetario = colab.get('horas_extras_100', 0)
                             elif 'horas_50' in campo_ref or '50' in campo_ref:
                                 ref_holerite = colab.get('horas_extras_50_ref', 0)
-                                valor_holerite = colab.get('horas_extras_50', 0)
+                                valor_monetario = colab.get('horas_extras_50', 0)
+                            elif 'atraso' in campo_ref:
+                                ref_holerite = colab.get('atrasos_ref', 0) or colab.get('atrasos', 0)
+                            elif 'falta' in campo_ref:
+                                ref_holerite = colab.get('faltas_ref', 0) or colab.get('faltas_dias', 0)
                             else:
                                 # Horas extras genérico
                                 ref_holerite = colab.get('horas_extras_50_ref', 0) or colab.get('horas_extras_100_ref', 0)
                             
                             if ref_holerite > 0:
-                                # Temos a quantidade de horas no holerite - comparar!
+                                # Temos a referência no holerite - comparar!
                                 diff = abs(ref_holerite - valor_apoio)
-                                if diff <= 0.1:  # Tolerância de ~6 minutos
+                                tolerancia = 0.1 if 'hora' in campo_ref else 0.5  # 6min para horas, 0.5 para outros
+                                
+                                if diff <= tolerancia:
                                     colab_resultado['conferidos'].append({
                                         'campo': campo_display,
-                                        'valor_apoio': f"{valor_apoio}h",
-                                        'valor_holerite': f"{ref_holerite}h",
-                                        'valor_monetario': f"R$ {valor_holerite:.2f}" if valor_holerite else None,
+                                        'valor_apoio': valor_apoio,
+                                        'valor_holerite': ref_holerite,
+                                        'tipo': 'referencia',
+                                        'valor_monetario': valor_monetario if valor_monetario else None,
                                         'fonte': ref.get('arquivo', ''),
                                         'status': 'ok'
                                     })
@@ -1925,22 +1941,23 @@ async def process_validacao_background(
                                     colab_resultado['status'] = 'divergente'
                                     colab_resultado['divergencias_apoio'].append({
                                         'campo': campo_display,
-                                        'valor_apoio': f"{valor_apoio}h",
-                                        'valor_holerite': f"{ref_holerite}h",
-                                        'diferenca': f"{diff:.2f}h",
+                                        'valor_apoio': valor_apoio,
+                                        'valor_holerite': ref_holerite,
+                                        'tipo': 'referencia',
+                                        'diferenca': round(diff, 2),
                                         'arquivo': ref.get('arquivo', ''),
                                         'severidade': 'alta' if diff > 2 else 'media',
                                         'texto_original': ref.get('texto_original', '')
                                     })
                                     total_divergencias += 1
-                            elif valor_holerite > 0:
-                                # Temos valor em R$ mas não temos referência de horas
-                                # Marcar como "verificar" manualmente
+                            elif valor_monetario > 0:
+                                # Só temos valor em R$, não temos referência
                                 colab_resultado['conferidos'].append({
                                     'campo': campo_display,
-                                    'valor_apoio': f"{valor_apoio}h",
-                                    'valor_holerite': f"R$ {valor_holerite:.2f}",
-                                    'nota': 'Horas informadas no apoio, apenas valor R$ disponível no holerite',
+                                    'valor_apoio': valor_apoio,
+                                    'valor_holerite': f"R$ {valor_monetario:.2f}",
+                                    'tipo': 'referencia',
+                                    'nota': 'Apenas valor R$ disponível no holerite',
                                     'fonte': ref.get('arquivo', ''),
                                     'status': 'verificar'
                                 })
@@ -1950,13 +1967,60 @@ async def process_validacao_background(
                                 colab_resultado['status'] = 'divergente'
                                 colab_resultado['divergencias_apoio'].append({
                                     'campo': campo_display,
-                                    'valor_apoio': f"{valor_apoio}h",
+                                    'valor_apoio': valor_apoio,
                                     'valor_holerite': 'Não encontrado',
+                                    'tipo': 'referencia',
                                     'arquivo': ref.get('arquivo', ''),
                                     'severidade': 'media',
                                     'texto_original': ref.get('texto_original', '')
                                 })
                                 total_divergencias += 1
+                        
+                        else:
+                            # ===== COMPARAR VALOR (R$) =====
+                            valor_holerite = 0
+                            
+                            # Buscar valor no holerite
+                            campos_busca = campo_map_valor.get(campo_ref, [campo_ref])
+                            for campo_h in campos_busca:
+                                v = colab.get(campo_h, 0)
+                                if v:
+                                    valor_holerite = v
+                                    break
+                            
+                            # Buscar também na lista de proventos/descontos
+                            if valor_holerite == 0:
+                                campo_busca = campo_ref.replace('_', ' ').lower()
+                                for p in colab.get('proventos', []) + colab.get('descontos', []):
+                                    desc = p.get('descricao', '').lower()
+                                    if campo_busca in desc or any(c.replace('_', ' ') in desc for c in campos_busca):
+                                        valor_holerite = p.get('valor', 0)
+                                        break
+                            
+                            diff = abs(valor_holerite - valor_apoio)
+                            
+                            if diff <= 0.50:  # Tolerância de R$ 0,50
+                                colab_resultado['conferidos'].append({
+                                    'campo': campo_display,
+                                    'valor_apoio': valor_apoio,
+                                    'valor_holerite': valor_holerite,
+                                    'tipo': 'valor',
+                                    'fonte': ref.get('arquivo', ''),
+                                    'status': 'ok'
+                                })
+                                total_conferidos += 1
+                            else:
+                                colab_resultado['status'] = 'divergente'
+                                colab_resultado['divergencias_apoio'].append({
+                                    'campo': campo_display,
+                                    'valor_apoio': valor_apoio,
+                                    'valor_holerite': valor_holerite,
+                                    'tipo': 'valor',
+                                    'diferenca': round(diff, 2),
+                                    'arquivo': ref.get('arquivo', ''),
+                                    'severidade': 'alta' if diff > 100 else 'media',
+                                    'texto_original': ref.get('texto_original', '')
+                                })
                         else:
                             # Campos de valor (R$) - comparação normal
                             diff = abs(valor_holerite - valor_apoio)
