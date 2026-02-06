@@ -18,9 +18,7 @@ import { useDropzone } from 'react-dropzone';
 import { useEmpresa } from '../contexts/EmpresaContext';
 import { getErrorMessage } from '../utils/errorHandler';
 import { generateEmpresaCode, getEmpresaLabel, sortClientesBySelection } from '../utils/empresaHelpers';
-import { ValidacaoFolhaProgress } from '../components/ProcessingBar';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL;
+import { toast } from 'sonner';
 
 const ValidacaoFolha = () => {
   const [validacoes, setValidacoes] = useState([]);
