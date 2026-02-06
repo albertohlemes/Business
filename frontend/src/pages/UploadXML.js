@@ -84,7 +84,8 @@ const UploadXML = ({ user, onLogout }) => {
   };
 
   // Constante para tamanho do lote
-  const BATCH_SIZE = 1000;
+  // Reduzido para 500 para evitar timeouts e problemas de conexão
+  const BATCH_SIZE = 500;
 
   const handleUpload = async () => {
     if (!selectedCompany || files.length === 0 || !competencia) {
