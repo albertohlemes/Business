@@ -221,32 +221,18 @@ const ConvencaoCard = ({ convencao, isAtual = false, isExpanded, onToggle, onRem
             </div>
           )}
 
-          {/* Estabilidades */}
-          {convencao?.estabilidades && (
+          {/* Estabilidades - simplificado para evitar erros */}
+          {convencao?.estabilidades && typeof convencao.estabilidades === 'object' && (
             <div className="bg-slate-800/30 rounded-lg p-3">
               <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
-                <Shield size={12} /> Estabilidades
+                <Shield size={12} /> Estabilidades Previstas
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                {convencao.estabilidades.gestante?.meses && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Gestante:</span>
-                    <span className="text-white">{convencao.estabilidades.gestante.meses} meses</span>
-                  </div>
-                )}
-                {convencao.estabilidades.acidente_trabalho?.meses && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Acidente Trabalho:</span>
-                    <span className="text-white">{convencao.estabilidades.acidente_trabalho.meses} meses</span>
-                  </div>
-                )}
-                {convencao.estabilidades.pre_aposentadoria?.meses && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Pré-Aposentadoria:</span>
-                    <span className="text-white">{convencao.estabilidades.pre_aposentadoria.meses} meses</span>
-                  </div>
-                )}
-              </div>
+              <p className="text-sm text-slate-300">
+                {convencao.estabilidades.gestante ? 'Gestante • ' : ''}
+                {convencao.estabilidades.acidente_trabalho ? 'Acidente de Trabalho • ' : ''}
+                {convencao.estabilidades.pre_aposentadoria ? 'Pré-Aposentadoria • ' : ''}
+                {convencao.estabilidades.servico_militar ? 'Serviço Militar' : ''}
+              </p>
             </div>
           )}
 
