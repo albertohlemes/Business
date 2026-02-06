@@ -42,6 +42,9 @@ const ValidacaoFolha = () => {
   const [holeriteAnterior, setHoleriteAnterior] = useState(null);
   const [apoioFiles, setApoioFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [pollingInterval, setPollingInterval] = useState(null);
+  const [currentJobId, setCurrentJobId] = useState(null);
+  const [processingStep, setProcessingStep] = useState('');
   
   // Selection state for batch delete
   const [selectedIds, setSelectedIds] = useState([]);
