@@ -586,6 +586,152 @@ async def delete_cliente(cliente_id: str, current_user: dict = Depends(get_curre
     await db.colaboradores.delete_many({"cliente_id": cliente_id})
     return {"message": "Cliente excluído com sucesso"}
 
+
+@api_router.post("/clientes/importar-lote")
+async def importar_clientes_lote(
+    arquivo: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Importa empresas em lote a partir de um arquivo CSV ou Excel.
+    Formato esperado: CNPJ, Razão Social, Nome Fantasia, Endereço, Telefone, Email, Tipo Atividade, Data Base Dissídio, Sindicato
+    """
+    try:
+        content = await arquivo.read()
+        filename = arquivo.filename.lower()
+        
+        empresas_importadas = []
+        empresas_erros = []
+        
+        # Determinar tipo de arquivo e processar
+        if filename.endswith('.csv'):
+            import io
+            import csv
+            
+            # Tentar diferentes encodings
+            for encoding in ['utf-8', 'latin-1', 'cp1252']:
+                try:
+                    text_content = content.decode(encoding)
+                    break
+                except:
+                    continue
+            else:
+                text_content = content.decode('utf-8', errors='ignore')
+            
+            reader = csv.DictReader(io.StringIO(text_content), delimiter=';')
+            rows = list(reader)
+            
+            # Se não encontrou colunas, tentar com vírgula
+            if not rows or not rows[0]:
+                reader = csv.DictReader(io.StringIO(text_content), delimiter=',')
+                rows = list(reader)
+            
+        elif filename.endswith(('.xlsx', '.xls')):
+            import pandas as pd
+            import io
+            
+            df = pd.read_excel(io.BytesIO(content))
+            rows = df.to_dict('records')
+        else:
+            raise HTTPException(status_code=400, detail="Formato de arquivo não suportado. Use CSV ou Excel.")
+        
+        # Mapear nomes de colunas possíveis
+        column_mapping = {
+            'cnpj': ['cnpj', 'CNPJ', 'Cnpj', 'cnpj_empresa'],
+            'razao_social': ['razao_social', 'RAZAO_SOCIAL', 'Razão Social', 'razao social', 'RazaoSocial', 'razao'],
+            'nome_fantasia': ['nome_fantasia', 'NOME_FANTASIA', 'Nome Fantasia', 'nome fantasia', 'NomeFantasia', 'fantasia'],
+            'endereco': ['endereco', 'ENDERECO', 'Endereço', 'endereco_completo', 'logradouro'],
+            'telefone': ['telefone', 'TELEFONE', 'Telefone', 'tel', 'fone'],
+            'email': ['email', 'EMAIL', 'Email', 'e-mail', 'E-mail'],
+            'tipo_atividade': ['tipo_atividade', 'TIPO_ATIVIDADE', 'Tipo Atividade', 'segmento', 'ramo', 'atividade'],
+            'data_base_dissidio': ['data_base_dissidio', 'data_base', 'DATA_BASE', 'Data Base', 'database'],
+            'sindicato': ['sindicato', 'SINDICATO', 'Sindicato']
+        }
+        
+        def get_value(row, field_names):
+            for name in field_names:
+                if name in row and row[name]:
+                    val = row[name]
+                    if pd.notna(val) if 'pandas' in str(type(val)) else val:
+                        return str(val).strip()
+            return None
+        
+        for idx, row in enumerate(rows, 1):
+            try:
+                cnpj = get_value(row, column_mapping['cnpj'])
+                razao_social = get_value(row, column_mapping['razao_social'])
+                
+                if not cnpj or not razao_social:
+                    empresas_erros.append({
+                        "linha": idx,
+                        "erro": "CNPJ ou Razão Social não informados",
+                        "dados": str(row)[:100]
+                    })
+                    continue
+                
+                # Limpar CNPJ (remover caracteres especiais)
+                cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+                if len(cnpj_limpo) == 14:
+                    cnpj_formatado = f"{cnpj_limpo[:2]}.{cnpj_limpo[2:5]}.{cnpj_limpo[5:8]}/{cnpj_limpo[8:12]}-{cnpj_limpo[12:14]}"
+                else:
+                    cnpj_formatado = cnpj
+                
+                # Verificar se CNPJ já existe
+                existing = await db.clientes.find_one({"cnpj": cnpj_formatado})
+                if existing:
+                    empresas_erros.append({
+                        "linha": idx,
+                        "erro": f"CNPJ {cnpj_formatado} já cadastrado",
+                        "dados": razao_social
+                    })
+                    continue
+                
+                # Criar empresa
+                cliente_id = str(uuid.uuid4())
+                now = datetime.now(timezone.utc).isoformat()
+                
+                cliente_doc = {
+                    "id": cliente_id,
+                    "cnpj": cnpj_formatado,
+                    "razao_social": razao_social,
+                    "nome_fantasia": get_value(row, column_mapping['nome_fantasia']) or razao_social,
+                    "endereco": get_value(row, column_mapping['endereco']) or "",
+                    "telefone": get_value(row, column_mapping['telefone']) or "",
+                    "email": get_value(row, column_mapping['email']) or "",
+                    "tipo_atividade": get_value(row, column_mapping['tipo_atividade']) or "",
+                    "data_base_dissidio": get_value(row, column_mapping['data_base_dissidio']) or "",
+                    "sindicato": get_value(row, column_mapping['sindicato']) or "",
+                    "created_at": now,
+                    "user_id": current_user["id"]
+                }
+                
+                await db.clientes.insert_one(cliente_doc)
+                empresas_importadas.append({
+                    "id": cliente_id,
+                    "cnpj": cnpj_formatado,
+                    "razao_social": razao_social
+                })
+                
+            except Exception as e:
+                empresas_erros.append({
+                    "linha": idx,
+                    "erro": str(e),
+                    "dados": str(row)[:100]
+                })
+        
+        return {
+            "success": True,
+            "total_processadas": len(rows),
+            "importadas": len(empresas_importadas),
+            "erros": len(empresas_erros),
+            "empresas_importadas": empresas_importadas,
+            "empresas_erros": empresas_erros[:20]  # Limitar erros retornados
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro na importação em lote: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro ao processar arquivo: {str(e)}")
+
 # ==================== COLABORADOR ROUTES ====================
 
 @api_router.post("/colaboradores", response_model=ColaboradorResponse)
