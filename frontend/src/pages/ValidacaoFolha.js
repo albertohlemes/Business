@@ -9,6 +9,9 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Checkbox } from '../components/ui/checkbox';
 import { toast } from 'sonner';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
 import { 
   ClipboardCheck, Upload, Loader2, FileUp, AlertTriangle, CheckCircle2, 
   XCircle, FileText, Calendar, Building2, X, Eye, TrendingUp, TrendingDown,
