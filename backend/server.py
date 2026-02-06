@@ -3700,6 +3700,7 @@ async def calcular_dissidio_retroativo(
     - convencao_dados: JSON com dados extraídos da convenção
     - holerites: Lista de holerites dos meses retroativos
     - Exclui impostos (INSS, IRRF) pois serão calculados na competência de pagamento
+    - Aplica proporcionalidade para funcionários admitidos durante o período retroativo
     """
     try:
         from document_processor import doc_processor
@@ -3708,6 +3709,10 @@ async def calcular_dissidio_retroativo(
         conv = json.loads(convencao_dados)
         percentual = float(conv.get('percentual_reajuste', 0)) / 100
         verbas_com_reajuste = [v.lower() for v in conv.get('verbas_com_reajuste', [])]
+        
+        # Obter tabela de proporcionalidade
+        tabela_proporcionalidade = conv.get('tabela_proporcionalidade', [])
+        data_base_str = conv.get('data_base', '')  # MM/YYYY
         
         # Verbas que são IMPOSTOS/DESCONTOS LEGAIS - não entram no cálculo de retroativo
         # Serão calculados automaticamente na competência de pagamento
@@ -3725,10 +3730,53 @@ async def calcular_dissidio_retroativo(
         if not cliente:
             raise HTTPException(status_code=404, detail="Empresa não encontrada")
         
+        # Função auxiliar para calcular proporcionalidade baseada na data de admissão
+        def calcular_proporcionalidade(data_admissao_str, data_base_str, meses_retroativos):
+            """
+            Calcula o percentual de proporcionalidade baseado na data de admissão.
+            Se o funcionário foi admitido após a data base, recebe proporcional.
+            """
+            if not data_admissao_str or not data_base_str:
+                return 100.0, None  # Sem data de admissão, assume 100%
+            
+            try:
+                # Parse data base (MM/YYYY)
+                mes_base, ano_base = map(int, data_base_str.split('/'))
+                
+                # Parse data admissão (pode ser DD/MM/YYYY ou MM/YYYY)
+                partes = data_admissao_str.split('/')
+                if len(partes) == 3:
+                    dia_adm, mes_adm, ano_adm = int(partes[0]), int(partes[1]), int(partes[2])
+                elif len(partes) == 2:
+                    mes_adm, ano_adm = int(partes[0]), int(partes[1])
+                else:
+                    return 100.0, None
+                
+                # Calcular meses desde a data base até a admissão
+                meses_desde_base = (ano_adm - ano_base) * 12 + (mes_adm - mes_base)
+                
+                # Se foi admitido antes ou na data base, recebe 100%
+                if meses_desde_base <= 0:
+                    return 100.0, None
+                
+                # Se foi admitido depois do período retroativo, não tem direito
+                if meses_desde_base >= meses_retroativos:
+                    return 0.0, f"Admitido após período retroativo"
+                
+                # Calcular proporcional baseado nos meses que tem direito
+                meses_direito = meses_retroativos - meses_desde_base
+                percentual_prop = (meses_direito / meses_retroativos) * 100
+                
+                return round(percentual_prop, 2), f"Proporcional: {meses_direito}/{meses_retroativos} meses"
+                
+            except (ValueError, AttributeError):
+                return 100.0, None  # Erro no parse, assume 100%
+        
         # Processar cada holerite
         resultados_por_mes = []
         total_geral_retroativo = 0
         colaboradores_consolidado = {}
+        meses_retroativos = conv.get('meses_retroativos', 12)
         
         for holerite in holerites:
             content = await holerite.read()
@@ -3762,6 +3810,12 @@ async def calcular_dissidio_retroativo(
                 for colab in colaboradores:
                     nome = colab.get('nome', 'Sem Nome')
                     cargo = colab.get('cargo', colab.get('funcao', ''))
+                    data_admissao = colab.get('data_admissao', '')
+                    
+                    # Calcular proporcionalidade baseada na data de admissão
+                    percentual_proporcional, obs_proporcional = calcular_proporcionalidade(
+                        data_admissao, data_base_str, meses_retroativos
+                    )
                     
                     # Calcular reajuste sobre verbas aplicáveis
                     valor_base_reajuste = 0
