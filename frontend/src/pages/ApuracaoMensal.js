@@ -158,7 +158,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
         formatCurrencySimple(item.v_cofins || 0)
       ]);
       
-      doc.autoTable({
+      autoTable(doc, {
         startY: yPos,
         head: [[tipoAgrupamento.toUpperCase(), 'Descrição', 'Valor', 'BC ICMS', 'ICMS', 'PIS', 'COFINS']],
         body: entradasRows,
@@ -202,7 +202,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
         formatCurrencySimple(item.v_cofins || 0)
       ]);
       
-      doc.autoTable({
+      autoTable(doc, {
         startY: yPos,
         head: [[tipoAgrupamento.toUpperCase(), 'Descrição', 'Valor', 'BC ICMS', 'ICMS', 'PIS', 'COFINS']],
         body: saidasRows,
