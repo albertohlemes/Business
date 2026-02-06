@@ -7125,16 +7125,37 @@ async def analise_tributaria_ia(
             else:
                 produtos_saida[ncm]['tem_tributado'] = True
     
-    # Calcular alíquota média de ICMS
+    # Calcular alíquota PREDOMINANTE (moda) usando aliquotas reais do XML
+    from collections import Counter
+    
+    def get_aliquota_predominante(aliquotas):
+        """Retorna a alíquota mais frequente (moda) ou 0 se não houver"""
+        if not aliquotas:
+            return 0
+        # Arredondar para valores inteiros típicos de ICMS (7, 12, 18, etc.)
+        aliquotas_arredondadas = [round(a) for a in aliquotas]
+        counter = Counter(aliquotas_arredondadas)
+        mais_comum = counter.most_common(1)
+        return mais_comum[0][0] if mais_comum else 0
+    
     for ncm, prod in produtos_entrada.items():
+        # Alíquota predominante (moda das alíquotas reais)
+        prod['aliquota_predominante'] = get_aliquota_predominante(prod.get('aliquotas_reais', []))
+        # Alíquota creditável só se tiver itens tributados
+        if prod['total_valor_tributado'] > 0:
+            prod['aliq_creditavel'] = prod['aliquota_predominante']
+        else:
+            prod['aliq_creditavel'] = 0
+        # Manter média para compatibilidade
         if prod['total_valor'] > 0:
             prod['aliq_icms_media'] = round((prod['total_icms'] / prod['total_valor']) * 100, 2)
-            prod['aliq_creditavel'] = round((prod['total_icms_creditavel'] / prod['total_valor']) * 100, 2) if prod['tem_tributado'] else 0
         else:
             prod['aliq_icms_media'] = 0
-            prod['aliq_creditavel'] = 0
     
     for ncm, prod in produtos_saida.items():
+        # Alíquota predominante (moda das alíquotas reais)
+        prod['aliquota_predominante'] = get_aliquota_predominante(prod.get('aliquotas_reais', []))
+        # Manter média para compatibilidade
         if prod['total_valor'] > 0:
             prod['aliq_icms_media'] = round((prod['total_icms'] / prod['total_valor']) * 100, 2)
         else:
