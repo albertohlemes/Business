@@ -1295,12 +1295,12 @@ async def exportar_convencao_pdf(
     cliente_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Exporta o resumo da convenção coletiva atual para PDF com logo da empresa."""
+    """Exporta o resumo COMPLETO da convenção coletiva para PDF com logo da empresa."""
     from fastapi.responses import StreamingResponse
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.lib.units import mm, cm
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable, PageBreak
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable, PageBreak, KeepTogether
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
     import io
@@ -1321,35 +1321,52 @@ async def exportar_convencao_pdf(
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        rightMargin=2*cm,
-        leftMargin=2*cm,
-        topMargin=2*cm,
-        bottomMargin=2*cm
+        rightMargin=1.5*cm,
+        leftMargin=1.5*cm,
+        topMargin=1.5*cm,
+        bottomMargin=1.5*cm
     )
     
     # Estilos
     styles = getSampleStyleSheet()
     
+    # Cores principais (matching UI)
+    BLUE = colors.HexColor('#2563eb')
+    EMERALD = colors.HexColor('#10b981')
+    ORANGE = colors.HexColor('#f97316')
+    PURPLE = colors.HexColor('#8b5cf6')
+    AMBER = colors.HexColor('#f59e0b')
+    RED = colors.HexColor('#ef4444')
+    INDIGO = colors.HexColor('#6366f1')
+    TEAL = colors.HexColor('#14b8a6')
+    PINK = colors.HexColor('#ec4899')
+    CYAN = colors.HexColor('#06b6d4')
+    GRAY = colors.HexColor('#6b7280')
+    DARK_BG = colors.HexColor('#1e293b')
+    LIGHT_BG = colors.HexColor('#f1f5f9')
+    
     # Estilo do título principal
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
-        fontSize=16,
-        textColor=colors.HexColor('#1e3a5f'),
+        fontSize=18,
+        textColor=DARK_BG,
         spaceAfter=10,
-        alignment=TA_CENTER
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
     )
     
-    # Estilo de seção
-    section_style = ParagraphStyle(
-        'SectionTitle',
-        parent=styles['Heading2'],
-        fontSize=12,
-        textColor=colors.HexColor('#2563eb'),
-        spaceBefore=15,
-        spaceAfter=8,
-        borderPadding=5
-    )
+    # Estilo de seção com cor
+    def section_style_color(color):
+        return ParagraphStyle(
+            f'Section_{color}',
+            parent=styles['Heading2'],
+            fontSize=12,
+            textColor=color,
+            spaceBefore=12,
+            spaceAfter=6,
+            fontName='Helvetica-Bold'
+        )
     
     # Estilo de subsection
     subsection_style = ParagraphStyle(
@@ -1357,8 +1374,9 @@ async def exportar_convencao_pdf(
         parent=styles['Heading3'],
         fontSize=10,
         textColor=colors.HexColor('#374151'),
-        spaceBefore=8,
-        spaceAfter=4
+        spaceBefore=6,
+        spaceAfter=3,
+        fontName='Helvetica-Bold'
     )
     
     # Estilo de texto normal
@@ -1367,9 +1385,9 @@ async def exportar_convencao_pdf(
         parent=styles['Normal'],
         fontSize=9,
         textColor=colors.HexColor('#1f2937'),
-        spaceBefore=2,
-        spaceAfter=2,
-        leading=12
+        spaceBefore=1,
+        spaceAfter=1,
+        leading=11
     )
     
     # Estilo de valor destacado
@@ -1377,7 +1395,7 @@ async def exportar_convencao_pdf(
         'Highlight',
         parent=styles['Normal'],
         fontSize=10,
-        textColor=colors.HexColor('#059669'),
+        textColor=EMERALD,
         fontName='Helvetica-Bold'
     )
     
@@ -1386,9 +1404,10 @@ async def exportar_convencao_pdf(
         'Alert',
         parent=styles['Normal'],
         fontSize=9,
-        textColor=colors.HexColor('#dc2626'),
-        spaceBefore=5,
-        spaceAfter=5
+        textColor=RED,
+        spaceBefore=3,
+        spaceAfter=3,
+        fontName='Helvetica-Bold'
     )
     
     # Estilo de rodapé
@@ -1396,7 +1415,7 @@ async def exportar_convencao_pdf(
         'Footer',
         parent=styles['Normal'],
         fontSize=8,
-        textColor=colors.HexColor('#6b7280'),
+        textColor=GRAY,
         alignment=TA_CENTER
     )
     
