@@ -18,6 +18,34 @@ import { useEmpresa } from '../contexts/EmpresaContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Formatar número para moeda brasileira (exibição)
+const formatarMoeda = (valor) => {
+  if (valor === null || valor === undefined || valor === '') return '';
+  const numero = typeof valor === 'string' ? parseFloat(valor.replace(/[^\d,.-]/g, '').replace(',', '.')) : valor;
+  if (isNaN(numero)) return '';
+  return numero.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+};
+
+// Parse de valor monetário para número
+const parseMoeda = (valor) => {
+  if (!valor) return 0;
+  // Remove R$, pontos de milhar e converte vírgula para ponto
+  const limpo = valor.toString().replace(/R\$\s?/g, '').replace(/\./g, '').replace(',', '.');
+  return parseFloat(limpo) || 0;
+};
+
+// Formatar input de moeda enquanto digita
+const formatarInputMoeda = (valor) => {
+  if (!valor) return '';
+  // Remove tudo exceto números
+  let numeros = valor.replace(/\D/g, '');
+  if (!numeros) return '';
+  // Converte para centavos
+  let numero = parseInt(numeros) / 100;
+  // Formata como moeda BR
+  return numero.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 const Dissidio = () => {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
