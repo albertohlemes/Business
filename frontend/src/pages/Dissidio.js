@@ -174,6 +174,36 @@ const Dissidio = () => {
     }
   };
 
+  // Exportar Resumo da Convenção em PDF
+  const exportarResumoPDF = async () => {
+    if (!convencaoData) {
+      toast.error('Nenhuma convenção analisada');
+      return;
+    }
+    
+    try {
+      const response = await axios.post(`${API_URL}/api/convencao/exportar-resumo-pdf`, {
+        dados_convencao: convencaoData,
+        cliente_id: selectedCliente
+      }, {
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      const sindicatoNome = (convencaoData.sindicato || 'convencao').substring(0, 30).replace(/[^a-zA-Z0-9]/g, '_');
+      link.setAttribute('download', `resumo_convencao_${sindicatoNome}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('PDF gerado com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao gerar PDF');
+      console.error(error);
+    }
+  };
+
   // Calcular meses retroativos baseado na data base e mês que recebeu
   const calcularMesesRetroativos = (dataBase, mesRecebimento) => {
     if (!dataBase || !mesRecebimento) return null;
