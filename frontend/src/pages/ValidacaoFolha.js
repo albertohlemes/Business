@@ -40,6 +40,7 @@ const ValidacaoFolha = () => {
   const [holeriteAtual, setHoleriteAtual] = useState(null);
   const [holeriteAnterior, setHoleriteAnterior] = useState(null);
   const [apoioFiles, setApoioFiles] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   // Filters
   const [filterCliente, setFilterCliente] = useState('all');
