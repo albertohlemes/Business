@@ -756,7 +756,7 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                 'p_cofins': p_cofins  # Alíquota de COFINS
             })
         
-        return {
+        resultado = {
             'chave_nfe': nfe.get('@Id', '').replace('NFe', ''),
             'numero_nfe': ide.get('nNF', ''),
             'serie': ide.get('serie', ''),
@@ -783,6 +783,12 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             'total_icms_st': vICMSST_total,
             'produtos': produtos
         }
+        
+        # Adicionar dados de cancelamento se a nota estiver cancelada
+        if cancelada:
+            resultado.update(dados_cancelamento)
+        
+        return resultado
     except Exception as e:
         raise ValueError(f"Erro ao processar XML: {str(e)}")
 
