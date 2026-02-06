@@ -952,6 +952,16 @@ const Dissidio = () => {
                   
                   {expandedCalculo === calc.id && (
                     <div className="border-t bg-slate-50">
+                      {/* Nota sobre impostos */}
+                      {calc.impostos_excluidos && (
+                        <div className="mx-4 mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                          <AlertTriangle className="text-amber-600 flex-shrink-0" size={16} />
+                          <p className="text-xs text-amber-700">
+                            {calc.nota_impostos || 'INSS, IRRF e demais encargos serão calculados na competência de pagamento.'}
+                          </p>
+                        </div>
+                      )}
+                      
                       {/* Memória de Cálculo por Mês */}
                       <div className="p-4 space-y-3">
                         <p className="text-sm font-medium text-slate-700">Memória de Cálculo por Mês e Verba</p>
@@ -980,8 +990,9 @@ const Dissidio = () => {
                                     <tr className="text-slate-500 border-b">
                                       <th className="text-left p-1">Colaborador</th>
                                       <th className="text-left p-1">Verba</th>
-                                      <th className="text-right p-1">Valor Original</th>
+                                      <th className="text-right p-1">Era (R$)</th>
                                       <th className="text-center p-1">%</th>
+                                      <th className="text-right p-1">Ficou (R$)</th>
                                       <th className="text-right p-1">Diferença</th>
                                     </tr>
                                   </thead>
@@ -991,15 +1002,21 @@ const Dissidio = () => {
                                         <tr key={`${colabIdx}-${verbaIdx}`} className="border-b hover:bg-slate-50">
                                           {verbaIdx === 0 && (
                                             <td className="p-1 font-medium align-top" rowSpan={colab.verbas.length}>
-                                              {colab.nome}
+                                              <div>{colab.nome}</div>
+                                              <div className="text-emerald-600 font-medium text-xs mt-1">
+                                                Total: R$ {colab.retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                              </div>
                                             </td>
                                           )}
                                           <td className="p-1 text-slate-600">{verba.verba?.replace(/_/g, ' ')}</td>
-                                          <td className="p-1 text-right font-mono">
-                                            {verba.valor_original?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                          <td className="p-1 text-right font-mono text-slate-500">
+                                            {(verba.valor_anterior || verba.valor_original)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                           </td>
                                           <td className="p-1 text-center text-indigo-600">
-                                            {calc.percentual_reajuste}%
+                                            +{calc.percentual_reajuste}%
+                                          </td>
+                                          <td className="p-1 text-right font-mono text-indigo-600">
+                                            {verba.valor_novo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '-'}
                                           </td>
                                           <td className="p-1 text-right font-mono text-emerald-600 font-medium">
                                             {verba.diferenca?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -1023,14 +1040,22 @@ const Dissidio = () => {
                             <thead className="sticky top-0 bg-slate-50">
                               <tr className="text-slate-500 text-xs">
                                 <th className="text-left pb-2">Colaborador</th>
-                                <th className="text-right pb-2">Retroativo Total</th>
+                                <th className="text-right pb-2">Valor Anterior</th>
+                                <th className="text-right pb-2">Valor Novo</th>
+                                <th className="text-right pb-2">Retroativo</th>
                               </tr>
                             </thead>
                             <tbody>
                               {calc.colaboradores_consolidado?.map((c, i) => (
                                 <tr key={i} className="border-b">
-                                  <td className="py-1">{c.nome}</td>
-                                  <td className="py-1 text-right font-mono text-emerald-600">
+                                  <td className="py-1 font-medium">{c.nome}</td>
+                                  <td className="py-1 text-right font-mono text-slate-500">
+                                    R$ {(c.total_valor_anterior || 0)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="py-1 text-right font-mono text-indigo-600">
+                                    R$ {(c.total_valor_novo || 0)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="py-1 text-right font-mono text-emerald-600 font-medium">
                                     R$ {c.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                   </td>
                                 </tr>
