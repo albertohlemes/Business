@@ -5170,11 +5170,11 @@ async def converter_apontamentos_com_template(
                 session_id=f"apontamentos-sci-{uuid.uuid4()}",
                 system_message=f"""Você é um especialista em departamento pessoal e folha de pagamento.
                 
-                O usuário enviou arquivos de apontamentos (imagens, prints, planilhas, PDFs, etc) e uma PLANILHA MODELO do sistema SCI.
+                O usuário enviou arquivos de apontamentos (imagens, prints, PDFs, etc).
                 
-                ESTRUTURA DO TEMPLATE SCI:
+                ESTRUTURA DO TEMPLATE SCI (planilha modelo para exportação):
                 Colunas: {json.dumps(template_info.get('header_names', []), ensure_ascii=False)}
-                Exemplo de dados: {json.dumps(template_info.get('sample_rows', []), ensure_ascii=False)}
+                Exemplo de dados existentes: {json.dumps(template_info.get('sample_rows', []), ensure_ascii=False)}
                 
                 SUA TAREFA:
                 1. Analise os arquivos de apontamentos enviados
@@ -5209,32 +5209,74 @@ async def converter_apontamentos_com_template(
                 }}"""
             ).with_model("gemini", "gemini-2.0-flash")
             
-            # Preparar todos os arquivos para análise
+            # Preparar arquivos de apontamentos para análise (NÃO enviar Excel - Gemini não suporta)
             file_contents = []
             
-            # Adicionar template
-            file_contents.append(FileContentWithMimeType(
-                file_path=template_path,
-                mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            ))
+            # MIME types suportados pelo Gemini
+            supported_mime_types = {
+                "application/pdf": True,
+                "image/jpeg": True,
+                "image/png": True,
+                "image/gif": True,
+                "image/webp": True,
+                "text/plain": True,
+            }
             
-            # Adicionar apontamentos
+            # Adicionar apenas apontamentos com mime types suportados
             for tf in temp_files:
+                mime = tf["mime"]
+                suffix = Path(tf["path"]).suffix.lower()
+                
+                # Determinar mime type correto
+                if suffix in ['.jpg', '.jpeg']:
+                    mime = "image/jpeg"
+                elif suffix == '.png':
+                    mime = "image/png"
+                elif suffix == '.pdf':
+                    mime = "application/pdf"
+                elif suffix == '.gif':
+                    mime = "image/gif"
+                elif suffix in ['.xlsx', '.xls']:
+                    # Extrair conteúdo de Excel e enviar como texto
+                    try:
+                        wb_ap = load_workbook(tf["path"])
+                        ws_ap = wb_ap.active
+                        excel_text = f"=== Conteúdo do arquivo {tf['name']} ===\n"
+                        for row in ws_ap.iter_rows(min_row=1, max_row=min(100, ws_ap.max_row), values_only=True):
+                            excel_text += " | ".join([str(c) if c else "" for c in row]) + "\n"
+                        # Adicionar como texto no prompt
+                        temp_files.append({"text_content": excel_text, "name": tf["name"]})
+                    except:
+                        pass
+                    continue  # Não adicionar o arquivo Excel
+                elif suffix == '.txt':
+                    mime = "text/plain"
+                else:
+                    continue  # Pular arquivos não suportados
+                
                 file_contents.append(FileContentWithMimeType(
                     file_path=tf["path"],
-                    mime_type=tf["mime"]
+                    mime_type=mime
                 ))
             
+            # Montar texto com conteúdo de arquivos Excel extraídos
+            extra_text = ""
+            for tf in temp_files:
+                if "text_content" in tf:
+                    extra_text += f"\n\n{tf['text_content']}"
+            
             response = await chat.send_message(UserMessage(
-                text=f"""Analise os arquivos enviados:
-                
-1. PRIMEIRO ARQUIVO: Planilha modelo do SCI (define a estrutura de saída)
-2. DEMAIS ARQUIVOS ({len(temp_files)}): Apontamentos do cliente para extrair dados
+                text=f"""Analise os arquivos de apontamentos enviados e extraia os dados.
 
-Extraia os dados dos apontamentos e formate conforme o template SCI.
+TEMPLATE DE DESTINO (estrutura da planilha SCI para preencher):
+Colunas: {json.dumps(template_info.get('header_names', []), ensure_ascii=False)}
+
+Arquivos enviados: {len(file_contents)} arquivo(s) de apontamentos
 Competência: {competencia or 'não informada'}
-""",
-                file_contents=file_contents
+{extra_text}
+
+Extraia os dados e formate conforme o template.""",
+                file_contents=file_contents if file_contents else None
             ))
             
             # Parse response
