@@ -166,17 +166,25 @@ const Clientes = () => {
     setDialogOpen(true);
   };
 
-  const handleConvencaoUpdate = async (newConvencao) => {
+  const handleConvencaoUpdate = async (dados) => {
     if (editingCliente) {
       // Atualizar o estado local imediatamente
-      const updatedCliente = { ...editingCliente, convencao_coletiva: newConvencao };
+      const updatedCliente = { 
+        ...editingCliente, 
+        convencao_coletiva: dados.convencao_coletiva,
+        historico_convencoes: dados.historico_convencoes || editingCliente.historico_convencoes
+      };
       setEditingCliente(updatedCliente);
       
       // Atualizar também na lista de clientes para quando reabrir
       setClientes(prevClientes => 
         prevClientes.map(c => 
           c.id === editingCliente.id 
-            ? { ...c, convencao_coletiva: newConvencao }
+            ? { 
+                ...c, 
+                convencao_coletiva: dados.convencao_coletiva,
+                historico_convencoes: dados.historico_convencoes || c.historico_convencoes
+              }
             : c
         )
       );
