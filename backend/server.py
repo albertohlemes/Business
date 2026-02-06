@@ -3877,6 +3877,20 @@ async def calcular_dissidio_retroativo(
                     
                     retroativo_colab = sum(v['diferenca'] for v in verbas_calculadas)
                     
+                    # ========== APLICAR PROPORCIONALIDADE ==========
+                    retroativo_original = retroativo_colab
+                    proporcionalidade_info = None
+                    
+                    if percentual_proporcional < 100:
+                        retroativo_colab = retroativo_colab * (percentual_proporcional / 100)
+                        proporcionalidade_info = {
+                            'percentual': percentual_proporcional,
+                            'observacao': obs_proporcional,
+                            'data_admissao': data_admissao,
+                            'retroativo_original': round(retroativo_original, 2),
+                            'retroativo_proporcional': round(retroativo_colab, 2)
+                        }
+                    
                     # ========== VALIDAÇÃO DO PISO SALARIAL ==========
                     alerta_piso = None
                     piso_aplicavel = None
