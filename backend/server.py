@@ -573,9 +573,19 @@ async def update_cliente(cliente_id: str, cliente: ClienteCreate, current_user: 
     if not existing:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
     
+    # Preservar campos que não fazem parte do ClienteCreate
+    update_data = cliente.model_dump()
+    
+    # NÃO sobrescrever a convenção coletiva - ela é gerenciada por endpoint separado
+    # Também preservar outros campos internos
+    campos_preservar = ['convencao_coletiva', 'id', 'user_id', 'created_at']
+    for campo in campos_preservar:
+        if campo in existing and campo not in update_data:
+            update_data[campo] = existing[campo]
+    
     await db.clientes.update_one(
         {"id": cliente_id},
-        {"$set": cliente.model_dump()}
+        {"$set": update_data}
     )
     updated = await db.clientes.find_one({"id": cliente_id}, {"_id": 0})
     total_colab = await db.colaboradores.count_documents({"cliente_id": cliente_id})
