@@ -1438,7 +1438,7 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
         linha_c100 = "|C100|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|9|||||{}|{}||||{}|{}|||".format(
             ind_oper,                                               # 02 IND_OPER
             ind_emit,                                               # 03 IND_EMIT
-            emit_cnpj,                                              # 04 COD_PART
+            cod_part,                                               # 04 COD_PART (fornecedor/cliente correto)
             modelo,                                                 # 05 COD_MOD
             cod_sit,                                                # 06 COD_SIT
             serie,                                                  # 07 SER
