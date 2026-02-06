@@ -615,25 +615,23 @@ const Dissidio = () => {
                         className="text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
                       />
                       <Input 
-                        type="number"
-                        step="0.01"
-                        placeholder="R$ Anterior"
-                        value={desc.valor_anterior || ''} 
+                        placeholder="R$ 0,00"
+                        value={desc.valor_anterior ? formatarInputMoeda(String(Math.round(desc.valor_anterior * 100))) : ''} 
                         onChange={(e) => {
                           const newDesc = [...convencaoData.descontos];
-                          newDesc[i] = {...newDesc[i], valor_anterior: parseFloat(e.target.value) || 0};
+                          const valor = parseMoeda(e.target.value);
+                          newDesc[i] = {...newDesc[i], valor_anterior: valor};
                           setConvencaoData({...convencaoData, descontos: newDesc});
                         }}
                         className="text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
                       />
                       <Input 
-                        type="number"
-                        step="0.01"
-                        placeholder="R$ Novo"
-                        value={desc.valor_novo || ''} 
+                        placeholder="R$ 0,00"
+                        value={desc.valor_novo ? formatarInputMoeda(String(Math.round(desc.valor_novo * 100))) : ''} 
                         onChange={(e) => {
                           const newDesc = [...convencaoData.descontos];
-                          newDesc[i] = {...newDesc[i], valor_novo: parseFloat(e.target.value) || 0};
+                          const valor = parseMoeda(e.target.value);
+                          newDesc[i] = {...newDesc[i], valor_novo: valor};
                           setConvencaoData({...convencaoData, descontos: newDesc});
                         }}
                         className="text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
