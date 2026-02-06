@@ -1099,11 +1099,11 @@ const Dissidio = () => {
                                   </tr>
                                 ))}
                                 {/* Subtotal por colaborador */}
-                                <tr className="bg-slate-800/50">
-                                  <td className="p-2 text-right text-xs text-slate-500 font-medium" colSpan={4}>
+                                <tr className="bg-slate-800">
+                                  <td className="p-2 text-right text-xs text-slate-400 font-medium" colSpan={4}>
                                     Subtotal {colab.nome?.split(' ')[0]}:
                                   </td>
-                                  <td className="p-2 text-right font-mono text-sm text-emerald-700 font-bold">
+                                  <td className="p-2 text-right font-mono text-sm text-emerald-400 font-bold">
                                     R$ {colab.retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                   </td>
                                 </tr>
@@ -1111,8 +1111,8 @@ const Dissidio = () => {
                             ))}
                           </tbody>
                           <tfoot>
-                            <tr className="bg-gradient-to-r from-blue-100 to-indigo-100">
-                              <td className="p-4 font-bold text-slate-700" colSpan={5}>
+                            <tr className="bg-blue-500/20 border-t border-blue-500/30">
+                              <td className="p-4 font-bold text-white" colSpan={5}>
                                 TOTAL DO MÊS {mes.competencia}
                               </td>
                               <td className="p-4 text-right">
