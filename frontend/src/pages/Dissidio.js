@@ -174,6 +174,20 @@ const Dissidio = () => {
     }
   };
 
+  // Excluir cálculo
+  const excluirCalculo = async (calculoId) => {
+    if (!window.confirm('Tem certeza que deseja excluir este cálculo? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+    try {
+      await axios.delete(`${API_URL}/api/calculos-dissidio/${calculoId}`);
+      toast.success('Cálculo excluído com sucesso');
+      setCalculosAnteriores(prev => prev.filter(c => c.id !== calculoId));
+    } catch (error) {
+      toast.error('Erro ao excluir cálculo');
+    }
+  };
+
   // Exportar Resumo da Convenção em PDF
   const exportarResumoPDF = async () => {
     if (!convencaoData) {
