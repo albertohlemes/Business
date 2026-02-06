@@ -3,6 +3,9 @@
 **Última atualização**: 2026-02-06
 
 ## Changelog Recente
+- **2026-02-06**: ✅ Implementada validação de piso salarial no cálculo de dissídio retroativo
+- **2026-02-06**: ✅ Adicionado botão de exportação de PDF do resumo da convenção na lista de cálculos anteriores
+- **2026-02-06**: ✅ Novo endpoint `GET /api/calculos-dissidio/{id}/exportar-convencao-pdf`
 - **2026-02-06**: Adicionado botão de excluir (lixeira) nos cálculos de dissídio + Melhorado contraste das cores
 - **2026-02-06**: Melhorias de UX - Código (#XXXX) antes do nome da empresa, competência com barra (MM/AAAA)
 - **2026-02-06**: Implementada exportação de resumo da convenção em PDF com papel timbrado
