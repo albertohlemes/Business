@@ -3,6 +3,9 @@
 **Última atualização**: 2026-02-06
 
 ## Changelog Recente
+- **2026-02-06**: ✅ CORREÇÃO CRÍTICA: Importação de colaboradores agora extrai dados corretamente usando IA (corrigido problema onde arquivos TXT não eram processados pela IA)
+- **2026-02-06**: ✅ Importação de colaboradores extrai todos os campos: nome, cpf, sexo, estado_civil, endereco, cidade, uf, cep, rg, pis, ctps, nome_mae, nome_pai, dados bancários, dependentes
+- **2026-02-06**: ✅ IA agora distingue corretamente dados do funcionário dos dados da empresa (não confunde mais nome da empresa com nome do funcionário)
 - **2026-02-06**: ✅ Implementada tabela de proporcionalidade por data de admissão (auto-calculada ou extraída da convenção)
 - **2026-02-06**: ✅ Implementado cálculo retroativo proporcional baseado na data de admissão do colaborador
 - **2026-02-06**: ✅ Adicionada seção de vigência da convenção em destaque no Step 2 (Revisar Dados)
