@@ -69,8 +69,9 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 ### Dissídio
 - CRUD `/api/dissidios`
 - `POST /api/convencao/analisar` - Análise de convenção por IA
-- `POST /api/dissidio/calcular-retroativo` - Cálculo de retroativo
-- `POST /api/convencao/exportar-resumo-pdf` - Exportação em PDF (NOVO)
+- `POST /api/dissidio/calcular-retroativo` - Cálculo de retroativo (com validação de piso salarial)
+- `POST /api/convencao/exportar-resumo-pdf` - Exportação em PDF
+- `GET /api/calculos-dissidio/{id}/exportar-convencao-pdf` - Exporta PDF da convenção a partir de cálculo existente (NOVO)
 
 ### Conversões (NOVOS)
 - `POST /api/conversao/apontamentos` - Converte para SCI Único
