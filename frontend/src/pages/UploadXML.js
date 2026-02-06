@@ -83,6 +83,9 @@ const UploadXML = ({ user, onLogout }) => {
     });
   };
 
+  // Constante para tamanho do lote
+  const BATCH_SIZE = 1000;
+
   const handleUpload = async () => {
     if (!selectedCompany || files.length === 0 || !competencia) {
       alert('Selecione empresa, competência e pelo menos um arquivo XML');
@@ -91,89 +94,158 @@ const UploadXML = ({ user, onLogout }) => {
 
     setUploading(true);
     setResults(null);
+    
+    const totalFiles = files.length;
+    const totalBatches = Math.ceil(totalFiles / BATCH_SIZE);
+    
     setProgress({
       percent: 0,
       currentFile: '',
-      currentStep: 'Iniciando upload...',
+      currentStep: totalBatches > 1 
+        ? `Preparando upload em ${totalBatches} lotes de até ${BATCH_SIZE} arquivos...`
+        : 'Iniciando upload...',
       processedFiles: 0,
-      totalFiles: files.length
+      totalFiles: totalFiles,
+      currentBatch: 1,
+      totalBatches: totalBatches
     });
 
     const token = localStorage.getItem('token');
+    let allResults = {
+      total: 0,
+      success: 0,
+      errors: 0,
+      already_exists: 0,
+      conversions: [],
+      error_details: [],
+      exists_details: []
+    };
 
     try {
-      // 1. Iniciar sessão de upload
-      const initFormData = new FormData();
-      initFormData.append('company_id', selectedCompany);
-      initFormData.append('competencia', competencia);
-      initFormData.append('tipo', tipo);
-      initFormData.append('total_files', files.length);
+      // Processar em lotes de BATCH_SIZE
+      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        const start = batchIndex * BATCH_SIZE;
+        const end = Math.min(start + BATCH_SIZE, totalFiles);
+        const batchFiles = files.slice(start, end);
+        const currentBatch = batchIndex + 1;
+        
+        setProgress(prev => ({
+          ...prev,
+          currentStep: totalBatches > 1 
+            ? `Processando lote ${currentBatch} de ${totalBatches} (${batchFiles.length} arquivos)...`
+            : 'Iniciando upload...',
+          currentBatch: currentBatch
+        }));
 
-      const initResponse = await axios.post(API + '/xml/upload-init', initFormData, {
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+        // 1. Iniciar sessão de upload para este lote
+        const initFormData = new FormData();
+        initFormData.append('company_id', selectedCompany);
+        initFormData.append('competencia', competencia);
+        initFormData.append('tipo', tipo);
+        initFormData.append('total_files', batchFiles.length);
 
-      const uploadId = initResponse.data.upload_id;
+        const initResponse = await axios.post(API + '/xml/upload-init', initFormData, {
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
 
-      // 2. Conectar ao SSE para receber progresso
-      const eventSource = new EventSource(`${API}/xml/upload-progress/${uploadId}`);
-      eventSourceRef.current = eventSource;
+        const uploadId = initResponse.data.upload_id;
 
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          setProgress({
-            percent: data.progress_percent || 0,
-            currentFile: data.current_file || '',
-            currentStep: data.current_step || '',
-            processedFiles: data.processed_files || 0,
-            totalFiles: data.total_files || files.length
+        // 2. Criar promise para aguardar conclusão do lote
+        const batchResult = await new Promise((resolve, reject) => {
+          // Conectar ao SSE para receber progresso
+          const eventSource = new EventSource(`${API}/xml/upload-progress/${uploadId}`);
+          eventSourceRef.current = eventSource;
+
+          eventSource.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              
+              // Calcular progresso global considerando lotes anteriores
+              const filesProcessedInPreviousBatches = batchIndex * BATCH_SIZE;
+              const currentTotalProcessed = filesProcessedInPreviousBatches + (data.processed_files || 0);
+              const globalPercent = Math.round((currentTotalProcessed / totalFiles) * 100);
+              
+              setProgress({
+                percent: globalPercent,
+                currentFile: data.current_file || '',
+                currentStep: totalBatches > 1 
+                  ? `Lote ${currentBatch}/${totalBatches}: ${data.current_step || ''}`
+                  : (data.current_step || ''),
+                processedFiles: currentTotalProcessed,
+                totalFiles: totalFiles,
+                currentBatch: currentBatch,
+                totalBatches: totalBatches
+              });
+
+              if (data.completed && data.results) {
+                eventSource.close();
+                eventSourceRef.current = null;
+                resolve(data.results);
+              }
+
+              if (data.error) {
+                console.error('SSE Error:', data.error);
+                eventSource.close();
+                eventSourceRef.current = null;
+                reject(new Error(data.error));
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          };
+
+          eventSource.onerror = (error) => {
+            console.error('SSE connection error:', error);
+          };
+
+          // 3. Enviar arquivos do lote
+          const uploadFormData = new FormData();
+          uploadFormData.append('upload_id', uploadId);
+          batchFiles.forEach((file) => {
+            uploadFormData.append('files', file);
           });
 
-          if (data.completed && data.results) {
-            setResults(data.results);
-            setUploading(false);
-            setFiles([]);
-            document.getElementById('file-input').value = '';
+          axios.post(API + '/xml/upload-stream', uploadFormData, {
+            headers: {
+              'Authorization': 'Bearer ' + token,
+              'Content-Type': 'multipart/form-data'
+            }
+          }).catch(err => {
             eventSource.close();
             eventSourceRef.current = null;
+            reject(err);
+          });
+        });
+
+        // Agregar resultados do lote
+        if (batchResult) {
+          allResults.total += batchResult.total || 0;
+          allResults.success += batchResult.success || 0;
+          allResults.errors += batchResult.errors || 0;
+          allResults.already_exists += batchResult.already_exists || 0;
+          if (batchResult.conversions) {
+            allResults.conversions = [...allResults.conversions, ...batchResult.conversions];
           }
-
-          if (data.error) {
-            console.error('SSE Error:', data.error);
-            eventSource.close();
-            eventSourceRef.current = null;
+          if (batchResult.error_details) {
+            allResults.error_details = [...allResults.error_details, ...batchResult.error_details];
           }
-        } catch (e) {
-          console.error('Error parsing SSE data:', e);
+          if (batchResult.exists_details) {
+            allResults.exists_details = [...allResults.exists_details, ...batchResult.exists_details];
+          }
         }
-      };
+      }
 
-      eventSource.onerror = (error) => {
-        console.error('SSE connection error:', error);
-        // Don't close immediately, let the upload continue
-      };
-
-      // 3. Enviar arquivos
-      const uploadFormData = new FormData();
-      uploadFormData.append('upload_id', uploadId);
-      files.forEach((file) => {
-        uploadFormData.append('files', file);
-      });
-
-      await axios.post(API + '/xml/upload-stream', uploadFormData, {
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      // Finalizado todos os lotes
+      setResults(allResults);
+      setUploading(false);
+      setFiles([]);
+      document.getElementById('file-input').value = '';
 
     } catch (err) {
-      alert(err.response?.data?.detail || 'Erro ao enviar arquivos');
+      alert(err.response?.data?.detail || err.message || 'Erro ao enviar arquivos');
       setUploading(false);
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
