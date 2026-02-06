@@ -4256,8 +4256,8 @@ async def exportar_resumo_convencao_pdf(
             obs = desc.get('observacao', '')
             desconto_data.append([
                 nome,
-                f"R$ {val_ant:,.2f}" if val_ant else "N/A",
-                f"R$ {val_novo:,.2f}" if val_novo else "N/A",
+                formatar_valor(val_ant),
+                formatar_valor(val_novo),
                 obs[:30] if obs else "-"
             ])
         
