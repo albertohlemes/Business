@@ -859,6 +859,18 @@ const Clientes = () => {
                         {cliente.sindicato}
                       </span>
                     )}
+                    {cliente.convencao_coletiva && (
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded ${
+                        cliente.convencao_coletiva?.vigencia?.status === 'vencida'
+                          ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                          : cliente.convencao_coletiva?.vigencia?.status === 'a_vencer'
+                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      }`}>
+                        <Scale size={10} />
+                        CCT {cliente.convencao_coletiva?.vigencia?.status === 'vencida' ? 'Vencida' : cliente.convencao_coletiva?.vigencia?.status === 'a_vencer' ? 'A Vencer' : 'OK'}
+                      </span>
+                    )}
                   </div>
 
                   {cliente.cidade && cliente.uf && (
