@@ -86,8 +86,9 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 ### Clientes/Empresas
 - `GET /api/receita/{cnpj}`, CRUD `/api/clientes`
 - `POST /api/clientes/importar-lote` - Importação em lote
-- `POST /api/clientes/{cliente_id}/convencao` - Upload e análise de CCT (NOVO)
-- `DELETE /api/clientes/{cliente_id}/convencao` - Remove CCT do cadastro (NOVO)
+- `POST /api/clientes/{cliente_id}/convencao` - Upload e análise de CCT
+- `DELETE /api/clientes/{cliente_id}/convencao` - Remove CCT do cadastro
+- `GET /api/clientes/{cliente_id}/convencao/export-pdf` - Exporta resumo da CCT para PDF (NOVO)
 
 ### Colaboradores
 - CRUD `/api/colaboradores`
