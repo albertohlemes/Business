@@ -3435,9 +3435,6 @@ async def analisar_convencao(
                 
                 Se não encontrar informação sobre algum campo, use null.
                 Para benefícios e descontos, extraia TODOS que encontrar com seus valores."""
-                    "vigencia_fim": "DD/MM/YYYY",
-                    "resumo": "resumo executivo em 2-3 frases"
-                }"""
             ).with_model("gemini", "gemini-2.0-flash")
             
             file_content = FileContentWithMimeType(
