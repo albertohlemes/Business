@@ -635,7 +635,7 @@ Se não encontrar nenhuma referência, retorne: {"referencias": []}
                     try:
                         import google.generativeai as genai
                         genai.configure(api_key=google_key)
-                        model = genai.GenerativeModel('gemini-1.5-flash')
+                        model = genai.GenerativeModel('gemini-2.0-flash')
                         response = model.generate_content(prompt_com_texto)
                         response_text = response.text
                         
