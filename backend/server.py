@@ -823,6 +823,7 @@ async def importar_colaborador_documento(
     try:
         colaboradores = []
         confianca = "baixa"
+        extracted_text = ""  # Inicializa a variável
         
         # SEMPRE usa IA para melhor precisão na extração
         emergent_key = os.environ.get('EMERGENT_LLM_KEY')
