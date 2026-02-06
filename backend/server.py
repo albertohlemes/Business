@@ -4946,8 +4946,10 @@ async def apuracao_pis_cofins(
                     debitos["aliquota_zero"]["total"] += valor
                 else:
                     # Gera débito - CST 01
-                    # IMPORTANTE: Para Lucro Real, calcular débito com alíquotas corretas (1,65% PIS, 7,6% COFINS)
-                    # Para Lucro Presumido, usar alíquotas cumulativas (0,65% PIS, 3% COFINS)
+                    # ACUMULAR base - cálculo será feito no final sobre a base total
+                    base_debito_acumulada += valor
+                    
+                    # Para agrupamento por CFOP/NCM, ainda calcular valores individuais (para visualização)
                     if regime == 'lucro_real':
                         pis_calc = round(valor * 0.0165, 2)  # PIS Lucro Real: 1,65%
                         cofins_calc = round(valor * 0.076, 2)  # COFINS Lucro Real: 7,6%
@@ -4959,8 +4961,6 @@ async def apuracao_pis_cofins(
                     add_to_dict(debitos["com_debito"]["por_ncm"], ncm or "SEM NCM", valor, pis_calc, cofins_calc, '01')
                     add_to_dict(debitos["com_debito"]["por_cst"], '01', valor, pis_calc, cofins_calc, '01')
                     debitos["com_debito"]["total"] += valor
-                    debitos["com_debito"]["pis"] += pis_calc
-                    debitos["com_debito"]["cofins"] += cofins_calc
     
     # Converter dicionários para listas ordenadas
     def dict_to_list(d):
