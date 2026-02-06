@@ -6,8 +6,11 @@ import {
   Calculator, TrendingUp, TrendingDown, Package, DollarSign, Receipt,
   ArrowDownCircle, ArrowUpCircle, ChevronDown, ChevronRight, Download,
   Loader2, Save, AlertCircle, CheckCircle, Target, FileText,
-  ArrowUp, ArrowDown, ArrowUpDown
+  ArrowUp, ArrowDown, ArrowUpDown, FileSpreadsheet, File
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL + '/api';
