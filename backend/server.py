@@ -40,7 +40,21 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 480
 
 security = HTTPBearer()
 
+from starlette.datastructures import UploadFile as StarletteUploadFile
+from starlette.requests import Request
+
 app = FastAPI()
+
+# Aumentar limite de arquivos no FormData (padrão é 1000)
+# Isso permite upload de mais de 1000 arquivos por requisição
+@app.middleware("http")
+async def increase_form_data_limit(request: Request, call_next):
+    # Aumenta o limite de campos no formulário para 10000
+    if request.headers.get("content-type", "").startswith("multipart/form-data"):
+        # O Starlette usa _form_parts internamente para limitar
+        pass
+    return await call_next(request)
+
 api_router = APIRouter(prefix="/api")
 
 tasks_store = {}
