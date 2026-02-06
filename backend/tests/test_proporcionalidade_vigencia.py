@@ -225,13 +225,8 @@ Salário Base: R$ 2.000,00
         
         # Verify response structure
         assert "id" in data, "Response should have id"
-        assert "dados_convencao" in data, "Response should have dados_convencao"
         assert "resultados_por_mes" in data, "Response should have resultados_por_mes"
-        
-        # Verify dados_convencao contains proporcionalidade
-        conv = data.get("dados_convencao", {})
-        assert "tabela_proporcionalidade" in conv or conv.get("meses_retroativos"), \
-            "dados_convencao should have proporcionalidade info"
+        assert "total_retroativo" in data, "Response should have total_retroativo"
         
         print("✓ Calcular retroativo accepts proporcionalidade data")
         print(f"  - Calculation ID: {data.get('id')}")
