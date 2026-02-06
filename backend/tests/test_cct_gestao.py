@@ -31,7 +31,7 @@ class TestCCTManagement:
         # Login
         response = self.session.post(f"{BASE_URL}/api/auth/login", json={
             "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
+            "senha": TEST_PASSWORD
         })
         assert response.status_code == 200, f"Login failed: {response.text}"
         
@@ -172,7 +172,7 @@ class TestValidacaoRescisaoWithCCT:
         # Login
         response = self.session.post(f"{BASE_URL}/api/auth/login", json={
             "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
+            "senha": TEST_PASSWORD
         })
         assert response.status_code == 200, f"Login failed: {response.text}"
         
@@ -270,7 +270,7 @@ class TestCCTUploadWithAI:
         # Login
         response = self.session.post(f"{BASE_URL}/api/auth/login", json={
             "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
+            "senha": TEST_PASSWORD
         })
         assert response.status_code == 200, f"Login failed: {response.text}"
         
