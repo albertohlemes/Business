@@ -6596,26 +6596,113 @@ INSTRUÇÕES:
 async def validar_rescisao_etapa3(
     cliente_id: str = Form(...),
     termo_data: str = Form(...),
-    convencao: UploadFile = File(...),
+    convencao: Optional[UploadFile] = File(None),
     current_user: dict = Depends(get_current_user)
 ):
-    """Etapa 3: Valida se a rescisão atende aos termos da convenção coletiva"""
+    """Etapa 3: Valida se a rescisão atende aos termos da convenção coletiva.
+    A convenção pode ser enviada por upload ou buscada do cadastro do cliente."""
     from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
     
     try:
         termo_info = json.loads(termo_data)
         
-        content = await convencao.read()
-        suffix = Path(convencao.filename).suffix
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(content)
-            tmp_path = tmp.name
+        # Buscar cliente para verificar se tem CCT cadastrada
+        cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Cliente não encontrado")
         
-        try:
+        # Verificar se tem convenção (upload ou cadastro)
+        cct_cadastrada = cliente.get("convencao_coletiva")
+        
+        if convencao:
+            # Upload de arquivo - processar normalmente
+            content = await convencao.read()
+            suffix = Path(convencao.filename).suffix
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+            
+            try:
+                api_key = os.environ.get('EMERGENT_LLM_KEY')
+                chat = LlmChat(
+                    api_key=api_key,
+                    session_id=f"rescisao-etapa3-{uuid.uuid4()}",
+                    system_message=f"""Você é um especialista em convenções coletivas e direito trabalhista.
+                    
+                    DADOS DO TERMO DE RESCISÃO:
+                    - Colaborador: {termo_info.get('colaborador', 'N/A')}
+                    - Data Admissão: {termo_info.get('resumo', {}).get('data_admissao', 'N/A')}
+                    - Data Demissão: {termo_info.get('resumo', {}).get('data_demissao', 'N/A')}
+                    - Tipo Rescisão: {termo_info.get('resumo', {}).get('tipo_rescisao', 'N/A')}
+                    - Salário Base: {termo_info.get('resumo', {}).get('salario_base', 'N/A')}
+                    - Verbas: {json.dumps(termo_info.get('verbas_rescisorias', {}), ensure_ascii=False)}
+                    
+                    Analise a CONVENÇÃO COLETIVA e valide:
+                    1. Se existe estabilidade provisória que impediria a demissão
+                    2. Se o aviso prévio adicional por tempo de serviço foi aplicado
+                    3. Se existe multa adicional prevista em convenção
+                    4. Se existe piso salarial que deve ser considerado
+                    5. Se existem benefícios que devem ser proporcionalizados
+                    6. Se a rescisão foi feita em período de garantia de emprego
+                    
+                    Retorne APENAS um JSON válido:
+                    {{
+                        "itens_validados": ["Aviso prévio adicional", "Estabilidade", ...],
+                        "divergencias": [
+                            {{
+                                "item": "Nome do item previsto na CCT",
+                                "valor_informado": "Como está no termo",
+                                "valor_esperado": "Como deveria ser pela CCT",
+                                "observacao": "Cláusula e explicação"
+                            }}
+                        ],
+                        "alertas": ["Alertas sobre a convenção"],
+                        "clausulas_aplicaveis": ["Lista de cláusulas relevantes"],
+                        "observacoes": "Observações gerais"
+                    }}"""
+                ).with_model("gemini", "gemini-2.0-flash")
+                
+                mime_type = convencao.content_type or "application/pdf"
+                file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
+                
+                response = await chat.send_message(UserMessage(
+                    text=f"Analise esta convenção coletiva e verifique se a rescisão atende a todos os termos e direitos previstos. Identifique possíveis divergências ou direitos não pagos.",
+                    file_contents=[file_content]
+                ))
+                
+                response_text = response.strip()
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:]
+                if response_text.startswith("```"):
+                    response_text = response_text[3:]
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3]
+                
+                dados = json.loads(response_text.strip())
+                
+                return {
+                    "success": True,
+                    "etapa": 3,
+                    "origem_cct": "upload",
+                    "itens_validados": dados.get("itens_validados", []),
+                    "divergencias": dados.get("divergencias", []),
+                    "alertas": dados.get("alertas", []),
+                    "clausulas_aplicaveis": dados.get("clausulas_aplicaveis", []),
+                    "observacoes": dados.get("observacoes", "")
+                }
+                
+            finally:
+                try:
+                    os.unlink(tmp_path)
+                except:
+                    pass
+        
+        elif cct_cadastrada:
+            # Usar CCT cadastrada no cliente
             api_key = os.environ.get('EMERGENT_LLM_KEY')
             chat = LlmChat(
                 api_key=api_key,
-                session_id=f"rescisao-etapa3-{uuid.uuid4()}",
+                session_id=f"rescisao-etapa3-cct-{uuid.uuid4()}",
                 system_message=f"""Você é um especialista em convenções coletivas e direito trabalhista.
                 
                 DADOS DO TERMO DE RESCISÃO:
@@ -6624,9 +6711,12 @@ async def validar_rescisao_etapa3(
                 - Data Demissão: {termo_info.get('resumo', {}).get('data_demissao', 'N/A')}
                 - Tipo Rescisão: {termo_info.get('resumo', {}).get('tipo_rescisao', 'N/A')}
                 - Salário Base: {termo_info.get('resumo', {}).get('salario_base', 'N/A')}
-                - Verbas: {json.dumps(termo_info.get('verbas_rescisorias', {}), ensure_ascii=False)}
+                - Verbas Rescisórias: {json.dumps(termo_info.get('verbas_rescisorias', {}), ensure_ascii=False)}
                 
-                Analise a CONVENÇÃO COLETIVA e valide:
+                DADOS DA CONVENÇÃO COLETIVA CADASTRADA:
+                {json.dumps(cct_cadastrada, ensure_ascii=False, indent=2)}
+                
+                Com base na convenção coletiva cadastrada, valide:
                 1. Se existe estabilidade provisória que impediria a demissão
                 2. Se o aviso prévio adicional por tempo de serviço foi aplicado
                 3. Se existe multa adicional prevista em convenção
@@ -6651,12 +6741,8 @@ async def validar_rescisao_etapa3(
                 }}"""
             ).with_model("gemini", "gemini-2.0-flash")
             
-            mime_type = convencao.content_type or "application/pdf"
-            file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
-            
             response = await chat.send_message(UserMessage(
-                text=f"Analise esta convenção coletiva e verifique se a rescisão atende a todos os termos e direitos previstos. Identifique possíveis divergências ou direitos não pagos.",
-                file_contents=[file_content]
+                text="Com base nos dados da convenção coletiva cadastrada acima, valide se a rescisão atende a todos os termos e direitos previstos. Identifique possíveis divergências ou direitos não pagos."
             ))
             
             response_text = response.strip()
@@ -6669,21 +6755,25 @@ async def validar_rescisao_etapa3(
             
             dados = json.loads(response_text.strip())
             
+            sindicato = cct_cadastrada.get("identificacao", {}).get("sindicato_laboral", "")
+            
             return {
                 "success": True,
                 "etapa": 3,
+                "origem_cct": "cadastro_cliente",
+                "sindicato_cct": sindicato,
                 "itens_validados": dados.get("itens_validados", []),
                 "divergencias": dados.get("divergencias", []),
                 "alertas": dados.get("alertas", []),
                 "clausulas_aplicaveis": dados.get("clausulas_aplicaveis", []),
                 "observacoes": dados.get("observacoes", "")
             }
-            
-        finally:
-            try:
-                os.unlink(tmp_path)
-            except:
-                pass
+        
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail="Nenhuma convenção coletiva informada. Faça o upload ou cadastre uma CCT para este cliente."
+            )
                     
     except Exception as e:
         logger.error(f"Erro na etapa 3 (convenção): {str(e)}")
