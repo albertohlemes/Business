@@ -348,10 +348,11 @@ const ConversaoApontamentos = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-96 overflow-y-auto">
               <table className="w-full text-sm">
-                <thead className="bg-slate-800/50">
+                <thead className="bg-slate-800/50 sticky top-0 z-10">
                   <tr>
+                    <th className="text-left p-3 font-medium text-slate-500 whitespace-nowrap">#</th>
                     {Object.keys(previewData[0] || {}).map((col, i) => (
                       <th key={i} className="text-left p-3 font-medium text-slate-300 whitespace-nowrap">
                         {col}
@@ -360,8 +361,9 @@ const ConversaoApontamentos = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
-                  {previewData.slice(0, 10).map((row, i) => (
+                  {previewData.map((row, i) => (
                     <tr key={i} className="hover:bg-slate-800/30">
+                      <td className="p-3 text-slate-600 whitespace-nowrap font-mono text-xs">{i + 1}</td>
                       {Object.values(row).map((val, j) => (
                         <td key={j} className="p-3 text-slate-400 whitespace-nowrap">
                           {val || '-'}
@@ -372,11 +374,72 @@ const ConversaoApontamentos = () => {
                 </tbody>
               </table>
             </div>
-            {previewData.length > 10 && (
-              <div className="p-3 text-center text-xs text-slate-500 bg-slate-800/30">
-                Mostrando 10 de {previewData.length} registros
-              </div>
-            )}
+            <div className="p-2 text-center text-xs text-slate-500 bg-slate-800/30 border-t border-slate-800">
+              Total: {previewData.length} registros
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Eventos sem coluna correspondente */}
+      {result?.eventos_sem_coluna && result.eventos_sem_coluna.length > 0 && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardHeader className="border-b border-amber-500/20 pb-3">
+            <CardTitle className="text-amber-400 flex items-center gap-2 text-base">
+              <AlertTriangle size={18} />
+              Eventos não mapeados
+              <Badge variant="outline" className="ml-2 border-amber-500/50 text-amber-400">
+                {result.eventos_sem_coluna.length} evento(s)
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-3">
+            <p className="text-sm text-amber-300/80">
+              Os seguintes eventos foram encontrados no apontamento, mas não têm coluna correspondente no template:
+            </p>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {result.eventos_sem_coluna.map((ev, i) => (
+                <div key={i} className="bg-slate-800/50 rounded-lg p-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-white font-medium text-sm">{ev.evento_original}</p>
+                    <p className="text-xs text-slate-500">
+                      Colaborador: {ev.colaborador || 'N/A'} • Valor: {ev.valor || 'N/A'}
+                    </p>
+                    {ev.sugestao_coluna && (
+                      <p className="text-xs text-blue-400 mt-1">
+                        Sugestão: usar coluna "{ev.sugestao_coluna}"
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              💡 Esses eventos foram ignorados na exportação. Se precisar incluí-los, ajuste o template ou informe qual coluna usar.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Mapeamentos realizados */}
+      {result?.mapeamentos_realizados && result.mapeamentos_realizados.length > 0 && (
+        <Card className="border-slate-700 bg-slate-900/50">
+          <CardHeader className="border-b border-slate-800 pb-3">
+            <CardTitle className="text-slate-300 flex items-center gap-2 text-sm">
+              <Table2 size={16} />
+              Mapeamentos realizados
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-3">
+            <div className="flex flex-wrap gap-2">
+              {result.mapeamentos_realizados.map((m, i) => (
+                <div key={i} className="bg-slate-800 rounded px-3 py-1.5 text-xs flex items-center gap-2">
+                  <span className="text-slate-400">{m.evento_apontamento}</span>
+                  <ArrowRight size={12} className="text-emerald-500" />
+                  <span className="text-emerald-400 font-medium">{m.coluna_template}</span>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
