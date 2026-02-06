@@ -4966,11 +4966,28 @@ async def apuracao_pis_cofins(
     def dict_to_list(d):
         return sorted([{"codigo": k, **v} for k, v in d.items()], key=lambda x: -x["valor"])
     
-    # Calcular apuração
-    pis_credito = round(creditos["com_credito"]["pis"], 2)
-    cofins_credito = round(creditos["com_credito"]["cofins"], 2)
-    pis_debito = round(debitos["com_debito"]["pis"], 2)
-    cofins_debito = round(debitos["com_debito"]["cofins"], 2)
+    # Calcular apuração - USANDO BASE ACUMULADA (igual Dashboard)
+    # Isso garante que não haverá diferença de centavos entre telas
+    
+    # Alíquotas por regime
+    if regime == 'lucro_real':
+        aliq_pis = 0.0165  # 1.65%
+        aliq_cofins = 0.076  # 7.6%
+    else:  # lucro_presumido
+        aliq_pis = 0.0065  # 0.65%
+        aliq_cofins = 0.03  # 3%
+    
+    # Calcular PIS/COFINS sobre a base total (não por produto)
+    pis_credito = round(base_credito_acumulada * aliq_pis, 2) if regime == 'lucro_real' else 0
+    cofins_credito = round(base_credito_acumulada * aliq_cofins, 2) if regime == 'lucro_real' else 0
+    pis_debito = round(base_debito_acumulada * aliq_pis, 2)
+    cofins_debito = round(base_debito_acumulada * aliq_cofins, 2)
+    
+    # Atualizar totais nos dicionários
+    creditos["com_credito"]["pis"] = pis_credito
+    creditos["com_credito"]["cofins"] = cofins_credito
+    debitos["com_debito"]["pis"] = pis_debito
+    debitos["com_debito"]["cofins"] = cofins_debito
     
     pis_pagar = max(0, pis_debito - pis_credito)
     cofins_pagar = max(0, cofins_debito - cofins_credito)
