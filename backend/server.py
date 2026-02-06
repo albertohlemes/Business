@@ -4290,6 +4290,414 @@ async def exportar_resumo_convencao_pdf(
     )
 
 
+# ==================== CONVERSÕES ====================
+
+@api_router.post("/conversao/apontamentos")
+async def converter_apontamentos(
+    arquivos: List[UploadFile] = File(...),
+    cliente_id: str = Form(...),
+    competencia: str = Form(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """Converte apontamentos de clientes para formato SCI Único usando IA"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+    from openpyxl import Workbook
+    from io import BytesIO
+    import base64
+    
+    try:
+        # Salvar arquivos temporariamente
+        temp_files = []
+        for arquivo in arquivos:
+            content = await arquivo.read()
+            suffix = Path(arquivo.filename).suffix
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(content)
+                temp_files.append({
+                    "path": tmp.name,
+                    "name": arquivo.filename,
+                    "mime": arquivo.content_type or "application/octet-stream"
+                })
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"apontamentos-{uuid.uuid4()}",
+                system_message="""Você é um especialista em departamento pessoal.
+                Analise os documentos de apontamentos enviados (podem ser imagens, planilhas, emails, PDFs) e extraia as informações no formato SCI Único.
+                
+                O formato SCI Único para apontamentos contém:
+                - Nome do colaborador
+                - CPF (se disponível)
+                - Horas Extras 50%
+                - Horas Extras 100%
+                - Horas Noturnas
+                - Adicional Noturno
+                - DSR sobre HE
+                - Faltas (dias)
+                - Atrasos (horas)
+                - Comissões
+                - Gratificações
+                - Outras verbas variáveis
+                
+                Retorne APENAS um JSON válido (sem texto adicional):
+                {
+                    "registros": [
+                        {
+                            "nome": "Nome do Colaborador",
+                            "cpf": "000.000.000-00 ou null",
+                            "horas_extras_50": 10.5,
+                            "horas_extras_100": 2.0,
+                            "horas_noturnas": 0,
+                            "adicional_noturno": 0,
+                            "dsr_he": 0,
+                            "faltas": 0,
+                            "atrasos": 0,
+                            "comissoes": 0,
+                            "gratificacoes": 0,
+                            "outras_verbas": [],
+                            "observacoes": "observações do colaborador"
+                        }
+                    ],
+                    "observacoes_gerais": "observações sobre a extração"
+                }
+                
+                Se não encontrar algum valor, use 0. Extraia TODOS os colaboradores encontrados nos documentos."""
+            ).with_model("gemini", "gemini-2.0-flash")
+            
+            # Preparar arquivos para IA
+            file_contents = []
+            for tf in temp_files:
+                file_contents.append(FileContentWithMimeType(
+                    file_path=tf["path"],
+                    mime_type=tf["mime"]
+                ))
+            
+            response = await chat.send_message(UserMessage(
+                text=f"Extraia os apontamentos destes {len(temp_files)} documento(s) para o formato SCI Único. Competência: {competencia or 'não informada'}",
+                file_contents=file_contents
+            ))
+            
+            # Parse response
+            response_text = response.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            
+            dados = json.loads(response_text.strip())
+            registros = dados.get("registros", [])
+            
+            # Gerar planilha Excel
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Apontamentos SCI"
+            
+            headers = ["Nome", "CPF", "HE 50%", "HE 100%", "H.Noturnas", "Adic.Noturno", "DSR/HE", "Faltas", "Atrasos", "Comissões", "Gratificações", "Observações"]
+            for col, header in enumerate(headers, 1):
+                ws.cell(row=1, column=col, value=header)
+            
+            for row, reg in enumerate(registros, 2):
+                ws.cell(row=row, column=1, value=reg.get("nome", ""))
+                ws.cell(row=row, column=2, value=reg.get("cpf", ""))
+                ws.cell(row=row, column=3, value=reg.get("horas_extras_50", 0))
+                ws.cell(row=row, column=4, value=reg.get("horas_extras_100", 0))
+                ws.cell(row=row, column=5, value=reg.get("horas_noturnas", 0))
+                ws.cell(row=row, column=6, value=reg.get("adicional_noturno", 0))
+                ws.cell(row=row, column=7, value=reg.get("dsr_he", 0))
+                ws.cell(row=row, column=8, value=reg.get("faltas", 0))
+                ws.cell(row=row, column=9, value=reg.get("atrasos", 0))
+                ws.cell(row=row, column=10, value=reg.get("comissoes", 0))
+                ws.cell(row=row, column=11, value=reg.get("gratificacoes", 0))
+                ws.cell(row=row, column=12, value=reg.get("observacoes", ""))
+            
+            output = BytesIO()
+            wb.save(output)
+            output.seek(0)
+            excel_base64 = base64.b64encode(output.read()).decode('utf-8')
+            
+            return {
+                "success": True,
+                "registros_extraidos": len(registros),
+                "registros": registros,
+                "observacoes": dados.get("observacoes_gerais", ""),
+                "arquivo_base64": excel_base64,
+                "arquivo_nome": f"apontamentos_sci_{competencia or 'atual'}.xlsx"
+            }
+            
+        finally:
+            for tf in temp_files:
+                try:
+                    os.unlink(tf["path"])
+                except:
+                    pass
+                    
+    except Exception as e:
+        logger.error(f"Erro na conversão de apontamentos: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+
+@api_router.post("/conversao/admissional")
+async def converter_admissional(
+    arquivos: List[UploadFile] = File(...),
+    cliente_id: str = Form(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Extrai e valida dados de documentos admissionais usando IA"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+    
+    try:
+        temp_files = []
+        for arquivo in arquivos:
+            content = await arquivo.read()
+            suffix = Path(arquivo.filename).suffix
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(content)
+                temp_files.append({
+                    "path": tmp.name,
+                    "name": arquivo.filename,
+                    "mime": arquivo.content_type or "application/octet-stream"
+                })
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"admissional-{uuid.uuid4()}",
+                system_message="""Você é um especialista em departamento pessoal e admissões.
+                Analise os documentos admissionais enviados (fotos, PDFs, fichas) e extraia TODOS os dados do colaborador.
+                
+                CAMPOS OBRIGATÓRIOS para eSocial:
+                - Nome completo
+                - CPF
+                - RG (número e órgão emissor)
+                - Data de nascimento
+                - Endereço completo (rua, número, bairro, cidade, estado, CEP)
+                - Cargo
+                - Salário
+                - Data de admissão
+                - PIS/PASEP
+                - CTPS (número e série)
+                - Dados bancários (banco, agência, conta)
+                
+                CAMPOS ADICIONAIS (se encontrar):
+                - Sexo
+                - Estado civil
+                - Nacionalidade
+                - Escolaridade
+                - Email
+                - Telefone
+                - Nome da mãe
+                - Dependentes
+                - CNH
+                - Título de eleitor
+                
+                Retorne APENAS um JSON válido:
+                {
+                    "colaborador": {
+                        "nome_completo": "...",
+                        "cpf": "...",
+                        "rg": {"numero": "...", "orgao": "..."},
+                        "data_nascimento": "DD/MM/AAAA",
+                        "endereco": {"rua": "...", "numero": "...", "bairro": "...", "cidade": "...", "estado": "...", "cep": "..."},
+                        "cargo": "...",
+                        "salario": 0.00,
+                        "data_admissao": "DD/MM/AAAA",
+                        "pis_pasep": "...",
+                        "ctps": {"numero": "...", "serie": "..."},
+                        "dados_bancarios": {"banco": "...", "agencia": "...", "conta": "..."},
+                        ... demais campos ...
+                    },
+                    "campos_encontrados": ["Nome completo", "CPF", ...],
+                    "campos_faltantes": ["CTPS", "PIS/PASEP", ...],
+                    "observacoes": "observações sobre documentos ilegíveis ou dados inconsistentes"
+                }
+                
+                Se não encontrar algum campo, deixe como null."""
+            ).with_model("gemini", "gemini-2.0-flash")
+            
+            file_contents = [FileContentWithMimeType(file_path=tf["path"], mime_type=tf["mime"]) for tf in temp_files]
+            
+            response = await chat.send_message(UserMessage(
+                text=f"Extraia todos os dados admissionais destes {len(temp_files)} documento(s).",
+                file_contents=file_contents
+            ))
+            
+            response_text = response.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            
+            dados = json.loads(response_text.strip())
+            
+            return {
+                "success": True,
+                "colaborador": dados.get("colaborador", {}),
+                "colaborador_nome": dados.get("colaborador", {}).get("nome_completo", "Dados Extraídos"),
+                "campos_encontrados": dados.get("campos_encontrados", []),
+                "campos_faltantes": dados.get("campos_faltantes", []),
+                "observacoes": dados.get("observacoes", "")
+            }
+            
+        finally:
+            for tf in temp_files:
+                try:
+                    os.unlink(tf["path"])
+                except:
+                    pass
+                    
+    except Exception as e:
+        logger.error(f"Erro na conversão admissional: {str(e)}")
+        return {"success": False, "error": str(e), "campos_faltantes": ["Erro no processamento"]}
+
+
+@api_router.post("/validacao/rescisao")
+async def validar_rescisao(
+    cliente_id: str = Form(...),
+    termo_rescisao: UploadFile = File(...),
+    convencao: UploadFile = File(None),
+    extrato_fgts: UploadFile = File(None),
+    apoio: List[UploadFile] = File(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """Valida cálculos de rescisão usando IA"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+    
+    try:
+        temp_files = []
+        
+        # Termo de rescisão (obrigatório)
+        content = await termo_rescisao.read()
+        suffix = Path(termo_rescisao.filename).suffix
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(content)
+            temp_files.append({"path": tmp.name, "mime": termo_rescisao.content_type or "application/pdf", "tipo": "termo"})
+        
+        # Convenção (opcional)
+        if convencao:
+            content = await convencao.read()
+            suffix = Path(convencao.filename).suffix
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(content)
+                temp_files.append({"path": tmp.name, "mime": convencao.content_type or "application/pdf", "tipo": "convencao"})
+        
+        # Extrato FGTS (opcional)
+        if extrato_fgts:
+            content = await extrato_fgts.read()
+            suffix = Path(extrato_fgts.filename).suffix
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(content)
+                temp_files.append({"path": tmp.name, "mime": extrato_fgts.content_type or "application/pdf", "tipo": "fgts"})
+        
+        # Apoio (opcional)
+        if apoio:
+            for ap in apoio:
+                content = await ap.read()
+                suffix = Path(ap.filename).suffix
+                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                    tmp.write(content)
+                    temp_files.append({"path": tmp.name, "mime": ap.content_type or "application/octet-stream", "tipo": "apoio"})
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"rescisao-{uuid.uuid4()}",
+                system_message="""Você é um especialista em cálculos trabalhistas e rescisões contratuais.
+                Analise os documentos da rescisão e VALIDE se os cálculos estão corretos.
+                
+                ITENS QUE DEVEM SER VERIFICADOS:
+                1. Saldo de salário (dias trabalhados no mês)
+                2. Aviso prévio (indenizado ou trabalhado, proporcionalidade)
+                3. Férias vencidas + 1/3 constitucional
+                4. Férias proporcionais + 1/3 constitucional
+                5. 13º salário proporcional
+                6. Multa 40% do FGTS (se aplicável)
+                7. FGTS sobre verbas rescisórias
+                8. Descontos legais (INSS, IRRF, adiantamentos)
+                9. Valor líquido final
+                
+                TIPOS DE RESCISÃO:
+                - Sem justa causa: aviso prévio + multa 40% FGTS
+                - Pedido de demissão: sem aviso indenizado, sem multa FGTS
+                - Justa causa: só saldo de salário e férias vencidas
+                - Acordo mútuo (reforma trabalhista): 50% aviso + 20% multa FGTS
+                
+                Retorne APENAS um JSON válido:
+                {
+                    "colaborador": "Nome do colaborador",
+                    "resumo": {
+                        "data_admissao": "DD/MM/AAAA",
+                        "data_demissao": "DD/MM/AAAA",
+                        "tipo_rescisao": "Sem justa causa / Pedido de demissão / etc",
+                        "salario_base": 0.00,
+                        "valor_bruto": 0.00,
+                        "valor_descontos": 0.00,
+                        "valor_liquido": "0.000,00"
+                    },
+                    "itens_corretos": ["Saldo de salário", "Aviso prévio", ...],
+                    "itens_divergentes": ["Multa 40% FGTS", ...],
+                    "divergencias": [
+                        {
+                            "item": "Multa 40% FGTS",
+                            "valor_informado": "R$ 1.200,00",
+                            "valor_esperado": "R$ 1.450,00",
+                            "observacao": "Cálculo deveria considerar média de horas extras"
+                        }
+                    ],
+                    "observacoes": "Observações gerais sobre a rescisão"
+                }"""
+            ).with_model("gemini", "gemini-2.0-flash")
+            
+            file_contents = [FileContentWithMimeType(file_path=tf["path"], mime_type=tf["mime"]) for tf in temp_files]
+            
+            descricao_docs = []
+            for tf in temp_files:
+                descricao_docs.append(f"- {tf['tipo'].upper()}")
+            
+            response = await chat.send_message(UserMessage(
+                text=f"Analise e VALIDE esta rescisão. Documentos enviados:\n" + "\n".join(descricao_docs) + "\n\nVerifique todos os cálculos e aponte qualquer divergência.",
+                file_contents=file_contents
+            ))
+            
+            response_text = response.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            
+            dados = json.loads(response_text.strip())
+            
+            return {
+                "success": True,
+                "colaborador": dados.get("colaborador", ""),
+                "resumo": dados.get("resumo", {}),
+                "itens_corretos": dados.get("itens_corretos", []),
+                "itens_divergentes": dados.get("itens_divergentes", []),
+                "divergencias": dados.get("divergencias", []),
+                "observacoes": dados.get("observacoes", "")
+            }
+            
+        finally:
+            for tf in temp_files:
+                try:
+                    os.unlink(tf["path"])
+                except:
+                    pass
+                    
+    except Exception as e:
+        logger.error(f"Erro na validação de rescisão: {str(e)}")
+        return {"success": False, "error": str(e), "divergencias": [{"item": "Erro", "valor_informado": str(e), "valor_esperado": "-"}]}
+
+
 # ==================== DASHBOARD ====================
 
 @api_router.get("/dashboard", response_model=DashboardStats)
