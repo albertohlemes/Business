@@ -6191,32 +6191,32 @@ async def validar_rescisao_etapa2(
             verbas = termo_info.get('verbas_rescisorias', {})
             descontos = termo_info.get('descontos', {})
             totais = termo_info.get('totais', {})
+            rubricas_proventos = termo_info.get('rubricas_proventos', [])
+            rubricas_descontos = termo_info.get('rubricas_descontos', [])
+            
+            # Formatar rubricas para o prompt
+            proventos_texto = "\n".join([f"  - {r.get('codigo', '')} {r.get('descricao', '')}: {r.get('referencia', '')} = R$ {r.get('valor', 0)}" for r in rubricas_proventos]) if rubricas_proventos else "Nenhuma rubrica detalhada extraida"
+            descontos_texto = "\n".join([f"  - {r.get('codigo', '')} {r.get('descricao', '')}: {r.get('referencia', '')} = R$ {r.get('valor', 0)}" for r in rubricas_descontos]) if rubricas_descontos else "Nenhuma rubrica detalhada extraida"
             
             chat = LlmChat(
                 api_key=api_key,
                 session_id=f"rescisao-etapa2-{uuid.uuid4()}",
-                system_message=f"""Você é um analista de departamento pessoal validando uma rescisão.
+                system_message=f"""Voce e um analista de departamento pessoal validando uma rescisao.
 
-=== DADOS JÁ EXTRAÍDOS DO TERMO DE RESCISÃO (TRCT) ===
+=== DADOS EXTRAIDOS DO TERMO DE RESCISAO (TRCT) ===
 Colaborador: {termo_info.get('colaborador', 'N/A')}
-Admissão: {resumo.get('data_admissao', 'N/A')} | Demissão: {resumo.get('data_demissao', 'N/A')}
+Admissao: {resumo.get('data_admissao', 'N/A')} | Demissao: {resumo.get('data_demissao', 'N/A')}
 Tipo: {resumo.get('tipo_rescisao', 'N/A')}
-Salário Base: R$ {resumo.get('salario_base', 0)}
-Dias Trabalhados: {resumo.get('dias_trabalhados', 'N/A')}
+Salario Base: R$ {resumo.get('salario_base', 0)}
 
-VERBAS NO TERMO:
-- Saldo Salário: R$ {verbas.get('saldo_salario', 0)}
-- Aviso Prévio Indenizado: R$ {verbas.get('aviso_previo_indenizado', 0)}
-- Férias Vencidas: R$ {verbas.get('ferias_vencidas', 0)}
-- Férias Proporcionais: R$ {verbas.get('ferias_proporcionais', 0)}
-- 1/3 Férias: R$ {verbas.get('terco_ferias', 0)}
-- 13º Proporcional: R$ {verbas.get('decimo_terceiro_proporcional', 0)}
-- FGTS mês: R$ {verbas.get('fgts_mes', 0)}
-- Multa FGTS 40%: R$ {verbas.get('multa_fgts_40', 0)}
+=== RUBRICAS DE PROVENTOS DO TERMO ===
+{proventos_texto}
 
-TOTAIS NO TERMO:
-- Bruto: R$ {totais.get('total_bruto', 0)}
-- Líquido: R$ {totais.get('valor_liquido', 'N/A')}
+=== RUBRICAS DE DESCONTOS DO TERMO ===
+{descontos_texto}
+
+=== TOTAIS ===
+Bruto: R$ {totais.get('total_bruto', 0)} | Liquido: R$ {totais.get('valor_liquido', 'N/A')}
 
 === SUA TAREFA ===
 Analise o ARQUIVO DE APOIO e faca a seguinte validacao:
