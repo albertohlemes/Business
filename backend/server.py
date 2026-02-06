@@ -3884,6 +3884,18 @@ async def calcular_dissidio_retroativo(
             colab_data['total_valor_anterior'] = round(colab_data['total_valor_anterior'], 2)
             colab_data['total_valor_novo'] = round(colab_data['total_valor_novo'], 2)
         
+        # Consolidar alertas de piso salarial
+        alertas_piso_geral = []
+        for colab_data in colaboradores_consolidado.values():
+            if colab_data.get('alertas_piso'):
+                # Pegar apenas o alerta mais recente (último mês)
+                ultimo_alerta = colab_data['alertas_piso'][-1]
+                alertas_piso_geral.append({
+                    'colaborador': colab_data['nome'],
+                    'cargo': colab_data.get('cargo', ''),
+                    **ultimo_alerta
+                })
+        
         # Salvar cálculo no banco
         calculo_id = str(uuid.uuid4())
         calculo_doc = {
@@ -3896,6 +3908,7 @@ async def calcular_dissidio_retroativo(
             "resultados_por_mes": resultados_por_mes,
             "colaboradores_consolidado": list(colaboradores_consolidado.values()),
             "total_retroativo": round(total_geral_retroativo, 2),
+            "alertas_piso": alertas_piso_geral,
             "impostos_excluidos": True,  # Flag para indicar que impostos foram excluídos
             "nota_impostos": "INSS, IRRF e demais encargos serão calculados na competência de pagamento",
             "status": "calculado",
@@ -3914,6 +3927,7 @@ async def calcular_dissidio_retroativo(
             "total_retroativo": round(total_geral_retroativo, 2),
             "resultados_por_mes": resultados_por_mes,
             "colaboradores_consolidado": list(colaboradores_consolidado.values()),
+            "alertas_piso": alertas_piso_geral,
             "impostos_excluidos": True,
             "nota_impostos": "INSS, IRRF e demais encargos serão calculados na competência de pagamento",
             "message": f"Cálculo concluído: R$ {total_geral_retroativo:,.2f} de retroativo"
