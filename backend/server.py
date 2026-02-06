@@ -1478,20 +1478,11 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             cst_icms_num = cst_icms[-2:] if len(cst_icms) >= 2 else cst_icms
             tem_icms = cst_icms_num in ['00', '10', '20', '70', '90']
             
-            # SEMPRE usar o valor do XML
+            # SEMPRE usar valores do XML - NÃO CALCULAR
             v_icms = v_icms_xml
-            bc_icms = vl_item if v_icms_xml > 0 else 0.0
-            
-            # USAR ALÍQUOTA DO XML (p_icms) - NÃO CALCULAR
-            # Só calcula se não tiver no XML
-            if p_icms_xml > 0:
-                aliq_icms = p_icms_xml  # Usa direto do XML (já é inteiro tipo 12, 18, etc)
-            elif vl_item > 0 and v_icms_xml > 0:
-                # Calcula e arredonda para inteiro mais próximo
-                aliq_calc = (v_icms_xml / vl_item) * 100
-                aliq_icms = round(aliq_calc)  # Arredonda para inteiro (12, 18, etc)
-            else:
-                aliq_icms = 0.0
+            bc_icms = float(prod.get('v_bc_icms', 0) or 0) if v_icms_xml > 0 else 0.0
+            # Usar alíquota EXATAMENTE como está no XML
+            aliq_icms = p_icms_xml  # Se não tiver no XML, será 0
             
             # ==== CÁLCULO CORRETO DE PIS/COFINS ====
             # Determinar CST correto de PIS/COFINS baseado na operação
