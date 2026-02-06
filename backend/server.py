@@ -1893,17 +1893,30 @@ async def process_validacao_background(
                         campo_display = campo_ref.replace('_', ' ').title()
                         
                         if is_campo_horas:
-                            # Para campos de horas, comparar quantidade de horas, não valor em R$
-                            # Se temos referência no holerite (quantidade de horas), usar ela
+                            # Para campos de horas, comparar quantidade de horas
+                            # Buscar referência de horas no holerite
+                            ref_holerite = 0
+                            
+                            # Mapear campo do apoio para campo de referência no holerite
+                            if 'horas_100' in campo_ref or '100' in campo_ref:
+                                ref_holerite = colab.get('horas_extras_100_ref', 0)
+                                valor_holerite = colab.get('horas_extras_100', 0)
+                            elif 'horas_50' in campo_ref or '50' in campo_ref:
+                                ref_holerite = colab.get('horas_extras_50_ref', 0)
+                                valor_holerite = colab.get('horas_extras_50', 0)
+                            else:
+                                # Horas extras genérico
+                                ref_holerite = colab.get('horas_extras_50_ref', 0) or colab.get('horas_extras_100_ref', 0)
+                            
                             if ref_holerite > 0:
+                                # Temos a quantidade de horas no holerite - comparar!
                                 diff = abs(ref_holerite - valor_apoio)
-                                if diff <= 0.1:  # Tolerância de 6 minutos
+                                if diff <= 0.1:  # Tolerância de ~6 minutos
                                     colab_resultado['conferidos'].append({
                                         'campo': campo_display,
-                                        'valor_apoio': valor_apoio,
-                                        'valor_holerite': ref_holerite,
-                                        'unidade': 'horas',
-                                        'valor_monetario': valor_holerite,
+                                        'valor_apoio': f"{valor_apoio}h",
+                                        'valor_holerite': f"{ref_holerite}h",
+                                        'valor_monetario': f"R$ {valor_holerite:.2f}" if valor_holerite else None,
                                         'fonte': ref.get('arquivo', ''),
                                         'status': 'ok'
                                     })
@@ -1914,20 +1927,20 @@ async def process_validacao_background(
                                         'campo': campo_display,
                                         'valor_apoio': f"{valor_apoio}h",
                                         'valor_holerite': f"{ref_holerite}h",
-                                        'diferenca': round(diff, 2),
+                                        'diferenca': f"{diff:.2f}h",
                                         'arquivo': ref.get('arquivo', ''),
                                         'severidade': 'alta' if diff > 2 else 'media',
                                         'texto_original': ref.get('texto_original', '')
                                     })
                                     total_divergencias += 1
                             elif valor_holerite > 0:
-                                # Temos valor em R$ no holerite, mas horas no apoio
-                                # Marcar como conferido (não podemos comparar diretamente)
+                                # Temos valor em R$ mas não temos referência de horas
+                                # Marcar como "verificar" manualmente
                                 colab_resultado['conferidos'].append({
                                     'campo': campo_display,
                                     'valor_apoio': f"{valor_apoio}h",
                                     'valor_holerite': f"R$ {valor_holerite:.2f}",
-                                    'nota': 'Horas informadas no apoio, valor em R$ no holerite',
+                                    'nota': 'Horas informadas no apoio, apenas valor R$ disponível no holerite',
                                     'fonte': ref.get('arquivo', ''),
                                     'status': 'verificar'
                                 })
