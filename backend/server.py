@@ -4854,7 +4854,7 @@ async def converter_apontamentos(
     competencia: str = Form(None),
     current_user: dict = Depends(get_current_user)
 ):
-    """Converte apontamentos de clientes para formato SCI Único usando IA"""
+    """Converte apontamentos de clientes para formato SCI Único usando IA (versão legada)"""
     from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
     from openpyxl import Workbook
     from io import BytesIO
@@ -4992,6 +4992,226 @@ async def converter_apontamentos(
                     
     except Exception as e:
         logger.error(f"Erro na conversão de apontamentos: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+
+@api_router.post("/conversao/apontamentos-sci")
+async def converter_apontamentos_com_template(
+    apontamentos: List[UploadFile] = File(...),
+    template_sci: UploadFile = File(...),
+    cliente_id: str = Form(...),
+    competencia: str = Form(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Converte apontamentos usando a planilha modelo do SCI como referência.
+    A IA analisa a estrutura do template e preenche com os dados extraídos dos apontamentos.
+    """
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+    from openpyxl import load_workbook, Workbook
+    from openpyxl.utils import get_column_letter
+    from io import BytesIO
+    import base64
+    
+    try:
+        temp_files = []
+        template_path = None
+        
+        # Salvar template SCI
+        template_content = await template_sci.read()
+        template_suffix = Path(template_sci.filename).suffix
+        with tempfile.NamedTemporaryFile(delete=False, suffix=template_suffix) as tmp:
+            tmp.write(template_content)
+            template_path = tmp.name
+        
+        # Salvar arquivos de apontamentos
+        for arquivo in apontamentos:
+            content = await arquivo.read()
+            suffix = Path(arquivo.filename).suffix
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(content)
+                temp_files.append({
+                    "path": tmp.name,
+                    "name": arquivo.filename,
+                    "mime": arquivo.content_type or "application/octet-stream"
+                })
+        
+        try:
+            # Analisar estrutura do template
+            try:
+                wb_template = load_workbook(template_path)
+                ws_template = wb_template.active
+                
+                # Extrair cabeçalhos e estrutura
+                headers = []
+                for col in range(1, ws_template.max_column + 1):
+                    header_value = ws_template.cell(row=1, column=col).value
+                    if header_value:
+                        headers.append({"coluna": col, "nome": str(header_value)})
+                
+                # Pegar algumas linhas de exemplo se existirem
+                sample_rows = []
+                for row in range(2, min(5, ws_template.max_row + 1)):
+                    row_data = {}
+                    for h in headers:
+                        cell_value = ws_template.cell(row=row, column=h["coluna"]).value
+                        row_data[h["nome"]] = cell_value
+                    if any(row_data.values()):
+                        sample_rows.append(row_data)
+                
+                template_info = {
+                    "headers": headers,
+                    "header_names": [h["nome"] for h in headers],
+                    "sample_rows": sample_rows,
+                    "num_colunas": len(headers)
+                }
+            except Exception as e:
+                template_info = {"error": str(e), "headers": [], "header_names": []}
+            
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"apontamentos-sci-{uuid.uuid4()}",
+                system_message=f"""Você é um especialista em departamento pessoal e folha de pagamento.
+                
+                O usuário enviou arquivos de apontamentos (imagens, prints, planilhas, PDFs, etc) e uma PLANILHA MODELO do sistema SCI.
+                
+                ESTRUTURA DO TEMPLATE SCI:
+                Colunas: {json.dumps(template_info.get('header_names', []), ensure_ascii=False)}
+                Exemplo de dados: {json.dumps(template_info.get('sample_rows', []), ensure_ascii=False)}
+                
+                SUA TAREFA:
+                1. Analise os arquivos de apontamentos enviados
+                2. Identifique COLABORADORES (nome, matrícula, código)
+                3. Identifique EVENTOS (horas extras, faltas, atrasos, comissões, etc)
+                4. Identifique REFERÊNCIAS (quantidade de horas, dias, etc)
+                5. Identifique VALORES (R$)
+                6. Monte os dados NO FORMATO DO TEMPLATE acima
+                
+                IMPORTANTE:
+                - Use EXATAMENTE os nomes das colunas do template
+                - Cada linha deve representar um lançamento (colaborador + evento + referência/valor)
+                - Se um colaborador tem múltiplos eventos, crie múltiplas linhas
+                - Se não encontrar um valor, deixe null
+                
+                Retorne APENAS um JSON válido:
+                {{
+                    "registros": [
+                        {{
+                            {', '.join([f'"{h}": "valor_extraido_ou_null"' for h in template_info.get('header_names', ['colaborador', 'evento', 'referencia', 'valor'])])}
+                        }}
+                    ],
+                    "colaboradores_identificados": 0,
+                    "eventos_identificados": 0,
+                    "mapeamento_colunas": {{
+                        "coluna_colaborador": "nome_da_coluna_identificada",
+                        "coluna_evento": "nome_da_coluna_identificada",
+                        "coluna_referencia": "nome_da_coluna_identificada",
+                        "coluna_valor": "nome_da_coluna_identificada"
+                    }},
+                    "observacoes": "observações sobre a extração"
+                }}"""
+            ).with_model("gemini", "gemini-2.0-flash")
+            
+            # Preparar todos os arquivos para análise
+            file_contents = []
+            
+            # Adicionar template
+            file_contents.append(FileContentWithMimeType(
+                file_path=template_path,
+                mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ))
+            
+            # Adicionar apontamentos
+            for tf in temp_files:
+                file_contents.append(FileContentWithMimeType(
+                    file_path=tf["path"],
+                    mime_type=tf["mime"]
+                ))
+            
+            response = await chat.send_message(UserMessage(
+                text=f"""Analise os arquivos enviados:
+                
+1. PRIMEIRO ARQUIVO: Planilha modelo do SCI (define a estrutura de saída)
+2. DEMAIS ARQUIVOS ({len(temp_files)}): Apontamentos do cliente para extrair dados
+
+Extraia os dados dos apontamentos e formate conforme o template SCI.
+Competência: {competencia or 'não informada'}
+""",
+                file_contents=file_contents
+            ))
+            
+            # Parse response
+            response_text = response.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            
+            dados = json.loads(response_text.strip())
+            registros = dados.get("registros", [])
+            
+            # Gerar planilha preenchida baseada no template
+            wb_output = Workbook()
+            ws_output = wb_output.active
+            ws_output.title = "Apontamentos Preenchidos"
+            
+            # Usar cabeçalhos do template
+            header_names = template_info.get("header_names", [])
+            if not header_names and registros:
+                header_names = list(registros[0].keys())
+            
+            # Escrever cabeçalhos
+            for col, header in enumerate(header_names, 1):
+                ws_output.cell(row=1, column=col, value=header)
+            
+            # Escrever dados
+            for row_idx, reg in enumerate(registros, 2):
+                for col_idx, header in enumerate(header_names, 1):
+                    value = reg.get(header)
+                    ws_output.cell(row=row_idx, column=col_idx, value=value)
+            
+            # Salvar como bytes
+            output = BytesIO()
+            wb_output.save(output)
+            output.seek(0)
+            excel_base64 = base64.b64encode(output.read()).decode('utf-8')
+            
+            # Preparar preview
+            preview_dados = registros[:20] if registros else []
+            
+            return {
+                "success": True,
+                "registros_extraidos": len(registros),
+                "colaboradores_identificados": dados.get("colaboradores_identificados", len(set(r.get(header_names[0] if header_names else 'colaborador', '') for r in registros if r))),
+                "eventos_identificados": dados.get("eventos_identificados", 0),
+                "mapeamento_colunas": dados.get("mapeamento_colunas", {}),
+                "observacoes": dados.get("observacoes", ""),
+                "preview_dados": preview_dados,
+                "arquivo_base64": excel_base64,
+                "arquivo_nome": f"apontamentos_sci_{competencia or 'atual'}.xlsx"
+            }
+            
+        finally:
+            # Limpar arquivos temporários
+            if template_path:
+                try:
+                    os.unlink(template_path)
+                except:
+                    pass
+            for tf in temp_files:
+                try:
+                    os.unlink(tf["path"])
+                except:
+                    pass
+                    
+    except json.JSONDecodeError as e:
+        logger.error(f"Erro ao parsear resposta da IA: {str(e)}")
+        return {"success": False, "error": "Erro ao processar resposta da IA. Tente novamente."}
+    except Exception as e:
+        logger.error(f"Erro na conversão de apontamentos SCI: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
