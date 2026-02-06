@@ -3636,7 +3636,7 @@ async def analisar_convencao(
             )
             
             response = await chat.send_message(UserMessage(
-                text="Analise esta convenção coletiva e extraia TODOS os dados para cálculo de dissídio retroativo, incluindo quais verbas devem ou não receber reajuste.",
+                text="Analise esta convenção coletiva e extraia TODOS os dados para cálculo de dissídio retroativo, incluindo quais verbas devem ou não receber reajuste. Busque especialmente por tabelas de proporcionalidade para funcionários admitidos durante o período retroativo.",
                 file_contents=[file_content]
             ))
             
@@ -3650,6 +3650,27 @@ async def analisar_convencao(
                     response_text = response_text[:-3]
                 
                 dados = json.loads(response_text.strip())
+                
+                # Se não encontrou tabela de proporcionalidade, gerar uma padrão
+                if not dados.get('tabela_proporcionalidade'):
+                    meses_retro = dados.get('meses_retroativos', 12)
+                    if meses_retro and meses_retro > 0:
+                        tabela_padrao = []
+                        for mes in range(1, min(meses_retro + 1, 13)):
+                            avos = meses_retro - mes + 1
+                            percentual = round((avos / meses_retro) * 100, 2)
+                            nomes_meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                                          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+                            nome_mes = nomes_meses[mes - 1] if mes <= 12 else f'Mês {mes}'
+                            tabela_padrao.append({
+                                "mes_admissao": mes,
+                                "percentual": percentual,
+                                "descricao": f"{nome_mes} - {avos}/{meses_retro}",
+                                "avos": avos
+                            })
+                        dados['tabela_proporcionalidade'] = tabela_padrao
+                        dados['proporcionalidade_extraida_da_convencao'] = False
+                    
             except json.JSONDecodeError:
                 dados = {"raw_response": response, "parsing_error": True}
             
