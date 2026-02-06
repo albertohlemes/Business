@@ -809,6 +809,18 @@ const Documents = ({ user, onLogout }) => {
             </div>
             
             <div className="flex items-center gap-2">
+              {/* Botão de Exportar */}
+              {sortedAndFilteredDocuments.length > 0 && (
+                <button
+                  data-testid="btn-exportar-notas"
+                  onClick={exportToExcel}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Exportar ({sortedAndFilteredDocuments.length})
+                </button>
+              )}
+              
               {ctxCompany && selectedCompetencia && user.role === 'admin' && (
                 <button
                   data-testid="btn-apagar-lote"
