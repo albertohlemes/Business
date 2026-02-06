@@ -96,6 +96,8 @@ class ClienteCreate(BaseModel):
     responsavel_dp: Optional[str] = None
     contador_responsavel: Optional[str] = None
     observacoes: Optional[str] = None
+    # Convenção Coletiva
+    convencao_coletiva: Optional[Dict[str, Any]] = None
 
 class ClienteResponse(BaseModel):
     id: str
