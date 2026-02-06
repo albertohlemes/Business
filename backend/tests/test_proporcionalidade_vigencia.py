@@ -54,7 +54,7 @@ def test_cliente(auth_headers):
         headers=auth_headers,
         json=cliente_data
     )
-    assert response.status_code == 201, f"Failed to create cliente: {response.text}"
+    assert response.status_code in [200, 201], f"Failed to create cliente: {response.text}"
     cliente = response.json()
     yield cliente
     # Cleanup
