@@ -4374,25 +4374,26 @@ async def get_dashboard_stats(
     nfce = [d for d in documents if d.get('modelo') == 'nfce']
     nfse = [d for d in documents if d.get('modelo') == 'nfse']
     
-    # Valores totais - SOMAR PRODUTOS (igual Apuração) para consistência
+    # Valores totais - SOMAR PRODUTOS pelo CFOP para consistência
     # Isso garante que Dashboard e Apuração mostrem os mesmos valores
     total_entradas = 0
     total_vendas = 0
     total_cupons = 0
     
-    # Somar valores dos produtos das entradas (apenas CFOPs de entrada 1,2,3)
-    for doc in nfe_entrada:
-        for prod in doc.get('produtos', []):
-            cfop = str(prod.get('cfop', '') or '')
-            if cfop and cfop[0] in ['1', '2', '3']:
-                total_entradas += float(prod.get('valor_total', 0) or 0)
+    # Somar valores dos produtos - USAR CFOP para determinar entrada/saída
+    # Independente do tipo do documento
+    all_docs = nfe_entrada + nfe_saida
     
-    # Somar valores dos produtos das saídas (apenas CFOPs de saída 5,6,7)
-    for doc in nfe_saida:
+    for doc in all_docs:
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', '') or '')
-            if cfop and cfop[0] in ['5', '6', '7']:
-                total_vendas += float(prod.get('valor_total', 0) or 0)
+            valor = float(prod.get('valor_total', 0) or 0)
+            if cfop:
+                primeiro = cfop[0]
+                if primeiro in ['1', '2', '3']:
+                    total_entradas += valor
+                elif primeiro in ['5', '6', '7']:
+                    total_vendas += valor
     
     # Cupons (NFC-e) - somar produtos também
     for doc in nfce:
