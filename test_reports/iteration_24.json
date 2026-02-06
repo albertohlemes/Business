@@ -1,0 +1,76 @@
+{
+  "summary": "Tested cancelled notes (notas canceladas) feature - 8/8 tests passed after fixing missing filter in /api/xml/documents endpoint",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Authentication working correctly",
+    "Test company COMERCIAL RS LTDA exists (ID: df1be49f-8cfd-4460-bc28-c56cbd900800)",
+    "Upload of cancelled XML (cStat=101) saves with cancelada=true and all cancellation fields",
+    "Cancellation fields correctly populated: cStat_cancelamento, xMotivo_cancelamento, dhRecbto_cancelamento, nProt_cancelamento",
+    "Dashboard stats endpoint (/api/dashboard/stats) excludes cancelled notes from totals",
+    "Documents endpoint (/api/xml/documents) now filters cancelled notes (after fix)",
+    "XML parsing correctly detects cStat=101 as cancelled",
+    "XML parsing correctly detects cStat=151 (extemporaneous cancellation) as cancelled"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_cancelled_notes.py",
+    "/app/test_reports/pytest/pytest_cancelled_notes.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "Fixed missing filter in /api/xml/documents endpoint - cancelled notes were appearing in the list",
+    "The fix adds: query['$or'] = [{'cancelada': {'$exists': False}}, {'cancelada': False}]",
+    "All other endpoints (dashboard/stats, apuracao, etc.) already had the correct filter"
+  ],
+
+  "updated_files": [
+    "/app/backend/server.py (line ~3933 - added cancelled notes filter to /api/xml/documents)",
+    "/app/backend/tests/test_cancelled_notes.py (new test file)"
+  ],
+
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "N/A (backend only testing)"
+  },
+
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+
+  "seed_data_creation": "Created 2 test cancelled notes: cStat=101 (chave: 35260120352600000126550010003735591337008362) and cStat=151 (chave: 35260120352600000126550010003735591337008363)",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Cancelled notes feature fully tested and working. Two test cancelled notes exist in DB for company COMERCIAL RS LTDA (df1be49f-8cfd-4460-bc28-c56cbd900800). The /api/xml/documents endpoint was fixed to filter cancelled notes. Test XML file at /tmp/nfe_cancelada_teste.xml can be used for future testing.",
+
+  "features_verified": {
+    "upload_cancelled_xml_cstat_101": "PASSED - Saves with cancelada=true and all cancellation fields",
+    "upload_cancelled_xml_cstat_151": "PASSED - Extemporaneous cancellation also detected",
+    "cancellation_fields_saved": "PASSED - cStat_cancelamento, xMotivo_cancelamento, dhRecbto_cancelamento, nProt_cancelamento all populated",
+    "dashboard_stats_excludes_cancelled": "PASSED - Filter already existed at line 4585",
+    "documents_endpoint_filters_cancelled": "PASSED - Fixed by adding filter at line ~3933"
+  },
+
+  "bug_fixed": {
+    "endpoint": "/api/xml/documents",
+    "issue": "Cancelled notes were appearing in the documents list",
+    "fix": "Added filter: query['$or'] = [{'cancelada': {'$exists': False}}, {'cancelada': False}]",
+    "line": "~3933 in server.py"
+  }
+}
