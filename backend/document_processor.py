@@ -509,57 +509,93 @@ class DocumentProcessor:
                     colab[campo] = valor
         
         # ===== EXTRAÇÃO ESPECIAL PARA HORAS EXTRAS COM REFERÊNCIA =====
-        # Padrão no SCI: "VALOR\n REF\n Horas extras 50%" ou "VALOR\n REF\n Horas extras 100%"
-        # Onde REF é a quantidade de horas (ex: 7,44)
+        # Formato SCI tabela: CÓDIGO | DESCRIÇÃO | REFERÊNCIA | PROVENTOS | DESCONTOS
+        # Exemplo: "613 Horas extras 100% 07:44 148,49"
+        # A REFERÊNCIA vem no formato HH:MM ou H,HH
         
         # Log para debug
         if 'EVERALDO' in block.upper()[:200]:
             logger.info(f"Bloco EVERALDO encontrado, buscando HE100...")
         
+        # Padrão para tabela SCI: código + descrição + referência (HH:MM ou decimal) + valor
         # Horas extras 50%
-        he50_match = re.search(r'([\d.,]+)\s*\n\s*([\d.,]+)\s*\n\s*Horas\s*extras\s*50', block, re.IGNORECASE)
-        if he50_match:
-            valor = parse_valor(he50_match.group(1))
-            ref = parse_valor(he50_match.group(2))
-            if 0.01 < valor < 50000:
-                colab['horas_extras_50'] = valor
-                colab['horas_extras_50_ref'] = ref  # Quantidade de horas
-                logger.info(f"HE50 extraído: valor={valor}, ref={ref}")
-        else:
-            # Fallback: só valor
+        he50_patterns = [
+            # Padrão 1: "código Horas extras 50% HH:MM valor"
+            r'(\d+)\s*Horas\s*extras\s*50[%]?\s+(\d{1,2}[:\.,]\d{2})\s+([\d.,]+)',
+            # Padrão 2: "Horas extras 50%\n referência\n valor"  
+            r'Horas\s*extras\s*50[%]?\s*\n?\s*(\d{1,2}[:\.,]\d{2})\s*\n?\s*([\d.,]+)',
+        ]
+        
+        for pattern in he50_patterns:
+            he50_match = re.search(pattern, block, re.IGNORECASE)
+            if he50_match:
+                groups = he50_match.groups()
+                if len(groups) == 3:  # código, ref, valor
+                    ref_str = groups[1]
+                    valor = parse_valor(groups[2])
+                else:  # ref, valor
+                    ref_str = groups[0]
+                    valor = parse_valor(groups[1])
+                
+                # Converter referência HH:MM para decimal
+                if ':' in ref_str:
+                    parts = ref_str.split(':')
+                    ref = float(parts[0]) + float(parts[1]) / 60
+                else:
+                    ref = parse_valor(ref_str)
+                
+                if 0.01 < valor < 50000:
+                    colab['horas_extras_50'] = valor
+                    colab['horas_extras_50_ref'] = round(ref, 2)
+                    logger.info(f"HE50 extraído: valor={valor}, ref={ref}")
+                break
+        
+        # Horas extras 100%
+        he100_patterns = [
+            # Padrão 1: "código Horas extras 100% HH:MM valor"
+            r'(\d+)\s*Horas\s*extras\s*100[%]?\s+(\d{1,2}[:\.,]\d{2})\s+([\d.,]+)',
+            # Padrão 2: "Horas extras 100%\n referência\n valor"
+            r'Horas\s*extras\s*100[%]?\s*\n?\s*(\d{1,2}[:\.,]\d{2})\s*\n?\s*([\d.,]+)',
+        ]
+        
+        for pattern in he100_patterns:
+            he100_match = re.search(pattern, block, re.IGNORECASE)
+            if he100_match:
+                groups = he100_match.groups()
+                if len(groups) == 3:  # código, ref, valor
+                    ref_str = groups[1]
+                    valor = parse_valor(groups[2])
+                else:  # ref, valor
+                    ref_str = groups[0]
+                    valor = parse_valor(groups[1])
+                
+                # Converter referência HH:MM para decimal
+                if ':' in ref_str:
+                    parts = ref_str.split(':')
+                    ref = float(parts[0]) + float(parts[1]) / 60
+                else:
+                    ref = parse_valor(ref_str)
+                
+                if 0.01 < valor < 50000:
+                    colab['horas_extras_100'] = valor
+                    colab['horas_extras_100_ref'] = round(ref, 2)
+                    logger.info(f"HE100 extraído: valor={valor}, ref={ref}")
+                break
+        
+        # Fallback: se não encontrou com referência, pegar só valor
+        if not colab.get('horas_extras_50'):
             he50_simple = re.search(r'([\d.,]+)\s*\n\s*Horas\s*extras\s*50', block, re.IGNORECASE)
             if he50_simple:
                 valor = parse_valor(he50_simple.group(1))
                 if 0.01 < valor < 50000:
                     colab['horas_extras_50'] = valor
         
-        # Horas extras 100%
-        he100_match = re.search(r'([\d.,]+)\s*\n\s*([\d.,]+)\s*\n\s*Horas\s*extras\s*100', block, re.IGNORECASE)
-        if he100_match:
-            valor = parse_valor(he100_match.group(1))
-            ref = parse_valor(he100_match.group(2))
-            if 0.01 < valor < 50000:
-                colab['horas_extras_100'] = valor
-                colab['horas_extras_100_ref'] = ref  # Quantidade de horas
-                logger.info(f"HE100 extraído: valor={valor}, ref={ref}")
-        else:
-            # Fallback: só valor
+        if not colab.get('horas_extras_100'):
             he100_simple = re.search(r'([\d.,]+)\s*\n\s*Horas\s*extras\s*100', block, re.IGNORECASE)
             if he100_simple:
                 valor = parse_valor(he100_simple.group(1))
                 if 0.01 < valor < 50000:
                     colab['horas_extras_100'] = valor
-                    logger.info(f"HE100 fallback: valor={valor}")
-            else:
-                # Tentar formato alternativo: "Horas extras 100%\nREF\nVALOR"
-                he100_alt = re.search(r'Horas\s*extras\s*100[%]?\s*\n\s*([\d.,]+)\s*\n\s*([\d.,]+)', block, re.IGNORECASE)
-                if he100_alt:
-                    ref = parse_valor(he100_alt.group(1))
-                    valor = parse_valor(he100_alt.group(2))
-                    if 0.01 < valor < 50000:
-                        colab['horas_extras_100'] = valor
-                        colab['horas_extras_100_ref'] = ref
-                        logger.info(f"HE100 alt format: valor={valor}, ref={ref}")
         
         # Extrair Valor FGTS
         valor_fgts_match = re.search(r'Valor\s+FGTS\s*\n?\s*([\d.,]+)', block, re.IGNORECASE)
