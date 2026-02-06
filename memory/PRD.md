@@ -3,6 +3,9 @@
 **Última atualização**: 2026-02-06
 
 ## Changelog Recente
+- **2026-02-06**: ✅ Implementada tabela de proporcionalidade por data de admissão (auto-calculada ou extraída da convenção)
+- **2026-02-06**: ✅ Implementado cálculo retroativo proporcional baseado na data de admissão do colaborador
+- **2026-02-06**: ✅ Adicionada seção de vigência da convenção em destaque no Step 2 (Revisar Dados)
 - **2026-02-06**: ✅ Implementada validação de piso salarial no cálculo de dissídio retroativo
 - **2026-02-06**: ✅ Adicionado botão de exportação de PDF do resumo da convenção na lista de cálculos anteriores
 - **2026-02-06**: ✅ Novo endpoint `GET /api/calculos-dissidio/{id}/exportar-convencao-pdf`
