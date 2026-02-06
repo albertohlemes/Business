@@ -665,6 +665,19 @@ const Dissidio = () => {
             </CardContent>
           </Card>
 
+          {/* Nota sobre impostos */}
+          {calculoResult.impostos_excluidos && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+              <AlertTriangle className="text-amber-600 flex-shrink-0 mt-0.5" size={20} />
+              <div>
+                <p className="text-sm font-medium text-amber-800">Impostos não incluídos no retroativo</p>
+                <p className="text-xs text-amber-600 mt-1">
+                  {calculoResult.nota_impostos || 'INSS, IRRF e demais encargos serão calculados na competência de pagamento do retroativo.'}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Resumo por Colaborador */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -684,7 +697,9 @@ const Dissidio = () => {
                     <tr className="border-b bg-slate-50">
                       <th className="text-left p-3">Colaborador</th>
                       <th className="text-left p-3">CPF</th>
-                      <th className="text-right p-3">Total Retroativo</th>
+                      <th className="text-right p-3 text-slate-500">Valor Anterior</th>
+                      <th className="text-right p-3 text-indigo-600">Valor Novo</th>
+                      <th className="text-right p-3 text-emerald-600">Retroativo</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -692,6 +707,12 @@ const Dissidio = () => {
                       <tr key={i} className="border-b hover:bg-slate-50">
                         <td className="p-3 font-medium">{colab.nome}</td>
                         <td className="p-3 text-slate-500">{colab.cpf || '-'}</td>
+                        <td className="p-3 text-right font-mono text-slate-500">
+                          R$ {(colab.total_valor_anterior || 0)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="p-3 text-right font-mono text-indigo-600">
+                          R$ {(colab.total_valor_novo || 0)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </td>
                         <td className="p-3 text-right font-mono font-medium text-emerald-600">
                           R$ {colab.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </td>
@@ -701,6 +722,8 @@ const Dissidio = () => {
                   <tfoot>
                     <tr className="bg-slate-100 font-bold">
                       <td className="p-3" colSpan={2}>TOTAL</td>
+                      <td className="p-3 text-right font-mono text-slate-600">-</td>
+                      <td className="p-3 text-right font-mono text-indigo-700">-</td>
                       <td className="p-3 text-right font-mono text-emerald-700">
                         R$ {calculoResult.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </td>
@@ -746,9 +769,10 @@ const Dissidio = () => {
                           <tr className="border-b text-slate-500">
                             <th className="text-left p-2">Colaborador</th>
                             <th className="text-left p-2">Verba</th>
-                            <th className="text-right p-2">Valor Original</th>
+                            <th className="text-right p-2">Era (R$)</th>
                             <th className="text-center p-2">%</th>
-                            <th className="text-right p-2">Diferença</th>
+                            <th className="text-right p-2">Ficou (R$)</th>
+                            <th className="text-right p-2 text-emerald-600">Diferença</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -756,19 +780,25 @@ const Dissidio = () => {
                             colab.verbas?.map((verba, verbaIdx) => (
                               <tr key={`${colabIdx}-${verbaIdx}`} className="border-b hover:bg-slate-50">
                                 {verbaIdx === 0 && (
-                                  <td className="p-2 font-medium" rowSpan={colab.verbas.length}>
-                                    {colab.nome}
+                                  <td className="p-2 font-medium align-top" rowSpan={colab.verbas.length}>
+                                    <div>{colab.nome}</div>
+                                    <div className="text-xs text-slate-400 mt-1">
+                                      Total: <span className="text-emerald-600 font-medium">R$ {colab.retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                    </div>
                                   </td>
                                 )}
                                 <td className="p-2 text-slate-600">{verba.verba?.replace(/_/g, ' ')}</td>
-                                <td className="p-2 text-right font-mono">
-                                  R$ {verba.valor_original?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                <td className="p-2 text-right font-mono text-slate-500">
+                                  {(verba.valor_anterior || verba.valor_original)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </td>
                                 <td className="p-2 text-center text-indigo-600 font-medium">
-                                  {calculoResult.percentual_reajuste}%
+                                  +{calculoResult.percentual_reajuste}%
+                                </td>
+                                <td className="p-2 text-right font-mono text-indigo-600">
+                                  {verba.valor_novo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '-'}
                                 </td>
                                 <td className="p-2 text-right font-mono text-emerald-600 font-medium">
-                                  R$ {verba.diferenca?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  {verba.diferenca?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </td>
                               </tr>
                             ))
@@ -776,7 +806,7 @@ const Dissidio = () => {
                         </tbody>
                         <tfoot>
                           <tr className="bg-indigo-50 font-bold">
-                            <td className="p-2" colSpan={4}>Total do Mês {mes.competencia}</td>
+                            <td className="p-2" colSpan={5}>Total do Mês {mes.competencia}</td>
                             <td className="p-2 text-right font-mono text-indigo-700">
                               R$ {mes.total_retroativo_mes?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </td>
@@ -823,35 +853,51 @@ const Dissidio = () => {
                   </div>
                   
                   {expandedCalculo === `colab-${colabIdx}` && (
-                    <div className="p-4 bg-white">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b text-slate-500">
-                            <th className="text-left p-2">Competência</th>
-                            <th className="text-right p-2">Retroativo</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {colab.meses?.map((mes, mesIdx) => (
-                            <tr key={mesIdx} className="border-b hover:bg-slate-50">
-                              <td className="p-2">
-                                <Badge variant="outline">{mes.competencia}</Badge>
-                              </td>
-                              <td className="p-2 text-right font-mono text-emerald-600">
-                                R$ {mes.retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                        <tfoot>
-                          <tr className="bg-slate-100 font-bold">
-                            <td className="p-2">Total</td>
-                            <td className="p-2 text-right font-mono text-emerald-700">
-                              R$ {colab.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                        </tfoot>
-                      </table>
+                    <div className="p-4 bg-white space-y-3">
+                      {colab.meses?.map((mes, mesIdx) => (
+                        <div key={mesIdx} className="bg-slate-50 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <Badge variant="outline" className="text-indigo-600">{mes.competencia}</Badge>
+                            <span className="text-sm font-mono font-medium text-emerald-600">
+                              Retroativo: R$ {mes.retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          {mes.verbas && mes.verbas.length > 0 && (
+                            <table className="w-full text-xs mt-2">
+                              <thead>
+                                <tr className="text-slate-500">
+                                  <th className="text-left p-1">Verba</th>
+                                  <th className="text-right p-1">Era</th>
+                                  <th className="text-right p-1">Ficou</th>
+                                  <th className="text-right p-1">Diferença</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {mes.verbas.map((verba, verbaIdx) => (
+                                  <tr key={verbaIdx} className="border-t border-slate-200">
+                                    <td className="p-1 text-slate-600">{verba.verba?.replace(/_/g, ' ')}</td>
+                                    <td className="p-1 text-right font-mono text-slate-500">
+                                      {(verba.valor_anterior || verba.valor_original)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </td>
+                                    <td className="p-1 text-right font-mono text-indigo-600">
+                                      {verba.valor_novo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '-'}
+                                    </td>
+                                    <td className="p-1 text-right font-mono text-emerald-600 font-medium">
+                                      {verba.diferenca?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      ))}
+                      <div className="border-t pt-2 flex justify-between items-center">
+                        <span className="font-medium text-sm">Total do Colaborador</span>
+                        <span className="font-mono font-bold text-emerald-700">
+                          R$ {colab.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
