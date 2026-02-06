@@ -272,6 +272,11 @@ const UploadXML = ({ user, onLogout }) => {
             <div className="flex justify-between items-center mb-1">
               <span className="font-semibold text-gray-900">
                 Processando arquivos XML
+                {progress.totalBatches > 1 && (
+                  <span className="ml-2 text-sm font-normal text-gray-600">
+                    (Lote {progress.currentBatch} de {progress.totalBatches})
+                  </span>
+                )}
               </span>
               <span className="text-sm font-bold text-red-600">
                 {progress.percent}%
@@ -303,6 +308,11 @@ const UploadXML = ({ user, onLogout }) => {
         <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
           <span>
             {progress.processedFiles} de {progress.totalFiles} arquivos processados
+            {progress.totalBatches > 1 && (
+              <span className="ml-2 text-orange-600 font-medium">
+                • Upload em lotes de {BATCH_SIZE}
+              </span>
+            )}
           </span>
           {progress.currentFile && (
             <span className="truncate max-w-xs">
