@@ -3473,6 +3473,61 @@ async def upload_xml_with_progress(
             # Atualizar progresso: validando
             progress["current_step"] = f"Validando {file.filename}..."
             
+            # ==== VERIFICAR SE É XML DE CANCELAMENTO ====
+            cancelamento_data = parse_xml_evento_cancelamento(xml_str)
+            if cancelamento_data:
+                # É um evento de cancelamento - marcar a nota original como cancelada
+                chave_cancelada = cancelamento_data.get('chave_nfe', '')
+                if chave_cancelada:
+                    # Buscar e atualizar a nota original
+                    update_result = await db.xml_documents.update_one(
+                        {"chave_nfe": chave_cancelada},
+                        {
+                            "$set": {
+                                "cancelada": True,
+                                "data_cancelamento": cancelamento_data.get('data_cancelamento', ''),
+                                "justificativa_cancelamento": cancelamento_data.get('justificativa', ''),
+                                "protocolo_cancelamento": cancelamento_data.get('protocolo', '')
+                            }
+                        }
+                    )
+                    
+                    if update_result.modified_count > 0:
+                        results.append({
+                            "filename": file.filename,
+                            "tipo": "cancelamento",
+                            "chave": chave_cancelada,
+                            "mensagem": "Nota marcada como cancelada"
+                        })
+                    else:
+                        # Nota não encontrada - salvar o evento para processar depois
+                        # (caso a nota seja importada após o cancelamento)
+                        await db.eventos_cancelamento.update_one(
+                            {"chave_nfe": chave_cancelada},
+                            {
+                                "$set": {
+                                    "chave_nfe": chave_cancelada,
+                                    "company_id": company_id,
+                                    "data_cancelamento": cancelamento_data.get('data_cancelamento', ''),
+                                    "justificativa": cancelamento_data.get('justificativa', ''),
+                                    "protocolo": cancelamento_data.get('protocolo', ''),
+                                    "xml_filename": file.filename,
+                                    "processado": False,
+                                    "created_at": datetime.utcnow().isoformat()
+                                }
+                            },
+                            upsert=True
+                        )
+                        results.append({
+                            "filename": file.filename,
+                            "tipo": "cancelamento",
+                            "chave": chave_cancelada,
+                            "mensagem": "Evento de cancelamento registrado (nota ainda não importada)"
+                        })
+                    
+                    # Pular para o próximo arquivo
+                    continue
+            
             xml_type = detect_xml_type(xml_str)
             
             if xml_type == 'nfse':
