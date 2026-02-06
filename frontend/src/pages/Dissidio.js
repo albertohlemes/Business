@@ -159,6 +159,24 @@ const Dissidio = () => {
     }
   };
 
+  // Calcular meses retroativos baseado na data base e mês que recebeu
+  const calcularMesesRetroativos = (dataBase, mesRecebimento) => {
+    if (!dataBase || !mesRecebimento) return null;
+    
+    try {
+      const [mesBase, anoBase] = dataBase.split('/').map(Number);
+      const [mesReceb, anoReceb] = mesRecebimento.split('/').map(Number);
+      
+      if (!mesBase || !anoBase || !mesReceb || !anoReceb) return null;
+      
+      // Calcular diferença em meses
+      const meses = (anoReceb - anoBase) * 12 + (mesReceb - mesBase);
+      return Math.max(0, meses);
+    } catch {
+      return null;
+    }
+  };
+
   // Reset
   const resetFluxo = () => {
     setStep(1);
