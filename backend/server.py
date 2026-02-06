@@ -4034,13 +4034,55 @@ async def get_dashboard_completo(current_user: dict = Depends(get_current_user))
         for k, v in sorted(empresas_por_segmento.items(), key=lambda x: -x[1])
     ][:6]  # Top 6 segmentos
     
+    # Evolução mensal do ano atual
+    ano_atual = hoje.year
+    meses_abrev = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+    evolucao_mensal = []
+    
+    for mes_num in range(1, hoje.month + 1):
+        # Contar empresas criadas até este mês
+        data_inicio = datetime(ano_atual, 1, 1)
+        data_fim = datetime(ano_atual, mes_num + 1, 1) if mes_num < 12 else datetime(ano_atual + 1, 1, 1)
+        
+        # Empresas existentes até o final do mês
+        empresas_mes = 0
+        colaboradores_mes = 0
+        
+        for cliente in clientes:
+            created_at = cliente.get("created_at")
+            if created_at:
+                try:
+                    if isinstance(created_at, str):
+                        created_date = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                    else:
+                        created_date = created_at
+                    
+                    if created_date.replace(tzinfo=None) < data_fim:
+                        empresas_mes += 1
+                except:
+                    empresas_mes += 1  # Se não conseguir parsear, assume que já existia
+            else:
+                empresas_mes += 1
+        
+        # Para colaboradores, contar os que existiam até o mês
+        # Simplificando: usar proporção baseada no total atual
+        if total_clientes > 0:
+            colaboradores_mes = int((empresas_mes / total_clientes) * total_colaboradores)
+        
+        evolucao_mensal.append({
+            "mes": meses_abrev[mes_num - 1],
+            "empresas": empresas_mes,
+            "colaboradores": colaboradores_mes
+        })
+    
     return {
         "total_clientes": total_clientes,
         "total_colaboradores": total_colaboradores,
         "admissoes_pendentes": admissoes_pendentes,
         "admissoes_lista": admissoes_lista,
         "proximos_dissidios": proximos_dissidios[:10],
-        "empresas_por_segmento": segmentos_lista
+        "empresas_por_segmento": segmentos_lista,
+        "evolucao_mensal": evolucao_mensal
     }
 
 # ==================== HEALTH CHECK ====================
