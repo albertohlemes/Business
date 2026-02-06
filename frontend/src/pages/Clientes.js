@@ -158,7 +158,8 @@ const Clientes = () => {
       situacao: cliente.situacao || '',
       responsavel_dp: cliente.responsavel_dp || '',
       contador_responsavel: cliente.contador_responsavel || '',
-      observacoes: cliente.observacoes || ''
+      observacoes: cliente.observacoes || '',
+      data_base_dissidio: cliente.data_base_dissidio || ''
     });
     setDialogOpen(true);
   };
@@ -172,6 +173,61 @@ const Clientes = () => {
     } catch (error) {
       toast.error('Erro ao excluir empresa');
     }
+  };
+
+  // Importação em lote
+  const onDrop = useCallback(async (acceptedFiles) => {
+    if (acceptedFiles.length === 0) return;
+    
+    const file = acceptedFiles[0];
+    setImporting(true);
+    setImportResult(null);
+    
+    try {
+      const formData = new FormData();
+      formData.append('arquivo', file);
+      
+      const response = await axios.post(`${API_URL}/api/clientes/importar-lote`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setImportResult(response.data);
+      
+      if (response.data.importadas > 0) {
+        toast.success(`${response.data.importadas} empresa(s) importada(s) com sucesso!`);
+        fetchClientes();
+      }
+      
+      if (response.data.erros > 0) {
+        toast.warning(`${response.data.erros} empresa(s) com erro na importação`);
+      }
+      
+    } catch (error) {
+      toast.error('Erro ao importar arquivo: ' + (error.response?.data?.detail || error.message));
+    } finally {
+      setImporting(false);
+    }
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'text/csv': ['.csv'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls']
+    },
+    maxFiles: 1
+  });
+
+  const downloadModelo = () => {
+    const csvContent = "CNPJ;Razão Social;Nome Fantasia;Endereço;Telefone;Email;Tipo Atividade;Data Base Dissídio;Sindicato\n" +
+      "12.345.678/0001-90;Empresa Exemplo LTDA;Empresa Exemplo;Rua das Flores, 123;(11) 99999-9999;contato@exemplo.com;Comércio;05/2026;Sindicato do Comércio";
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'modelo_importacao_empresas.csv';
+    link.click();
   };
 
   const resetForm = () => {
@@ -200,7 +256,8 @@ const Clientes = () => {
       situacao: '',
       responsavel_dp: '',
       contador_responsavel: '',
-      observacoes: ''
+      observacoes: '',
+      data_base_dissidio: ''
     });
   };
 
