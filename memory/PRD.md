@@ -48,6 +48,9 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 ### Módulo Cálculos
 - ✅ **Dissídio Coletivo**: Upload de convenção, extração por IA, cálculo de retroativo
 - ✅ **Validação de Piso Salarial**: Verifica se colaboradores estão abaixo do piso da função no cálculo retroativo
+- ✅ **Proporcionalidade por Data de Admissão**: Calcula retroativo proporcional para funcionários admitidos durante o período retroativo
+- ✅ **Tabela de Proporcionalidade**: Exibida na revisão de dados (extraída da convenção ou auto-calculada)
+- ✅ **Vigência da Convenção**: Destacada em seção especial na tela de revisão
 - ✅ **Exportação PDF do Resumo**: Gera PDF em papel timbrado da Business Contabilidade
 - ✅ **Exportação PDF a partir de Cálculos Anteriores**: Botão para exportar PDF da convenção na lista de cálculos
 - ✅ **Médias Salariais**: Importação e geração de arquivo para SCI Único
