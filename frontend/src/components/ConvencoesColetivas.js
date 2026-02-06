@@ -42,7 +42,9 @@ import {
   Coffee,
   Moon,
   Sun,
-  Banknote
+  Banknote,
+  Award,
+  Plane
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
