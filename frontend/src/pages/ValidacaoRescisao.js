@@ -23,18 +23,46 @@ const ValidacaoRescisao = () => {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const { empresaSelecionada } = useEmpresa();
 
-  const createDropzone = (setter, multiple = false) => {
-    return useDropzone({
-      onDrop: (files) => multiple ? setter(prev => [...prev, ...files]) : setter(files[0]),
-      accept: { 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'] },
-      multiple
-    });
-  };
+  // Dropzones individuais para cada tipo de arquivo
+  const onDropConvencao = useCallback((files) => {
+    if (files.length > 0) setConvencao(files[0]);
+  }, []);
+  
+  const onDropApoio = useCallback((files) => {
+    setApoio(prev => [...prev, ...files]);
+  }, []);
+  
+  const onDropTermo = useCallback((files) => {
+    if (files.length > 0) setTermoRescisao(files[0]);
+  }, []);
+  
+  const onDropFgts = useCallback((files) => {
+    if (files.length > 0) setExtratoFgts(files[0]);
+  }, []);
 
-  const convencaoDropzone = createDropzone(setConvencao);
-  const apoioDropzone = createDropzone(setApoio, true);
-  const termoDropzone = createDropzone(setTermoRescisao);
-  const fgtsDropzone = createDropzone(setExtratoFgts);
+  const convencaoDropzone = useDropzone({
+    onDrop: onDropConvencao,
+    accept: { 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'] },
+    multiple: false
+  });
+  
+  const apoioDropzone = useDropzone({
+    onDrop: onDropApoio,
+    accept: { 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'] },
+    multiple: true
+  });
+  
+  const termoDropzone = useDropzone({
+    onDrop: onDropTermo,
+    accept: { 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'] },
+    multiple: false
+  });
+  
+  const fgtsDropzone = useDropzone({
+    onDrop: onDropFgts,
+    accept: { 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'] },
+    multiple: false
+  });
 
   const validarRescisao = async () => {
     if (!termoRescisao) { toast.error('Faça upload do termo de rescisão'); return; }
@@ -50,7 +78,8 @@ const ValidacaoRescisao = () => {
       if (extratoFgts) formData.append('extrato_fgts', extratoFgts);
 
       const response = await axios.post(`${API_URL}/api/validacao/rescisao`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000
       });
       setResult(response.data);
       response.data.divergencias?.length > 0 
