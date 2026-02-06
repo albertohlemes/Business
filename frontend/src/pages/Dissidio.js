@@ -511,7 +511,8 @@ const Dissidio = () => {
                       />
                       <Input 
                         type="number"
-                        placeholder="Valor Anterior"
+                        step="0.01"
+                        placeholder="R$ Anterior"
                         value={ben.valor_anterior || ''} 
                         onChange={(e) => {
                           const newBen = [...convencaoData.beneficios];
@@ -522,7 +523,8 @@ const Dissidio = () => {
                       />
                       <Input 
                         type="number"
-                        placeholder="Valor Novo"
+                        step="0.01"
+                        placeholder="R$ Novo"
                         value={ben.valor_novo || ''} 
                         onChange={(e) => {
                           const newBen = [...convencaoData.beneficios];
