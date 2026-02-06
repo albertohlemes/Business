@@ -67,6 +67,9 @@ const ConvencaoColetiva = ({ clienteId, convencao, onUpdate }) => {
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
 
+  // Debug log
+  console.log('ConvencaoColetiva - convencao recebida:', convencao ? 'SIM' : 'NÃO', convencao);
+
   const onDrop = useCallback(async (acceptedFiles) => {
     if (acceptedFiles.length === 0) return;
     
@@ -81,9 +84,14 @@ const ConvencaoColetiva = ({ clienteId, convencao, onUpdate }) => {
         { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 }
       );
       
+      console.log('Upload CCT - resposta:', response.data);
       toast.success('Convenção analisada e salva com sucesso!');
-      if (onUpdate) onUpdate(response.data.convencao);
+      if (onUpdate) {
+        console.log('Chamando onUpdate com:', response.data.convencao);
+        onUpdate(response.data.convencao);
+      }
     } catch (error) {
+      console.error('Erro upload CCT:', error);
       toast.error('Erro ao processar convenção: ' + (error.response?.data?.detail || error.message));
     } finally {
       setUploading(false);
