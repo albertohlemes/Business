@@ -326,6 +326,21 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
   - **Testes:** 8/8 testes passaram (100% backend)
   - **Arquivos:** `/app/backend/server.py` (linhas 565-600, 176-225, 3933)
 
+- ✅ **FEATURE: Exportação de Relação de Notas com Status**
+  - **Problema:** O usuário precisava exportar uma relação completa de notas (não agrupadas) com CFOP, valores e status ativa/cancelada
+  - **Solução:**
+    1. Criado novo endpoint `GET /api/relacao-notas/{company_id}` que retorna todas as notas com:
+       - Dados da NF (número, data, emitente/destinatário)
+       - CFOP principal
+       - Valor total
+       - Status (ATIVA/CANCELADA)
+       - Motivo do cancelamento (quando aplicável)
+       - Resumo com totalizadores
+    2. Adicionada nova opção "Rel. Notas" no modal de exportação da Apuração Mensal
+    3. Exportação em Excel com planilhas separadas para Entradas, Saídas e Resumo
+  - **Resultado:** Usuário pode exportar relação completa de notas incluindo status de cancelamento
+  - **Arquivos:** `/app/backend/server.py` (endpoint /relacao-notas), `/app/frontend/src/pages/ApuracaoMensal.js` (exportRelacaoNotas)
+
 ### 02/2026 - Iteration 41 (05/02/2026)
 - ✅ **BUG FIX: Totalizador da tabela de detalhamento agora exclui ICMS de ST/Despesa**
   - **Problema:** Na tabela de detalhamento por CFOP, o total de ICMS incluía valores de ST e Despesa
