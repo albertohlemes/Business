@@ -3893,7 +3893,19 @@ async def obter_calculo_dissidio(
     return calculo
 
 
-@api_router.get("/calculos-dissidio/{calculo_id}/excel")
+@api_router.delete("/calculos-dissidio/{calculo_id}")
+async def excluir_calculo_dissidio(
+    calculo_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Exclui um cálculo de dissídio"""
+    result = await db.calculos_dissidio.delete_one({
+        "id": calculo_id,
+        "user_id": current_user["id"]
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Cálculo não encontrado")
+    return {"message": "Cálculo excluído com sucesso"}
 async def exportar_calculo_dissidio_excel(
     calculo_id: str,
     current_user: dict = Depends(get_current_user)
