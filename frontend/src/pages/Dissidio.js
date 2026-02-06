@@ -989,7 +989,7 @@ const Dissidio = () => {
                 <div key={colabIdx} className="rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
                   <div 
                     className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 flex items-center justify-between cursor-pointer"
-                    onClick={() => setExpandedCalculo(expandedCalculo === `colab-${colabIdx}` ? null : `colab-${colabIdx}`)}
+                    onClick={() => toggleExpand(`colab-${colabIdx}`)}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-lg font-bold shadow-lg">
@@ -1008,12 +1008,12 @@ const Dissidio = () => {
                         </p>
                       </div>
                       <div className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center">
-                        {expandedCalculo === `colab-${colabIdx}` ? <ChevronUp size={18} className="text-slate-600" /> : <ChevronDown size={18} className="text-slate-600" />}
+                        {isExpanded(`colab-${colabIdx}`) ? <ChevronUp size={18} className="text-slate-600" /> : <ChevronDown size={18} className="text-slate-600" />}
                       </div>
                     </div>
                   </div>
                   
-                  {expandedCalculo === `colab-${colabIdx}` && (
+                  {isExpanded(`colab-${colabIdx}`) && (
                     <div className="bg-white border-t p-4 space-y-4">
                       {colab.meses?.map((mes, mesIdx) => (
                         <div key={mesIdx} className="rounded-lg border border-slate-200 overflow-hidden">
