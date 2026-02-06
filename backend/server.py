@@ -7096,7 +7096,11 @@ async def export_sped(
     if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    query = {"company_id": company_id}
+    # EXCLUIR notas canceladas
+    query = {
+        "company_id": company_id,
+        "$or": [{"cancelada": {"$exists": False}}, {"cancelada": False}]
+    }
     if competencia:
         query['competencia'] = competencia
     
