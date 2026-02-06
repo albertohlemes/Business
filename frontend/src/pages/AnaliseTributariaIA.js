@@ -630,7 +630,7 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                         <tr>
                           <th className="px-4 py-3 text-left">
                             <button onClick={() => handleSort('ncm')} className="flex items-center gap-1 text-xs font-semibold text-gray-600">
-                              NCM <SortIcon columnKey="ncm" />
+                              NCM / Produto <SortIcon columnKey="ncm" />
                             </button>
                           </th>
                           <th className="px-4 py-3 text-center">
@@ -673,6 +673,10 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                       <tbody className="divide-y divide-gray-200">
                         {filteredNcmData.map((ncm, idx) => {
                           const temDiferencaAliquota = ncm.aliq_entrada > 0 && ncm.aliq_saida > 0 && Math.abs(ncm.aliq_saida - ncm.aliq_entrada) >= 3;
+                          // Pegar primeira descrição como título do grupo
+                          const tituloProduto = ncm.descricoes && ncm.descricoes.length > 0 
+                            ? ncm.descricoes[0].substring(0, 35) + (ncm.descricoes[0].length > 35 ? '...' : '')
+                            : '';
                           return (
                             <tr 
                               key={idx} 
