@@ -22,7 +22,7 @@ import {
   Bell
 } from 'lucide-react';
 
-const LOGO_URL = "https://customer-assets.emergentagent.com/job_4f7d5596-5b20-477c-ba75-d49f33573db4/artifacts/u8zs9dji_WhatsApp_Image_2026-02-03_at_21.10.59-removebg-preview.png";
+const LOGO_URL = "https://customer-assets.emergentagent.com/job_4f7d5596-5b20-477c-ba75-d49f33573db4/artifacts/junuf5pl_logo%20business%20Grande%20Horizontal%20Branco.png";
 
 const Layout = () => {
   const { user, logout } = useAuth();
