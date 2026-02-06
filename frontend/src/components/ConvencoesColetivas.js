@@ -1252,6 +1252,23 @@ const ConvencoesColetivas = ({ clienteId, convencaoAtual, historicoConvencoes = 
               </Badge>
             )}
           </div>
+          {convencaoAtual && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportPDF}
+              disabled={exporting}
+              className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
+              data-testid="export-cct-pdf-btn"
+            >
+              {exporting ? (
+                <Loader2 size={14} className="animate-spin mr-1" />
+              ) : (
+                <Download size={14} className="mr-1" />
+              )}
+              Exportar PDF
+            </Button>
+          )}
         </CardTitle>
       </CardHeader>
       
