@@ -5145,9 +5145,9 @@ async def apuracao_periodo(
                     '7651', '7654', '7667', '7930', '7949'
                 ]
                 
-                # Verificar NCM alíquota zero
+                # Verificar NCM alíquota zero - usar mesma função do Dashboard
                 ncm = str(prod.get('ncm', ''))
-                ncm_aliq_zero = prod.get('ncm_aliq_zero', False)
+                ncm_aliq_zero = prod.get('ncm_aliq_zero', is_ncm_aliquota_zero(ncm))
                 cst_pis = str(prod.get('cst_pis_calculado', prod.get('cst_pis', ''))).strip()
                 
                 cfop_sem_debito = cfop in CFOPS_SAIDA_SEM_DEBITO_PIS
