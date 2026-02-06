@@ -673,40 +673,6 @@ const ConvencaoDetalhada = ({ convencao, isAtual, isExpanded, onToggle, onRemove
                 </div>
               </div>
 
-              {/* Adicional Noturno */}
-              <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Moon size={14} className="text-indigo-400" />
-                  <span className="text-sm font-medium text-indigo-400">Adicional Noturno</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <p className="text-slate-400 text-xs">Percentual</p>
-                    <p className="text-white font-bold">
-                      {typeof jornada.adicional_noturno === 'object' 
-                        ? (jornada.adicional_noturno?.percentual || 20)
-                        : (jornada.adicional_noturno || 20)}%
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 text-xs">Horário</p>
-                    <p className="text-white">
-                      {typeof jornada.adicional_noturno === 'object' 
-                        ? `${jornada.adicional_noturno?.horario_inicio || '22h'} às ${jornada.adicional_noturno?.horario_fim || '5h'}`
-                        : '22h às 5h'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 text-xs">Hora Reduzida</p>
-                    <p className="text-white">
-                      {typeof jornada.adicional_noturno === 'object' 
-                        ? (jornada.adicional_noturno?.hora_noturna_reduzida || '52m30s')
-                        : '52m30s'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               {/* Banco de Horas */}
               {jornada.banco_horas && typeof jornada.banco_horas === 'object' && (
                 <div className="bg-slate-800 rounded-lg p-3">
@@ -735,11 +701,29 @@ const ConvencaoDetalhada = ({ convencao, isAtual, isExpanded, onToggle, onRemove
                   )}
                 </div>
               )}
+
+              {/* Escala e Trabalho aos Domingos/Feriados */}
+              {(jornada.escala_permitida || jornada.trabalho_aos_domingos || jornada.trabalho_aos_feriados) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {jornada.escala_permitida && (
+                    <div className="bg-slate-800 rounded p-2">
+                      <p className="text-xs text-slate-400">Escalas Permitidas</p>
+                      <p className="text-white text-sm">{jornada.escala_permitida}</p>
+                    </div>
+                  )}
+                  {jornada.trabalho_aos_domingos && typeof jornada.trabalho_aos_domingos === 'object' && (
+                    <div className="bg-slate-800 rounded p-2">
+                      <p className="text-xs text-slate-400">Trabalho aos Domingos</p>
+                      <p className="text-white text-sm">{jornada.trabalho_aos_domingos.permitido ? 'Permitido' : 'Não Permitido'}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </Section>
 
           {/* HORAS EXTRAS - Seção Separada */}
-          <Section title="Horas Extras e Adicionais" icon={Clock} color="bg-orange-600" defaultOpen>
+          <Section title="Horas Extras" icon={Clock} color="bg-orange-600" defaultOpen>
             <div className="space-y-3">
               {/* Percentuais de Hora Extra */}
               <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
@@ -777,36 +761,83 @@ const ConvencaoDetalhada = ({ convencao, isAtual, isExpanded, onToggle, onRemove
               </div>
 
               {/* Limites e Regras */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {(jornada.hora_extra?.limite_diario || jornada.hora_extra?.limite_mensal) && (
-                  <div className="bg-slate-800 rounded-lg p-3">
-                    <p className="text-xs text-slate-400 mb-2">Limites</p>
-                    {jornada.hora_extra?.limite_diario && (
-                      <p className="text-sm text-white">Diário: <span className="text-amber-400">{jornada.hora_extra.limite_diario}</span></p>
-                    )}
-                    {jornada.hora_extra?.limite_mensal && (
-                      <p className="text-sm text-white">Mensal: <span className="text-amber-400">{jornada.hora_extra.limite_mensal}</span></p>
-                    )}
-                  </div>
-                )}
-                
-                {jornada.hora_extra?.forma_pagamento && (
-                  <div className="bg-slate-800 rounded-lg p-3">
-                    <p className="text-xs text-slate-400 mb-2">Forma de Pagamento</p>
-                    <p className="text-sm text-white">{jornada.hora_extra.forma_pagamento}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Observações de Hora Extra */}
-              {(typeof jornada.hora_extra_50 === 'object' && jornada.hora_extra_50?.observacoes) && (
-                <div className="bg-slate-800/50 rounded p-2">
-                  <p className="text-xs text-slate-400">HE 50%: {jornada.hora_extra_50.observacoes}</p>
+              {(jornada.hora_extra?.limite_diario || jornada.hora_extra?.limite_mensal || jornada.hora_extra?.forma_pagamento) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {(jornada.hora_extra?.limite_diario || jornada.hora_extra?.limite_mensal) && (
+                    <div className="bg-slate-800 rounded-lg p-3">
+                      <p className="text-xs text-slate-400 mb-2">Limites</p>
+                      {jornada.hora_extra?.limite_diario && (
+                        <p className="text-sm text-white">Diário: <span className="text-amber-400">{jornada.hora_extra.limite_diario}</span></p>
+                      )}
+                      {jornada.hora_extra?.limite_mensal && (
+                        <p className="text-sm text-white">Mensal: <span className="text-amber-400">{jornada.hora_extra.limite_mensal}</span></p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {jornada.hora_extra?.forma_pagamento && (
+                    <div className="bg-slate-800 rounded-lg p-3">
+                      <p className="text-xs text-slate-400 mb-2">Forma de Pagamento</p>
+                      <p className="text-sm text-white">{jornada.hora_extra.forma_pagamento}</p>
+                    </div>
+                  )}
                 </div>
               )}
-              {(typeof jornada.hora_extra_100 === 'object' && jornada.hora_extra_100?.observacoes) && (
+            </div>
+          </Section>
+
+          {/* ADICIONAL NOTURNO - Seção Separada */}
+          <Section title="Adicional Noturno" icon={Moon} color="bg-indigo-600" defaultOpen>
+            <div className="space-y-3">
+              <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-slate-800 rounded-lg p-3 text-center">
+                    <p className="text-xs text-slate-400 mb-1">Percentual</p>
+                    <p className="text-2xl font-bold text-indigo-400">
+                      {typeof jornada.adicional_noturno === 'object' 
+                        ? (jornada.adicional_noturno?.percentual || 20)
+                        : (jornada.adicional_noturno || 20)}%
+                    </p>
+                  </div>
+                  <div className="bg-slate-800 rounded-lg p-3 text-center">
+                    <p className="text-xs text-slate-400 mb-1">Início</p>
+                    <p className="text-xl font-bold text-white">
+                      {typeof jornada.adicional_noturno === 'object' 
+                        ? (jornada.adicional_noturno?.horario_inicio || '22:00')
+                        : '22:00'}
+                    </p>
+                  </div>
+                  <div className="bg-slate-800 rounded-lg p-3 text-center">
+                    <p className="text-xs text-slate-400 mb-1">Término</p>
+                    <p className="text-xl font-bold text-white">
+                      {typeof jornada.adicional_noturno === 'object' 
+                        ? (jornada.adicional_noturno?.horario_fim || '05:00')
+                        : '05:00'}
+                    </p>
+                  </div>
+                  <div className="bg-slate-800 rounded-lg p-3 text-center">
+                    <p className="text-xs text-slate-400 mb-1">Hora Reduzida</p>
+                    <p className="text-lg font-bold text-indigo-300">
+                      {typeof jornada.adicional_noturno === 'object' 
+                        ? (jornada.adicional_noturno?.hora_noturna_reduzida || '52m30s')
+                        : '52m30s'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Prorrogação do Noturno */}
+              {typeof jornada.adicional_noturno === 'object' && jornada.adicional_noturno?.prorrogacao && (
+                <div className="bg-slate-800 rounded-lg p-3">
+                  <p className="text-xs text-slate-400 mb-1">Prorrogação (HE Noturna)</p>
+                  <p className="text-sm text-white">{jornada.adicional_noturno.prorrogacao}</p>
+                </div>
+              )}
+
+              {/* Observações */}
+              {typeof jornada.adicional_noturno === 'object' && jornada.adicional_noturno?.observacoes && (
                 <div className="bg-slate-800/50 rounded p-2">
-                  <p className="text-xs text-slate-400">HE 100%: {jornada.hora_extra_100.observacoes}</p>
+                  <p className="text-xs text-slate-400">{jornada.adicional_noturno.observacoes}</p>
                 </div>
               )}
             </div>
