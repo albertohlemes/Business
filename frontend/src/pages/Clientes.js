@@ -754,6 +754,7 @@ const Clientes = () => {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Search */}
