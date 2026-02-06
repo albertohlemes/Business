@@ -551,7 +551,7 @@ const Dissidio = () => {
             {/* Descontos */}
             <div className="border border-slate-700 rounded-lg p-4 bg-slate-800/50">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-amber-700 flex items-center gap-1">
+                <p className="text-sm font-medium text-amber-400 flex items-center gap-1">
                   <AlertTriangle size={14} /> Descontos (Valores Novos)
                 </p>
                 <Button 
