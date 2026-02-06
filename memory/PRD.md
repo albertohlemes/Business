@@ -53,6 +53,15 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
   - Listagem de documentos
 - **Feedback no Upload:** Ao importar um XML cancelado, o sistema retorna status `cancelada` com a mensagem do motivo
 
+### ✅ **Exportação de Relação de Notas** (06/02/2026) 🆕
+- **Novo Endpoint:** `GET /api/relacao-notas/{company_id}` retorna todas as notas (entrada e saída) com status Ativa/Cancelada
+- **Nova Opção de Exportação:** Na página de Apuração Mensal, botão "Exportar" agora tem 3 opções:
+  - Por CFOP (agrupado)
+  - Por NCM (agrupado)
+  - **Rel. Notas** (relação completa com status)
+- **Dados Exportados:** NF, Data, Emitente/Destinatário, CNPJ, CFOP Principal, Valor, Status (ATIVA/CANCELADA), Motivo Cancelamento
+- **Resumo:** Inclui totalizadores de notas ativas vs canceladas para entradas e saídas
+
 ### ✅ **Dashboard Completo** (Atualizado 04/02/2026)
 - Estatísticas por **empresa e competência selecionada**
 - **Quantidade por tipo de documento:**
