@@ -705,7 +705,8 @@ const ValidacaoFolha = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            );
+            })}
         </div>
       ) : (
         <Card className="border-slate-200">
