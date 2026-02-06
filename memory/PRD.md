@@ -40,6 +40,19 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - **Coluna CST Única:** Removida duplicação da coluna CST quando visualização é "Por CST"
 - **CFOPs com/sem Crédito:** Separação correta entre operações que geram ou não crédito de PIS/COFINS
 
+### ✅ **Tratamento de Notas Canceladas** (06/02/2026) 🆕
+- **Detecção Automática no Upload:** O sistema identifica XMLs de NF-e canceladas através do status `cStat` no protocolo (`protNFe`):
+  - `cStat=101`: Cancelamento homologado
+  - `cStat=151`: Cancelamento extemporâneo (fora do prazo)
+- **Campos Armazenados:** `cancelada`, `cStat_cancelamento`, `xMotivo_cancelamento`, `dhRecbto_cancelamento`, `nProt_cancelamento`
+- **Exclusão de Cálculos:** Notas canceladas são automaticamente excluídas de:
+  - Dashboard (faturamento, entradas, impostos)
+  - Apuração Mensal
+  - Apuração PIS/COFINS
+  - Exportação SPED
+  - Listagem de documentos
+- **Feedback no Upload:** Ao importar um XML cancelado, o sistema retorna status `cancelada` com a mensagem do motivo
+
 ### ✅ **Dashboard Completo** (Atualizado 04/02/2026)
 - Estatísticas por **empresa e competência selecionada**
 - **Quantidade por tipo de documento:**
