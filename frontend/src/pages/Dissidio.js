@@ -448,7 +448,7 @@ const Dissidio = () => {
             {/* Piso Salarial */}
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Piso Salarial Novo (R$)</Label>
+                <Label className="text-slate-300">Piso Salarial Novo (R$)</Label>
                 <Input 
                   type="number"
                   step="0.01"
