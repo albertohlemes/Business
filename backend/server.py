@@ -699,7 +699,7 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                     break
             
             # Extrair IPI Devolvido (para notas de devolução)
-            imposto_devol = det_item.get('impostoDevol', {})
+            imposto_devol = item.get('impostoDevol', {})
             v_ipi_devol = 0
             if imposto_devol:
                 ipi_devol = imposto_devol.get('IPI', {})
