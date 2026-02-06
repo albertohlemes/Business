@@ -805,16 +805,43 @@ IMPORTANTE:
             except:
                 pass
             
-            # Atualizar cliente com a convenção
-            await db.clientes.update_one(
+            # Buscar cliente atualizado para pegar convenção anterior
+            cliente_atual = await db.clientes.find_one({"id": cliente_id})
+            
+            # Preparar histórico - mover convenção atual para histórico se existir
+            historico_atual = cliente_atual.get("historico_convencoes") or []
+            convencao_anterior = cliente_atual.get("convencao_coletiva")
+            
+            if convencao_anterior and isinstance(convencao_anterior, dict):
+                # Adicionar convenção anterior ao histórico
+                convencao_anterior["_arquivada_em"] = datetime.now(timezone.utc).isoformat()
+                historico_atual.insert(0, convencao_anterior)  # Mais recente primeiro
+                # Manter no máximo 10 convenções no histórico
+                historico_atual = historico_atual[:10]
+            
+            # Atualizar cliente com a nova convenção e histórico
+            resultado = await db.clientes.update_one(
                 {"id": cliente_id},
-                {"$set": {"convencao_coletiva": dados_convencao}}
+                {"$set": {
+                    "convencao_coletiva": dados_convencao,
+                    "historico_convencoes": historico_atual
+                }}
             )
+            
+            logger.info(f"CCT salva para cliente {cliente_id}: matched={resultado.matched_count}, modified={resultado.modified_count}")
+            
+            # Verificar se salvou
+            cliente_verificacao = await db.clientes.find_one({"id": cliente_id})
+            if cliente_verificacao.get("convencao_coletiva"):
+                logger.info(f"CCT verificada no banco para {cliente_id}")
+            else:
+                logger.error(f"CCT NÃO foi salva para {cliente_id}")
             
             return {
                 "success": True,
                 "message": "Convenção coletiva analisada e salva com sucesso",
-                "convencao": dados_convencao
+                "convencao": dados_convencao,
+                "historico_count": len(historico_atual)
             }
             
         finally:
