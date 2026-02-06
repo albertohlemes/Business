@@ -725,7 +725,14 @@ IMPORTANTE:
                 file_contents=[file_content]
             ))
             
-            response_text = response.strip()
+            response_text = response.strip() if response else ""
+            
+            # Log para debug
+            logger.info(f"Resposta da IA (primeiros 200 chars): {response_text[:200] if response_text else 'VAZIA'}")
+            
+            if not response_text:
+                raise HTTPException(status_code=500, detail="A IA não retornou nenhuma resposta. Tente novamente ou use outro arquivo.")
+            
             if response_text.startswith("```json"):
                 response_text = response_text[7:]
             if response_text.startswith("```"):
@@ -733,7 +740,13 @@ IMPORTANTE:
             if response_text.endswith("```"):
                 response_text = response_text[:-3]
             
-            dados_convencao = json.loads(response_text.strip())
+            response_text = response_text.strip()
+            
+            if not response_text or response_text[0] != '{':
+                logger.error(f"Resposta não é JSON válido: {response_text[:100]}")
+                raise HTTPException(status_code=500, detail="A IA não conseguiu extrair dados da convenção. Verifique se o arquivo é uma CCT válida.")
+            
+            dados_convencao = json.loads(response_text)
             
             # Adicionar metadados
             dados_convencao["_meta"] = {
