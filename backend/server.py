@@ -1289,6 +1289,556 @@ async def remover_convencao_coletiva(
     return {"success": True, "message": "Convenção coletiva removida com sucesso"}
 
 
+
+@api_router.get("/clientes/{cliente_id}/convencao/export-pdf")
+async def exportar_convencao_pdf(
+    cliente_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Exporta o resumo da convenção coletiva atual para PDF com logo da empresa."""
+    from fastapi.responses import StreamingResponse
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm, cm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable, PageBreak
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
+    import io
+    
+    # Buscar cliente
+    cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    convencao = cliente.get("convencao_coletiva")
+    if not convencao:
+        raise HTTPException(status_code=404, detail="Cliente não possui convenção coletiva cadastrada")
+    
+    # Preparar buffer para o PDF
+    buffer = io.BytesIO()
+    
+    # Criar documento
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=2*cm,
+        leftMargin=2*cm,
+        topMargin=2*cm,
+        bottomMargin=2*cm
+    )
+    
+    # Estilos
+    styles = getSampleStyleSheet()
+    
+    # Estilo do título principal
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        textColor=colors.HexColor('#1e3a5f'),
+        spaceAfter=10,
+        alignment=TA_CENTER
+    )
+    
+    # Estilo de seção
+    section_style = ParagraphStyle(
+        'SectionTitle',
+        parent=styles['Heading2'],
+        fontSize=12,
+        textColor=colors.HexColor('#2563eb'),
+        spaceBefore=15,
+        spaceAfter=8,
+        borderPadding=5
+    )
+    
+    # Estilo de subsection
+    subsection_style = ParagraphStyle(
+        'SubSection',
+        parent=styles['Heading3'],
+        fontSize=10,
+        textColor=colors.HexColor('#374151'),
+        spaceBefore=8,
+        spaceAfter=4
+    )
+    
+    # Estilo de texto normal
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.HexColor('#1f2937'),
+        spaceBefore=2,
+        spaceAfter=2,
+        leading=12
+    )
+    
+    # Estilo de valor destacado
+    highlight_style = ParagraphStyle(
+        'Highlight',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.HexColor('#059669'),
+        fontName='Helvetica-Bold'
+    )
+    
+    # Estilo de alerta
+    alert_style = ParagraphStyle(
+        'Alert',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.HexColor('#dc2626'),
+        spaceBefore=5,
+        spaceAfter=5
+    )
+    
+    # Estilo de rodapé
+    footer_style = ParagraphStyle(
+        'Footer',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=colors.HexColor('#6b7280'),
+        alignment=TA_CENTER
+    )
+    
+    elements = []
+    
+    # === CABEÇALHO COM LOGO ===
+    logo_path = Path(__file__).parent / "assets" / "business_logo.png"
+    if logo_path.exists():
+        try:
+            logo = Image(str(logo_path), width=4*cm, height=2*cm)
+            logo.hAlign = 'CENTER'
+            elements.append(logo)
+            elements.append(Spacer(1, 10))
+        except Exception as e:
+            logger.warning(f"Erro ao carregar logo: {e}")
+    
+    # Título
+    elements.append(Paragraph("RESUMO DA CONVENÇÃO COLETIVA DE TRABALHO", title_style))
+    elements.append(Spacer(1, 5))
+    
+    # Subtítulo com nome da empresa
+    subtitle_style = ParagraphStyle(
+        'Subtitle',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.HexColor('#4b5563'),
+        alignment=TA_CENTER
+    )
+    elements.append(Paragraph(f"<b>{cliente.get('razao_social', 'Empresa')}</b>", subtitle_style))
+    elements.append(Paragraph(f"CNPJ: {cliente.get('cnpj', '-')}", subtitle_style))
+    elements.append(Spacer(1, 10))
+    
+    # Data de geração
+    data_geracao = datetime.now().strftime("%d/%m/%Y às %H:%M")
+    elements.append(Paragraph(f"Documento gerado em: {data_geracao}", footer_style))
+    elements.append(Spacer(1, 15))
+    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#e5e7eb')))
+    elements.append(Spacer(1, 15))
+    
+    # Helper para formatar moeda
+    def format_currency(value):
+        if not value and value != 0:
+            return "-"
+        try:
+            return f"R$ {float(value):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        except:
+            return str(value)
+    
+    # Helper para extrair valor de objeto
+    def get_value(obj, *keys):
+        if obj is None:
+            return None
+        for key in keys:
+            if isinstance(obj, dict) and key in obj:
+                val = obj[key]
+                if val is not None and val != '':
+                    return val
+        return None
+    
+    # === DADOS DA VIGÊNCIA ===
+    vigencia = convencao.get("vigencia", {})
+    identificacao = convencao.get("identificacao", {})
+    
+    elements.append(Paragraph("📋 IDENTIFICAÇÃO E VIGÊNCIA", section_style))
+    
+    info_data = [
+        ["Sindicato Laboral:", identificacao.get("sindicato_laboral", "-")],
+        ["Sindicato Patronal:", identificacao.get("sindicato_patronal", "-")],
+        ["Abrangência:", identificacao.get("abrangencia", "-")],
+        ["Vigência:", f'{vigencia.get("data_inicio", "-")} a {vigencia.get("data_fim", "-")}'],
+        ["Data Base:", vigencia.get("data_base", "-")],
+        ["Status:", vigencia.get("status", "-").upper() if vigencia.get("status") else "-"],
+    ]
+    
+    table = Table(info_data, colWidths=[4*cm, 12*cm])
+    table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#374151')),
+        ('TEXTCOLOR', (1, 0), (1, -1), colors.HexColor('#1f2937')),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+    ]))
+    elements.append(table)
+    elements.append(Spacer(1, 15))
+    
+    # === REAJUSTE SALARIAL E PISOS ===
+    reajuste = convencao.get("reajuste_salarial", {}) or convencao.get("reajuste", {})
+    pisos = convencao.get("pisos_salariais", {}) or convencao.get("piso_salarial", {})
+    
+    elements.append(Paragraph("💰 REAJUSTE SALARIAL E PISOS", section_style))
+    
+    # Destaque do reajuste
+    perc_reajuste = reajuste.get("percentual") or reajuste.get("percentual_reajuste") or 0
+    elements.append(Paragraph(f"<b>Percentual de Reajuste: {perc_reajuste}%</b>", highlight_style))
+    elements.append(Spacer(1, 5))
+    
+    reajuste_data = [
+        ["Tipo:", reajuste.get("tipo") or reajuste.get("tipo_reajuste") or "Linear"],
+        ["Data Aplicação:", reajuste.get("data_aplicacao") or vigencia.get("data_inicio", "-")],
+        ["Retroativo:", "Sim" if reajuste.get("retroativo") else "Não"],
+    ]
+    if reajuste.get("forma_calculo"):
+        reajuste_data.append(["Forma de Cálculo:", reajuste.get("forma_calculo")])
+    
+    table = Table(reajuste_data, colWidths=[4*cm, 12*cm])
+    table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#374151')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(table)
+    elements.append(Spacer(1, 10))
+    
+    # Pisos salariais
+    elements.append(Paragraph("<b>Pisos Salariais:</b>", subsection_style))
+    piso_geral = pisos.get("piso_geral") or pisos.get("valor_geral")
+    if piso_geral:
+        elements.append(Paragraph(f"• Piso Geral: {format_currency(piso_geral)}", normal_style))
+    if pisos.get("piso_geral_hora"):
+        elements.append(Paragraph(f"• Piso/Hora: {format_currency(pisos.get('piso_geral_hora'))}", normal_style))
+    
+    # Pisos por função
+    if pisos.get("pisos_por_funcao"):
+        elements.append(Paragraph("<b>Pisos por Função/Cargo:</b>", subsection_style))
+        for p in pisos["pisos_por_funcao"]:
+            funcao = p.get("funcao") or p.get("cargo") or "-"
+            valor = format_currency(p.get("valor"))
+            elements.append(Paragraph(f"• {funcao}: {valor}", normal_style))
+    
+    elements.append(Spacer(1, 15))
+    
+    # === BENEFÍCIOS ===
+    beneficios = convencao.get("beneficios", {})
+    
+    elements.append(Paragraph("🎁 BENEFÍCIOS", section_style))
+    
+    # Vale Refeição
+    vr = beneficios.get("vale_refeicao", {})
+    if vr.get("valor") or vr.get("valor_diario"):
+        elements.append(Paragraph("<b>Vale Refeição:</b>", subsection_style))
+        elements.append(Paragraph(f"• Valor: {format_currency(vr.get('valor') or vr.get('valor_diario'))}", normal_style))
+        if vr.get("dias_pagos"):
+            elements.append(Paragraph(f"• Dias pagos: {vr.get('dias_pagos')}", normal_style))
+        if vr.get("desconto_permitido"):
+            elements.append(Paragraph(f"• Desconto permitido: {vr.get('desconto_permitido')}", normal_style))
+    
+    # Vale Alimentação
+    va = beneficios.get("vale_alimentacao", {})
+    if va.get("valor"):
+        elements.append(Paragraph("<b>Vale Alimentação:</b>", subsection_style))
+        elements.append(Paragraph(f"• Valor: {format_currency(va.get('valor'))}", normal_style))
+        if va.get("periodicidade"):
+            elements.append(Paragraph(f"• Periodicidade: {va.get('periodicidade')}", normal_style))
+    
+    # Cesta Básica
+    cb = beneficios.get("cesta_basica", {})
+    if cb.get("valor"):
+        elements.append(Paragraph("<b>Cesta Básica:</b>", subsection_style))
+        elements.append(Paragraph(f"• Valor: {format_currency(cb.get('valor'))}", normal_style))
+        if cb.get("tipo"):
+            elements.append(Paragraph(f"• Tipo: {cb.get('tipo')}", normal_style))
+    
+    # Seguro de Vida
+    sv = beneficios.get("seguro_vida", {})
+    if sv.get("valor_cobertura_minimo") or sv.get("valor_minimo"):
+        elements.append(Paragraph("<b>Seguro de Vida:</b>", subsection_style))
+        elements.append(Paragraph(f"• Cobertura mínima: {format_currency(sv.get('valor_cobertura_minimo') or sv.get('valor_minimo'))}", normal_style))
+        if sv.get("custeio"):
+            elements.append(Paragraph(f"• Custeio: {sv.get('custeio')}", normal_style))
+    
+    # Auxílio Creche
+    ac = beneficios.get("auxilio_creche", {})
+    if ac.get("valor"):
+        elements.append(Paragraph("<b>Auxílio Creche:</b>", subsection_style))
+        elements.append(Paragraph(f"• Valor: {format_currency(ac.get('valor'))}", normal_style))
+        if ac.get("idade_limite"):
+            elements.append(Paragraph(f"• Idade limite: {ac.get('idade_limite')}", normal_style))
+    
+    # Prêmio por Tempo de Serviço
+    pts = beneficios.get("premio_tempo_servico", {})
+    if pts.get("possui"):
+        elements.append(Paragraph("<b>Prêmio por Tempo de Serviço (PTS):</b>", subsection_style))
+        if pts.get("tabela"):
+            for t in pts["tabela"]:
+                elements.append(Paragraph(f"• {t.get('anos')} anos: {t.get('percentual')}%", normal_style))
+        if pts.get("base_calculo"):
+            elements.append(Paragraph(f"• Base de Cálculo: {pts.get('base_calculo')}", normal_style))
+    
+    # PLR
+    plr = beneficios.get("plr_participacao_lucros", {})
+    if plr.get("possui"):
+        elements.append(Paragraph("<b>Participação nos Lucros (PLR):</b>", subsection_style))
+        if plr.get("valor_anual"):
+            elements.append(Paragraph(f"• Valor Anual: {format_currency(plr.get('valor_anual'))}", normal_style))
+        if plr.get("criterios"):
+            elements.append(Paragraph(f"• Critérios: {plr.get('criterios')}", normal_style))
+    
+    # Diárias de Viagem
+    dv = beneficios.get("diarias_viagem", {})
+    if dv.get("almoco") or dv.get("jantar") or dv.get("pernoite"):
+        elements.append(Paragraph("<b>Diárias de Viagem:</b>", subsection_style))
+        if dv.get("almoco"):
+            elements.append(Paragraph(f"• Almoço: {format_currency(dv.get('almoco'))}", normal_style))
+        if dv.get("jantar"):
+            elements.append(Paragraph(f"• Jantar: {format_currency(dv.get('jantar'))}", normal_style))
+        if dv.get("pernoite"):
+            elements.append(Paragraph(f"• Pernoite: {format_currency(dv.get('pernoite'))}", normal_style))
+    
+    elements.append(Spacer(1, 15))
+    
+    # === JORNADA DE TRABALHO ===
+    jornada = convencao.get("jornada_trabalho", {})
+    
+    elements.append(Paragraph("⏰ JORNADA DE TRABALHO", section_style))
+    
+    jornada_data = [
+        ["Carga Horária Semanal:", f"{jornada.get('carga_horaria_semanal', 44)} horas"],
+        ["Carga Horária Mensal:", f"{jornada.get('carga_horaria_mensal', 220)} horas"],
+        ["Carga Horária Diária:", str(jornada.get('carga_horaria_diaria', '8h'))],
+    ]
+    
+    # Intervalo
+    intervalo = jornada.get("intervalo_refeicao", {})
+    if isinstance(intervalo, dict):
+        jornada_data.append(["Intervalo Mínimo:", intervalo.get("minimo", "1h")])
+    else:
+        jornada_data.append(["Intervalo Mínimo:", jornada.get("intervalo_minimo", "1h")])
+    
+    table = Table(jornada_data, colWidths=[5*cm, 11*cm])
+    table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#374151')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(table)
+    elements.append(Spacer(1, 10))
+    
+    # Banco de horas
+    bh = jornada.get("banco_horas", {})
+    if isinstance(bh, dict) and bh:
+        elements.append(Paragraph("<b>Banco de Horas:</b>", subsection_style))
+        permitido = "Permitido" if bh.get("permitido") else "Não Permitido"
+        elements.append(Paragraph(f"• Status: {permitido}", normal_style))
+        if bh.get("permitido") and bh.get("prazo_compensacao"):
+            elements.append(Paragraph(f"• Prazo Compensação: {bh.get('prazo_compensacao')}", normal_style))
+    
+    elements.append(Spacer(1, 15))
+    
+    # === HORAS EXTRAS ===
+    elements.append(Paragraph("⏱️ HORAS EXTRAS", section_style))
+    
+    he = jornada.get("hora_extra", {})
+    he_50 = jornada.get("hora_extra_50", {})
+    he_100 = jornada.get("hora_extra_100", {})
+    
+    # Percentuais
+    perc_dias_uteis = he_50.get("percentual") if isinstance(he_50, dict) else (he.get("percentual_dias_uteis") or 50)
+    perc_domingos = he_100.get("percentual") if isinstance(he_100, dict) else (he.get("percentual_domingos") or 100)
+    perc_feriados = he.get("percentual_feriados") or 100
+    perc_sabados = he.get("percentual_sabados") or 50
+    
+    he_data = [
+        ["Dias Úteis:", f"{perc_dias_uteis}%"],
+        ["Sábados:", f"{perc_sabados}%"],
+        ["Domingos:", f"{perc_domingos}%"],
+        ["Feriados:", f"{perc_feriados}%"],
+    ]
+    
+    table = Table(he_data, colWidths=[4*cm, 12*cm])
+    table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#374151')),
+        ('TEXTCOLOR', (1, 0), (1, -1), colors.HexColor('#ea580c')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(table)
+    
+    if he.get("limite_diario") or he.get("limite_mensal"):
+        elements.append(Spacer(1, 5))
+        if he.get("limite_diario"):
+            elements.append(Paragraph(f"• Limite Diário: {he.get('limite_diario')}", normal_style))
+        if he.get("limite_mensal"):
+            elements.append(Paragraph(f"• Limite Mensal: {he.get('limite_mensal')}", normal_style))
+    
+    elements.append(Spacer(1, 15))
+    
+    # === ADICIONAL NOTURNO ===
+    elements.append(Paragraph("🌙 ADICIONAL NOTURNO", section_style))
+    
+    an = jornada.get("adicional_noturno", {})
+    if isinstance(an, dict):
+        perc_noturno = an.get("percentual", 20)
+        horario_inicio = an.get("horario_inicio", "22:00")
+        horario_fim = an.get("horario_fim", "05:00")
+        hora_reduzida = an.get("hora_noturna_reduzida", "52m30s")
+    else:
+        perc_noturno = an if an else 20
+        horario_inicio = "22:00"
+        horario_fim = "05:00"
+        hora_reduzida = "52m30s"
+    
+    an_data = [
+        ["Percentual:", f"{perc_noturno}%"],
+        ["Horário Início:", horario_inicio],
+        ["Horário Término:", horario_fim],
+        ["Hora Noturna Reduzida:", hora_reduzida],
+    ]
+    
+    table = Table(an_data, colWidths=[5*cm, 11*cm])
+    table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#374151')),
+        ('TEXTCOLOR', (1, 0), (1, 0), colors.HexColor('#6366f1')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(table)
+    
+    elements.append(Spacer(1, 15))
+    
+    # === ESTABILIDADES ===
+    estabilidades = convencao.get("estabilidades_garantias", {}) or convencao.get("estabilidades", {})
+    
+    if estabilidades:
+        elements.append(Paragraph("🛡️ ESTABILIDADES E GARANTIAS", section_style))
+        
+        if estabilidades.get("gestante"):
+            g = estabilidades["gestante"]
+            periodo = g.get("periodo") or f"{g.get('meses_apos_parto', 5)} meses após o parto"
+            elements.append(Paragraph(f"<b>Gestante:</b> {periodo}", normal_style))
+        
+        if estabilidades.get("acidente_trabalho"):
+            at = estabilidades["acidente_trabalho"]
+            periodo = at.get("periodo") or f"{at.get('meses_apos_alta', 12)} meses após alta"
+            elements.append(Paragraph(f"<b>Acidente de Trabalho:</b> {periodo}", normal_style))
+        
+        if estabilidades.get("pre_aposentadoria"):
+            pa = estabilidades["pre_aposentadoria"]
+            periodo = pa.get("periodo") or f"{pa.get('meses_antes', 24)} meses antes"
+            elements.append(Paragraph(f"<b>Pré-Aposentadoria:</b> {periodo}", normal_style))
+        
+        if estabilidades.get("membro_cipa"):
+            cipa = estabilidades["membro_cipa"]
+            periodo = cipa.get("periodo", "Durante mandato + 1 ano")
+            elements.append(Paragraph(f"<b>Membro CIPA:</b> {periodo}", normal_style))
+        
+        # Períodos vedados
+        if estabilidades.get("periodos_vedados_demissao"):
+            elements.append(Spacer(1, 5))
+            elements.append(Paragraph("<b>⚠️ Períodos Vedados para Demissão:</b>", alert_style))
+            for p in estabilidades["periodos_vedados_demissao"]:
+                periodo_txt = p.get("periodo", str(p))
+                elements.append(Paragraph(f"• {periodo_txt}", normal_style))
+        
+        elements.append(Spacer(1, 15))
+    
+    # === RESCISÃO CONTRATUAL ===
+    rescisao = convencao.get("rescisao_contrato", {}) or convencao.get("rescisao", {})
+    
+    if rescisao:
+        elements.append(Paragraph("📝 RESCISÃO CONTRATUAL", section_style))
+        
+        # Aviso prévio
+        ap = rescisao.get("aviso_previo", {})
+        if ap:
+            elements.append(Paragraph("<b>Aviso Prévio:</b>", subsection_style))
+            elements.append(Paragraph(f"• Dias base: {ap.get('dias_base', 30)}", normal_style))
+            adicional = ap.get("adicional_por_ano") or rescisao.get("aviso_previo_adicional", {}).get("dias_por_ano", 3)
+            elements.append(Paragraph(f"• Adicional por ano: +{adicional} dias", normal_style))
+            maximo = ap.get("limite_maximo_dias") or rescisao.get("aviso_previo_adicional", {}).get("limite_maximo", 90)
+            elements.append(Paragraph(f"• Limite máximo: {maximo} dias", normal_style))
+        
+        # Multa adicional
+        multa = rescisao.get("multa_rescisoria_adicional", {}) or rescisao.get("multa_adicional_rescisao", {})
+        if multa.get("valor"):
+            elements.append(Paragraph(f"<b>Multa Rescisória Adicional:</b> {format_currency(multa.get('valor'))}", alert_style))
+        
+        # Homologação
+        hom = rescisao.get("homologacao", {})
+        if hom:
+            elements.append(Paragraph("<b>Homologação:</b>", subsection_style))
+            obrigatoria = "Sim" if hom.get("obrigatoria_sindicato") else "Não"
+            elements.append(Paragraph(f"• Obrigatória no Sindicato: {obrigatoria}", normal_style))
+            if hom.get("prazo_pagamento") or hom.get("prazo"):
+                elements.append(Paragraph(f"• Prazo para pagamento: {hom.get('prazo_pagamento') or hom.get('prazo')}", normal_style))
+        
+        elements.append(Spacer(1, 15))
+    
+    # === ALERTAS IMPORTANTES ===
+    alertas = convencao.get("alertas_importantes", [])
+    if alertas:
+        elements.append(Paragraph("⚠️ ALERTAS IMPORTANTES", section_style))
+        for alerta in alertas:
+            texto = alerta.get("texto") if isinstance(alerta, dict) else str(alerta)
+            elements.append(Paragraph(f"• {texto}", alert_style))
+        elements.append(Spacer(1, 15))
+    
+    # === RODAPÉ ===
+    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#e5e7eb')))
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph("Documento gerado automaticamente pelo Portal DP - Business Contabilidade", footer_style))
+    elements.append(Paragraph("Este resumo não substitui a leitura completa da Convenção Coletiva de Trabalho.", footer_style))
+    
+    # Meta info
+    meta = convencao.get("_meta", {})
+    if meta.get("arquivo_nome"):
+        elements.append(Paragraph(f"Arquivo original: {meta.get('arquivo_nome')}", footer_style))
+    if meta.get("data_upload"):
+        try:
+            data_upload = datetime.fromisoformat(meta["data_upload"].replace("Z", "+00:00")).strftime("%d/%m/%Y")
+            elements.append(Paragraph(f"Data de análise: {data_upload}", footer_style))
+        except:
+            pass
+    
+    # Construir PDF
+    doc.build(elements)
+    
+    # Preparar resposta
+    buffer.seek(0)
+    
+    # Nome do arquivo
+    razao_social_safe = "".join(c for c in cliente.get("razao_social", "Empresa") if c.isalnum() or c in (' ', '-', '_')).strip()
+    razao_social_safe = razao_social_safe[:50].replace(" ", "_")
+    filename = f"CCT_{razao_social_safe}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
+
+
+
 @api_router.post("/clientes/importar-lote")
 async def importar_clientes_lote(
     arquivo: UploadFile = File(...),
