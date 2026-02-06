@@ -4016,10 +4016,9 @@ async def exportar_resumo_convencao_pdf(
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
-    from reportlab.graphics.shapes import Drawing, Rect, String
-    from reportlab.graphics import renderPDF
     from io import BytesIO
     from datetime import datetime
+    from fastapi.responses import StreamingResponse
     
     # Cores profissionais
     VERMELHO = colors.HexColor("#991b1b")
