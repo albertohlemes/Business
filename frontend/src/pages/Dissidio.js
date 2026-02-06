@@ -1155,11 +1155,11 @@ const Dissidio = () => {
 
       {/* Cálculos Anteriores */}
       {calculosAnteriores.length > 0 && step === 1 && (
-        <Card className="shadow-lg border-0 bg-slate-900">
-          <CardHeader className="border-b bg-slate-800/50/50">
-            <CardTitle className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                <Clock className="text-slate-600" size={20} />
+        <Card className="shadow-lg border-slate-800 bg-slate-900">
+          <CardHeader className="border-b border-slate-800">
+            <CardTitle className="flex items-center gap-3 text-white">
+              <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
+                <Clock className="text-slate-400" size={20} />
               </div>
               <div>
                 <span>Cálculos Anteriores</span>
@@ -1170,18 +1170,18 @@ const Dissidio = () => {
           <CardContent className="p-4">
             <div className="space-y-3">
               {calculosAnteriores.map((calc) => (
-                <div key={calc.id} className="rounded-xl border border-slate-700 overflow-hidden hover:shadow-md transition-shadow">
+                <div key={calc.id} className="rounded-xl border border-slate-700 overflow-hidden hover:border-slate-600 transition-all">
                   <div 
-                    className="bg-gradient-to-r from-slate-50 to-slate-100 p-4 flex items-center justify-between cursor-pointer"
+                    className="bg-slate-800 p-4 flex items-center justify-between cursor-pointer hover:bg-slate-800/80"
                     onClick={() => toggleExpand(calc.id)}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-bold text-lg shadow-lg">
                         {calc.percentual_reajuste}%
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-800">{calc.cliente_nome || getClienteName(calc.cliente_id)}</p>
-                        <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
+                        <p className="font-semibold text-white">{calc.cliente_nome || getClienteName(calc.cliente_id)}</p>
+                        <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
                           <span className="flex items-center gap-1">
                             <Calendar size={12} />
                             {calc.meses_processados} mês(es)
@@ -1193,32 +1193,40 @@ const Dissidio = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       <div className="text-right">
                         <p className="text-xs text-slate-500">Total Retroativo</p>
-                        <p className="font-mono font-bold text-lg text-emerald-600">
+                        <p className="font-mono font-bold text-lg text-emerald-400">
                           R$ {calc.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
-                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); exportarExcel(calc.id); }} className="gap-1">
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); exportarExcel(calc.id); }} className="gap-1 border-slate-600 text-slate-300 hover:bg-slate-700">
                         <Download size={14} />
                         Excel
                       </Button>
-                      <div className="w-8 h-8 rounded-full bg-slate-900 shadow flex items-center justify-center">
-                        {isExpanded(calc.id) ? <ChevronUp size={18} className="text-slate-600" /> : <ChevronDown size={18} className="text-slate-600" />}
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={(e) => { e.stopPropagation(); excluirCalculo(calc.id); }} 
+                        className="gap-1 border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                      <div className="w-8 h-8 rounded-full bg-slate-700 shadow flex items-center justify-center">
+                        {isExpanded(calc.id) ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
                       </div>
                     </div>
                   </div>
                   
                   {isExpanded(calc.id) && (
-                    <div className="border-t bg-slate-900">
+                    <div className="border-t border-slate-700 bg-slate-900">
                       {/* Nota sobre impostos */}
                       {calc.impostos_excluidos && (
-                        <div className="mx-4 mt-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-3 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                            <AlertTriangle className="text-amber-600" size={16} />
+                        <div className="mx-4 mt-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                            <AlertTriangle className="text-amber-400" size={16} />
                           </div>
-                          <p className="text-xs text-amber-700">
+                          <p className="text-xs text-amber-300">
                             {calc.nota_impostos || 'INSS, IRRF e demais encargos serão calculados na competência de pagamento.'}
                           </p>
                         </div>
@@ -1226,21 +1234,21 @@ const Dissidio = () => {
                       
                       {/* Totalizadores Gerais */}
                       <div className="grid grid-cols-3 gap-4 p-4">
-                        <div className="text-center p-4 rounded-xl bg-slate-800/50 border">
-                          <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Total Era</p>
-                          <p className="font-mono font-semibold text-slate-700">
+                        <div className="text-center p-4 rounded-xl bg-slate-800 border border-slate-700">
+                          <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Total Era</p>
+                          <p className="font-mono font-semibold text-slate-200">
                             R$ {calc.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_anterior || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </p>
                         </div>
                         <div className="text-center p-4 rounded-xl bg-red-500/10 border border-red-500/30">
-                          <p className="text-xs text-red-500 uppercase tracking-wide mb-1">Total Ficou</p>
-                          <p className="font-mono font-semibold text-red-600">
+                          <p className="text-xs text-red-400 uppercase tracking-wide mb-1">Total Ficou</p>
+                          <p className="font-mono font-semibold text-red-300">
                             R$ {calc.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_novo || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </p>
                         </div>
-                        <div className="text-center p-4 rounded-xl bg-emerald-50 border border-emerald-200">
-                          <p className="text-xs text-emerald-600 uppercase tracking-wide mb-1">Total Retroativo</p>
-                          <p className="font-mono font-bold text-emerald-700">
+                        <div className="text-center p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                          <p className="text-xs text-emerald-400 uppercase tracking-wide mb-1">Total Retroativo</p>
+                          <p className="font-mono font-bold text-emerald-300">
                             R$ {calc.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </p>
                         </div>
@@ -1248,14 +1256,14 @@ const Dissidio = () => {
                       
                       {/* Memória de Cálculo por Mês */}
                       <div className="px-4 pb-4 space-y-3">
-                        <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                          <Calendar size={16} className="text-blue-600" />
+                        <p className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                          <Calendar size={16} className="text-blue-400" />
                           Memória de Cálculo por Mês
                         </p>
                         {calc.resultados_por_mes?.map((mes, mesIdx) => (
                           <div key={mesIdx} className="rounded-lg border border-slate-700 overflow-hidden">
                             <div 
-                              className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 flex items-center justify-between cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-colors"
+                              className="bg-slate-800 p-3 flex items-center justify-between cursor-pointer hover:bg-slate-700 transition-colors"
                               onClick={(e) => { e.stopPropagation(); toggleExpand(`${calc.id}-mes-${mesIdx}`); }}
                             >
                               <div className="flex items-center gap-3">
@@ -1263,69 +1271,69 @@ const Dissidio = () => {
                                   {mes.competencia?.split('/')[0]}
                                 </div>
                                 <div>
-                                  <span className="font-medium text-slate-800">{mes.competencia}</span>
-                                  <span className="text-xs text-slate-500 ml-2">({mes.colaboradores?.length} colaboradores)</span>
+                                  <span className="font-medium text-white">{mes.competencia}</span>
+                                  <span className="text-xs text-slate-400 ml-2">({mes.colaboradores?.length} colaboradores)</span>
                                 </div>
                               </div>
                               <div className="flex items-center gap-3">
-                                <span className="font-mono font-bold text-blue-700">
+                                <span className="font-mono font-bold text-blue-400">
                                   R$ {mes.total_retroativo_mes?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </span>
-                                {isExpanded(`${calc.id}-mes-${mesIdx}`) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                {isExpanded(`${calc.id}-mes-${mesIdx}`) ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
                               </div>
                             </div>
                             
                             {isExpanded(`${calc.id}-mes-${mesIdx}`) && (
-                              <div className="border-t bg-slate-900 p-3 max-h-96 overflow-y-auto">
+                              <div className="border-t border-slate-700 bg-slate-900/50 p-3 max-h-96 overflow-y-auto">
                                 <table className="w-full text-sm">
                                   <thead className="sticky top-0 bg-slate-900">
-                                    <tr className="text-xs uppercase tracking-wider text-slate-500 border-b">
+                                    <tr className="text-xs uppercase tracking-wider text-slate-400 border-b border-slate-700">
                                       <th className="text-left p-2 font-semibold">Colaborador</th>
                                       <th className="text-left p-2 font-semibold">Verba</th>
                                       <th className="text-right p-2 font-semibold">Era</th>
                                       <th className="text-center p-2 font-semibold">%</th>
                                       <th className="text-right p-2 font-semibold">Ficou</th>
-                                      <th className="text-right p-2 font-semibold text-emerald-600">Diferença</th>
+                                      <th className="text-right p-2 font-semibold text-emerald-400">Diferença</th>
                                     </tr>
                                   </thead>
-                                  <tbody className="divide-y divide-slate-100">
+                                  <tbody className="divide-y divide-slate-800">
                                     {mes.colaboradores?.map((colab, colabIdx) => (
                                       <React.Fragment key={`calc-colab-${colabIdx}`}>
                                         {colab.verbas?.map((verba, verbaIdx) => (
-                                          <tr key={`${colabIdx}-${verbaIdx}`} className="hover:bg-slate-800/50/50">
+                                          <tr key={`${colabIdx}-${verbaIdx}`} className="hover:bg-slate-800/50">
                                             {verbaIdx === 0 && (
                                               <td className="p-2 align-top" rowSpan={colab.verbas.length}>
                                                 <div className="flex items-center gap-2">
-                                                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white text-xs font-bold">
+                                                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center text-white text-xs font-bold">
                                                     {colab.nome?.charAt(0)}
                                                   </div>
-                                                  <span className="font-medium text-slate-700">{colab.nome}</span>
+                                                  <span className="font-medium text-slate-200">{colab.nome}</span>
                                                 </div>
                                               </td>
                                             )}
-                                            <td className="p-2 text-slate-600 capitalize">{verba.verba?.replace(/_/g, ' ')}</td>
-                                            <td className="p-2 text-right font-mono text-slate-500">
+                                            <td className="p-2 text-slate-300 capitalize">{verba.verba?.replace(/_/g, ' ')}</td>
+                                            <td className="p-2 text-right font-mono text-slate-400">
                                               {(verba.valor_anterior || verba.valor_original)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                             </td>
                                             <td className="p-2 text-center">
-                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-500/20 text-red-600 text-xs font-medium">
+                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 text-xs font-medium">
                                                 +{calc.percentual_reajuste}%
                                               </span>
                                             </td>
-                                            <td className="p-2 text-right font-mono text-red-500">
+                                            <td className="p-2 text-right font-mono text-red-400">
                                               {verba.valor_novo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '-'}
                                             </td>
-                                            <td className="p-2 text-right font-mono text-emerald-600 font-semibold">
+                                            <td className="p-2 text-right font-mono text-emerald-400 font-semibold">
                                               +{verba.diferenca?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                             </td>
                                           </tr>
                                         ))}
                                         {/* Subtotal por colaborador */}
                                         <tr className="bg-slate-800/50">
-                                          <td className="p-2 text-right text-xs text-slate-500 font-medium" colSpan={5}>
+                                          <td className="p-2 text-right text-xs text-slate-400 font-medium" colSpan={5}>
                                             Subtotal {colab.nome?.split(' ')[0]}:
                                           </td>
-                                          <td className="p-2 text-right font-mono text-sm text-emerald-700 font-bold">
+                                          <td className="p-2 text-right font-mono text-sm text-emerald-400 font-bold">
                                             R$ {colab.retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                           </td>
                                         </tr>
