@@ -925,6 +925,53 @@ const Dissidio = () => {
             </div>
           )}
 
+          {/* Alertas de Piso Salarial */}
+          {calculoResult.alertas_piso && calculoResult.alertas_piso.length > 0 && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="text-red-400" size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-red-300">
+                    ⚠ Atenção: {calculoResult.alertas_piso.length} colaborador(es) com salário abaixo do piso
+                  </p>
+                  <p className="text-xs text-red-400/80 mt-0.5">
+                    Os seguintes colaboradores estão com salário inferior ao piso salarial da convenção:
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2 mt-3">
+                {calculoResult.alertas_piso.map((alerta, idx) => (
+                  <div key={idx} className="bg-red-500/5 border border-red-500/20 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-white">{alerta.colaborador}</p>
+                        <p className="text-xs text-slate-400">
+                          Cargo: {alerta.cargo_colaborador || alerta.cargo || 'Não informado'} • Piso: {alerta.funcao_piso}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-400">Salário calculado vs Piso</p>
+                        <p className="font-mono">
+                          <span className="text-red-400">R$ {alerta.salario_calculado?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          <span className="text-slate-500 mx-1">&lt;</span>
+                          <span className="text-emerald-400">R$ {alerta.piso_aplicavel?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        </p>
+                        <p className="text-xs text-red-300 mt-0.5">
+                          Diferença: R$ {alerta.diferenca?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-red-400/70 mt-2 italic">
+                Recomendação: Verifique se estes colaboradores precisam de ajuste salarial para atingir o piso da convenção.
+              </p>
+            </div>
+          )}
+
           {/* Resumo Geral por Colaborador */}
           <Card className="shadow-lg border-slate-800 bg-slate-900">
             <CardHeader className="border-b border-slate-800">
