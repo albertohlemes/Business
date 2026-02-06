@@ -253,26 +253,35 @@ const ApuracaoMensal = ({ user, onLogout }) => {
         }
       };
       
-      // Preparar dados de ENTRADAS
-      const entradasData = dados.entradas.map(nota => ({
-        'NF': nota.numero_nfe,
-        'Data': formatDate(nota.data_emissao),
-        'Emitente': (nota.emitente_nome || '').substring(0, 40),
-        'CNPJ Emitente': nota.emitente_cnpj,
-        'CFOP Principal': nota.cfop_principal,
-        'Valor Total': nota.valor_total,
-        'Status': nota.status,
-        'Motivo Cancel.': nota.xMotivo_cancelamento || ''
-      }));
+      // Preparar dados de ENTRADAS com mais detalhes
+      const entradasData = dados.entradas.map(nota => {
+        // Calcular totais dos CFOPs detalhados
+        let totalIcmsSt = 0;
+        let totalIpi = 0;
+        nota.cfops_detalhados?.forEach(c => {
+          totalIcmsSt += c.v_icms_st || 0;
+        });
+        
+        return {
+          'NF': nota.numero_nfe,
+          'Data': formatDate(nota.data_emissao),
+          'Emitente': (nota.emitente_nome || '').substring(0, 40),
+          'CNPJ Emitente': nota.emitente_cnpj,
+          'CFOP Principal': nota.cfop_principal,
+          'Valor NF': nota.valor_total,
+          'Status': nota.status,
+          'Motivo Cancel.': nota.xMotivo_cancelamento || ''
+        };
+      });
       
-      // Preparar dados de SAÍDAS
+      // Preparar dados de SAÍDAS com mais detalhes
       const saidasData = dados.saidas.map(nota => ({
         'NF': nota.numero_nfe,
         'Data': formatDate(nota.data_emissao),
         'Destinatário': (nota.destinatario_nome || '').substring(0, 40),
         'CNPJ Destinatário': nota.destinatario_cnpj,
         'CFOP Principal': nota.cfop_principal,
-        'Valor Total': nota.valor_total,
+        'Valor NF': nota.valor_total,
         'Status': nota.status,
         'Motivo Cancel.': nota.xMotivo_cancelamento || ''
       }));
@@ -340,6 +349,93 @@ const ApuracaoMensal = ({ user, onLogout }) => {
     } catch (err) {
       console.error('Erro ao exportar relação de notas:', err);
       setError('Erro ao exportar relação de notas');
+    }
+  };
+  
+  // Função para exportar Relação de Notas DETALHADA (com IPI, ST, etc)
+  const exportRelacaoNotasDetalhada = async () => {
+    if (!selectedCompany || !selectedCompetencia) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/relacao-notas-detalhada/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}&incluir_canceladas=true`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      const dados = response.data;
+      const wb = XLSX.utils.book_new();
+      const empresa = selectedCompany?.razao_social || 'Empresa';
+      const competencia = selectedCompetencia || 'Competencia';
+      
+      // Função para formatar data
+      const formatDate = (dateStr) => {
+        if (!dateStr) return '';
+        try {
+          const date = new Date(dateStr);
+          return date.toLocaleDateString('pt-BR');
+        } catch {
+          return dateStr.split('T')[0] || dateStr;
+        }
+      };
+      
+      // Preparar dados de ENTRADAS com detalhamento
+      const entradasData = dados.entradas.map(nota => ({
+        'NF': nota.numero_nfe,
+        'Data': formatDate(nota.data_emissao),
+        'Emitente': (nota.emitente_nome || '').substring(0, 35),
+        'CNPJ': nota.emitente_cnpj,
+        'CFOP': nota.cfop_principal,
+        'Valor NF': nota.valor_total,
+        'vProd': nota.total_valor_produto,
+        'vIPI': nota.total_ipi,
+        'vST': nota.total_icms_st,
+        'vFrete': nota.total_frete,
+        'vDesc': nota.total_desconto,
+        'Status': nota.status
+      }));
+      
+      // Preparar dados de SAÍDAS com detalhamento
+      const saidasData = dados.saidas.map(nota => ({
+        'NF': nota.numero_nfe,
+        'Data': formatDate(nota.data_emissao),
+        'Destinatário': (nota.destinatario_nome || '').substring(0, 35),
+        'CNPJ': nota.destinatario_cnpj,
+        'CFOP': nota.cfop_principal,
+        'Valor NF': nota.valor_total,
+        'vProd': nota.total_valor_produto,
+        'vIPI': nota.total_ipi,
+        'vST': nota.total_icms_st,
+        'vFrete': nota.total_frete,
+        'vDesc': nota.total_desconto,
+        'Status': nota.status
+      }));
+      
+      // Criar planilhas
+      if (entradasData.length > 0) {
+        const wsEntradas = XLSX.utils.json_to_sheet(entradasData);
+        wsEntradas['!cols'] = [
+          { wch: 10 }, { wch: 11 }, { wch: 35 }, { wch: 16 }, { wch: 8 },
+          { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
+        ];
+        XLSX.utils.book_append_sheet(wb, wsEntradas, 'Entradas Detalhadas');
+      }
+      
+      if (saidasData.length > 0) {
+        const wsSaidas = XLSX.utils.json_to_sheet(saidasData);
+        wsSaidas['!cols'] = [
+          { wch: 10 }, { wch: 11 }, { wch: 35 }, { wch: 16 }, { wch: 8 },
+          { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
+        ];
+        XLSX.utils.book_append_sheet(wb, wsSaidas, 'Saídas Detalhadas');
+      }
+      
+      XLSX.writeFile(wb, `Relacao_Notas_Detalhada_${empresa.substring(0, 15)}_${competencia.replace('/', '-')}.xlsx`);
+      setShowExportModal(false);
+      
+    } catch (err) {
+      console.error('Erro ao exportar relação detalhada:', err);
+      setError('Erro ao exportar relação de notas detalhada');
     }
   };
   
