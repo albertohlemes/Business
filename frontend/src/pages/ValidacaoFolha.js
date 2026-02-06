@@ -50,6 +50,9 @@ const ValidacaoFolha = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleting, setDeleting] = useState(false);
   
+  // Itens fixos
+  const [itensFixos, setItensFixos] = useState([]);
+  
   // Filters
   const [filterCliente, setFilterCliente] = useState('all');
   const [filterCompetencia, setFilterCompetencia] = useState('');
@@ -72,6 +75,44 @@ const ValidacaoFolha = () => {
       setAnoReferencia(ano);
     }
   }, [empresaSelecionada, competenciaSelecionada]);
+
+  // Carregar itens fixos
+  const fetchItensFixos = async (clienteId) => {
+    try {
+      const res = await axios.get(`${API_URL}/api/itens-fixos?cliente_id=${clienteId}`);
+      setItensFixos(res.data);
+    } catch (error) {
+      console.error('Erro ao carregar itens fixos:', error);
+    }
+  };
+
+  // Marcar item como fixo
+  const marcarComoFixo = async (clienteId, clienteNome, colaboradorNome, campo, descricao) => {
+    try {
+      await axios.post(`${API_URL}/api/itens-fixos`, {
+        cliente_id: clienteId,
+        cliente_nome: clienteNome,
+        colaborador_nome: colaboradorNome,
+        campo: campo.toLowerCase().replace(/ /g, '_'),
+        descricao: descricao || `${campo} - Item recorrente`
+      });
+      toast.success(`"${campo}" marcado como item fixo`);
+      fetchItensFixos(clienteId);
+    } catch (error) {
+      toast.error('Erro ao marcar como fixo');
+    }
+  };
+
+  // Remover item fixo
+  const removerItemFixo = async (itemId, clienteId) => {
+    try {
+      await axios.delete(`${API_URL}/api/itens-fixos/${itemId}`);
+      toast.success('Item fixo removido');
+      fetchItensFixos(clienteId);
+    } catch (error) {
+      toast.error('Erro ao remover item fixo');
+    }
+  };
 
   const fetchData = async () => {
     try {
