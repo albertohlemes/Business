@@ -373,14 +373,17 @@ const Dissidio = () => {
                 <Input 
                   value={convencaoData.data_base || ''} 
                   onChange={(e) => {
-                    const newDataBase = e.target.value;
+                    let value = e.target.value.replace(/\D/g, '');
+                    if (value.length > 6) value = value.slice(0, 6);
+                    if (value.length > 2) value = value.slice(0, 2) + '/' + value.slice(2);
                     setConvencaoData(prev => ({
                       ...prev, 
-                      data_base: newDataBase,
-                      meses_retroativos: calcularMesesRetroativos(newDataBase, prev.mes_convencao)
+                      data_base: value,
+                      meses_retroativos: calcularMesesRetroativos(value, prev.mes_convencao)
                     }));
                   }}
-                  placeholder="05/2025"
+                  placeholder="MM/AAAA"
+                  maxLength={7}
                   className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                 />
               </div>
