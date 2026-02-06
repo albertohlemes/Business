@@ -2110,17 +2110,14 @@ async def exportar_convencao_pdf(
         elements.append(Spacer(1, 10))
     
     # === PENALIDADES E MULTAS ===
-    if penalidades and (penalidades.get("multa_descumprimento_geral") or penalidades.get("multa_descumprimento")):
+    multa_desc = penalidades.get("multa_descumprimento_geral", {}) or penalidades.get("multa_descumprimento", {}) or {}
+    if multa_desc.get("valor"):
         elements.append(Paragraph("⚖️ PENALIDADES E MULTAS", section_style_color(RED)))
-        
-        multa_desc = penalidades.get("multa_descumprimento_geral", {}) or penalidades.get("multa_descumprimento", {})
-        if multa_desc.get("valor"):
-            elements.append(Paragraph(f"<b>Multa por Descumprimento: {format_currency(multa_desc.get('valor'))}</b>", alert_style))
-            if multa_desc.get("por_empregado"):
-                elements.append(Paragraph("   • Por empregado prejudicado", normal_style))
-            if multa_desc.get("dobra_reincidencia"):
-                elements.append(Paragraph("   • Dobra em caso de reincidência", normal_style))
-        
+        elements.append(Paragraph(f"<b>Multa por Descumprimento: {format_currency(multa_desc.get('valor'))}</b>", alert_style))
+        if multa_desc.get("por_empregado"):
+            elements.append(Paragraph("   • Por empregado prejudicado", normal_style))
+        if multa_desc.get("dobra_reincidencia"):
+            elements.append(Paragraph("   • Dobra em caso de reincidência", normal_style))
         elements.append(Spacer(1, 10))
     
     # === OBSERVAÇÕES GERAIS ===
