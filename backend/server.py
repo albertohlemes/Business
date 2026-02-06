@@ -6250,12 +6250,6 @@ Retorne APENAS JSON:
     "observacoes": "Resumo geral"
 }}"""
             ).with_model("gemini", "gemini-2.0-flash")
-    ],
-    "variaveis_encontradas_no_apoio": ["Lista do que encontrou no apoio"],
-    "alertas": ["Alertas importantes"],
-    "observacoes": "Resumo da análise"
-}}"""
-            ).with_model("gemini", "gemini-2.0-flash")
             
             # Processar arquivos - extrair Excel como texto, enviar PDF/imagens normalmente
             file_contents = []
@@ -6264,13 +6258,20 @@ Retorne APENAS JSON:
                 suffix = tf["suffix"]
                 
                 if suffix in ['.xlsx', '.xls']:
-                    # Extrair conteúdo do Excel como texto
+                    # Extrair conteúdo do Excel como texto formatado
                     try:
                         wb = load_workbook(tf["path"])
                         ws = wb.active
-                        excel_text = f"\n=== Conteúdo de {tf['name']} ===\n"
-                        for row in ws.iter_rows(min_row=1, max_row=min(200, ws.max_row), values_only=True):
-                            excel_text += " | ".join([str(c) if c else "" for c in row]) + "\n"
+                        excel_text = f"\n=== DADOS DO ARQUIVO: {tf['name']} ===\n"
+                        # Pegar cabeçalhos
+                        headers = [str(ws.cell(row=1, column=c).value or "") for c in range(1, min(20, ws.max_column + 1))]
+                        excel_text += "| " + " | ".join(headers) + " |\n"
+                        excel_text += "|" + "---|" * len(headers) + "\n"
+                        # Pegar dados
+                        for row in range(2, min(100, ws.max_row + 1)):
+                            row_data = [str(ws.cell(row=row, column=c).value or "") for c in range(1, min(20, ws.max_column + 1))]
+                            if any(row_data):
+                                excel_text += "| " + " | ".join(row_data) + " |\n"
                         excel_contents.append(excel_text)
                     except Exception as e:
                         excel_contents.append(f"\n=== Erro ao ler {tf['name']}: {str(e)} ===\n")
@@ -6287,16 +6288,17 @@ Retorne APENAS JSON:
             extra_text = "".join(excel_contents)
             
             response = await chat.send_message(UserMessage(
-                text=f"""Analise este ARQUIVO DE APOIO e compare com os dados do TERMO que já informei acima.
+                text=f"""Analise o ARQUIVO DE APOIO abaixo e compare com os dados do TERMO.
 
-ARQUIVO DE APOIO ENVIADO:
-{extra_text if extra_text else "(Arquivo em anexo - analise a imagem/PDF)"}
+=== ARQUIVO DE APOIO ===
+{extra_text if extra_text else "(Analise o arquivo anexado - imagem/PDF)"}
 
-LEMBRE-SE:
-- Os dados do TERMO já estão no contexto acima (colaborador, datas, verbas, descontos, totais)
-- Compare o que está no APOIO com o que está no TERMO
-- Aponte divergências APENAS se houver diferença real entre apoio e termo
-- NÃO diga que algo não está no termo se eu já informei os dados acima""",
+INSTRUÇÕES:
+1. Liste os dados que você encontrou no apoio (HE, faltas, adicionais, etc.)
+2. Compare cada item com os dados do TERMO que informei no contexto
+3. IGNORE impostos (INSS, IRRF) - não precisa validar
+4. Aponte divergência APENAS se o valor do apoio for DIFERENTE do termo
+5. Se encontrar HE/faltas/adicionais no apoio, verifique se há valor correspondente no termo""",
                 file_contents=file_contents if file_contents else None
             ))
             
