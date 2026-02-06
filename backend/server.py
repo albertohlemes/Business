@@ -555,11 +555,33 @@ def parse_xml_evento_cancelamento(xml_content: str) -> Dict[str, Any]:
 def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
     try:
         data = xmltodict.parse(xml_content)
-        nfe = data.get('nfeProc', {}).get('NFe', {}).get('infNFe', {})
+        nfe_proc = data.get('nfeProc', {})
+        nfe = nfe_proc.get('NFe', {}).get('infNFe', {})
         if not nfe:
             nfe = data.get('NFe', {}).get('infNFe', {})
         if not nfe:
             raise ValueError("Estrutura de XML NFe inválida")
+        
+        # ===== VERIFICAR STATUS DE CANCELAMENTO NO PROTOCOLO =====
+        # O status de cancelamento (cStat=101 ou 151) pode estar em protNFe.infProt
+        cancelada = False
+        dados_cancelamento = {}
+        prot_nfe = nfe_proc.get('protNFe', {})
+        if prot_nfe:
+            inf_prot = prot_nfe.get('infProt', {})
+            if inf_prot:
+                c_stat = str(inf_prot.get('cStat', ''))
+                # 101 = Cancelamento homologado
+                # 151 = Cancelamento homologado fora de prazo (extemporâneo)
+                if c_stat in ['101', '151']:
+                    cancelada = True
+                    dados_cancelamento = {
+                        'cancelada': True,
+                        'cStat_cancelamento': c_stat,
+                        'xMotivo_cancelamento': inf_prot.get('xMotivo', ''),
+                        'dhRecbto_cancelamento': inf_prot.get('dhRecbto', ''),
+                        'nProt_cancelamento': inf_prot.get('nProt', '')
+                    }
         
         ide = nfe.get('ide', {})
         emit = nfe.get('emit', {})
