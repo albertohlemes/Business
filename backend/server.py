@@ -6250,9 +6250,17 @@ Retorne APENAS um JSON válido:
             extra_text = "".join(excel_contents)
             
             response = await chat.send_message(UserMessage(
-                text=f"""Compare estes apontamentos de apoio com os dados do termo de rescisão. 
-Verifique se todas as variáveis foram lançadas corretamente.
-{extra_text}""",
+                text=f"""Analise o arquivo de APOIO abaixo e compare com os dados do TERMO DE RESCISÃO que já foram fornecidos.
+
+ARQUIVO DE APOIO:
+{extra_text if extra_text else "(Veja os arquivos anexados)"}
+
+INSTRUÇÕES:
+1. Identifique todas as variáveis/eventos no arquivo de apoio (horas extras, comissões, adicionais, faltas, etc.)
+2. Verifique se essas variáveis estão CORRETAMENTE refletidas no termo
+3. Aponte divergências APENAS quando o apoio mostrar algo DIFERENTE do termo
+4. Se o termo está correto conforme o apoio, liste em "itens_validados"
+""",
                 file_contents=file_contents if file_contents else None
             ))
             
@@ -6266,11 +6274,22 @@ Verifique se todas as variáveis foram lançadas corretamente.
             
             dados = json.loads(response_text.strip())
             
+            # Normalizar divergencias para o formato esperado pelo frontend
+            divergencias = []
+            for div in dados.get("divergencias", []):
+                divergencias.append({
+                    "item": div.get("item", ""),
+                    "valor_informado": div.get("valor_no_termo", div.get("valor_informado", "")),
+                    "valor_esperado": div.get("valor_no_apoio", div.get("valor_esperado", "")),
+                    "observacao": div.get("observacao", "")
+                })
+            
             return {
                 "success": True,
                 "etapa": 2,
                 "itens_validados": dados.get("itens_validados", []),
-                "divergencias": dados.get("divergencias", []),
+                "divergencias": divergencias,
+                "variaveis_no_apoio": dados.get("variaveis_no_apoio", []),
                 "alertas": dados.get("alertas", []),
                 "observacoes": dados.get("observacoes", "")
             }
