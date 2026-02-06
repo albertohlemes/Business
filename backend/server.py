@@ -631,93 +631,455 @@ async def upload_convencao_coletiva(
             chat = LlmChat(
                 api_key=api_key,
                 session_id=f"convencao-{cliente_id}-{uuid.uuid4()}",
-                system_message="""Voce e um especialista em direito trabalhista e convencoes coletivas.
-Analise a Convencao Coletiva de Trabalho (CCT) e extraia TODOS os dados importantes.
+                system_message="""Voce e um ESPECIALISTA em direito trabalhista e convencoes coletivas brasileiras.
+Analise esta Convencao Coletiva de Trabalho (CCT) MINUCIOSAMENTE e extraia ABSOLUTAMENTE TODOS os dados importantes.
+Seja EXTREMAMENTE DETALHADO. Cada informacao que impacte a relacao empregador-empregado deve ser extraida.
 
-Retorne APENAS um JSON valido com a seguinte estrutura:
+INSTRUCOES IMPORTANTES:
+- Extraia TODAS as clausulas, mesmo as que parecem menos importantes
+- Inclua TODOS os valores monetarios mencionados
+- Detalhe TODAS as condicoes e restricoes
+- Mencione TODOS os prazos e datas
+- Liste TODAS as funcoes/cargos com pisos especificos
+- Descreva TODAS as situacoes de estabilidade
+- Informe TODOS os periodos de garantia de emprego (quando nao pode demitir)
+- Extraia TODAS as formas de calculo mencionadas
+
+Retorne APENAS um JSON valido com a seguinte estrutura COMPLETA:
 {
     "identificacao": {
-        "sindicato_laboral": "Nome do sindicato dos trabalhadores",
-        "sindicato_patronal": "Nome do sindicato patronal",
-        "cnpj_sindicato_laboral": "",
-        "cnpj_sindicato_patronal": "",
-        "abrangencia": "Categoria profissional abrangida",
-        "base_territorial": "Municipios/regioes abrangidas"
+        "sindicato_laboral": "Nome completo do sindicato dos trabalhadores",
+        "sindicato_patronal": "Nome completo do sindicato patronal/empresarial",
+        "cnpj_sindicato_laboral": "XX.XXX.XXX/XXXX-XX",
+        "cnpj_sindicato_patronal": "XX.XXX.XXX/XXXX-XX",
+        "numero_registro_mte": "Numero de registro no MTE se houver",
+        "abrangencia": "Categoria profissional abrangida (ex: comerciarios, metalurgicos)",
+        "base_territorial": "Municipios e regioes abrangidas",
+        "empresas_abrangidas": "Descricao das empresas que se enquadram"
     },
     "vigencia": {
         "data_inicio": "DD/MM/AAAA",
         "data_fim": "DD/MM/AAAA",
-        "data_base": "Mes da data base (ex: Janeiro, Marco)",
+        "data_base": "Mes da data base (ex: Janeiro, Maio)",
         "duracao_meses": 12,
-        "status": "vigente/vencida/a_vencer"
+        "prorrogacao_automatica": "Sim/Nao e condicoes",
+        "observacoes": "Outras informacoes sobre vigencia"
     },
-    "reajuste": {
-        "percentual_reajuste": 0.0,
-        "tipo_reajuste": "linear/escalonado",
+    "reajuste_salarial": {
+        "percentual": 0.0,
+        "tipo": "linear/escalonado/por_faixa",
+        "data_aplicacao": "DD/MM/AAAA",
         "retroativo": true,
         "data_retroativo": "DD/MM/AAAA ou null",
+        "forma_calculo": "Descricao de como calcular o reajuste",
         "tabela_proporcionalidade": [
-            {"mes_admissao": "Janeiro", "percentual": 100},
-            {"mes_admissao": "Fevereiro", "percentual": 91.67}
-        ]
-    },
-    "piso_salarial": {
-        "valor_geral": 0.00,
-        "pisos_por_funcao": [
-            {"funcao": "Auxiliar", "valor": 0.00},
-            {"funcao": "Assistente", "valor": 0.00}
+            {"mes_admissao": "Janeiro", "percentual": 100, "observacao": ""},
+            {"mes_admissao": "Fevereiro", "percentual": 91.67, "observacao": ""}
         ],
-        "observacoes_piso": ""
+        "reajuste_por_faixa": [
+            {"faixa_de": 0, "faixa_ate": 3000, "percentual": 0, "valor_fixo": 0}
+        ],
+        "observacoes": "Outras regras de reajuste"
+    },
+    "pisos_salariais": {
+        "piso_geral": 0.00,
+        "piso_geral_hora": 0.00,
+        "pisos_por_funcao": [
+            {"funcao": "Nome da funcao/cargo", "valor": 0.00, "carga_horaria": "44h", "requisitos": "", "observacoes": ""}
+        ],
+        "pisos_por_nivel": [
+            {"nivel": "Junior/Pleno/Senior", "valor": 0.00, "tempo_experiencia": ""}
+        ],
+        "forma_reajuste_piso": "Como o piso e reajustado anualmente",
+        "observacoes": "Outras regras sobre pisos"
     },
     "beneficios": {
-        "vale_refeicao": {"valor": 0.00, "desconto_permitido": "0%", "observacoes": ""},
-        "vale_alimentacao": {"valor": 0.00, "desconto_permitido": "0%", "observacoes": ""},
-        "vale_transporte": {"desconto_maximo": "6%", "observacoes": ""},
-        "plano_saude": {"tipo": "", "coparticipacao": "", "observacoes": ""},
-        "seguro_vida": {"valor_minimo": 0.00, "observacoes": ""},
-        "auxilio_creche": {"valor": 0.00, "idade_limite": "", "observacoes": ""},
-        "cesta_basica": {"valor": 0.00, "observacoes": ""},
-        "outros_beneficios": []
+        "vale_refeicao": {
+            "valor_diario": 0.00,
+            "valor_mensal": 0.00,
+            "desconto_permitido": "0%",
+            "dias_pagos": "dias uteis/dias trabalhados/todos os dias",
+            "fornecimento": "Ticket/Cartao/Refeitorio",
+            "observacoes": ""
+        },
+        "vale_alimentacao": {
+            "valor": 0.00,
+            "periodicidade": "mensal/quinzenal",
+            "desconto_permitido": "0%",
+            "forma_fornecimento": "",
+            "observacoes": ""
+        },
+        "cesta_basica": {
+            "valor": 0.00,
+            "tipo": "fisica/cartao/dinheiro",
+            "periodicidade": "mensal",
+            "condicoes": "Assiduidade, sem faltas, etc",
+            "observacoes": ""
+        },
+        "vale_transporte": {
+            "desconto_maximo": "6%",
+            "base_calculo": "salario base/salario total",
+            "antecipacao": "dias de antecedencia",
+            "observacoes": ""
+        },
+        "plano_saude": {
+            "obrigatorio": false,
+            "tipo": "individual/familiar/enfermaria/apartamento",
+            "coparticipacao": "percentual ou valor",
+            "carencia": "prazo",
+            "extensao_dependentes": "Condicoes para incluir dependentes",
+            "manutencao_demitidos": "Prazo apos demissao",
+            "observacoes": ""
+        },
+        "plano_odontologico": {
+            "obrigatorio": false,
+            "tipo": "",
+            "valor_desconto": 0.00,
+            "observacoes": ""
+        },
+        "seguro_vida": {
+            "obrigatorio": false,
+            "valor_cobertura_minimo": 0.00,
+            "coberturas": "morte, invalidez, etc",
+            "custeio": "empresa/compartilhado",
+            "observacoes": ""
+        },
+        "auxilio_creche": {
+            "valor": 0.00,
+            "idade_limite": "ate X meses/anos",
+            "sexo": "ambos/apenas maes",
+            "alternativa": "creche propria/convenio",
+            "observacoes": ""
+        },
+        "auxilio_educacao": {
+            "valor": 0.00,
+            "tipo": "reembolso/bolsa",
+            "niveis_cobertos": "fundamental/medio/superior/pos",
+            "observacoes": ""
+        },
+        "auxilio_funeral": {
+            "valor": 0.00,
+            "beneficiarios": "empregado/dependentes",
+            "observacoes": ""
+        },
+        "outros_beneficios": [
+            {"nome": "", "valor": 0.00, "condicoes": "", "observacoes": ""}
+        ]
     },
     "jornada_trabalho": {
         "carga_horaria_semanal": 44,
         "carga_horaria_mensal": 220,
-        "intervalo_minimo": "1 hora",
-        "banco_horas": {"permitido": true, "prazo_compensacao": "6 meses"},
-        "hora_extra_50": {"percentual": 50, "observacoes": ""},
-        "hora_extra_100": {"percentual": 100, "observacoes": "Domingos e feriados"},
-        "adicional_noturno": {"percentual": 20, "horario": "22h as 5h"},
-        "dsr": {"observacoes": ""}
+        "carga_horaria_diaria": "8h/7h20",
+        "escala_permitida": "5x2, 6x1, 12x36, etc",
+        "intervalo_refeicao": {
+            "minimo": "1 hora",
+            "maximo": "2 horas",
+            "reducao_permitida": "Condicoes para reduzir",
+            "observacoes": ""
+        },
+        "intervalo_interjornada": "11 horas",
+        "trabalho_aos_domingos": {
+            "permitido": false,
+            "folga_compensatoria": "Regras",
+            "adicional": "percentual",
+            "escala_revezamento": "",
+            "observacoes": ""
+        },
+        "trabalho_aos_feriados": {
+            "permitido": false,
+            "adicional": 100,
+            "folga_compensatoria": "",
+            "observacoes": ""
+        },
+        "hora_extra": {
+            "percentual_dias_uteis": 50,
+            "percentual_sabados": 50,
+            "percentual_domingos": 100,
+            "percentual_feriados": 100,
+            "limite_diario": "2 horas",
+            "limite_mensal": "",
+            "autorizacao_necessaria": "",
+            "forma_pagamento": "folha/banco de horas",
+            "observacoes": ""
+        },
+        "adicional_noturno": {
+            "percentual": 20,
+            "horario_inicio": "22:00",
+            "horario_fim": "05:00",
+            "hora_noturna_reduzida": "52min30seg",
+            "prorrogacao": "Regras para hora extra noturna",
+            "observacoes": ""
+        },
+        "banco_horas": {
+            "permitido": false,
+            "prazo_compensacao": "6 meses/1 ano",
+            "acordo_individual": "Permitido sim/nao",
+            "limite_credito": "horas maximas acumuladas",
+            "limite_debito": "horas maximas negativas",
+            "forma_compensacao": "",
+            "quitacao_rescisao": "Como fica na demissao",
+            "observacoes": ""
+        },
+        "sobreaviso": {
+            "valor_hora": 0.00,
+            "percentual": "33%",
+            "observacoes": ""
+        },
+        "observacoes": ""
     },
-    "descontos_autorizados": {
-        "contribuicao_sindical": {"obrigatoria": false, "percentual": 0, "observacoes": ""},
-        "contribuicao_assistencial": {"valor": 0.00, "periodicidade": "", "observacoes": ""},
-        "taxa_negocial": {"valor": 0.00, "observacoes": ""},
-        "outros_descontos": []
+    "descontos": {
+        "contribuicao_sindical": {
+            "obrigatoria": false,
+            "percentual": 0,
+            "valor_fixo": 0.00,
+            "mes_desconto": "Marco",
+            "autorizacao_necessaria": "Sim, por escrito",
+            "observacoes": ""
+        },
+        "contribuicao_assistencial": {
+            "valor": 0.00,
+            "percentual": 0,
+            "periodicidade": "mensal/anual/semestral",
+            "parcelas": 0,
+            "oposicao": "Como se opor ao desconto",
+            "observacoes": ""
+        },
+        "taxa_negocial": {
+            "valor": 0.00,
+            "percentual": 0,
+            "finalidade": "",
+            "observacoes": ""
+        },
+        "mensalidade_sindical": {
+            "percentual": 0,
+            "valor": 0.00,
+            "apenas_sindicalizados": true,
+            "observacoes": ""
+        },
+        "descontos_permitidos": [
+            {"tipo": "Farmacia/Supermercado/etc", "limite_percentual": 0, "autorizacao": "", "observacoes": ""}
+        ],
+        "limite_total_descontos": "30% do salario liquido",
+        "observacoes": ""
     },
-    "estabilidades": {
-        "gestante": {"meses_apos_parto": 5, "observacoes": ""},
-        "acidente_trabalho": {"meses_apos_alta": 12, "observacoes": ""},
-        "pre_aposentadoria": {"meses_antes": 24, "tempo_minimo_empresa": "5 anos", "observacoes": ""},
-        "outras_estabilidades": []
+    "estabilidades_garantias": {
+        "gestante": {
+            "periodo": "Da confirmacao ate 5 meses apos parto",
+            "meses_apos_parto": 5,
+            "extensao_aborto": "",
+            "observacoes": ""
+        },
+        "acidente_trabalho": {
+            "periodo": "12 meses apos alta medica",
+            "meses_apos_alta": 12,
+            "doenca_ocupacional": "Equiparada a acidente",
+            "observacoes": ""
+        },
+        "pre_aposentadoria": {
+            "periodo": "24 meses antes da aposentadoria",
+            "meses_antes": 24,
+            "tempo_minimo_empresa": "5 anos",
+            "tipo_aposentadoria": "Qualquer/apenas integral",
+            "observacoes": ""
+        },
+        "retorno_ferias": {
+            "dias": 30,
+            "observacoes": ""
+        },
+        "servico_militar": {
+            "periodo": "",
+            "observacoes": ""
+        },
+        "membro_cipa": {
+            "periodo": "Durante mandato e 1 ano apos",
+            "observacoes": ""
+        },
+        "dirigente_sindical": {
+            "periodo": "",
+            "numero_protegidos": 0,
+            "observacoes": ""
+        },
+        "outras_estabilidades": [
+            {"tipo": "", "periodo": "", "condicoes": "", "observacoes": ""}
+        ],
+        "periodos_vedados_demissao": [
+            {"periodo": "30 dias antes da data base", "excecao": "Justa causa", "observacoes": ""},
+            {"periodo": "Dezembro (13o)", "excecao": "", "observacoes": ""}
+        ],
+        "observacoes": ""
     },
-    "rescisao": {
-        "aviso_previo_adicional": {"dias_por_ano": 3, "limite_maximo": 90, "observacoes": ""},
-        "multa_adicional_rescisao": {"valor": 0.00, "situacoes": "", "observacoes": ""},
-        "homologacao": {"obrigatoria_sindicato": false, "prazo": "", "observacoes": ""}
+    "rescisao_contrato": {
+        "aviso_previo": {
+            "dias_base": 30,
+            "adicional_por_ano": 3,
+            "limite_maximo_dias": 90,
+            "trabalhado_ou_indenizado": "Regras",
+            "reducao_jornada": "2 horas ou 7 dias corridos",
+            "observacoes": ""
+        },
+        "multa_rescisoria_adicional": {
+            "valor": 0.00,
+            "percentual_salario": 0,
+            "situacoes_aplicaveis": "Dispensa imotivada no periodo X",
+            "observacoes": ""
+        },
+        "homologacao": {
+            "obrigatoria_sindicato": false,
+            "tempo_servico_minimo": "1 ano",
+            "prazo_pagamento": "10 dias",
+            "documentos_necessarios": "",
+            "observacoes": ""
+        },
+        "carta_referencia": {
+            "obrigatoria": false,
+            "prazo_entrega": "",
+            "observacoes": ""
+        },
+        "dispensa_coletiva": {
+            "comunicacao_previa": "30 dias ao sindicato",
+            "negociacao_obrigatoria": true,
+            "observacoes": ""
+        },
+        "observacoes": ""
     },
     "ferias": {
-        "inicio_periodo": "Nao pode iniciar 2 dias antes de feriado/DSR",
-        "abono_pecuniario": {"permitido": true, "observacoes": ""},
-        "fracionamento": {"permitido": true, "minimo_dias": 14, "observacoes": ""}
+        "periodo_concessao": "Regras sobre quando conceder",
+        "vedacoes_inicio": "Nao pode iniciar em sabado, domingo, feriado ou 2 dias antes",
+        "comunicacao_previa": "30 dias de antecedencia",
+        "abono_pecuniario": {
+            "permitido": true,
+            "prazo_solicitacao": "15 dias antes do periodo",
+            "observacoes": ""
+        },
+        "fracionamento": {
+            "permitido": true,
+            "numero_periodos": 3,
+            "minimo_dias_periodo": 14,
+            "acordo_empregado": "Necessario concordancia",
+            "observacoes": ""
+        },
+        "ferias_coletivas": {
+            "comunicacao_previa": "15 dias",
+            "comunicacao_sindicato": true,
+            "observacoes": ""
+        },
+        "adicional_ferias": "1/3 constitucional",
+        "observacoes": ""
+    },
+    "13_salario": {
+        "primeira_parcela": {
+            "prazo": "Ate 30 de novembro",
+            "percentual": 50,
+            "antecipacao_ferias": "Pode solicitar junto com ferias",
+            "observacoes": ""
+        },
+        "segunda_parcela": {
+            "prazo": "Ate 20 de dezembro",
+            "observacoes": ""
+        },
+        "observacoes": ""
+    },
+    "licencas_afastamentos": {
+        "licenca_paternidade": {
+            "dias": 5,
+            "empresa_cidada": "20 dias se empresa cidada",
+            "observacoes": ""
+        },
+        "licenca_casamento": {
+            "dias": 3,
+            "consecutivos": true,
+            "observacoes": ""
+        },
+        "licenca_falecimento": {
+            "dias": 2,
+            "grau_parentesco": "Conjuge, pais, filhos, irmaos",
+            "observacoes": ""
+        },
+        "licenca_doacao_sangue": {
+            "dias": 1,
+            "periodicidade": "Por ano",
+            "observacoes": ""
+        },
+        "licenca_alistamento_eleitoral": {
+            "dias": 2,
+            "observacoes": ""
+        },
+        "acompanhamento_medico_filhos": {
+            "dias": 1,
+            "idade_limite": "6 anos",
+            "observacoes": ""
+        },
+        "acompanhamento_medico_conjuge_gestante": {
+            "dias": 2,
+            "observacoes": ""
+        },
+        "outras_licencas": [
+            {"tipo": "", "dias": 0, "condicoes": "", "observacoes": ""}
+        ]
+    },
+    "saude_seguranca": {
+        "exames_medicos": {
+            "admissional": "Obrigatorio antes de iniciar",
+            "periodico": "Anual/bianual",
+            "demissional": "Obrigatorio",
+            "custeio": "100% empresa",
+            "observacoes": ""
+        },
+        "epi": {
+            "fornecimento": "Gratuito pela empresa",
+            "treinamento": "",
+            "observacoes": ""
+        },
+        "cipa": {
+            "obrigatoriedade": "",
+            "observacoes": ""
+        },
+        "ergonomia": {
+            "pausas": "",
+            "ginastica_laboral": "",
+            "observacoes": ""
+        },
+        "observacoes": ""
+    },
+    "penalidades_multas": {
+        "multa_descumprimento_geral": {
+            "valor": 0.00,
+            "por_empregado": true,
+            "por_clausula": false,
+            "dobra_reincidencia": false,
+            "observacoes": ""
+        },
+        "multas_especificas": [
+            {"clausula": "", "valor": 0.00, "observacoes": ""}
+        ],
+        "reversao_multa": "Para quem reverte (sindicato, empregado)",
+        "observacoes": ""
+    },
+    "disposicoes_gerais": {
+        "quadro_avisos": "Empresa deve manter quadro de avisos",
+        "acesso_sindicato": "Regras de acesso do sindicato a empresa",
+        "assembleias": "Regras para participacao em assembleias",
+        "relacao_de_empregados": "Empresa deve fornecer lista ao sindicato",
+        "outras_disposicoes": []
     },
     "clausulas_especiais": [
-        {"titulo": "Titulo da clausula", "resumo": "Resumo do conteudo", "detalhes": "Texto completo ou detalhado"}
+        {
+            "numero_clausula": "X",
+            "titulo": "Titulo da clausula",
+            "tipo": "Obrigacao da empresa/direito do empregado/procedimento",
+            "resumo": "Resumo em 1-2 frases",
+            "texto_completo": "Texto integral ou detalhado da clausula",
+            "impacto_pratico": "Como isso afeta o dia a dia",
+            "observacoes": ""
+        }
     ],
-    "penalidades": {
-        "multa_descumprimento": {"valor": 0.00, "por_empregado": true, "observacoes": ""}
-    },
-    "observacoes_gerais": "Outras informacoes relevantes nao categorizadas"
+    "alertas_importantes": [
+        "Lista de pontos criticos que a empresa deve observar",
+        "Prazos importantes",
+        "Obrigacoes que geram multa se descumpridas"
+    ],
+    "observacoes_gerais": "Outras informacoes relevantes nao categorizadas acima"
+}
 }
 
 IMPORTANTE:
