@@ -67,7 +67,7 @@ const Layout = () => {
           <img 
             src={LOGO_URL} 
             alt="Business Contabilidade" 
-            className="h-8 w-auto"
+            className="h-7 w-auto"
           />
         </div>
 
