@@ -479,10 +479,10 @@ const Dissidio = () => {
               </div>
             </div>
 
-            {/* Piso Salarial */}
+            {/* Piso Salarial Geral */}
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-300">Piso Salarial Novo</Label>
+                <Label className="text-slate-300">Piso Salarial Geral (Novo)</Label>
                 <Input 
                   placeholder="R$ 0,00"
                   value={convencaoData.piso_salarial ? formatarInputMoeda(String(Math.round(convencaoData.piso_salarial * 100))) : ''} 
@@ -491,7 +491,7 @@ const Dissidio = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300">Piso Salarial Anterior</Label>
+                <Label className="text-slate-300">Piso Salarial Geral (Anterior)</Label>
                 <Input 
                   placeholder="R$ 0,00"
                   value={convencaoData.piso_salarial_anterior ? formatarInputMoeda(String(Math.round(convencaoData.piso_salarial_anterior * 100))) : ''} 
@@ -500,6 +500,75 @@ const Dissidio = () => {
                 />
               </div>
             </div>
+
+            {/* Pisos por Função */}
+            {convencaoData.pisos_por_funcao?.length > 0 && (
+              <div className="border border-amber-500/30 rounded-lg p-4 bg-amber-500/5">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-medium text-amber-400 flex items-center gap-2">
+                    <Users size={14} /> Pisos por Função/Cargo
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    onClick={() => setConvencaoData({
+                      ...convencaoData, 
+                      pisos_por_funcao: [...(convencaoData.pisos_por_funcao || []), {funcao: '', piso_novo: 0, piso_anterior: 0}]
+                    })}
+                  >
+                    + Adicionar
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {convencaoData.pisos_por_funcao.map((piso, i) => (
+                    <div key={i} className="grid grid-cols-4 gap-2 items-center bg-slate-800/50 p-2 rounded">
+                      <Input 
+                        placeholder="Função/Cargo"
+                        value={piso.funcao || ''} 
+                        onChange={(e) => {
+                          const newPisos = [...convencaoData.pisos_por_funcao];
+                          newPisos[i] = {...newPisos[i], funcao: e.target.value};
+                          setConvencaoData({...convencaoData, pisos_por_funcao: newPisos});
+                        }}
+                        className="text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+                      />
+                      <Input 
+                        placeholder="R$ Anterior"
+                        value={piso.piso_anterior ? formatarInputMoeda(String(Math.round(piso.piso_anterior * 100))) : ''} 
+                        onChange={(e) => {
+                          const newPisos = [...convencaoData.pisos_por_funcao];
+                          newPisos[i] = {...newPisos[i], piso_anterior: parseMoeda(e.target.value)};
+                          setConvencaoData({...convencaoData, pisos_por_funcao: newPisos});
+                        }}
+                        className="text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+                      />
+                      <Input 
+                        placeholder="R$ Novo"
+                        value={piso.piso_novo ? formatarInputMoeda(String(Math.round(piso.piso_novo * 100))) : ''} 
+                        onChange={(e) => {
+                          const newPisos = [...convencaoData.pisos_por_funcao];
+                          newPisos[i] = {...newPisos[i], piso_novo: parseMoeda(e.target.value)};
+                          setConvencaoData({...convencaoData, pisos_por_funcao: newPisos});
+                        }}
+                        className="text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+                      />
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          const newPisos = convencaoData.pisos_por_funcao.filter((_, idx) => idx !== i);
+                          setConvencaoData({...convencaoData, pisos_por_funcao: newPisos});
+                        }}
+                        className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/20"
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Benefícios */}
             <div className="border border-slate-700 rounded-lg p-4 bg-slate-800/50">
