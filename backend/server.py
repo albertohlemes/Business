@@ -5040,10 +5040,11 @@ async def apuracao_pis_cofins(
         '90219091', '90219092', '90219099'
     ]
     
-    # Buscar documentos
+    # Buscar documentos - EXCLUIR notas canceladas
     documents = await db.xml_documents.find({
         "company_id": company_id,
-        "competencia": competencia
+        "competencia": competencia,
+        "$or": [{"cancelada": {"$exists": False}}, {"cancelada": False}]
     }, {"_id": 0}).to_list(None)
     
     # CSTs de PIS/COFINS
