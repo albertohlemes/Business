@@ -3938,12 +3938,14 @@ async def calcular_dissidio_retroativo(
                         'nome': nome,
                         'cpf': colab.get('cpf', ''),
                         'cargo': cargo,
+                        'data_admissao': data_admissao,
                         'valor_base_reajuste': round(valor_base_reajuste, 2),
                         'total_valor_anterior': round(total_valor_anterior_colab, 2),
                         'total_valor_novo': round(total_valor_novo_colab, 2),
                         'retroativo': round(retroativo_colab, 2),
                         'verbas': verbas_calculadas,
-                        'alerta_piso': alerta_piso
+                        'alerta_piso': alerta_piso,
+                        'proporcionalidade': proporcionalidade_info
                     }
                     
                     mes_resultado['colaboradores'].append(colab_resultado)
@@ -3957,11 +3959,13 @@ async def calcular_dissidio_retroativo(
                             'nome': nome,
                             'cpf': colab.get('cpf', ''),
                             'cargo': cargo,
+                            'data_admissao': data_admissao,
                             'meses': [],
                             'total_retroativo': 0,
                             'total_valor_anterior': 0,
                             'total_valor_novo': 0,
-                            'alertas_piso': []
+                            'alertas_piso': [],
+                            'proporcionalidade': proporcionalidade_info
                         }
                     colaboradores_consolidado[nome]['meses'].append({
                         'competencia': competencia,
@@ -3969,7 +3973,8 @@ async def calcular_dissidio_retroativo(
                         'valor_anterior': round(total_valor_anterior_colab, 2),
                         'valor_novo': round(total_valor_novo_colab, 2),
                         'verbas': verbas_calculadas,
-                        'alerta_piso': alerta_piso
+                        'alerta_piso': alerta_piso,
+                        'proporcionalidade': proporcionalidade_info
                     })
                     colaboradores_consolidado[nome]['total_retroativo'] += retroativo_colab
                     colaboradores_consolidado[nome]['total_valor_anterior'] += total_valor_anterior_colab
