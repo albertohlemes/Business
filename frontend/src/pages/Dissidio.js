@@ -455,29 +455,32 @@ const Dissidio = () => {
                   value={convencaoData.piso_salarial || ''} 
                   onChange={(e) => setConvencaoData({...convencaoData, piso_salarial: parseFloat(e.target.value) || null})}
                   placeholder="1.500,00"
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Piso Salarial Anterior (R$)</Label>
+                <Label className="text-slate-300">Piso Salarial Anterior (R$)</Label>
                 <Input 
                   type="number"
                   step="0.01"
                   value={convencaoData.piso_salarial_anterior || ''} 
                   onChange={(e) => setConvencaoData({...convencaoData, piso_salarial_anterior: parseFloat(e.target.value) || null})}
                   placeholder="1.412,00"
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                 />
               </div>
             </div>
 
             {/* Benefícios */}
-            <div className="border rounded-lg p-4">
+            <div className="border border-slate-700 rounded-lg p-4 bg-slate-800/50">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-blue-700 flex items-center gap-1">
+                <p className="text-sm font-medium text-blue-400 flex items-center gap-1">
                   <TrendingUp size={14} /> Benefícios (Valores Novos)
                 </p>
                 <Button 
                   variant="outline" 
                   size="sm"
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
                   onClick={() => setConvencaoData({
                     ...convencaoData, 
                     beneficios: [...(convencaoData.beneficios || []), {tipo: '', nome: '', valor_novo: 0, valor_anterior: 0}]
@@ -489,7 +492,7 @@ const Dissidio = () => {
               {convencaoData.beneficios?.length > 0 ? (
                 <div className="space-y-2">
                   {convencaoData.beneficios.map((ben, i) => (
-                    <div key={i} className="grid grid-cols-5 gap-2 items-center bg-blue-50 p-2 rounded">
+                    <div key={i} className="grid grid-cols-5 gap-2 items-center bg-slate-700/50 p-2 rounded">
                       <Input 
                         placeholder="Nome"
                         value={ben.nome || ''} 
@@ -498,7 +501,7 @@ const Dissidio = () => {
                           newBen[i] = {...newBen[i], nome: e.target.value};
                           setConvencaoData({...convencaoData, beneficios: newBen});
                         }}
-                        className="text-sm"
+                        className="text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
                       />
                       <Input 
                         type="number"
@@ -509,7 +512,7 @@ const Dissidio = () => {
                           newBen[i] = {...newBen[i], valor_anterior: parseFloat(e.target.value) || 0};
                           setConvencaoData({...convencaoData, beneficios: newBen});
                         }}
-                        className="text-sm"
+                        className="text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
                       />
                       <Input 
                         type="number"
@@ -520,9 +523,9 @@ const Dissidio = () => {
                           newBen[i] = {...newBen[i], valor_novo: parseFloat(e.target.value) || 0};
                           setConvencaoData({...convencaoData, beneficios: newBen});
                         }}
-                        className="text-sm"
+                        className="text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
                       />
-                      <span className={`text-xs font-medium ${ben.valor_novo > ben.valor_anterior ? 'text-emerald-600' : 'text-slate-500'}`}>
+                      <span className={`text-xs font-medium ${ben.valor_novo > ben.valor_anterior ? 'text-emerald-400' : 'text-slate-400'}`}>
                         {ben.valor_anterior && ben.valor_novo ? 
                           `${((ben.valor_novo - ben.valor_anterior) / ben.valor_anterior * 100).toFixed(1)}%` : '-'}
                       </span>
@@ -533,7 +536,7 @@ const Dissidio = () => {
                           const newBen = convencaoData.beneficios.filter((_, idx) => idx !== i);
                           setConvencaoData({...convencaoData, beneficios: newBen});
                         }}
-                        className="text-rose-500 hover:text-rose-700"
+                        className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/20"
                       >
                         ×
                       </Button>
@@ -541,12 +544,12 @@ const Dissidio = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-slate-400 text-sm">Nenhum benefício identificado. Clique em "Adicionar" para incluir.</p>
+                <p className="text-slate-500 text-sm">Nenhum benefício identificado. Clique em "Adicionar" para incluir.</p>
               )}
             </div>
 
             {/* Descontos */}
-            <div className="border rounded-lg p-4">
+            <div className="border border-slate-700 rounded-lg p-4 bg-slate-800/50">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-medium text-amber-700 flex items-center gap-1">
                   <AlertTriangle size={14} /> Descontos (Valores Novos)
