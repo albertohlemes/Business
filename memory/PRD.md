@@ -3,6 +3,7 @@
 **Última atualização**: 2026-02-06
 
 ## Changelog Recente
+- **2026-02-06**: ✅ NOVO: **Exportar Resumo da CCT para PDF** - Botão para exportar o resumo da convenção coletiva em PDF com logo da Business Contabilidade
 - **2026-02-06**: ✅ NOVO: **Gestão Centralizada de Convenções Coletivas (CCT)** - Upload único de CCT no cadastro da empresa, análise automática por IA, e consumo pelos módulos de Dissídio e Rescisão
 - **2026-02-06**: ✅ NOVO: Widget no Dashboard com alertas de CCTs vencidas ou próximas do vencimento
 - **2026-02-06**: ✅ REFATORADO: Validação de Rescisão etapa 3 agora busca CCT do cadastro do cliente automaticamente
