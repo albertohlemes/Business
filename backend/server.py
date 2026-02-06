@@ -989,6 +989,7 @@ REGRAS:
 7. NUNCA coloque dados da empresa como se fossem do funcionário"""
     ).with_model("gemini", "gemini-2.0-flash")
     
+    # Tipos de arquivos que podem ser enviados como anexo para a IA
     mime_types = {
         ".pdf": "application/pdf",
         ".jpg": "image/jpeg",
@@ -999,16 +1000,42 @@ REGRAS:
         ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         ".xls": "application/vnd.ms-excel"
     }
-    mime_type = mime_types.get(suffix.lower(), "application/pdf")
     
-    file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
+    # Arquivos de texto devem ter seu conteúdo enviado diretamente na mensagem
+    text_extensions = ['.txt', '.csv', '.md', '.text']
+    is_text_file = suffix.lower() in text_extensions
     
     # Retry logic
     max_retries = 2
     for attempt in range(max_retries):
         try:
-            response = await chat.send_message(UserMessage(
-                text="""EXTRAIA OS DADOS DOS FUNCIONÁRIOS deste documento.
+            if is_text_file:
+                # Para arquivos de texto, lê o conteúdo e envia diretamente
+                with open(tmp_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    text_content = f.read()
+                
+                response = await chat.send_message(UserMessage(
+                    text=f"""EXTRAIA OS DADOS DOS FUNCIONÁRIOS do texto abaixo.
+
+IMPORTANTE:
+- IGNORE os dados da empresa (razão social, CNPJ, endereço da empresa)
+- EXTRAIA apenas dados de PESSOAS FÍSICAS (funcionários/colaboradores)
+- O nome do funcionário é de PESSOA (ex: João Silva, Maria Santos), NUNCA de empresa
+- Preencha TODOS os campos que conseguir encontrar
+- Inclua sexo, estado civil, endereço completo, documentos, dados bancários
+- Se houver múltiplos funcionários, extraia TODOS
+
+=== DOCUMENTO ===
+{text_content}
+================="""
+                ))
+            else:
+                # Para outros tipos de arquivo (PDF, imagem, Excel), anexa o arquivo
+                mime_type = mime_types.get(suffix.lower(), "application/pdf")
+                file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
+                
+                response = await chat.send_message(UserMessage(
+                    text="""EXTRAIA OS DADOS DOS FUNCIONÁRIOS deste documento.
 
 IMPORTANTE:
 - IGNORE os dados da empresa (razão social, CNPJ, endereço da empresa)
@@ -1017,8 +1044,8 @@ IMPORTANTE:
 - Preencha TODOS os campos que conseguir encontrar
 - Inclua sexo, estado civil, endereço completo, documentos, dados bancários
 - Se houver múltiplos funcionários, extraia TODOS""",
-                file_contents=[file_content]
-            ))
+                    file_contents=[file_content]
+                ))
             break
         except Exception as e:
             if attempt < max_retries - 1 and ("502" in str(e) or "503" in str(e)):
