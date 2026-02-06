@@ -18,10 +18,17 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 const ExpandableCard = ({ title, icon: Icon, color, children, defaultOpen = false, badge }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   
+  const handleToggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOpen(!isOpen);
+  };
+  
   return (
     <div className="border border-slate-700 rounded-lg overflow-hidden">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+        onClick={handleToggle}
         className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 transition-colors"
       >
         <div className="flex items-center gap-3">
