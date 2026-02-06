@@ -320,9 +320,15 @@ class TestCCTUploadWithAI:
         
         print(f"Uploading CCT for cliente {self.cliente_id}... (this may take up to 60 seconds)")
         
-        response = self.session.post(
+        # Remove Content-Type header to let requests set it properly for multipart
+        headers = dict(self.session.headers)
+        if "Content-Type" in headers:
+            del headers["Content-Type"]
+        
+        response = requests.post(
             f"{BASE_URL}/api/clientes/{self.cliente_id}/convencao",
             files={"convencao": ("convencao_teste.pdf", pdf_content, "application/pdf")},
+            headers=headers,
             timeout=120
         )
         
