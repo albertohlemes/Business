@@ -1073,7 +1073,7 @@ const ConvencaoDetalhada = ({ convencao, isAtual, isExpanded, onToggle, onRemove
           )}
 
           {/* Penalidades */}
-          {penalidades && (penalidades.multa_descumprimento_geral || penalidades.multa_descumprimento) && (
+          {penalidades && (penalidades.multa_descumprimento_geral?.valor || penalidades.multa_descumprimento?.valor) && (
             <Section title="Penalidades e Multas" icon={Gavel} color="bg-red-700">
               <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
                 <p className="text-sm font-medium text-red-400 mb-2">Multa por Descumprimento</p>
@@ -1086,7 +1086,7 @@ const ConvencaoDetalhada = ({ convencao, isAtual, isExpanded, onToggle, onRemove
                   label="Por Empregado" 
                   value={(penalidades.multa_descumprimento_geral?.por_empregado || penalidades.multa_descumprimento?.por_empregado) ? 'Sim' : 'Não'} 
                 />
-                <InfoItem label="Reincidência" value={penalidades.multa_descumprimento_geral?.dobra_reincidencia ? 'Dobra o valor' : '-'} />
+                <InfoItem label="Reincidência" value={penalidades.multa_descumprimento_geral?.dobra_reincidencia ? 'Dobra o valor' : null} />
               </div>
             </Section>
           )}
