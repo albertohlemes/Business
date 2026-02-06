@@ -6117,7 +6117,7 @@ MUITO IMPORTANTE:
             file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
             
             response = await chat.send_message(UserMessage(
-                text="Analise este termo de rescisão (TRCT) e extraia TODOS os dados do colaborador, verbas rescisórias, descontos e totais. Identifique o tipo de rescisão.",
+                text="Analise este termo de rescisao (TRCT) e extraia TODOS os dados. IMPORTANTE: Extraia TODAS as rubricas de proventos e descontos com codigo, descricao, referencia e valor.",
                 file_contents=[file_content]
             ))
             
@@ -6141,6 +6141,8 @@ MUITO IMPORTANTE:
                 "verbas_rescisorias": dados.get("verbas_rescisorias", {}),
                 "descontos": dados.get("descontos", {}),
                 "totais": dados.get("totais", {}),
+                "rubricas_proventos": dados.get("rubricas_proventos", []),
+                "rubricas_descontos": dados.get("rubricas_descontos", []),
                 "itens_validados": dados.get("itens_validados", []),
                 "alertas": dados.get("alertas", []),
                 "divergencias": [],
