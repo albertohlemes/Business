@@ -3931,6 +3931,277 @@ async def excluir_calculo_dissidio(
     return {"message": "Cálculo excluído com sucesso"}
 
 
+@api_router.get("/calculos-dissidio/{calculo_id}/exportar-convencao-pdf")
+async def exportar_convencao_pdf_de_calculo(
+    calculo_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Exporta o PDF do resumo da convenção a partir de um cálculo de dissídio existente"""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm, cm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
+    from io import BytesIO
+    from fastapi.responses import StreamingResponse
+    
+    # Buscar o cálculo
+    calculo = await db.calculos_dissidio.find_one(
+        {"id": calculo_id, "user_id": current_user["id"]},
+        {"_id": 0}
+    )
+    if not calculo:
+        raise HTTPException(status_code=404, detail="Cálculo não encontrado")
+    
+    # Verificar se há dados da convenção
+    dados_convencao = calculo.get("dados_convencao")
+    if not dados_convencao:
+        raise HTTPException(status_code=400, detail="Este cálculo não possui dados da convenção para exportar")
+    
+    # Cores profissionais
+    VERMELHO = colors.HexColor("#991b1b")
+    VERMELHO_CLARO = colors.HexColor("#fef2f2")
+    AZUL_ESCURO = colors.HexColor("#1e293b")
+    VERDE = colors.HexColor("#059669")
+    VERDE_CLARO = colors.HexColor("#ecfdf5")
+    CINZA = colors.HexColor("#64748b")
+    CINZA_CLARO = colors.HexColor("#f1f5f9")
+    
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=1.5*cm, leftMargin=1.5*cm, topMargin=1.5*cm, bottomMargin=1.5*cm)
+    
+    styles = getSampleStyleSheet()
+    
+    # Helper para formatar valores
+    def fmt_valor(val):
+        if val is None: return "N/A"
+        try:
+            v = float(val)
+            return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        except:
+            return str(val) if val else "N/A"
+    
+    def fmt_pct(val):
+        try:
+            return f"{float(val):.2f}%"
+        except:
+            return str(val) if val else "0%"
+    
+    # Estilos customizados
+    est_header = ParagraphStyle('Header', fontSize=20, textColor=VERMELHO, alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=2*mm)
+    est_subheader = ParagraphStyle('SubHeader', fontSize=10, textColor=CINZA, alignment=TA_CENTER, spaceAfter=8*mm)
+    est_secao = ParagraphStyle('Secao', fontSize=12, textColor=AZUL_ESCURO, fontName='Helvetica-Bold', spaceBefore=6*mm, spaceAfter=3*mm)
+    est_normal = ParagraphStyle('Normal', fontSize=10, textColor=colors.black, alignment=TA_JUSTIFY, spaceAfter=2*mm)
+    est_pequeno = ParagraphStyle('Pequeno', fontSize=8, textColor=CINZA, alignment=TA_CENTER)
+    est_destaque_titulo = ParagraphStyle('DestaqueTitulo', fontSize=9, textColor=CINZA, alignment=TA_CENTER, fontName='Helvetica')
+    est_destaque_valor = ParagraphStyle('DestaqueValor', fontSize=22, textColor=VERMELHO, alignment=TA_CENTER, fontName='Helvetica-Bold')
+    est_destaque_valor_verde = ParagraphStyle('DestaqueValorVerde', fontSize=22, textColor=VERDE, alignment=TA_CENTER, fontName='Helvetica-Bold')
+    
+    elementos = []
+    
+    # ========== CABEÇALHO ==========
+    elementos.append(Paragraph("<b>BUSINESS CONTABILIDADE</b>", est_header))
+    elementos.append(Paragraph("Análise de Convenção Coletiva de Trabalho", est_subheader))
+    
+    # Linha divisória
+    elementos.append(HRFlowable(width="100%", thickness=2, color=VERMELHO, spaceBefore=0, spaceAfter=8*mm))
+    
+    # ========== DESTAQUE PRINCIPAL ==========
+    percentual = dados_convencao.get('percentual_reajuste', 0)
+    piso_novo = dados_convencao.get('piso_salarial')
+    piso_anterior = dados_convencao.get('piso_salarial_anterior')
+    meses_retro = dados_convencao.get('meses_retroativos', 0)
+    
+    # Box de destaque principal
+    destaque_data = [
+        [
+            Paragraph("REAJUSTE SALARIAL", est_destaque_titulo),
+            Paragraph("PISO ANTERIOR", est_destaque_titulo),
+            Paragraph("PISO NOVO", est_destaque_titulo),
+            Paragraph("MESES RETROATIVOS", est_destaque_titulo)
+        ],
+        [
+            Paragraph(f"<b>{fmt_pct(percentual)}</b>", est_destaque_valor),
+            Paragraph(f"<b>{fmt_valor(piso_anterior)}</b>", ParagraphStyle('V', fontSize=16, textColor=CINZA, alignment=TA_CENTER, fontName='Helvetica-Bold')),
+            Paragraph(f"<b>{fmt_valor(piso_novo)}</b>", est_destaque_valor_verde),
+            Paragraph(f"<b>{meses_retro}</b>", ParagraphStyle('V', fontSize=22, textColor=AZUL_ESCURO, alignment=TA_CENTER, fontName='Helvetica-Bold'))
+        ]
+    ]
+    
+    tabela_destaque = Table(destaque_data, colWidths=[4.5*cm, 4.5*cm, 4.5*cm, 4.5*cm])
+    tabela_destaque.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), CINZA_CLARO),
+        ('BOX', (0, 0), (-1, -1), 2, VERMELHO),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.white),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, 0), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 2),
+        ('TOPPADDING', (0, 1), (-1, 1), 2),
+        ('BOTTOMPADDING', (0, 1), (-1, 1), 10),
+        ('BACKGROUND', (0, 0), (0, -1), VERMELHO_CLARO),
+        ('BACKGROUND', (2, 0), (2, -1), VERDE_CLARO),
+    ]))
+    elementos.append(tabela_destaque)
+    elementos.append(Spacer(1, 8*mm))
+    
+    # ========== DADOS DA CONVENÇÃO ==========
+    elementos.append(Paragraph("DADOS DA CONVENÇÃO", est_secao))
+    
+    sindicato = dados_convencao.get('sindicato', 'Não informado')
+    categoria = dados_convencao.get('categoria', 'Não informado')
+    data_base = dados_convencao.get('data_base', 'Não informado')
+    mes_conv = dados_convencao.get('mes_convencao', 'Não informado')
+    
+    info_data = [
+        ["Sindicato:", sindicato, "Categoria:", categoria],
+        ["Data Base:", data_base, "Mês Convenção:", mes_conv],
+    ]
+    
+    tabela_info = Table(info_data, colWidths=[3*cm, 6*cm, 3*cm, 6*cm])
+    tabela_info.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (0, -1), CINZA),
+        ('TEXTCOLOR', (2, 0), (2, -1), CINZA),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BACKGROUND', (0, 0), (-1, -1), CINZA_CLARO),
+        ('BOX', (0, 0), (-1, -1), 0.5, CINZA),
+    ]))
+    elementos.append(tabela_info)
+    elementos.append(Spacer(1, 6*mm))
+    
+    # ========== PISOS POR FUNÇÃO ==========
+    pisos_funcao = dados_convencao.get('pisos_por_funcao', [])
+    if pisos_funcao:
+        elementos.append(Paragraph("PISOS SALARIAIS POR FUNÇÃO", est_secao))
+        
+        piso_headers = ['Função/Cargo', 'Piso Anterior', 'Piso Novo', 'Variação']
+        piso_data = [piso_headers]
+        for piso in pisos_funcao:
+            funcao = piso.get('funcao', 'N/A')
+            ant = piso.get('piso_anterior')
+            novo = piso.get('piso_novo')
+            variacao = ""
+            try:
+                if ant and novo:
+                    var = ((float(novo) - float(ant)) / float(ant)) * 100
+                    variacao = f"+{var:.1f}%"
+            except:
+                pass
+            piso_data.append([funcao, fmt_valor(ant), fmt_valor(novo), variacao])
+        
+        tabela_pisos = Table(piso_data, colWidths=[7*cm, 4*cm, 4*cm, 3*cm])
+        tabela_pisos.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#d97706")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, CINZA),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#fef3c7")]),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        elementos.append(tabela_pisos)
+        elementos.append(Spacer(1, 6*mm))
+    
+    # ========== VERBAS ==========
+    verbas_com = dados_convencao.get('verbas_com_reajuste', [])
+    verbas_sem = dados_convencao.get('verbas_sem_reajuste', [])
+    
+    if verbas_com or verbas_sem:
+        elementos.append(Paragraph("VERBAS AFETADAS", est_secao))
+        
+        verbas_data = [["✓ COM REAJUSTE", "✗ SEM REAJUSTE"]]
+        max_len = max(len(verbas_com), len(verbas_sem), 1)
+        for i in range(max_len):
+            v_com = verbas_com[i].replace('_', ' ').title() if i < len(verbas_com) else ""
+            v_sem = verbas_sem[i].replace('_', ' ').title() if i < len(verbas_sem) else ""
+            verbas_data.append([v_com, v_sem])
+        
+        tabela_verbas = Table(verbas_data, colWidths=[9*cm, 9*cm])
+        tabela_verbas.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), VERDE_CLARO),
+            ('BACKGROUND', (1, 0), (1, 0), VERMELHO_CLARO),
+            ('TEXTCOLOR', (0, 0), (0, 0), VERDE),
+            ('TEXTCOLOR', (1, 0), (1, 0), VERMELHO),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, CINZA),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        elementos.append(tabela_verbas)
+        elementos.append(Spacer(1, 6*mm))
+    
+    # ========== BENEFÍCIOS ==========
+    beneficios = dados_convencao.get('beneficios', [])
+    if beneficios:
+        elementos.append(Paragraph("BENEFÍCIOS", est_secao))
+        
+        ben_data = [["Benefício", "Valor Anterior", "Valor Novo", "Variação"]]
+        for ben in beneficios:
+            nome = ben.get('nome', ben.get('tipo', 'N/A'))
+            val_ant = ben.get('valor_anterior')
+            val_novo = ben.get('valor_novo')
+            variacao = ""
+            try:
+                if val_ant and val_novo:
+                    var = ((float(val_novo) - float(val_ant)) / float(val_ant)) * 100
+                    variacao = f"+{var:.1f}%"
+            except:
+                pass
+            ben_data.append([nome, fmt_valor(val_ant), fmt_valor(val_novo), variacao])
+        
+        tabela_ben = Table(ben_data, colWidths=[6*cm, 4*cm, 4*cm, 4*cm])
+        tabela_ben.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), VERDE),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, CINZA),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, VERDE_CLARO]),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        elementos.append(tabela_ben)
+        elementos.append(Spacer(1, 6*mm))
+    
+    # ========== RESUMO ==========
+    resumo = dados_convencao.get('resumo')
+    if resumo:
+        elementos.append(Paragraph("RESUMO EXECUTIVO", est_secao))
+        elementos.append(Paragraph(resumo, est_normal))
+        elementos.append(Spacer(1, 4*mm))
+    
+    # ========== RODAPÉ ==========
+    elementos.append(Spacer(1, 8*mm))
+    elementos.append(HRFlowable(width="100%", thickness=1, color=CINZA, spaceBefore=0, spaceAfter=4*mm))
+    
+    data_geracao = datetime.now(timezone.utc).strftime("%d/%m/%Y às %H:%M")
+    elementos.append(Paragraph(f"Documento gerado automaticamente em {data_geracao}", est_pequeno))
+    elementos.append(Paragraph(f"Referente ao cálculo realizado em {calculo.get('created_at', '')[:10]}", est_pequeno))
+    elementos.append(Paragraph("<b>Business Contabilidade</b> - Departamento Pessoal", est_pequeno))
+    
+    # Construir PDF
+    doc.build(elementos)
+    buffer.seek(0)
+    
+    sindicato_nome = dados_convencao.get('sindicato', 'convencao')[:30].replace(' ', '_').replace('/', '-')
+    filename = f"resumo_convencao_{sindicato_nome}_{calculo_id[:8]}.pdf"
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 @api_router.get("/calculos-dissidio/{calculo_id}/excel")
 async def exportar_calculo_dissidio_excel(
     calculo_id: str,
