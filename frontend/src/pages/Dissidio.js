@@ -905,32 +905,94 @@ const Dissidio = () => {
                   </div>
                   
                   {expandedCalculo === calc.id && (
-                    <div className="border-t p-4 bg-slate-50">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="text-slate-500 text-xs">
-                            <th className="text-left pb-2">Colaborador</th>
-                            <th className="text-right pb-2">Retroativo</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {calc.colaboradores_consolidado?.slice(0, 10).map((c, i) => (
-                            <tr key={i}>
-                              <td className="py-1">{c.nome}</td>
-                              <td className="py-1 text-right font-mono">
-                                R$ {c.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </td>
-                            </tr>
-                          ))}
-                          {calc.colaboradores_consolidado?.length > 10 && (
-                            <tr>
-                              <td colSpan={2} className="py-1 text-slate-400 text-center text-xs">
-                                ... e mais {calc.colaboradores_consolidado.length - 10} colaborador(es)
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+                    <div className="border-t bg-slate-50">
+                      {/* Memória de Cálculo por Mês */}
+                      <div className="p-4 space-y-3">
+                        <p className="text-sm font-medium text-slate-700">Memória de Cálculo por Mês e Verba</p>
+                        {calc.resultados_por_mes?.map((mes, mesIdx) => (
+                          <div key={mesIdx} className="bg-white rounded border">
+                            <div 
+                              className="p-2 flex items-center justify-between cursor-pointer hover:bg-slate-50"
+                              onClick={(e) => { e.stopPropagation(); setExpandedCalculo(expandedCalculo === `${calc.id}-mes-${mesIdx}` ? calc.id : `${calc.id}-mes-${mesIdx}`); }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-indigo-600">{mes.competencia}</Badge>
+                                <span className="text-xs text-slate-500">{mes.colaboradores?.length} colaboradores</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-mono font-medium text-indigo-700">
+                                  R$ {mes.total_retroativo_mes?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </span>
+                                {expandedCalculo === `${calc.id}-mes-${mesIdx}` ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                              </div>
+                            </div>
+                            
+                            {expandedCalculo === `${calc.id}-mes-${mesIdx}` && (
+                              <div className="border-t p-2 max-h-96 overflow-y-auto">
+                                <table className="w-full text-xs">
+                                  <thead className="sticky top-0 bg-white">
+                                    <tr className="text-slate-500 border-b">
+                                      <th className="text-left p-1">Colaborador</th>
+                                      <th className="text-left p-1">Verba</th>
+                                      <th className="text-right p-1">Valor Original</th>
+                                      <th className="text-center p-1">%</th>
+                                      <th className="text-right p-1">Diferença</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {mes.colaboradores?.map((colab, colabIdx) => (
+                                      colab.verbas?.map((verba, verbaIdx) => (
+                                        <tr key={`${colabIdx}-${verbaIdx}`} className="border-b hover:bg-slate-50">
+                                          {verbaIdx === 0 && (
+                                            <td className="p-1 font-medium align-top" rowSpan={colab.verbas.length}>
+                                              {colab.nome}
+                                            </td>
+                                          )}
+                                          <td className="p-1 text-slate-600">{verba.verba?.replace(/_/g, ' ')}</td>
+                                          <td className="p-1 text-right font-mono">
+                                            {verba.valor_original?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                          </td>
+                                          <td className="p-1 text-center text-indigo-600">
+                                            {calc.percentual_reajuste}%
+                                          </td>
+                                          <td className="p-1 text-right font-mono text-emerald-600 font-medium">
+                                            {verba.diferenca?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                          </td>
+                                        </tr>
+                                      ))
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Resumo por Colaborador */}
+                      <div className="border-t p-4">
+                        <p className="text-sm font-medium text-slate-700 mb-2">Resumo por Colaborador</p>
+                        <div className="max-h-64 overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="sticky top-0 bg-slate-50">
+                              <tr className="text-slate-500 text-xs">
+                                <th className="text-left pb-2">Colaborador</th>
+                                <th className="text-right pb-2">Retroativo Total</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {calc.colaboradores_consolidado?.map((c, i) => (
+                                <tr key={i} className="border-b">
+                                  <td className="py-1">{c.nome}</td>
+                                  <td className="py-1 text-right font-mono text-emerald-600">
+                                    R$ {c.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
