@@ -1699,6 +1699,22 @@ async def process_validacao_background(
                 if c.get('nome'):
                     idx_anterior[c['nome'].upper().strip()] = c
         
+        # Step 4b: Carregar itens fixos do cliente
+        itens_fixos = await db.itens_fixos.find({
+            "cliente_id": cliente_id,
+            "user_id": user_id
+        }, {"_id": 0}).to_list(100)
+        
+        # Criar índice de itens fixos por colaborador/campo
+        itens_fixos_idx = {}
+        for item in itens_fixos:
+            colab_nome = (item.get('colaborador_nome') or '').upper().strip()
+            campo = item.get('campo', '').lower()
+            key = f"{colab_nome}|{campo}" if colab_nome else f"*|{campo}"
+            itens_fixos_idx[key] = item
+        
+        logger.info(f"[Job {job_id}] Carregados {len(itens_fixos)} itens fixos")
+        
         # Step 5: Processar cada colaborador
         resultado_colaboradores = []
         total_divergencias = 0
