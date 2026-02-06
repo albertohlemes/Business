@@ -493,39 +493,88 @@ const UploadXML = ({ user, onLogout }) => {
           <div className="bg-white rounded-xl p-6 shadow-md border border-gray-100">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Resultado do Upload</h2>
             
-            {results.success.length > 0 && (
+            {/* Resumo geral */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200 text-center">
+                <p className="text-2xl font-bold text-green-700">{results.success || 0}</p>
+                <p className="text-sm text-green-600">Processados</p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-center">
+                <p className="text-2xl font-bold text-yellow-700">{results.already_exists || 0}</p>
+                <p className="text-sm text-yellow-600">Duplicados</p>
+              </div>
+              <div className="bg-red-50 p-4 rounded-lg border border-red-200 text-center">
+                <p className="text-2xl font-bold text-red-700">{results.errors || 0}</p>
+                <p className="text-sm text-red-600">Erros</p>
+              </div>
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 text-center">
+                <p className="text-2xl font-bold text-blue-700">{results.total || 0}</p>
+                <p className="text-sm text-blue-600">Total</p>
+              </div>
+            </div>
+
+            {/* Conversões CFOP */}
+            {results.conversions && results.conversions.length > 0 && (
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Check className="w-5 h-5 text-green-600" />
-                  <h3 className="font-semibold text-green-900">Arquivos Processados ({results.success.length})</h3>
+                  <h3 className="font-semibold text-green-900">Conversões de CFOP ({results.conversions.length})</h3>
                 </div>
-                <div className="space-y-2">
-                  {results.success.map((item, index) => (
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {results.conversions.slice(0, 20).map((item, index) => (
                     <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
-                      <p className="text-sm font-medium text-green-900">{item.filename}</p>
-                      <p className="text-xs text-green-700">Chave: {item.chave}</p>
-                      {item.conversoes > 0 && (
-                        <p className="text-xs text-green-700 font-bold">✓ {item.conversoes} CFOP(s) CONVERTIDO(S) AUTOMATICAMENTE</p>
-                      )}
+                      <p className="text-sm font-medium text-green-900">{item.filename || item.chave}</p>
+                      <p className="text-xs text-green-700">{item.cfop_original} → {item.cfop_novo}</p>
                     </div>
                   ))}
+                  {results.conversions.length > 20 && (
+                    <p className="text-sm text-gray-500 text-center py-2">
+                      ... e mais {results.conversions.length - 20} conversões
+                    </p>
+                  )}
                 </div>
               </div>
             )}
 
-            {results.duplicadas && results.duplicadas.length > 0 && (
+            {results.exists_details && results.exists_details.length > 0 && (
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-3">
                   <AlertCircle className="w-5 h-5 text-yellow-600" />
-                  <h3 className="font-semibold text-yellow-900">Notas Duplicadas - Já Importadas ({results.duplicadas.length})</h3>
+                  <h3 className="font-semibold text-yellow-900">Notas Duplicadas ({results.exists_details.length})</h3>
                 </div>
-                <div className="space-y-2">
-                  {results.duplicadas.map((item, index) => (
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {results.exists_details.slice(0, 10).map((item, index) => (
                     <div key={index} className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                      <p className="text-sm font-medium text-yellow-900">{item.filename} - NF-e {item.numero_nfe}</p>
-                      <p className="text-xs text-yellow-700">Esta nota já foi importada nesta competência</p>
+                      <p className="text-sm font-medium text-yellow-900">{item.filename || item}</p>
                     </div>
                   ))}
+                  {results.exists_details.length > 10 && (
+                    <p className="text-sm text-gray-500 text-center py-2">
+                      ... e mais {results.exists_details.length - 10} duplicadas
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {results.error_details && results.error_details.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <X className="w-5 h-5 text-red-600" />
+                  <h3 className="font-semibold text-red-900">Erros ({results.error_details.length})</h3>
+                </div>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {results.error_details.slice(0, 10).map((item, index) => (
+                    <div key={index} className="bg-red-50 p-3 rounded-lg border border-red-200">
+                      <p className="text-sm font-medium text-red-900">{item.filename || item}</p>
+                      <p className="text-xs text-red-700">{item.error || item.motivo || ''}</p>
+                    </div>
+                  ))}
+                  {results.error_details.length > 10 && (
+                    <p className="text-sm text-gray-500 text-center py-2">
+                      ... e mais {results.error_details.length - 10} erros
+                    </p>
+                  )}
                 </div>
               </div>
             )}
