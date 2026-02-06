@@ -909,19 +909,19 @@ const Documents = ({ user, onLogout }) => {
               <div>
                 <p className="text-gray-600 text-sm mb-1">Valor Total</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(sortedAndFilteredDocuments.reduce((sum, doc) => sum + doc.valor_total, 0))}
+                  {formatCurrency(documents.reduce((sum, doc) => sum + doc.valor_total, 0))}
                 </p>
               </div>
               <div>
                 <p className="text-gray-600 text-sm mb-1">Entradas</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {sortedAndFilteredDocuments.filter(d => d.tipo === 'entrada').length}
+                  {documents.filter(d => d.tipo === 'entrada').length}
                 </p>
               </div>
               <div>
                 <p className="text-gray-600 text-sm mb-1">Saídas</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {sortedAndFilteredDocuments.filter(d => d.tipo === 'saida').length}
+                  {documents.filter(d => d.tipo === 'saida').length}
                 </p>
               </div>
             </div>
