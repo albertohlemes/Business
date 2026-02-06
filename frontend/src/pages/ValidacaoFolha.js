@@ -758,7 +758,7 @@ const ValidacaoFolha = () => {
                 {uploading ? (
                   <>
                     <Loader2 className="animate-spin mr-2" size={16} />
-                    Processando...
+                    {uploadProgress < 50 ? `Enviando... ${uploadProgress}%` : 'Analisando com IA...'}
                   </>
                 ) : (
                   <>
