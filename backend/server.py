@@ -42,19 +42,14 @@ security = HTTPBearer()
 
 from starlette.datastructures import UploadFile as StarletteUploadFile
 from starlette.requests import Request
-
-app = FastAPI()
+import starlette.formparsers
 
 # Aumentar limite de arquivos no FormData (padrão é 1000)
 # Isso permite upload de mais de 1000 arquivos por requisição
-@app.middleware("http")
-async def increase_form_data_limit(request: Request, call_next):
-    # Aumenta o limite de campos no formulário para 10000
-    if request.headers.get("content-type", "").startswith("multipart/form-data"):
-        # O Starlette usa _form_parts internamente para limitar
-        pass
-    return await call_next(request)
+starlette.formparsers.MultiPartParser.max_files = 10000
+starlette.formparsers.MultiPartParser.max_fields = 10000
 
+app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
 tasks_store = {}
