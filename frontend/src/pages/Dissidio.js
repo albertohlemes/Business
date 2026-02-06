@@ -1204,7 +1204,7 @@ const Dissidio = () => {
                           <div key={mesIdx} className="rounded-lg border border-slate-200 overflow-hidden">
                             <div 
                               className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 flex items-center justify-between cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-colors"
-                              onClick={(e) => { e.stopPropagation(); setExpandedCalculo(expandedCalculo === `${calc.id}-mes-${mesIdx}` ? calc.id : `${calc.id}-mes-${mesIdx}`); }}
+                              onClick={(e) => { e.stopPropagation(); toggleExpand(`${calc.id}-mes-${mesIdx}`); }}
                             >
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow">
@@ -1219,11 +1219,11 @@ const Dissidio = () => {
                                 <span className="font-mono font-bold text-blue-700">
                                   R$ {mes.total_retroativo_mes?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </span>
-                                {expandedCalculo === `${calc.id}-mes-${mesIdx}` ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                {isExpanded(`${calc.id}-mes-${mesIdx}`) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                               </div>
                             </div>
                             
-                            {expandedCalculo === `${calc.id}-mes-${mesIdx}` && (
+                            {isExpanded(`${calc.id}-mes-${mesIdx}`) && (
                               <div className="border-t bg-white p-3 max-h-96 overflow-y-auto">
                                 <table className="w-full text-sm">
                                   <thead className="sticky top-0 bg-white">
