@@ -120,6 +120,7 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 ## Backlog
 
 ### P0 (Concluídos nesta sessão)
+- ✅ **NOVO: Exportar CCT para PDF** com logo da Business Contabilidade
 - ✅ **NOVO: Gestão Centralizada de Convenções Coletivas (CCT)**
 - ✅ **CORREÇÃO CRÍTICA**: Importação de colaboradores com IA funcionando corretamente
 - ✅ Exportação do resumo da convenção em PDF
