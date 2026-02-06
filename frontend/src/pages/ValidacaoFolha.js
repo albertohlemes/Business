@@ -107,8 +107,43 @@ const ValidacaoFolha = () => {
       await axios.delete(`${API_URL}/api/validacoes/${id}`);
       toast.success('Validação excluída');
       setValidacoes(prev => prev.filter(v => v.id !== id));
+      setSelectedIds(prev => prev.filter(i => i !== id));
     } catch (error) {
       toast.error('Erro ao excluir validação');
+    }
+  };
+
+  const toggleSelect = (id, e) => {
+    e?.stopPropagation();
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllInCompetencia = (competencia, validacoesComp) => {
+    const ids = validacoesComp.map(v => v.id);
+    const allSelected = ids.every(id => selectedIds.includes(id));
+    if (allSelected) {
+      setSelectedIds(prev => prev.filter(id => !ids.includes(id)));
+    } else {
+      setSelectedIds(prev => [...new Set([...prev, ...ids])]);
+    }
+  };
+
+  const deleteSelectedBatch = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Excluir ${selectedIds.length} validação(ões)?`)) return;
+    
+    setDeleting(true);
+    try {
+      await axios.post(`${API_URL}/api/validacoes/delete-batch`, selectedIds);
+      toast.success(`${selectedIds.length} validação(ões) excluída(s)`);
+      setValidacoes(prev => prev.filter(v => !selectedIds.includes(v.id)));
+      setSelectedIds([]);
+    } catch (error) {
+      toast.error('Erro ao excluir validações');
+    } finally {
+      setDeleting(false);
     }
   };
 
