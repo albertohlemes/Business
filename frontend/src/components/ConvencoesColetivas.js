@@ -455,17 +455,178 @@ const ConvencaoDetalhada = ({ convencao, isAtual, isExpanded, onToggle, onRemove
                 </div>
               )}
 
-              {/* Outros benefícios */}
-              {beneficios.outros_beneficios?.length > 0 && beneficios.outros_beneficios.map((b, i) => (
-                <div key={i} className="bg-slate-800 rounded-lg p-3">
+              {/* Auxílio Funeral */}
+              {(beneficios.auxilio_funeral?.valor || beneficios.auxilio_funeral?.calculo) && (
+                <div className="bg-slate-800 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Heart size={14} className="text-gray-400" />
+                    <span className="text-sm font-medium text-white">Auxílio Funeral</span>
+                  </div>
+                  <InfoItem label="Valor" value={beneficios.auxilio_funeral.valor ? formatCurrency(beneficios.auxilio_funeral.valor) : beneficios.auxilio_funeral.calculo} highlight />
+                  <InfoItem label="Beneficiários" value={beneficios.auxilio_funeral.beneficiarios} />
+                  {beneficios.auxilio_funeral.observacoes && (
+                    <p className="text-xs text-slate-500 mt-1 italic">{beneficios.auxilio_funeral.observacoes}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Auxílio Filho Excepcional */}
+              {beneficios.auxilio_filho_excepcional?.valor && (
+                <div className="bg-slate-800 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Heart size={14} className="text-rose-400" />
+                    <span className="text-sm font-medium text-white">Auxílio Filho Excepcional</span>
+                  </div>
+                  <InfoItem label="Valor" value={formatCurrency(beneficios.auxilio_filho_excepcional.valor)} highlight />
+                  {beneficios.auxilio_filho_excepcional.observacoes && (
+                    <p className="text-xs text-slate-500 mt-1 italic">{beneficios.auxilio_filho_excepcional.observacoes}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Diárias de Viagem */}
+              {beneficios.diarias_viagem && (beneficios.diarias_viagem.almoco || beneficios.diarias_viagem.jantar || beneficios.diarias_viagem.pernoite) && (
+                <div className="bg-slate-800 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Car size={14} className="text-blue-400" />
+                    <span className="text-sm font-medium text-white">Diárias de Viagem</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {beneficios.diarias_viagem.almoco && (
+                      <div>
+                        <p className="text-xs text-slate-500">Almoço</p>
+                        <p className="text-emerald-400 font-medium">{formatCurrency(beneficios.diarias_viagem.almoco)}</p>
+                      </div>
+                    )}
+                    {beneficios.diarias_viagem.jantar && (
+                      <div>
+                        <p className="text-xs text-slate-500">Jantar</p>
+                        <p className="text-emerald-400 font-medium">{formatCurrency(beneficios.diarias_viagem.jantar)}</p>
+                      </div>
+                    )}
+                    {beneficios.diarias_viagem.pernoite && (
+                      <div>
+                        <p className="text-xs text-slate-500">Pernoite</p>
+                        <p className="text-emerald-400 font-medium">{formatCurrency(beneficios.diarias_viagem.pernoite)}</p>
+                      </div>
+                    )}
+                  </div>
+                  {beneficios.diarias_viagem.observacoes && (
+                    <p className="text-xs text-slate-500 mt-2 italic">{beneficios.diarias_viagem.observacoes}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Prêmio por Tempo de Serviço - DESTAQUE */}
+              {beneficios.premio_tempo_servico?.possui && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 md:col-span-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Award size={16} className="text-amber-400" />
+                    <span className="text-sm font-medium text-amber-400">Prêmio por Tempo de Serviço (PTS)</span>
+                  </div>
+                  {beneficios.premio_tempo_servico.tabela?.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+                      {beneficios.premio_tempo_servico.tabela.map((t, i) => (
+                        <div key={i} className="bg-slate-800/50 rounded p-2 text-center">
+                          <p className="text-xs text-slate-400">{t.anos} anos</p>
+                          <p className="text-amber-400 font-bold">{t.percentual}%</p>
+                          {t.valor_limite > 0 && <p className="text-xs text-slate-500">Limite: {formatCurrency(t.valor_limite)}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <InfoItem label="Base de Cálculo" value={beneficios.premio_tempo_servico.base_calculo} />
+                  <InfoItem label="Limite" value={beneficios.premio_tempo_servico.limite_valor} />
+                  <InfoItem label="Pagamento" value={beneficios.premio_tempo_servico.forma_pagamento} />
+                  {beneficios.premio_tempo_servico.observacoes && (
+                    <p className="text-xs text-slate-500 mt-2 italic">{beneficios.premio_tempo_servico.observacoes}</p>
+                  )}
+                </div>
+              )}
+
+              {/* PLR - Participação nos Lucros - DESTAQUE */}
+              {beneficios.plr_participacao_lucros?.possui && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3 md:col-span-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <DollarSign size={16} className="text-emerald-400" />
+                    <span className="text-sm font-medium text-emerald-400">Participação nos Lucros e Resultados (PLR)</span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-2">
+                    <div className="bg-slate-800/50 rounded p-2">
+                      <p className="text-xs text-slate-400">Valor Anual</p>
+                      <p className="text-emerald-400 font-bold text-lg">{formatCurrency(beneficios.plr_participacao_lucros.valor_anual)}</p>
+                    </div>
+                    {beneficios.plr_participacao_lucros.parcelas?.map((p, i) => (
+                      <div key={i} className="bg-slate-800/50 rounded p-2">
+                        <p className="text-xs text-slate-400">{p.mes}</p>
+                        <p className="text-white font-medium">{formatCurrency(p.valor)}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <InfoItem label="Critérios" value={beneficios.plr_participacao_lucros.criterios} />
+                  <InfoItem label="Proporcionalidade" value={beneficios.plr_participacao_lucros.proporcionalidade} />
+                  <InfoItem label="Desconto Sindical" value={beneficios.plr_participacao_lucros.descontos_sindicais} />
+                  {beneficios.plr_participacao_lucros.observacoes && (
+                    <p className="text-xs text-slate-500 mt-2 italic">{beneficios.plr_participacao_lucros.observacoes}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Adicional Periculosidade */}
+              {beneficios.adicional_periculosidade?.percentual && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle size={14} className="text-red-400" />
+                    <span className="text-sm font-medium text-red-400">Adicional Periculosidade</span>
+                  </div>
+                  <InfoItem label="Percentual" value={`${beneficios.adicional_periculosidade.percentual}%`} highlight />
+                  <InfoItem label="Funções" value={beneficios.adicional_periculosidade.funcoes_aplicaveis} />
+                  <InfoItem label="Base" value={beneficios.adicional_periculosidade.base_calculo} />
+                </div>
+              )}
+
+              {/* Adicional Insalubridade */}
+              {beneficios.adicional_insalubridade && (
+                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle size={14} className="text-orange-400" />
+                    <span className="text-sm font-medium text-orange-400">Adicional Insalubridade</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <p className="text-xs text-slate-500">Mínimo</p>
+                      <p className="text-white">{beneficios.adicional_insalubridade.percentual_minimo || 10}%</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Médio</p>
+                      <p className="text-white">{beneficios.adicional_insalubridade.percentual_medio || 20}%</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Máximo</p>
+                      <p className="text-white">{beneficios.adicional_insalubridade.percentual_maximo || 40}%</p>
+                    </div>
+                  </div>
+                  <InfoItem label="Base" value={beneficios.adicional_insalubridade.base_calculo} />
+                </div>
+              )}
+
+              {/* Outros benefícios - tratando string e objeto */}
+              {beneficios.outros_beneficios?.length > 0 && (
+                <div className="bg-slate-800 rounded-lg p-3 md:col-span-2">
                   <div className="flex items-center gap-2 mb-2">
                     <Gift size={14} className="text-slate-400" />
-                    <span className="text-sm font-medium text-white">{b.nome || 'Outro Benefício'}</span>
+                    <span className="text-sm font-medium text-white">Outros Benefícios</span>
                   </div>
-                  <InfoItem label="Valor" value={b.valor ? formatCurrency(b.valor) : '-'} />
-                  <InfoItem label="Condições" value={b.condicoes} />
+                  <ul className="space-y-1">
+                    {beneficios.outros_beneficios.map((b, i) => (
+                      <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
+                        <span className="text-emerald-500 mt-1">•</span>
+                        <span>{typeof b === 'string' ? b : (b.nome ? `${b.nome}: ${b.valor ? formatCurrency(b.valor) : ''} ${b.condicoes || ''} ${b.observacoes || ''}` : JSON.stringify(b))}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              ))}
+              )}
             </div>
           </Section>
 
