@@ -5164,40 +5164,277 @@ async def converter_admissional(
                     pass
                 return None
             
-            # Gerar JSON no formato do sistema de importação
+            # Extrair DDD do telefone
+            def extrair_ddd(telefone):
+                if not telefone:
+                    return None, None
+                tel = telefone.replace("(", "").replace(")", "").replace("-", "").replace(" ", "")
+                if len(tel) >= 10:
+                    return tel[:2], tel[2:]
+                return None, tel
+            
+            ddd_tel, tel_sem_ddd = extrair_ddd(colab.get("telefone"))
+            ddd_cel, cel_sem_ddd = extrair_ddd(colab.get("celular"))
+            
+            # Gerar JSON no formato COMPLETO do sistema de importação
             json_importacao = {
-                "tipo": "0",  # 0 = Colaborador
+                # Identificação
+                "tipo": None,
                 "empresaId": empresa_id,
-                "funcionarioContribuinteId": None,  # Será gerado pelo sistema
-                "vFuncionarioContribuinteId": None,  # Campo ignorado
+                "funcionarioContribuinteId": None,
+                "vFuncionarioContribuinteId": None,
+                
+                # Dados Pessoais
                 "nome": colab.get("nome_completo"),
+                "nomeSocial": colab.get("nome_social"),
                 "email": colab.get("email"),
-                "enderecoCep": endereco.get("cep", "").replace("-", "").replace(".", ""),
-                "enderecoLogradouroId": None,  # Tipo de logradouro (Rua=1, Av=2, etc)
+                "sexo": sexo_codigo,
+                "estadoCivilId": estado_civil_codigo,
+                "nascimentoData": converter_data(colab.get("data_nascimento")),
+                "paisNascimentoId": None,
+                "nascimentoCidadeId": None,
+                "paisNacionalidadeId": "105" if colab.get("nacionalidade", "").lower() in ["brasileiro", "brasileira", "brasil"] else None,
+                "grauInstrucaoId": escolaridade_codigo,
+                "etniaId": cor_raca_codigo,
+                "tipoSanguineoId": None,
+                "cabeloCorId": None,
+                "olhoCorId": None,
+                "altura": None,
+                "peso": None,
+                "sinaisCorpo": None,
+                "fotoNome": None,
+                "foto": None,
+                
+                # Endereço
+                "enderecoCep": endereco.get("cep", "").replace("-", "").replace(".", "") if endereco.get("cep") else None,
+                "enderecoLogradouroId": None,
                 "endereco": endereco.get("logradouro"),
                 "enderecoNumero": endereco.get("numero"),
                 "enderecoComplemento": endereco.get("complemento"),
                 "enderecoBairro": endereco.get("bairro"),
-                "enderecoMunicipioId": None,  # Código IBGE do município
-                "enderecoMunicipio": endereco.get("cidade"),
-                "enderecoUf": endereco.get("uf"),
-                "cpf": colab.get("cpf", "").replace(".", "").replace("-", ""),
-                "rgNumero": rg.get("numero"),
-                "rgOrgaoExpedidor": rg.get("orgao"),
+                "enderecoCidadeId": None,
+                
+                # Contato
+                "dddTelefone": ddd_tel,
+                "telefone": tel_sem_ddd,
+                "dddCelular": ddd_cel,
+                "celular": cel_sem_ddd,
+                
+                # Endereço Estrangeiro
+                "estrangeiroEnderecoPaisId": None,
+                "estrangeiroEndereco": None,
+                "estrangeiroEnderecoNumero": None,
+                "estrangeiroComplemento": None,
+                "estrangeiroEnderecoBairro": None,
+                "estrangeiroEnderecoCidade": None,
+                "estrangeiroEnderecoCodPostal": None,
+                "estrangeiroDataChegadaBrasil": None,
+                "estrangeiroCasadoComBrasileiro": None,
+                "Estrangeirocomfilhobrasileiro": None,
+                "estrangeiroCondicaoIngresso": None,
+                "estrangeiroTipoResidencia": None,
+                
+                # Deficiência
+                "ehDeficiente": None,
+                "deficienciaCota": None,
+                "deficienciaFisica": None,
+                "deficienciaAuditiva": None,
+                "deficienciaVisual": None,
+                "deficienciaIntelectual": None,
+                "deficienciaMental": None,
+                "deficienciaReabilitado": None,
+                "deficienciaObservacao": colab.get("deficiencia"),
+                
+                # Filiação
+                "maeNome": colab.get("nome_mae"),
+                "paiNome": colab.get("nome_pai"),
+                "conjugeNome": None,
+                "conjugeNascimentoCidadeId": None,
+                "conjugeNascimentoData": None,
+                
+                # Documentos - CPF
+                "cpf": colab.get("cpf", "").replace(".", "").replace("-", "") if colab.get("cpf") else None,
+                "nomeImagemCPF": None,
+                "imagemCPF": None,
+                
+                # Documentos - RG
+                "rg": rg.get("numero"),
+                "rgOrgaoEmissor": rg.get("orgao"),
+                "rgEmissao": converter_data(rg.get("data_emissao")),
                 "rgUf": rg.get("uf"),
-                "rgDataExpedicao": converter_data(rg.get("data_emissao")),
-                "sexoId": sexo_codigo,
-                "estadoCivilId": estado_civil_codigo,
-                "dataNascimento": converter_data(colab.get("data_nascimento")),
-                "naturalidadeMunicipioId": None,
-                "naturalidadeMunicipio": naturalidade.get("cidade"),
-                "naturalidadeUf": naturalidade.get("uf"),
-                "nacionalidadeId": "10" if colab.get("nacionalidade", "").lower() == "brasileiro" else None,
-                "nomeMae": colab.get("nome_mae"),
-                "nomePai": colab.get("nome_pai"),
-                "grauInstrucaoId": escolaridade_codigo,
-                "telefone": colab.get("telefone", "").replace("(", "").replace(")", "").replace("-", "").replace(" ", ""),
-                "celular": colab.get("celular", "").replace("(", "").replace(")", "").replace("-", "").replace(" ", ""),
+                "nomeImagemRG": None,
+                "imagemRG": None,
+                
+                # Documentos - RNE (Estrangeiro)
+                "rneNumero": None,
+                "rneOrgaoEmissor": None,
+                "rneEmissao": None,
+                
+                # Documentos - Título de Eleitor
+                "tituloEleitor": colab.get("titulo_eleitor", {}).get("numero") if isinstance(colab.get("titulo_eleitor"), dict) else colab.get("titulo_eleitor"),
+                "tituloEleitorZona": colab.get("titulo_eleitor", {}).get("zona") if isinstance(colab.get("titulo_eleitor"), dict) else None,
+                "tituloEleitorSecao": colab.get("titulo_eleitor", {}).get("secao") if isinstance(colab.get("titulo_eleitor"), dict) else None,
+                "nomeImagemTituloEleitor": None,
+                "imagemTituloEleitor": None,
+                
+                # Documentos - PIS
+                "pisNumero": colab.get("pis_pasep", "").replace(".", "").replace("-", "") if colab.get("pis_pasep") else None,
+                "pisEmissao": None,
+                "nomeImagemPis": None,
+                "imagemPis": None,
+                
+                # Documentos - Certificado Reservista
+                "certificadoReservista": colab.get("certificado_reservista"),
+                
+                # Documentos - Registro Civil
+                "registroCivilId": None,
+                "registroCivilTermoMatricula": None,
+                "registroCivilCartorio": None,
+                "registroCivilLivro": None,
+                "registroCivilFolha": None,
+                "registroCivilCidadeId": None,
+                "registroCivilEmissao": None,
+                
+                # Documentos - CTPS
+                "carteiraTrabalho": ctps.get("numero"),
+                "carteiraTrabalhoSerie": ctps.get("serie"),
+                "carteiraTrabalhoSerieDigito": None,
+                "carteiraTrabalhoEmissao": converter_data(ctps.get("emissao")),
+                "carteiraTrabalhoUf": ctps.get("uf"),
+                "nomeImagemCTPS": None,
+                "imagemCTPS": None,
+                
+                # Documentos - CNH
+                "cnh": colab.get("cnh", {}).get("numero") if isinstance(colab.get("cnh"), dict) else colab.get("cnh"),
+                "cnhUf": colab.get("cnh", {}).get("uf") if isinstance(colab.get("cnh"), dict) else None,
+                "cnhCategoria": colab.get("cnh", {}).get("categoria") if isinstance(colab.get("cnh"), dict) else None,
+                "cnhEmissao": converter_data(colab.get("cnh", {}).get("emissao")) if isinstance(colab.get("cnh"), dict) else None,
+                "cnhVencimento": converter_data(colab.get("cnh", {}).get("vencimento")) if isinstance(colab.get("cnh"), dict) else None,
+                "cnhPrimeiraHabilitacao": None,
+                "nomeImagemCNH": None,
+                "imagemCNH": None,
+                
+                # Documentos - RIC
+                "ricNumero": None,
+                "ricOrgaoEmissor": None,
+                "ricEmissao": None,
+                
+                # Documentos - OC (Ordem de Classe)
+                "ocNumero": None,
+                "ocOrgaoEmissor": None,
+                "ocEmissao": None,
+                "ocValidade": None,
+                
+                # Dados Admissão
+                "admissaoData": converter_data(colab.get("data_admissao")),
+                "entradaData": converter_data(colab.get("data_admissao")),
+                "cadastroData": None,
+                "admissaoTipoId": None,
+                "contratoTipoId": None,
+                "ocupacaoNatureza": None,
+                "cnpjEmpresaAnterior": None,
+                "transferenciaOnus": None,
+                "transferenciaData": None,
+                "adicionalTempoServicoInicio": None,
+                "aposentadoriaData": None,
+                "desligamentoData": None,
+                "baixaData": None,
+                "matriculaAnterior": None,
+                "dataReintegracao": None,
+                
+                # eSocial
+                "categoriaeSocialId": None,
+                "fgtsOcorrenciaId": None,
+                "fgtsConta": None,
+                "regimePrevidenciario": None,
+                "regimeTrabalhistaId": None,
+                
+                # Sindicato
+                "sindicatoId": None,
+                "sindicalizado": None,
+                
+                # Classificação
+                "classeId": None,
+                "funcionario": None,
+                "contribuinte": None,
+                "centroCustoId": None,
+                "departamentoId": None,
+                
+                # Registro
+                "cartaoPonto": None,
+                "fichaRegistro": None,
+                "livro": None,
+                "folha": None,
+                
+                # Jornada de Trabalho
+                "regimeJornadaTrabalhoId": None,
+                "tipoJornada": None,
+                "tipoJornadaDescricao": None,
+                "horarioNoturno": None,
+                "tipoEscalaId": None,
+                "descansoSemanalId": None,
+                "quadroHorarioId": None,
+                
+                # Cargo
+                "cargoId": None,
+                
+                # Remuneração
+                "formaPagamento": None,
+                "funcionarioTipoId": None,
+                "salarioInicial": colab.get("salario"),
+                "remuneracao": colab.get("salario"),
+                "percentualComissao": None,
+                "horaMensal": None,
+                "horaSemanal": None,
+                "horaDiaria": None,
+                
+                # Adicionais
+                "insalubridadeAdicional": None,
+                "insalubridadeIncidenciaId": None,
+                "periculosidadeAdicional": None,
+                "periculosidadeIncidenciaId": None,
+                "noturnoAdicional": None,
+                "noturnoIncidenciaId": None,
+                "valorPrevidenciaPrivada": None,
+                "valorPrevidenciaPrivada13": None,
+                
+                # Experiência
+                "prazoExperiencia": None,
+                "prazoExperienciaFim": None,
+                "prazoExperienciaProrrogacao": None,
+                "prazoExperienciaProrrogacaoFim": None,
+                
+                # Dados Bancários
+                "bancoId": dados_bancarios.get("banco_codigo"),
+                "bancoContaAgencia": dados_bancarios.get("agencia"),
+                "bancoConta": dados_bancarios.get("conta"),
+                "bancoContaDigito": dados_bancarios.get("digito"),
+                "bancoContaTipoId": tipo_conta_codigo,
+                "Vbancomodopagamento": None,
+                "cartaoSalario": None,
+                
+                # Benefícios
+                "recebeValeRefeicao": None,
+                "cartaoVR": None,
+                "recebeValeAlimentacao": None,
+                "cartaoVA": None,
+                "recebeValeTransporte": None,
+                "cartaoVT": None,
+                "percentualAdiantamento": None,
+                "contribuicaoSindical": None,
+                "recebeAdiantamento": None,
+                "regimeTempoParcial": None,
+                "beneficioDesemprego": None,
+                "descSimpIRRF": None,
+                
+                # Outros
+                "observacao": colab.get("observacoes"),
+                "numeroRecibo": None,
+                "dataIntegracao": None,
+                "qualificacaoStatus": None,
+                "qualificacaoMensagem": None,
+                "qualificacaoOrientacao": None
+            }
                 "pisPasep": colab.get("pis_pasep", "").replace(".", "").replace("-", ""),
                 "ctpsNumero": ctps.get("numero"),
                 "ctpsSerie": ctps.get("serie"),
