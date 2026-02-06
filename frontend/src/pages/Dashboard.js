@@ -45,10 +45,12 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [convencoesVencendo, setConvencoesVencendo] = useState({ total_alertas: 0, alertas: [] });
   const { empresaSelecionada } = useEmpresa();
 
   useEffect(() => {
     fetchDashboard();
+    fetchConvencoesVencendo();
   }, []);
 
   const fetchDashboard = async () => {
@@ -65,6 +67,15 @@ const Dashboard = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchConvencoesVencendo = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/dashboard/convencoes-vencimento`);
+      setConvencoesVencendo(response.data);
+    } catch (error) {
+      console.error('Erro ao carregar convenções:', error);
     }
   };
 
