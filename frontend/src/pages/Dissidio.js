@@ -30,7 +30,22 @@ const Dissidio = () => {
   const [holeriteFiles, setHoleriteFiles] = useState([]);
   const [calculoResult, setCalculoResult] = useState(null);
   const [calculosAnteriores, setCalculosAnteriores] = useState([]);
-  const [expandedCalculo, setExpandedCalculo] = useState(null);
+  const [expandedItems, setExpandedItems] = useState(new Set());
+  
+  // Helper para toggle de expansão
+  const toggleExpand = (id) => {
+    setExpandedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+  
+  const isExpanded = (id) => expandedItems.has(id);
   
   const { empresaSelecionada } = useEmpresa();
 
