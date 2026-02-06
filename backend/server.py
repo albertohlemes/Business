@@ -1400,8 +1400,6 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             except:
                 data_emissao = dt_inicio
         
-        emit_cnpj = doc.emitente_cnpj.replace('.','').replace('/','').replace('-','') if doc.emitente_cnpj else ''
-        
         # Código situação: 00=Regular
         cod_sit = '00'
         
