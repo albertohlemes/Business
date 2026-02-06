@@ -44,7 +44,8 @@ import {
   Sun,
   Banknote,
   Award,
-  Plane
+  Plane,
+  Download
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
