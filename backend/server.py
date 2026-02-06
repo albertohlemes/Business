@@ -3275,12 +3275,19 @@ async def upload_xml_batch(
             
             await db.xml_documents.insert_one(doc)
             
-            results.append({
+            result_entry = {
                 "filename": file.filename,
                 "status": "success",
                 "chave": parsed_data['chave_nfe'],
                 "conversoes": len(file_conversions)
-            })
+            }
+            
+            # Indicar se a nota foi importada já cancelada
+            if doc.get('cancelada'):
+                result_entry['status'] = 'cancelada'
+                result_entry['mensagem'] = 'Nota importada como CANCELADA (evento de cancelamento encontrado)'
+            
+            results.append(result_entry)
             
             if file_conversions:
                 conversion_report.append({
@@ -3792,12 +3799,19 @@ async def upload_xml_with_progress(
             
             await db.xml_documents.insert_one(doc)
             
-            results.append({
+            result_entry = {
                 "filename": file.filename,
                 "status": "success",
                 "chave": parsed_data['chave_nfe'],
                 "conversoes": len(file_conversions)
-            })
+            }
+            
+            # Indicar se a nota foi importada já cancelada
+            if doc.get('cancelada'):
+                result_entry['status'] = 'cancelada'
+                result_entry['mensagem'] = 'Nota importada como CANCELADA (evento de cancelamento encontrado)'
+            
+            results.append(result_entry)
             
             if file_conversions:
                 conversion_report.append({
