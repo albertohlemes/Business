@@ -223,6 +223,7 @@ const UploadXML = ({ user, onLogout }) => {
 
         // Agregar resultados do lote
         if (batchResult) {
+          console.log(`Lote ${currentBatch} resultado:`, batchResult);
           allResults.total += batchResult.total || 0;
           allResults.success += batchResult.success || 0;
           allResults.errors += batchResult.errors || 0;
@@ -236,6 +237,20 @@ const UploadXML = ({ user, onLogout }) => {
           if (batchResult.exists_details) {
             allResults.exists_details = [...allResults.exists_details, ...batchResult.exists_details];
           }
+          // Agregar campos extras do backend
+          if (batchResult.rejeitadas_cnpj) {
+            allResults.rejeitadas_cnpj = [...(allResults.rejeitadas_cnpj || []), ...batchResult.rejeitadas_cnpj];
+          }
+          if (batchResult.rejeitadas_competencia) {
+            allResults.rejeitadas_competencia = [...(allResults.rejeitadas_competencia || []), ...batchResult.rejeitadas_competencia];
+          }
+          if (batchResult.alertas_cfop) {
+            allResults.alertas_cfop = [...(allResults.alertas_cfop || []), ...batchResult.alertas_cfop];
+          }
+          if (batchResult.relatorio_conversoes) {
+            allResults.relatorio_conversoes = [...(allResults.relatorio_conversoes || []), ...batchResult.relatorio_conversoes];
+          }
+          console.log(`Total acumulado após lote ${currentBatch}:`, allResults.total);
         }
       }
 
