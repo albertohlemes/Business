@@ -557,6 +557,7 @@ const Dissidio = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
                   onClick={() => setConvencaoData({
                     ...convencaoData, 
                     descontos: [...(convencaoData.descontos || []), {tipo: '', nome: '', valor_novo: 0, valor_anterior: 0}]
@@ -568,7 +569,7 @@ const Dissidio = () => {
               {convencaoData.descontos?.length > 0 ? (
                 <div className="space-y-2">
                   {convencaoData.descontos.map((desc, i) => (
-                    <div key={i} className="grid grid-cols-5 gap-2 items-center bg-amber-50 p-2 rounded">
+                    <div key={i} className="grid grid-cols-5 gap-2 items-center bg-slate-700/50 p-2 rounded">
                       <Input 
                         placeholder="Nome"
                         value={desc.nome || ''} 
@@ -577,7 +578,7 @@ const Dissidio = () => {
                           newDesc[i] = {...newDesc[i], nome: e.target.value};
                           setConvencaoData({...convencaoData, descontos: newDesc});
                         }}
-                        className="text-sm"
+                        className="text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
                       />
                       <Input 
                         type="number"
@@ -588,7 +589,7 @@ const Dissidio = () => {
                           newDesc[i] = {...newDesc[i], valor_anterior: parseFloat(e.target.value) || 0};
                           setConvencaoData({...convencaoData, descontos: newDesc});
                         }}
-                        className="text-sm"
+                        className="text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
                       />
                       <Input 
                         type="number"
@@ -599,9 +600,9 @@ const Dissidio = () => {
                           newDesc[i] = {...newDesc[i], valor_novo: parseFloat(e.target.value) || 0};
                           setConvencaoData({...convencaoData, descontos: newDesc});
                         }}
-                        className="text-sm"
+                        className="text-sm bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
                       />
-                      <span className={`text-xs font-medium ${desc.valor_novo > desc.valor_anterior ? 'text-rose-600' : 'text-emerald-500'}`}>
+                      <span className={`text-xs font-medium ${desc.valor_novo > desc.valor_anterior ? 'text-rose-400' : 'text-emerald-400'}`}>
                         {desc.valor_anterior && desc.valor_novo ? 
                           `${((desc.valor_novo - desc.valor_anterior) / desc.valor_anterior * 100).toFixed(1)}%` : '-'}
                       </span>
@@ -612,7 +613,7 @@ const Dissidio = () => {
                           const newDesc = convencaoData.descontos.filter((_, idx) => idx !== i);
                           setConvencaoData({...convencaoData, descontos: newDesc});
                         }}
-                        className="text-rose-500 hover:text-rose-700"
+                        className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/20"
                       >
                         ×
                       </Button>
@@ -620,23 +621,23 @@ const Dissidio = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-slate-400 text-sm">Nenhum desconto identificado. Clique em "Adicionar" para incluir.</p>
+                <p className="text-slate-500 text-sm">Nenhum desconto identificado. Clique em "Adicionar" para incluir.</p>
               )}
             </div>
 
             {convencaoData.resumo && (
-              <div className="bg-slate-800/50 p-4 rounded-lg">
-                <p className="text-sm font-medium text-slate-700 mb-1">Resumo</p>
-                <p className="text-slate-600 text-sm">{convencaoData.resumo}</p>
+              <div className="bg-slate-800 border border-slate-700 p-4 rounded-lg">
+                <p className="text-sm font-medium text-slate-300 mb-1">Resumo</p>
+                <p className="text-slate-400 text-sm">{convencaoData.resumo}</p>
               </div>
             )}
 
             <div className="flex gap-3 flex-wrap">
-              <Button variant="outline" onClick={() => setStep(1)}>Voltar</Button>
+              <Button variant="outline" onClick={() => setStep(1)} className="border-slate-600 text-slate-300 hover:bg-slate-700">Voltar</Button>
               <Button 
                 variant="outline" 
                 onClick={exportarResumoPDF}
-                className="border-red-500/50 text-red-500 hover:bg-red-500/10"
+                className="border-red-500/50 text-red-400 hover:bg-red-500/20"
               >
                 <Download size={16} className="mr-2" />
                 Exportar Resumo (PDF)
