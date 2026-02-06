@@ -624,6 +624,90 @@ const Dissidio = () => {
               </div>
             )}
 
+            {/* Tabela de Proporcionalidade por Data de Admissão */}
+            <div className="border border-cyan-500/30 rounded-xl p-4 bg-cyan-500/5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                    <Percent size={16} className="text-cyan-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-cyan-400">
+                      Proporcionalidade por Data de Admissão
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {convencaoData.proporcionalidade_extraida_da_convencao 
+                        ? '✓ Extraído da convenção' 
+                        : '⚠ Calculado automaticamente - confirme se está correto'}
+                    </p>
+                  </div>
+                </div>
+                <Badge 
+                  variant="outline" 
+                  className={convencaoData.proporcionalidade_extraida_da_convencao 
+                    ? 'border-emerald-500/50 text-emerald-400 bg-emerald-500/10' 
+                    : 'border-amber-500/50 text-amber-400 bg-amber-500/10'}
+                >
+                  {convencaoData.proporcionalidade_extraida_da_convencao ? 'Da Convenção' : 'Cálculo Padrão'}
+                </Badge>
+              </div>
+              
+              {!convencaoData.proporcionalidade_extraida_da_convencao && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mb-3">
+                  <p className="text-xs text-amber-300">
+                    <AlertTriangle size={12} className="inline mr-1" />
+                    A tabela abaixo foi calculada automaticamente. Funcionários admitidos após a data base receberão o retroativo proporcional aos meses trabalhados. Verifique se a convenção define regra diferente.
+                  </p>
+                </div>
+              )}
+              
+              {convencaoData.tabela_proporcionalidade?.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs uppercase tracking-wider text-cyan-400 border-b border-cyan-500/30">
+                        <th className="text-left p-2 font-medium">Mês de Admissão</th>
+                        <th className="text-center p-2 font-medium">Avos</th>
+                        <th className="text-center p-2 font-medium">Percentual</th>
+                        <th className="text-left p-2 font-medium">Descrição</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-700/50">
+                      {convencaoData.tabela_proporcionalidade.map((item, i) => (
+                        <tr key={i} className="hover:bg-slate-800/30">
+                          <td className="p-2 text-slate-300">
+                            {['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                              'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][item.mes_admissao - 1] || `Mês ${item.mes_admissao}`}
+                          </td>
+                          <td className="p-2 text-center text-slate-400">
+                            {item.avos || Math.round(item.percentual / (100 / (convencaoData.meses_retroativos || 12)))}/{convencaoData.meses_retroativos || 12}
+                          </td>
+                          <td className="p-2 text-center">
+                            <span className={`font-mono font-bold ${item.percentual >= 80 ? 'text-emerald-400' : item.percentual >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
+                              {item.percentual?.toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className="p-2 text-slate-400 text-xs">{item.descricao}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-slate-500 text-sm">
+                    Proporcionalidade será calculada automaticamente baseada nos meses retroativos
+                  </p>
+                </div>
+              )}
+              
+              <div className="mt-3 pt-3 border-t border-slate-700">
+                <p className="text-xs text-slate-400">
+                  <strong className="text-cyan-400">Como funciona:</strong> Um funcionário admitido em Março (exemplo: 10/12 avos) receberá aproximadamente 83,33% do retroativo total calculado.
+                </p>
+              </div>
+            </div>
+
             {/* Benefícios */}
             <div className="border border-slate-700 rounded-lg p-4 bg-slate-800/50">
               <div className="flex items-center justify-between mb-3">
