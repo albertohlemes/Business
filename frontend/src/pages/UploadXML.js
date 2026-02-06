@@ -431,17 +431,34 @@ const UploadXML = ({ user, onLogout }) => {
                   </span>
                   {!uploading && <span className="text-gray-600"> ou arraste os arquivos aqui</span>}
                 </label>
-                <p className="text-sm text-gray-500 mt-2">Aceita múltiplos arquivos .xml</p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Aceita múltiplos arquivos .xml
+                  <span className="block text-xs text-orange-600 font-medium mt-1">
+                    ✨ Suporta mais de 1.000 arquivos! O sistema processa automaticamente em lotes.
+                  </span>
+                </p>
               </div>
             </div>
 
             {files.length > 0 && !uploading && (
               <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-900 mb-3">Arquivos Selecionados ({files.length})</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">
+                  Arquivos Selecionados ({files.length.toLocaleString('pt-BR')})
+                  {files.length > BATCH_SIZE && (
+                    <span className="ml-2 text-sm font-normal text-orange-600">
+                      → Serão processados em {Math.ceil(files.length / BATCH_SIZE)} lotes
+                    </span>
+                  )}
+                </h3>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {files.map((file, index) => (
+                  {files.slice(0, 20).map((file, index) => (
                     <FileItem key={index} file={file} index={index} />
                   ))}
+                  {files.length > 20 && (
+                    <div className="text-center text-sm text-gray-500 py-2">
+                      ... e mais {(files.length - 20).toLocaleString('pt-BR')} arquivos
+                    </div>
+                  )}
                 </div>
               </div>
             )}
