@@ -1361,7 +1361,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                   <div className="flex items-center gap-3">
                     <ArrowDownCircle className="w-5 h-5 text-blue-600" />
                     <span className="font-semibold text-blue-900">Entradas (Créditos)</span>
-                    <span className="text-sm text-blue-600">{data.entradas?.itens?.length || 0} registros</span>
+                    <span className="text-sm text-blue-600">{data.entradas?.lista?.length || 0} registros</span>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="font-bold text-blue-900">{formatCurrency(calculos.compras)}</span>
@@ -1370,7 +1370,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                 </button>
                 {expandedTab === 'entradas' && (
                   <div className="p-4">
-                    <DetailTable items={data.entradas?.itens} tipo="entrada" />
+                    <DetailTable items={data.entradas?.lista} tipo="entrada" />
                   </div>
                 )}
               </div>
@@ -1384,7 +1384,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                   <div className="flex items-center gap-3">
                     <ArrowUpCircle className="w-5 h-5 text-green-600" />
                     <span className="font-semibold text-green-900">Saídas (Débitos)</span>
-                    <span className="text-sm text-green-600">{data.saidas?.itens?.length || 0} registros</span>
+                    <span className="text-sm text-green-600">{data.saidas?.lista?.length || 0} registros</span>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="font-bold text-green-900">{formatCurrency(calculos.faturamentoBruto)}</span>
@@ -1393,7 +1393,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                 </button>
                 {expandedTab === 'saidas' && (
                   <div className="p-4">
-                    <DetailTable items={data.saidas?.itens} tipo="saida" />
+                    <DetailTable items={data.saidas?.lista} tipo="saida" />
                   </div>
                 )}
               </div>
