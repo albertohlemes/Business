@@ -4512,7 +4512,12 @@ async def get_dashboard_stats(
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Buscar todos os documentos da empresa na competência
-    query = {"company_id": company_id, "competencia": competencia}
+    # EXCLUIR notas canceladas
+    query = {
+        "company_id": company_id, 
+        "competencia": competencia,
+        "$or": [{"cancelada": {"$exists": False}}, {"cancelada": False}]
+    }
     documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
     
     # Buscar aprovações do localStorage (persistidas no backend se houver)
