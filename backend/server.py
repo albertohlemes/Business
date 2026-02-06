@@ -6993,11 +6993,17 @@ async def analise_tributaria_ia(
     # CFOPs de despesa (não geram crédito)
     CFOPS_DESPESA = {'1556', '2556'}
     
+    # CSTs do Simples Nacional (CSOSN) - não geram crédito de ICMS
+    CSOSN_SIMPLES = {'101', '102', '103', '201', '202', '203', '300', '400', '500', '900'}
+    
     # Processar entradas - agrupar por NCM para análise
     produtos_entrada = {}  # Por NCM
-    produtos_entrada_detalhe = {}  # Por NCM + descrição (para detalhes)
     
     for doc in entradas:
+        # Verificar se fornecedor é do Simples Nacional
+        emit_crt = doc.get('emitente_crt', '')  # CRT 1 = Simples Nacional
+        is_fornecedor_simples = emit_crt == '1' or emit_crt == 1
+        
         for prod in doc.get('produtos', []):
             ncm = str(prod.get('ncm', ''))[:8]
             if not ncm or ncm == '':
@@ -7008,8 +7014,12 @@ async def analise_tributaria_ia(
             v_icms = float(prod.get('v_icms', 0) or 0)
             valor = float(prod.get('valor_total', 0) or 0)
             cst = str(prod.get('cst_icms', '') or '')
+            p_icms = float(prod.get('p_icms', 0) or 0)  # Alíquota real do XML
+            
             is_st = cfop in CFOPS_ST_ENTRADA or cst in ['10', '30', '60', '70']
             is_despesa = cfop in CFOPS_DESPESA
+            is_simples = cst in CSOSN_SIMPLES or is_fornecedor_simples
+            sem_credito = is_st or is_despesa or is_simples or v_icms == 0
             
             # Agrupar por NCM para cruzamento
             if ncm not in produtos_entrada:
@@ -7017,34 +7027,42 @@ async def analise_tributaria_ia(
                     'ncm': ncm,
                     'descricoes': set(),
                     'total_icms': 0,
-                    'total_icms_creditavel': 0,  # Excluindo ST/Despesa
+                    'total_icms_creditavel': 0,
                     'total_valor': 0,
+                    'total_valor_tributado': 0,  # Apenas itens tributados
                     'qtd_itens': 0,
                     'tem_st': False,
                     'tem_tributado': False,
                     'tem_despesa': False,
+                    'tem_simples': False,  # Compras do Simples Nacional
                     'cfops': set(),
                     'csts': set(),
-                    'aliquotas': []
+                    'aliquotas_reais': [],  # Alíquotas do XML (p_icms)
+                    'aliquota_predominante': 0
                 }
             
             produtos_entrada[ncm]['descricoes'].add(descricao)
             produtos_entrada[ncm]['total_icms'] += v_icms
-            # Crédito só se não for ST nem despesa
-            if not is_st and not is_despesa:
-                produtos_entrada[ncm]['total_icms_creditavel'] += v_icms
-                produtos_entrada[ncm]['tem_tributado'] = True
             produtos_entrada[ncm]['total_valor'] += valor
             produtos_entrada[ncm]['qtd_itens'] += 1
             produtos_entrada[ncm]['cfops'].add(cfop)
             produtos_entrada[ncm]['csts'].add(cst)
+            
+            # Registrar alíquota real apenas de itens tributados
+            if p_icms > 0:
+                produtos_entrada[ncm]['aliquotas_reais'].append(p_icms)
+            
+            if not sem_credito:
+                produtos_entrada[ncm]['total_icms_creditavel'] += v_icms
+                produtos_entrada[ncm]['total_valor_tributado'] += valor
+                produtos_entrada[ncm]['tem_tributado'] = True
+            
             if is_st:
                 produtos_entrada[ncm]['tem_st'] = True
             if is_despesa:
                 produtos_entrada[ncm]['tem_despesa'] = True
-            if valor > 0:
-                aliq = round((v_icms / valor) * 100, 2)
-                produtos_entrada[ncm]['aliquotas'].append(aliq)
+            if is_simples:
+                produtos_entrada[ncm]['tem_simples'] = True
     
     # Processar saídas - agrupar por NCM
     produtos_saida = {}
