@@ -611,8 +611,16 @@ const Dissidio = () => {
               </div>
             )}
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               <Button variant="outline" onClick={() => setStep(1)}>Voltar</Button>
+              <Button 
+                variant="outline" 
+                onClick={exportarResumoPDF}
+                className="border-red-500/50 text-red-500 hover:bg-red-500/10"
+              >
+                <Download size={16} className="mr-2" />
+                Exportar Resumo (PDF)
+              </Button>
               <Button onClick={() => setStep(3)} className="bg-red-600 hover:bg-red-700">
                 Continuar para Upload dos Holerites
                 <ChevronRight size={16} className="ml-1" />
