@@ -3990,6 +3990,306 @@ async def exportar_calculo_dissidio_excel(
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
+
+@api_router.post("/convencao/exportar-resumo-pdf")
+async def exportar_resumo_convencao_pdf(
+    dados_convencao: dict = Body(...),
+    cliente_id: str = Body(None),
+    current_user: dict = Depends(get_current_user)
+):
+    """Gera PDF com resumo da convenção em papel timbrado da Business Contabilidade"""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm, cm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
+    from io import BytesIO
+    from fastapi.responses import StreamingResponse
+    from datetime import datetime
+    
+    # Cores da Business Contabilidade
+    COR_PRIMARIA = colors.HexColor("#991b1b")  # Vermelho escuro
+    COR_SECUNDARIA = colors.HexColor("#1e293b")  # Slate escuro
+    COR_FUNDO = colors.HexColor("#f8fafc")  # Fundo claro
+    
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=2*cm,
+        leftMargin=2*cm,
+        topMargin=2.5*cm,
+        bottomMargin=2*cm
+    )
+    
+    # Estilos
+    styles = getSampleStyleSheet()
+    
+    estilo_titulo = ParagraphStyle(
+        'Titulo',
+        parent=styles['Heading1'],
+        fontSize=18,
+        textColor=COR_PRIMARIA,
+        alignment=TA_CENTER,
+        spaceAfter=6*mm,
+        fontName='Helvetica-Bold'
+    )
+    
+    estilo_subtitulo = ParagraphStyle(
+        'Subtitulo',
+        parent=styles['Heading2'],
+        fontSize=14,
+        textColor=COR_SECUNDARIA,
+        alignment=TA_LEFT,
+        spaceAfter=4*mm,
+        spaceBefore=6*mm,
+        fontName='Helvetica-Bold'
+    )
+    
+    estilo_normal = ParagraphStyle(
+        'Normal',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.black,
+        alignment=TA_JUSTIFY,
+        spaceAfter=3*mm
+    )
+    
+    estilo_destaque = ParagraphStyle(
+        'Destaque',
+        parent=styles['Normal'],
+        fontSize=11,
+        textColor=COR_PRIMARIA,
+        fontName='Helvetica-Bold',
+        alignment=TA_CENTER,
+        spaceAfter=4*mm
+    )
+    
+    estilo_rodape = ParagraphStyle(
+        'Rodape',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=colors.gray,
+        alignment=TA_CENTER
+    )
+    
+    # Elementos do documento
+    elementos = []
+    
+    # HEADER - Business Contabilidade
+    header_data = [
+        [Paragraph("<b>BUSINESS CONTABILIDADE</b>", ParagraphStyle('HeaderTitle', fontSize=16, textColor=COR_PRIMARIA, alignment=TA_CENTER, fontName='Helvetica-Bold'))],
+        [Paragraph("Departamento Pessoal", ParagraphStyle('HeaderSub', fontSize=10, textColor=COR_SECUNDARIA, alignment=TA_CENTER))]
+    ]
+    header_table = Table(header_data, colWidths=[17*cm])
+    header_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2*mm),
+        ('TOPPADDING', (0, 0), (-1, -1), 2*mm),
+    ]))
+    elementos.append(header_table)
+    elementos.append(Spacer(1, 8*mm))
+    
+    # Linha decorativa
+    linha_decorativa = Table([['']], colWidths=[17*cm], rowHeights=[2])
+    linha_decorativa.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), COR_PRIMARIA),
+    ]))
+    elementos.append(linha_decorativa)
+    elementos.append(Spacer(1, 8*mm))
+    
+    # Título do documento
+    elementos.append(Paragraph("RESUMO DA CONVENÇÃO COLETIVA", estilo_titulo))
+    elementos.append(Spacer(1, 4*mm))
+    
+    # Informações do cliente (se disponível)
+    if cliente_id:
+        cliente = await db.clientes.find_one({"id": cliente_id}, {"_id": 0})
+        if cliente:
+            nome_empresa = cliente.get('nome_fantasia') or cliente.get('razao_social') or 'N/A'
+            cnpj = cliente.get('cnpj', 'N/A')
+            elementos.append(Paragraph(f"<b>Empresa:</b> {nome_empresa}", estilo_normal))
+            elementos.append(Paragraph(f"<b>CNPJ:</b> {cnpj}", estilo_normal))
+            elementos.append(Spacer(1, 4*mm))
+    
+    # Dados principais da convenção
+    elementos.append(Paragraph("DADOS DA CONVENÇÃO", estilo_subtitulo))
+    
+    dados_principais = [
+        ["Sindicato:", dados_convencao.get('sindicato', 'Não informado')],
+        ["Categoria:", dados_convencao.get('categoria', 'Não informado')],
+        ["Data Base:", dados_convencao.get('data_base', 'Não informado')],
+        ["Mês da Convenção:", dados_convencao.get('mes_convencao', 'Não informado')],
+        ["Vigência:", f"{dados_convencao.get('vigencia_inicio', 'N/A')} a {dados_convencao.get('vigencia_fim', 'N/A')}"],
+    ]
+    
+    tabela_dados = Table(dados_principais, colWidths=[4.5*cm, 12.5*cm])
+    tabela_dados.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('TEXTCOLOR', (0, 0), (0, -1), COR_SECUNDARIA),
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3*mm),
+        ('TOPPADDING', (0, 0), (-1, -1), 2*mm),
+    ]))
+    elementos.append(tabela_dados)
+    elementos.append(Spacer(1, 6*mm))
+    
+    # Destaque do reajuste
+    percentual = dados_convencao.get('percentual_reajuste', 0)
+    meses_retro = dados_convencao.get('meses_retroativos', 0)
+    elementos.append(Paragraph(f"PERCENTUAL DE REAJUSTE: {percentual}%", estilo_destaque))
+    elementos.append(Paragraph(f"MESES RETROATIVOS: {meses_retro}", estilo_destaque))
+    elementos.append(Spacer(1, 4*mm))
+    
+    # Piso Salarial
+    piso_atual = dados_convencao.get('piso_salarial')
+    piso_anterior = dados_convencao.get('piso_salarial_anterior')
+    if piso_atual:
+        elementos.append(Paragraph("PISO SALARIAL", estilo_subtitulo))
+        piso_data = [
+            ["Piso Anterior:", f"R$ {piso_anterior:,.2f}" if piso_anterior else "N/A"],
+            ["Piso Novo:", f"R$ {piso_atual:,.2f}"],
+        ]
+        tabela_piso = Table(piso_data, colWidths=[4.5*cm, 12.5*cm])
+        tabela_piso.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('TEXTCOLOR', (0, 0), (0, -1), COR_SECUNDARIA),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2*mm),
+        ]))
+        elementos.append(tabela_piso)
+        elementos.append(Spacer(1, 4*mm))
+    
+    # Verbas com Reajuste
+    verbas_com = dados_convencao.get('verbas_com_reajuste', [])
+    if verbas_com:
+        elementos.append(Paragraph("VERBAS QUE RECEBEM REAJUSTE", estilo_subtitulo))
+        verbas_texto = ", ".join([v.replace('_', ' ').title() for v in verbas_com])
+        elementos.append(Paragraph(verbas_texto, estilo_normal))
+        elementos.append(Spacer(1, 4*mm))
+    
+    # Verbas sem Reajuste
+    verbas_sem = dados_convencao.get('verbas_sem_reajuste', [])
+    if verbas_sem:
+        elementos.append(Paragraph("VERBAS SEM REAJUSTE", estilo_subtitulo))
+        verbas_sem_texto = ", ".join([v.replace('_', ' ').title() for v in verbas_sem])
+        elementos.append(Paragraph(verbas_sem_texto, estilo_normal))
+        elementos.append(Spacer(1, 4*mm))
+    
+    # Benefícios
+    beneficios = dados_convencao.get('beneficios', [])
+    if beneficios:
+        elementos.append(Paragraph("BENEFÍCIOS", estilo_subtitulo))
+        beneficio_headers = ['Benefício', 'Valor Anterior', 'Valor Novo', 'Variação']
+        beneficio_data = [beneficio_headers]
+        for ben in beneficios:
+            nome = ben.get('nome', ben.get('tipo', 'N/A'))
+            val_ant = ben.get('valor_anterior')
+            val_novo = ben.get('valor_novo')
+            variacao = ""
+            if val_ant and val_novo:
+                var_pct = ((val_novo - val_ant) / val_ant * 100) if val_ant > 0 else 0
+                variacao = f"+{var_pct:.1f}%"
+            beneficio_data.append([
+                nome,
+                f"R$ {val_ant:,.2f}" if val_ant else "N/A",
+                f"R$ {val_novo:,.2f}" if val_novo else "N/A",
+                variacao
+            ])
+        
+        tabela_beneficios = Table(beneficio_data, colWidths=[6*cm, 3.5*cm, 3.5*cm, 3*cm])
+        tabela_beneficios.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), COR_PRIMARIA),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.gray),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2*mm),
+            ('TOPPADDING', (0, 0), (-1, -1), 2*mm),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, COR_FUNDO]),
+        ]))
+        elementos.append(tabela_beneficios)
+        elementos.append(Spacer(1, 4*mm))
+    
+    # Descontos
+    descontos = dados_convencao.get('descontos', [])
+    if descontos:
+        elementos.append(Paragraph("DESCONTOS", estilo_subtitulo))
+        desconto_headers = ['Desconto', 'Valor Anterior', 'Valor Novo', 'Observação']
+        desconto_data = [desconto_headers]
+        for desc in descontos:
+            nome = desc.get('nome', desc.get('tipo', 'N/A'))
+            val_ant = desc.get('valor_anterior')
+            val_novo = desc.get('valor_novo')
+            obs = desc.get('observacao', '')
+            desconto_data.append([
+                nome,
+                f"R$ {val_ant:,.2f}" if val_ant else "N/A",
+                f"R$ {val_novo:,.2f}" if val_novo else "N/A",
+                obs[:30] if obs else "-"
+            ])
+        
+        tabela_descontos = Table(desconto_data, colWidths=[5*cm, 3.5*cm, 3.5*cm, 4*cm])
+        tabela_descontos.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#dc2626")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.gray),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2*mm),
+            ('TOPPADDING', (0, 0), (-1, -1), 2*mm),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#fef2f2")]),
+        ]))
+        elementos.append(tabela_descontos)
+        elementos.append(Spacer(1, 4*mm))
+    
+    # Cláusulas Importantes
+    clausulas = dados_convencao.get('clausulas_importantes', [])
+    if clausulas:
+        elementos.append(Paragraph("PONTOS DE ATENÇÃO", estilo_subtitulo))
+        for clausula in clausulas[:5]:  # Limitar a 5 cláusulas
+            elementos.append(Paragraph(f"• {clausula}", estilo_normal))
+        elementos.append(Spacer(1, 4*mm))
+    
+    # Resumo
+    resumo = dados_convencao.get('resumo')
+    if resumo:
+        elementos.append(Paragraph("RESUMO EXECUTIVO", estilo_subtitulo))
+        elementos.append(Paragraph(resumo, estilo_normal))
+        elementos.append(Spacer(1, 6*mm))
+    
+    # Rodapé
+    elementos.append(Spacer(1, 10*mm))
+    linha_rodape = Table([['']], colWidths=[17*cm], rowHeights=[1])
+    linha_rodape.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.gray),
+    ]))
+    elementos.append(linha_rodape)
+    elementos.append(Spacer(1, 3*mm))
+    
+    data_geracao = datetime.now().strftime("%d/%m/%Y às %H:%M")
+    elementos.append(Paragraph(f"Documento gerado em {data_geracao}", estilo_rodape))
+    elementos.append(Paragraph("Business Contabilidade - Departamento Pessoal", estilo_rodape))
+    
+    # Construir PDF
+    doc.build(elementos)
+    buffer.seek(0)
+    
+    sindicato_nome = dados_convencao.get('sindicato', 'convencao')[:30].replace(' ', '_').replace('/', '-')
+    filename = f"resumo_convencao_{sindicato_nome}.pdf"
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 # ==================== DASHBOARD ====================
 
 @api_router.get("/dashboard", response_model=DashboardStats)
