@@ -4,13 +4,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
-import { Building2, Lock, Mail, User } from 'lucide-react';
+import { Lock, Mail, User, ChevronRight } from 'lucide-react';
+
+const LOGO_URL = "https://customer-assets.emergentagent.com/job_4f7d5596-5b20-477c-ba75-d49f33573db4/artifacts/u8zs9dji_WhatsApp_Image_2026-02-03_at_21.10.59-removebg-preview.png";
 
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('login');
   const { login, register } = useAuth();
   const navigate = useNavigate();
 
@@ -50,188 +51,264 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left side - Image */}
-      <div 
-        className="hidden lg:flex lg:w-1/2 bg-cover bg-center relative"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1763850407744-d2e14b99b1b9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBtaW5pbWFsaXN0JTIwb2ZmaWNlJTIwYXJjaGl0ZWN0dXJlJTIwY29uY3JldGUlMjBnbGFzc3xlbnwwfHx8fDE3NzAzMDcxNzB8MA&ixlib=rb-4.1.0&q=85')`
-        }}
-      >
-        <div className="absolute inset-0 bg-slate-900/70" />
-        <div className="relative z-10 flex flex-col justify-center p-12">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center">
-              <Building2 className="text-white" size={24} />
-            </div>
-            <h1 className="text-3xl font-bold text-white">Portal DP</h1>
+    <div className="min-h-screen flex bg-[#020617]">
+      {/* Left side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+        
+        {/* Red glow effect */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-red-600/10 rounded-full blur-[120px]" />
+        
+        {/* Grid pattern */}
+        <div 
+          className="absolute inset-0 opacity-5"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '60px 60px'
+          }}
+        />
+        
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-center p-16">
+          {/* Logo */}
+          <div className="mb-12">
+            <img 
+              src={LOGO_URL} 
+              alt="Business Contabilidade" 
+              className="h-16 w-auto"
+            />
           </div>
-          <p className="text-xl text-slate-300 max-w-md leading-relaxed">
-            Automatize processos do departamento pessoal e aumente a qualidade das suas entregas.
+          
+          <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
+            Portal do<br />
+            <span className="text-red-500">Departamento Pessoal</span>
+          </h1>
+          
+          <p className="text-xl text-slate-400 max-w-md leading-relaxed mb-12">
+            Automatize processos, elimine erros e ganhe tempo com inteligência artificial.
           </p>
-          <div className="mt-12 space-y-4">
-            <div className="flex items-center gap-3 text-slate-300">
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Extração automática de dados por IA</span>
-            </div>
-            <div className="flex items-center gap-3 text-slate-300">
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Validação inteligente de folha</span>
-            </div>
-            <div className="flex items-center gap-3 text-slate-300">
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Gestão simplificada de dissídios</span>
-            </div>
+          
+          <div className="space-y-4">
+            {[
+              'Validação inteligente de folha de pagamento',
+              'Cálculo automático de dissídio coletivo',
+              'Gestão completa de colaboradores',
+              'Relatórios e análises em tempo real'
+            ].map((feature, i) => (
+              <div key={i} className="flex items-center gap-3 text-slate-300">
+                <div className="w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <ChevronRight size={14} className="text-red-500" />
+                </div>
+                <span>{feature}</span>
+              </div>
+            ))}
           </div>
+        </div>
+        
+        {/* Bottom decoration */}
+        <div className="absolute bottom-8 left-16 text-slate-600 text-sm">
+          © 2026 Business Contabilidade. Todos os direitos reservados.
         </div>
       </div>
 
       {/* Right side - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-slate-50">
-        <Card className="w-full max-w-md border-slate-200 shadow-lg">
-          <CardHeader className="text-center pb-2">
-            <div className="lg:hidden flex items-center justify-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center">
-                <Building2 className="text-white" size={20} />
-              </div>
-              <span className="text-xl font-bold text-slate-900">Portal DP</span>
+      <div className="flex-1 flex items-center justify-center p-6 bg-slate-950">
+        <div className="w-full max-w-md">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex justify-center mb-8">
+            <img 
+              src={LOGO_URL} 
+              alt="Business Contabilidade" 
+              className="h-12 w-auto"
+            />
+          </div>
+          
+          {/* Form card */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-white mb-2">
+                {activeTab === 'login' ? 'Bem-vindo de volta' : 'Criar nova conta'}
+              </h2>
+              <p className="text-slate-500">
+                {activeTab === 'login' ? 'Entre com suas credenciais' : 'Preencha os dados abaixo'}
+              </p>
             </div>
-            <CardTitle className="text-2xl font-bold text-slate-900">Bem-vindo</CardTitle>
-            <CardDescription className="text-slate-500">
-              Acesse sua conta ou crie uma nova
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login" data-testid="login-tab">Entrar</TabsTrigger>
-                <TabsTrigger value="register" data-testid="register-tab">Criar Conta</TabsTrigger>
-              </TabsList>
+            
+            {/* Tabs */}
+            <div className="flex bg-slate-800 rounded-lg p-1 mb-6">
+              <button
+                type="button"
+                onClick={() => setActiveTab('login')}
+                className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-all duration-200 ${
+                  activeTab === 'login'
+                    ? 'bg-red-600 text-white shadow-lg'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                data-testid="login-tab"
+              >
+                Entrar
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('register')}
+                className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-all duration-200 ${
+                  activeTab === 'register'
+                    ? 'bg-red-600 text-white shadow-lg'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                data-testid="register-tab"
+              >
+                Criar Conta
+              </button>
+            </div>
 
-              <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-slate-700">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                      <Input
-                        id="login-email"
-                        data-testid="login-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        className="pl-10"
-                        value={loginData.email}
-                        onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                        required
-                      />
-                    </div>
+            {activeTab === 'login' ? (
+              <form onSubmit={handleLogin} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="login-email" className="text-slate-300 text-sm font-medium">
+                    Email
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                    <Input
+                      id="login-email"
+                      data-testid="login-email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      className="h-12 pl-11 bg-slate-950 border-slate-700 text-white placeholder:text-slate-600 focus:border-red-500 focus:ring-red-500"
+                      value={loginData.email}
+                      onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                      required
+                    />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-senha" className="text-slate-700">Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                      <Input
-                        id="login-senha"
-                        data-testid="login-senha"
-                        type="password"
-                        placeholder="••••••••"
-                        className="pl-10"
-                        value={loginData.senha}
-                        onChange={(e) => setLoginData({ ...loginData, senha: e.target.value })}
-                        required
-                      />
-                    </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="login-senha" className="text-slate-300 text-sm font-medium">
+                    Senha
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                    <Input
+                      id="login-senha"
+                      data-testid="login-senha"
+                      type="password"
+                      placeholder="••••••••"
+                      className="h-12 pl-11 bg-slate-950 border-slate-700 text-white placeholder:text-slate-600 focus:border-red-500 focus:ring-red-500"
+                      value={loginData.senha}
+                      onChange={(e) => setLoginData({ ...loginData, senha: e.target.value })}
+                      required
+                    />
                   </div>
-                  <Button
-                    type="submit"
-                    data-testid="login-submit-btn"
-                    className="w-full bg-indigo-600 hover:bg-indigo-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Entrando...' : 'Entrar'}
-                  </Button>
-                </form>
-              </TabsContent>
-
-              <TabsContent value="register">
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="register-nome" className="text-slate-700">Nome</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                      <Input
-                        id="register-nome"
-                        data-testid="register-nome"
-                        type="text"
-                        placeholder="Seu nome"
-                        className="pl-10"
-                        value={registerData.nome}
-                        onChange={(e) => setRegisterData({ ...registerData, nome: e.target.value })}
-                        required
-                      />
-                    </div>
+                </div>
+                
+                <Button
+                  type="submit"
+                  data-testid="login-submit-btn"
+                  className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-[0_0_20px_rgba(198,40,40,0.3)] hover:shadow-[0_0_30px_rgba(198,40,40,0.5)] transition-all duration-300"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Entrando...' : 'Entrar'}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="register-nome" className="text-slate-300 text-sm font-medium">
+                    Nome completo
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                    <Input
+                      id="register-nome"
+                      data-testid="register-nome"
+                      type="text"
+                      placeholder="Seu nome"
+                      className="h-12 pl-11 bg-slate-950 border-slate-700 text-white placeholder:text-slate-600 focus:border-red-500 focus:ring-red-500"
+                      value={registerData.nome}
+                      onChange={(e) => setRegisterData({ ...registerData, nome: e.target.value })}
+                      required
+                    />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-email" className="text-slate-700">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                      <Input
-                        id="register-email"
-                        data-testid="register-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        className="pl-10"
-                        value={registerData.email}
-                        onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
-                        required
-                      />
-                    </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="register-email" className="text-slate-300 text-sm font-medium">
+                    Email
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                    <Input
+                      id="register-email"
+                      data-testid="register-email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      className="h-12 pl-11 bg-slate-950 border-slate-700 text-white placeholder:text-slate-600 focus:border-red-500 focus:ring-red-500"
+                      value={registerData.email}
+                      onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
+                      required
+                    />
                   </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="register-senha" className="text-slate-700">Senha</Label>
+                    <Label htmlFor="register-senha" className="text-slate-300 text-sm font-medium">
+                      Senha
+                    </Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                       <Input
                         id="register-senha"
                         data-testid="register-senha"
                         type="password"
-                        placeholder="••••••••"
-                        className="pl-10"
+                        placeholder="••••••"
+                        className="h-12 pl-11 bg-slate-950 border-slate-700 text-white placeholder:text-slate-600 focus:border-red-500 focus:ring-red-500"
                         value={registerData.senha}
                         onChange={(e) => setRegisterData({ ...registerData, senha: e.target.value })}
                         required
                       />
                     </div>
                   </div>
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="register-confirmar" className="text-slate-700">Confirmar Senha</Label>
+                    <Label htmlFor="register-confirmar" className="text-slate-300 text-sm font-medium">
+                      Confirmar
+                    </Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                       <Input
                         id="register-confirmar"
                         data-testid="register-confirmar"
                         type="password"
-                        placeholder="••••••••"
-                        className="pl-10"
+                        placeholder="••••••"
+                        className="h-12 pl-11 bg-slate-950 border-slate-700 text-white placeholder:text-slate-600 focus:border-red-500 focus:ring-red-500"
                         value={registerData.confirmarSenha}
                         onChange={(e) => setRegisterData({ ...registerData, confirmarSenha: e.target.value })}
                         required
                       />
                     </div>
                   </div>
-                  <Button
-                    type="submit"
-                    data-testid="register-submit-btn"
-                    className="w-full bg-indigo-600 hover:bg-indigo-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Criando conta...' : 'Criar Conta'}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                </div>
+                
+                <Button
+                  type="submit"
+                  data-testid="register-submit-btn"
+                  className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-[0_0_20px_rgba(198,40,40,0.3)] hover:shadow-[0_0_30px_rgba(198,40,40,0.5)] transition-all duration-300"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Criando conta...' : 'Criar Conta'}
+                </Button>
+              </form>
+            )}
+          </div>
+          
+          {/* Footer */}
+          <p className="text-center text-slate-600 text-sm mt-6 lg:hidden">
+            © 2026 Business Contabilidade
+          </p>
+        </div>
       </div>
     </div>
   );
