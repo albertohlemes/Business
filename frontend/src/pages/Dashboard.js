@@ -8,15 +8,30 @@ import {
   Users, 
   UserPlus, 
   Calendar,
-  AlertCircle,
-  Clock,
   TrendingUp,
   BarChart3,
   Briefcase,
   ChevronRight,
-  Zap
+  Zap,
+  LineChart
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  PieChart, 
+  Pie, 
+  Cell,
+  LineChart as RechartsLineChart,
+  Line,
+  Legend,
+  Area,
+  ComposedChart
+} from 'recharts';
 import EmpresaSelectorModal from '../components/EmpresaSelectorModal';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
@@ -25,7 +40,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectorOpen, setSelectorOpen] = useState(false);
-  const { empresaSelecionada, competencia } = useEmpresa();
+  const { empresaSelecionada } = useEmpresa();
 
   useEffect(() => {
     fetchDashboard();
@@ -37,7 +52,6 @@ const Dashboard = () => {
       setStats(response.data);
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
-      // Se o endpoint não existir, tentar o antigo
       try {
         const fallbackResponse = await axios.get(`${API_URL}/api/dashboard`);
         setStats(fallbackResponse.data);
@@ -49,8 +63,19 @@ const Dashboard = () => {
     }
   };
 
-  // Cores para gráfico de segmentos
+  // Cores para gráficos
   const SEGMENT_COLORS = ['#C62828', '#1E88E5', '#43A047', '#FB8C00', '#8E24AA', '#00ACC1'];
+
+  // Gerar dados de evolução mensal (meses do ano atual)
+  const mesesAbreviados = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const anoAtual = new Date().getFullYear();
+  const mesAtual = new Date().getMonth();
+  
+  const evolucaoData = stats?.evolucao_mensal || mesesAbreviados.slice(0, mesAtual + 1).map((mes, index) => ({
+    mes,
+    empresas: 0,
+    colaboradores: 0
+  }));
 
   if (loading) {
     return (
@@ -150,6 +175,94 @@ const Dashboard = () => {
             {admissoesPendentes}
           </p>
           <p className="text-slate-500 text-sm mt-1">Admissões a processar</p>
+        </div>
+      </div>
+
+      {/* Gráfico de Evolução Mensal */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+        <div className="p-6 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500/20 to-blue-500/20 flex items-center justify-center">
+              <LineChart className="text-white" size={20} />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-white">Evolução {anoAtual}</h3>
+              <p className="text-xs text-slate-500">Crescimento de empresas e colaboradores mês a mês</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-6">
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={evolucaoData}>
+                <defs>
+                  <linearGradient id="colorEmpresas" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#C62828" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#C62828" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorColaboradores" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#1E88E5" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#1E88E5" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
+                <XAxis 
+                  dataKey="mes" 
+                  tick={{ fill: '#64748B', fontSize: 12 }} 
+                  axisLine={{ stroke: '#1E293B' }}
+                  tickLine={false}
+                />
+                <YAxis 
+                  yAxisId="left"
+                  tick={{ fill: '#64748B', fontSize: 12 }} 
+                  axisLine={{ stroke: '#1E293B' }}
+                  tickLine={false}
+                  label={{ value: 'Empresas', angle: -90, position: 'insideLeft', fill: '#C62828', fontSize: 11 }}
+                />
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fill: '#64748B', fontSize: 12 }} 
+                  axisLine={{ stroke: '#1E293B' }}
+                  tickLine={false}
+                  label={{ value: 'Colaboradores', angle: 90, position: 'insideRight', fill: '#1E88E5', fontSize: 11 }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0F172A',
+                    border: '1px solid #1E293B',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)'
+                  }}
+                  labelStyle={{ color: '#F8FAFC', fontWeight: 'bold' }}
+                  itemStyle={{ color: '#94A3B8' }}
+                />
+                <Legend 
+                  wrapperStyle={{ paddingTop: '20px' }}
+                  formatter={(value) => <span className="text-slate-400 text-sm">{value}</span>}
+                />
+                <Area 
+                  yAxisId="left"
+                  type="monotone" 
+                  dataKey="empresas" 
+                  stroke="#C62828" 
+                  strokeWidth={2}
+                  fill="url(#colorEmpresas)"
+                  name="Empresas"
+                />
+                <Line 
+                  yAxisId="right"
+                  type="monotone" 
+                  dataKey="colaboradores" 
+                  stroke="#1E88E5" 
+                  strokeWidth={3}
+                  dot={{ fill: '#1E88E5', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, stroke: '#1E88E5', strokeWidth: 2 }}
+                  name="Colaboradores"
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
@@ -274,7 +387,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Third Row - Admissões Pendentes Detail */}
+      {/* Admissões Pendentes */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
         <div className="p-6 border-b border-slate-800">
           <div className="flex items-center justify-between">
