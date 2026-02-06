@@ -5140,16 +5140,41 @@ async def apuracao_periodo(
                 v_pis = float(prod.get('v_pis', 0) or 0)
                 v_cofins = float(prod.get('v_cofins', 0) or 0)
             else:
-                # DÉBITO: Verificar se o produto gera débito
-                cfop_sem_debito = cfop in CFOPS_SAIDA_SEM_DEBITO
-                cst_sem_incidencia = cst_pis in ['49', '98', '99']  # CST sem incidência
-                aliquota_zero = ncm_aliq_zero or cst_pis in ['04', '05', '06', '07', '08', '09', '73']
+                # DÉBITO: Usar mesma lógica do Dashboard
+                # CFOPs sem débito (remessa, devolução, transferência, exportação)
+                CFOPS_SAIDA_SEM_DEBITO_PIS = [
+                    # Devoluções (não geram receita)
+                    '5201', '5202', '5205', '5206', '5207', '5208', '5209', '5210',
+                    '6201', '6202', '6205', '6206', '6207', '6208', '6209', '6210',
+                    # Transferências (operação interna, não gera receita)
+                    '5151', '5152', '5153', '5155', '5156', '5408', '5409', '5410',
+                    '6151', '6152', '6153', '6155', '6156', '6408', '6409', '6410',
+                    # Remessas (não são vendas)
+                    '5901', '5902', '5903', '5904', '5905', '5906', '5907', '5908', '5909',
+                    '5910', '5911', '5912', '5913', '5914', '5915', '5916', '5917', '5918',
+                    '5919', '5920', '5921', '5922', '5923', '5924', '5925', '5926', '5927',
+                    '5928', '5929', '5931', '5932', '5933', '5934', '5949',
+                    '6901', '6902', '6903', '6904', '6905', '6906', '6907', '6908', '6909',
+                    '6910', '6911', '6912', '6913', '6914', '6915', '6916', '6917', '6918',
+                    '6919', '6920', '6921', '6922', '6923', '6924', '6925', '6929', '6931',
+                    '6932', '6933', '6934', '6949',
+                    # Exportações (alíquota zero por operação)
+                    '7101', '7102', '7105', '7106', '7127', '7501', '7551', '7553', '7556',
+                    '7651', '7654', '7667', '7930', '7949'
+                ]
                 
-                if cfop_sem_debito or cst_sem_incidencia:
-                    # Não gera débito (remessa, transferência, etc.)
+                # Verificar NCM alíquota zero
+                ncm = str(prod.get('ncm', ''))
+                ncm_aliq_zero = prod.get('ncm_aliq_zero', False)
+                cst_pis = str(prod.get('cst_pis_calculado', prod.get('cst_pis', ''))).strip()
+                
+                cfop_sem_debito = cfop in CFOPS_SAIDA_SEM_DEBITO_PIS
+                
+                # Mesma lógica do Dashboard: CST 49 = sem incidência
+                if cfop_sem_debito or cst_pis == '49':
                     v_pis = 0
                     v_cofins = 0
-                elif aliquota_zero:
+                elif ncm_aliq_zero or cst_pis == '06':
                     # Alíquota zero
                     v_pis = 0
                     v_cofins = 0
