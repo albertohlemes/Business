@@ -6274,17 +6274,16 @@ Retorne JSON:
             extra_text = "".join(excel_contents)
             
             response = await chat.send_message(UserMessage(
-                text=f"""Analise o arquivo de APOIO abaixo e compare com os dados do TERMO DE RESCISÃO que já foram fornecidos.
+                text=f"""Analise este ARQUIVO DE APOIO e compare com os dados do TERMO que já informei acima.
 
-ARQUIVO DE APOIO:
-{extra_text if extra_text else "(Veja os arquivos anexados)"}
+ARQUIVO DE APOIO ENVIADO:
+{extra_text if extra_text else "(Arquivo em anexo - analise a imagem/PDF)"}
 
-INSTRUÇÕES:
-1. Identifique todas as variáveis/eventos no arquivo de apoio (horas extras, comissões, adicionais, faltas, etc.)
-2. Verifique se essas variáveis estão CORRETAMENTE refletidas no termo
-3. Aponte divergências APENAS quando o apoio mostrar algo DIFERENTE do termo
-4. Se o termo está correto conforme o apoio, liste em "itens_validados"
-""",
+LEMBRE-SE:
+- Os dados do TERMO já estão no contexto acima (colaborador, datas, verbas, descontos, totais)
+- Compare o que está no APOIO com o que está no TERMO
+- Aponte divergências APENAS se houver diferença real entre apoio e termo
+- NÃO diga que algo não está no termo se eu já informei os dados acima""",
                 file_contents=file_contents if file_contents else None
             ))
             
