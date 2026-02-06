@@ -591,6 +591,225 @@ async def delete_cliente(cliente_id: str, current_user: dict = Depends(get_curre
     return {"message": "Cliente excluído com sucesso"}
 
 
+@api_router.post("/clientes/{cliente_id}/convencao")
+async def upload_convencao_coletiva(
+    cliente_id: str,
+    convencao: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Upload e análise de Convenção Coletiva de Trabalho (CCT).
+    Extrai dados detalhados usando IA e salva no cadastro da empresa.
+    """
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+    
+    # Verificar se cliente existe
+    cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    try:
+        content = await convencao.read()
+        suffix = Path(convencao.filename).suffix
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"convencao-{cliente_id}-{uuid.uuid4()}",
+                system_message="""Voce e um especialista em direito trabalhista e convencoes coletivas.
+Analise a Convencao Coletiva de Trabalho (CCT) e extraia TODOS os dados importantes.
+
+Retorne APENAS um JSON valido com a seguinte estrutura:
+{
+    "identificacao": {
+        "sindicato_laboral": "Nome do sindicato dos trabalhadores",
+        "sindicato_patronal": "Nome do sindicato patronal",
+        "cnpj_sindicato_laboral": "",
+        "cnpj_sindicato_patronal": "",
+        "abrangencia": "Categoria profissional abrangida",
+        "base_territorial": "Municipios/regioes abrangidas"
+    },
+    "vigencia": {
+        "data_inicio": "DD/MM/AAAA",
+        "data_fim": "DD/MM/AAAA",
+        "data_base": "Mes da data base (ex: Janeiro, Marco)",
+        "duracao_meses": 12,
+        "status": "vigente/vencida/a_vencer"
+    },
+    "reajuste": {
+        "percentual_reajuste": 0.0,
+        "tipo_reajuste": "linear/escalonado",
+        "retroativo": true,
+        "data_retroativo": "DD/MM/AAAA ou null",
+        "tabela_proporcionalidade": [
+            {"mes_admissao": "Janeiro", "percentual": 100},
+            {"mes_admissao": "Fevereiro", "percentual": 91.67}
+        ]
+    },
+    "piso_salarial": {
+        "valor_geral": 0.00,
+        "pisos_por_funcao": [
+            {"funcao": "Auxiliar", "valor": 0.00},
+            {"funcao": "Assistente", "valor": 0.00}
+        ],
+        "observacoes_piso": ""
+    },
+    "beneficios": {
+        "vale_refeicao": {"valor": 0.00, "desconto_permitido": "0%", "observacoes": ""},
+        "vale_alimentacao": {"valor": 0.00, "desconto_permitido": "0%", "observacoes": ""},
+        "vale_transporte": {"desconto_maximo": "6%", "observacoes": ""},
+        "plano_saude": {"tipo": "", "coparticipacao": "", "observacoes": ""},
+        "seguro_vida": {"valor_minimo": 0.00, "observacoes": ""},
+        "auxilio_creche": {"valor": 0.00, "idade_limite": "", "observacoes": ""},
+        "cesta_basica": {"valor": 0.00, "observacoes": ""},
+        "outros_beneficios": []
+    },
+    "jornada_trabalho": {
+        "carga_horaria_semanal": 44,
+        "carga_horaria_mensal": 220,
+        "intervalo_minimo": "1 hora",
+        "banco_horas": {"permitido": true, "prazo_compensacao": "6 meses"},
+        "hora_extra_50": {"percentual": 50, "observacoes": ""},
+        "hora_extra_100": {"percentual": 100, "observacoes": "Domingos e feriados"},
+        "adicional_noturno": {"percentual": 20, "horario": "22h as 5h"},
+        "dsr": {"observacoes": ""}
+    },
+    "descontos_autorizados": {
+        "contribuicao_sindical": {"obrigatoria": false, "percentual": 0, "observacoes": ""},
+        "contribuicao_assistencial": {"valor": 0.00, "periodicidade": "", "observacoes": ""},
+        "taxa_negocial": {"valor": 0.00, "observacoes": ""},
+        "outros_descontos": []
+    },
+    "estabilidades": {
+        "gestante": {"meses_apos_parto": 5, "observacoes": ""},
+        "acidente_trabalho": {"meses_apos_alta": 12, "observacoes": ""},
+        "pre_aposentadoria": {"meses_antes": 24, "tempo_minimo_empresa": "5 anos", "observacoes": ""},
+        "outras_estabilidades": []
+    },
+    "rescisao": {
+        "aviso_previo_adicional": {"dias_por_ano": 3, "limite_maximo": 90, "observacoes": ""},
+        "multa_adicional_rescisao": {"valor": 0.00, "situacoes": "", "observacoes": ""},
+        "homologacao": {"obrigatoria_sindicato": false, "prazo": "", "observacoes": ""}
+    },
+    "ferias": {
+        "inicio_periodo": "Nao pode iniciar 2 dias antes de feriado/DSR",
+        "abono_pecuniario": {"permitido": true, "observacoes": ""},
+        "fracionamento": {"permitido": true, "minimo_dias": 14, "observacoes": ""}
+    },
+    "clausulas_especiais": [
+        {"titulo": "Titulo da clausula", "resumo": "Resumo do conteudo", "detalhes": "Texto completo ou detalhado"}
+    ],
+    "penalidades": {
+        "multa_descumprimento": {"valor": 0.00, "por_empregado": true, "observacoes": ""}
+    },
+    "observacoes_gerais": "Outras informacoes relevantes nao categorizadas"
+}
+
+IMPORTANTE:
+- Extraia TODOS os dados disponiveis na convencao
+- Se um campo nao existir, use null ou valor padrao
+- Datas no formato DD/MM/AAAA
+- Valores monetarios como numeros decimais
+- Seja detalhado nas clausulas especiais"""
+            ).with_model("gemini", "gemini-2.0-flash")
+            
+            mime_type = convencao.content_type or "application/pdf"
+            file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
+            
+            response = await chat.send_message(UserMessage(
+                text="Analise esta Convencao Coletiva de Trabalho e extraia TODOS os dados conforme a estrutura solicitada. Seja o mais detalhado possivel.",
+                file_contents=[file_content]
+            ))
+            
+            response_text = response.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            
+            dados_convencao = json.loads(response_text.strip())
+            
+            # Adicionar metadados
+            dados_convencao["_meta"] = {
+                "arquivo_nome": convencao.filename,
+                "data_upload": datetime.now(timezone.utc).isoformat(),
+                "uploaded_by": current_user["id"]
+            }
+            
+            # Calcular status da vigência
+            try:
+                vigencia = dados_convencao.get("vigencia", {})
+                data_fim_str = vigencia.get("data_fim", "")
+                if data_fim_str:
+                    # Parse DD/MM/AAAA
+                    parts = data_fim_str.split("/")
+                    if len(parts) == 3:
+                        data_fim = datetime(int(parts[2]), int(parts[1]), int(parts[0]))
+                        hoje = datetime.now()
+                        dias_restantes = (data_fim - hoje).days
+                        
+                        if dias_restantes < 0:
+                            dados_convencao["vigencia"]["status"] = "vencida"
+                            dados_convencao["vigencia"]["dias_vencimento"] = abs(dias_restantes)
+                        elif dias_restantes <= 30:
+                            dados_convencao["vigencia"]["status"] = "a_vencer"
+                            dados_convencao["vigencia"]["dias_restantes"] = dias_restantes
+                        else:
+                            dados_convencao["vigencia"]["status"] = "vigente"
+                            dados_convencao["vigencia"]["dias_restantes"] = dias_restantes
+            except:
+                pass
+            
+            # Atualizar cliente com a convenção
+            await db.clientes.update_one(
+                {"id": cliente_id},
+                {"$set": {"convencao_coletiva": dados_convencao}}
+            )
+            
+            return {
+                "success": True,
+                "message": "Convenção coletiva analisada e salva com sucesso",
+                "convencao": dados_convencao
+            }
+            
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except:
+                pass
+                
+    except json.JSONDecodeError as e:
+        logger.error(f"Erro ao parsear resposta da IA: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro ao processar convenção - resposta inválida da IA")
+    except Exception as e:
+        logger.error(f"Erro ao processar convenção: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.delete("/clientes/{cliente_id}/convencao")
+async def remover_convencao_coletiva(
+    cliente_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Remove a convenção coletiva do cadastro da empresa."""
+    cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    await db.clientes.update_one(
+        {"id": cliente_id},
+        {"$unset": {"convencao_coletiva": ""}}
+    )
+    
+    return {"success": True, "message": "Convenção coletiva removida com sucesso"}
+
+
 @api_router.post("/clientes/importar-lote")
 async def importar_clientes_lote(
     arquivo: UploadFile = File(...),
