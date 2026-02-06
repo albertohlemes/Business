@@ -262,9 +262,15 @@ class TestValidacaoRescisaoWithCCT:
             "resumo": {}
         })
         
-        response = self.session.post(
+        # Remove Content-Type header to let requests set it properly for multipart
+        headers = dict(self.session.headers)
+        if "Content-Type" in headers:
+            del headers["Content-Type"]
+        
+        response = requests.post(
             f"{BASE_URL}/api/validacao/rescisao/etapa3",
-            data={"cliente_id": fake_cliente_id, "termo_data": termo_data}
+            data={"cliente_id": fake_cliente_id, "termo_data": termo_data},
+            headers=headers
         )
         
         assert response.status_code == 404, f"Expected 404, got {response.status_code}: {response.text}"
