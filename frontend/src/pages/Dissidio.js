@@ -831,7 +831,7 @@ const Dissidio = () => {
                 <div key={mesIdx} className="rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
                   <div 
                     className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 flex items-center justify-between cursor-pointer"
-                    onClick={() => setExpandedCalculo(expandedCalculo === `mes-${mesIdx}` ? null : `mes-${mesIdx}`)}
+                    onClick={() => toggleExpand(`mes-${mesIdx}`)}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg">
@@ -853,12 +853,12 @@ const Dissidio = () => {
                         </p>
                       </div>
                       <div className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center">
-                        {expandedCalculo === `mes-${mesIdx}` ? <ChevronUp size={18} className="text-slate-600" /> : <ChevronDown size={18} className="text-slate-600" />}
+                        {isExpanded(`mes-${mesIdx}`) ? <ChevronUp size={18} className="text-slate-600" /> : <ChevronDown size={18} className="text-slate-600" />}
                       </div>
                     </div>
                   </div>
                   
-                  {expandedCalculo === `mes-${mesIdx}` && (
+                  {isExpanded(`mes-${mesIdx}`) && (
                     <div className="bg-white border-t">
                       {/* Subtotais do mês */}
                       <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50/50 border-b">
