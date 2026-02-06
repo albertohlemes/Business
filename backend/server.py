@@ -7659,6 +7659,31 @@ async def exportar_e_validar_sped(
     # CSTs que indicam tributação de ICMS
     CSTS_TRIBUTADOS = ['00', '10', '20', '70', '90']
     
+    # CFOPs de despesas e outras operações que NÃO devem gerar inconsistência de ICMS
+    CFOPS_DESPESAS_IGNORAR = [
+        '1556', '2556',  # Compras para uso/consumo
+        '1407', '2407',  # Compra para ativo imobilizado
+        '1932', '2932',  # Aquisição de serviços
+        '1933', '2933',  # Aquisição de serviços tributados
+        '1949', '2949',  # Outras entradas não especificadas
+        '1403', '2403', '3403',  # Compra p/ comercialização com ST
+        '1409', '2409', '3409',  # Transferência com ST
+        '1910', '2910',  # Entrada em bonificação
+        '1911', '2911',  # Entrada de amostra grátis
+        '1152', '2152',  # Transferência para comercialização
+        '1153', '2153',  # Transferência de energia
+        '1154', '2154',  # Transferência para industrialização
+        '1201', '2201',  # Devolução de venda
+        '1202', '2202',  # Devolução de venda - ativo
+        '1411', '2411',  # Devolução com ST
+        '1551', '2551',  # Compra de ativo imobilizado
+        '1552', '2552',  # Transferência de ativo
+        '1553', '2553',  # Devolução de ativo
+        '1557', '2557',  # Transferência material uso/consumo
+        '1908', '2908',  # Entrada de embalagem
+        '1909', '2909',  # Retorno de remessa
+    ]
+    
     # Calcular totais do sistema usando valores do XML
     for doc in documents:
         tipo = 'entradas' if doc.tipo == 'entrada' else 'saidas'
@@ -7671,10 +7696,12 @@ async def exportar_e_validar_sped(
             v_icms = float(prod.get('v_icms', 0) or 0)
             
             # Verificar se é item com divergência (CST tributado mas ICMS = 0)
+            # IGNORAR CFOPs de despesas e outras operações
             cst_icms = str(prod.get('cst_icms', '') or prod.get('cst', '') or '')
             cst_icms_num = cst_icms[-2:] if len(cst_icms) >= 2 else cst_icms
             
-            if cst_icms_num in CSTS_TRIBUTADOS and v_icms == 0 and valor > 0:
+            # Só adiciona pendência se NÃO for CFOP de despesa
+            if cst_icms_num in CSTS_TRIBUTADOS and v_icms == 0 and valor > 0 and cfop not in CFOPS_DESPESAS_IGNORAR:
                 itens_pendentes.append({
                     'document_id': doc.id,
                     'product_index': prod_idx,
