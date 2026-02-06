@@ -42,6 +42,7 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 
 ### Módulo Validações
 - ✅ **Validação de Folha**: Comparação com mês anterior e cruzamento com arquivos de apoio
+- ✅ **Tabela de Colaboradores em Colunas**: Divergências com Apoio e Variação vs Mês Anterior em colunas separadas
 - ✅ **Validação de Rescisão** (NOVO): Valida cálculos rescisórios usando IA
 - ✅ **Informes de Rendimento**: Comparação eSocial vs SCI Único
 
