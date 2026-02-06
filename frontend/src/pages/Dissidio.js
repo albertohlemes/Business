@@ -784,24 +784,37 @@ const Dissidio = () => {
               </div>
             </div>
             
-            {/* Mini totalizadores */}
+            {/* Mini totalizadores - Folha Era vs Folha Ficou (baseado no último mês) */}
             <div className="relative mt-6 pt-6 border-t border-white/20 grid grid-cols-3 gap-6">
               <div>
-                <p className="text-emerald-200 text-xs uppercase tracking-wide">Soma Verbas Anteriores</p>
-                <p className="text-xl font-semibold mt-1">
-                  R$ {calculoResult.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_anterior || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                <p className="text-emerald-100 text-xs uppercase tracking-wide font-semibold">Folha Era (último mês)</p>
+                <p className="text-2xl font-bold mt-1 text-white">
+                  R$ {(() => {
+                    const ultimoMes = calculoResult.resultados_por_mes?.[calculoResult.resultados_por_mes.length - 1];
+                    const totalAnterior = ultimoMes?.colaboradores?.reduce((acc, c) => 
+                      acc + (c.verbas?.reduce((sum, v) => sum + (v.valor_anterior || v.valor_original || 0), 0) || 0), 0) || 0;
+                    return totalAnterior.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                  })()}
                 </p>
               </div>
               <div>
-                <p className="text-emerald-200 text-xs uppercase tracking-wide">Soma Verbas Reajustadas</p>
-                <p className="text-xl font-semibold mt-1">
-                  R$ {calculoResult.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_novo || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                <p className="text-emerald-100 text-xs uppercase tracking-wide font-semibold">Folha Ficou (último mês)</p>
+                <p className="text-2xl font-bold mt-1 text-white">
+                  R$ {(() => {
+                    const ultimoMes = calculoResult.resultados_por_mes?.[calculoResult.resultados_por_mes.length - 1];
+                    const totalNovo = ultimoMes?.colaboradores?.reduce((acc, c) => 
+                      acc + (c.verbas?.reduce((sum, v) => sum + (v.valor_novo || 0), 0) || 0), 0) || 0;
+                    return totalNovo.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                  })()}
                 </p>
               </div>
               <div>
-                <p className="text-emerald-200 text-xs uppercase tracking-wide">Diferença Total</p>
-                <p className="text-xl font-semibold mt-1">
-                  R$ {calculoResult.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                <p className="text-emerald-100 text-xs uppercase tracking-wide font-semibold">Diferença Mensal</p>
+                <p className="text-2xl font-bold mt-1 text-amber-300">
+                  + R$ {(() => {
+                    const ultimoMes = calculoResult.resultados_por_mes?.[calculoResult.resultados_por_mes.length - 1];
+                    return (ultimoMes?.total_retroativo_mes || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                  })()}
                 </p>
               </div>
             </div>
@@ -809,13 +822,13 @@ const Dissidio = () => {
 
           {/* Nota sobre impostos */}
           {calculoResult.impostos_excluidos && (
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="text-amber-600" size={20} />
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="text-amber-400" size={20} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-amber-800">Encargos não incluídos</p>
-                <p className="text-xs text-amber-600 mt-0.5">
+                <p className="text-sm font-semibold text-amber-300">Encargos não incluídos</p>
+                <p className="text-xs text-amber-400/80 mt-0.5">
                   {calculoResult.nota_impostos || 'INSS, IRRF e demais encargos serão calculados e descontados na competência de pagamento do retroativo.'}
                 </p>
               </div>
@@ -823,10 +836,10 @@ const Dissidio = () => {
           )}
 
           {/* Resumo Geral por Colaborador */}
-          <Card className="shadow-lg border-0 bg-slate-900">
-            <CardHeader className="border-b bg-slate-800/50/50">
+          <Card className="shadow-lg border-slate-800 bg-slate-900">
+            <CardHeader className="border-b border-slate-800">
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-3">
+                <CardTitle className="flex items-center gap-3 text-white">
                   <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
                     <Users className="text-red-500" size={20} />
                   </div>
@@ -835,7 +848,7 @@ const Dissidio = () => {
                     <p className="text-xs text-slate-500 font-normal mt-0.5">{calculoResult.total_colaboradores} colaborador(es) • Todos os meses consolidados</p>
                   </div>
                 </CardTitle>
-                <Button variant="outline" onClick={() => exportarExcel(calculoResult.id)} className="gap-2">
+                <Button variant="outline" onClick={() => exportarExcel(calculoResult.id)} className="gap-2 border-slate-700 text-slate-300 hover:bg-slate-800">
                   <Download size={16} />
                   Exportar Excel
                 </Button>
@@ -845,17 +858,17 @@ const Dissidio = () => {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-slate-800/50 text-xs uppercase tracking-wider text-slate-500">
+                    <tr className="bg-slate-800 text-xs uppercase tracking-wider text-slate-400">
                       <th className="text-left p-4 font-semibold">Colaborador</th>
                       <th className="text-left p-4 font-semibold">CPF</th>
-                      <th className="text-right p-4 font-semibold">Total Verbas (Era)</th>
-                      <th className="text-right p-4 font-semibold">Total Verbas (Ficou)</th>
-                      <th className="text-right p-4 font-semibold text-emerald-600">Retroativo</th>
+                      <th className="text-right p-4 font-semibold">Total Era</th>
+                      <th className="text-right p-4 font-semibold">Total Ficou</th>
+                      <th className="text-right p-4 font-semibold text-emerald-400">Retroativo</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-800">
                     {calculoResult.colaboradores_consolidado?.map((colab, i) => (
-                      <tr key={i} className="hover:bg-slate-800/50/50 transition-colors">
+                      <tr key={i} className="hover:bg-slate-800/50 transition-colors">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
