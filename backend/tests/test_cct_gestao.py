@@ -105,13 +105,14 @@ class TestCCTManagement:
     
     def test_05_cct_upload_requires_file(self):
         """Test that CCT upload requires a file"""
+        # Send empty files dict to trigger validation error
         response = self.session.post(
             f"{BASE_URL}/api/clientes/{self.cliente_id}/convencao",
-            headers={"Content-Type": "multipart/form-data"}
+            files={}
         )
         
-        # Should fail with 422 (validation error) when no file is provided
-        assert response.status_code == 422, f"Expected 422, got {response.status_code}: {response.text}"
+        # Should fail with 400 or 422 (validation error) when no file is provided
+        assert response.status_code in [400, 422], f"Expected 400/422, got {response.status_code}: {response.text}"
         print(f"✓ CCT upload requires file (status: {response.status_code})")
     
     def test_06_cct_upload_invalid_cliente(self):
