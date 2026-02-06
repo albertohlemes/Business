@@ -777,11 +777,12 @@ const Clientes = () => {
                 </CardContent>
               </Card>
 
-              {/* Convenção Coletiva - Apenas ao editar */}
+              {/* Convenções Coletivas - Apenas ao editar */}
               {editingCliente && (
-                <ConvencaoColetiva 
+                <ConvencoesColetivas 
                   clienteId={editingCliente.id}
-                  convencao={editingCliente.convencao_coletiva}
+                  convencaoAtual={editingCliente.convencao_coletiva}
+                  historicoConvencoes={editingCliente.historico_convencoes || []}
                   onUpdate={handleConvencaoUpdate}
                 />
               )}
