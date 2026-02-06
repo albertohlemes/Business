@@ -3945,6 +3945,104 @@ async def get_dashboard(
         tarefas_recentes=tarefas[:10]
     )
 
+
+@api_router.get("/dashboard/completo")
+async def get_dashboard_completo(current_user: dict = Depends(get_current_user)):
+    """Dashboard completo com métricas úteis para o usuário"""
+    user_id = current_user["id"]
+    
+    # Total de empresas do usuário
+    total_clientes = await db.clientes.count_documents({"user_id": user_id})
+    
+    # Lista de IDs das empresas
+    clientes = await db.clientes.find({"user_id": user_id}).to_list(1000)
+    cliente_ids = [c["id"] for c in clientes]
+    
+    # Total de colaboradores
+    total_colaboradores = await db.colaboradores.count_documents({"cliente_id": {"$in": cliente_ids}})
+    
+    # Admissões pendentes
+    admissoes_pendentes = await db.admissoes.count_documents({"user_id": user_id, "status": "pendente"})
+    
+    # Lista de admissões pendentes
+    admissoes_lista = []
+    admissoes_docs = await db.admissoes.find(
+        {"user_id": user_id, "status": "pendente"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(10)
+    
+    for adm in admissoes_docs:
+        cliente = next((c for c in clientes if c["id"] == adm.get("cliente_id")), None)
+        admissoes_lista.append({
+            "nome": adm.get("nome", "N/A"),
+            "empresa": cliente.get("nome_fantasia") or cliente.get("razao_social", "N/A") if cliente else "N/A",
+            "data_admissao": adm.get("data_admissao", "N/A"),
+            "status": adm.get("status", "pendente")
+        })
+    
+    # Próximos dissídios (baseado na data-base das empresas)
+    proximos_dissidios = []
+    hoje = datetime.now()
+    
+    for cliente in clientes:
+        # Verificar se tem data_base ou sindicato
+        data_base_str = cliente.get("data_base_dissidio") or cliente.get("data_base")
+        sindicato = cliente.get("sindicato", "")
+        
+        if data_base_str:
+            try:
+                # Tentar parsear diferentes formatos
+                if "/" in data_base_str:
+                    parts = data_base_str.split("/")
+                    if len(parts) == 2:
+                        mes, ano = int(parts[0]), int(parts[1])
+                    else:
+                        mes, ano = int(parts[1]), int(parts[2])
+                else:
+                    mes = int(data_base_str[:2]) if len(data_base_str) >= 2 else 1
+                    ano = hoje.year
+                
+                # Calcular próxima data-base
+                ano_dissidio = hoje.year if mes >= hoje.month else hoje.year + 1
+                data_dissidio = datetime(ano_dissidio, mes, 1)
+                dias_restantes = (data_dissidio - hoje).days
+                
+                if 0 <= dias_restantes <= 180:  # Próximos 6 meses
+                    proximos_dissidios.append({
+                        "empresa": cliente.get("nome_fantasia") or cliente.get("razao_social"),
+                        "sindicato": sindicato,
+                        "data_base": f"{mes:02d}/{ano_dissidio}",
+                        "dias_restantes": dias_restantes
+                    })
+            except:
+                pass
+    
+    # Ordenar por dias restantes
+    proximos_dissidios.sort(key=lambda x: x["dias_restantes"])
+    
+    # Empresas por segmento/tipo de atividade
+    empresas_por_segmento = {}
+    for cliente in clientes:
+        segmento = cliente.get("tipo_atividade") or cliente.get("cnae_descricao") or "Não informado"
+        # Simplificar o nome do segmento
+        if len(segmento) > 30:
+            segmento = segmento[:30] + "..."
+        empresas_por_segmento[segmento] = empresas_por_segmento.get(segmento, 0) + 1
+    
+    segmentos_lista = [
+        {"segmento": k, "quantidade": v}
+        for k, v in sorted(empresas_por_segmento.items(), key=lambda x: -x[1])
+    ][:6]  # Top 6 segmentos
+    
+    return {
+        "total_clientes": total_clientes,
+        "total_colaboradores": total_colaboradores,
+        "admissoes_pendentes": admissoes_pendentes,
+        "admissoes_lista": admissoes_lista,
+        "proximos_dissidios": proximos_dissidios[:10],
+        "empresas_por_segmento": segmentos_lista
+    }
+
 # ==================== HEALTH CHECK ====================
 
 @api_router.get("/")
