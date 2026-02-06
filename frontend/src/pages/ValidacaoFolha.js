@@ -670,7 +670,7 @@ const ValidacaoFolha = () => {
               <ClipboardCheck className="text-slate-400" size={32} />
             </div>
             <p className="text-slate-500">Nenhuma validação encontrada</p>
-            <p className="text-sm text-slate-400 mt-1">Clique em "Nova Validação" para começar</p>
+            <p className="text-sm text-slate-400 mt-1">Clique em &quot;Nova Validação&quot; para começar</p>
           </CardContent>
         </Card>
       )}
