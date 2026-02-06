@@ -5294,13 +5294,28 @@ async def apuracao_periodo(
         }
     }
     
+    # Calcular débito de PIS/COFINS sobre a base total acumulada (IGUAL ao Dashboard)
+    # Isso garante consistência entre os valores exibidos em diferentes telas
+    ALIQ_PIS_LUCRO_REAL = 0.0165  # 1.65%
+    ALIQ_COFINS_LUCRO_REAL = 0.076  # 7.6%
+    ALIQ_PIS_LUCRO_PRESUMIDO = 0.0065  # 0.65%
+    ALIQ_COFINS_LUCRO_PRESUMIDO = 0.03  # 3%
+    
+    if regime == 'lucro_real':
+        debito_pis_calculado = total_base_pis_cofins_saidas * ALIQ_PIS_LUCRO_REAL
+        debito_cofins_calculado = total_base_pis_cofins_saidas * ALIQ_COFINS_LUCRO_REAL
+    else:  # lucro_presumido
+        debito_pis_calculado = total_base_pis_cofins_saidas * ALIQ_PIS_LUCRO_PRESUMIDO
+        debito_cofins_calculado = total_base_pis_cofins_saidas * ALIQ_COFINS_LUCRO_PRESUMIDO
+    
     subtotal_saidas = {
         'valor': round(sum(x['valor'] for x in lista_saidas), 2),
         'bc_icms': round(sum(x['bc_icms'] for x in lista_saidas), 2),
         'v_icms': round(sum(x['v_icms'] for x in lista_saidas), 2),
-        'v_pis': round(sum(x['v_pis'] for x in lista_saidas), 2),
-        'v_cofins': round(sum(x['v_cofins'] for x in lista_saidas), 2),
-        'qtd_itens': sum(x['qtd_itens'] for x in lista_saidas)
+        'v_pis': round(debito_pis_calculado, 2),  # Calculado sobre base total (igual Dashboard)
+        'v_cofins': round(debito_cofins_calculado, 2),  # Calculado sobre base total (igual Dashboard)
+        'qtd_itens': sum(x['qtd_itens'] for x in lista_saidas),
+        'base_pis_cofins': round(total_base_pis_cofins_saidas, 2)  # Base de cálculo para referência
     }
     
     return {
