@@ -116,7 +116,9 @@ const Dashboard = () => {
           className="border-slate-700 text-slate-300 hover:bg-slate-800"
         >
           <Building2 size={16} className="mr-2" />
-          {empresaSelecionada ? empresaSelecionada.nome_fantasia || empresaSelecionada.razao_social : 'Selecionar Empresa'}
+          {empresaSelecionada ? (
+            <><span className="text-red-500 font-mono mr-1">{getEmpresaCodigo(empresaSelecionada.id)}</span>{getEmpresaNome(empresaSelecionada)}</>
+          ) : 'Selecionar Empresa'}
         </Button>
       </div>
 
