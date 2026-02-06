@@ -355,18 +355,23 @@ class TestCancelledNotesEdgeCases:
   </protNFe>
 </nfeProc>"""
         
-        # Upload the XML with cStat=151
+        # Upload the XML with cStat=151 using Form data
         files = {
             'files': ('nfe_cancelada_151.xml', xml_151, 'application/xml')
+        }
+        data = {
+            'company_id': TEST_COMPANY_ID,
+            'competencia': '01/2026',
+            'tipo': 'saida'
         }
         
         headers = {"Authorization": f"Bearer {self.token}"}
         
         upload_response = requests.post(
-            f"{BASE_URL}/api/xml/upload/{TEST_COMPANY_ID}",
+            f"{BASE_URL}/api/xml/upload",
             files=files,
-            headers=headers,
-            params={"competencia": "01/2026"}
+            data=data,
+            headers=headers
         )
         
         print(f"Upload cStat=151 response: {upload_response.status_code}")
