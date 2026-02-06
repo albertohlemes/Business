@@ -122,9 +122,15 @@ class TestCCTManagement:
         # Create a simple PDF-like content
         pdf_content = b"%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n>>\nendobj\ntrailer\n<<\n/Root 1 0 R\n>>\n%%EOF"
         
-        response = self.session.post(
+        # Remove Content-Type header to let requests set it properly for multipart
+        headers = dict(self.session.headers)
+        if "Content-Type" in headers:
+            del headers["Content-Type"]
+        
+        response = requests.post(
             f"{BASE_URL}/api/clientes/{fake_cliente_id}/convencao",
-            files={"convencao": ("test.pdf", pdf_content, "application/pdf")}
+            files={"convencao": ("test.pdf", pdf_content, "application/pdf")},
+            headers=headers
         )
         
         assert response.status_code == 404, f"Expected 404, got {response.status_code}: {response.text}"
