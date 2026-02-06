@@ -5165,105 +5165,110 @@ async def converter_apontamentos_com_template(
                 template_info = {"error": str(e), "headers": [], "header_names": []}
             
             api_key = os.environ.get('EMERGENT_LLM_KEY')
+            
+            # Criar exemplo de registro baseado nas colunas do template
+            header_names = template_info.get('header_names', [])
+            exemplo_registro = {}
+            for h in header_names:
+                exemplo_registro[h] = "valor_extraido"
+            
             chat = LlmChat(
                 api_key=api_key,
                 session_id=f"apontamentos-sci-{uuid.uuid4()}",
                 system_message=f"""Você é um especialista em departamento pessoal e folha de pagamento.
-                
-                O usuário enviou arquivos de apontamentos (imagens, prints, PDFs, etc).
-                
-                ESTRUTURA DO TEMPLATE SCI (planilha modelo para exportação):
-                Colunas: {json.dumps(template_info.get('header_names', []), ensure_ascii=False)}
-                Exemplo de dados existentes: {json.dumps(template_info.get('sample_rows', []), ensure_ascii=False)}
-                
-                SUA TAREFA:
-                1. Analise os arquivos de apontamentos enviados
-                2. Identifique COLABORADORES (nome, matrícula, código)
-                3. Identifique EVENTOS (horas extras, faltas, atrasos, comissões, etc)
-                4. Identifique REFERÊNCIAS (quantidade de horas, dias, etc)
-                5. Identifique VALORES (R$)
-                6. Monte os dados NO FORMATO DO TEMPLATE acima
-                
-                IMPORTANTE:
-                - Use EXATAMENTE os nomes das colunas do template
-                - Cada linha deve representar um lançamento (colaborador + evento + referência/valor)
-                - Se um colaborador tem múltiplos eventos, crie múltiplas linhas
-                - Se não encontrar um valor, deixe null
-                
-                Retorne APENAS um JSON válido:
-                {{
-                    "registros": [
-                        {{
-                            {', '.join([f'"{h}": "valor_extraido_ou_null"' for h in template_info.get('header_names', ['colaborador', 'evento', 'referencia', 'valor'])])}
-                        }}
-                    ],
-                    "colaboradores_identificados": 0,
-                    "eventos_identificados": 0,
-                    "mapeamento_colunas": {{
-                        "coluna_colaborador": "nome_da_coluna_identificada",
-                        "coluna_evento": "nome_da_coluna_identificada",
-                        "coluna_referencia": "nome_da_coluna_identificada",
-                        "coluna_valor": "nome_da_coluna_identificada"
-                    }},
-                    "observacoes": "observações sobre a extração"
-                }}"""
+Sua tarefa é EXTRAIR DADOS de apontamentos e preencher uma planilha no formato específico do sistema SCI.
+
+=== ESTRUTURA DA PLANILHA DE DESTINO (TEMPLATE SCI) ===
+A planilha tem as seguintes colunas (na ordem):
+{json.dumps(header_names, ensure_ascii=False, indent=2)}
+
+{f"Exemplo de como os dados devem ficar: {json.dumps(template_info.get('sample_rows', [])[:2], ensure_ascii=False)}" if template_info.get('sample_rows') else ""}
+
+=== O QUE VOCÊ DEVE FAZER ===
+
+1. LEIA ATENTAMENTE o documento de apontamento enviado (imagem, PDF, planilha)
+
+2. IDENTIFIQUE cada COLABORADOR mencionado:
+   - Nome completo
+   - Matrícula/código (se houver)
+   - Setor/departamento (se houver)
+
+3. Para CADA colaborador, identifique TODOS os eventos/lançamentos:
+   - Horas extras (50%, 100%, noturnas)
+   - Faltas (justificadas, injustificadas)
+   - Atrasos
+   - Comissões
+   - Bonificações
+   - Adicionais (noturno, insalubridade, periculosidade)
+   - DSR
+   - Atestados médicos
+   - Férias
+   - Qualquer outro evento variável
+
+4. Para cada evento, identifique:
+   - Quantidade/Referência (horas, dias, %)
+   - Valor em R$ (se informado)
+   - Código do evento (se houver)
+
+5. MONTE OS REGISTROS no formato EXATO das colunas do template:
+   - Use os MESMOS NOMES de colunas
+   - Cada linha = 1 colaborador + 1 evento
+   - Se um colaborador tem 3 eventos, gere 3 linhas
+
+=== FORMATO DE SAÍDA (JSON) ===
+Retorne APENAS um JSON válido no formato:
+{{
+    "registros": [
+        {json.dumps(exemplo_registro, ensure_ascii=False)}
+    ],
+    "colaboradores_identificados": 0,
+    "eventos_identificados": 0,
+    "observacoes": "detalhes sobre o que foi extraído"
+}}
+
+IMPORTANTE:
+- Extraia TODOS os colaboradores e TODOS os eventos do documento
+- Se não conseguir identificar um campo, deixe como null
+- Não invente dados - extraia apenas o que está no documento
+- Mantenha os nomes das colunas EXATAMENTE como no template"""
             ).with_model("gemini", "gemini-2.0-flash")
             
-            # Preparar arquivos de apontamentos para análise (NÃO enviar Excel - Gemini não suporta)
+            # Preparar arquivos de apontamentos para análise
             file_contents = []
+            excel_text_contents = []
             
-            # MIME types suportados pelo Gemini
-            supported_mime_types = {
-                "application/pdf": True,
-                "image/jpeg": True,
-                "image/png": True,
-                "image/gif": True,
-                "image/webp": True,
-                "text/plain": True,
-            }
-            
-            # Adicionar apenas apontamentos com mime types suportados
+            # Processar cada arquivo de apontamento
             for tf in temp_files:
-                mime = tf["mime"]
                 suffix = Path(tf["path"]).suffix.lower()
                 
-                # Determinar mime type correto
                 if suffix in ['.jpg', '.jpeg']:
-                    mime = "image/jpeg"
+                    file_contents.append(FileContentWithMimeType(file_path=tf["path"], mime_type="image/jpeg"))
                 elif suffix == '.png':
-                    mime = "image/png"
+                    file_contents.append(FileContentWithMimeType(file_path=tf["path"], mime_type="image/png"))
                 elif suffix == '.pdf':
-                    mime = "application/pdf"
+                    file_contents.append(FileContentWithMimeType(file_path=tf["path"], mime_type="application/pdf"))
                 elif suffix == '.gif':
-                    mime = "image/gif"
+                    file_contents.append(FileContentWithMimeType(file_path=tf["path"], mime_type="image/gif"))
                 elif suffix in ['.xlsx', '.xls']:
-                    # Extrair conteúdo de Excel e enviar como texto
+                    # Extrair conteúdo de Excel como texto formatado
                     try:
                         wb_ap = load_workbook(tf["path"])
                         ws_ap = wb_ap.active
-                        excel_text = f"=== Conteúdo do arquivo {tf['name']} ===\n"
-                        for row in ws_ap.iter_rows(min_row=1, max_row=min(100, ws_ap.max_row), values_only=True):
-                            excel_text += " | ".join([str(c) if c else "" for c in row]) + "\n"
-                        # Adicionar como texto no prompt
-                        temp_files.append({"text_content": excel_text, "name": tf["name"]})
-                    except:
-                        pass
-                    continue  # Não adicionar o arquivo Excel
+                        excel_text = f"\n\n=== DADOS DO ARQUIVO: {tf['name']} ===\n"
+                        excel_text += "| " + " | ".join([str(ws_ap.cell(row=1, column=c).value or "") for c in range(1, ws_ap.max_column + 1)]) + " |\n"
+                        excel_text += "|" + "---|" * ws_ap.max_column + "\n"
+                        for row in range(2, min(500, ws_ap.max_row + 1)):
+                            row_data = [str(ws_ap.cell(row=row, column=c).value or "") for c in range(1, ws_ap.max_column + 1)]
+                            if any(row_data):  # Só adiciona se tiver dados
+                                excel_text += "| " + " | ".join(row_data) + " |\n"
+                        excel_text_contents.append(excel_text)
+                    except Exception as e:
+                        excel_text_contents.append(f"\n[Erro ao ler {tf['name']}: {str(e)}]\n")
                 elif suffix == '.txt':
-                    mime = "text/plain"
-                else:
-                    continue  # Pular arquivos não suportados
-                
-                file_contents.append(FileContentWithMimeType(
-                    file_path=tf["path"],
-                    mime_type=mime
-                ))
+                    file_contents.append(FileContentWithMimeType(file_path=tf["path"], mime_type="text/plain"))
             
-            # Montar texto com conteúdo de arquivos Excel extraídos
-            extra_text = ""
-            for tf in temp_files:
-                if "text_content" in tf:
-                    extra_text += f"\n\n{tf['text_content']}"
+            # Montar texto com conteúdo de arquivos Excel
+            extra_text = "".join(excel_text_contents)
             
             response = await chat.send_message(UserMessage(
                 text=f"""Analise os arquivos de apontamentos enviados e extraia os dados.
