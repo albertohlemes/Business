@@ -138,6 +138,8 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - 🔲 Importação de colaboradores em lote
 
 ### P2 (Futuros)
+- 🔲 **Salvar template SCI** na Conversão de Apontamentos
+- 🔲 **Autocomplete de Cidade/IBGE** na Conversão Admissional
 - 🔲 Notificações de dissídios pendentes
 - 🔲 Exportação de relatórios do dashboard
 - 🔲 Análise de padrões de erros recorrentes
