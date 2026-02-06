@@ -477,7 +477,8 @@ const UploadXML = ({ user, onLogout }) => {
               ) : (
                 <>
                   <Sparkles className="w-6 h-6" />
-                  Enviar e Analisar {files.length} arquivo(s)
+                  Enviar e Analisar {files.length.toLocaleString('pt-BR')} arquivo(s)
+                  {files.length > BATCH_SIZE && ` (${Math.ceil(files.length / BATCH_SIZE)} lotes)`}
                 </>
               )}
             </button>
