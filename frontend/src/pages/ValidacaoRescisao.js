@@ -521,6 +521,28 @@ const ValidacaoRescisao = () => {
                 </p>
               </div>
             )}
+
+            {/* Aviso de CCT cadastrada */}
+            {temCctCadastrada && (
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                <div className="flex items-center gap-3">
+                  <Scale className="text-blue-400" size={20} />
+                  <div className="flex-1">
+                    <p className="text-sm text-blue-300 font-medium">
+                      CCT cadastrada para esta empresa
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Sindicato: {empresaSelecionada?.convencao_coletiva?.identificacao?.sindicato_laboral || 'N/A'}
+                      {' • '}
+                      Vigência: {empresaSelecionada?.convencao_coletiva?.vigencia?.data_fim || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Você pode usar a CCT cadastrada ou fazer upload de outra convenção.
+                </p>
+              </div>
+            )}
             
             {/* Upload Area - Convenção */}
             <div 
@@ -554,8 +576,12 @@ const ValidacaoRescisao = () => {
                     <FileUp size={32} />
                   </div>
                   <div className="text-center">
-                    <p className="text-white font-medium">Upload da Convenção Coletiva</p>
-                    <p className="text-sm text-slate-500">PDF da CCT vigente</p>
+                    <p className="text-white font-medium">
+                      {temCctCadastrada ? 'Upload de Outra Convenção (Opcional)' : 'Upload da Convenção Coletiva'}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {temCctCadastrada ? 'Ou clique em "Usar CCT Cadastrada"' : 'PDF da CCT vigente'}
+                    </p>
                   </div>
                   <p className="text-xs text-slate-600">Clique ou arraste arquivos aqui</p>
                 </div>
@@ -572,11 +598,13 @@ const ValidacaoRescisao = () => {
               </Button>
               <Button 
                 onClick={processarConvencao} 
-                disabled={processing || !convencao} 
+                disabled={processing || (!convencao && !temCctCadastrada)} 
                 className="flex-1 bg-blue-600 hover:bg-blue-700 h-12"
               >
                 {processing ? (
                   <><Loader2 className="animate-spin mr-2" size={20} />Analisando...</>
+                ) : temCctCadastrada && !convencao ? (
+                  <><Scale size={20} className="mr-2" />Usar CCT Cadastrada</>
                 ) : (
                   <><Scale size={20} className="mr-2" />Validar Convenção</>
                 )}
