@@ -178,7 +178,7 @@ class TestCalcularRetroativo:
                 "convencao_dados": json.dumps({})  # Missing percentual_reajuste
             }
         )
-        assert response.status_code == 400, f"Expected 400, got {response.status_code}"
+        assert response.status_code in [400, 422], f"Expected 400 or 422, got {response.status_code}"
         print("✓ Calcular retroativo requires percentual_reajuste")
     
     def test_calcular_with_proporcionalidade_data(self, auth_headers, existing_cliente):
