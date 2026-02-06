@@ -7710,7 +7710,7 @@ async def exportar_e_validar_sped(
             cst_icms_num = cst_icms[-2:] if len(cst_icms) >= 2 else cst_icms
             
             # Só adiciona pendência se NÃO for CFOP de despesa
-            if cst_icms_num in CSTS_TRIBUTADOS and v_icms == 0 and valor > 0 and cfop not in CFOPS_DESPESAS_IGNORAR:
+            if cst_icms_num in CSTS_TRIBUTADOS and v_icms == 0 and valor > 0 and cfop not in CFOPS_DESPESAS_ST_IGNORAR:
                 itens_pendentes.append({
                     'document_id': doc.id,
                     'product_index': prod_idx,
