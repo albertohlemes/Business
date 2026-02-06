@@ -1,179 +1,145 @@
 <analysis>**original_problem_statement:**
-O usuário deseja criar um portal de departamento pessoal para seu escritório de contabilidade para automatizar processos. Os principais requisitos são:
-1.  **Aplicação de Dissídio Coletivo**: Automatizar o processo de leitura da convenção coletiva, extração do percentual de aumento, cálculo dos reajustes, e envio para aprovação do cliente.
-2.  **Admissão de Colaboradores com IA**: Extrair informações de documentos de admissão (imagens, PDFs), incluindo documentos que contenham múltiplos colaboradores, e preencher automaticamente os dados.
-3.  **Importação de Médias Históricas**: Para novos clientes, extrair dados de médias salariais de relatórios da contabilidade anterior (em formatos variados como XLS, TXT, PDF) e gerar um arquivo de importação para o sistema de folha de pagamento SCI Único.
-4.  **Validação de Folha de Pagamento**: Comparar a folha atual com a do mês anterior e também permitir a comparação do holerite gerado com um documento de apoio (e-mail, imagem, PDF, Excel) para validar os lançamentos. A funcionalidade deve suportar múltiplos arquivos de apoio e manter um histórico de validações.
-5.  **Comparação de Informes de Rendimento**: Automatizar a comparação anual entre o relatório do eSocial e o do sistema interno SCI Único.
-6.  **Relatórios Exportáveis**: Gerar relatórios em formato Excel e PDF para as principais funcionalidades.
-7.  **Melhorias de Fluxo e UI**: Garantir que a empresa e competência selecionadas no cabeçalho sejam respeitadas em toda a aplicação, filtrar dados do dashboard, e exibir o código da empresa antes do nome.
-8.  **Barras de Progresso**: Adicionar barras de progresso visuais para todas as operações de longa duração (importações, validações).
+O usuário deseja criar um portal de departamento pessoal para seu escritório de contabilidade para automatizar processos. A funcionalidade principal atualmente em desenvolvimento é a Validação de Folha de Pagamento.
+
+Os requisitos para esta funcionalidade evoluíram para:
+1.  **Validação por Colaborador**: O sistema deve ser capaz de processar um único arquivo de folha de pagamento (no formato específico SCI Único) que contém múltiplos colaboradores.
+2.  **Análise Comparativa Tripla**: Para cada colaborador, o sistema deve comparar os dados do holerite atual com:
+    *   O holerite do mês anterior (se fornecido).
+    *   Arquivos de apoio variados (planilhas, e-mails, imagens de prints), que devem ser analisados por IA para extrair valores de referência (ex: horas extras, vale compras).
+3.  **Detecção de Divergências**: Identificar e destacar discrepâncias entre as fontes (ex: valor do Vale Compras no arquivo de apoio vs. no holerite).
+4.  **UI Específica**:
+    *   Apresentar os resultados em uma tabela, onde cada linha representa um colaborador, mostrando seu status e as divergências encontradas.
+    *   Permitir a exclusão de registros de validação, tanto individualmente quanto em massa (selecionando múltiplos).
+    *   Apresentar uma barra de progresso funcional durante o processo de validação, que é uma operação de longa duração.
 
 **User's preferred language**: Portuguese. The next agent MUST respond in Portuguese.
 
 **what currently exists?**
-- Um aplicativo full-stack com backend em FastAPI e frontend em React.
-- Autenticação JWT, cadastro de clientes com busca de CNPJ e um cabeçalho global com seleção de empresa/competência.
-- **Módulo de Admissão de Colaboradores**: Implementado com um sistema **híbrido**. Primeiro, tenta extrair dados de múltiplos colaboradores de um documento usando **OCR local (Tesseract)**, que é gratuito e rápido. Se a extração local falhar ou tiver baixa confiança, ele recorre a uma API de IA (Google Gemini ou Emergent LLM). A UI de revisão pós-importação foi redesenhada para ser mais visual e funcional, com scroll e status por colaborador.
-- **Módulo de Validação de Folha de Pagamento**: A interface foi redesenhada para aceitar um holerite atual, um do mês anterior (opcional) e múltiplos arquivos de apoio (opcional). O backend foi parcialmente refatorado para usar a mesma abordagem híbrida de OCR local, mas a implementação está **incompleta e com bugs**.
-- **Outros Módulos**: Dissídio Coletivo, Comparação de Informes, Importação de Médias e Relatórios estão funcionais.
-- **Melhorias de UI/UX**: O dashboard agora filtra os dados pela empresa selecionada. Menus e seletores de empresa mostram o código interno antes do nome e respeitam o contexto global. Barras de progresso com animação foram adicionadas a todos os fluxos de upload de arquivos.
-- **Gerenciamento de Erros**: Foi criado um helper de frontend para formatar e exibir mensagens de erro da API de forma mais clara.
+- Uma aplicação full-stack (FastAPI + React) com autenticação JWT.
+- O módulo de Validação de Folha foi extensivamente refatorado para atender aos novos requisitos:
+    - **Backend**:
+        - O endpoint  foi reescrito para orquestrar a validação por colaborador.
+        - Um parser de documentos altamente especializado ( em ) foi criado para extrair dados com precisão do formato de holerite SCI Único, resolvendo o problema de extração incorreta de nomes e valores.
+        - Uma nova função () foi implementada para analisar arquivos de apoio. Ela envia imagens (JPG, PNG) diretamente para a IA (Gemini) para análise visual e extrai texto de outros formatos (PDF, TXT) para análise textual, tornando o processo robusto para diversos tipos de entrada.
+        - Foram adicionados endpoints para exclusão:  (individual) e  (em massa).
+    - **Frontend**:
+        - A página  foi atualizada para permitir o upload de um holerite atual, um anterior (opcional) e múltiplos arquivos de apoio (opcional).
+        - A UI de listagem de validações agora inclui checkboxes para seleção múltipla, um botão para deletar em lote e um ícone de lixeira em cada item para exclusão individual.
+        - O handler de upload () foi modificado para incluir , na tentativa de consertar a barra de progresso.
 
 **Last working item**:
-- **Last item agent was working**: O agente estava tentando consertar a funcionalidade de Validação de Folha que, segundo o usuário, não estava progredindo (continua nao progredindo). O agente iniciou a refatoração do backend para usar um sistema híbrido de OCR local + IA, similar ao que foi feito com sucesso no módulo de admissão, para reduzir custos e evitar travamentos.
+- **Last item agent was working**: O agente estava tentando resolver o principal problema relatado pelo usuário: a interface de validação trava (a barra nao carregou) e exibe um erro, embora a análise no backend seja concluída com sucesso. Adicionalmente, o agente implementou as melhorias de UI para exclusão em massa solicitadas pelo usuário.
 - **Status**: IN PROGRESS
 - **Agent Testing Done**: N
 - **Which testing method agent to use?**: both
-- **User Testing Done**: N
+- **User Testing Done**: N (User reported the issue, but has not tested the latest fixes).
 
 **All Pending/In progress Issue list**:
--   **Issue 1: A Validação de Folha de Pagamento não funciona e a barra de progresso não avança.** (P0)
--   **Issue 2: A chave de API do Google AI do usuário atinge o limite de quota rapidamente.** (P1)
+-   **Issue 1: A interface de validação trava durante o processamento.** (P0)
+-   **Issue 2: A chave da API do Google AI está configurada para um modelo indisponível.** (P1)
 
 **Issues Detail**:
 -   **Issue 1**:
-    -   **Attempted fixes**: O agente começou a reescrever o endpoint  para usar OCR local () primeiro, e só então recorrer à IA. Ele adicionou um helper de OCR para holerites, mas a integração com a lógica principal, a análise comparativa e o salvamento dos resultados está incompleta. O sistema antigo, que dependia 100% de IA, foi parcialmente removido, deixando a funcionalidade em um estado quebrado.
+    -   **Attempted fixes**: O agente adicionou um handler  à chamada do  em  para fornecer feedback de upload em tempo real. No entanto, a operação de análise completa (que ocorre após o upload) é muito longa, fazendo com que a requisição principal exceda o tempo limite ou congele a UI antes de receber a resposta. O backend processa corretamente e salva no banco, mas o frontend falha em exibir o resultado.
     -   **Next debug checklist**:
-        1.  Revisar o arquivo  na função .
-        2.  Verificar como os dados extraídos pelo OCR (, , ) estão sendo processados.
-        3.  Implementar a lógica de comparação entre os textos extraídos. A lógica atual de IA foi removida, mas nenhuma lógica de substituição baseada em OCR foi finalizada.
-        4.  Garantir que o resultado da análise é salvo corretamente no banco de dados na coleção .
-        5.  Criar um teste via  ou  para validar o fluxo completo do novo endpoint.
-    -   **Why fix this issue and what will be achieved with the fix?**: Corrigir isso tornará a funcionalidade de validação de folha utilizável, mais rápida e muito mais barata, resolvendo uma queixa principal do usuário.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?**: both
--   **Issue 2**:
-    -   **Attempted fixes**: O agente implementou o OCR local como primeira opção para reduzir o uso da IA. Também configurou o sistema para usar a chave do Google AI do usuário em vez da chave paga da Emergent. No entanto, a chave gratuita do usuário também esgotou a quota.
-    -   **Next debug checklist**: A solução principal já está em andamento (minimizar o uso de IA). O próximo passo é garantir que a implementação de OCR na Validação de Folha (Issue 1) seja robusta o suficiente para que a IA seja raramente necessária. Informar ao usuário que, para casos complexos que exigem IA, ele precisará gerenciar sua quota ou usar um plano pago.
-    -   **Why fix this issue and what will be achieved with the fix?**: Reduz a dependência de serviços pagos/limitados, tornando o aplicativo mais robusto e econômico para o usuário.
+        1.  A causa raiz é a natureza síncrona de uma requisição HTTP muito longa. A solução correta é refatorar para um **padrão assíncrono (polling)**.
+        2.  **Backend**: Modificar  para:
+            -   Iniciar a validação em uma tarefa de fundo (FastAPI ).
+            -   Retornar imediatamente um ID de trabalho (ex: ).
+        3.  **Backend**: Criar um novo endpoint  que retorne o status atual (, , ) e o resultado final quando estiver pronto.
+        4.  **Frontend**: Modificar  em  para:
+            -   Após receber o , iniciar um loop de polling (ex: ) que chama o endpoint de status a cada 3-5 segundos.
+            -   Atualizar a UI (barra de progresso) com base na resposta do status.
+            -   Quando o status for , exibir o modal de resultados e limpar o intervalo.
+    -   **Why fix this issue and what will be achieved with the fix?**: É o principal bloqueador que impede o usuário de usar a funcionalidade. A correção fornecerá uma experiência de usuário robusta para operações de longa duração.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?**: both
+-   **Issue 2**:
+    -   **Attempted fixes**: Durante a depuração, o agente percebeu nos logs um erro  e alterou o modelo para  em . O fallback para a chave da Emergent funcionou, mas o caminho principal falhou.
+    -   **Next debug checklist**: Verificar se o novo nome do modelo () é válido e está disponível na chave do Google AI do usuário. Se não, usar um modelo garantido como .
+    -   **Why fix this issue and what will be achieved with the fix?**: Torna a integração principal com a chave do usuário mais confiável, evitando a dependência do mecanismo de fallback.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?**: backend
-    -   **Blocked on other issue**: A solução completa depende da finalização da Issue 1.
 
 **In progress Task List**:
--   **Task 1: Concluir a refatoração da Validação de Folha de Pagamento**
+-   **Task 1: Implementar polling para a validação de folha**
     -   **Priority**: P0
-    -   **Where to resume**: No arquivo , dentro do endpoint . A lógica de extração de texto por OCR foi adicionada, mas a lógica de **análise, comparação e geração do resumo** precisa ser implementada usando os textos extraídos, e o resultado precisa ser salvo no banco.
-    -   **What will be achieved with this?**: A funcionalidade de validação de folha se tornará rápida, barata e funcional.
-    -   **Status**: IN PROGRESS
+    -   **Where to resume**: Refatoração do endpoint  em  e da função  em .
+    -   **What will be achieved with this?**: Solucionará o problema de travamento da UI, proporcionando uma experiência de usuário fluida para uma tarefa demorada.
+    -   **Status**: NOT STARTED
     -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on something**: Issue 1 está diretamente relacionada a esta tarefa.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    -   **P1: Refinar o layout de exportação para o SCI Único**: O usuário mencionou que fornecerá o layout exato (XLS ou TXT) para a importação de médias históricas. A tarefa será ajustar o endpoint  para gerar o arquivo no formato exato do SCI Único.
+    -   **P1: Refinar o layout de exportação para o SCI Único**: Ajustar o endpoint  para gerar o arquivo no formato exato do sistema de folha.
 -   **Future Tasks**:
-    -   **P2: Integrar diretamente com o SCI Único**: Investigar possibilidades de automação via importação de arquivos em pastas específicas.
-    -   **P2: Análise de Padrões de Erros**: Criar um dashboard para identificar padrões de erros recorrentes na validação da folha por empresa ou funcionário.
-    -   **P2: Melhorar o fluxo guiado**: O usuário sugeriu um fluxo mais guiado para novos usuários: cadastrar empresa → importar colaboradores → primeira validação.
+    -   **P2: Integração direta com o SCI Único**: Investigar automação via monitoramento de pastas de arquivos.
+    -   **P2: Análise de Padrões de Erros**: Criar um dashboard para identificar padrões de erros recorrentes na validação da folha.
+    -   **P2: Melhorar o fluxo guiado**: Criar um fluxo mais guiado para novos usuários.
 
 **Completed work in this session**
--   **Admissão de Múltiplos Colaboradores**: Finalizada e testada.
--   **Implementação de Processamento Híbrido (OCR + AI)**: Implementado com sucesso no módulo de admissão, usando Tesseract para extração local e gratuita, reduzindo drasticamente os custos de API e o tempo de processamento.
--   **UI/UX de Admissão**: O modal de revisão pós-importação foi completamente redesenhado para uma melhor visualização e usabilidade, com navegação horizontal, cards coloridos e scrollbars personalizadas.
--   **Melhorias de Fluxo Global**: O dashboard e os menus de seleção agora filtram e priorizam com base na empresa e competência selecionadas no contexto global. O código da empresa agora é exibido antes do nome.
--   **Barras de Progresso**: Adicionadas a todas as páginas com uploads, com animações e mensagens dinâmicas para melhorar a percepção do usuário durante o processamento.
--   **Refatoração da Validação de Folha**: A UI foi redesenhada para suportar múltiplos arquivos e o backend foi **iniciado** na refatoração para o modelo híbrido.
--   **Correção de Bugs**:
-    -   Corrigido erro 502 (Bad Gateway) na API da IA com retries.
-    -   Corrigido erro de renderização no React () com um novo .
-    -   Corrigido erro de backend cliente_id é obrigatório na validação de folha usando  para os parâmetros.
-
-**Earlier issues found/mentioned but not fixed**
--   None.
-
-**Known issue recurrence from previous fork**
--   None.
+-   **Parser para SCI Único**: Foi criado um parser de alta precisão para o formato de holerite específico do usuário, corrigindo a extração de nomes, CPFs e valores de rubricas.
+-   **Análise de Apoio com IA**: O sistema agora pode analisar imagens (PNG, JPG) diretamente com a IA (Gemini) para extrair dados de referência, resolvendo a falha na detecção de divergências quando o apoio era um print. O Tesseract foi instalado como dependência.
+-   **Funcionalidade de Exclusão (Individual e em Lote)**: O backend e o frontend foram implementados para permitir que o usuário delete um ou múltiplos registros de validação. A UI agora possui checkboxes e botões de exclusão.
+-   **Implementação da Lógica de Validação por Colaborador**: O backend agora processa, compara e gera um relatório de divergências para cada colaborador individualmente, cruzando dados do holerite atual, anterior e dos arquivos de apoio.
 
 **Code Architecture**
-
+/validar-completa_extract_colaborador_sci_extract_referencias_apoio_ia
 
 **Key Technical Concepts**
--   **Backend**: FastAPI, Pydantic, JWT, Motor (MongoDB), .
--   **Frontend**: React, React Router, Axios, Shadcn UI, TailwindCSS, .
--   **Document Processing**: Modelo Híbrido:
-    1.  **OCR Local**: , ,  para extração de texto gratuita e rápida de PDFs/imagens.
-    2.  **AI Fallback**:  (com chave do usuário) e  (com chave da plataforma).
+-   **Backend**: FastAPI, Pydantic, Motor (MongoDB), BackgroundTasks (sugerido).
+-   **Frontend**: React, Axios, Shadcn UI, TailwindCSS, .
+-   **Document Processing**:
+    -   **Holerite Padrão (SCI)**: Parser customizado com Regex em .
+    -   **Arquivos de Apoio**: Abordagem híbrida:
+        1.  **Imagens (PNG/JPG)**: Enviadas diretamente para a API do Gemini para análise visual.
+        2.  **Outros (PDF/TXT)**: Extração de texto via / e análise do texto pela IA.
 
 **key DB schema**
--   ****: Estrutura atualizada para armazenar resultados de análises, incluindo ,  e .
-
-**changes in tech stack**
--   **Backend**: Adicionadas as dependências , usage: pymupdf [-h]
-               {show,clean,join,extract,embed-info,embed-add,embed-del,embed-upd,embed-extract,embed-copy,gettext,internal}
-               ...
-
-------------------------- Basic PyMuPDF Functions -------------------------
-
-options:
-  -h, --help            show this help message and exit
-
-Subcommands:
-  {show,clean,join,extract,embed-info,embed-add,embed-del,embed-upd,embed-extract,embed-copy,gettext,internal}
-                        Enter 'command -h' for subcommand specific help, , ,  (via apt).
--   **Estratégia**: Mudança de um modelo 100% dependente de API de IA para um modelo híbrido que prioriza o OCR local.
+-   ****: Coleção que armazena os resultados. A estrutura agora inclui um array , onde cada objeto contém os dados extraídos, o resultado da comparação e as divergências encontradas para aquele colaborador específico.
 
 **All files of reference**
--   : Modificado extensivamente para implementar o modelo híbrido e corrigir bugs.
--   : Novo arquivo com a lógica de processamento de documentos (OCR e IA).
--   : Atualizado para incluir a .
--   : Principal arquivo do frontend para a tarefa atual, reescrito, mas com a chamada de API quebrada.
--   : Atualizado para usar o novo modelo de importação e a UI de revisão.
--   : Novo componente reutilizável.
--   , : Novos helpers.
--   : Adicionados estilos para scrollbars personalizadas e animações.
+-   : Contém o endpoint principal  e os novos endpoints de exclusão. Precisa ser refatorado para usar background tasks.
+-   : Contém a lógica de parsing mais crítica e atualizada, incluindo o parser para o formato SCI e a análise de imagens com IA.
+-   : Arquivo central do frontend para esta funcionalidade. Contém a lógica de upload, a UI de listagem com exclusão e o modal de resultados. Precisa ser refatorado para usar polling.
+-   : Atualizado com os novos requisitos e funcionalidades.
 
 **Areas that need refactoring**:
--   A lógica de validação de folha dentro de  está muito complexa e deve ser movida para  para seguir o padrão estabelecido pela refatoração da admissão de colaboradores.
+-   O fluxo de validação ( no backend e  no frontend) precisa ser refatorado para um modelo assíncrono (background task + polling) para evitar que a UI congele.
 
 **key api endpoints**
--   : Novo endpoint principal para admissão, que usa OCR primeiro.
--   : Endpoint que está sendo refatorado e atualmente está quebrado.
+-   : Endpoint principal que está causando o travamento da UI devido ao longo tempo de processamento.
+-   : Novo endpoint para exclusão individual.
+-   : Novo endpoint para exclusão em massa.
 
 **Critical Info for New Agent**
--   A prioridade máxima (P0) é consertar a funcionalidade de **Validação de Folha**. O usuário está bloqueado por isso. A abordagem deve ser finalizar a implementação do OCR local iniciada pelo agente anterior.
--   **Não confie nas APIs de IA**. Os orçamentos/quotas (tanto da plataforma quanto do usuário) são instáveis. A solução robusta é fazer o OCR local funcionar para a maioria dos casos. A IA deve ser apenas um fallback para casos complexos.
--   O código para a validação de folha ( em ) está em um estado intermediário. A lógica antiga de IA foi parcialmente removida, e a nova lógica de OCR não foi totalmente implementada. Você precisará completar essa transição.
-
-**documents and test reports created in this job**
--   /app/memory/PRD.md (atualizado consistentemente)
--   /app/test_reports/iteration_9.json
--   /app/test_reports/iteration_10.json
+-   **Prioridade máxima é consertar a UI travada.** A solução mais robusta é mudar o fluxo de validação para um modelo assíncrono com polling, em vez de tentar otimizar a requisição síncrona atual.
+-   O parser para o holerite **SCI Único** () é a chave para a extração correta dos dados do holerite. Ele é complexo e foi ajustado com base em um arquivo real.
+-   A análise de **arquivos de apoio** agora depende criticamente da IA (Gemini) para imagens. Garanta que a chave e o nome do modelo da API estejam corretos.
+-   A funcionalidade de **exclusão em massa** foi implementada conforme solicitado pelo usuário, mas ele pode não tê-la visto funcionar devido ao bug de travamento.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **usuário**: validacao de folha continua nao progredindo - O usuário relata que a funcionalidade principal está quebrada. (Status: **EM ANDAMENTO**)
-2.  **usuário**: mas resolveu o erro da validacao de folha tbm? - O usuário questiona se a correção do cliente_id obrigatório resolveu o problema de travamento. (Status: **RESOLVIDO PARCIALMENTE**, mas o problema principal persiste)
-3.  **usuário**: as validacoes estao demoradas e sempre trava no 95%. resolve isso, por favor - O usuário reclama da experiência da barra de progresso. (Status: **RESOLVIDO**, UI da barra foi melhorada)
-4.  **usuário**: cliente_id é obrigatório - O usuário reporta um erro específico na validação de folha. (Status: **RESOLVIDO**)
-5.  **usuário**: o site parou de funcionar - O usuário relata que o site caiu. (Status: **RESOLVIDO**, serviços reiniciados)
-6.  **usuário**: coloca credito e segue - O usuário confirma que o crédito foi adicionado (depois foi revelado ser temporário). (Status: **RESOLVIDO**)
-7.  **usuário**: 3 e 4 me agradam. funcionando, faz o mais barato - O usuário aprova a mudança para um sistema híbrido (OCR+IA) e o uso de sua própria chave de API. (Status: **EM ANDAMENTO**)
-8.  **usuário**: deu certo. mas o menu que exibe pós importacao está sem rolagem, nao achei mto visual tbm - Feedback sobre a UI do modal de revisão de colaboradores. (Status: **RESOLVIDO**)
-9.  **usuário**: Input should be a valid list esta dando esse erro gora - O usuário reporta outro erro de validação. (Status: **RESOLVIDO**)
-10. **usuário**: entendo que precisamos melhorar o fluxo... - O usuário fornece feedback valioso sobre UX e fluxo do sistema. (Status: **RESOLVIDO**)
+1.  **usuário**:  - Solicita a funcionalidade de exclusão. (Status: **IMPLEMENTADO**)
+2.  **usuário**: (Envia arquivo de holerite ) - Fornece o documento real para depuração do parser. (Status: **RESOLVIDO**)
+3.  **usuário**:  - Reporta que a detecção de divergência com o arquivo de apoio (imagem) não funcionou. (Status: **RESOLVIDO**, implementando análise de imagem com IA).
+4.  **usuário**:  - Reporta o principal problema atual: a UI trava durante a validação. (Status: **EM ANDAMENTO**)
+5.  **usuário**:  - Confirma o desejo pela UI de exclusão em massa e reitera o erro de travamento. (Status: **EM ANDAMENTO**)
 
 **Project Health Check:**
--   **Broken**: A funcionalidade de Validação de Folha de Pagamento está quebrada. O agente estava no meio de uma refatoração.
--   **Mocked**: A geração do arquivo de importação para o SCI Único ainda usa um formato genérico.
--   **Risk**: A dependência de APIs de IA (tanto da plataforma quanto a chave do usuário) continua sendo um risco devido aos limites de orçamento/quota. A estratégia de priorizar o OCR local mitiga, mas não elimina, esse risco.
+-   **Broken**: A experiência do usuário para a Validação de Folha está quebrada. A UI trava e não exibe o resultado de uma operação que, no backend, é bem-sucedida.
 
 **3rd Party Integrations**
--   **Emergent LLM Key**: Usado como um fallback para análise de documentos. O orçamento esgotou-se repetidamente.
--   **Google Generative AI**: Integrado para usar a chave de API do próprio usuário. A quota gratuita diária também se esgotou.
--   **Tesseract OCR**: Instalado localmente (, ) como o método principal e gratuito para extração de texto de documentos.
--   **API da Receita Federal (BrasilAPI)**: Para busca de dados de empresas por CNPJ.
+-   **Google Generative AI**: Usado para analisar o conteúdo de arquivos de apoio. Configurado para usar a chave do usuário, mas o nome do modelo () precisou ser corrigido.
+-   **Emergent LLM Key**: Usado como fallback caso a API do Google falhe.
+-   **Tesseract OCR**: Instalado no sistema e usado como parte do pipeline de extração de texto de documentos.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES
--   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: None
--   **Known regressions**: A funcionalidade de Validação de Folha, que funcionava antes (mesmo que com custo), agora está quebrada devido a uma refatoração inacabada.
-
-**Credentials to test flow:**
--   A chave da API do Google AI do usuário está em  como . Esteja ciente de que ela pode estar sem quota.
--   Contas de usuário podem ser criadas na página de registro.
+-   **Testing agent used after significant changes**: YES (na iteração anterior)
+-   **Test files created**: N/A
+-   **Known regressions**: A usabilidade da funcionalidade de validação foi impactada pelo problema de travamento da UI.
 
 **What agent forgot to execute**
--   O agente não concluiu a refatoração da funcionalidade de validação de folha. Ele removeu parte da implementação antiga baseada em IA, mas não finalizou a nova implementação baseada em OCR local, deixando a funcionalidade em um estado quebrado e não testado.</analysis>
+-   O agente anterior identificou o problema da requisição síncrona longa, mas tentou uma solução paliativa () em vez de refatorar para um padrão assíncrono (polling), que é a solução definitiva para a experiência do usuário.</analysis>
