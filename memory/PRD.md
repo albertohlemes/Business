@@ -68,15 +68,17 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ### ✅ Upload de XML com Validação Inteligente
 - Upload em lote de arquivos XML de notas fiscais
+- **🆕 Upload em lotes automático:** Suporta mais de 1.000 arquivos! O sistema processa automaticamente em lotes de 1.000
 - **Detecção automática de tipo:** NF-e, NFC-e (cupom) ou NFS-e (serviço)
 - **Validação de CNPJ** - Rejeita XMLs de empresas diferentes
 - **Validação de Competência** - Rejeita XMLs com data fora do período
 - **Relatório detalhado de erros** - Mostra resumo completo
 - Conversão automática de CFOP
 - **Auto-preenchimento de competência** do contexto global
-- **🆕 Barra de Progresso em Tempo Real:** (04/02/2026)
+- **Barra de Progresso em Tempo Real:** (04/02/2026)
   - Feedback visual durante o upload com SSE (Server-Sent Events)
   - Barra fixa no topo mostrando porcentagem, arquivos processados e etapa atual
+  - Mostra lote atual quando processando mais de 1.000 arquivos
   - Botão com spinner e porcentagem durante processamento
   - Inputs desabilitados durante upload para segurança
 
