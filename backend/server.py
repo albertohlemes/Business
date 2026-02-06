@@ -3356,6 +3356,8 @@ async def analisar_convencao(
                 IMPORTANTE - Identifique claramente:
                 1. VERBAS QUE RECEBEM REAJUSTE (salário, horas extras, DSR, adicional noturno, etc)
                 2. VERBAS QUE NÃO RECEBEM REAJUSTE (vale transporte, vale refeição fixo, INSS, IRRF, etc)
+                3. BENEFÍCIOS COM VALORES NOVOS (VA, VR, VT, auxílio creche, etc)
+                4. DESCONTOS QUE MUDARAM (contribuição sindical, assistencial, etc)
                 
                 Retorne APENAS um JSON válido (sem texto adicional):
                 {
@@ -3366,6 +3368,7 @@ async def analisar_convencao(
                     "mes_convencao": "MM/YYYY (mês/ano que a convenção foi assinada/publicada)",
                     "meses_retroativos": número de meses entre data_base e mes_convencao,
                     "piso_salarial": valor numérico ou null,
+                    "piso_salarial_anterior": valor anterior se mencionado ou null,
                     "verbas_com_reajuste": [
                         "salario_base",
                         "horas_extras_50",
@@ -3380,14 +3383,58 @@ async def analisar_convencao(
                         "vale_refeicao",
                         "vale_alimentacao",
                         "inss",
-                        "irrf",
-                        "contribuicao_sindical"
+                        "irrf"
                     ],
-                    "beneficios_alterados": [
-                        {"tipo": "VA", "valor_novo": 500, "descricao": "reajuste de X%"}
+                    "beneficios": [
+                        {
+                            "tipo": "vale_alimentacao",
+                            "nome": "Vale Alimentação",
+                            "valor_novo": 800.00,
+                            "valor_anterior": 700.00,
+                            "variacao_percentual": 14.29,
+                            "observacao": "aumento de R$ 100,00"
+                        },
+                        {
+                            "tipo": "vale_refeicao",
+                            "nome": "Vale Refeição",
+                            "valor_novo": 35.00,
+                            "valor_anterior": 32.00,
+                            "variacao_percentual": 9.38,
+                            "observacao": "por dia trabalhado"
+                        },
+                        {
+                            "tipo": "auxilio_creche",
+                            "nome": "Auxílio Creche",
+                            "valor_novo": 400.00,
+                            "valor_anterior": null,
+                            "variacao_percentual": null,
+                            "observacao": "novo benefício"
+                        }
+                    ],
+                    "descontos": [
+                        {
+                            "tipo": "contribuicao_assistencial",
+                            "nome": "Contribuição Assistencial",
+                            "valor_novo": 50.00,
+                            "valor_anterior": 40.00,
+                            "variacao_percentual": 25.0,
+                            "observacao": "desconto em folha"
+                        },
+                        {
+                            "tipo": "mensalidade_sindical",
+                            "nome": "Mensalidade Sindical",
+                            "percentual": 1.0,
+                            "observacao": "1% do salário base"
+                        }
                     ],
                     "clausulas_importantes": ["cláusulas relevantes para DP"],
                     "vigencia_inicio": "DD/MM/YYYY",
+                    "vigencia_fim": "DD/MM/YYYY",
+                    "resumo": "resumo executivo em 2-3 frases"
+                }
+                
+                Se não encontrar informação sobre algum campo, use null.
+                Para benefícios e descontos, extraia TODOS que encontrar com seus valores."""
                     "vigencia_fim": "DD/MM/YYYY",
                     "resumo": "resumo executivo em 2-3 frases"
                 }"""
