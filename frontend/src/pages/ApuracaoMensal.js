@@ -1002,16 +1002,16 @@ const ApuracaoMensal = ({ user, onLogout }) => {
         {/* Modal de Exportação */}
         {showExportModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl">
               <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Download className="w-5 h-5 text-indigo-600" />
                 Exportar Apuração
               </h3>
               
-              {/* Tipo de Agrupamento */}
+              {/* Tipo de Exportação */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Exportação:</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => setExportType('cfop')}
                     className={`px-3 py-3 rounded-lg border-2 font-medium transition-colors text-sm ${
@@ -1042,16 +1042,21 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                   >
                     Rel. Notas
                   </button>
+                  <button
+                    onClick={() => setExportType('notas_detalhada')}
+                    className={`px-3 py-3 rounded-lg border-2 font-medium transition-colors text-sm ${
+                      exportType === 'notas_detalhada' 
+                        ? 'border-green-600 bg-green-50 text-green-700' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    Rel. Detalhada
+                  </button>
                 </div>
-                {exportType === 'notas' && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Exporta relação de todas as notas com CFOP, valores e status (Ativa/Cancelada)
-                  </p>
-                )}
               </div>
               
-              {/* Formato - só mostrar se não for Relação de Notas */}
-              {exportType !== 'notas' && (
+              {/* Formato - só mostrar se for CFOP ou NCM */}
+              {(exportType === 'cfop' || exportType === 'ncm') && (
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Formato:</label>
                   <div className="grid grid-cols-2 gap-2">
@@ -1086,10 +1091,23 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                 <div className="mb-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center gap-2 text-blue-700 text-sm">
                     <FileSpreadsheet className="w-4 h-4" />
-                    <span className="font-medium">Exportação em Excel</span>
+                    <span className="font-medium">Exportação em Excel - Simples</span>
                   </div>
                   <p className="text-xs text-blue-600 mt-1">
-                    Inclui: NF, Data, Emitente/Destinatário, CNPJ, CFOP, Valor e Status
+                    Inclui: NF, Data, Emitente/Destinatário, CNPJ, CFOP, Valor NF, Status (Ativa/Cancelada)
+                  </p>
+                </div>
+              )}
+              
+              {/* Info para Relação de Notas Detalhada */}
+              {exportType === 'notas_detalhada' && (
+                <div className="mb-6 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2 text-green-700 text-sm">
+                    <FileSpreadsheet className="w-4 h-4" />
+                    <span className="font-medium">Exportação em Excel - Detalhada</span>
+                  </div>
+                  <p className="text-xs text-green-600 mt-1">
+                    Inclui todos os componentes: vProd, IPI, ICMS-ST, Frete, Desconto + Valor NF + Status
                   </p>
                 </div>
               )}
@@ -1106,6 +1124,8 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                   onClick={() => {
                     if (exportType === 'notas') {
                       exportRelacaoNotas();
+                    } else if (exportType === 'notas_detalhada') {
+                      exportRelacaoNotasDetalhada();
                     } else {
                       exportFormat === 'excel' ? exportToExcel(exportType) : exportToPDF(exportType);
                     }
