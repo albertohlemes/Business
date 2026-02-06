@@ -3,7 +3,8 @@
 **Última atualização**: 2026-02-06
 
 ## Changelog Recente
-- **2026-02-06**: Implementada exportação de resumo da convenção em PDF com papel timbrado da Business Contabilidade
+- **2026-02-06**: Melhorias de UX - Código (#XXXX) antes do nome da empresa, competência com barra (MM/AAAA), modal de seleção ao entrar
+- **2026-02-06**: Implementada exportação de resumo da convenção em PDF com papel timbrado
 - **2026-02-06**: Menu reorganizado em categorias: Conversões, Validações, Cálculos, Controles
 - **2026-02-06**: Implementados endpoints de Conversão de Apontamentos, Conversão Admissional e Validação de Rescisão
 - **2026-02-06**: UI redesenhada com tema escuro profissional e identidade visual da Business Contabilidade
