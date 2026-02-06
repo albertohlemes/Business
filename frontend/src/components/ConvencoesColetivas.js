@@ -103,10 +103,25 @@ const Section = ({ title, icon: Icon, color = 'bg-slate-700', children, defaultO
 const InfoItem = ({ label, value, highlight = false, className = '' }) => {
   if (!value && value !== 0) return null;
   
-  // Se for objeto, tentar converter
-  const displayValue = typeof value === 'object' 
-    ? (value.valor || value.percentual || value.dias || JSON.stringify(value))
-    : value;
+  // Se for objeto, tentar converter - ignorar objetos vazios ou só com nulls
+  let displayValue = value;
+  if (typeof value === 'object' && value !== null) {
+    // Verificar se tem algum valor útil
+    const val = value.valor || value.percentual || value.dias || value.meses;
+    if (val !== undefined && val !== null) {
+      displayValue = val;
+    } else {
+      // Verificar se todos os valores são null/undefined
+      const hasValue = Object.values(value).some(v => v !== null && v !== undefined && v !== '');
+      if (!hasValue) return null;
+      // Tentar serializar apenas se tiver algo útil
+      const filtered = Object.fromEntries(
+        Object.entries(value).filter(([_, v]) => v !== null && v !== undefined && v !== '')
+      );
+      if (Object.keys(filtered).length === 0) return null;
+      displayValue = JSON.stringify(filtered);
+    }
+  }
   
   return (
     <div className={`flex justify-between items-start gap-2 text-sm ${className}`}>
