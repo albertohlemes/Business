@@ -722,8 +722,38 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                           <Brain className="w-8 h-8 text-purple-600" />
                           <h3 className="text-xl font-bold text-purple-900 m-0">Análise Inteligente</h3>
                         </div>
-                        <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
-                          {data.insights_ia}
+                        <div className="text-gray-800 leading-relaxed space-y-4">
+                          {data.insights_ia.split('\n').map((line, idx) => {
+                            // Detectar títulos (linhas que começam com número ou são todas maiúsculas)
+                            const isTitulo = /^(\d+\.|[A-ZÁÉÍÓÚÀÃÕÇ\s]{5,}:)/.test(line.trim());
+                            // Detectar itens de lista
+                            const isListItem = /^[-•*]\s/.test(line.trim()) || /^\d+\)\s/.test(line.trim());
+                            // Limpar asteriscos e formatação markdown
+                            const cleanLine = line
+                              .replace(/\*\*([^*]+)\*\*/g, '$1')  // Remove **bold**
+                              .replace(/\*([^*]+)\*/g, '$1')       // Remove *italic*
+                              .replace(/^#+\s*/, '')               // Remove # markdown headers
+                              .trim();
+                            
+                            if (!cleanLine) return null;
+                            
+                            if (isTitulo) {
+                              return (
+                                <h4 key={idx} className="text-lg font-bold text-purple-900 mt-4 mb-2 border-b border-purple-200 pb-1">
+                                  {cleanLine}
+                                </h4>
+                              );
+                            } else if (isListItem) {
+                              return (
+                                <div key={idx} className="flex items-start gap-2 ml-4">
+                                  <span className="text-purple-500 mt-1">•</span>
+                                  <span>{cleanLine.replace(/^[-•*]\s*/, '').replace(/^\d+\)\s*/, '')}</span>
+                                </div>
+                              );
+                            } else {
+                              return <p key={idx} className="text-gray-700">{cleanLine}</p>;
+                            }
+                          })}
                         </div>
                       </div>
                     ) : (
