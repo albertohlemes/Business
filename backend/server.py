@@ -3350,30 +3350,48 @@ async def analisar_convencao(
             chat = LlmChat(
                 api_key=api_key,
                 session_id=f"convencao-{uuid.uuid4()}",
-                system_message="""Você é um especialista em convenções coletivas de trabalho.
-                Analise o documento e extraia:
-                1. Nome do sindicato
-                2. Percentual de reajuste salarial
-                3. Data-base da categoria
-                4. Piso salarial (se houver)
-                5. Benefícios alterados (VA, VT, etc)
-                6. Outras cláusulas importantes
+                system_message="""Você é um especialista em convenções coletivas de trabalho e departamento pessoal.
+                Analise o documento da convenção coletiva e extraia TODAS as informações relevantes para cálculo de dissídio.
                 
-                Retorne em JSON:
+                IMPORTANTE - Identifique claramente:
+                1. VERBAS QUE RECEBEM REAJUSTE (salário, horas extras, DSR, adicional noturno, etc)
+                2. VERBAS QUE NÃO RECEBEM REAJUSTE (vale transporte, vale refeição fixo, INSS, IRRF, etc)
+                
+                Retorne APENAS um JSON válido (sem texto adicional):
                 {
-                    "sindicato": "nome do sindicato",
-                    "percentual_reajuste": número (ex: 5.5),
-                    "data_base": "MM/YYYY",
-                    "piso_salarial": valor ou null,
-                    "beneficios": [
-                        {"tipo": "VA", "valor": 500, "alteracao": "aumento de 10%"}
+                    "sindicato": "nome completo do sindicato",
+                    "categoria": "categoria profissional",
+                    "percentual_reajuste": número decimal (ex: 5.5 para 5,5%),
+                    "data_base": "MM/YYYY (mês/ano da data base)",
+                    "mes_convencao": "MM/YYYY (mês/ano que a convenção foi assinada/publicada)",
+                    "meses_retroativos": número de meses entre data_base e mes_convencao,
+                    "piso_salarial": valor numérico ou null,
+                    "verbas_com_reajuste": [
+                        "salario_base",
+                        "horas_extras_50",
+                        "horas_extras_100",
+                        "dsr",
+                        "adicional_noturno",
+                        "comissao",
+                        "gratificacao"
                     ],
-                    "clausulas_importantes": ["lista de cláusulas relevantes"],
+                    "verbas_sem_reajuste": [
+                        "vale_transporte",
+                        "vale_refeicao",
+                        "vale_alimentacao",
+                        "inss",
+                        "irrf",
+                        "contribuicao_sindical"
+                    ],
+                    "beneficios_alterados": [
+                        {"tipo": "VA", "valor_novo": 500, "descricao": "reajuste de X%"}
+                    ],
+                    "clausulas_importantes": ["cláusulas relevantes para DP"],
                     "vigencia_inicio": "DD/MM/YYYY",
                     "vigencia_fim": "DD/MM/YYYY",
-                    "resumo": "resumo executivo da convenção"
+                    "resumo": "resumo executivo em 2-3 frases"
                 }"""
-            ).with_model("gemini", "gemini-2.5-flash")
+            ).with_model("gemini", "gemini-2.0-flash")
             
             file_content = FileContentWithMimeType(
                 file_path=tmp_path,
@@ -3381,7 +3399,7 @@ async def analisar_convencao(
             )
             
             response = await chat.send_message(UserMessage(
-                text="Analise esta convenção coletiva e extraia os dados de reajuste salarial e benefícios.",
+                text="Analise esta convenção coletiva e extraia TODOS os dados para cálculo de dissídio retroativo, incluindo quais verbas devem ou não receber reajuste.",
                 file_contents=[file_content]
             ))
             
@@ -3410,6 +3428,328 @@ async def analisar_convencao(
     except Exception as e:
         logger.error(f"Erro na análise: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao analisar convenção: {str(e)}")
+
+
+@api_router.post("/dissidio/calcular-retroativo")
+async def calcular_dissidio_retroativo(
+    convencao_dados: str = Form(...),
+    holerites: List[UploadFile] = File(...),
+    cliente_id: str = Form(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Calcula dissídio retroativo automaticamente.
+    - convencao_dados: JSON com dados extraídos da convenção
+    - holerites: Lista de holerites dos meses retroativos
+    """
+    try:
+        from document_processor import doc_processor
+        
+        # Parse dados da convenção
+        conv = json.loads(convencao_dados)
+        percentual = float(conv.get('percentual_reajuste', 0)) / 100
+        verbas_com_reajuste = [v.lower() for v in conv.get('verbas_com_reajuste', [])]
+        
+        if not percentual:
+            raise HTTPException(status_code=400, detail="Percentual de reajuste não informado")
+        
+        # Verificar cliente
+        cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Empresa não encontrada")
+        
+        # Processar cada holerite
+        resultados_por_mes = []
+        total_geral_retroativo = 0
+        colaboradores_consolidado = {}
+        
+        for holerite in holerites:
+            content = await holerite.read()
+            suffix = Path(holerite.filename).suffix
+            
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+            
+            try:
+                # Extrair texto e colaboradores
+                texto = doc_processor.extract_text(tmp_path)
+                colaboradores = doc_processor.parse_folha_multiplos_colaboradores(texto)
+                
+                # Extrair competência do nome do arquivo ou do conteúdo
+                competencia = extrair_competencia_holerite(holerite.filename, texto)
+                
+                mes_resultado = {
+                    'arquivo': holerite.filename,
+                    'competencia': competencia,
+                    'colaboradores': [],
+                    'total_retroativo_mes': 0
+                }
+                
+                for colab in colaboradores:
+                    nome = colab.get('nome', 'Sem Nome')
+                    
+                    # Calcular reajuste sobre verbas aplicáveis
+                    valor_base_reajuste = 0
+                    verbas_calculadas = []
+                    
+                    # Mapear campos do colaborador para verbas da convenção
+                    mapeamento_verbas = {
+                        'salario_base': ['salario_base', 'salario', 'salario_mensalista'],
+                        'horas_extras_50': ['horas_extras_50', 'horas_extras', 'hora_extra_50'],
+                        'horas_extras_100': ['horas_extras_100', 'hora_extra_100'],
+                        'dsr': ['dsr', 'dsr_horas_extras', 'descanso_semanal'],
+                        'adicional_noturno': ['adicional_noturno', 'adic_noturno'],
+                        'comissao': ['comissao', 'comissoes'],
+                        'gratificacao': ['gratificacao', 'gratificacoes'],
+                        'quebra_caixa': ['quebra_caixa', 'quebra_de_caixa'],
+                    }
+                    
+                    for verba_conv in verbas_com_reajuste:
+                        # Encontrar o campo correspondente no holerite
+                        campos_holerite = mapeamento_verbas.get(verba_conv, [verba_conv])
+                        
+                        valor = 0
+                        for campo in campos_holerite:
+                            v = colab.get(campo, 0)
+                            if v:
+                                valor = v
+                                break
+                        
+                        if valor > 0:
+                            diferenca = valor * percentual
+                            valor_base_reajuste += valor
+                            verbas_calculadas.append({
+                                'verba': verba_conv,
+                                'valor_original': round(valor, 2),
+                                'diferenca': round(diferenca, 2)
+                            })
+                    
+                    retroativo_colab = sum(v['diferenca'] for v in verbas_calculadas)
+                    
+                    colab_resultado = {
+                        'nome': nome,
+                        'cpf': colab.get('cpf', ''),
+                        'valor_base_reajuste': round(valor_base_reajuste, 2),
+                        'retroativo': round(retroativo_colab, 2),
+                        'verbas': verbas_calculadas
+                    }
+                    
+                    mes_resultado['colaboradores'].append(colab_resultado)
+                    mes_resultado['total_retroativo_mes'] += retroativo_colab
+                    
+                    # Consolidar por colaborador
+                    if nome not in colaboradores_consolidado:
+                        colaboradores_consolidado[nome] = {
+                            'nome': nome,
+                            'cpf': colab.get('cpf', ''),
+                            'meses': [],
+                            'total_retroativo': 0
+                        }
+                    colaboradores_consolidado[nome]['meses'].append({
+                        'competencia': competencia,
+                        'retroativo': round(retroativo_colab, 2)
+                    })
+                    colaboradores_consolidado[nome]['total_retroativo'] += retroativo_colab
+                
+                mes_resultado['total_retroativo_mes'] = round(mes_resultado['total_retroativo_mes'], 2)
+                total_geral_retroativo += mes_resultado['total_retroativo_mes']
+                resultados_por_mes.append(mes_resultado)
+                
+            finally:
+                os.unlink(tmp_path)
+        
+        # Salvar cálculo no banco
+        calculo_id = str(uuid.uuid4())
+        calculo_doc = {
+            "id": calculo_id,
+            "cliente_id": cliente_id,
+            "cliente_nome": cliente.get("nome_fantasia") or cliente.get("razao_social"),
+            "dados_convencao": conv,
+            "percentual_reajuste": conv.get('percentual_reajuste'),
+            "meses_processados": len(resultados_por_mes),
+            "resultados_por_mes": resultados_por_mes,
+            "colaboradores_consolidado": list(colaboradores_consolidado.values()),
+            "total_retroativo": round(total_geral_retroativo, 2),
+            "status": "calculado",
+            "user_id": current_user["id"],
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.calculos_dissidio.insert_one(calculo_doc)
+        
+        return {
+            "id": calculo_id,
+            "success": True,
+            "percentual_reajuste": conv.get('percentual_reajuste'),
+            "meses_processados": len(resultados_por_mes),
+            "total_colaboradores": len(colaboradores_consolidado),
+            "total_retroativo": round(total_geral_retroativo, 2),
+            "resultados_por_mes": resultados_por_mes,
+            "colaboradores_consolidado": list(colaboradores_consolidado.values()),
+            "message": f"Cálculo concluído: R$ {total_geral_retroativo:,.2f} de retroativo"
+        }
+        
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Dados da convenção inválidos")
+    except Exception as e:
+        logger.error(f"Erro no cálculo de dissídio: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro ao calcular dissídio: {str(e)}")
+
+
+def extrair_competencia_holerite(filename: str, texto: str) -> str:
+    """Extrai a competência (MM/YYYY) do nome do arquivo ou do texto do holerite"""
+    import re
+    
+    # Tentar extrair do nome do arquivo (ex: "folha_01_2024.pdf", "202401.pdf")
+    patterns = [
+        r'(\d{2})[_\-/]?(\d{4})',  # 01_2024, 01-2024, 01/2024
+        r'(\d{4})[_\-]?(\d{2})',    # 2024_01, 202401
+        r'(\d{2})(\d{4})',           # 012024
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, filename)
+        if match:
+            g1, g2 = match.groups()
+            if len(g1) == 4:  # Ano primeiro
+                return f"{g2}/{g1}"
+            else:  # Mês primeiro
+                return f"{g1}/{g2}"
+    
+    # Tentar extrair do texto
+    comp_match = re.search(r'[Cc]ompet[êe]ncia[:\s]*(\d{2})[/\-](\d{4})', texto)
+    if comp_match:
+        return f"{comp_match.group(1)}/{comp_match.group(2)}"
+    
+    return "??/????"
+
+
+@api_router.get("/calculos-dissidio")
+async def listar_calculos_dissidio(
+    cliente_id: str = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Lista cálculos de dissídio realizados"""
+    query = {"user_id": current_user["id"]}
+    if cliente_id:
+        query["cliente_id"] = cliente_id
+    
+    calculos = await db.calculos_dissidio.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return calculos
+
+
+@api_router.get("/calculos-dissidio/{calculo_id}")
+async def obter_calculo_dissidio(
+    calculo_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Retorna detalhes de um cálculo de dissídio"""
+    calculo = await db.calculos_dissidio.find_one(
+        {"id": calculo_id, "user_id": current_user["id"]},
+        {"_id": 0}
+    )
+    if not calculo:
+        raise HTTPException(status_code=404, detail="Cálculo não encontrado")
+    return calculo
+
+
+@api_router.get("/calculos-dissidio/{calculo_id}/excel")
+async def exportar_calculo_dissidio_excel(
+    calculo_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Exporta cálculo de dissídio para Excel"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from io import BytesIO
+    from fastapi.responses import StreamingResponse
+    
+    calculo = await db.calculos_dissidio.find_one(
+        {"id": calculo_id, "user_id": current_user["id"]},
+        {"_id": 0}
+    )
+    if not calculo:
+        raise HTTPException(status_code=404, detail="Cálculo não encontrado")
+    
+    wb = Workbook()
+    
+    # Aba 1: Resumo por Colaborador
+    ws1 = wb.active
+    ws1.title = "Resumo por Colaborador"
+    
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
+    border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+    
+    headers = ["Colaborador", "CPF", "Total Retroativo"]
+    for col, header in enumerate(headers, 1):
+        cell = ws1.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.border = border
+    
+    for row, colab in enumerate(calculo.get('colaboradores_consolidado', []), 2):
+        data = [colab['nome'], colab.get('cpf', ''), colab['total_retroativo']]
+        for col, value in enumerate(data, 1):
+            cell = ws1.cell(row=row, column=col, value=value)
+            cell.border = border
+            if col == 3:
+                cell.number_format = 'R$ #,##0.00'
+    
+    # Total
+    total_row = len(calculo.get('colaboradores_consolidado', [])) + 2
+    ws1.cell(row=total_row, column=1, value="TOTAL").font = Font(bold=True)
+    ws1.cell(row=total_row, column=3, value=calculo.get('total_retroativo', 0)).number_format = 'R$ #,##0.00'
+    
+    # Aba 2: Detalhado por Mês
+    ws2 = wb.create_sheet("Detalhado por Mês")
+    
+    headers2 = ["Competência", "Colaborador", "Verba", "Valor Original", "Diferença"]
+    for col, header in enumerate(headers2, 1):
+        cell = ws2.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.border = border
+    
+    row = 2
+    for mes in calculo.get('resultados_por_mes', []):
+        for colab in mes.get('colaboradores', []):
+            for verba in colab.get('verbas', []):
+                data = [
+                    mes.get('competencia'),
+                    colab['nome'],
+                    verba['verba'],
+                    verba['valor_original'],
+                    verba['diferenca']
+                ]
+                for col, value in enumerate(data, 1):
+                    cell = ws2.cell(row=row, column=col, value=value)
+                    cell.border = border
+                    if col in [4, 5]:
+                        cell.number_format = 'R$ #,##0.00'
+                row += 1
+    
+    # Ajustar larguras
+    for ws in [ws1, ws2]:
+        for col in ws.columns:
+            max_length = max(len(str(cell.value or '')) for cell in col)
+            ws.column_dimensions[col[0].column_letter].width = min(max_length + 2, 40)
+    
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    filename = f"dissidio_retroativo_{calculo_id[:8]}.xlsx"
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 # ==================== DASHBOARD ====================
 
