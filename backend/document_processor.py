@@ -512,6 +512,10 @@ class DocumentProcessor:
         # Padrão no SCI: "VALOR\n REF\n Horas extras 50%" ou "VALOR\n REF\n Horas extras 100%"
         # Onde REF é a quantidade de horas (ex: 7,44)
         
+        # Log para debug
+        if 'EVERALDO' in block.upper()[:200]:
+            logger.info(f"Bloco EVERALDO encontrado, buscando HE100...")
+        
         # Horas extras 50%
         he50_match = re.search(r'([\d.,]+)\s*\n\s*([\d.,]+)\s*\n\s*Horas\s*extras\s*50', block, re.IGNORECASE)
         if he50_match:
@@ -520,6 +524,7 @@ class DocumentProcessor:
             if 0.01 < valor < 50000:
                 colab['horas_extras_50'] = valor
                 colab['horas_extras_50_ref'] = ref  # Quantidade de horas
+                logger.info(f"HE50 extraído: valor={valor}, ref={ref}")
         else:
             # Fallback: só valor
             he50_simple = re.search(r'([\d.,]+)\s*\n\s*Horas\s*extras\s*50', block, re.IGNORECASE)
@@ -536,6 +541,7 @@ class DocumentProcessor:
             if 0.01 < valor < 50000:
                 colab['horas_extras_100'] = valor
                 colab['horas_extras_100_ref'] = ref  # Quantidade de horas
+                logger.info(f"HE100 extraído: valor={valor}, ref={ref}")
         else:
             # Fallback: só valor
             he100_simple = re.search(r'([\d.,]+)\s*\n\s*Horas\s*extras\s*100', block, re.IGNORECASE)
@@ -543,6 +549,17 @@ class DocumentProcessor:
                 valor = parse_valor(he100_simple.group(1))
                 if 0.01 < valor < 50000:
                     colab['horas_extras_100'] = valor
+                    logger.info(f"HE100 fallback: valor={valor}")
+            else:
+                # Tentar formato alternativo: "Horas extras 100%\nREF\nVALOR"
+                he100_alt = re.search(r'Horas\s*extras\s*100[%]?\s*\n\s*([\d.,]+)\s*\n\s*([\d.,]+)', block, re.IGNORECASE)
+                if he100_alt:
+                    ref = parse_valor(he100_alt.group(1))
+                    valor = parse_valor(he100_alt.group(2))
+                    if 0.01 < valor < 50000:
+                        colab['horas_extras_100'] = valor
+                        colab['horas_extras_100_ref'] = ref
+                        logger.info(f"HE100 alt format: valor={valor}, ref={ref}")
         
         # Extrair Valor FGTS
         valor_fgts_match = re.search(r'Valor\s+FGTS\s*\n?\s*([\d.,]+)', block, re.IGNORECASE)
