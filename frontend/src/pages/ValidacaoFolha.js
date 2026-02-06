@@ -15,7 +15,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 import { 
   ClipboardCheck, Upload, Loader2, FileUp, AlertTriangle, CheckCircle2, 
   XCircle, FileText, Calendar, Building2, X, Eye, TrendingUp, TrendingDown,
-  Minus, ChevronDown, ChevronUp, History, Search, Filter, Trash2
+  Minus, ChevronDown, ChevronUp, History, Search, Filter, Trash2, Pin, PinOff
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useEmpresa } from '../contexts/EmpresaContext';
