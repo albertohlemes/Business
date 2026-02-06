@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { 
   FileText, Upload, CheckCircle2, Clock, Loader2, TrendingUp, 
   Users, DollarSign, Percent, Download, Calendar, Building2,
-  ChevronRight, FileUp, AlertTriangle, ChevronDown, ChevronUp, Trash2
+  ChevronRight, FileUp, AlertTriangle, ChevronDown, ChevronUp, Trash2, FileDown
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useEmpresa } from '../contexts/EmpresaContext';
