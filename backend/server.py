@@ -3906,6 +3906,9 @@ async def excluir_calculo_dissidio(
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Cálculo não encontrado")
     return {"message": "Cálculo excluído com sucesso"}
+
+
+@api_router.get("/calculos-dissidio/{calculo_id}/excel")
 async def exportar_calculo_dissidio_excel(
     calculo_id: str,
     current_user: dict = Depends(get_current_user)
