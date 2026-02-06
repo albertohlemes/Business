@@ -775,23 +775,6 @@ const UploadXML = ({ user, onLogout }) => {
                 </div>
               </div>
             )}
-
-            {results.errors.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertCircle className="w-5 h-5 text-red-600" />
-                  <h3 className="font-semibold text-red-900">Erros ({results.errors.length})</h3>
-                </div>
-                <div className="space-y-2">
-                  {results.errors.map((item, index) => (
-                    <div key={index} className="bg-red-50 p-3 rounded-lg border border-red-200">
-                      <p className="text-sm font-medium text-red-900">{item.filename}</p>
-                      <p className="text-xs text-red-700">{item.error}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
