@@ -5229,12 +5229,11 @@ USE AS COLUNAS DO TEMPLATE - analise qual coluna corresponde a cada evento!
 
 REGRAS:
 - Use EXATAMENTE os nomes das colunas do template nos registros
-- Se não souber mapear um evento, coloque em "eventos_sem_coluna"
-- Extraia TODOS os dados, não pule nenhum colaborador ou evento
-- Cada linha = 1 colaborador + 1 evento (se tem 3 eventos, gera 3 linhas)"""
-            ).with_model("gemini", "gemini-2.0-flash")
-- Se não conseguir identificar um campo, deixe como null
-- Não invente dados - extraia apenas o que está no documento
+- Se nao souber mapear um evento, coloque em "eventos_sem_coluna"
+- Extraia TODOS os dados, nao pule nenhum colaborador ou evento
+- Cada linha = 1 colaborador + 1 evento (se tem 3 eventos, gera 3 linhas)
+- Se nao conseguir identificar um campo, deixe como null
+- Nao invente dados - extraia apenas o que esta no documento
 - Mantenha os nomes das colunas EXATAMENTE como no template"""
             ).with_model("gemini", "gemini-2.0-flash")
             
