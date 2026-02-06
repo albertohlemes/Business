@@ -58,6 +58,9 @@ function App() {
               <Route path="validacao" element={<ValidacaoFolha />} />
               <Route path="informes" element={<InformesRendimento />} />
               <Route path="relatorios" element={<Relatorios />} />
+              <Route path="conversao-apontamentos" element={<ConversaoApontamentos />} />
+              <Route path="conversao-admissional" element={<ConversaoAdmissional />} />
+              <Route path="validacao-rescisao" element={<ValidacaoRescisao />} />
             </Route>
           </Routes>
         </BrowserRouter>
