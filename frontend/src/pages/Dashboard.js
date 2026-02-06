@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { useEmpresa } from '../contexts/EmpresaContext';
-import { Building2, Users, FileText, UserPlus, ClipboardCheck, TrendingUp, AlertCircle, CheckCircle2, Calendar } from 'lucide-react';
+import { Building2, Users, FileText, UserPlus, ClipboardCheck, TrendingUp, AlertCircle, CheckCircle2, Calendar, ArrowUpRight, Zap } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import EmpresaSelectorModal from '../components/EmpresaSelectorModal';
 
@@ -38,16 +38,11 @@ const Dashboard = () => {
     }
   };
 
-  const generateCode = (id) => {
-    if (!id) return '';
-    return `#${id.slice(0, 4).toUpperCase()}`;
-  };
-
   const statCards = [
-    { title: 'Clientes', value: stats?.total_clientes || 0, icon: Building2, color: 'bg-blue-500' },
-    { title: 'Colaboradores', value: stats?.total_colaboradores || 0, icon: Users, color: 'bg-emerald-500' },
-    { title: 'Dissídios Pendentes', value: stats?.dissidios_pendentes || 0, icon: FileText, color: 'bg-amber-500' },
-    { title: 'Admissões Pendentes', value: stats?.admissoes_pendentes || 0, icon: UserPlus, color: 'bg-purple-500' },
+    { title: 'Empresas', value: stats?.total_clientes || 0, icon: Building2, color: 'from-blue-500 to-blue-600', glow: 'shadow-blue-500/20' },
+    { title: 'Colaboradores', value: stats?.total_colaboradores || 0, icon: Users, color: 'from-emerald-500 to-emerald-600', glow: 'shadow-emerald-500/20' },
+    { title: 'Dissídios', value: stats?.dissidios_pendentes || 0, icon: FileText, color: 'from-amber-500 to-amber-600', glow: 'shadow-amber-500/20' },
+    { title: 'Admissões', value: stats?.admissoes_pendentes || 0, icon: UserPlus, color: 'from-purple-500 to-purple-600', glow: 'shadow-purple-500/20' },
   ];
 
   const pieData = [
@@ -74,13 +69,13 @@ const Dashboard = () => {
   const getTaskIcon = (tipo) => {
     switch (tipo) {
       case 'dissidio':
-        return <FileText size={16} className="text-amber-600" />;
+        return <FileText size={16} className="text-amber-500" />;
       case 'admissao':
-        return <UserPlus size={16} className="text-purple-600" />;
+        return <UserPlus size={16} className="text-purple-500" />;
       case 'validacao':
-        return <ClipboardCheck size={16} className="text-blue-600" />;
+        return <ClipboardCheck size={16} className="text-blue-500" />;
       default:
-        return <AlertCircle size={16} className="text-slate-400" />;
+        return <AlertCircle size={16} className="text-slate-500" />;
     }
   };
 
@@ -89,12 +84,12 @@ const Dashboard = () => {
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="skeleton h-32 rounded-lg" />
+            <div key={i} className="bg-slate-800 h-32 rounded-xl animate-pulse" />
           ))}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 skeleton h-80 rounded-lg" />
-          <div className="skeleton h-80 rounded-lg" />
+          <div className="lg:col-span-2 bg-slate-800 h-80 rounded-xl animate-pulse" />
+          <div className="bg-slate-800 h-80 rounded-xl animate-pulse" />
         </div>
       </div>
     );
@@ -104,34 +99,45 @@ const Dashboard = () => {
   if (!empresaSelecionada) {
     return (
       <div data-testid="dashboard-page" className="animate-fade-in">
-        {/* Header */}
-        <Card className="border-indigo-200 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white mb-6">
-          <CardContent className="p-6">
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p className="text-indigo-100 mt-1">Selecione uma empresa no header para ver as estatísticas</p>
-          </CardContent>
-        </Card>
+        {/* Welcome Header */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700 p-8 mb-8">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-red-500/5 rounded-full blur-3xl" />
+          <div className="relative">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-500/20">
+                <Zap className="text-white" size={24} />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">Bem-vindo ao Portal DP</h1>
+                <p className="text-slate-400">Business Contabilidade</p>
+              </div>
+            </div>
+            <p className="text-slate-400 max-w-xl">
+              Selecione uma empresa para visualizar as estatísticas e começar a trabalhar com as ferramentas de departamento pessoal.
+            </p>
+          </div>
+        </div>
 
         {/* Selection Card */}
-        <Card className="border-slate-200 max-w-lg mx-auto">
-          <CardContent className="py-16 text-center">
-            <div className="w-20 h-20 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-6">
-              <Building2 className="text-amber-600" size={40} />
+        <div className="max-w-lg mx-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-red-500/20 to-red-600/20 flex items-center justify-center mx-auto mb-6 border border-red-500/30">
+              <Building2 className="text-red-500" size={40} />
             </div>
-            <h2 className="text-xl font-bold text-slate-900 mb-2">Selecione uma Empresa</h2>
+            <h2 className="text-xl font-bold text-white mb-2">Selecione uma Empresa</h2>
             <p className="text-slate-500 mb-6">
-              Clique no botão abaixo ou no header para selecionar a empresa e competência
+              Escolha a empresa e a competência para visualizar os dados e ferramentas disponíveis.
             </p>
             <Button
               onClick={() => setSelectorOpen(true)}
               data-testid="select-empresa-btn"
-              className="bg-indigo-600 hover:bg-indigo-700 h-12 px-8 text-base"
+              className="bg-red-600 hover:bg-red-700 h-12 px-8 text-base font-semibold rounded-xl shadow-lg shadow-red-500/20 hover:shadow-red-500/40 transition-all"
             >
               <Building2 size={20} className="mr-2" />
               Selecionar Empresa
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         <EmpresaSelectorModal open={selectorOpen} onOpenChange={setSelectorOpen} />
       </div>
@@ -141,155 +147,155 @@ const Dashboard = () => {
   return (
     <div data-testid="dashboard-page" className="space-y-6 animate-fade-in">
       {/* Header with selected empresa */}
-      <Card className="border-indigo-200 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Dashboard</h1>
-              <div className="flex items-center gap-3 mt-2">
-                <span className="px-2 py-1 bg-white/20 rounded text-sm font-bold">
-                  {empresaSelecionada.codigo_interno || generateCode(empresaSelecionada.id)}
-                </span>
-                <span className="text-lg font-medium">
-                  {empresaSelecionada.nome_fantasia || empresaSelecionada.razao_social}
-                </span>
-              </div>
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700 p-6">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/5 rounded-full blur-3xl" />
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-500/20">
+              <Building2 className="text-white" size={28} />
             </div>
-            <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-lg">
-              <Calendar size={18} />
-              <span className="font-mono text-lg">Competência: {competencia}</span>
+            <div>
+              <h1 className="text-2xl font-bold text-white">
+                {empresaSelecionada.nome_fantasia || empresaSelecionada.razao_social}
+              </h1>
+              <p className="text-slate-500 font-mono text-sm">{empresaSelecionada.cnpj}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-4">
+            <div className="bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl">
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Competência</p>
+              <p className="text-lg font-mono font-bold text-white flex items-center gap-2">
+                <Calendar size={16} className="text-red-500" />
+                {competencia}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, index) => (
-          <Card key={index} className="border-slate-200 hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">{stat.title}</p>
-                  <p className="text-3xl font-bold text-slate-900 font-mono mt-1" data-testid={`stat-${stat.title.toLowerCase().replace(/\s+/g, '-')}`}>
-                    {stat.value}
-                  </p>
-                </div>
-                <div className={`w-12 h-12 rounded-lg ${stat.color} flex items-center justify-center`}>
-                  <stat.icon className="text-white" size={24} />
-                </div>
+          <div
+            key={index}
+            className={`bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition-all duration-300 group`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg ${stat.glow}`}>
+                <stat.icon className="text-white" size={24} />
               </div>
-            </CardContent>
-          </Card>
+              <ArrowUpRight size={20} className="text-slate-700 group-hover:text-slate-500 transition-colors" />
+            </div>
+            <p className="text-slate-500 text-sm">{stat.title}</p>
+            <p className="text-3xl font-bold text-white font-mono mt-1" data-testid={`stat-${stat.title.toLowerCase().replace(/\s+/g, '-')}`}>
+              {stat.value}
+            </p>
+          </div>
         ))}
       </div>
 
-      {/* Charts and Tasks */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Pending Tasks Chart */}
-        <Card className="lg:col-span-2 border-slate-200">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-slate-900">Resumo de Pendências</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={pieData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                  <XAxis dataKey="name" tick={{ fill: '#64748B', fontSize: 12 }} />
-                  <YAxis tick={{ fill: '#64748B', fontSize: 12 }} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #E2E8F0',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                    }}
-                  />
-                  <Bar dataKey="value" fill="#4F46E5" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Bar Chart */}
+        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-6">Resumo de Pendências</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={pieData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                <XAxis dataKey="name" tick={{ fill: '#64748B', fontSize: 12 }} axisLine={{ stroke: '#1E293B' }} />
+                <YAxis tick={{ fill: '#64748B', fontSize: 12 }} axisLine={{ stroke: '#1E293B' }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0F172A',
+                    border: '1px solid #1E293B',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)'
+                  }}
+                  labelStyle={{ color: '#F8FAFC' }}
+                />
+                <Bar dataKey="value" fill="#C62828" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
-        {/* Distribution Pie */}
-        <Card className="border-slate-200">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-slate-900">Distribuição</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex justify-center gap-4 mt-4">
-              {pieData.map((item, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-xs text-slate-600">{item.name}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Pie Chart */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-6">Distribuição</h3>
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={70}
+                  paddingAngle={5}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0F172A',
+                    border: '1px solid #1E293B',
+                    borderRadius: '12px'
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex justify-center gap-4 mt-4">
+            {pieData.map((item, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                <span className="text-xs text-slate-400">{item.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Recent Tasks */}
-      <Card className="border-slate-200">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-900">Atividades Recentes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {stats?.tarefas_recentes?.length > 0 ? (
-            <div className="space-y-3">
-              {stats.tarefas_recentes.map((tarefa, index) => (
-                <div
-                  key={tarefa.id || index}
-                  className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center">
-                      {getTaskIcon(tarefa.tipo)}
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900">{tarefa.titulo}</p>
-                      <p className="text-sm text-slate-500 font-mono">
-                        {new Date(tarefa.created_at).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-white mb-6">Atividades Recentes</h3>
+        {stats?.tarefas_recentes?.length > 0 ? (
+          <div className="space-y-3">
+            {stats.tarefas_recentes.map((tarefa, index) => (
+              <div
+                key={tarefa.id || index}
+                className="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl hover:bg-slate-800 transition-colors border border-slate-800"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center">
+                    {getTaskIcon(tarefa.tipo)}
                   </div>
-                  {getStatusBadge(tarefa.status)}
+                  <div>
+                    <p className="font-medium text-white">{tarefa.titulo}</p>
+                    <p className="text-sm text-slate-500 font-mono">
+                      {new Date(tarefa.created_at).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="text-slate-400" size={32} />
+                {getStatusBadge(tarefa.status)}
               </div>
-              <p className="text-slate-500">Nenhuma atividade recente</p>
-              <p className="text-sm text-slate-400 mt-1">Comece adicionando clientes e colaboradores</p>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-4 border border-slate-700">
+              <CheckCircle2 className="text-slate-600" size={32} />
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <p className="text-slate-400">Nenhuma atividade recente</p>
+            <p className="text-sm text-slate-600 mt-1">Comece adicionando clientes e colaboradores</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
