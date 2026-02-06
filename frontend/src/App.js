@@ -12,6 +12,9 @@ import Medias from "./pages/Medias";
 import ValidacaoFolha from "./pages/ValidacaoFolha";
 import InformesRendimento from "./pages/InformesRendimento";
 import Relatorios from "./pages/Relatorios";
+import ConversaoApontamentos from "./pages/ConversaoApontamentos";
+import ConversaoAdmissional from "./pages/ConversaoAdmissional";
+import ValidacaoRescisao from "./pages/ValidacaoRescisao";
 import Layout from "./components/Layout";
 import "@/App.css";
 
