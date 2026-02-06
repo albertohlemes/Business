@@ -21,7 +21,6 @@ import { useDropzone } from 'react-dropzone';
 import { useEmpresa } from '../contexts/EmpresaContext';
 import { getErrorMessage } from '../utils/errorHandler';
 import { generateEmpresaCode, getEmpresaLabel, sortClientesBySelection } from '../utils/empresaHelpers';
-import { toast } from 'sonner';
 
 const ValidacaoFolha = () => {
   const [validacoes, setValidacoes] = useState([]);
