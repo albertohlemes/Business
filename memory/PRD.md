@@ -132,7 +132,8 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - ✅ Validação de Rescisão
 
 ### P1 (Próximos)
-- 🔲 **Refatoração do server.py** - Arquivo com +4000 linhas precisa ser dividido em routers
+- 🔲 **Validar Módulos de Dissídio e Rescisão** - Verificar se estão usando corretamente a CCT do histórico
+- 🔲 **Refatoração do server.py** - Arquivo com +7000 linhas precisa ser dividido em routers (CRÍTICO)
 - 🔲 Validação de Informes de Rendimento
 - 🔲 Importação de colaboradores em lote
 
