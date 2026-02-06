@@ -341,6 +341,25 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
   - **Resultado:** Usuário pode exportar relação completa de notas incluindo status de cancelamento
   - **Arquivos:** `/app/backend/server.py` (endpoint /relacao-notas), `/app/frontend/src/pages/ApuracaoMensal.js` (exportRelacaoNotas)
 
+- ✅ **FEATURE: Exportação de Notas Detalhada (vProd, IPI, ST, Frete)**
+  - **Problema:** O usuário precisava ver separadamente os componentes do valor da NF (IPI, ICMS-ST, Frete, Desconto) para identificar diferenças
+  - **Solução:**
+    1. Criado endpoint `GET /api/relacao-notas-detalhada/{company_id}` que retorna cada nota com:
+       - Valor NF (vNF)
+       - vProd (valor dos produtos)
+       - IPI, ICMS-ST, Frete, Seguro, Outras Despesas, Desconto
+       - Valor Calculado (soma dos componentes)
+       - Diferença (vNF - Calculado)
+       - Status (ATIVA/CANCELADA)
+    2. Nova opção "Rel. Detalhada" no modal de exportação
+  - **Arquivos:** `/app/backend/server.py`, `/app/frontend/src/pages/ApuracaoMensal.js`
+
+- ✅ **BUGFIX: Exportação por CFOP não funcionava**
+  - **Problema:** A lista de CFOPs estava vazia na exportação, mostrando apenas os totais
+  - **Causa:** O backend retornava `itens` mas o frontend esperava `lista`
+  - **Solução:** Corrigido o retorno do endpoint `/api/apuracao-periodo` para usar `lista` em vez de `itens`
+  - **Arquivos:** `/app/backend/server.py` (linha 5704-5711)
+
 ### 02/2026 - Iteration 41 (05/02/2026)
 - ✅ **BUG FIX: Totalizador da tabela de detalhamento agora exclui ICMS de ST/Despesa**
   - **Problema:** Na tabela de detalhamento por CFOP, o total de ICMS incluía valores de ST e Despesa
