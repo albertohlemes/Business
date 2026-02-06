@@ -139,12 +139,14 @@ CONTROLES
 ## Última Atualização
 - **Data**: 06/02/2026
 - **Funcionalidades Implementadas**:
-  - Endpoint `GET /api/calculos-dissidio/{id}/exportar-convencao-pdf` para exportar PDF do resumo da convenção
+  - Tabela de proporcionalidade por data de admissão (auto-calculada ou extraída da convenção)
+  - Cálculo retroativo proporcional baseado na data de admissão do colaborador
+  - Seção de vigência da convenção em destaque (background azul com ícone de calendário)
+  - Endpoint `GET /api/calculos-dissidio/{id}/exportar-convencao-pdf` para exportar PDF do resumo
   - Validação de piso salarial no cálculo retroativo (campo `alertas_piso` na resposta)
-  - Botão de exportação de PDF na lista de "Cálculos Anteriores" no frontend
-  - Exibição de alertas de piso salarial no resultado do cálculo
-- **Resultado**: ✅ 100% dos testes passaram (Backend 17/17)
-- **Relatório**: /app/test_reports/iteration_15.json
+  - Botão de exportação de PDF na lista de "Cálculos Anteriores"
+- **Resultado**: ✅ 100% dos testes passaram (Backend 13/13, Frontend OK)
+- **Relatório**: /app/test_reports/iteration_16.json
 
 ---
 
