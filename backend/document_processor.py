@@ -540,7 +540,7 @@ class DocumentProcessor:
     
     async def extrair_referencias_apoio_ia(self, file_path: str) -> List[Dict[str, Any]]:
         """
-        Usa IA (Gemini) para extrair referências de valores de qualquer tipo de arquivo de apoio.
+        Usa IA (Gemini via Emergent) para extrair referências de valores de qualquer tipo de arquivo de apoio.
         Funciona com prints, emails, planilhas, PDFs - qualquer formato.
         Para imagens, envia diretamente para a IA sem OCR.
         """
@@ -550,11 +550,11 @@ class DocumentProcessor:
             
             referencias = []
             
-            # Verificar chaves de IA disponíveis
-            google_key = os.environ.get('GOOGLE_AI_API_KEY')
+            # Verificar chave Emergent (prioridade) ou Google
             emergent_key = os.environ.get('EMERGENT_LLM_KEY')
+            google_key = os.environ.get('GOOGLE_AI_API_KEY')
             
-            if not google_key and not emergent_key:
+            if not emergent_key and not google_key:
                 logger.warning("Nenhuma chave de IA disponível para análise de apoio")
                 texto = self.extract_text(file_path)
                 return self.parse_apoio_referencias(texto) if texto else []
@@ -590,24 +590,48 @@ RETORNE APENAS UM JSON no formato:
 Se não encontrar nenhuma referência, retorne: {"referencias": []}
 """
             
-            # Para imagens, usar a IA com a imagem diretamente
-            if is_image and google_key:
+            # USAR EMERGENT INTEGRATIONS (funciona com imagens)
+            if emergent_key:
                 try:
-                    import google.generativeai as genai
-                    import PIL.Image
+                    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+                    import uuid
                     
-                    genai.configure(api_key=google_key)
-                    # Usar gemini-1.5-flash ou gemini-pro-vision
-                    model = genai.GenerativeModel('gemini-2.0-flash')
+                    chat = LlmChat(
+                        api_key=emergent_key,
+                        session_id=f"apoio-{uuid.uuid4().hex[:8]}",
+                        system_message="Você é um assistente especializado em extrair dados de documentos de RH/DP."
+                    ).with_model("gemini", "gemini-2.0-flash")
                     
-                    # Carregar imagem
-                    img = PIL.Image.open(file_path)
+                    if is_image:
+                        # Para imagens, enviar diretamente
+                        mime_map = {
+                            '.jpg': 'image/jpeg',
+                            '.jpeg': 'image/jpeg',
+                            '.png': 'image/png',
+                            '.gif': 'image/gif',
+                            '.bmp': 'image/bmp',
+                            '.webp': 'image/webp'
+                        }
+                        mime_type = mime_map.get(suffix, 'image/png')
+                        file_content = FileContentWithMimeType(file_path=file_path, mime_type=mime_type)
+                        
+                        logger.info(f"Enviando imagem {file_path} para IA (Emergent)...")
+                        response = await chat.send_message(UserMessage(
+                            text=prompt,
+                            file_contents=[file_content]
+                        ))
+                    else:
+                        # Para outros arquivos, extrair texto primeiro
+                        texto = self.extract_text(file_path)
+                        if not texto:
+                            logger.warning(f"Não foi possível extrair texto de {file_path}")
+                            return []
+                        
+                        response = await chat.send_message(UserMessage(
+                            text=prompt + "\n\nDOCUMENTO:\n" + texto[:4000]
+                        ))
                     
-                    # Enviar imagem com prompt
-                    response = model.generate_content([prompt, img])
-                    response_text = response.text
-                    
-                    # Parsear JSON
+                    response_text = response
                     if '```json' in response_text:
                         response_text = response_text.split('```json')[1].split('```')[0]
                     elif '```' in response_text:
@@ -616,27 +640,20 @@ Se não encontrar nenhuma referência, retorne: {"referencias": []}
                     import json
                     data = json.loads(response_text.strip())
                     referencias = data.get('referencias', [])
-                    logger.info(f"IA (imagem) extraiu {len(referencias)} referências")
+                    logger.info(f"Emergent LLM extraiu {len(referencias)} referências de {file_path}")
                     
                 except Exception as e:
-                    logger.error(f"Erro ao usar Google AI com imagem: {e}")
+                    logger.error(f"Erro ao usar Emergent LLM: {e}", exc_info=True)
             
-            # Para outros arquivos ou fallback, extrair texto primeiro
-            if not referencias:
-                texto = self.extract_text(file_path)
-                if not texto:
-                    logger.warning(f"Não foi possível extrair texto de {file_path}")
-                    return []
-                
-                prompt_com_texto = prompt + "\n\nDOCUMENTO:\n" + texto[:4000]
-                
-                # Tentar com Google AI
-                if google_key and not referencias:
-                    try:
+            # FALLBACK para Google AI (apenas para não-imagens)
+            if not referencias and google_key and not is_image:
+                try:
+                    texto = self.extract_text(file_path)
+                    if texto:
                         import google.generativeai as genai
                         genai.configure(api_key=google_key)
                         model = genai.GenerativeModel('gemini-2.0-flash')
-                        response = model.generate_content(prompt_com_texto)
+                        response = model.generate_content(prompt + "\n\nDOCUMENTO:\n" + texto[:4000])
                         response_text = response.text
                         
                         if '```json' in response_text:
@@ -647,36 +664,10 @@ Se não encontrar nenhuma referência, retorne: {"referencias": []}
                         import json
                         data = json.loads(response_text.strip())
                         referencias = data.get('referencias', [])
-                        logger.info(f"IA (texto) extraiu {len(referencias)} referências")
+                        logger.info(f"Google AI extraiu {len(referencias)} referências")
                         
-                    except Exception as e:
-                        logger.error(f"Erro ao usar Google AI com texto: {e}")
-                
-                # Fallback para Emergent LLM
-                if not referencias and emergent_key:
-                    try:
-                        from emergentintegrations.llm.chat import LlmChat, UserMessage
-                        chat = LlmChat(
-                            api_key=emergent_key,
-                            session_id=f"apoio-{os.urandom(4).hex()}",
-                            system_message="Extraia dados estruturados de documentos."
-                        ).with_model("gemini", "gemini-2.5-flash")
-                        
-                        response = await chat.send_message(UserMessage(text=prompt_com_texto))
-                        
-                        response_text = response
-                        if '```json' in response_text:
-                            response_text = response_text.split('```json')[1].split('```')[0]
-                        elif '```' in response_text:
-                            response_text = response_text.split('```')[1].split('```')[0]
-                        
-                        import json
-                        data = json.loads(response_text.strip())
-                        referencias = data.get('referencias', [])
-                        logger.info(f"Emergent LLM extraiu {len(referencias)} referências")
-                        
-                    except Exception as e:
-                        logger.error(f"Erro ao usar Emergent LLM: {e}")
+                except Exception as e:
+                    logger.error(f"Erro ao usar Google AI: {e}")
             
             # Normalizar campos
             for ref in referencias:
