@@ -6209,27 +6209,27 @@ TOTAIS NO TERMO:
 - Líquido: R$ {totais.get('valor_liquido', 'N/A')}
 
 === SUA TAREFA ===
-Analise o ARQUIVO DE APOIO e faça a seguinte validação:
+Analise o ARQUIVO DE APOIO e faca a seguinte validacao:
 
-1. EXTRAIA do apoio: horas extras, faltas, atrasos, adicionais, comissões, DSR, médias, etc.
+1. EXTRAIA do apoio: horas extras, faltas, atrasos, adicionais, comissoes, DSR, medias, etc.
 
 2. COMPARE com o TERMO acima:
-   - Se o apoio mostra HE (horas extras) → verifique se há valor de HE ou média no termo
-   - Se o apoio mostra faltas/atrasos → verifique se há desconto correspondente
-   - Se o apoio mostra adicional noturno → verifique se há valor no termo
-   - Se o apoio mostra comissões → verifique se há média ou valor no termo
+   - Se o apoio mostra HE (horas extras), verifique se ha valor de HE ou media no termo
+   - Se o apoio mostra faltas/atrasos, verifique se ha desconto correspondente
+   - Se o apoio mostra adicional noturno, verifique se ha valor no termo
+   - Se o apoio mostra comissoes, verifique se ha media ou valor no termo
 
 3. REGRAS IMPORTANTES:
-   ❌ IGNORE impostos (INSS, IRRF) - não precisam estar no apoio
-   ❌ NÃO diga "não encontrado no termo" se o valor está listado acima
-   ✅ Valide apenas: HE, faltas, atrasos, adicionais, comissões, DSR, médias
-   ✅ Se o valor/referência do apoio BATE com algo no termo = VALIDADO
-   ✅ Se o valor/referência do apoio é DIFERENTE = DIVERGÊNCIA
+   - IGNORE impostos (INSS, IRRF) - nao precisam estar no apoio
+   - NAO diga "nao encontrado no termo" se o valor esta listado acima
+   - Valide apenas: HE, faltas, atrasos, adicionais, comissoes, DSR, medias
+   - Se o valor/referencia do apoio BATE com algo no termo = VALIDADO
+   - Se o valor/referencia do apoio e DIFERENTE = DIVERGENCIA
 
 4. COMO IDENTIFICAR SE BATE:
-   - HE no apoio (ex: 10 horas) deve refletir em valor ou média no termo
+   - HE no apoio (ex: 10 horas) deve refletir em valor ou media no termo
    - Faltas no apoio (ex: 2 dias) deve ter desconto proporcional no termo
-   - O valor pode estar em verbas diferentes (média, adicional, etc)
+   - O valor pode estar em verbas diferentes (media, adicional, etc)
 
 Retorne APENAS JSON:
 {{
@@ -6241,12 +6241,12 @@ Retorne APENAS JSON:
     "divergencias": [
         {{
             "item": "Nome",
-            "valor_no_apoio": "O que está no apoio",
-            "valor_no_termo": "O que está no termo (use os dados acima)",
-            "observacao": "Explicação"
+            "valor_no_apoio": "O que esta no apoio",
+            "valor_no_termo": "O que esta no termo (use os dados acima)",
+            "observacao": "Explicacao"
         }}
     ],
-    "alertas": ["Pontos de atenção"],
+    "alertas": ["Pontos de atencao"],
     "observacoes": "Resumo geral"
 }}"""
             ).with_model("gemini", "gemini-2.0-flash")
