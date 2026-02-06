@@ -737,8 +737,8 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             v_prod = float(prod.get('vProd', 0) or 0)
             
             # Valor total da mercadoria (soma todos os componentes que afetam custo)
-            # vProd + vIPI + vICMSST + vFrete + vSeg + vOutro - vDesc
-            valor_total_custo = v_prod + v_ipi + v_icms_st + v_frete_item + v_seg_item + v_outro_item - v_desc_item
+            # vProd + vIPI + vIPIDevol + vICMSST + vFrete + vSeg + vOutro - vDesc
+            valor_total_custo = v_prod + v_ipi + v_ipi_devol + v_icms_st + v_frete_item + v_seg_item + v_outro_item - v_desc_item
             
             produtos.append({
                 'codigo': prod.get('cProd', ''),
