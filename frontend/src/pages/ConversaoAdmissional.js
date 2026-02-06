@@ -63,7 +63,9 @@ const ConversaoAdmissional = () => {
         </div>
         <Button onClick={() => setSelectorOpen(true)} variant="outline" className="border-slate-700 text-slate-300">
           <Building2 size={16} className="mr-2" />
-          {empresaSelecionada ? empresaSelecionada.nome_fantasia : 'Selecionar Empresa'}
+          {empresaSelecionada ? (
+            <><span className="text-red-500 font-mono mr-1">{getEmpresaCodigo(empresaSelecionada.id)}</span>{getEmpresaNome(empresaSelecionada)}</>
+          ) : 'Selecionar Empresa'}
         </Button>
       </div>
 
