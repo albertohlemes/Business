@@ -5291,27 +5291,48 @@ Extraia os dados e formate conforme o template.""",
             dados = json.loads(response_text.strip())
             registros = dados.get("registros", [])
             
-            # Gerar planilha preenchida baseada no template
-            wb_output = Workbook()
+            # USAR O TEMPLATE ORIGINAL como base - preserva toda a estrutura, formatação, estilos
+            wb_output = load_workbook(template_path)
             ws_output = wb_output.active
-            ws_output.title = "Apontamentos Preenchidos"
             
             # Usar cabeçalhos do template
             header_names = template_info.get("header_names", [])
             if not header_names and registros:
                 header_names = list(registros[0].keys())
             
-            # Escrever cabeçalhos
-            for col, header in enumerate(header_names, 1):
-                ws_output.cell(row=1, column=col, value=header)
+            # Criar mapeamento de coluna por nome do cabeçalho
+            header_to_col = {}
+            for h in template_info.get("headers", []):
+                header_to_col[h["nome"]] = h["coluna"]
             
-            # Escrever dados
-            for row_idx, reg in enumerate(registros, 2):
-                for col_idx, header in enumerate(header_names, 1):
-                    value = reg.get(header)
-                    ws_output.cell(row=row_idx, column=col_idx, value=value)
+            # Encontrar a primeira linha vazia após os dados existentes (ou após o cabeçalho)
+            start_row = 2  # Por padrão, começa na linha 2 (após cabeçalho)
             
-            # Salvar como bytes
+            # Se o template já tem dados de exemplo, encontrar a próxima linha vazia
+            # Ou limpar os dados existentes se for apenas template
+            if template_info.get("sample_rows"):
+                # Template tem dados de exemplo - limpar e começar do zero na linha 2
+                # Limpar linhas existentes (exceto cabeçalho)
+                for row in range(2, ws_output.max_row + 1):
+                    for col in range(1, ws_output.max_column + 1):
+                        ws_output.cell(row=row, column=col, value=None)
+            
+            # Escrever dados extraídos preservando a estrutura do template
+            for row_idx, reg in enumerate(registros, start_row):
+                for header in header_names:
+                    col_idx = header_to_col.get(header)
+                    if col_idx:
+                        value = reg.get(header)
+                        ws_output.cell(row=row_idx, column=col_idx, value=value)
+                    else:
+                        # Se o cabeçalho não foi mapeado, tentar encontrar pelo nome
+                        for col in range(1, ws_output.max_column + 1):
+                            if ws_output.cell(row=1, column=col).value == header:
+                                value = reg.get(header)
+                                ws_output.cell(row=row_idx, column=col, value=value)
+                                break
+            
+            # Salvar como bytes - mantendo o formato original
             output = BytesIO()
             wb_output.save(output)
             output.seek(0)
@@ -5319,6 +5340,10 @@ Extraia os dados e formate conforme o template.""",
             
             # Preparar preview
             preview_dados = registros[:20] if registros else []
+            
+            # Usar o nome original do template
+            original_filename = template_sci.filename
+            output_filename = f"preenchido_{original_filename}" if original_filename else f"apontamentos_sci_{competencia or 'atual'}.xlsx"
             
             return {
                 "success": True,
@@ -5329,7 +5354,7 @@ Extraia os dados e formate conforme o template.""",
                 "observacoes": dados.get("observacoes", ""),
                 "preview_dados": preview_dados,
                 "arquivo_base64": excel_base64,
-                "arquivo_nome": f"apontamentos_sci_{competencia or 'atual'}.xlsx"
+                "arquivo_nome": output_filename
             }
             
         finally:
