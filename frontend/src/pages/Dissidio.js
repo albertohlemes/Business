@@ -1121,7 +1121,7 @@ const Dissidio = () => {
                 <div key={calc.id} className="rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
                   <div 
                     className="bg-gradient-to-r from-slate-50 to-slate-100 p-4 flex items-center justify-between cursor-pointer"
-                    onClick={() => setExpandedCalculo(expandedCalculo === calc.id ? null : calc.id)}
+                    onClick={() => toggleExpand(calc.id)}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
@@ -1153,12 +1153,12 @@ const Dissidio = () => {
                         Excel
                       </Button>
                       <div className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center">
-                        {expandedCalculo === calc.id ? <ChevronUp size={18} className="text-slate-600" /> : <ChevronDown size={18} className="text-slate-600" />}
+                        {isExpanded(calc.id) ? <ChevronUp size={18} className="text-slate-600" /> : <ChevronDown size={18} className="text-slate-600" />}
                       </div>
                     </div>
                   </div>
                   
-                  {expandedCalculo === calc.id && (
+                  {isExpanded(calc.id) && (
                     <div className="border-t bg-white">
                       {/* Nota sobre impostos */}
                       {calc.impostos_excluidos && (
