@@ -6090,17 +6090,19 @@ async def validar_rescisao_etapa2(
 ):
     """Etapa 2: Valida apontamentos de apoio contra o termo de rescisão"""
     from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+    from openpyxl import load_workbook
     
     try:
         termo_info = json.loads(termo_data)
         temp_files = []
+        excel_contents = []
         
         for ap in apoio:
             content = await ap.read()
-            suffix = Path(ap.filename).suffix
+            suffix = Path(ap.filename).suffix.lower()
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
                 tmp.write(content)
-                temp_files.append({"path": tmp.name, "mime": ap.content_type or "application/octet-stream", "name": ap.filename})
+                temp_files.append({"path": tmp.name, "suffix": suffix, "name": ap.filename})
         
         try:
             api_key = os.environ.get('EMERGENT_LLM_KEY')
@@ -6138,11 +6140,40 @@ async def validar_rescisao_etapa2(
                 }}"""
             ).with_model("gemini", "gemini-2.0-flash")
             
-            file_contents = [FileContentWithMimeType(file_path=tf["path"], mime_type=tf["mime"]) for tf in temp_files]
+            # Processar arquivos - extrair Excel como texto, enviar PDF/imagens normalmente
+            file_contents = []
+            
+            for tf in temp_files:
+                suffix = tf["suffix"]
+                
+                if suffix in ['.xlsx', '.xls']:
+                    # Extrair conteúdo do Excel como texto
+                    try:
+                        wb = load_workbook(tf["path"])
+                        ws = wb.active
+                        excel_text = f"\n=== Conteúdo de {tf['name']} ===\n"
+                        for row in ws.iter_rows(min_row=1, max_row=min(200, ws.max_row), values_only=True):
+                            excel_text += " | ".join([str(c) if c else "" for c in row]) + "\n"
+                        excel_contents.append(excel_text)
+                    except Exception as e:
+                        excel_contents.append(f"\n=== Erro ao ler {tf['name']}: {str(e)} ===\n")
+                elif suffix in ['.pdf']:
+                    file_contents.append(FileContentWithMimeType(file_path=tf["path"], mime_type="application/pdf"))
+                elif suffix in ['.jpg', '.jpeg']:
+                    file_contents.append(FileContentWithMimeType(file_path=tf["path"], mime_type="image/jpeg"))
+                elif suffix in ['.png']:
+                    file_contents.append(FileContentWithMimeType(file_path=tf["path"], mime_type="image/png"))
+                elif suffix in ['.txt']:
+                    file_contents.append(FileContentWithMimeType(file_path=tf["path"], mime_type="text/plain"))
+            
+            # Montar prompt com conteúdo de arquivos Excel
+            extra_text = "".join(excel_contents)
             
             response = await chat.send_message(UserMessage(
-                text=f"Compare estes apontamentos de apoio com os dados do termo de rescisão. Verifique se todas as variáveis foram lançadas corretamente.",
-                file_contents=file_contents
+                text=f"""Compare estes apontamentos de apoio com os dados do termo de rescisão. 
+Verifique se todas as variáveis foram lançadas corretamente.
+{extra_text}""",
+                file_contents=file_contents if file_contents else None
             ))
             
             response_text = response.strip()
