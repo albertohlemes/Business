@@ -999,9 +999,9 @@ const Dissidio = () => {
             </CardHeader>
             <CardContent className="p-4 space-y-3">
               {calculoResult.resultados_por_mes?.map((mes, mesIdx) => (
-                <div key={mesIdx} className="rounded-xl border border-slate-700 overflow-hidden hover:shadow-md transition-shadow">
+                <div key={mesIdx} className="rounded-xl border border-slate-700 overflow-hidden hover:border-slate-600 transition-all">
                   <div 
-                    className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 flex items-center justify-between cursor-pointer"
+                    className="bg-slate-800 p-4 flex items-center justify-between cursor-pointer hover:bg-slate-800/80"
                     onClick={() => toggleExpand(`mes-${mesIdx}`)}
                   >
                     <div className="flex items-center gap-4">
@@ -1010,8 +1010,8 @@ const Dissidio = () => {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-slate-800">{mes.competencia}</span>
-                          <Badge variant="outline" className="text-xs">{mes.colaboradores?.length || 0} colaboradores</Badge>
+                          <span className="font-semibold text-white">{mes.competencia}</span>
+                          <Badge variant="outline" className="text-xs border-slate-600 text-slate-400">{mes.colaboradores?.length || 0} colaboradores</Badge>
                         </div>
                         <p className="text-xs text-slate-500 mt-0.5">{mes.arquivo}</p>
                       </div>
