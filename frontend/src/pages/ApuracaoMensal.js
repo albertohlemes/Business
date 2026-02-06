@@ -914,59 +914,89 @@ const ApuracaoMensal = ({ user, onLogout }) => {
               
               {/* Tipo de Agrupamento */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Agrupar por:</label>
-                <div className="grid grid-cols-2 gap-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Exportação:</label>
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={() => setExportType('cfop')}
-                    className={`px-4 py-3 rounded-lg border-2 font-medium transition-colors ${
+                    className={`px-3 py-3 rounded-lg border-2 font-medium transition-colors text-sm ${
                       exportType === 'cfop' 
                         ? 'border-indigo-600 bg-indigo-50 text-indigo-700' 
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    CFOP
+                    Por CFOP
                   </button>
                   <button
                     onClick={() => setExportType('ncm')}
-                    className={`px-4 py-3 rounded-lg border-2 font-medium transition-colors ${
+                    className={`px-3 py-3 rounded-lg border-2 font-medium transition-colors text-sm ${
                       exportType === 'ncm' 
                         ? 'border-indigo-600 bg-indigo-50 text-indigo-700' 
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    NCM
+                    Por NCM
+                  </button>
+                  <button
+                    onClick={() => setExportType('notas')}
+                    className={`px-3 py-3 rounded-lg border-2 font-medium transition-colors text-sm ${
+                      exportType === 'notas' 
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    Rel. Notas
                   </button>
                 </div>
+                {exportType === 'notas' && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Exporta relação de todas as notas com CFOP, valores e status (Ativa/Cancelada)
+                  </p>
+                )}
               </div>
               
-              {/* Formato */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Formato:</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setExportFormat('excel')}
-                    className={`px-4 py-3 rounded-lg border-2 font-medium transition-colors flex items-center justify-center gap-2 ${
-                      exportFormat === 'excel' 
-                        ? 'border-green-600 bg-green-50 text-green-700' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <FileSpreadsheet className="w-5 h-5" />
-                    Excel
-                  </button>
-                  <button
-                    onClick={() => setExportFormat('pdf')}
-                    className={`px-4 py-3 rounded-lg border-2 font-medium transition-colors flex items-center justify-center gap-2 ${
-                      exportFormat === 'pdf' 
-                        ? 'border-red-600 bg-red-50 text-red-700' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <File className="w-5 h-5" />
-                    PDF
-                  </button>
+              {/* Formato - só mostrar se não for Relação de Notas */}
+              {exportType !== 'notas' && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Formato:</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setExportFormat('excel')}
+                      className={`px-4 py-3 rounded-lg border-2 font-medium transition-colors flex items-center justify-center gap-2 ${
+                        exportFormat === 'excel' 
+                          ? 'border-green-600 bg-green-50 text-green-700' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <FileSpreadsheet className="w-5 h-5" />
+                      Excel
+                    </button>
+                    <button
+                      onClick={() => setExportFormat('pdf')}
+                      className={`px-4 py-3 rounded-lg border-2 font-medium transition-colors flex items-center justify-center gap-2 ${
+                        exportFormat === 'pdf' 
+                          ? 'border-red-600 bg-red-50 text-red-700' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <File className="w-5 h-5" />
+                      PDF
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
+              
+              {/* Info para Relação de Notas */}
+              {exportType === 'notas' && (
+                <div className="mb-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2 text-blue-700 text-sm">
+                    <FileSpreadsheet className="w-4 h-4" />
+                    <span className="font-medium">Exportação em Excel</span>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Inclui: NF, Data, Emitente/Destinatário, CNPJ, CFOP, Valor e Status
+                  </p>
+                </div>
+              )}
               
               {/* Botões */}
               <div className="flex gap-3">
@@ -977,7 +1007,13 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                   Cancelar
                 </button>
                 <button
-                  onClick={() => exportFormat === 'excel' ? exportToExcel(exportType) : exportToPDF(exportType)}
+                  onClick={() => {
+                    if (exportType === 'notas') {
+                      exportRelacaoNotas();
+                    } else {
+                      exportFormat === 'excel' ? exportToExcel(exportType) : exportToPDF(exportType);
+                    }
+                  }}
                   className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2"
                 >
                   <Download className="w-4 h-4" />
