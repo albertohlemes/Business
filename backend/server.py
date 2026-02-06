@@ -3622,12 +3622,6 @@ async def analisar_convencao(
                 Se não encontrar informação sobre algum campo, use null.
                 Para benefícios e descontos, extraia TODOS que encontrar com seus valores.
                 Se não encontrar tabela de proporcionalidade na convenção, deixe tabela_proporcionalidade como null e proporcionalidade_extraida_da_convencao como false."""
-                    "vigencia_fim": "DD/MM/YYYY",
-                    "resumo": "resumo executivo em 2-3 frases"
-                }
-                
-                Se não encontrar informação sobre algum campo, use null.
-                Para benefícios e descontos, extraia TODOS que encontrar com seus valores."""
             ).with_model("gemini", "gemini-2.0-flash")
             
             file_content = FileContentWithMimeType(
