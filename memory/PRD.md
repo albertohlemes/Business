@@ -133,17 +133,17 @@ CONTROLES
 ## Última Atualização
 - **Data**: 06/02/2026
 - **Funcionalidades Implementadas**:
-  - Exportação de resumo da convenção em PDF com papel timbrado
-  - Endpoints de conversão (apontamentos, admissional)
-  - Endpoint de validação de rescisão
-  - Rotas de frontend para novas páginas
-  - Reorganização do menu em 4 categorias
-- **Resultado**: ✅ 100% dos testes passaram (Backend 18/18, Frontend OK)
-- **Relatório**: /app/test_reports/iteration_14.json
+  - Endpoint `GET /api/calculos-dissidio/{id}/exportar-convencao-pdf` para exportar PDF do resumo da convenção
+  - Validação de piso salarial no cálculo retroativo (campo `alertas_piso` na resposta)
+  - Botão de exportação de PDF na lista de "Cálculos Anteriores" no frontend
+  - Exibição de alertas de piso salarial no resultado do cálculo
+- **Resultado**: ✅ 100% dos testes passaram (Backend 17/17)
+- **Relatório**: /app/test_reports/iteration_15.json
 
 ---
 
 ### Histórico de Atualizações Anteriores
+- **06/02/2026**: Exportação de resumo da convenção em PDF com papel timbrado
 - **06/02/2026**: Polling Assíncrono para Validação de Folha
 - **05/02/2026**: Validação de Folha POR COLABORADOR
 - **04/02/2026**: Implementação inicial do portal
