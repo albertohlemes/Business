@@ -463,6 +463,39 @@ const Dissidio = () => {
               </div>
             </div>
 
+            {/* Período de Vigência - DESTAQUE */}
+            <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <Calendar className="text-blue-400" size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-blue-300">Período de Vigência da Convenção</p>
+                  <p className="text-xs text-slate-400">Período em que a convenção está em vigor</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-blue-300 text-xs">Data Início</Label>
+                  <Input 
+                    value={convencaoData.vigencia_inicio || ''} 
+                    onChange={(e) => setConvencaoData({...convencaoData, vigencia_inicio: e.target.value})}
+                    placeholder="DD/MM/AAAA"
+                    className="bg-slate-800 border-blue-500/30 text-white placeholder:text-slate-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-blue-300 text-xs">Data Fim</Label>
+                  <Input 
+                    value={convencaoData.vigencia_fim || ''} 
+                    onChange={(e) => setConvencaoData({...convencaoData, vigencia_fim: e.target.value})}
+                    placeholder="DD/MM/AAAA"
+                    className="bg-slate-800 border-blue-500/30 text-white placeholder:text-slate-500"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label className="text-slate-300">Sindicato</Label>
               <Input 
