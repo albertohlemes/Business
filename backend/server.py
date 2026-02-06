@@ -4172,6 +4172,41 @@ async def exportar_resumo_convencao_pdf(
     elementos.append(tabela_info)
     elementos.append(Spacer(1, 6*mm))
     
+    # ========== PISOS POR FUNÇÃO ==========
+    pisos_funcao = dados_convencao.get('pisos_por_funcao', [])
+    if pisos_funcao:
+        elementos.append(Paragraph("PISOS SALARIAIS POR FUNÇÃO", est_secao))
+        
+        piso_headers = ['Função/Cargo', 'Piso Anterior', 'Piso Novo', 'Variação']
+        piso_data = [piso_headers]
+        for piso in pisos_funcao:
+            funcao = piso.get('funcao', 'N/A')
+            ant = piso.get('piso_anterior')
+            novo = piso.get('piso_novo')
+            variacao = ""
+            try:
+                if ant and novo:
+                    var = ((float(novo) - float(ant)) / float(ant)) * 100
+                    variacao = f"+{var:.1f}%"
+            except:
+                pass
+            piso_data.append([funcao, fmt_valor(ant), fmt_valor(novo), variacao])
+        
+        tabela_pisos = Table(piso_data, colWidths=[7*cm, 4*cm, 4*cm, 3*cm])
+        tabela_pisos.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#d97706")),  # Amber
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, CINZA),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#fef3c7")]),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        elementos.append(tabela_pisos)
+        elementos.append(Spacer(1, 6*mm))
+    
     # ========== ANÁLISE DO REAJUSTE ==========
     elementos.append(Paragraph("ANÁLISE DO IMPACTO", est_secao))
     
