@@ -652,7 +652,7 @@ const Dissidio = () => {
                 <div>
                   <h2 className="text-xl font-bold text-emerald-800">Cálculo Concluído!</h2>
                   <p className="text-emerald-600">
-                    {calculoResult.meses_processados} mês(es) • {calculoResult.total_colaboradores} colaborador(es)
+                    {calculoResult.meses_processados} mês(es) • {calculoResult.total_colaboradores} colaborador(es) • {calculoResult.percentual_reajuste}% reajuste
                   </p>
                 </div>
                 <div className="text-right">
@@ -665,10 +665,13 @@ const Dissidio = () => {
             </CardContent>
           </Card>
 
-          {/* Tabela por Colaborador */}
+          {/* Resumo por Colaborador */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Retroativo por Colaborador</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Users size={20} />
+                Resumo por Colaborador
+              </CardTitle>
               <Button variant="outline" onClick={() => exportarExcel(calculoResult.id)}>
                 <Download size={16} className="mr-2" />
                 Exportar Excel
@@ -705,6 +708,154 @@ const Dissidio = () => {
                   </tfoot>
                 </table>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Memória de Cálculo - Por Mês */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar size={20} />
+                Memória de Cálculo - Detalhamento por Mês
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {calculoResult.resultados_por_mes?.map((mes, mesIdx) => (
+                <div key={mesIdx} className="border rounded-lg overflow-hidden">
+                  <div 
+                    className="bg-indigo-50 p-3 flex items-center justify-between cursor-pointer"
+                    onClick={() => setExpandedCalculo(expandedCalculo === `mes-${mesIdx}` ? null : `mes-${mesIdx}`)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Badge className="bg-indigo-600">{mes.competencia}</Badge>
+                      <span className="font-medium">{mes.arquivo}</span>
+                      <span className="text-slate-500 text-sm">({mes.colaboradores?.length || 0} colaboradores)</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono font-bold text-indigo-700">
+                        R$ {mes.total_retroativo_mes?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                      {expandedCalculo === `mes-${mesIdx}` ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </div>
+                  </div>
+                  
+                  {expandedCalculo === `mes-${mesIdx}` && (
+                    <div className="p-4 bg-white">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b text-slate-500">
+                            <th className="text-left p-2">Colaborador</th>
+                            <th className="text-left p-2">Verba</th>
+                            <th className="text-right p-2">Valor Original</th>
+                            <th className="text-center p-2">%</th>
+                            <th className="text-right p-2">Diferença</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {mes.colaboradores?.map((colab, colabIdx) => (
+                            colab.verbas?.map((verba, verbaIdx) => (
+                              <tr key={`${colabIdx}-${verbaIdx}`} className="border-b hover:bg-slate-50">
+                                {verbaIdx === 0 && (
+                                  <td className="p-2 font-medium" rowSpan={colab.verbas.length}>
+                                    {colab.nome}
+                                  </td>
+                                )}
+                                <td className="p-2 text-slate-600">{verba.verba?.replace(/_/g, ' ')}</td>
+                                <td className="p-2 text-right font-mono">
+                                  R$ {verba.valor_original?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </td>
+                                <td className="p-2 text-center text-indigo-600 font-medium">
+                                  {calculoResult.percentual_reajuste}%
+                                </td>
+                                <td className="p-2 text-right font-mono text-emerald-600 font-medium">
+                                  R$ {verba.diferenca?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </td>
+                              </tr>
+                            ))
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-indigo-50 font-bold">
+                            <td className="p-2" colSpan={4}>Total do Mês {mes.competencia}</td>
+                            <td className="p-2 text-right font-mono text-indigo-700">
+                              R$ {mes.total_retroativo_mes?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Memória de Cálculo - Por Colaborador */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users size={20} />
+                Memória de Cálculo - Detalhamento por Colaborador
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {calculoResult.colaboradores_consolidado?.map((colab, colabIdx) => (
+                <div key={colabIdx} className="border rounded-lg overflow-hidden">
+                  <div 
+                    className="bg-slate-50 p-3 flex items-center justify-between cursor-pointer"
+                    onClick={() => setExpandedCalculo(expandedCalculo === `colab-${colabIdx}` ? null : `colab-${colabIdx}`)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
+                        {colab.nome?.charAt(0)}
+                      </div>
+                      <div>
+                        <span className="font-medium">{colab.nome}</span>
+                        {colab.cpf && <span className="text-slate-400 text-xs ml-2">{colab.cpf}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono font-bold text-emerald-700">
+                        R$ {colab.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                      {expandedCalculo === `colab-${colabIdx}` ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </div>
+                  </div>
+                  
+                  {expandedCalculo === `colab-${colabIdx}` && (
+                    <div className="p-4 bg-white">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b text-slate-500">
+                            <th className="text-left p-2">Competência</th>
+                            <th className="text-right p-2">Retroativo</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {colab.meses?.map((mes, mesIdx) => (
+                            <tr key={mesIdx} className="border-b hover:bg-slate-50">
+                              <td className="p-2">
+                                <Badge variant="outline">{mes.competencia}</Badge>
+                              </td>
+                              <td className="p-2 text-right font-mono text-emerald-600">
+                                R$ {mes.retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-slate-100 font-bold">
+                            <td className="p-2">Total</td>
+                            <td className="p-2 text-right font-mono text-emerald-700">
+                              R$ {colab.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>
