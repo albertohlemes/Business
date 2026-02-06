@@ -194,8 +194,8 @@ const ConvencaoCard = ({ convencao, isAtual = false, isExpanded, onToggle, onRem
             </div>
           )}
 
-          {/* Jornada */}
-          {convencao?.jornada_trabalho && (
+          {/* Jornada - tratamento seguro para objetos aninhados */}
+          {convencao?.jornada_trabalho && typeof convencao.jornada_trabalho === 'object' && (
             <div className="bg-slate-800/30 rounded-lg p-3">
               <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
                 <Clock size={12} /> Jornada de Trabalho
@@ -203,19 +203,31 @@ const ConvencaoCard = ({ convencao, isAtual = false, isExpanded, onToggle, onRem
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Semanal:</span>
-                  <span className="text-white">{convencao.jornada_trabalho.horas_semanais || 44}h</span>
+                  <span className="text-white">{convencao.jornada_trabalho.carga_horaria_semanal || convencao.jornada_trabalho.horas_semanais || 44}h</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">HE 50%:</span>
-                  <span className="text-white">{convencao.jornada_trabalho.adicional_hora_extra_50 || 50}%</span>
+                  <span className="text-white">
+                    {typeof convencao.jornada_trabalho.hora_extra_50 === 'object' 
+                      ? convencao.jornada_trabalho.hora_extra_50?.percentual || 50
+                      : convencao.jornada_trabalho.adicional_hora_extra_50 || 50}%
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">HE 100%:</span>
-                  <span className="text-white">{convencao.jornada_trabalho.adicional_hora_extra_100 || 100}%</span>
+                  <span className="text-white">
+                    {typeof convencao.jornada_trabalho.hora_extra_100 === 'object'
+                      ? convencao.jornada_trabalho.hora_extra_100?.percentual || 100
+                      : convencao.jornada_trabalho.adicional_hora_extra_100 || 100}%
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Adic. Noturno:</span>
-                  <span className="text-white">{convencao.jornada_trabalho.adicional_noturno || 20}%</span>
+                  <span className="text-white">
+                    {typeof convencao.jornada_trabalho.adicional_noturno === 'object'
+                      ? convencao.jornada_trabalho.adicional_noturno?.percentual || 20
+                      : convencao.jornada_trabalho.adicional_noturno || 20}%
+                  </span>
                 </div>
               </div>
             </div>
