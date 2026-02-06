@@ -773,16 +773,103 @@ const ApuracaoMensal = ({ user, onLogout }) => {
             </div>
             
             {data && (
-              <button
-                onClick={exportCSV}
-                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                Exportar
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowExportModal(true)}
+                  className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Exportar
+                </button>
+              </div>
             )}
           </div>
         </div>
+
+        {/* Modal de Exportação */}
+        {showExportModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Download className="w-5 h-5 text-indigo-600" />
+                Exportar Apuração
+              </h3>
+              
+              {/* Tipo de Agrupamento */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Agrupar por:</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setExportType('cfop')}
+                    className={`px-4 py-3 rounded-lg border-2 font-medium transition-colors ${
+                      exportType === 'cfop' 
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    CFOP
+                  </button>
+                  <button
+                    onClick={() => setExportType('ncm')}
+                    className={`px-4 py-3 rounded-lg border-2 font-medium transition-colors ${
+                      exportType === 'ncm' 
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    NCM
+                  </button>
+                </div>
+              </div>
+              
+              {/* Formato */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Formato:</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setExportFormat('excel')}
+                    className={`px-4 py-3 rounded-lg border-2 font-medium transition-colors flex items-center justify-center gap-2 ${
+                      exportFormat === 'excel' 
+                        ? 'border-green-600 bg-green-50 text-green-700' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <FileSpreadsheet className="w-5 h-5" />
+                    Excel
+                  </button>
+                  <button
+                    onClick={() => setExportFormat('pdf')}
+                    className={`px-4 py-3 rounded-lg border-2 font-medium transition-colors flex items-center justify-center gap-2 ${
+                      exportFormat === 'pdf' 
+                        ? 'border-red-600 bg-red-50 text-red-700' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <File className="w-5 h-5" />
+                    PDF
+                  </button>
+                </div>
+              </div>
+              
+              {/* Botões */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowExportModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => exportFormat === 'excel' ? exportToExcel(exportType) : exportToPDF(exportType)}
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Exportar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {!selectedCompany ? (
           <div className="bg-yellow-50 rounded-xl p-8 text-center border border-yellow-200">
