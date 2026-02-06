@@ -190,65 +190,70 @@ const ValidacaoRescisao = () => {
   };
 
   // Componente de Upload Box
-  const UploadBox = ({ dropzone, label, file, files, icon: Icon, color, onRemove, description }) => (
-    <div className="space-y-2">
-      <div 
-        {...dropzone.getRootProps()} 
-        className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-          dropzone.isDragActive ? 'border-red-500 bg-red-500/10' : 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/50'
-        }`}
-      >
-        <input {...dropzone.getInputProps()} />
-        {file ? (
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
-              <CheckCircle2 className="text-emerald-500" size={32} />
+  const UploadBox = ({ dropzone, label, file, files, icon: Icon, color, onRemove, description }) => {
+    const { getRootProps, getInputProps, isDragActive, open } = dropzone;
+    
+    return (
+      <div className="space-y-2">
+        <div 
+          {...getRootProps()} 
+          onClick={open}
+          className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+            isDragActive ? 'border-red-500 bg-red-500/10' : 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/50'
+          }`}
+        >
+          <input {...getInputProps()} />
+          {file ? (
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <CheckCircle2 className="text-emerald-500" size={32} />
+              </div>
+              <div className="text-center">
+                <p className="text-white font-medium">{file.name}</p>
+                <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-slate-400 hover:text-red-500"
+                onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRemove(); }}
+              >
+                <Trash2 size={14} className="mr-1" /> Remover
+              </Button>
             </div>
-            <div className="text-center">
-              <p className="text-white font-medium">{file.name}</p>
-              <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
+          ) : files?.length > 0 ? (
+            <div className="space-y-2">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="text-emerald-500" size={32} />
+              </div>
+              <p className="text-white font-medium">{files.length} arquivo(s) selecionado(s)</p>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {files.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm bg-slate-800 rounded px-3 py-1.5">
+                    <span className="text-slate-300 truncate">{f.name}</span>
+                    <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRemove(i); }} className="text-slate-500 hover:text-red-500 ml-2">
+                      <XCircle size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-slate-400 hover:text-red-500"
-              onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            >
-              <Trash2 size={14} className="mr-1" /> Remover
-            </Button>
-          </div>
-        ) : files?.length > 0 ? (
-          <div className="space-y-2">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="text-emerald-500" size={32} />
+          ) : (
+            <div className="flex flex-col items-center gap-3">
+              <div className={`w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center ${color}`}>
+                <Icon size={32} />
+              </div>
+              <div className="text-center">
+                <p className="text-white font-medium">{label}</p>
+                <p className="text-sm text-slate-500">{description}</p>
+              </div>
+              <p className="text-xs text-slate-600">Clique ou arraste arquivos aqui</p>
             </div>
-            <p className="text-white font-medium">{files.length} arquivo(s) selecionado(s)</p>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {files.map((f, i) => (
-                <div key={i} className="flex items-center justify-between text-sm bg-slate-800 rounded px-3 py-1.5">
-                  <span className="text-slate-300 truncate">{f.name}</span>
-                  <button onClick={(e) => { e.stopPropagation(); onRemove(i); }} className="text-slate-500 hover:text-red-500 ml-2">
-                    <XCircle size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-3">
-            <div className={`w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center ${color}`}>
-              <Icon size={32} />
-            </div>
-            <div className="text-center">
-              <p className="text-white font-medium">{label}</p>
-              <p className="text-sm text-slate-500">{description}</p>
-            </div>
-            <p className="text-xs text-slate-600">Clique ou arraste arquivos aqui</p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Componente de Resultado Card
   const ResultCard = ({ data, title, icon: Icon, color }) => {
