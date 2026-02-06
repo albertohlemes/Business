@@ -304,6 +304,19 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ## Changelog
 
+### 02/2026 - Iteration 42 (06/02/2026) 🆕
+- ✅ **FEATURE P0: Tratamento de Notas Fiscais Canceladas**
+  - **Problema:** O sistema não identificava XMLs de notas que haviam sido canceladas, incluindo seus valores em todos os cálculos
+  - **Solução:**
+    1. Modificada a função `parse_xml_nfe()` para verificar o status `cStat` dentro do `protNFe.infProt`
+    2. Status `101` (cancelamento homologado) e `151` (cancelamento extemporâneo) marcam a nota como cancelada
+    3. Adicionados campos no modelo `XMLDocument`: `cancelada`, `cStat_cancelamento`, `xMotivo_cancelamento`, `dhRecbto_cancelamento`, `nProt_cancelamento`
+    4. Todos os endpoints de cálculo já possuíam filtros para excluir notas canceladas
+    5. Corrigido filtro no endpoint `/api/xml/documents` que estava faltando
+  - **Resultado:** Notas canceladas são detectadas no upload, salvas com marcação apropriada e excluídas automaticamente de todos os cálculos e relatórios
+  - **Testes:** 8/8 testes passaram (100% backend)
+  - **Arquivos:** `/app/backend/server.py` (linhas 565-600, 176-225, 3933)
+
 ### 02/2026 - Iteration 41 (05/02/2026)
 - ✅ **BUG FIX: Totalizador da tabela de detalhamento agora exclui ICMS de ST/Despesa**
   - **Problema:** Na tabela de detalhamento por CFOP, o total de ICMS incluía valores de ST e Despesa
