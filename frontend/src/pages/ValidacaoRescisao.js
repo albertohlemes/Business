@@ -141,16 +141,26 @@ const ValidacaoRescisao = () => {
     } finally { setProcessing(false); }
   };
 
+  // Verificar se cliente tem CCT cadastrada
+  const temCctCadastrada = empresaSelecionada?.convencao_coletiva != null;
+
   // Processar Etapa 3 - Convenção Coletiva
   const processarConvencao = async () => {
-    if (!convencao) { toast.error('Faça upload da convenção coletiva'); return; }
+    // Se não tem CCT cadastrada nem upload, mostrar erro
+    if (!convencao && !temCctCadastrada) { 
+      toast.error('Faça upload da convenção coletiva ou cadastre uma CCT para este cliente'); 
+      return; 
+    }
     
     setProcessing(true);
     try {
       const formData = new FormData();
       formData.append('cliente_id', empresaSelecionada.id);
       formData.append('termo_data', JSON.stringify(termoData));
-      formData.append('convencao', convencao);
+      // Só envia arquivo se foi feito upload
+      if (convencao) {
+        formData.append('convencao', convencao);
+      }
 
       const response = await axios.post(`${API_URL}/api/validacao/rescisao/etapa3`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -159,7 +169,13 @@ const ValidacaoRescisao = () => {
       
       setConvencaoData(response.data);
       setStepCompleted(prev => ({ ...prev, 3: true }));
-      toast.success('Convenção analisada!');
+      
+      // Mostrar mensagem diferente baseada na origem da CCT
+      if (response.data.origem_cct === 'cadastro_cliente') {
+        toast.success(`Convenção analisada! (CCT cadastrada: ${response.data.sindicato_cct || 'sem nome'})`);
+      } else {
+        toast.success('Convenção analisada!');
+      }
     } catch (error) {
       toast.error('Erro: ' + (error.response?.data?.detail || error.message));
     } finally { setProcessing(false); }
