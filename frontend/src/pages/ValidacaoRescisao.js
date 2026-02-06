@@ -237,6 +237,22 @@ const ValidacaoRescisao = () => {
             </div>
           )}
           
+          {/* Dados encontrados no apoio */}
+          {data.dados_encontrados_no_apoio?.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-blue-400 font-medium">Dados encontrados no apoio:</p>
+              <div className="bg-blue-500/10 rounded-lg p-3 space-y-1.5 max-h-32 overflow-y-auto">
+                {data.dados_encontrados_no_apoio.map((item, i) => (
+                  <div key={i} className="flex items-center gap-3 text-sm">
+                    <span className="text-blue-300 font-medium">{item.tipo}</span>
+                    {item.referencia && <span className="text-slate-400 text-xs">Ref: {item.referencia}</span>}
+                    {item.valor && <span className="text-emerald-400 text-xs font-mono">{item.valor}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           {data.itens_validados?.length > 0 && (
             <div className="space-y-1">
               <p className="text-xs text-slate-500 font-medium">Itens validados:</p>
@@ -257,8 +273,8 @@ const ValidacaoRescisao = () => {
                 <div key={i} className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
                   <p className="text-sm text-white font-medium">{div.item}</p>
                   <div className="flex gap-4 mt-1 text-xs">
-                    <span className="text-slate-400">Informado: <span className="text-red-400 font-mono">{div.valor_informado}</span></span>
-                    <span className="text-slate-400">Esperado: <span className="text-emerald-400 font-mono">{div.valor_esperado}</span></span>
+                    <span className="text-slate-400">No termo: <span className="text-blue-400 font-mono">{div.valor_informado}</span></span>
+                    <span className="text-slate-400">No apoio: <span className="text-amber-400 font-mono">{div.valor_esperado}</span></span>
                   </div>
                   {div.observacao && <p className="text-xs text-slate-500 mt-1">{div.observacao}</p>}
                 </div>
