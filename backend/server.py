@@ -4378,39 +4378,39 @@ async def get_dashboard_stats(
         tolerancia = 0.01  # 1% de tolerância para arredondamentos
         
         if total_base_pis_cofins > 0:
-            # Divergência PIS
+            # Divergência PIS (comparar calculado vs XML)
             if debito_pis_xml > 0:
-                diferenca_pis = abs(debito_pis_esperado - debito_pis_xml)
-                perc_diferenca_pis = (diferenca_pis / debito_pis_esperado) if debito_pis_esperado > 0 else 0
+                diferenca_pis = abs(debito_pis - debito_pis_xml)
+                perc_diferenca_pis = (diferenca_pis / debito_pis) if debito_pis > 0 else 0
                 if perc_diferenca_pis > tolerancia:
                     aliq_xml_pis = (debito_pis_xml / total_base_pis_cofins) * 100 if total_base_pis_cofins > 0 else 0
                     divergencias_pis_cofins.append({
                         "imposto": "PIS",
                         "aliquota_esperada": "1.65%",
                         "aliquota_xml": f"{aliq_xml_pis:.2f}%",
-                        "valor_esperado": round(debito_pis_esperado, 2),
+                        "valor_esperado": round(debito_pis, 2),
                         "valor_xml": round(debito_pis_xml, 2),
-                        "diferenca": round(debito_pis_esperado - debito_pis_xml, 2)
+                        "diferenca": round(debito_pis - debito_pis_xml, 2)
                     })
             
-            # Divergência COFINS
+            # Divergência COFINS (comparar calculado vs XML)
             if debito_cofins_xml > 0:
-                diferenca_cofins = abs(debito_cofins_esperado - debito_cofins_xml)
-                perc_diferenca_cofins = (diferenca_cofins / debito_cofins_esperado) if debito_cofins_esperado > 0 else 0
+                diferenca_cofins = abs(debito_cofins - debito_cofins_xml)
+                perc_diferenca_cofins = (diferenca_cofins / debito_cofins) if debito_cofins > 0 else 0
                 if perc_diferenca_cofins > tolerancia:
                     aliq_xml_cofins = (debito_cofins_xml / total_base_pis_cofins) * 100 if total_base_pis_cofins > 0 else 0
                     divergencias_pis_cofins.append({
                         "imposto": "COFINS",
                         "aliquota_esperada": "7.6%",
                         "aliquota_xml": f"{aliq_xml_cofins:.2f}%",
-                        "valor_esperado": round(debito_cofins_esperado, 2),
+                        "valor_esperado": round(debito_cofins, 2),
                         "valor_xml": round(debito_cofins_xml, 2),
-                        "diferenca": round(debito_cofins_esperado - debito_cofins_xml, 2)
+                        "diferenca": round(debito_cofins - debito_cofins_xml, 2)
                     })
     else:
-        # Lucro Presumido - usar valores do XML (alíquotas cumulativas)
-        debito_pis = debito_pis_xml
-        debito_cofins = debito_cofins_xml
+        # Lucro Presumido - calcular com alíquotas cumulativas
+        debito_pis = total_base_pis_cofins * ALIQ_PIS_LUCRO_PRESUMIDO
+        debito_cofins = total_base_pis_cofins * ALIQ_COFINS_LUCRO_PRESUMIDO
     
     # ISS (serviços)
     total_iss = 0
