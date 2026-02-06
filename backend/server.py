@@ -698,6 +698,14 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                     v_ipi = float(ipi[key].get('vIPI', 0) or 0)
                     break
             
+            # Extrair IPI Devolvido (para notas de devolução)
+            imposto_devol = det_item.get('impostoDevol', {})
+            v_ipi_devol = 0
+            if imposto_devol:
+                ipi_devol = imposto_devol.get('IPI', {})
+                if isinstance(ipi_devol, dict):
+                    v_ipi_devol = float(ipi_devol.get('vIPIDevol', 0) or 0)
+            
             for key in pis:
                 if isinstance(pis[key], dict):
                     v_pis = float(pis[key].get('vPIS', 0) or 0)
