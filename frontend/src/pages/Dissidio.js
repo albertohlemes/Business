@@ -590,7 +590,8 @@ const Dissidio = () => {
                       />
                       <Input 
                         type="number"
-                        placeholder="Valor Anterior"
+                        step="0.01"
+                        placeholder="R$ Anterior"
                         value={desc.valor_anterior || ''} 
                         onChange={(e) => {
                           const newDesc = [...convencaoData.descontos];
@@ -601,7 +602,8 @@ const Dissidio = () => {
                       />
                       <Input 
                         type="number"
-                        placeholder="Valor Novo"
+                        step="0.01"
+                        placeholder="R$ Novo"
                         value={desc.valor_novo || ''} 
                         onChange={(e) => {
                           const newDesc = [...convencaoData.descontos];
