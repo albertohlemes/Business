@@ -74,7 +74,8 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 
 ### Colaboradores
 - CRUD `/api/colaboradores`
-- `POST /api/colaboradores/importar-hibrido` - Extração OCR híbrida
+- `POST /api/colaboradores/importar` - Extração de dados de documentos (PDF, imagem, texto) usando IA
+- `POST /api/colaboradores/salvar-lote` - Salva múltiplos colaboradores de uma vez
 
 ### Dissídio
 - CRUD `/api/dissidios`
