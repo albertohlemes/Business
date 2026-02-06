@@ -1088,158 +1088,270 @@ const Dissidio = () => {
 
       {/* Cálculos Anteriores */}
       {calculosAnteriores.length > 0 && step === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="text-slate-400" />
-              Cálculos Anteriores
+        <Card className="shadow-lg border-0 bg-white">
+          <CardHeader className="border-b bg-slate-50/50">
+            <CardTitle className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                <Clock className="text-slate-600" size={20} />
+              </div>
+              <div>
+                <span>Cálculos Anteriores</span>
+                <p className="text-xs text-slate-500 font-normal mt-0.5">{calculosAnteriores.length} cálculo(s) realizados</p>
+              </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
+          <CardContent className="p-4">
+            <div className="space-y-3">
               {calculosAnteriores.map((calc) => (
-                <div key={calc.id} className="border rounded-lg">
+                <div key={calc.id} className="rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
                   <div 
-                    className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50"
+                    className="bg-gradient-to-r from-slate-50 to-slate-100 p-4 flex items-center justify-between cursor-pointer"
                     onClick={() => setExpandedCalculo(expandedCalculo === calc.id ? null : calc.id)}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                        <Percent className="text-indigo-600" size={20} />
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                        {calc.percentual_reajuste}%
                       </div>
                       <div>
-                        <p className="font-medium">{calc.cliente_nome || getClienteName(calc.cliente_id)}</p>
-                        <p className="text-sm text-slate-500">
-                          {calc.percentual_reajuste}% • {calc.meses_processados} mês(es) • 
-                          {new Date(calc.created_at).toLocaleDateString('pt-BR')}
-                        </p>
+                        <p className="font-semibold text-slate-800">{calc.cliente_nome || getClienteName(calc.cliente_id)}</p>
+                        <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
+                          <span className="flex items-center gap-1">
+                            <Calendar size={12} />
+                            {calc.meses_processados} mês(es)
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock size={12} />
+                            {new Date(calc.created_at).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
                         <p className="text-xs text-slate-500">Total Retroativo</p>
-                        <p className="font-mono font-bold text-emerald-600">
+                        <p className="font-mono font-bold text-lg text-emerald-600">
                           R$ {calc.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); exportarExcel(calc.id); }}>
-                        <Download size={16} />
+                      <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); exportarExcel(calc.id); }} className="gap-1">
+                        <Download size={14} />
+                        Excel
                       </Button>
-                      {expandedCalculo === calc.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      <div className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center">
+                        {expandedCalculo === calc.id ? <ChevronUp size={18} className="text-slate-600" /> : <ChevronDown size={18} className="text-slate-600" />}
+                      </div>
                     </div>
                   </div>
                   
                   {expandedCalculo === calc.id && (
-                    <div className="border-t bg-slate-50">
+                    <div className="border-t bg-white">
                       {/* Nota sobre impostos */}
                       {calc.impostos_excluidos && (
-                        <div className="mx-4 mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                          <AlertTriangle className="text-amber-600 flex-shrink-0" size={16} />
+                        <div className="mx-4 mt-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-3 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                            <AlertTriangle className="text-amber-600" size={16} />
+                          </div>
                           <p className="text-xs text-amber-700">
                             {calc.nota_impostos || 'INSS, IRRF e demais encargos serão calculados na competência de pagamento.'}
                           </p>
                         </div>
                       )}
                       
+                      {/* Totalizadores Gerais */}
+                      <div className="grid grid-cols-3 gap-4 p-4">
+                        <div className="text-center p-4 rounded-xl bg-slate-50 border">
+                          <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Total Era</p>
+                          <p className="font-mono font-semibold text-slate-700">
+                            R$ {calc.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_anterior || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div className="text-center p-4 rounded-xl bg-indigo-50 border border-indigo-200">
+                          <p className="text-xs text-indigo-600 uppercase tracking-wide mb-1">Total Ficou</p>
+                          <p className="font-mono font-semibold text-indigo-700">
+                            R$ {calc.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_novo || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div className="text-center p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+                          <p className="text-xs text-emerald-600 uppercase tracking-wide mb-1">Total Retroativo</p>
+                          <p className="font-mono font-bold text-emerald-700">
+                            R$ {calc.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                      </div>
+                      
                       {/* Memória de Cálculo por Mês */}
-                      <div className="p-4 space-y-3">
-                        <p className="text-sm font-medium text-slate-700">Memória de Cálculo por Mês e Verba</p>
+                      <div className="px-4 pb-4 space-y-3">
+                        <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                          <Calendar size={16} className="text-blue-600" />
+                          Memória de Cálculo por Mês
+                        </p>
                         {calc.resultados_por_mes?.map((mes, mesIdx) => (
-                          <div key={mesIdx} className="bg-white rounded border">
+                          <div key={mesIdx} className="rounded-lg border border-slate-200 overflow-hidden">
                             <div 
-                              className="p-2 flex items-center justify-between cursor-pointer hover:bg-slate-50"
+                              className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 flex items-center justify-between cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-colors"
                               onClick={(e) => { e.stopPropagation(); setExpandedCalculo(expandedCalculo === `${calc.id}-mes-${mesIdx}` ? calc.id : `${calc.id}-mes-${mesIdx}`); }}
                             >
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-indigo-600">{mes.competencia}</Badge>
-                                <span className="text-xs text-slate-500">{mes.colaboradores?.length} colaboradores</span>
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow">
+                                  {mes.competencia?.split('/')[0]}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-slate-800">{mes.competencia}</span>
+                                  <span className="text-xs text-slate-500 ml-2">({mes.colaboradores?.length} colaboradores)</span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-mono font-medium text-indigo-700">
+                              <div className="flex items-center gap-3">
+                                <span className="font-mono font-bold text-blue-700">
                                   R$ {mes.total_retroativo_mes?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </span>
-                                {expandedCalculo === `${calc.id}-mes-${mesIdx}` ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                {expandedCalculo === `${calc.id}-mes-${mesIdx}` ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                               </div>
                             </div>
                             
                             {expandedCalculo === `${calc.id}-mes-${mesIdx}` && (
-                              <div className="border-t p-2 max-h-96 overflow-y-auto">
-                                <table className="w-full text-xs">
+                              <div className="border-t bg-white p-3 max-h-96 overflow-y-auto">
+                                <table className="w-full text-sm">
                                   <thead className="sticky top-0 bg-white">
-                                    <tr className="text-slate-500 border-b">
-                                      <th className="text-left p-1">Colaborador</th>
-                                      <th className="text-left p-1">Verba</th>
-                                      <th className="text-right p-1">Era (R$)</th>
-                                      <th className="text-center p-1">%</th>
-                                      <th className="text-right p-1">Ficou (R$)</th>
-                                      <th className="text-right p-1">Diferença</th>
+                                    <tr className="text-xs uppercase tracking-wider text-slate-500 border-b">
+                                      <th className="text-left p-2 font-semibold">Colaborador</th>
+                                      <th className="text-left p-2 font-semibold">Verba</th>
+                                      <th className="text-right p-2 font-semibold">Era</th>
+                                      <th className="text-center p-2 font-semibold">%</th>
+                                      <th className="text-right p-2 font-semibold">Ficou</th>
+                                      <th className="text-right p-2 font-semibold text-emerald-600">Diferença</th>
                                     </tr>
                                   </thead>
-                                  <tbody>
+                                  <tbody className="divide-y divide-slate-100">
                                     {mes.colaboradores?.map((colab, colabIdx) => (
-                                      colab.verbas?.map((verba, verbaIdx) => (
-                                        <tr key={`${colabIdx}-${verbaIdx}`} className="border-b hover:bg-slate-50">
-                                          {verbaIdx === 0 && (
-                                            <td className="p-1 font-medium align-top" rowSpan={colab.verbas.length}>
-                                              <div>{colab.nome}</div>
-                                              <div className="text-emerald-600 font-medium text-xs mt-1">
-                                                Total: R$ {colab.retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                              </div>
+                                      <>
+                                        {colab.verbas?.map((verba, verbaIdx) => (
+                                          <tr key={`${colabIdx}-${verbaIdx}`} className="hover:bg-slate-50/50">
+                                            {verbaIdx === 0 && (
+                                              <td className="p-2 align-top" rowSpan={colab.verbas.length}>
+                                                <div className="flex items-center gap-2">
+                                                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white text-xs font-bold">
+                                                    {colab.nome?.charAt(0)}
+                                                  </div>
+                                                  <span className="font-medium text-slate-700">{colab.nome}</span>
+                                                </div>
+                                              </td>
+                                            )}
+                                            <td className="p-2 text-slate-600 capitalize">{verba.verba?.replace(/_/g, ' ')}</td>
+                                            <td className="p-2 text-right font-mono text-slate-500">
+                                              {(verba.valor_anterior || verba.valor_original)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                             </td>
-                                          )}
-                                          <td className="p-1 text-slate-600">{verba.verba?.replace(/_/g, ' ')}</td>
-                                          <td className="p-1 text-right font-mono text-slate-500">
-                                            {(verba.valor_anterior || verba.valor_original)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                            <td className="p-2 text-center">
+                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 text-xs font-medium">
+                                                +{calc.percentual_reajuste}%
+                                              </span>
+                                            </td>
+                                            <td className="p-2 text-right font-mono text-indigo-600">
+                                              {verba.valor_novo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '-'}
+                                            </td>
+                                            <td className="p-2 text-right font-mono text-emerald-600 font-semibold">
+                                              +{verba.diferenca?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                        {/* Subtotal por colaborador */}
+                                        <tr key={`${colabIdx}-subtotal`} className="bg-slate-50">
+                                          <td className="p-2 text-right text-xs text-slate-500 font-medium" colSpan={5}>
+                                            Subtotal {colab.nome?.split(' ')[0]}:
                                           </td>
-                                          <td className="p-1 text-center text-indigo-600">
-                                            +{calc.percentual_reajuste}%
-                                          </td>
-                                          <td className="p-1 text-right font-mono text-indigo-600">
-                                            {verba.valor_novo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '-'}
-                                          </td>
-                                          <td className="p-1 text-right font-mono text-emerald-600 font-medium">
-                                            {verba.diferenca?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                          <td className="p-2 text-right font-mono text-sm text-emerald-700 font-bold">
+                                            R$ {colab.retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                           </td>
                                         </tr>
-                                      ))
+                                      </>
                                     ))}
                                   </tbody>
+                                  <tfoot>
+                                    <tr className="bg-gradient-to-r from-blue-100 to-indigo-100">
+                                      <td className="p-3 font-bold text-slate-700" colSpan={5}>
+                                        TOTAL DO MÊS {mes.competencia}
+                                      </td>
+                                      <td className="p-3 text-right">
+                                        <span className="inline-flex items-center px-2 py-1 rounded-lg bg-blue-600 text-white font-mono font-bold text-sm">
+                                          R$ {mes.total_retroativo_mes?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  </tfoot>
                                 </table>
                               </div>
                             )}
                           </div>
                         ))}
+                        
+                        {/* Total dos meses */}
+                        <div className="p-3 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-between">
+                          <span className="font-medium flex items-center gap-2">
+                            <DollarSign size={18} />
+                            Total de Todos os Meses
+                          </span>
+                          <span className="font-mono font-bold text-lg">
+                            R$ {calc.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
                       </div>
                       
                       {/* Resumo por Colaborador */}
-                      <div className="border-t p-4">
-                        <p className="text-sm font-medium text-slate-700 mb-2">Resumo por Colaborador</p>
-                        <div className="max-h-64 overflow-y-auto">
+                      <div className="border-t px-4 py-4">
+                        <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                          <Users size={16} className="text-purple-600" />
+                          Resumo por Colaborador
+                        </p>
+                        <div className="rounded-lg border overflow-hidden">
                           <table className="w-full text-sm">
-                            <thead className="sticky top-0 bg-slate-50">
-                              <tr className="text-slate-500 text-xs">
-                                <th className="text-left pb-2">Colaborador</th>
-                                <th className="text-right pb-2">Valor Anterior</th>
-                                <th className="text-right pb-2">Valor Novo</th>
-                                <th className="text-right pb-2">Retroativo</th>
+                            <thead>
+                              <tr className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
+                                <th className="text-left p-3 font-semibold">Colaborador</th>
+                                <th className="text-right p-3 font-semibold">Total Era</th>
+                                <th className="text-right p-3 font-semibold">Total Ficou</th>
+                                <th className="text-right p-3 font-semibold text-emerald-600">Retroativo</th>
                               </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-slate-100">
                               {calc.colaboradores_consolidado?.map((c, i) => (
-                                <tr key={i} className="border-b">
-                                  <td className="py-1 font-medium">{c.nome}</td>
-                                  <td className="py-1 text-right font-mono text-slate-500">
+                                <tr key={i} className="hover:bg-slate-50/50">
+                                  <td className="p-3">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white text-xs font-bold">
+                                        {c.nome?.charAt(0)}
+                                      </div>
+                                      <span className="font-medium text-slate-700">{c.nome}</span>
+                                    </div>
+                                  </td>
+                                  <td className="p-3 text-right font-mono text-slate-500">
                                     R$ {(c.total_valor_anterior || 0)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                   </td>
-                                  <td className="py-1 text-right font-mono text-indigo-600">
+                                  <td className="p-3 text-right font-mono text-indigo-600">
                                     R$ {(c.total_valor_novo || 0)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                   </td>
-                                  <td className="py-1 text-right font-mono text-emerald-600 font-medium">
-                                    R$ {c.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  <td className="p-3 text-right">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-mono font-bold text-sm">
+                                      R$ {c.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </span>
                                   </td>
                                 </tr>
                               ))}
                             </tbody>
+                            <tfoot>
+                              <tr className="bg-gradient-to-r from-slate-100 to-slate-50 font-bold">
+                                <td className="p-3 text-slate-700">TOTAL GERAL</td>
+                                <td className="p-3 text-right font-mono text-slate-600">
+                                  R$ {calc.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_anterior || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </td>
+                                <td className="p-3 text-right font-mono text-indigo-700">
+                                  R$ {calc.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_novo || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </td>
+                                <td className="p-3 text-right">
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-500 text-white font-mono font-bold">
+                                    R$ {calc.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </span>
+                                </td>
+                              </tr>
+                            </tfoot>
                           </table>
                         </div>
                       </div>
