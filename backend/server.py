@@ -3499,7 +3499,13 @@ async def analisar_convencao(
                 system_message="""Você é um especialista em convenções coletivas de trabalho e departamento pessoal.
                 Analise o documento da convenção coletiva e extraia TODAS as informações relevantes para cálculo de dissídio.
                 
-                IMPORTANTE - Identifique claramente:
+                MUITO IMPORTANTE - PISOS SALARIAIS POR FUNÇÃO:
+                Muitas convenções definem PISOS DIFERENTES para cada cargo/função. Identifique TODOS:
+                - Piso do cargo X: R$ valor
+                - Piso do cargo Y: R$ valor
+                - Se houver apenas um piso geral, informe apenas esse
+                
+                IMPORTANTE - Identifique também:
                 1. VERBAS QUE RECEBEM REAJUSTE (salário, horas extras, DSR, adicional noturno, etc)
                 2. VERBAS QUE NÃO RECEBEM REAJUSTE (vale transporte, vale refeição fixo, INSS, IRRF, etc)
                 3. BENEFÍCIOS COM VALORES NOVOS (VA, VR, VT, auxílio creche, etc)
@@ -3513,8 +3519,25 @@ async def analisar_convencao(
                     "data_base": "MM/YYYY (mês/ano da data base)",
                     "mes_convencao": "MM/YYYY (mês/ano que a convenção foi assinada/publicada)",
                     "meses_retroativos": número de meses entre data_base e mes_convencao,
-                    "piso_salarial": valor numérico ou null,
+                    "piso_salarial": valor do piso geral (ou do menor piso se houver vários),
                     "piso_salarial_anterior": valor anterior se mencionado ou null,
+                    "pisos_por_funcao": [
+                        {
+                            "funcao": "Auxiliar Administrativo",
+                            "piso_novo": 1650.00,
+                            "piso_anterior": 1550.00
+                        },
+                        {
+                            "funcao": "Vendedor",
+                            "piso_novo": 1800.00,
+                            "piso_anterior": 1700.00
+                        },
+                        {
+                            "funcao": "Gerente",
+                            "piso_novo": 3500.00,
+                            "piso_anterior": 3300.00
+                        }
+                    ],
                     "verbas_com_reajuste": [
                         "salario_base",
                         "horas_extras_50",
