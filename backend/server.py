@@ -41,6 +41,10 @@ security = HTTPBearer()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# In-memory job storage for async validation tasks
+# Structure: {job_id: {status, progress, step, result, error, created_at}}
+validation_jobs: Dict[str, Dict[str, Any]] = {}
+
 # ==================== MODELS ====================
 
 # Auth Models
