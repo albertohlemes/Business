@@ -166,6 +166,13 @@ const Clientes = () => {
     setDialogOpen(true);
   };
 
+  const handleConvencaoUpdate = (newConvencao) => {
+    if (editingCliente) {
+      setEditingCliente({ ...editingCliente, convencao_coletiva: newConvencao });
+      fetchClientes();
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('Tem certeza que deseja excluir esta empresa?')) return;
     try {
