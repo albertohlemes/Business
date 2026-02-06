@@ -457,55 +457,99 @@ const ValidacaoFolha = () => {
               const [mb, yb] = b.split('/').map(Number);
               return (yb * 12 + mb) - (ya * 12 + ma);
             })
-            .map(([competencia, vals]) => (
+            .map(([competencia, vals]) => {
+              // Ordenar por data (mais antigo primeiro, mais novo por último)
+              const sortedVals = [...vals].sort((a, b) => 
+                new Date(a.created_at) - new Date(b.created_at)
+              );
+              
+              return (
               <Card key={competencia} className="border-slate-200 overflow-hidden">
                 <CardHeader className="py-3 bg-slate-50 border-b">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
+                      <Checkbox 
+                        checked={sortedVals.every(v => selectedIds.includes(v.id))}
+                        onCheckedChange={() => selectAllInCompetencia(competencia, sortedVals)}
+                      />
                       <Calendar className="text-indigo-600" size={20} />
                       <CardTitle className="text-base font-semibold">Competência {competencia}</CardTitle>
-                      <Badge variant="outline" className="text-xs">{vals.length} validação(ões)</Badge>
+                      <Badge variant="outline" className="text-xs">{sortedVals.length} validação(ões)</Badge>
                     </div>
+                    {selectedIds.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={deleteSelectedBatch}
+                        disabled={deleting}
+                        className="text-rose-600 border-rose-200 hover:bg-rose-50"
+                      >
+                        <Trash2 size={14} className="mr-1" />
+                        Excluir {selectedIds.length}
+                      </Button>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="divide-y divide-slate-100">
-                    {vals.map((v) => (
-                      <div key={v.id} className="hover:bg-slate-50 transition-colors">
-                        <div 
-                          className="p-4 cursor-pointer flex items-center justify-between"
-                          onClick={() => toggleRow(v.id)}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                              {(v.total_divergencias || v.total_erros) > 0 ? (
-                                <AlertTriangle className="text-amber-500" size={20} />
-                              ) : (
-                                <CheckCircle2 className="text-emerald-500" size={20} />
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-medium text-slate-900">{v.cliente_nome || getClienteName(v.cliente_id)}</p>
-                              <p className="text-xs text-slate-500">
-                                {new Date(v.created_at).toLocaleDateString('pt-BR')} às {new Date(v.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                              </p>
+                    {sortedVals.map((v, idx) => (
+                      <div key={v.id} className="hover:bg-slate-50 transition-colors group">
+                        <div className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Checkbox 
+                              checked={selectedIds.includes(v.id)}
+                              onCheckedChange={(e) => toggleSelect(v.id, e)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <div 
+                              className="flex items-center gap-3 flex-1 cursor-pointer"
+                              onClick={() => toggleRow(v.id)}
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                <span className="text-xs font-bold text-indigo-600">#{idx + 1}</span>
+                              </div>
+                              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                                {(v.total_divergencias || v.total_erros) > 0 ? (
+                                  <AlertTriangle className="text-amber-500" size={16} />
+                                ) : (
+                                  <CheckCircle2 className="text-emerald-500" size={16} />
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-medium text-slate-900 text-sm">{v.cliente_nome || getClienteName(v.cliente_id)}</p>
+                                <p className="text-xs text-slate-500">
+                                  {new Date(v.created_at).toLocaleDateString('pt-BR')} às {new Date(v.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
                             {getTipoValidacaoLabel(v.tipo_validacao)}
                             <div className="flex items-center gap-2 text-sm">
                               {(v.total_divergencias || v.total_erros) > 0 && (
-                                <span className="text-rose-600 font-medium">
-                                  {v.total_divergencias || v.total_erros} divergência(s)
+                                <span className="text-rose-600 font-medium text-xs">
+                                  {v.total_divergencias || v.total_erros} div.
                                 </span>
                               )}
                               {(v.total_conferidos > 0) && (
-                                <span className="text-emerald-600">
-                                  {v.total_conferidos} conferido(s)
+                                <span className="text-emerald-600 text-xs">
+                                  {v.total_conferidos} ok
                                 </span>
                               )}
                             </div>
-                            {expandedRows[v.id] ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                            <button
+                              onClick={(e) => deleteValidacao(v.id, e)}
+                              className="p-1.5 rounded hover:bg-rose-100 text-slate-400 hover:text-rose-600 transition-colors"
+                              title="Excluir validação"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                            <button
+                              onClick={() => toggleRow(v.id)}
+                              className="p-1.5 rounded hover:bg-slate-200 text-slate-400"
+                            >
+                              {expandedRows[v.id] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </button>
                           </div>
                         </div>
                         
