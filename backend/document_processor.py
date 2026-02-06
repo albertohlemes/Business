@@ -563,26 +563,35 @@ class DocumentProcessor:
 
 O documento pode ser um email, planilha, print de tela, apontamento, ou qualquer outro formato.
 Procure por informações como:
-- Horas extras (quantidade ou valor)
-- Vale compras / vale transporte / vale refeição / vale alimentação (valores)
-- Faltas / atrasos (quantidade de dias ou horas)
-- Comissões / bonificações
+- Horas extras 50% ou 100% (quantidade de horas)
+- Vale compras / vale transporte / vale refeição / vale alimentação (valores em R$)
+- Faltas / atrasos (quantidade de dias ou horas/minutos)
+- Comissões / bonificações / quebra de caixa
+- Adiantamento salarial
 - Qualquer outro valor associado a um nome de pessoa
+
+REGRAS PARA CONVERSÃO DE HORAS:
+- Formato "XhYY" significa X horas e YY minutos
+- Converta para decimal: 7h44 = 7.73 (44/60 = 0.73), 0h22 = 0.37 (22/60 = 0.37)
+- ATENÇÃO: "0h22" = 22 minutos = 0.37 horas, NÃO é 22 horas!
+- "1h30" = 1.5 horas, "2h15" = 2.25 horas
 
 IMPORTANTE: 
 - Extraia TODOS os colaboradores que encontrar
 - Use o nome EXATO como aparece no documento
-- Se houver valores, extraia o valor numérico
+- Para horas, SEMPRE converta para formato decimal (ex: 7h44 -> 7.73)
+- Se for hora extra 50%, campo = "horas_50"
+- Se for hora extra 100%, campo = "horas_100"
 
 RETORNE APENAS UM JSON no formato:
 {
   "referencias": [
     {
       "nome": "Nome do colaborador EXATAMENTE como aparece",
-      "campo": "tipo do valor (ex: vale_compras, horas_extras, vale_transporte, faltas)",
-      "valor": 123.45,
-      "unidade": "horas" ou "reais" ou "dias",
-      "texto_original": "trecho onde encontrou a informação"
+      "campo": "tipo (horas_50, horas_100, vale_compras, atrasos, faltas, etc)",
+      "valor": 7.73,
+      "unidade": "horas" ou "reais" ou "dias" ou "minutos",
+      "texto_original": "trecho original ex: HE 100% 7h44"
     }
   ]
 }
