@@ -44,7 +44,9 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 
 ### Módulo Cálculos
 - ✅ **Dissídio Coletivo**: Upload de convenção, extração por IA, cálculo de retroativo
+- ✅ **Validação de Piso Salarial**: Verifica se colaboradores estão abaixo do piso da função no cálculo retroativo
 - ✅ **Exportação PDF do Resumo**: Gera PDF em papel timbrado da Business Contabilidade
+- ✅ **Exportação PDF a partir de Cálculos Anteriores**: Botão para exportar PDF da convenção na lista de cálculos
 - ✅ **Médias Salariais**: Importação e geração de arquivo para SCI Único
 
 ### Módulo Controles
