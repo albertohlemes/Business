@@ -98,6 +98,7 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 ## Backlog
 
 ### P0 (Concluídos nesta sessão)
+- ✅ **CORREÇÃO CRÍTICA**: Importação de colaboradores com IA funcionando corretamente
 - ✅ Exportação do resumo da convenção em PDF
 - ✅ Exportação de PDF a partir de cálculos anteriores
 - ✅ Validação de piso salarial no cálculo retroativo
