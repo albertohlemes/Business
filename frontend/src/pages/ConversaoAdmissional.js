@@ -309,9 +309,28 @@ const ConversaoAdmissional = () => {
                     <div>
                       <Label className="text-xs text-slate-500">RG</Label>
                       <Input 
-                        value={editedData.rgNumero || ''} 
-                        onChange={(e) => updateField('rgNumero', e.target.value)}
+                        value={editedData.rg || ''} 
+                        onChange={(e) => updateField('rg', e.target.value)}
                         className="bg-slate-800 border-slate-700 text-white h-9"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs text-slate-500">Órgão Emissor</Label>
+                      <Input 
+                        value={editedData.rgOrgaoEmissor || ''} 
+                        onChange={(e) => updateField('rgOrgaoEmissor', e.target.value)}
+                        className="bg-slate-800 border-slate-700 text-white h-9"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-slate-500">UF RG</Label>
+                      <Input 
+                        value={editedData.rgUf || ''} 
+                        onChange={(e) => updateField('rgUf', e.target.value)}
+                        className="bg-slate-800 border-slate-700 text-white h-9"
+                        maxLength={2}
                       />
                     </div>
                   </div>
@@ -319,17 +338,17 @@ const ConversaoAdmissional = () => {
                     <div>
                       <Label className="text-xs text-slate-500">Data Nascimento</Label>
                       <Input 
-                        value={editedData.dataNascimento || ''} 
-                        onChange={(e) => updateField('dataNascimento', e.target.value)}
+                        value={editedData.nascimentoData || ''} 
+                        onChange={(e) => updateField('nascimentoData', e.target.value)}
                         className="bg-slate-800 border-slate-700 text-white h-9"
                         placeholder="AAAA-MM-DD"
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-slate-500">Sexo (1=M, 2=F)</Label>
+                      <Label className="text-xs text-slate-500">Sexo (M/F)</Label>
                       <Input 
-                        value={editedData.sexoId || ''} 
-                        onChange={(e) => updateField('sexoId', e.target.value)}
+                        value={editedData.sexo || ''} 
+                        onChange={(e) => updateField('sexo', e.target.value)}
                         className="bg-slate-800 border-slate-700 text-white h-9"
                       />
                     </div>
@@ -337,8 +356,16 @@ const ConversaoAdmissional = () => {
                   <div>
                     <Label className="text-xs text-slate-500">Nome da Mãe</Label>
                     <Input 
-                      value={editedData.nomeMae || ''} 
-                      onChange={(e) => updateField('nomeMae', e.target.value)}
+                      value={editedData.maeNome || ''} 
+                      onChange={(e) => updateField('maeNome', e.target.value)}
+                      className="bg-slate-800 border-slate-700 text-white h-9"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500">Nome do Pai</Label>
+                    <Input 
+                      value={editedData.paiNome || ''} 
+                      onChange={(e) => updateField('paiNome', e.target.value)}
                       className="bg-slate-800 border-slate-700 text-white h-9"
                     />
                   </div>
@@ -378,97 +405,58 @@ const ConversaoAdmissional = () => {
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-slate-500">Bairro</Label>
+                      <Label className="text-xs text-slate-500">Complemento</Label>
                       <Input 
-                        value={editedData.enderecoBairro || ''} 
-                        onChange={(e) => updateField('enderecoBairro', e.target.value)}
+                        value={editedData.enderecoComplemento || ''} 
+                        onChange={(e) => updateField('enderecoComplemento', e.target.value)}
                         className="bg-slate-800 border-slate-700 text-white h-9"
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs text-slate-500">Cidade</Label>
-                      <Input 
-                        value={editedData.enderecoMunicipio || ''} 
-                        onChange={(e) => updateField('enderecoMunicipio', e.target.value)}
-                        className="bg-slate-800 border-slate-700 text-white h-9"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-slate-500">UF</Label>
-                      <Input 
-                        value={editedData.enderecoUf || ''} 
-                        onChange={(e) => updateField('enderecoUf', e.target.value)}
-                        className="bg-slate-800 border-slate-700 text-white h-9"
-                        maxLength={2}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Contato e Trabalho */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium text-slate-400 flex items-center gap-2 border-b border-slate-700 pb-2">
-                  <Briefcase size={14} className="text-emerald-500" />
-                  Contrato de Trabalho
-                </h4>
-                <div className="space-y-2">
                   <div>
-                    <Label className="text-xs text-slate-500">Cargo/Função</Label>
+                    <Label className="text-xs text-slate-500">Bairro</Label>
                     <Input 
-                      value={editedData.cargoDescricao || ''} 
-                      onChange={(e) => updateField('cargoDescricao', e.target.value)}
+                      value={editedData.enderecoBairro || ''} 
+                      onChange={(e) => updateField('enderecoBairro', e.target.value)}
                       className="bg-slate-800 border-slate-700 text-white h-9"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500">Código Cidade IBGE</Label>
+                    <Input 
+                      value={editedData.enderecoCidadeId || ''} 
+                      onChange={(e) => updateField('enderecoCidadeId', e.target.value)}
+                      className="bg-slate-800 border-slate-700 text-white h-9 font-mono"
+                      placeholder="Ex: 4214805"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <Label className="text-xs text-slate-500">Salário</Label>
+                      <Label className="text-xs text-slate-500">DDD Telefone</Label>
                       <Input 
-                        value={editedData.salario || ''} 
-                        onChange={(e) => updateField('salario', parseFloat(e.target.value) || null)}
-                        className="bg-slate-800 border-slate-700 text-white h-9 font-mono"
-                        type="number"
-                        step="0.01"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-slate-500">Data Admissão</Label>
-                      <Input 
-                        value={editedData.dataAdmissao || ''} 
-                        onChange={(e) => updateField('dataAdmissao', e.target.value)}
+                        value={editedData.dddTelefone || ''} 
+                        onChange={(e) => updateField('dddTelefone', e.target.value)}
                         className="bg-slate-800 border-slate-700 text-white h-9"
-                        placeholder="AAAA-MM-DD"
+                        maxLength={2}
                       />
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs text-slate-500">PIS/PASEP</Label>
-                      <Input 
-                        value={editedData.pisPasep || ''} 
-                        onChange={(e) => updateField('pisPasep', e.target.value)}
-                        className="bg-slate-800 border-slate-700 text-white h-9 font-mono"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-slate-500">CTPS Nº</Label>
-                      <Input 
-                        value={editedData.ctpsNumero || ''} 
-                        onChange={(e) => updateField('ctpsNumero', e.target.value)}
-                        className="bg-slate-800 border-slate-700 text-white h-9"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label className="text-xs text-slate-500">Telefone</Label>
                       <Input 
                         value={editedData.telefone || ''} 
                         onChange={(e) => updateField('telefone', e.target.value)}
                         className="bg-slate-800 border-slate-700 text-white h-9"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs text-slate-500">DDD Celular</Label>
+                      <Input 
+                        value={editedData.dddCelular || ''} 
+                        onChange={(e) => updateField('dddCelular', e.target.value)}
+                        className="bg-slate-800 border-slate-700 text-white h-9"
+                        maxLength={2}
                       />
                     </div>
                     <div>
@@ -490,6 +478,82 @@ const ConversaoAdmissional = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Contrato de Trabalho */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-slate-400 flex items-center gap-2 border-b border-slate-700 pb-2">
+                  <Briefcase size={14} className="text-emerald-500" />
+                  Contrato de Trabalho
+                </h4>
+                <div className="space-y-2">
+                  <div>
+                    <Label className="text-xs text-slate-500">Data Admissão</Label>
+                    <Input 
+                      value={editedData.admissaoData || ''} 
+                      onChange={(e) => updateField('admissaoData', e.target.value)}
+                      className="bg-slate-800 border-slate-700 text-white h-9"
+                      placeholder="AAAA-MM-DD"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs text-slate-500">Salário Inicial</Label>
+                      <Input 
+                        value={editedData.salarioInicial || ''} 
+                        onChange={(e) => updateField('salarioInicial', parseFloat(e.target.value) || null)}
+                        className="bg-slate-800 border-slate-700 text-white h-9 font-mono"
+                        type="number"
+                        step="0.01"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-slate-500">Remuneração</Label>
+                      <Input 
+                        value={editedData.remuneracao || ''} 
+                        onChange={(e) => updateField('remuneracao', parseFloat(e.target.value) || null)}
+                        className="bg-slate-800 border-slate-700 text-white h-9 font-mono"
+                        type="number"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500">PIS/PASEP</Label>
+                    <Input 
+                      value={editedData.pisNumero || ''} 
+                      onChange={(e) => updateField('pisNumero', e.target.value)}
+                      className="bg-slate-800 border-slate-700 text-white h-9 font-mono"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs text-slate-500">CTPS Número</Label>
+                      <Input 
+                        value={editedData.carteiraTrabalho || ''} 
+                        onChange={(e) => updateField('carteiraTrabalho', e.target.value)}
+                        className="bg-slate-800 border-slate-700 text-white h-9"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-slate-500">CTPS Série</Label>
+                      <Input 
+                        value={editedData.carteiraTrabalhoSerie || ''} 
+                        onChange={(e) => updateField('carteiraTrabalhoSerie', e.target.value)}
+                        className="bg-slate-800 border-slate-700 text-white h-9"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500">CTPS UF</Label>
+                    <Input 
+                      value={editedData.carteiraTrabalhoUf || ''} 
+                      onChange={(e) => updateField('carteiraTrabalhoUf', e.target.value)}
+                      className="bg-slate-800 border-slate-700 text-white h-9"
+                      maxLength={2}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Dados Bancários */}
@@ -500,42 +564,44 @@ const ConversaoAdmissional = () => {
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div>
-                  <Label className="text-xs text-slate-500">Banco (Código)</Label>
+                  <Label className="text-xs text-slate-500">Banco (ID)</Label>
                   <Input 
                     value={editedData.bancoId || ''} 
                     onChange={(e) => updateField('bancoId', e.target.value)}
                     className="bg-slate-800 border-slate-700 text-white h-9 font-mono"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-slate-500">Banco (Nome)</Label>
-                  <Input 
-                    value={editedData.bancoNome || ''} 
-                    onChange={(e) => updateField('bancoNome', e.target.value)}
-                    className="bg-slate-800 border-slate-700 text-white h-9"
+                    placeholder="Ex: 001"
                   />
                 </div>
                 <div>
                   <Label className="text-xs text-slate-500">Agência</Label>
                   <Input 
-                    value={editedData.agencia || ''} 
-                    onChange={(e) => updateField('agencia', e.target.value)}
+                    value={editedData.bancoContaAgencia || ''} 
+                    onChange={(e) => updateField('bancoContaAgencia', e.target.value)}
                     className="bg-slate-800 border-slate-700 text-white h-9 font-mono"
                   />
                 </div>
                 <div>
                   <Label className="text-xs text-slate-500">Conta</Label>
                   <Input 
-                    value={editedData.conta || ''} 
-                    onChange={(e) => updateField('conta', e.target.value)}
+                    value={editedData.bancoConta || ''} 
+                    onChange={(e) => updateField('bancoConta', e.target.value)}
                     className="bg-slate-800 border-slate-700 text-white h-9 font-mono"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-slate-500">Dígito</Label>
+                  <Input 
+                    value={editedData.bancoContaDigito || ''} 
+                    onChange={(e) => updateField('bancoContaDigito', e.target.value)}
+                    className="bg-slate-800 border-slate-700 text-white h-9 font-mono"
+                    maxLength={1}
                   />
                 </div>
                 <div>
                   <Label className="text-xs text-slate-500">Tipo (1=CC, 2=CP)</Label>
                   <Input 
-                    value={editedData.tipoConta || ''} 
-                    onChange={(e) => updateField('tipoConta', e.target.value)}
+                    value={editedData.bancoContaTipoId || ''} 
+                    onChange={(e) => updateField('bancoContaTipoId', e.target.value)}
                     className="bg-slate-800 border-slate-700 text-white h-9"
                   />
                 </div>
