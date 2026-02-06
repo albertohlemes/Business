@@ -4212,13 +4212,19 @@ async def exportar_resumo_convencao_pdf(
             val_ant = ben.get('valor_anterior')
             val_novo = ben.get('valor_novo')
             variacao = ""
-            if val_ant and val_novo:
-                var_pct = ((val_novo - val_ant) / val_ant * 100) if val_ant > 0 else 0
-                variacao = f"+{var_pct:.1f}%"
+            try:
+                if val_ant and val_novo:
+                    val_ant_f = float(val_ant)
+                    val_novo_f = float(val_novo)
+                    if val_ant_f > 0:
+                        var_pct = ((val_novo_f - val_ant_f) / val_ant_f * 100)
+                        variacao = f"+{var_pct:.1f}%"
+            except:
+                pass
             beneficio_data.append([
                 nome,
-                f"R$ {val_ant:,.2f}" if val_ant else "N/A",
-                f"R$ {val_novo:,.2f}" if val_novo else "N/A",
+                formatar_valor(val_ant),
+                formatar_valor(val_novo),
                 variacao
             ])
         
