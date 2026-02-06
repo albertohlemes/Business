@@ -5916,6 +5916,445 @@ async def validar_rescisao(
         return {"success": False, "error": str(e), "divergencias": [{"item": "Erro", "valor_informado": str(e), "valor_esperado": "-"}]}
 
 
+# ==================== VALIDAÇÃO DE RESCISÃO - ETAPAS ====================
+
+@api_router.post("/validacao/rescisao/etapa1")
+async def validar_rescisao_etapa1(
+    cliente_id: str = Form(...),
+    termo_rescisao: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Etapa 1: Analisa o termo de rescisão e extrai dados do colaborador"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+    
+    try:
+        content = await termo_rescisao.read()
+        suffix = Path(termo_rescisao.filename).suffix
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"rescisao-etapa1-{uuid.uuid4()}",
+                system_message="""Você é um especialista em departamento pessoal e rescisões trabalhistas no Brasil.
+                Analise o termo de rescisão (TRCT) e extraia TODOS os dados.
+                
+                Retorne APENAS um JSON válido:
+                {
+                    "colaborador": "Nome completo do colaborador",
+                    "cpf": "CPF do colaborador",
+                    "cargo": "Cargo/função",
+                    "resumo": {
+                        "colaborador": "Nome",
+                        "data_admissao": "DD/MM/AAAA",
+                        "data_demissao": "DD/MM/AAAA",
+                        "data_aviso": "DD/MM/AAAA ou null se não houver",
+                        "tipo_rescisao": "Sem justa causa / Pedido de demissão / Justa causa / Acordo mútuo / Término contrato",
+                        "motivo_rescisao": "Código do motivo se houver",
+                        "salario_base": 0.00,
+                        "dias_trabalhados": 0,
+                        "aviso_previo_tipo": "Indenizado / Trabalhado / Não aplicável",
+                        "aviso_previo_dias": 0
+                    },
+                    "verbas_rescisorias": {
+                        "saldo_salario": 0.00,
+                        "aviso_previo_indenizado": 0.00,
+                        "ferias_vencidas": 0.00,
+                        "ferias_proporcionais": 0.00,
+                        "terco_ferias": 0.00,
+                        "decimo_terceiro_proporcional": 0.00,
+                        "fgts_mes": 0.00,
+                        "multa_fgts_40": 0.00,
+                        "outros_proventos": 0.00
+                    },
+                    "descontos": {
+                        "inss": 0.00,
+                        "irrf": 0.00,
+                        "aviso_previo_desconto": 0.00,
+                        "outros_descontos": 0.00
+                    },
+                    "totais": {
+                        "total_bruto": 0.00,
+                        "total_descontos": 0.00,
+                        "valor_liquido": "0.000,00"
+                    },
+                    "itens_validados": ["Saldo de salário", "Férias", "13º", ...],
+                    "alertas": ["Lista de alertas ou observações importantes"],
+                    "observacoes": "Observações gerais sobre o documento"
+                }
+                
+                IMPORTANTE:
+                - Valores sempre como números decimais (ex: 1500.00)
+                - Datas no formato DD/MM/AAAA
+                - Se não encontrar algum campo, use null ou 0
+                - Identifique corretamente o TIPO de rescisão
+                - Se houver multa de 40% do FGTS, extraia o valor"""
+            ).with_model("gemini", "gemini-2.0-flash")
+            
+            mime_type = termo_rescisao.content_type or "application/pdf"
+            file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
+            
+            response = await chat.send_message(UserMessage(
+                text="Analise este termo de rescisão (TRCT) e extraia TODOS os dados do colaborador, verbas rescisórias, descontos e totais. Identifique o tipo de rescisão.",
+                file_contents=[file_content]
+            ))
+            
+            response_text = response.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            
+            dados = json.loads(response_text.strip())
+            
+            return {
+                "success": True,
+                "etapa": 1,
+                "colaborador": dados.get("colaborador", ""),
+                "cpf": dados.get("cpf", ""),
+                "cargo": dados.get("cargo", ""),
+                "resumo": dados.get("resumo", {}),
+                "verbas_rescisorias": dados.get("verbas_rescisorias", {}),
+                "descontos": dados.get("descontos", {}),
+                "totais": dados.get("totais", {}),
+                "itens_validados": dados.get("itens_validados", []),
+                "alertas": dados.get("alertas", []),
+                "divergencias": [],
+                "observacoes": dados.get("observacoes", "")
+            }
+            
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except:
+                pass
+                
+    except Exception as e:
+        logger.error(f"Erro na etapa 1 (termo): {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/validacao/rescisao/etapa2")
+async def validar_rescisao_etapa2(
+    cliente_id: str = Form(...),
+    termo_data: str = Form(...),
+    apoio: List[UploadFile] = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Etapa 2: Valida apontamentos de apoio contra o termo de rescisão"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+    
+    try:
+        termo_info = json.loads(termo_data)
+        temp_files = []
+        
+        for ap in apoio:
+            content = await ap.read()
+            suffix = Path(ap.filename).suffix
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(content)
+                temp_files.append({"path": tmp.name, "mime": ap.content_type or "application/octet-stream", "name": ap.filename})
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"rescisao-etapa2-{uuid.uuid4()}",
+                system_message=f"""Você é um especialista em departamento pessoal.
+                
+                DADOS DO TERMO DE RESCISÃO (já extraídos):
+                - Colaborador: {termo_info.get('colaborador', 'N/A')}
+                - Data Admissão: {termo_info.get('resumo', {}).get('data_admissao', 'N/A')}
+                - Data Demissão: {termo_info.get('resumo', {}).get('data_demissao', 'N/A')}
+                - Tipo Rescisão: {termo_info.get('resumo', {}).get('tipo_rescisao', 'N/A')}
+                - Salário Base: {termo_info.get('resumo', {}).get('salario_base', 'N/A')}
+                
+                Analise os arquivos de apoio (apontamentos, planilhas) e VALIDE:
+                1. Se todas as variáveis foram lançadas corretamente
+                2. Se os dias trabalhados batem
+                3. Se horas extras, adicional noturno, etc. foram considerados
+                4. Se as médias salariais estão corretas
+                
+                Retorne APENAS um JSON válido:
+                {{
+                    "itens_validados": ["Dias trabalhados", "Horas extras", ...],
+                    "divergencias": [
+                        {{
+                            "item": "Nome da variável/item",
+                            "valor_informado": "Valor no termo",
+                            "valor_esperado": "Valor no apoio",
+                            "observacao": "Explicação"
+                        }}
+                    ],
+                    "alertas": ["Alertas importantes"],
+                    "observacoes": "Observações gerais sobre a comparação"
+                }}"""
+            ).with_model("gemini", "gemini-2.0-flash")
+            
+            file_contents = [FileContentWithMimeType(file_path=tf["path"], mime_type=tf["mime"]) for tf in temp_files]
+            
+            response = await chat.send_message(UserMessage(
+                text=f"Compare estes apontamentos de apoio com os dados do termo de rescisão. Verifique se todas as variáveis foram lançadas corretamente.",
+                file_contents=file_contents
+            ))
+            
+            response_text = response.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            
+            dados = json.loads(response_text.strip())
+            
+            return {
+                "success": True,
+                "etapa": 2,
+                "itens_validados": dados.get("itens_validados", []),
+                "divergencias": dados.get("divergencias", []),
+                "alertas": dados.get("alertas", []),
+                "observacoes": dados.get("observacoes", "")
+            }
+            
+        finally:
+            for tf in temp_files:
+                try:
+                    os.unlink(tf["path"])
+                except:
+                    pass
+                    
+    except Exception as e:
+        logger.error(f"Erro na etapa 2 (apoio): {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/validacao/rescisao/etapa3")
+async def validar_rescisao_etapa3(
+    cliente_id: str = Form(...),
+    termo_data: str = Form(...),
+    convencao: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Etapa 3: Valida se a rescisão atende aos termos da convenção coletiva"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+    
+    try:
+        termo_info = json.loads(termo_data)
+        
+        content = await convencao.read()
+        suffix = Path(convencao.filename).suffix
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"rescisao-etapa3-{uuid.uuid4()}",
+                system_message=f"""Você é um especialista em convenções coletivas e direito trabalhista.
+                
+                DADOS DO TERMO DE RESCISÃO:
+                - Colaborador: {termo_info.get('colaborador', 'N/A')}
+                - Data Admissão: {termo_info.get('resumo', {}).get('data_admissao', 'N/A')}
+                - Data Demissão: {termo_info.get('resumo', {}).get('data_demissao', 'N/A')}
+                - Tipo Rescisão: {termo_info.get('resumo', {}).get('tipo_rescisao', 'N/A')}
+                - Salário Base: {termo_info.get('resumo', {}).get('salario_base', 'N/A')}
+                - Verbas: {json.dumps(termo_info.get('verbas_rescisorias', {}), ensure_ascii=False)}
+                
+                Analise a CONVENÇÃO COLETIVA e valide:
+                1. Se existe estabilidade provisória que impediria a demissão
+                2. Se o aviso prévio adicional por tempo de serviço foi aplicado
+                3. Se existe multa adicional prevista em convenção
+                4. Se existe piso salarial que deve ser considerado
+                5. Se existem benefícios que devem ser proporcionalizados
+                6. Se a rescisão foi feita em período de garantia de emprego
+                
+                Retorne APENAS um JSON válido:
+                {{
+                    "itens_validados": ["Aviso prévio adicional", "Estabilidade", ...],
+                    "divergencias": [
+                        {{
+                            "item": "Nome do item previsto na CCT",
+                            "valor_informado": "Como está no termo",
+                            "valor_esperado": "Como deveria ser pela CCT",
+                            "observacao": "Cláusula e explicação"
+                        }}
+                    ],
+                    "alertas": ["Alertas sobre a convenção"],
+                    "clausulas_aplicaveis": ["Lista de cláusulas relevantes"],
+                    "observacoes": "Observações gerais"
+                }}"""
+            ).with_model("gemini", "gemini-2.0-flash")
+            
+            mime_type = convencao.content_type or "application/pdf"
+            file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
+            
+            response = await chat.send_message(UserMessage(
+                text=f"Analise esta convenção coletiva e verifique se a rescisão atende a todos os termos e direitos previstos. Identifique possíveis divergências ou direitos não pagos.",
+                file_contents=[file_content]
+            ))
+            
+            response_text = response.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            
+            dados = json.loads(response_text.strip())
+            
+            return {
+                "success": True,
+                "etapa": 3,
+                "itens_validados": dados.get("itens_validados", []),
+                "divergencias": dados.get("divergencias", []),
+                "alertas": dados.get("alertas", []),
+                "clausulas_aplicaveis": dados.get("clausulas_aplicaveis", []),
+                "observacoes": dados.get("observacoes", "")
+            }
+            
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except:
+                pass
+                    
+    except Exception as e:
+        logger.error(f"Erro na etapa 3 (convenção): {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/validacao/rescisao/etapa4")
+async def validar_rescisao_etapa4(
+    cliente_id: str = Form(...),
+    termo_data: str = Form(...),
+    extrato_fgts: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Etapa 4: Valida o extrato FGTS e a multa rescisória"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+    
+    try:
+        termo_info = json.loads(termo_data)
+        
+        content = await extrato_fgts.read()
+        suffix = Path(extrato_fgts.filename).suffix
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        
+        try:
+            api_key = os.environ.get('EMERGENT_LLM_KEY')
+            
+            # Determinar tipo de rescisão e percentual de multa
+            tipo_rescisao = termo_info.get('resumo', {}).get('tipo_rescisao', '').lower()
+            percentual_multa = "40%"
+            if "acordo" in tipo_rescisao:
+                percentual_multa = "20%"
+            elif "justa causa" in tipo_rescisao or "pedido" in tipo_rescisao:
+                percentual_multa = "0% (não aplicável)"
+            
+            multa_no_termo = termo_info.get('verbas_rescisorias', {}).get('multa_fgts_40', 0)
+            
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"rescisao-etapa4-{uuid.uuid4()}",
+                system_message=f"""Você é um especialista em FGTS e cálculos rescisórios.
+                
+                DADOS DO TERMO DE RESCISÃO:
+                - Colaborador: {termo_info.get('colaborador', 'N/A')}
+                - Tipo Rescisão: {termo_info.get('resumo', {}).get('tipo_rescisao', 'N/A')}
+                - Multa FGTS no termo: R$ {multa_no_termo}
+                - Percentual esperado de multa: {percentual_multa}
+                
+                Analise o EXTRATO DE FGTS ou relatório de fins rescisórios e valide:
+                1. Se o saldo de FGTS está correto
+                2. Se a multa ({percentual_multa}) foi calculada corretamente
+                3. Se os depósitos mensais estão regulares
+                4. Se há depósitos faltantes
+                5. Se o valor da multa no termo bate com o calculado
+                
+                CÁLCULO DA MULTA:
+                - Sem justa causa: 40% sobre saldo FGTS
+                - Acordo mútuo (reforma trabalhista): 20% sobre saldo FGTS
+                - Justa causa ou pedido de demissão: não há multa
+                
+                Retorne APENAS um JSON válido:
+                {{
+                    "saldo_fgts_extrato": 0.00,
+                    "saldo_fgts_calculado": 0.00,
+                    "multa_esperada": 0.00,
+                    "multa_no_termo": {multa_no_termo},
+                    "diferenca_multa": 0.00,
+                    "itens_validados": ["Saldo FGTS", "Multa 40%", ...],
+                    "divergencias": [
+                        {{
+                            "item": "Multa FGTS",
+                            "valor_informado": "R$ X no termo",
+                            "valor_esperado": "R$ Y calculado",
+                            "observacao": "Diferença de R$ Z"
+                        }}
+                    ],
+                    "alertas": ["Alertas sobre o FGTS"],
+                    "depositos_faltantes": ["Lista de competências sem depósito, se houver"],
+                    "observacoes": "Observações gerais"
+                }}"""
+            ).with_model("gemini", "gemini-2.0-flash")
+            
+            mime_type = extrato_fgts.content_type or "application/pdf"
+            file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime_type)
+            
+            response = await chat.send_message(UserMessage(
+                text=f"Analise este extrato de FGTS ou relatório de fins rescisórios. Calcule se a multa de {percentual_multa} está correta e identifique possíveis divergências.",
+                file_contents=[file_content]
+            ))
+            
+            response_text = response.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]
+            if response_text.startswith("```"):
+                response_text = response_text[3:]
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            
+            dados = json.loads(response_text.strip())
+            
+            return {
+                "success": True,
+                "etapa": 4,
+                "resumo": {
+                    "saldo_fgts_extrato": dados.get("saldo_fgts_extrato", 0),
+                    "saldo_fgts_calculado": dados.get("saldo_fgts_calculado", 0),
+                    "multa_esperada": dados.get("multa_esperada", 0),
+                    "multa_no_termo": dados.get("multa_no_termo", multa_no_termo),
+                    "diferenca_multa": dados.get("diferenca_multa", 0)
+                },
+                "itens_validados": dados.get("itens_validados", []),
+                "divergencias": dados.get("divergencias", []),
+                "alertas": dados.get("alertas", []),
+                "depositos_faltantes": dados.get("depositos_faltantes", []),
+                "observacoes": dados.get("observacoes", "")
+            }
+            
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except:
+                pass
+                    
+    except Exception as e:
+        logger.error(f"Erro na etapa 4 (FGTS): {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ==================== DASHBOARD ====================
 
 @api_router.get("/dashboard", response_model=DashboardStats)
