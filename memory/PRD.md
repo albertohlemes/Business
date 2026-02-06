@@ -1,4 +1,11 @@
-# Portal DP - Departamento Pessoal
+# Portal DP - Documento de Requisitos do Produto
+
+**Última atualização**: 2026-02-06
+
+## Changelog Recente
+- **2026-02-06**: Melhorado visual da memória de cálculo do Dissídio com totalizadores em cada agrupamento
+- **2026-02-06**: Adicionado "Era/Ficou" para cada verba, exclusão de impostos do retroativo
+- **2026-02-06**: UI redesenhada com gradientes, cards modernos e badges coloridos
 
 ## Problema Original
 Portal para o Departamento Pessoal de escritório de contabilidade com foco em automatização de processos e conferências automatizadas.
