@@ -3,6 +3,11 @@
 **Última atualização**: 2026-02-06
 
 ## Changelog Recente
+- **2026-02-06**: ✅ NOVO: **Gestão Centralizada de Convenções Coletivas (CCT)** - Upload único de CCT no cadastro da empresa, análise automática por IA, e consumo pelos módulos de Dissídio e Rescisão
+- **2026-02-06**: ✅ NOVO: Widget no Dashboard com alertas de CCTs vencidas ou próximas do vencimento
+- **2026-02-06**: ✅ REFATORADO: Validação de Rescisão etapa 3 agora busca CCT do cadastro do cliente automaticamente
+- **2026-02-06**: ✅ REFATORADO: Cálculo de Dissídio Retroativo agora pode usar CCT cadastrada no cliente
+- **2026-02-06**: ✅ Indicador visual de status da CCT (OK/A Vencer/Vencida) nos cards de empresas
 - **2026-02-06**: ✅ NOVO: Validação de Rescisão redesenhada com fluxo guiado em 4 etapas (Termo → Apoio → Convenção → FGTS)
 - **2026-02-06**: ✅ CORREÇÃO CRÍTICA: Importação de colaboradores agora extrai dados corretamente usando IA (corrigido problema onde arquivos TXT não eram processados pela IA)
 - **2026-02-06**: ✅ Importação de colaboradores extrai todos os campos: nome, cpf, sexo, estado_civil, endereco, cidade, uf, cep, rg, pis, ctps, nome_mae, nome_pai, dados bancários, dependentes
@@ -39,6 +44,12 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - ✅ Seletor de Empresa + Competência no header
 - ✅ Dashboard com estatísticas e gráfico de evolução
 - ✅ Importação de empresas em lote (CSV/XLSX)
+
+### Gestão de Convenções Coletivas (NOVO - 06/02/2026)
+- ✅ **Upload e Análise de CCT**: Upload único no cadastro da empresa com análise automática por IA
+- ✅ **Extração Completa**: Sindicato, vigência, pisos salariais, benefícios, jornada, estabilidades, rescisão
+- ✅ **Alertas de Vencimento**: Widget no Dashboard com CCTs vencidas ou próximas do vencimento
+- ✅ **Integração Automática**: Módulos de Dissídio e Rescisão consomem a CCT cadastrada automaticamente
 
 ### Módulo Conversões (NOVO - 06/02/2026)
 - ✅ **Conversão de Apontamentos**: Converte arquivos do cliente (imagens, emails, planilhas) para layout SCI Único
