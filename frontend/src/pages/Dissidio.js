@@ -877,15 +877,15 @@ const Dissidio = () => {
                             <span className="font-medium text-slate-800">{colab.nome}</span>
                           </div>
                         </td>
-                        <td className="p-4 text-slate-500 text-sm">{colab.cpf || '-'}</td>
-                        <td className="p-4 text-right font-mono text-sm text-slate-600">
+                        <td className="p-4 text-slate-400 text-sm">{colab.cpf || '-'}</td>
+                        <td className="p-4 text-right font-mono text-sm text-slate-400">
                           R$ {(colab.total_valor_anterior || 0)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </td>
-                        <td className="p-4 text-right font-mono text-sm text-red-500 font-medium">
+                        <td className="p-4 text-right font-mono text-sm text-red-400 font-medium">
                           R$ {(colab.total_valor_novo || 0)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </td>
                         <td className="p-4 text-right">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-mono font-bold text-sm">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-bold text-sm">
                             R$ {colab.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </span>
                         </td>
@@ -893,14 +893,14 @@ const Dissidio = () => {
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-gradient-to-r from-slate-100 to-slate-50 font-bold">
+                    <tr className="bg-slate-800 font-bold">
                       <td className="p-4" colSpan={2}>
-                        <span className="text-slate-700">TOTAL GERAL</span>
+                        <span className="text-white">TOTAL GERAL</span>
                       </td>
-                      <td className="p-4 text-right font-mono text-slate-600">
+                      <td className="p-4 text-right font-mono text-slate-300">
                         R$ {calculoResult.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_anterior || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="p-4 text-right font-mono text-red-600">
+                      <td className="p-4 text-right font-mono text-red-400">
                         R$ {calculoResult.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_novo || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="p-4 text-right">
@@ -916,11 +916,11 @@ const Dissidio = () => {
           </Card>
 
           {/* Memória de Cálculo - Por Mês */}
-          <Card className="shadow-lg border-0 bg-slate-900">
-            <CardHeader className="border-b bg-slate-800/50/50">
-              <CardTitle className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Calendar className="text-blue-600" size={20} />
+          <Card className="shadow-lg border-slate-800 bg-slate-900">
+            <CardHeader className="border-b border-slate-800">
+              <CardTitle className="flex items-center gap-3 text-white">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <Calendar className="text-blue-400" size={20} />
                 </div>
                 <div>
                   <span>Memória de Cálculo por Mês</span>
