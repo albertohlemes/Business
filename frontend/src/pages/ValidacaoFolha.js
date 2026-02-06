@@ -194,15 +194,21 @@ const ValidacaoFolha = () => {
     });
 
     setUploading(true);
+    setUploadProgress(0);
     try {
       const response = await axios.post(`${API_URL}/api/validacoes/validar-completa`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 180000 // 3 minutes for complex analysis
+        timeout: 300000, // 5 minutes for complex analysis with AI
+        onUploadProgress: (progressEvent) => {
+          const progress = Math.round((progressEvent.loaded * 50) / progressEvent.total);
+          setUploadProgress(progress); // Upload vai até 50%
+        }
       });
+      setUploadProgress(100);
       setAnalysisResult(response.data);
       setDialogOpen(false);
       setResultDialogOpen(true);
-      toast.success('Validação concluída!');
+      toast.success(`Validação concluída! ${response.data.funcionarios_analisados || 0} colaborador(es) analisado(s)`);
       fetchData();
     } catch (error) {
       toast.error(getErrorMessage(error, 'Erro ao validar folha'));
