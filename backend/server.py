@@ -1479,19 +1479,42 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             cst_icms_num = cst_icms[-2:] if len(cst_icms) >= 2 else cst_icms
             tem_icms = cst_icms_num in ['00', '10', '20', '70', '90']
             
-            # SEMPRE usar valores do XML
-            v_icms = v_icms_xml
-            bc_icms = v_bc_icms_xml
+            # CFOPs de despesas (uso/consumo, ativo imobilizado) e ST que devem ter ICMS zerado
+            # quando o flag excluir_creditos_despesa_st estiver ativo
+            CFOPS_ZERAR_ICMS = [
+                # Uso e Consumo
+                '1556', '2556', '1557', '2557',
+                # Ativo Imobilizado
+                '1551', '2551', '1552', '2552', '1553', '2553',
+                '1406', '2406', '1407', '2407',
+                # Substituição Tributária
+                '1401', '2401', '3401',  # Compra para industrialização com ST
+                '1403', '2403', '3403',  # Compra para comercialização com ST
+                '1408', '2408',  # Transferência para industrialização com ST
+                '1409', '2409', '3409',  # Transferência para comercialização com ST
+                '1410', '2410',  # Devolução de venda com ST
+                '1411', '2411',  # Devolução com ST
+            ]
             
-            # Usar alíquota do XML se disponível
-            # Se não tiver p_icms no XML, calcular a partir de v_icms e v_bc_icms
-            if p_icms_xml > 0:
-                aliq_icms = p_icms_xml
-            elif v_bc_icms_xml > 0 and v_icms_xml > 0:
-                # Calcular e arredondar para inteiro (12, 18, 7, 4, etc)
-                aliq_icms = round((v_icms_xml / v_bc_icms_xml) * 100)
-            else:
+            # Se flag ativo e CFOP é de despesa/ST, zerar ICMS no SPED
+            if excluir_creditos_despesa_st and cfop in CFOPS_ZERAR_ICMS:
+                v_icms = 0
+                bc_icms = 0
                 aliq_icms = 0
+            else:
+                # USAR valores do XML normalmente
+                v_icms = v_icms_xml
+                bc_icms = v_bc_icms_xml
+                
+                # Usar alíquota do XML se disponível
+                # Se não tiver p_icms no XML, calcular a partir de v_icms e v_bc_icms
+                if p_icms_xml > 0:
+                    aliq_icms = p_icms_xml
+                elif v_bc_icms_xml > 0 and v_icms_xml > 0:
+                    # Calcular e arredondar para inteiro (12, 18, 7, 4, etc)
+                    aliq_icms = round((v_icms_xml / v_bc_icms_xml) * 100)
+                else:
+                    aliq_icms = 0
             
             # ==== CÁLCULO CORRETO DE PIS/COFINS ====
             # Determinar CST correto de PIS/COFINS baseado na operação
