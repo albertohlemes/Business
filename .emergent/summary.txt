@@ -1,79 +1,65 @@
 <analysis>**original_problem_statement:**
-O usuário, proprietário da Business Contabilidade, solicitou a criação de um portal de departamento pessoal abrangente.
-
-**Requisitos Iniciais:**
-1.  **Validação de Folha de Pagamento**: Processar arquivos de folha, comparando-os com holerites anteriores e arquivos de apoio para detectar divergências.
-2.  **Cálculo de Dissídio Coletivo**: Um fluxo automatizado por IA para analisar convenções coletivas, calcular ajustes retroativos e apresentar uma memória de cálculo.
-
-**Requisitos Adicionais (da sessão atual e anteriores):**
-1.  **Reestruturação e UI/UX**: Reorganizar o menu, aplicar um tema escuro e redesenhar o Dashboard.
-2.  **Novos Módulos**: Implementar Conversão de Apontamentos, Conversão Admissional e Validação de Rescisão.
-3.  **Melhorias Funcionais**:
-    *   **Dissídio**: Permitir exportar resumo da convenção a partir da lista de cálculos; validar se o salário não fica abaixo do piso da função; calcular reajuste proporcional à data de admissão.
-    *   **Validação de Folha**: Exibir divergências (vs. arquivo de apoio e vs. folha anterior) em colunas separadas.
-    *   **Conversão Admissional**: Gerar um arquivo de exportação em formato JSON específico para o sistema do usuário.
-    *   **Conversão de Apontamentos**: Implementar uma nova dinâmica onde o usuário envia os apontamentos (imagem, etc.) e uma planilha modelo do sistema SCI, e a IA preenche o modelo.
-    *   **Importação de Colaboradores**: Melhorar a extração de dados de documentos para ser mais completa e precisa.
+O usuário, proprietário da Business Contabilidade, solicitou a criação de um portal de departamento pessoal. Inicialmente, os requisitos eram para validação de folha de pagamento e cálculo de dissídio coletivo. O escopo foi expandido para incluir uma reestruturação de UI/UX, novos módulos (Conversão de Apontamentos, Conversão Admissional, Validação de Rescisão) e melhorias funcionais significativas em todos os módulos, geralmente envolvendo análises mais complexas por IA. A solicitação mais recente é centralizar a gestão de Convenções Coletivas de Trabalho (CCT) no cadastro da empresa, em vez de fazer upload a cada uso.
 
 **User's preferred language**: Portuguese. The next agent MUST respond in Portuguese.
 
 **what currently exists?**
-- Uma aplicação full-stack (FastAPI + React) com autenticação JWT, tema escuro e uma estrutura de menu funcional.
-- O módulo **Dissídio Coletivo** está avançado, incluindo cálculo retroativo proporcional, análise de piso salarial, exportação de resumos em PDF e Excel, e exclusão de cálculos.
-- O módulo **Validação de Folha** foi aprimorado para exibir divergências em colunas separadas.
-- O módulo **Conversão Admissional** foi implementado, extraindo dados de documentos via IA e gerando um arquivo JSON no formato exato solicitado pelo usuário.
-- O módulo **Conversão de Apontamentos** foi redesenhado para seguir a nova dinâmica de dois uploads (apontamentos + template SCI).
-- A importação de colaboradores via documento existe, mas a qualidade da extração de dados é baixa e imprecisa.
+- Uma aplicação full-stack (FastAPI + React) com autenticação JWT e vários módulos funcionais.
+- O módulo **Importação de Colaboradores** teve um bug crítico de extração de dados corrigido e validado com sucesso.
+- O módulo **Validação de Rescisão** foi reestruturado para um fluxo de 4 etapas (wizard), embora a lógica de análise da IA ainda estivesse sendo refinada.
+- O módulo **Conversão de Apontamentos** passou por múltiplas iterações para melhorar a extração de dados e a preservação do formato da planilha modelo.
+- O desenvolvimento de uma nova funcionalidade para **gestão centralizada de Convenções Coletivas (CCT)** foi iniciado, com a criação dos endpoints de backend e a estrutura inicial de um novo componente de frontend.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava tentando corrigir a baixa qualidade da extração de dados na funcionalidade de **importação de colaboradores**. O usuário relatou que poucos campos estavam sendo preenchidos (sexo, endereço, estado civil ausentes) e que dados incorretos eram extraídos (ex: nome do funcionário vinha com o nome da empresa). O agente identificou que o sistema usava um OCR local de baixa precisão e tentou forçar o uso da IA em todas as importações, além de aprimorar o prompt para ser mais robusto.
+-   **Last item agent was working**: Implementação da nova funcionalidade de **Gestão Centralizada de Convenções Coletivas**. A solicitação do usuário foi para parar de subir a convenção em cada ferramenta (Dissídio, Rescisão) e, em vez disso, fazer o upload uma única vez no cadastro da empresa. A partir desse upload, a IA deve extrair informações detalhadas (sindicato, vigência, pisos, benefícios) e as outras ferramentas devem consumir essa informação automaticamente. Além disso, o dashboard deve exibir alertas para convenções próximas do vencimento.
+    - O agente criou os modelos Pydantic e os endpoints no backend ( para upload e análise;  para o dashboard).
+    - O agente criou um arquivo para um novo componente de frontend () mas não concluiu sua implementação ou integração.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: N (O agente implementou a correção no backend, mas não testou se a qualidade da extração realmente melhorou).
--   **Which testing method agent to use?**: backend testing agent. O agente precisa simular o upload de um documento de colaborador e verificar se a resposta da API  agora contém todos os campos esperados com dados corretos.
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: both. É necessário construir a UI para upload/visualização da convenção no cadastro do cliente, o widget do dashboard, e então testar o fluxo de ponta a ponta.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Importação de colaboradores está extraindo dados incorretos e incompletos (P0)**
-
-**Issues Detail**:
--   **Issue 1: Importação de colaboradores está extraindo dados incorretos e incompletos**
-    -   **Attempted fixes**:
-        -   O agente modificou o endpoint  em  para remover a lógica que priorizava um OCR local. Agora, a análise via IA é chamada em todas as execuções.
-        -   O prompt da IA foi significativamente melhorado para ser mais específico, instruindo-o a ignorar dados da empresa, focar nos dados do funcionário e extrair um conjunto expandido de campos (sexo, estado civil, endereço completo, etc.).
-    -   **Next debug checklist**:
-        1.  **Testar a correção**: Realizar uma chamada ao endpoint  enviando um arquivo de exemplo (um PDF ou imagem de uma ficha de funcionário).
-        2.  **Analisar a resposta**: Verificar se a resposta JSON agora contém os campos anteriormente ausentes (sexo, estado civil, endereço, etc.) e se os valores estão corretos, sem misturar com dados da empresa.
-        3.  **Refinar o prompt (se necessário)**: Se a extração ainda falhar, refinar ainda mais o prompt em  para guiar melhor a IA, talvez adicionando exemplos one-shot ou few-shot dentro do próprio prompt.
-    -   **Why fix this issue and what will be achieved with the fix?**: Esta funcionalidade é crucial para popular o sistema. Se os dados dos colaboradores forem importados de forma errada, todas as outras funcionalidades (folha de pagamento, dissídio) serão comprometidas. Corrigir isso desbloqueia o uso prático do portal.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: backend
-    -   **Blocked on other issue**: Não.
+Nenhum. Os bugs relatados foram abordados, e o trabalho atual é em uma nova feature.
 
 **In progress Task List**:
-Nenhum.
+-   **Task 1: Concluir implementação da Gestão Centralizada de Convenções Coletivas (P0)**
+
+**Task Detail**:
+-   **Task 1: Concluir implementação da Gestão Centralizada de Convenções Coletivas**
+    -   **Where to resume**:
+        1.  **Frontend**:
+            -   Implementar o componente  para permitir o upload da CCT e exibir os dados extraídos pela IA em cards expansíveis.
+            -   Integrar o componente  na página de Clientes (), provavelmente dentro do modal de edição de cliente.
+            -   Criar um novo widget no Dashboard () que consome o endpoint  e exibe alertas visuais para CCTs vencidas ou próximas do vencimento.
+        2.  **Backend**:
+            -   Refatorar os endpoints de **Dissídio** e **Validação de Rescisão** para que eles busquem a convenção analisada do cadastro do cliente no banco de dados, em vez de esperar um upload de arquivo.
+    -   **What will be achieved with this?**: Centralizar a gestão de CCTs, simplificar o fluxo de trabalho do usuário, reduzir a chance de erros e fornecer alertas proativos de vencimento.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on something**: Não.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    -   **P0: Implementar Validação de Rescisão**: Desenvolver a UI e a lógica de backend (com IA) para validar cálculos de rescisão.
+    -   **P0: Finalizar e Validar a Validação de Rescisão**: O fluxo em etapas está criado, mas a precisão da análise da IA (etapa 2 e 3) precisa de validação e possíveis refinamentos após as últimas alterações de prompt.
     -   **P1: Salvar template SCI**: Na Conversão de Apontamentos, permitir que o usuário salve um template modelo para reutilizá-lo em meses futuros.
-    -   **P2: Autocomplete de Cidade/IBGE**: Na Conversão Admissional, criar um autocomplete que busca o código IBGE pelo nome da cidade para facilitar o preenchimento.
+    -   **P2: Autocomplete de Cidade/IBGE**: Na Conversão Admissional, criar um autocomplete que busca o código IBGE pelo nome da cidade.
 
 -   **Future Tasks**:
-    -   **P1: Refatorar **: Débito técnico crítico. O arquivo monolítico precisa ser dividido em múltiplos routers para manutenibilidade.
+    -   **P1: Refatorar **: Débito técnico crítico. O arquivo monolítico com mais de 6800 linhas precisa ser dividido em múltiplos routers para manutenibilidade.
     -   **P1: Implementar Validação de Informes de Rendimento**.
     -   **P2: Exportação de relatórios do dashboard**.
 
 **Completed work in this session**
--   **Módulo Dissídio - Validação de Piso e Exportação de PDF**: Implementado endpoint e botão no frontend para exportar o PDF da convenção a partir da lista de cálculos anteriores. Adicionada validação no backend para alertar se um colaborador ficar com salário abaixo do piso.
--   **Módulo Dissídio - Cálculo Proporcional**: Melhorada a análise da IA para extrair a tabela de proporcionalidade por data de admissão. O backend agora aplica esse percentual no cálculo retroativo. A UI foi atualizada para exibir a vigência e a tabela de proporcionalidade.
--   **Módulo Validação de Folha - UI Melhorada**: A tabela de resultados agora mostra as divergências em duas colunas distintas (Análise com Apoio e Análise com Folha Anterior).
--   **Módulo Conversão Admissional - Exportação JSON**: O endpoint de conversão agora gera um arquivo JSON no formato exato fornecido pelo usuário, pronto para importação em seu sistema.
--   **Módulo Conversão de Apontamentos - Nova Dinâmica**: A página foi completamente redesenhada para aceitar dois arquivos (apontamentos do cliente + planilha modelo SCI), com um novo endpoint no backend para processar essa lógica.
--   **Módulo Importação de Colaboradores - Tentativa de Correção**: O backend foi modificado para sempre usar a IA na extração de dados de documentos, e o prompt da IA foi aprimorado para buscar mais campos com maior precisão.
+-   **Bug Fix: Importação de Colaboradores (DONE)**: Corrigido um bug crítico onde a IA não extraía dados de arquivos  e  corretamente. A funcionalidade foi consertada e validada com o .
+-   **Feature: UI da Validação de Rescisão (DONE)**: Implementada a interface de 4 etapas (wizard) solicitada pelo usuário.
+-   **Bug Fix: Erros de Mime Type com Excel (DONE)**: Corrigidos os endpoints de Conversão de Apontamentos e Validação de Rescisão que falhavam ao processar arquivos  com a IA, implementando a leitura do conteúdo com .
+-   **Feature Improvement: Conversão de Apontamentos SCI (DONE)**: Múltiplas melhorias para preservar a estrutura da planilha modelo, melhorar o mapeamento de colunas pela IA e aprimorar a UI para exibir todos os resultados.
+-   **Feature Improvement: Análise da Validação de Rescisão (IN PROGRESS)**: Várias iterações para melhorar a precisão da IA na comparação entre o termo de rescisão e os documentos de apoio, incluindo extração mais detalhada das rubricas.
+-   **Bug Fix: Erro de Sintaxe no Backend (DONE)**: Resolvido um erro que impedia o login, causado por caracteres inválidos e código duplicado no arquivo .
 
 **Earlier issues found/mentioned but not fixed**
--   **Refatoração do **: Débito técnico crítico. O arquivo monolítico com mais de 5000 linhas dificulta a manutenção e a implementação de novas funcionalidades. Foi consistentemente adiado em favor de novas funcionalidades.
+-   **Refatoração do **: Débito técnico crítico. O arquivo monolítico com mais de 6800 linhas continua crescendo, dificultando a manutenção e aumentando o risco de introdução de novos bugs. Foi consistentemente adiado.
 
 **Known issue recurrence from previous fork**
 -   Nenhum.
@@ -82,86 +68,81 @@ Nenhum.
 
 
 **Key Technical Concepts**
--   **Backend**: FastAPI, Motor (MongoDB),  para IA,  para PDFs,  para Excel.
--   **Frontend**: React, Axios, Shadcn UI, TailwindCSS.
--   **IA**: Uso intensivo de um LLM via  para extração de dados de PDFs, imagens e análise de texto para vários módulos.
+-   **Backend**: FastAPI, Motor (MongoDB),  para IA (Gemini).
+-   **Frontend**: React, Axios, Shadcn UI, TailwindCSS, .
+-   **IA**: Uso intensivo de LLM para extração de dados de documentos (PDF, imagens, texto) e análise estruturada para os principais módulos.
 
 **key DB schema**
--   : Armazena dados das empresas clientes.
--   : Armazena dados dos colaboradores, incluindo PIS, CPF, etc.
--   : Armazena os resultados dos cálculos de dissídio.
--   : Armazena os usuários do portal.
+-   **clientes**: Adicionados os campos  (str),  (dict), e  (date).
 
 **All files of reference**
--   : Arquivo central para toda a lógica de backend. A última alteração foi no endpoint  (linhas ~800-950).
--   : Página do frontend para visualizar e gerenciar colaboradores.
--   : Página do frontend para a nova dinâmica de conversão.
--   : Página do frontend que exibe os dados extraídos para admissão.
--   : Página do frontend que exibe os resultados da validação de folha.
--   : Documento de requisitos do produto, atualizado ao longo da sessão.
+-   : Arquivo central do backend, massivamente modificado.
+-   : Página a ser modificada para incluir a gestão de CCT.
+-   : Página a ser modificada para incluir o widget de vencimentos.
+-   : Novo arquivo, precisa ser implementado.
+-   : Modificado para a UI wizard e para melhorias na análise.
+-   : Modificado para melhorias na análise e na UI.
 
 **Areas that need refactoring**:
--   **CRÍTICO**: . A prioridade de refatoração é máxima. O arquivo é insustentável e propenso a erros.
+-   **CRÍTICO**: . A refatoração é urgente. O tamanho do arquivo está tornando o desenvolvimento lento e propenso a erros de sintaxe e de lógica.
 
 **key api endpoints**
--   : **(EM FOCO)** Endpoint para importar colaboradores de um documento. Foi modificado para forçar o uso da IA.
--   : Novo endpoint para a conversão de apontamentos usando um template.
--   : Endpoint que gera o JSON para importação no sistema do cliente.
--   : Endpoint que calcula o dissídio, agora com lógica de proporcionalidade.
--   : Novo endpoint para exportar o resumo da convenção de um cálculo salvo.
+-   **NEW**: 
+-   **NEW**: 
+-   **MODIFIED/FIXED**: , , , .
 
 **Critical Info for New Agent**
--   A prioridade máxima e imediata é **resolver a falha na importação de colaboradores**. O usuário está bloqueado por este problema. Você deve testar a correção implementada pelo agente anterior e, se não funcionar, depurar e refinar o prompt da IA até que a extração de dados seja precisa e completa.
--   Após resolver a importação, comunique o sucesso ao usuário.
--   Antes de iniciar novas funcionalidades, você deve propor fortemente a **refatoração do **. Explique ao usuário que, embora seja um trabalho técnico, ele é essencial para a estabilidade futura e para acelerar o desenvolvimento de novos recursos.
+-   Sua prioridade imediata é **continuar e finalizar a implementação da Gestão Centralizada de Convenções Coletivas**. Comece pelo frontend, implementando o componente , integrando-o na página de Clientes e criando o widget do Dashboard.
+-   Após a conclusão da UI, refatore os módulos de Dissídio e Rescisão no backend para que utilizem a CCT centralizada.
+-   A refatoração do  é extremamente necessária e deve ser proposta ao usuário como a próxima grande tarefa assim que a funcionalidade atual for entregue, justificando o ganho de estabilidade e velocidade de desenvolvimento futuro.
 
 **documents and test reports created in this job**
--   
--   
+-    (atualizado)
 -   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **user**: Reclamou que a importação de colaboradores ainda está ruim, extraindo poucos campos e com informações erradas. (Status: **IN PROGRESS / LAST WORKING ITEM**)
-2.  **user**: Pediu para melhorar a extração de dados na importação de colaboradores. (Status: **IN PROGRESS**)
-3.  **user**: Sugeriu uma melhoria para Conversão de Apontamentos. (Status: **RESOLVED**)
-4.  **user**: Solicitou uma nova dinâmica para a Conversão de Apontamentos, com dois uploads. (Status: **RESOLVED**)
-5.  **user**: Forneceu o arquivo JSON exato para a exportação da Conversão Admissional. (Status: **RESOLVED**)
-6.  **user**: Pediu que o módulo de Conversão Admissional gerasse um arquivo para importação em seu sistema. (Status: **RESOLVED**)
-7.  **user**: Pediu uma melhoria na Validação de Folha para separar as análises em colunas. (Status: **RESOLVED**)
-8.  **user**: Pediu melhorias no Dissídio (vigência e cálculo proporcional). (Status: **RESOLVED**)
-9.  **user**: Aprovou o plano inicial. (Status: **RESOLVED**)
-10. **agent**: Apresentou plano inicial. (Status: **RESOLVED**)
+1.  **user**: Pediu a nova feature de gestão centralizada de CCTs. (Status: **IN PROGRESS**)
+2.  **user**: Relatou que a análise da rescisão (etapa 2) ainda estava falhando em comparar corretamente com os dados do termo. (Status: **ADDRESSED, PENDING VALIDATION**)
+3.  **user**: Relatou um erro de login. (Status: **RESOLVED**)
+4.  **user**: Detalhou melhorias para a Conversão de Apontamentos: mapeamento inteligente de eventos e UI com scroll. (Status: **RESOLVED**)
+5.  **user**: Relatou que a planilha de Conversão de Apontamentos estava sendo exportada sem preenchimento. (Status: **RESOLVED**)
+6.  **user**: Relatou que a análise do termo x apoio na Validação de Rescisão estava ruim. (Status: **ADDRESSED, PENDING VALIDATION**)
+7.  **user**: Esclareceu que na Conversão de Apontamentos, a planilha exportada deve preservar 100% da estrutura da original. (Status: **RESOLVED**)
+8.  **user**: Relatou erro ao validar o apoio na Validação de Rescisão (problema de mime type). (Status: **RESOLVED**)
+9.  **user**: Relatou erro na Conversão de Apontamentos (problema de mime type). (Status: **RESOLVED**)
+10. **user**: Relatou que o clique para upload de arquivo na Validação de Rescisão não estava funcionando. (Status: **ADDRESSED, PENDING VALIDATION**)
 
 **Project Health Check:**
--   **Broken**: A funcionalidade de **Importação de Colaboradores** está funcionalmente quebrada devido à baixa qualidade dos dados extraídos, o que a torna inutilizável.
--   **Mocked**: A página de  é um placeholder sem lógica de negócio implementada.
+-   **Broken**: A funcionalidade de **Validação de Rescisão**, embora com a UI implementada, tem uma lógica de análise de IA que passou por várias correções e precisa de uma validação completa pelo usuário para ser considerada estável.
+-   **Mocked**: Nenhuma.
+-   **Technical Debt**: O arquivo  representa um débito técnico severo e um risco para a estabilidade do projeto.
 
 **3rd Party Integrations**
 -   **Emergent LLM Key (via )**: Usada para todas as análises de documentos com IA.
 -   **reportlab**: Geração de PDFs no backend.
 -   **openpyxl**: Leitura e escrita de arquivos Excel no backend.
--   **React, Axios, Shadcn UI, TailwindCSS**: Base do frontend.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, foi usado com sucesso para validar as funcionalidades do módulo de Dissídio.
+-   **Testing agent used after significant changes**: YES, para validar a correção da Importação de Colaboradores.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: Não há arquivos de teste automatizados (ex: ============================= test session starts ==============================
+-   **Test files created**: Nenhum arquivo de teste automatizado (============================= test session starts ==============================
 platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
 rootdir: /app
 plugins: anyio-4.12.1
-collected 150 items
+collected 159 items
 
 backend/tests/test_colaboradores.py FFFFEEEEEEEEE                        [  8%]
-backend/tests/test_colaboradores_import.py FEEEEEEEEEE                   [ 16%]
-backend/tests/test_dissidio_integration.py EEEEE                         [ 19%]
-backend/tests/test_dissidio_pdf_piso.py FEEEFEEEEEFFF                    [ 28%]
-backend/tests/test_dissidio_validacao.py EEEEEEEEEEE                     [ 35%]
-backend/tests/test_medias.py EEEEEEEE                                    [ 40%]
-backend/tests/test_new_features.py FEEEEEEEEEEEE                         [ 49%]
-backend/tests/test_new_features_v2.py EEFFEEEFEEEFEEEEFF                 [ 61%]
-backend/tests/test_proporcionalidade_vigencia.py FEFEEEFEEFEEE           [ 70%]
-backend/tests/test_validacao_async_polling.py FEEEEEEEEEEE               [ 78%]
-backend/tests/test_validacao_folha.py FEEEEEEEEE                         [ 84%]
+backend/tests/test_colaboradores_import.py FEEEEEEEEEE                   [ 15%]
+backend/tests/test_colaboradores_import_ai.py FEEEEFEEE                  [ 20%]
+backend/tests/test_dissidio_integration.py EEEEE                         [ 23%]
+backend/tests/test_dissidio_pdf_piso.py FEEEFEEEEEFFF                    [ 32%]
+backend/tests/test_dissidio_validacao.py EEEEEEEEEEE                     [ 38%]
+backend/tests/test_medias.py EEEEEEEE                                    [ 44%]
+backend/tests/test_new_features.py FEEEEEEEEEEEE                         [ 52%]
+backend/tests/test_new_features_v2.py EEFFEEEFEEEFEEEEFF                 [ 63%]
+backend/tests/test_proporcionalidade_vigencia.py FEFEEEFEEFEEE           [ 71%]
+backend/tests/test_validacao_async_polling.py FEEEEEEEEEEE               [ 79%]
+backend/tests/test_validacao_folha.py FEEEEEEEEE                         [ 85%]
 backend/tests/test_validacao_multiplos_colaboradores.py EEEEEEEEEEEEEEFF [ 95%]
                                                                          [ 95%]
 backend/tests/test_validacao_ocr.py EEEEEEEE                             [100%]
@@ -169,7 +150,7 @@ backend/tests/test_validacao_ocr.py EEEEEEEE                             [100%]
 ==================================== ERRORS ====================================
 ______________ ERROR at setup of TestClientes.test_list_clientes _______________
 
-self = <test_colaboradores.TestClientes object at 0xff05554b7910>
+self = <test_colaboradores.TestClientes object at 0xfb13d710fd50>
 
     @pytest.fixture
     def auth_token(self):
@@ -236,7 +217,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______________ ERROR at setup of TestClientes.test_create_cliente ______________
 
-self = <test_colaboradores.TestClientes object at 0xff05554b7c90>
+self = <test_colaboradores.TestClientes object at 0xfb13d7128110>
 
     @pytest.fixture
     def auth_token(self):
@@ -303,7 +284,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _________ ERROR at setup of TestColaboradores.test_list_colaboradores __________
 
-self = <test_colaboradores.TestColaboradores object at 0xff05554cc5d0>
+self = <test_colaboradores.TestColaboradores object at 0xfb13d71289d0>
 
     @pytest.fixture
     def auth_token(self):
@@ -370,7 +351,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____ ERROR at setup of TestColaboradores.test_list_colaboradores_by_cliente ____
 
-self = <test_colaboradores.TestColaboradores object at 0xff05554ccc50>
+self = <test_colaboradores.TestColaboradores object at 0xfb13d7129050>
 
     @pytest.fixture
     def auth_token(self):
@@ -437,7 +418,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______ ERROR at setup of TestColaboradores.test_create_colaborador_manual ______
 
-self = <test_colaboradores.TestColaboradores object at 0xff05554cd2d0>
+self = <test_colaboradores.TestColaboradores object at 0xfb13d71296d0>
 
     @pytest.fixture
     def auth_token(self):
@@ -504,7 +485,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ________ ERROR at setup of TestColaboradores.test_get_colaborador_by_id ________
 
-self = <test_colaboradores.TestColaboradores object at 0xff05554cd990>
+self = <test_colaboradores.TestColaboradores object at 0xfb13d7129d90>
 
     @pytest.fixture
     def auth_token(self):
@@ -571,7 +552,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _________ ERROR at setup of TestColaboradores.test_update_colaborador __________
 
-self = <test_colaboradores.TestColaboradores object at 0xff05554ce010>
+self = <test_colaboradores.TestColaboradores object at 0xfb13d712a410>
 
     @pytest.fixture
     def auth_token(self):
@@ -638,7 +619,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _________ ERROR at setup of TestColaboradores.test_delete_colaborador __________
 
-self = <test_colaboradores.TestColaboradores object at 0xff05554ce690>
+self = <test_colaboradores.TestColaboradores object at 0xfb13d712aa90>
 
     @pytest.fixture
     def auth_token(self):
@@ -705,7 +686,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____ ERROR at setup of TestColaboradorImport.test_import_endpoint_exists ______
 
-self = <test_colaboradores.TestColaboradorImport object at 0xff05554cf150>
+self = <test_colaboradores.TestColaboradorImport object at 0xfb13d712b590>
 
     @pytest.fixture
     def auth_token(self):
@@ -1420,6 +1401,461 @@ self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
 E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
 
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+___ ERROR at setup of TestColaboradoresImportAI.test_import_txt_file_with_ai ___
+
+    @pytest.fixture(scope="module")
+    def auth_token():
+        """Get authentication token"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+___ ERROR at setup of TestColaboradoresImportAI.test_import_pdf_file_with_ai ___
+
+    @pytest.fixture(scope="module")
+    def auth_token():
+        """Get authentication token"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+_ ERROR at setup of TestColaboradoresImportAI.test_txt_extraction_distinguishes_employee_from_company _
+
+    @pytest.fixture(scope="module")
+    def auth_token():
+        """Get authentication token"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+_ ERROR at setup of TestColaboradoresImportAI.test_txt_extraction_all_additional_fields _
+
+    @pytest.fixture(scope="module")
+    def auth_token():
+        """Get authentication token"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+____ ERROR at setup of TestColaboradoresImportAI.test_import_requires_file _____
+
+    @pytest.fixture(scope="module")
+    def auth_token():
+        """Get authentication token"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+_ ERROR at setup of TestColaboradoresImportValidation.test_extracted_cpf_format _
+
+    @pytest.fixture(scope="module")
+    def auth_token():
+        """Get authentication token"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+_ ERROR at setup of TestColaboradoresImportValidation.test_extracted_salario_is_numeric _
+
+    @pytest.fixture(scope="module")
+    def auth_token():
+        """Get authentication token"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestFullDissidioFlow.test_create_calculo_with_convencao_data _
 
     @pytest.fixture(scope="module")
@@ -1747,7 +2183,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____ ERROR at setup of TestExportarConvencaoPDF.test_export_pdf_not_found _____
 
-self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xff05559daa10>
+self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xfb13d7156f10>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -1814,7 +2250,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____ ERROR at setup of TestExportarConvencaoPDF.test_list_calculos_dissidio ____
 
-self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xff05559daa10>
+self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xfb13d7156f10>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -1881,7 +2317,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestExportarConvencaoPDF.test_export_pdf_from_existing_calculo _
 
-self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xff05559daa10>
+self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xfb13d7156f10>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -1948,7 +2384,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestCalcularRetroativo.test_calcular_retroativo_requires_files _
 
-self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xff05554f6ad0>
+self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xfb13d7160450>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -2015,7 +2451,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestCalcularRetroativo.test_calcular_retroativo_requires_cliente _
 
-self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xff05554f6ad0>
+self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xfb13d7160450>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -2082,7 +2518,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestCalcularRetroativo.test_calcular_retroativo_invalid_cliente _
 
-self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xff05554f6ad0>
+self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xfb13d7160450>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -2149,7 +2585,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestCalcularRetroativo.test_calcular_retroativo_requires_percentual _
 
-self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xff05554f6ad0>
+self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xfb13d7160450>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -2216,7 +2652,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestAlertasPiso.test_response_includes_alertas_piso_field __
 
-self = <test_dissidio_pdf_piso.TestAlertasPiso object at 0xff0555500e90>
+self = <test_dissidio_pdf_piso.TestAlertasPiso object at 0xfb13d7161f50>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -2283,7 +2719,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _________ ERROR at setup of TestDissidioEndpoints.test_list_dissidios __________
 
-self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xff0555508710>
+self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xfb13d716e950>
 
     @pytest.fixture
     def auth_token(self):
@@ -2350,7 +2786,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _________ ERROR at setup of TestDissidioEndpoints.test_create_dissidio _________
 
-self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xff0555508a90>
+self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xfb13d716efd0>
 
     @pytest.fixture
     def auth_token(self):
@@ -2417,7 +2853,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____ ERROR at setup of TestDissidioEndpoints.test_list_dissidios_by_cliente ____
 
-self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xff0555508e10>
+self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xfb13d7161bd0>
 
     @pytest.fixture
     def auth_token(self):
@@ -2484,7 +2920,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestDissidioEndpoints.test_convencao_analisar_endpoint_exists _
 
-self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xff0555509210>
+self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xfb13d716e450>
 
     @pytest.fixture
     def auth_token(self):
@@ -2551,7 +2987,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______ ERROR at setup of TestValidacaoFolhaEndpoints.test_list_validacoes ______
 
-self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xff0555509bd0>
+self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xfb13d716f9d0>
 
     @pytest.fixture
     def auth_token(self):
@@ -2618,7 +3054,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestValidacaoFolhaEndpoints.test_validacoes_analisar_endpoint_exists _
 
-self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xff055550a250>
+self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xfb13d716fd50>
 
     @pytest.fixture
     def auth_token(self):
@@ -2685,7 +3121,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestValidacaoFolhaEndpoints.test_validacoes_comparar_apoio_endpoint_exists _
 
-self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xff055550a8d0>
+self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xfb13d7170110>
 
     @pytest.fixture
     def auth_token(self):
@@ -2752,7 +3188,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestValidacaoFolhaEndpoints.test_comparar_apoio_requires_both_files _
 
-self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xff055550af90>
+self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xfb13d71704d0>
 
     @pytest.fixture
     def auth_token(self):
@@ -2819,7 +3255,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestValidacaoFolhaEndpoints.test_comparar_apoio_accepts_various_file_types _
 
-self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xff055550b610>
+self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xfb13d7170b50>
 
     @pytest.fixture
     def auth_token(self):
@@ -2886,7 +3322,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____ ERROR at setup of TestDissidioWorkflow.test_dissidio_approve_endpoint _____
 
-self = <test_dissidio_validacao.TestDissidioWorkflow object at 0xff05555100d0>
+self = <test_dissidio_validacao.TestDissidioWorkflow object at 0xfb13d7171610>
 
     @pytest.fixture
     def auth_token(self):
@@ -2953,7 +3389,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____ ERROR at setup of TestDissidioWorkflow.test_dissidio_reject_endpoint _____
 
-self = <test_dissidio_validacao.TestDissidioWorkflow object at 0xff0555510750>
+self = <test_dissidio_validacao.TestDissidioWorkflow object at 0xfb13d7171c90>
 
     @pytest.fixture
     def auth_token(self):
@@ -3020,7 +3456,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ___________ ERROR at setup of TestMediasEndpoints.test_login_success ___________
 
-self = <test_medias.TestMediasEndpoints object at 0xff0555512350>
+self = <test_medias.TestMediasEndpoints object at 0xfb13d716ce90>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -3088,7 +3524,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMediasEndpoints.test_get_medias_importacoes_endpoint_exists _
 
-self = <test_medias.TestMediasEndpoints object at 0xff0555509f90>
+self = <test_medias.TestMediasEndpoints object at 0xfb13d7056910>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -3156,7 +3592,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMediasEndpoints.test_post_medias_extrair_endpoint_exists _
 
-self = <test_medias.TestMediasEndpoints object at 0xff05555121d0>
+self = <test_medias.TestMediasEndpoints object at 0xfb13d70565d0>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -3224,7 +3660,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMediasEndpoints.test_post_medias_salvar_endpoint_exists _
 
-self = <test_medias.TestMediasEndpoints object at 0xff0555512910>
+self = <test_medias.TestMediasEndpoints object at 0xfb13d710ea10>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -3292,7 +3728,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMediasEndpoints.test_post_medias_gerar_importacao_xlsx _
 
-self = <test_medias.TestMediasEndpoints object at 0xff0555512c50>
+self = <test_medias.TestMediasEndpoints object at 0xfb13d7056310>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -3360,7 +3796,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMediasEndpoints.test_post_medias_gerar_importacao_txt __
 
-self = <test_medias.TestMediasEndpoints object at 0xff0555512f90>
+self = <test_medias.TestMediasEndpoints object at 0xfb13d7055f90>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -3428,7 +3864,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMediasEndpoints.test_post_medias_gerar_importacao_empty_funcionarios _
 
-self = <test_medias.TestMediasEndpoints object at 0xff05555132d0>
+self = <test_medias.TestMediasEndpoints object at 0xfb13d7055c90>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -3496,7 +3932,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______ ERROR at setup of TestMediasEndpoints.test_get_clientes_for_medias ______
 
-self = <test_medias.TestMediasEndpoints object at 0xff0555513750>
+self = <test_medias.TestMediasEndpoints object at 0xfb13d70557d0>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -7009,7 +7445,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____ ERROR at setup of TestMultiColaboradorValidation.test_01_login_works _____
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xff0555385190>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfb13d7016d50>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -7076,7 +7512,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_02_validar_completa_requires_cliente_id _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xff05553857d0>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfb13d7017250>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -7143,7 +7579,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_03_validar_completa_requires_holerite_atual _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xff0555385e10>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfb13d7017890>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -7210,7 +7646,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_04_validar_completa_validates_cliente_exists _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xff0555386490>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfb13d7017f10>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -7277,7 +7713,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_05_extract_multiple_colaboradores_from_folha _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xff0555386ad0>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfb13d7008590>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -7344,7 +7780,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_06_individual_comparison_with_previous_month _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xff055536d250>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfb13d7008bd0>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -7411,7 +7847,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_07_cross_reference_support_data_per_colaborador _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xff0555384cd0>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfb13d7009210>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -7478,7 +7914,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_08_complete_validation_with_all_files _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xff0555386e50>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfb13d7009850>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -7545,7 +7981,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_09_statistics_by_status _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xff0555387190>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfb13d7009e90>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -7612,7 +8048,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_10_get_validation_details _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xff0555387490>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfb13d700a490>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -7679,7 +8115,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_11_list_validations_with_collaborators _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xff05553877d0>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfb13d7016fd0>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -7746,7 +8182,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_12_new_collaborator_detection _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xff0555387e10>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfb13d7009d90>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -7813,7 +8249,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_13_resumo_executivo_generated _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xff055538c490>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfb13d7008710>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -7880,7 +8316,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_14_recomendacoes_generated _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xff055538cad0>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfb13d700ab90>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -8432,7 +8868,7 @@ _ ERROR at teardown of TestOCRDataExtraction.test_extract_proventos_descontos __
   |     item.session._setupstate.teardown_exact(nextitem)
   |   File "/root/.venv/lib/python3.11/site-packages/_pytest/runner.py", line 566, in teardown_exact
   |     raise exceptions[0]
-  | ExceptionGroup: errors while tearing down <Session  exitstatus=<ExitCode.OK: 0> testsfailed=150 testscollected=150> (2 sub-exceptions)
+  | ExceptionGroup: errors while tearing down <Session  exitstatus=<ExitCode.OK: 0> testsfailed=159 testscollected=159> (2 sub-exceptions)
   +-+---------------- 1 ----------------
     | Traceback (most recent call last):
     |   File "/root/.venv/lib/python3.11/site-packages/_pytest/runner.py", line 555, in teardown_exact
@@ -8495,7 +8931,7 @@ _ ERROR at teardown of TestOCRDataExtraction.test_extract_proventos_descontos __
 =================================== FAILURES ===================================
 _____________________ TestHealthCheck.test_health_endpoint _____________________
 
-self = <test_colaboradores.TestHealthCheck object at 0xff0555b06e10>
+self = <test_colaboradores.TestHealthCheck object at 0xfb13d7756e10>
 
     def test_health_endpoint(self):
         """Test API health endpoint"""
@@ -8559,7 +8995,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/health': No sch
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____________ TestAuthentication.test_login_with_valid_credentials _____________
 
-self = <test_colaboradores.TestAuthentication object at 0xff05554b6810>
+self = <test_colaboradores.TestAuthentication object at 0xfb13d710ec50>
 
     def test_login_with_valid_credentials(self):
         """Test login with admin@dp.com / senha123"""
@@ -8625,7 +9061,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____________ TestAuthentication.test_login_with_invalid_credentials ____________
 
-self = <test_colaboradores.TestAuthentication object at 0xff05554b6e50>
+self = <test_colaboradores.TestAuthentication object at 0xfb13d710f290>
 
     def test_login_with_invalid_credentials(self):
         """Test login with wrong credentials"""
@@ -8691,7 +9127,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ___________________ TestAuthentication.test_get_current_user ___________________
 
-self = <test_colaboradores.TestAuthentication object at 0xff05554b7490>
+self = <test_colaboradores.TestAuthentication object at 0xfb13d710f8d0>
 
     def test_get_current_user(self):
         """Test /api/auth/me endpoint"""
@@ -8758,7 +9194,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 __________________ TestColaboradoresImport.test_login_success __________________
 
-self = <test_colaboradores_import.TestColaboradoresImport object at 0xff05554d9d90>
+self = <test_colaboradores_import.TestColaboradoresImport object at 0xfb13d7132110>
 
     def test_login_success(self):
         """Test login with test credentials"""
@@ -8822,9 +9258,147 @@ self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
 E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
 
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+_________________ TestColaboradoresImportAI.test_login_success _________________
+
+self = <test_colaboradores_import_ai.TestColaboradoresImportAI object at 0xfb13d713b990>
+
+    def test_login_success(self):
+        """Test login with provided credentials"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+________ TestColaboradoresImportAI.test_import_requires_authentication _________
+
+self = <test_colaboradores_import_ai.TestColaboradoresImportAI object at 0xfb13d714da50>
+
+    def test_import_requires_authentication(self):
+        """Test that import endpoint requires authentication"""
+        txt_file_path = "/app/backend/tests/test_ficha_funcionario.txt"
+    
+        with open(txt_file_path, 'rb') as f:
+            files = {'file': ('test_ficha_funcionario.txt', f, 'text/plain')}
+>           response = requests.post(
+                f"{BASE_URL}/api/colaboradores/importar",
+                files=files,
+                data={'cliente_id': CLIENTE_ID}
+            )
+
+backend/tests/test_colaboradores_import_ai.py:244: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/colaboradores/importar'
+params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/colaboradores/importar': No scheme supplied. Perhaps you meant https:///api/colaboradores/importar?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____________ TestExportarConvencaoPDF.test_export_pdf_requires_auth ____________
 
-self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xff05554f5e50>
+self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xfb13d7157890>
 
     def test_export_pdf_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -8890,7 +9464,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/calculos-dissid
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ________ TestCalcularRetroativo.test_calcular_retroativo_requires_auth _________
 
-self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xff05554f7310>
+self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xfb13d7160d10>
 
     def test_calcular_retroativo_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -8955,7 +9529,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/dissidio/calcul
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ________ TestEndpointAvailability.test_calculos_dissidio_list_endpoint _________
 
-self = <test_dissidio_pdf_piso.TestEndpointAvailability object at 0xff0555502010>
+self = <test_dissidio_pdf_piso.TestEndpointAvailability object at 0xfb13d7163110>
 
     def test_calculos_dissidio_list_endpoint(self):
         """Test that calculos-dissidio list endpoint exists"""
@@ -9022,7 +9596,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____ TestEndpointAvailability.test_exportar_convencao_pdf_endpoint_exists _____
 
-self = <test_dissidio_pdf_piso.TestEndpointAvailability object at 0xff0555502650>
+self = <test_dissidio_pdf_piso.TestEndpointAvailability object at 0xfb13d7163750>
 
     def test_exportar_convencao_pdf_endpoint_exists(self):
         """Test that exportar-convencao-pdf endpoint exists"""
@@ -9089,7 +9663,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______ TestEndpointAvailability.test_calcular_retroativo_endpoint_exists _______
 
-self = <test_dissidio_pdf_piso.TestEndpointAvailability object at 0xff0555502c90>
+self = <test_dissidio_pdf_piso.TestEndpointAvailability object at 0xfb13d7163d90>
 
     def test_calcular_retroativo_endpoint_exists(self):
         """Test that calcular-retroativo endpoint exists"""
@@ -9156,7 +9730,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _________________________ TestAuth.test_login_success __________________________
 
-self = <test_new_features.TestAuth object at 0xff055551d890>
+self = <test_new_features.TestAuth object at 0xfb13d706c910>
 
     def test_login_success(self):
         """Test login with valid credentials"""
@@ -9222,7 +9796,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____________ TestPDFExport.test_exportar_resumo_pdf_unauthorized ______________
 
-self = <test_new_features_v2.TestPDFExport object at 0xff0555335190>
+self = <test_new_features_v2.TestPDFExport object at 0xfb13d701b610>
 
     def test_exportar_resumo_pdf_unauthorized(self):
         """Test PDF export without auth token"""
@@ -9289,7 +9863,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/convencao/expor
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____ TestConversaoApontamentos.test_conversao_apontamentos_requires_auth ______
 
-self = <test_new_features_v2.TestConversaoApontamentos object at 0xff0555335a50>
+self = <test_new_features_v2.TestConversaoApontamentos object at 0xfb13d701bed0>
 
     def test_conversao_apontamentos_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -9354,7 +9928,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/conversao/apont
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______ TestConversaoAdmissional.test_conversao_admissional_requires_auth _______
 
-self = <test_new_features_v2.TestConversaoAdmissional object at 0xff0555335e90>
+self = <test_new_features_v2.TestConversaoAdmissional object at 0xfb13d6f99bd0>
 
     def test_conversao_admissional_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -9419,7 +9993,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/conversao/admis
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _________ TestValidacaoRescisao.test_validacao_rescisao_requires_auth __________
 
-self = <test_new_features_v2.TestValidacaoRescisao object at 0xff0555337a10>
+self = <test_new_features_v2.TestValidacaoRescisao object at 0xfb13d6f9a690>
 
     def test_validacao_rescisao_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -9484,7 +10058,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/validacao/resci
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____________________ TestFrontendRoutes.test_frontend_loads ____________________
 
-self = <test_new_features_v2.TestFrontendRoutes object at 0xff0555341e10>
+self = <test_new_features_v2.TestFrontendRoutes object at 0xfb13d6f9bf10>
 
     def test_frontend_loads(self):
         """Test that frontend is accessible"""
@@ -9548,7 +10122,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '': No scheme supplie
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ________________ TestFrontendRoutes.test_login_page_accessible _________________
 
-self = <test_new_features_v2.TestFrontendRoutes object at 0xff0555342450>
+self = <test_new_features_v2.TestFrontendRoutes object at 0xfb13d6fb4590>
 
     def test_login_page_accessible(self):
         """Test login page is accessible"""
@@ -9612,7 +10186,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/login': No scheme s
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______________ TestConvencaoAnalisar.test_analisar_requires_auth _______________
 
-self = <test_proporcionalidade_vigencia.TestConvencaoAnalisar object at 0xff0555341d10>
+self = <test_proporcionalidade_vigencia.TestConvencaoAnalisar object at 0xfb13d6fb6a50>
 
     def test_analisar_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -9677,7 +10251,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/convencao/anali
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______________ TestCalcularRetroativo.test_calcular_requires_auth ______________
 
-self = <test_proporcionalidade_vigencia.TestCalcularRetroativo object at 0xff05553378d0>
+self = <test_proporcionalidade_vigencia.TestCalcularRetroativo object at 0xfb13d6fb79d0>
 
     def test_calcular_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -9742,7 +10316,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/dissidio/calcul
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____________ TestExportarConvencaoPDF.test_export_pdf_requires_auth ____________
 
-self = <test_proporcionalidade_vigencia.TestExportarConvencaoPDF object at 0xff055534d810>
+self = <test_proporcionalidade_vigencia.TestExportarConvencaoPDF object at 0xfb13d6fec910>
 
     def test_export_pdf_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -9808,7 +10382,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/calculos-dissid
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _______________ TestListCalculosDissidio.test_list_requires_auth _______________
 
-self = <test_proporcionalidade_vigencia.TestListCalculosDissidio object at 0xff055534ed10>
+self = <test_proporcionalidade_vigencia.TestListCalculosDissidio object at 0xfb13d6fed510>
 
     def test_list_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -9873,7 +10447,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/calculos-dissid
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____________________ TestAuthAndBasics.test_login_success _____________________
 
-self = <test_validacao_async_polling.TestAuthAndBasics object at 0xff055534e010>
+self = <test_validacao_async_polling.TestAuthAndBasics object at 0xfb13d7001210>
 
     def test_login_success(self):
         """Test login with valid credentials"""
@@ -9939,7 +10513,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____________________ TestAuthAndBasics.test_login_success _____________________
 
-self = <test_validacao_folha.TestAuthAndBasics object at 0xff0555380690>
+self = <test_validacao_folha.TestAuthAndBasics object at 0xfb13d70724d0>
 
     def test_login_success(self):
         """Test login with valid credentials"""
@@ -10005,7 +10579,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ________ TestDocumentProcessor.test_parse_folha_multiplos_colaboradores ________
 
-self = <test_validacao_multiplos_colaboradores.TestDocumentProcessor object at 0xff055538d3d0>
+self = <test_validacao_multiplos_colaboradores.TestDocumentProcessor object at 0xfb13d700b0d0>
 
     def test_parse_folha_multiplos_colaboradores(self):
         """Test parsing multiple collaborators from payroll text"""
@@ -10020,7 +10594,7 @@ E       FileNotFoundError: [Errno 2] No such file or directory: '/tmp/folha_mult
 backend/tests/test_validacao_multiplos_colaboradores.py:505: FileNotFoundError
 ______________ TestDocumentProcessor.test_parse_apoio_referencias ______________
 
-self = <test_validacao_multiplos_colaboradores.TestDocumentProcessor object at 0xff055538da10>
+self = <test_validacao_multiplos_colaboradores.TestDocumentProcessor object at 0xfb13d700b410>
 
     def test_parse_apoio_referencias(self):
         """Test parsing support references"""
@@ -10039,6 +10613,8 @@ FAILED backend/tests/test_colaboradores.py::TestAuthentication::test_login_with_
 FAILED backend/tests/test_colaboradores.py::TestAuthentication::test_login_with_invalid_credentials
 FAILED backend/tests/test_colaboradores.py::TestAuthentication::test_get_current_user
 FAILED backend/tests/test_colaboradores_import.py::TestColaboradoresImport::test_login_success
+FAILED backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportAI::test_login_success
+FAILED backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportAI::test_import_requires_authentication
 FAILED backend/tests/test_dissidio_pdf_piso.py::TestExportarConvencaoPDF::test_export_pdf_requires_auth
 FAILED backend/tests/test_dissidio_pdf_piso.py::TestCalcularRetroativo::test_calcular_retroativo_requires_auth
 FAILED backend/tests/test_dissidio_pdf_piso.py::TestEndpointAvailability::test_calculos_dissidio_list_endpoint
@@ -10078,6 +10654,13 @@ ERROR backend/tests/test_colaboradores_import.py::TestColaboradoresImport::test_
 ERROR backend/tests/test_colaboradores_import.py::TestColaboradoresImport::test_verify_colaboradores_persisted
 ERROR backend/tests/test_colaboradores_import.py::TestColaboradoresImport::test_salvar_lote_with_all_fields
 ERROR backend/tests/test_colaboradores_import.py::TestColaboradoresCleanup::test_cleanup_test_colaboradores
+ERROR backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportAI::test_import_txt_file_with_ai
+ERROR backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportAI::test_import_pdf_file_with_ai
+ERROR backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportAI::test_txt_extraction_distinguishes_employee_from_company
+ERROR backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportAI::test_txt_extraction_all_additional_fields
+ERROR backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportAI::test_import_requires_file
+ERROR backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportValidation::test_extracted_cpf_format
+ERROR backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportValidation::test_extracted_salario_is_numeric
 ERROR backend/tests/test_dissidio_integration.py::TestFullDissidioFlow::test_create_calculo_with_convencao_data
 ERROR backend/tests/test_dissidio_integration.py::TestFullDissidioFlow::test_list_and_export_pdf
 ERROR backend/tests/test_dissidio_integration.py::TestFullDissidioFlow::test_alertas_piso_structure
@@ -10185,33 +10768,32 @@ ERROR backend/tests/test_validacao_ocr.py::TestValidacaoListAndDetails::test_lis
 ERROR backend/tests/test_validacao_ocr.py::TestValidacaoListAndDetails::test_view_validacao_details
 ERROR backend/tests/test_validacao_ocr.py::TestOCRDataExtraction::test_extract_proventos_descontos
 ERROR backend/tests/test_validacao_ocr.py::TestOCRDataExtraction::test_extract_proventos_descontos
-======================== 25 failed, 126 errors in 8.25s ========================).
--   **Known regressions**: A funcionalidade de importação de colaboradores regrediu em qualidade ou nunca atingiu a qualidade esperada.
+======================== 27 failed, 133 errors in 5.77s ========================).
+-   **Known regressions**: Nenhuma regressão conhecida nesta sessão, mas a falta de testes automatizados torna o projeto vulnerável.
 
 **Credentials to test flow:**
 -   **Usuário**: 
 -   **Senha**: 
 
 **What agent forgot to execute**
--   O agente não testou a correção da importação de colaboradores antes de finalizar.
--   A refatoração crítica do  continua sendo adiada.
--   Nenhum teste unitário ou de integração (com ============================= test session starts ==============================
+-   O agente não criou testes automatizados (============================= test session starts ==============================
 platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
 rootdir: /app
 plugins: anyio-4.12.1
-collected 150 items
+collected 159 items
 
 backend/tests/test_colaboradores.py FFFFEEEEEEEEE                        [  8%]
-backend/tests/test_colaboradores_import.py FEEEEEEEEEE                   [ 16%]
-backend/tests/test_dissidio_integration.py EEEEE                         [ 19%]
-backend/tests/test_dissidio_pdf_piso.py FEEEFEEEEEFFF                    [ 28%]
-backend/tests/test_dissidio_validacao.py EEEEEEEEEEE                     [ 35%]
-backend/tests/test_medias.py EEEEEEEE                                    [ 40%]
-backend/tests/test_new_features.py FEEEEEEEEEEEE                         [ 49%]
-backend/tests/test_new_features_v2.py EEFFEEEFEEEFEEEEFF                 [ 61%]
-backend/tests/test_proporcionalidade_vigencia.py FEFEEEFEEFEEE           [ 70%]
-backend/tests/test_validacao_async_polling.py FEEEEEEEEEEE               [ 78%]
-backend/tests/test_validacao_folha.py FEEEEEEEEE                         [ 84%]
+backend/tests/test_colaboradores_import.py FEEEEEEEEEE                   [ 15%]
+backend/tests/test_colaboradores_import_ai.py FEEEEFEEE                  [ 20%]
+backend/tests/test_dissidio_integration.py EEEEE                         [ 23%]
+backend/tests/test_dissidio_pdf_piso.py FEEEFEEEEEFFF                    [ 32%]
+backend/tests/test_dissidio_validacao.py EEEEEEEEEEE                     [ 38%]
+backend/tests/test_medias.py EEEEEEEE                                    [ 44%]
+backend/tests/test_new_features.py FEEEEEEEEEEEE                         [ 52%]
+backend/tests/test_new_features_v2.py EEFFEEEFEEEFEEEEFF                 [ 63%]
+backend/tests/test_proporcionalidade_vigencia.py FEFEEEFEEFEEE           [ 71%]
+backend/tests/test_validacao_async_polling.py FEEEEEEEEEEE               [ 79%]
+backend/tests/test_validacao_folha.py FEEEEEEEEE                         [ 85%]
 backend/tests/test_validacao_multiplos_colaboradores.py EEEEEEEEEEEEEEFF [ 95%]
                                                                          [ 95%]
 backend/tests/test_validacao_ocr.py EEEEEEEE                             [100%]
@@ -10219,7 +10801,7 @@ backend/tests/test_validacao_ocr.py EEEEEEEE                             [100%]
 ==================================== ERRORS ====================================
 ______________ ERROR at setup of TestClientes.test_list_clientes _______________
 
-self = <test_colaboradores.TestClientes object at 0xfd2e98a27810>
+self = <test_colaboradores.TestClientes object at 0xf9c29d2a3950>
 
     @pytest.fixture
     def auth_token(self):
@@ -10286,7 +10868,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______________ ERROR at setup of TestClientes.test_create_cliente ______________
 
-self = <test_colaboradores.TestClientes object at 0xfd2e98a27e90>
+self = <test_colaboradores.TestClientes object at 0xf9c29d2a3cd0>
 
     @pytest.fixture
     def auth_token(self):
@@ -10353,7 +10935,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _________ ERROR at setup of TestColaboradores.test_list_colaboradores __________
 
-self = <test_colaboradores.TestColaboradores object at 0xfd2e98a2c7d0>
+self = <test_colaboradores.TestColaboradores object at 0xf9c29d2ac690>
 
     @pytest.fixture
     def auth_token(self):
@@ -10420,7 +11002,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____ ERROR at setup of TestColaboradores.test_list_colaboradores_by_cliente ____
 
-self = <test_colaboradores.TestColaboradores object at 0xfd2e98a26090>
+self = <test_colaboradores.TestColaboradores object at 0xf9c29d2acd10>
 
     @pytest.fixture
     def auth_token(self):
@@ -10487,7 +11069,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______ ERROR at setup of TestColaboradores.test_create_colaborador_manual ______
 
-self = <test_colaboradores.TestColaboradores object at 0xfd2e98a2cd10>
+self = <test_colaboradores.TestColaboradores object at 0xf9c29d2ad390>
 
     @pytest.fixture
     def auth_token(self):
@@ -10554,7 +11136,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ________ ERROR at setup of TestColaboradores.test_get_colaborador_by_id ________
 
-self = <test_colaboradores.TestColaboradores object at 0xfd2e98a2d0d0>
+self = <test_colaboradores.TestColaboradores object at 0xf9c29d2ada50>
 
     @pytest.fixture
     def auth_token(self):
@@ -10621,7 +11203,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _________ ERROR at setup of TestColaboradores.test_update_colaborador __________
 
-self = <test_colaboradores.TestColaboradores object at 0xfd2e98a2d450>
+self = <test_colaboradores.TestColaboradores object at 0xf9c29d2ae0d0>
 
     @pytest.fixture
     def auth_token(self):
@@ -10688,7 +11270,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _________ ERROR at setup of TestColaboradores.test_delete_colaborador __________
 
-self = <test_colaboradores.TestColaboradores object at 0xfd2e98a2da90>
+self = <test_colaboradores.TestColaboradores object at 0xf9c29d2ae750>
 
     @pytest.fixture
     def auth_token(self):
@@ -10755,7 +11337,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____ ERROR at setup of TestColaboradorImport.test_import_endpoint_exists ______
 
-self = <test_colaboradores.TestColaboradorImport object at 0xfd2e98a2e590>
+self = <test_colaboradores.TestColaboradorImport object at 0xf9c29d2af250>
 
     @pytest.fixture
     def auth_token(self):
@@ -11470,6 +12052,461 @@ self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
 E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
 
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+___ ERROR at setup of TestColaboradoresImportAI.test_import_txt_file_with_ai ___
+
+    @pytest.fixture(scope="module")
+    def auth_token():
+        """Get authentication token"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+___ ERROR at setup of TestColaboradoresImportAI.test_import_pdf_file_with_ai ___
+
+    @pytest.fixture(scope="module")
+    def auth_token():
+        """Get authentication token"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+_ ERROR at setup of TestColaboradoresImportAI.test_txt_extraction_distinguishes_employee_from_company _
+
+    @pytest.fixture(scope="module")
+    def auth_token():
+        """Get authentication token"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+_ ERROR at setup of TestColaboradoresImportAI.test_txt_extraction_all_additional_fields _
+
+    @pytest.fixture(scope="module")
+    def auth_token():
+        """Get authentication token"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+____ ERROR at setup of TestColaboradoresImportAI.test_import_requires_file _____
+
+    @pytest.fixture(scope="module")
+    def auth_token():
+        """Get authentication token"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+_ ERROR at setup of TestColaboradoresImportValidation.test_extracted_cpf_format _
+
+    @pytest.fixture(scope="module")
+    def auth_token():
+        """Get authentication token"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+_ ERROR at setup of TestColaboradoresImportValidation.test_extracted_salario_is_numeric _
+
+    @pytest.fixture(scope="module")
+    def auth_token():
+        """Get authentication token"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestFullDissidioFlow.test_create_calculo_with_convencao_data _
 
     @pytest.fixture(scope="module")
@@ -11797,7 +12834,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____ ERROR at setup of TestExportarConvencaoPDF.test_export_pdf_not_found _____
 
-self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xfd2e98a4d490>
+self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xf9c29d2e2c10>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -11864,7 +12901,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____ ERROR at setup of TestExportarConvencaoPDF.test_list_calculos_dissidio ____
 
-self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xfd2e98a4d490>
+self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xf9c29d2e2c10>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -11931,7 +12968,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestExportarConvencaoPDF.test_export_pdf_from_existing_calculo _
 
-self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xfd2e98a4d490>
+self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xf9c29d2e2c10>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -11998,7 +13035,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestCalcularRetroativo.test_calcular_retroativo_requires_files _
 
-self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xfd2e98a4e950>
+self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xf9c29d2ba7d0>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -12065,7 +13102,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestCalcularRetroativo.test_calcular_retroativo_requires_cliente _
 
-self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xfd2e98a4e950>
+self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xf9c29d2ba7d0>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -12132,7 +13169,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestCalcularRetroativo.test_calcular_retroativo_invalid_cliente _
 
-self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xfd2e98a4e950>
+self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xf9c29d2ba7d0>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -12199,7 +13236,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestCalcularRetroativo.test_calcular_retroativo_requires_percentual _
 
-self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xfd2e98a4e950>
+self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xf9c29d2ba7d0>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -12266,7 +13303,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestAlertasPiso.test_response_includes_alertas_piso_field __
 
-self = <test_dissidio_pdf_piso.TestAlertasPiso object at 0xfd2e98a64490>
+self = <test_dissidio_pdf_piso.TestAlertasPiso object at 0xf9c29d2f1c90>
 
     @pytest.fixture(scope="class")
     def auth_token(self):
@@ -12333,7 +13370,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _________ ERROR at setup of TestDissidioEndpoints.test_list_dissidios __________
 
-self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xfd2e98a74f10>
+self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xf9c29d2fe650>
 
     @pytest.fixture
     def auth_token(self):
@@ -12400,7 +13437,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _________ ERROR at setup of TestDissidioEndpoints.test_create_dissidio _________
 
-self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xfd2e98a65350>
+self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xf9c29d2fecd0>
 
     @pytest.fixture
     def auth_token(self):
@@ -12467,7 +13504,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____ ERROR at setup of TestDissidioEndpoints.test_list_dissidios_by_cliente ____
 
-self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xfd2e98a74810>
+self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xf9c29d2f1910>
 
     @pytest.fixture
     def auth_token(self):
@@ -12534,7 +13571,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestDissidioEndpoints.test_convencao_analisar_endpoint_exists _
 
-self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xfd2e98a75690>
+self = <test_dissidio_validacao.TestDissidioEndpoints object at 0xf9c29d2fe150>
 
     @pytest.fixture
     def auth_token(self):
@@ -12601,7 +13638,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______ ERROR at setup of TestValidacaoFolhaEndpoints.test_list_validacoes ______
 
-self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xfd2e98a75d10>
+self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xf9c29d2ff6d0>
 
     @pytest.fixture
     def auth_token(self):
@@ -12668,7 +13705,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestValidacaoFolhaEndpoints.test_validacoes_analisar_endpoint_exists _
 
-self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xfd2e98a76090>
+self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xf9c29d2ffa50>
 
     @pytest.fixture
     def auth_token(self):
@@ -12735,7 +13772,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestValidacaoFolhaEndpoints.test_validacoes_comparar_apoio_endpoint_exists _
 
-self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xfd2e98a76410>
+self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xf9c29d2ffdd0>
 
     @pytest.fixture
     def auth_token(self):
@@ -12802,7 +13839,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestValidacaoFolhaEndpoints.test_comparar_apoio_requires_both_files _
 
-self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xfd2e98a76a50>
+self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xf9c29d3081d0>
 
     @pytest.fixture
     def auth_token(self):
@@ -12869,7 +13906,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestValidacaoFolhaEndpoints.test_comparar_apoio_accepts_various_file_types _
 
-self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xfd2e98a770d0>
+self = <test_dissidio_validacao.TestValidacaoFolhaEndpoints object at 0xf9c29d308850>
 
     @pytest.fixture
     def auth_token(self):
@@ -12936,7 +13973,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____ ERROR at setup of TestDissidioWorkflow.test_dissidio_approve_endpoint _____
 
-self = <test_dissidio_validacao.TestDissidioWorkflow object at 0xfd2e98a77bd0>
+self = <test_dissidio_validacao.TestDissidioWorkflow object at 0xf9c29d309350>
 
     @pytest.fixture
     def auth_token(self):
@@ -13003,7 +14040,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____ ERROR at setup of TestDissidioWorkflow.test_dissidio_reject_endpoint _____
 
-self = <test_dissidio_validacao.TestDissidioWorkflow object at 0xfd2e98a78290>
+self = <test_dissidio_validacao.TestDissidioWorkflow object at 0xf9c29d3099d0>
 
     @pytest.fixture
     def auth_token(self):
@@ -13070,7 +14107,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ___________ ERROR at setup of TestMediasEndpoints.test_login_success ___________
 
-self = <test_medias.TestMediasEndpoints object at 0xfd2e98a79e90>
+self = <test_medias.TestMediasEndpoints object at 0xf9c29d12db10>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -13138,7 +14175,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMediasEndpoints.test_get_medias_importacoes_endpoint_exists _
 
-self = <test_medias.TestMediasEndpoints object at 0xfd2e98a7a4d0>
+self = <test_medias.TestMediasEndpoints object at 0xf9c29d12de50>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -13206,7 +14243,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMediasEndpoints.test_post_medias_extrair_endpoint_exists _
 
-self = <test_medias.TestMediasEndpoints object at 0xfd2e98a7ab10>
+self = <test_medias.TestMediasEndpoints object at 0xf9c29d12e250>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -13274,7 +14311,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMediasEndpoints.test_post_medias_salvar_endpoint_exists _
 
-self = <test_medias.TestMediasEndpoints object at 0xfd2e98a7b190>
+self = <test_medias.TestMediasEndpoints object at 0xf9c29d12e8d0>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -13342,7 +14379,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMediasEndpoints.test_post_medias_gerar_importacao_xlsx _
 
-self = <test_medias.TestMediasEndpoints object at 0xfd2e98a7b7d0>
+self = <test_medias.TestMediasEndpoints object at 0xf9c29d12ef10>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -13410,7 +14447,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMediasEndpoints.test_post_medias_gerar_importacao_txt __
 
-self = <test_medias.TestMediasEndpoints object at 0xfd2e98a76150>
+self = <test_medias.TestMediasEndpoints object at 0xf9c29d12f550>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -13478,7 +14515,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMediasEndpoints.test_post_medias_gerar_importacao_empty_funcionarios _
 
-self = <test_medias.TestMediasEndpoints object at 0xfd2e98a7b550>
+self = <test_medias.TestMediasEndpoints object at 0xf9c29d12fb90>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -13546,7 +14583,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______ ERROR at setup of TestMediasEndpoints.test_get_clientes_for_medias ______
 
-self = <test_medias.TestMediasEndpoints object at 0xfd2e98a799d0>
+self = <test_medias.TestMediasEndpoints object at 0xf9c29d12e650>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -17059,7 +18096,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____ ERROR at setup of TestMultiColaboradorValidation.test_01_login_works _____
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfd2e988ec4d0>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xf9c29d197b10>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -17126,7 +18163,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_02_validar_completa_requires_cliente_id _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfd2e988ecb10>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xf9c29d197e50>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -17193,7 +18230,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_03_validar_completa_requires_holerite_atual _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfd2e988ed150>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xf9c29d1ac450>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -17260,7 +18297,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_04_validar_completa_validates_cliente_exists _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfd2e988ed7d0>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xf9c29d1acad0>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -17327,7 +18364,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_05_extract_multiple_colaboradores_from_folha _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfd2e988ede10>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xf9c29d1ad110>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -17394,7 +18431,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_06_individual_comparison_with_previous_month _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfd2e988ee450>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xf9c29d1ad750>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -17461,7 +18498,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_07_cross_reference_support_data_per_colaborador _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfd2e988eea90>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xf9c29d1add90>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -17528,7 +18565,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_08_complete_validation_with_all_files _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfd2e988ef0d0>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xf9c29d1ae3d0>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -17595,7 +18632,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_09_statistics_by_status _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfd2e988ef710>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xf9c29d1aea10>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -17662,7 +18699,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_10_get_validation_details _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfd2e988c3d10>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xf9c29d1af010>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -17729,7 +18766,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_11_list_validations_with_collaborators _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfd2e988edf90>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xf9c29d1af650>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -17796,7 +18833,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_12_new_collaborator_detection _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfd2e988efad0>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xf9c29d195b10>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -17863,7 +18900,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_13_resumo_executivo_generated _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfd2e988efe10>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xf9c29d1adf10>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -17930,7 +18967,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _ ERROR at setup of TestMultiColaboradorValidation.test_14_recomendacoes_generated _
 
-self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xfd2e988f4190>
+self = <test_validacao_multiplos_colaboradores.TestMultiColaboradorValidation object at 0xf9c29d1afa90>
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -18482,7 +19519,7 @@ _ ERROR at teardown of TestOCRDataExtraction.test_extract_proventos_descontos __
   |     item.session._setupstate.teardown_exact(nextitem)
   |   File "/root/.venv/lib/python3.11/site-packages/_pytest/runner.py", line 566, in teardown_exact
   |     raise exceptions[0]
-  | ExceptionGroup: errors while tearing down <Session  exitstatus=<ExitCode.OK: 0> testsfailed=150 testscollected=150> (2 sub-exceptions)
+  | ExceptionGroup: errors while tearing down <Session  exitstatus=<ExitCode.OK: 0> testsfailed=159 testscollected=159> (2 sub-exceptions)
   +-+---------------- 1 ----------------
     | Traceback (most recent call last):
     |   File "/root/.venv/lib/python3.11/site-packages/_pytest/runner.py", line 555, in teardown_exact
@@ -18545,7 +19582,7 @@ _ ERROR at teardown of TestOCRDataExtraction.test_extract_proventos_descontos __
 =================================== FAILURES ===================================
 _____________________ TestHealthCheck.test_health_endpoint _____________________
 
-self = <test_colaboradores.TestHealthCheck object at 0xfd2e98a25390>
+self = <test_colaboradores.TestHealthCheck object at 0xf9c29d2a1810>
 
     def test_health_endpoint(self):
         """Test API health endpoint"""
@@ -18609,7 +19646,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/health': No sch
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____________ TestAuthentication.test_login_with_valid_credentials _____________
 
-self = <test_colaboradores.TestAuthentication object at 0xfd2e98a262d0>
+self = <test_colaboradores.TestAuthentication object at 0xf9c29d2a2850>
 
     def test_login_with_valid_credentials(self):
         """Test login with admin@dp.com / senha123"""
@@ -18675,7 +19712,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____________ TestAuthentication.test_login_with_invalid_credentials ____________
 
-self = <test_colaboradores.TestAuthentication object at 0xfd2e98a26910>
+self = <test_colaboradores.TestAuthentication object at 0xf9c29d2a2e90>
 
     def test_login_with_invalid_credentials(self):
         """Test login with wrong credentials"""
@@ -18741,7 +19778,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ___________________ TestAuthentication.test_get_current_user ___________________
 
-self = <test_colaboradores.TestAuthentication object at 0xfd2e98a26f50>
+self = <test_colaboradores.TestAuthentication object at 0xf9c29d2a34d0>
 
     def test_get_current_user(self):
         """Test /api/auth/me endpoint"""
@@ -18808,7 +19845,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 __________________ TestColaboradoresImport.test_login_success __________________
 
-self = <test_colaboradores_import.TestColaboradoresImport object at 0xfd2e98a3d150>
+self = <test_colaboradores_import.TestColaboradoresImport object at 0xf9c29d2b9d50>
 
     def test_login_success(self):
         """Test login with test credentials"""
@@ -18872,9 +19909,147 @@ self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
 E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
 
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+_________________ TestColaboradoresImportAI.test_login_success _________________
+
+self = <test_colaboradores_import_ai.TestColaboradoresImportAI object at 0xf9c29d2c7650>
+
+    def test_login_success(self):
+        """Test login with provided credentials"""
+>       response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": TEST_EMAIL,
+            "senha": TEST_PASSWORD
+        })
+
+backend/tests/test_colaboradores_import_ai.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
+________ TestColaboradoresImportAI.test_import_requires_authentication _________
+
+self = <test_colaboradores_import_ai.TestColaboradoresImportAI object at 0xf9c29d2d5710>
+
+    def test_import_requires_authentication(self):
+        """Test that import endpoint requires authentication"""
+        txt_file_path = "/app/backend/tests/test_ficha_funcionario.txt"
+    
+        with open(txt_file_path, 'rb') as f:
+            files = {'file': ('test_ficha_funcionario.txt', f, 'text/plain')}
+>           response = requests.post(
+                f"{BASE_URL}/api/colaboradores/importar",
+                files=files,
+                data={'cliente_id': CLIENTE_ID}
+            )
+
+backend/tests/test_colaboradores_import_ai.py:244: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
+    self.prepare_url(url, params)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <PreparedRequest [POST]>, url = '/api/colaboradores/importar'
+params = OrderedDict()
+
+    def prepare_url(self, url, params):
+        """Prepares the given HTTP URL."""
+        #: Accept objects that have string representations.
+        #: We're unable to blindly call unicode/str functions
+        #: as this will include the bytestring indicator (b'')
+        #: on python 3.x.
+        #: https://github.com/psf/requests/pull/2238
+        if isinstance(url, bytes):
+            url = url.decode("utf8")
+        else:
+            url = str(url)
+    
+        # Remove leading whitespaces from url
+        url = url.lstrip()
+    
+        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
+        # `data` etc to work around exceptions from `url_parse`, which
+        # handles RFC 3986 only.
+        if ":" in url and not url.lower().startswith("http"):
+            self.url = url
+            return
+    
+        # Support for unicode domain names and paths.
+        try:
+            scheme, auth, host, port, path, query, fragment = parse_url(url)
+        except LocationParseError as e:
+            raise InvalidURL(*e.args)
+    
+        if not scheme:
+>           raise MissingSchema(
+                f"Invalid URL {url!r}: No scheme supplied. "
+                f"Perhaps you meant https://{url}?"
+            )
+E           requests.exceptions.MissingSchema: Invalid URL '/api/colaboradores/importar': No scheme supplied. Perhaps you meant https:///api/colaboradores/importar?
+
+/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____________ TestExportarConvencaoPDF.test_export_pdf_requires_auth ____________
 
-self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xfd2e98a4dd90>
+self = <test_dissidio_pdf_piso.TestExportarConvencaoPDF object at 0xf9c29d2e3610>
 
     def test_export_pdf_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -18940,7 +20115,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/calculos-dissid
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ________ TestCalcularRetroativo.test_calcular_retroativo_requires_auth _________
 
-self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xfd2e98a4ef10>
+self = <test_dissidio_pdf_piso.TestCalcularRetroativo object at 0xf9c29d2f0a50>
 
     def test_calcular_retroativo_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -19005,7 +20180,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/dissidio/calcul
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ________ TestEndpointAvailability.test_calculos_dissidio_list_endpoint _________
 
-self = <test_dissidio_pdf_piso.TestEndpointAvailability object at 0xfd2e98a655d0>
+self = <test_dissidio_pdf_piso.TestEndpointAvailability object at 0xf9c29d2f2e90>
 
     def test_calculos_dissidio_list_endpoint(self):
         """Test that calculos-dissidio list endpoint exists"""
@@ -19072,7 +20247,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____ TestEndpointAvailability.test_exportar_convencao_pdf_endpoint_exists _____
 
-self = <test_dissidio_pdf_piso.TestEndpointAvailability object at 0xfd2e98a65c10>
+self = <test_dissidio_pdf_piso.TestEndpointAvailability object at 0xf9c29d2f34d0>
 
     def test_exportar_convencao_pdf_endpoint_exists(self):
         """Test that exportar-convencao-pdf endpoint exists"""
@@ -19139,7 +20314,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______ TestEndpointAvailability.test_calcular_retroativo_endpoint_exists _______
 
-self = <test_dissidio_pdf_piso.TestEndpointAvailability object at 0xfd2e98a66250>
+self = <test_dissidio_pdf_piso.TestEndpointAvailability object at 0xf9c29d2f3b10>
 
     def test_calcular_retroativo_endpoint_exists(self):
         """Test that calcular-retroativo endpoint exists"""
@@ -19206,7 +20381,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _________________________ TestAuth.test_login_success __________________________
 
-self = <test_new_features.TestAuth object at 0xfd2e98a85210>
+self = <test_new_features.TestAuth object at 0xf9c29d141190>
 
     def test_login_success(self):
         """Test login with valid credentials"""
@@ -19272,7 +20447,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____________ TestPDFExport.test_exportar_resumo_pdf_unauthorized ______________
 
-self = <test_new_features_v2.TestPDFExport object at 0xfd2e988a47d0>
+self = <test_new_features_v2.TestPDFExport object at 0xf9c29d14b550>
 
     def test_exportar_resumo_pdf_unauthorized(self):
         """Test PDF export without auth token"""
@@ -19339,7 +20514,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/convencao/expor
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____ TestConversaoApontamentos.test_conversao_apontamentos_requires_auth ______
 
-self = <test_new_features_v2.TestConversaoApontamentos object at 0xfd2e988a5010>
+self = <test_new_features_v2.TestConversaoApontamentos object at 0xf9c29d14be10>
 
     def test_conversao_apontamentos_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -19404,7 +20579,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/conversao/apont
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______ TestConversaoAdmissional.test_conversao_admissional_requires_auth _______
 
-self = <test_new_features_v2.TestConversaoAdmissional object at 0xfd2e988a6d50>
+self = <test_new_features_v2.TestConversaoAdmissional object at 0xf9c29d159b10>
 
     def test_conversao_admissional_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -19469,7 +20644,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/conversao/admis
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _________ TestValidacaoRescisao.test_validacao_rescisao_requires_auth __________
 
-self = <test_new_features_v2.TestValidacaoRescisao object at 0xfd2e988a7d50>
+self = <test_new_features_v2.TestValidacaoRescisao object at 0xf9c29d15b750>
 
     def test_validacao_rescisao_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -19534,7 +20709,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/validacao/resci
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____________________ TestFrontendRoutes.test_frontend_loads ____________________
 
-self = <test_new_features_v2.TestFrontendRoutes object at 0xfd2e988ad510>
+self = <test_new_features_v2.TestFrontendRoutes object at 0xf9c29d1645d0>
 
     def test_frontend_loads(self):
         """Test that frontend is accessible"""
@@ -19598,7 +20773,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '': No scheme supplie
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ________________ TestFrontendRoutes.test_login_page_accessible _________________
 
-self = <test_new_features_v2.TestFrontendRoutes object at 0xfd2e988adb50>
+self = <test_new_features_v2.TestFrontendRoutes object at 0xf9c29d164910>
 
     def test_login_page_accessible(self):
         """Test login page is accessible"""
@@ -19662,7 +20837,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/login': No scheme s
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______________ TestConvencaoAnalisar.test_analisar_requires_auth _______________
 
-self = <test_proporcionalidade_vigencia.TestConvencaoAnalisar object at 0xfd2e988b8610>
+self = <test_proporcionalidade_vigencia.TestConvencaoAnalisar object at 0xf9c29d166c90>
 
     def test_analisar_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -19727,7 +20902,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/convencao/anali
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ______________ TestCalcularRetroativo.test_calcular_requires_auth ______________
 
-self = <test_proporcionalidade_vigencia.TestCalcularRetroativo object at 0xfd2e988b95d0>
+self = <test_proporcionalidade_vigencia.TestCalcularRetroativo object at 0xf9c29d167c10>
 
     def test_calcular_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -19792,7 +20967,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/dissidio/calcul
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ____________ TestExportarConvencaoPDF.test_export_pdf_requires_auth ____________
 
-self = <test_proporcionalidade_vigencia.TestExportarConvencaoPDF object at 0xfd2e98a4e590>
+self = <test_proporcionalidade_vigencia.TestExportarConvencaoPDF object at 0xf9c29d16d910>
 
     def test_export_pdf_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -19858,7 +21033,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/calculos-dissid
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _______________ TestListCalculosDissidio.test_list_requires_auth _______________
 
-self = <test_proporcionalidade_vigencia.TestListCalculosDissidio object at 0xfd2e988b8250>
+self = <test_proporcionalidade_vigencia.TestListCalculosDissidio object at 0xf9c29d16de50>
 
     def test_list_requires_auth(self):
         """Test that endpoint requires authentication"""
@@ -19923,7 +21098,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/calculos-dissid
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____________________ TestAuthAndBasics.test_login_success _____________________
 
-self = <test_validacao_async_polling.TestAuthAndBasics object at 0xfd2e988c2210>
+self = <test_validacao_async_polling.TestAuthAndBasics object at 0xf9c29d179550>
 
     def test_login_success(self):
         """Test login with valid credentials"""
@@ -19989,7 +21164,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 _____________________ TestAuthAndBasics.test_login_success _____________________
 
-self = <test_validacao_folha.TestAuthAndBasics object at 0xfd2e988d3910>
+self = <test_validacao_folha.TestAuthAndBasics object at 0xf9c29d186c10>
 
     def test_login_success(self):
         """Test login with valid credentials"""
@@ -20055,7 +21230,7 @@ E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No
 /root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
 ________ TestDocumentProcessor.test_parse_folha_multiplos_colaboradores ________
 
-self = <test_validacao_multiplos_colaboradores.TestDocumentProcessor object at 0xfd2e988f4710>
+self = <test_validacao_multiplos_colaboradores.TestDocumentProcessor object at 0xf9c29d1affd0>
 
     def test_parse_folha_multiplos_colaboradores(self):
         """Test parsing multiple collaborators from payroll text"""
@@ -20070,7 +21245,7 @@ E       FileNotFoundError: [Errno 2] No such file or directory: '/tmp/folha_mult
 backend/tests/test_validacao_multiplos_colaboradores.py:505: FileNotFoundError
 ______________ TestDocumentProcessor.test_parse_apoio_referencias ______________
 
-self = <test_validacao_multiplos_colaboradores.TestDocumentProcessor object at 0xfd2e988f4b50>
+self = <test_validacao_multiplos_colaboradores.TestDocumentProcessor object at 0xf9c29d1b4350>
 
     def test_parse_apoio_referencias(self):
         """Test parsing support references"""
@@ -20089,6 +21264,8 @@ FAILED backend/tests/test_colaboradores.py::TestAuthentication::test_login_with_
 FAILED backend/tests/test_colaboradores.py::TestAuthentication::test_login_with_invalid_credentials
 FAILED backend/tests/test_colaboradores.py::TestAuthentication::test_get_current_user
 FAILED backend/tests/test_colaboradores_import.py::TestColaboradoresImport::test_login_success
+FAILED backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportAI::test_login_success
+FAILED backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportAI::test_import_requires_authentication
 FAILED backend/tests/test_dissidio_pdf_piso.py::TestExportarConvencaoPDF::test_export_pdf_requires_auth
 FAILED backend/tests/test_dissidio_pdf_piso.py::TestCalcularRetroativo::test_calcular_retroativo_requires_auth
 FAILED backend/tests/test_dissidio_pdf_piso.py::TestEndpointAvailability::test_calculos_dissidio_list_endpoint
@@ -20128,6 +21305,13 @@ ERROR backend/tests/test_colaboradores_import.py::TestColaboradoresImport::test_
 ERROR backend/tests/test_colaboradores_import.py::TestColaboradoresImport::test_verify_colaboradores_persisted
 ERROR backend/tests/test_colaboradores_import.py::TestColaboradoresImport::test_salvar_lote_with_all_fields
 ERROR backend/tests/test_colaboradores_import.py::TestColaboradoresCleanup::test_cleanup_test_colaboradores
+ERROR backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportAI::test_import_txt_file_with_ai
+ERROR backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportAI::test_import_pdf_file_with_ai
+ERROR backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportAI::test_txt_extraction_distinguishes_employee_from_company
+ERROR backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportAI::test_txt_extraction_all_additional_fields
+ERROR backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportAI::test_import_requires_file
+ERROR backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportValidation::test_extracted_cpf_format
+ERROR backend/tests/test_colaboradores_import_ai.py::TestColaboradoresImportValidation::test_extracted_salario_is_numeric
 ERROR backend/tests/test_dissidio_integration.py::TestFullDissidioFlow::test_create_calculo_with_convencao_data
 ERROR backend/tests/test_dissidio_integration.py::TestFullDissidioFlow::test_list_and_export_pdf
 ERROR backend/tests/test_dissidio_integration.py::TestFullDissidioFlow::test_alertas_piso_structure
@@ -20235,4 +21419,5 @@ ERROR backend/tests/test_validacao_ocr.py::TestValidacaoListAndDetails::test_lis
 ERROR backend/tests/test_validacao_ocr.py::TestValidacaoListAndDetails::test_view_validacao_details
 ERROR backend/tests/test_validacao_ocr.py::TestOCRDataExtraction::test_extract_proventos_descontos
 ERROR backend/tests/test_validacao_ocr.py::TestOCRDataExtraction::test_extract_proventos_descontos
-======================= 25 failed, 126 errors in 11.60s ========================, por exemplo) foi criado, o que torna o projeto frágil e dependente de testes manuais ou do testing agent para cada mudança.</analysis>
+======================== 27 failed, 133 errors in 5.45s ========================) para os inúmeros bugs corrigidos, aumentando o risco de regressões futuras.
+-   O agente não propôs enfaticamente a refatoração do  ao usuário, apesar de reconhecer sua criticidade.</analysis>
