@@ -3076,6 +3076,25 @@ async def upload_xml_batch(
                         "destinatario": parsed_data.get('destinatario_nome', '')
                     })
                     continue
+                
+                # NOVA VALIDAÇÃO: Rejeitar NF de terceiro com CFOP de entrada
+                # Se o emitente NÃO é a empresa, mas os CFOPs no XML já são de entrada (1xxx, 2xxx, 3xxx),
+                # isso significa que um terceiro emitiu uma nota com CFOP de entrada - não devemos escriturar
+                if cnpj_emitente != cnpj_empresa:
+                    cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
+                    cfops_entrada = [c for c in cfops_xml if c and c[0] in ['1', '2', '3']]
+                    
+                    if cfops_entrada and len(cfops_entrada) == len(cfops_xml):
+                        # Todos os CFOPs são de entrada - NF irregular de terceiro
+                        rejeitadas_cnpj.append({
+                            "filename": file.filename,
+                            "numero_nfe": parsed_data.get('numero_nfe', ''),
+                            "motivo": f"NF de terceiro com CFOP de entrada ({', '.join(set(cfops_entrada)[:3])}). Emitente ({parsed_data.get('emitente_nome', '')[:30]}) não é a empresa selecionada. Esta NF não deve ser escriturada.",
+                            "emitente": parsed_data.get('emitente_nome', ''),
+                            "destinatario": parsed_data.get('destinatario_nome', ''),
+                            "tipo_rejeicao": "nf_terceiro_cfop_entrada"
+                        })
+                        continue
             else:  # saida
                 cnpj_valido = cnpj_emitente == cnpj_empresa
                 if not cnpj_valido:
