@@ -2,73 +2,116 @@
 O usuário deseja um portal de departamento pessoal abrangente para seu escritório, a Business Contabilidade.
 
 **Requisitos Iniciais:**
-1.  **Validação de Folha de Pagamento**: Processar arquivos de folha (SCI Único), compará-los com holerites anteriores e arquivos de apoio (planilhas, imagens) usando IA para detectar divergências. Permitir que verbas fixas sejam ignoradas.
-2.  **Cálculo de Dissídio Coletivo**: Um fluxo automatizado por IA para analisar a convenção coletiva, extrair dados-chave, calcular ajustes retroativos com base nos holerites fornecidos e apresentar uma memória de cálculo detalhada.
+1.  **Validação de Folha de Pagamento**: Processar arquivos de folha, compará-los com holerites anteriores e arquivos de apoio para detectar divergências.
+2.  **Cálculo de Dissídio Coletivo**: Um fluxo automatizado por IA para analisar convenções coletivas, calcular ajustes retroativos e apresentar uma memória de cálculo.
 
-**Novos Requisitos da Sessão:**
-1.  **Reestruturação e UI/UX**:
-    *   Reorganizar o menu principal em categorias funcionais: , ,  e .
-    *   Aplicar uma identidade visual profissional e um tema escuro para a Business Contabilidade.
-    *   Redesenhar o Dashboard para exibir métricas úteis (total de empresas/colaboradores, admissões pendentes, próximos dissídios, gráfico de evolução).
-2.  **Novos Módulos**:
-    *   **Conversões**: Ferramentas para converter (1) apontamentos de clientes em formato SCI Único e (2) documentos admissionais em um layout padrão, validando informações faltantes.
-    *   **Validações**: Adicionar uma nova ferramenta para , onde a IA analisa documentos de término de contrato para verificar a correção dos valores.
-3.  **Melhorias de Funcionalidades**:
-    *   **Dissídio**: Exportar um resumo da convenção coletiva analisada em um papel timbrado da Business Contabilidade.
-    *   **Empresas**: Implementar uma funcionalidade de importação de empresas em lote via arquivo (CSV/XLSX).
+**Requisitos Adicionais (Sessão Atual):**
+1.  **Reestruturação e UI/UX**: Reorganizar o menu, aplicar um tema escuro e redesenhar o Dashboard.
+2.  **Novos Módulos**: Conversão de Apontamentos, Conversão Admissional e Validação de Rescisão.
+3.  **Melhorias Funcionais**: Exportação de resumos, importação de empresas em lote.
+4.  **Melhorias de Usabilidade (UX)**:
+    *   Exigir a seleção de empresa/competência ao fazer login e persistir a última seleção.
+    *   Exibir o ID da empresa antes do nome em toda a aplicação.
+    *   Formatar campos de data (MM/AAAA) e valores monetários (R$ 1.234,56) automaticamente.
+5.  **Melhorias no Módulo de Dissídio**:
+    *   Adicionar uma função para excluir cálculos antigos.
+    *   Melhorar o contraste e a legibilidade da interface.
+    *   Aprimorar a análise da IA para identificar pisos salariais por função.
+    *   Corrigir bugs na exportação de PDF e Excel.
+    *   Aprimorar o design e o conteúdo do PDF de resumo da convenção.
+    *   Adicionar uma validação no backend para garantir que nenhum funcionário receba abaixo do piso salarial de sua função.
+    *   Adicionar um botão para exportar o resumo da convenção a partir da lista de cálculos já realizados.
 
 **User's preferred language**: Portuguese. The next agent MUST respond in Portuguese.
 
 **what currently exists?**
-- Uma aplicação full-stack (FastAPI + React) com autenticação JWT.
-- A UI foi completamente redesenhada com um tema escuro profissional para a Business Contabilidade.
-- O menu principal foi reorganizado nas categorias , ,  e , com as respectivas rotas e páginas de placeholder criadas.
-- O Dashboard foi redesenhado com métricas de negócio relevantes e um gráfico de evolução de empresas/colaboradores. O endpoint de backend () que fornece esses dados foi implementado.
-- A funcionalidade de importação de empresas em lote foi implementada na página de Empresas, incluindo o endpoint de backend () e a UI com um modal de upload.
-- Um bug crítico na funcionalidade de expansão (acordeão) dos resultados do cálculo de dissídio foi corrigido.
+- Uma aplicação full-stack (FastAPI + React) com autenticação JWT e um tema escuro profissional.
+- O menu principal está reorganizado nas categorias , ,  e .
+- O Dashboard foi redesenhado e exibe métricas de negócio.
+- A funcionalidade de importação de empresas em lote está implementada.
+- O módulo de Dissídio passou por diversas melhorias:
+    - A análise de IA foi aprimorada para extrair pisos salariais por função.
+    - A UI foi ajustada para melhor contraste, formatação de moeda (BRL) e máscara de data (MM/AAAA).
+    - A exportação de resumo da convenção em PDF foi redesenhada para ser mais profissional e incluir os pisos salariais.
+    - Foi adicionado um endpoint () e um botão na UI para excluir cálculos.
+    - Bugs nas exportações de PDF e Excel foram corrigidos.
+- Melhorias de UX foram implementadas, como a seleção de contexto (empresa/competência) no login e a exibição do ID da empresa () globalmente.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava executando a grande reorganização estrutural do menu e das funcionalidades. Ele criou os arquivos de placeholder para as novas páginas (, , ), atualizou o menu no  e adicionou as novas rotas no .
+-   **Last item agent was working**: O agente estava trabalhando em três melhorias solicitadas pelo usuário para o módulo de Dissídio:
+    1.  Incluir os pisos salariais analisados no relatório PDF do resumo da convenção.
+    2.  Adicionar um botão na lista de cálculos de dissídio para exportar o resumo da convenção em PDF.
+    3.  Implementar uma verificação no backend para garantir que, no cálculo retroativo, nenhum funcionário fique com o salário abaixo do piso de sua função.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: N
--   **Which testing method agent to use?**: frontend testing agent
+-   **Agent Testing Done**: N (O agente implementou partes do código, mas não realizou um teste ponta-a-ponta das novas funcionalidades).
+-   **Which testing method agent to use?**: both (backend para os novos endpoints e lógicas de validação; frontend para os novos botões e fluxos).
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-Nenhum. O último bug reportado (detalhamento do dissídio não abria) foi corrigido.
+-   **Issue 1: Análise de piso salarial no cálculo retroativo (P0)**
+    - O usuário solicitou que o sistema valide se nenhum funcionário está abaixo do piso salarial de sua função durante o cálculo do dissídio retroativo. Esta é uma verificação de lógica de negócio crítica.
+-   **Issue 2: Exportação de PDF a partir da lista de cálculos (P0)**
+    - O usuário pediu um botão de exportação de PDF ao lado de cada cálculo na lista de Cálculos Anteriores. Isso requer um novo endpoint no backend e a implementação do botão no frontend.
+
+**Issues Detail**:
+-   **Issue 1: Análise de piso salarial no cálculo retroativo**
+    -   **Attempted fixes**: Nenhum. A tarefa foi solicitada, mas não iniciada.
+    -   **Next debug checklist**:
+        -   Modificar o endpoint  em .
+        -   Dentro da lógica de cálculo, para cada funcionário, obter o piso salarial de sua função (extraído da análise da convenção).
+        -   Comparar o salário base do funcionário com o piso.
+        -   Se o salário for inferior, sinalizar isso na resposta da API para que a UI possa exibir um alerta.
+    -   **Why fix this issue and what will be achieved with the fix?**: Garante a conformidade legal dos cálculos e adiciona uma camada importante de validação automatizada para o usuário.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on other issue**: Não.
+-   **Issue 2: Exportação de PDF a partir da lista de cálculos**
+    -   **Attempted fixes**: Nenhum. A tarefa foi solicitada, mas não iniciada.
+    -   **Next debug checklist**:
+        -   Criar um novo endpoint no backend, como .
+        -   Este endpoint deve buscar o , encontrar os  associados a ele no banco de dados e passá-los para a função de geração de PDF já existente.
+        -   No frontend (), na seção de listagem Cálculos Anteriores, adicionar um novo ícone/botão (ex: ) ao lado do ícone da lixeira.
+        -   Implementar a função  para chamar o novo endpoint e acionar o download do PDF.
+    -   **Why fix this issue and what will be achieved with the fix?**: Permite ao usuário acessar facilmente o resumo da convenção usado em um cálculo passado, sem precisar refazer a análise.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on other issue**: Não.
 
 **In progress Task List**:
--   **Task 1: Concluir a reorganização estrutural e implementar as novas funcionalidades.** (P0)
-
-**Task Detail**:
--   **Task 1**:
-    -   **Where to resume**: As páginas de placeholder foram criadas. O próximo passo é começar a desenvolver as funcionalidades solicitadas, priorizando a exportação do resumo do dissídio em papel timbrado.
-    -   **What will be achieved with this?**: O portal terá sua estrutura alinhada ao novo fluxo de trabalho do usuário e as novas funcionalidades começarão a ser desenvolvidas.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on something**: Nada.
+Nenhum. As tarefas pendentes são classificadas como issues.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    -   **P0: Implementar Exportação de Resumo do Dissídio**: Criar um endpoint de backend para gerar um PDF em papel timbrado da Business Contabilidade com o resumo da convenção analisada (tabela de/para, pontos de atenção) e adicionar um botão na UI para o download.
     -   **P0: Implementar Conversão de Apontamentos**: Desenvolver a UI e a lógica de backend (com IA) para converter arquivos de clientes (imagens, e-mails) para o formato SCI Único.
-    -   **P0: Implementar Conversão Admissional**: Desenvolver a UI e a lógica de backend (com IA) para extrair dados de documentos admissionais, padronizá-los e validar informações faltantes.
-    -   **P0: Implementar Validação de Rescisão**: Desenvolver a UI e a lógica de backend (com IA) para validar cálculos de rescisão com base em múltiplos documentos.
+    -   **P0: Implementar Conversão Admissional**: Desenvolver a UI e a lógica de backend (com IA) para extrair dados de documentos admissionais e validá-los.
+    -   **P0: Implementar Validação de Rescisão**: Desenvolver a UI e a lógica de backend (com IA) para validar cálculos de rescisão.
 -   **Future Tasks**:
-    -   **P1: Refatorar **: O arquivo monolítico ( linhas) precisa ser urgentemente dividido em múltiplos routers para manutenibilidade.
+    -   **P1: Refatorar **: Este é um débito técnico crítico. O arquivo monolítico com mais de 4000 linhas precisa ser dividido em múltiplos routers para manutenibilidade.
     -   **P1: Implementar Validação de Informes de Rendimento**.
     -   **P2: Importação de colaboradores em lote**.
     -   **P2: Exportação de relatórios do dashboard**.
 
 **Completed work in this session**
--   **UI/UX Overhaul**: Toda a aplicação foi redesenhada com um tema escuro profissional e a nova identidade visual da Business Contabilidade.
--   **Dashboard Redesenhado**: O Dashboard agora exibe métricas de negócio úteis e um gráfico de evolução, alimentado por um novo endpoint de backend ().
--   **Importação de Empresas em Lote**: Implementada a funcionalidade completa, incluindo UI (modal, dropzone, download de template) e o endpoint de backend ().
--   **Correção de Bug Crítico (Dissídio)**: Resolvido o problema que impedia a expansão dos detalhes nos resultados do cálculo de dissídio, refatorando a lógica de estado para permitir múltiplas expansões.
--   **Reorganização do Menu**: A estrutura do menu principal foi reorganizada e os arquivos de placeholder para as novas funcionalidades foram criados.
+-   **UI/UX Overhaul**: Redesenho completo da aplicação com tema escuro e nova identidade visual.
+-   **Menu e Roteamento**: Reorganização do menu principal e criação de rotas para novas funcionalidades.
+-   **Dashboard Redesenhado**: Implementação de novas métricas e gráfico de evolução.
+-   **Importação de Empresas**: Implementação da funcionalidade de importação em lote.
+-   **Módulo de Dissídio (Melhorias Extensivas)**:
+    -   Corrigida a legibilidade da UI e o contraste das cores.
+    -   Adicionada funcionalidade de exclusão de cálculos.
+    -   Implementada formatação automática para moeda (BRL) e data (MM/AAAA).
+    -   Melhorada a análise de IA para extrair pisos salariais por função e exibidos na UI.
+    -   Corrigidos múltiplos bugs críticos nas exportações de PDF e Excel.
+    -   O PDF de resumo da convenção foi completamente redesenhado para ter um layout mais profissional e informativo.
+-   **Melhorias de Usabilidade (UX)**:
+    -   Implementado modal de seleção de empresa/competência no login.
+    -   Padronizada a exibição do nome da empresa com seu ID.
+    -   Adicionada persistência da última empresa selecionada no .
 
 **Earlier issues found/mentioned but not fixed**
--   **Refatoração do **: Este é um débito técnico crítico. O arquivo é um monolito com mais de 4000 linhas e precisa ser dividido em routers para garantir a escalabilidade e a manutenção do projeto.
+-   **Refatoração do **: Débito técnico crítico. O arquivo é um monolito com mais de 4000 linhas e sua complexidade dificulta a manutenção e a implementação de novas funcionalidades.
 
 **Known issue recurrence from previous fork**
 -   Nenhum.
@@ -77,72 +120,73 @@ Nenhum. O último bug reportado (detalhamento do dissídio não abria) foi corri
 
 
 **Key Technical Concepts**
--   **Backend**: FastAPI, Motor (MongoDB), BackgroundTasks, .
--   **Frontend**: React, Axios, Shadcn UI, TailwindCSS, ,  (para parsing de arquivos no cliente).
--   **UI Theming**: Uso intensivo de variáveis CSS e TailwindCSS para o tema escuro.
+-   **Backend**: FastAPI, Motor (MongoDB),  para IA,  para PDFs.
+-   **Frontend**: React, Axios, Shadcn UI, TailwindCSS, , .
+-   **Persistência**: Uso de  no frontend para guardar o contexto do usuário (empresa e competência selecionadas).
 
 **key DB schema**
 -   : Armazena dados das empresas clientes.
 -   : Armazena dados dos colaboradores.
--   : Armazena os resultados dos cálculos de dissídio.
--   : Armazena os resultados da validação de folha.
+-   : Armazena os resultados dos cálculos de dissídio, incluindo os  utilizados.
 -   : Armazena os usuários do portal.
 
 **All files of reference**
--   : Contém todos os endpoints, incluindo os novos para o dashboard e importação em lote.
--   : Contém a nova estrutura do menu.
--   : Implementação do novo dashboard.
--   : Contém a funcionalidade de importação em lote.
--   : Local da correção do bug de expansão.
--   : Contém as novas rotas para as páginas de placeholder.
--   : Arquivo da nova logo.
+-   : Contém toda a lógica de backend. As próximas alterações serão nos endpoints de dissídio () e na criação de um novo endpoint para exportação.
+-   : O arquivo central para as recentes mudanças de frontend. As próximas alterações serão na lista de Cálculos Anteriores.
+-   : Contém helpers para formatação de dados da empresa.
+-   : Gerencia o estado global da empresa e competência selecionadas.
+-   : Documento de requisitos do produto, atualizado ao longo da sessão.
 
 **Areas that need refactoring**:
--   **CRÍTICO**: O arquivo  deve ser a maior prioridade de refatoração. Sua complexidade e tamanho estão se tornando um grande risco para o projeto.
+-   **CRÍTICO**: O arquivo  deve ser a principal prioridade de refatoração após a conclusão das tarefas atuais. Sua complexidade está se tornando um risco para a estabilidade e evolução do projeto.
 
 **key api endpoints**
--   : Fornece dados agregados para o novo dashboard.
--   : Processa a importação de empresas em lote.
--   : Endpoint principal para o cálculo de dissídio.
--   : Endpoint para análise da convenção coletiva por IA.
+-   : Endpoint central do cálculo de dissídio. **Precisa ser modificado para a validação do piso salarial.**
+-   : Endpoint de análise de IA. O prompt foi melhorado para extrair pisos por função.
+-   : Gera o PDF do resumo da convenção. O design e conteúdo foram aprimorados.
+-   : Exclui um cálculo de dissídio.
+-   : Exporta o resultado do cálculo para Excel (bug corrigido).
 
 **Critical Info for New Agent**
--   A prioridade imediata é dar continuidade ao plano do usuário, começando pelo desenvolvimento da funcionalidade de **exportação do resumo do dissídio**.
--   Todas as novas páginas e componentes devem seguir estritamente o novo design system (tema escuro) visível em páginas como  e .
--   A refatoração do  é um débito técnico urgente. Proponha ao usuário como a próxima grande tarefa de engenharia após a implementação das funcionalidades atuais.
+-   A prioridade imediata é implementar as duas melhorias pendentes no módulo de Dissídio: a validação do piso salarial no backend e o botão de exportação de PDF na lista de cálculos.
+-   Após a conclusão dessas tarefas, proponha ao usuário a refatoração do  como a próxima grande tarefa de engenharia, explicando os benefícios de manutenibilidade e escalabilidade.
+-   Todas as novas implementações devem seguir rigorosamente o design system (tema escuro) e os padrões de código já estabelecidos.
 
 **documents and test reports created in this job**
--   : Contém as diretrizes de design geradas pelo subagente.
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **user**: Solicitou uma grande reorganização do menu (, , etc.) e a criação de novas funcionalidades, como a  e a exportação do resumo do dissídio. (Status: **EM ANDAMENTO**)
-2.  **user**: Pediu para ajustar a logo, adicionar um gráfico de evolução ao dashboard e criar a importação de empresas em lote. (Status: **RESOLVIDO**)
-3.  **user**: Forneceu uma nova logo e especificou as métricas desejadas para o novo dashboard. (Status: **RESOLVIDO**)
-4.  **user**: Reclamou da legibilidade da logo. (Status: **RESOLVIDO**)
-5.  **user**: Aprovou o novo tema escuro e pediu para aplicá-lo ao restante do portal. (Status: **RESOLVIDO**)
-6.  **user**: Solicitou a reforma estrutural e visual do portal para torná-lo mais profissional. (Status: **RESOLVIDO**)
-7.  **user**: Reportou que o detalhamento (expansão) nos cálculos de dissídio não estava funcionando. (Status: **RESOLVIDO**)
-8.  **user**: Reportou um bug de forma genérica (AINDA COM BUG). (Status: **RESOLVIDO**, era o bug de expansão)
-9.  **user**: Pediu totalizadores e um visual melhor para a memória de cálculo do dissídio. (Status: **RESOLVIDO**)
-10. **user**: Pediu melhorias na exibição do resultado do dissídio (salário anterior/novo, exclusão de impostos). (Status: **RESOLVIDO**)
+1.  **user**: Pediu para incluir os pisos analisados no PDF e um botão para exportar o PDF do resumo na tela de listagem de cálculos. Também solicitou uma verificação para garantir que nenhum funcionário esteja abaixo do piso salarial de sua função no cálculo retroativo. (Status: **IN PROGRESS / LAST WORKING ITEM**)
+2.  **user**: Criticou a legibilidade da tela de resultado do cálculo de dissídio e sugeriu usar Folha Era e Folha Ficou como labels. (Status: **RESOLVED**)
+3.  **user**: Solicitou uma análise mais elaborada e uma formatação mais bonita para o PDF do resumo da convenção. (Status: **RESOLVED**)
+4.  **user**: Reportou que os campos de valor na tela de dissídio não estavam formatados como moeda (R$). (Status: **RESOLVED**)
+5.  **user**: Reportou um erro na exportação do PDF e pediu para que campos de data e valores fossem formatados automaticamente. (Status: **RESOLVED**)
+6.  **user**: Reclamou que a tela de revisão de dados do dissídio (Step 2) estava ilegível no tema escuro e a exportação de PDF estava com erro. (Status: **RESOLVED**)
+7.  **user**: Pediu um botão de lixeira para excluir cálculos de dissídio e melhoria nas cores da tela. (Status: **RESOLVED**)
+8.  **user**: Solicitou melhorias de UX, como forçar a seleção de empresa/competência no login e exibir o ID da empresa antes do nome. (Status: **RESOLVED**)
+9.  **user**: Reportou que a exportação de Excel após o cálculo do dissídio estava com erro, pediu mais contraste na tela de resultados e uma análise mais precisa dos pisos por função. (Status: **RESOLVED**)
+10. **user**: Aprovou o início dos trabalhos. (Status: **RESOLVED**)
 
 **Project Health Check:**
--   **Broken**: Não. As funcionalidades principais estão estáveis, e as novas estão como placeholders.
--   **Mocked**: Nenhuma.
+-   **Broken**: Não.
+-   **Mocked**: As páginas de ,  e  são placeholders funcionais, mas a lógica de negócio principal ainda não foi implementada.
 
 **3rd Party Integrations**
 -   **Emergent LLM Key (via )**: Usada para todas as análises de documentos com IA.
 -   **react-chartjs-2**: Para os gráficos do dashboard.
--   **xlsx**: Para o parsing de arquivos Excel/CSV no frontend durante a importação em lote.
+-   **xlsx**: Para o parsing de arquivos Excel/CSV no frontend.
+-   **reportlab**: Para a geração de PDFs no backend.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
--   **Test files created**: N/A
--   **Known regressions**: None
+-   **Testing agent used after significant changes**: YES, foi usado uma vez, mas mudanças e correções posteriores foram testadas manualmente.
+-   **Test files created**: Não há arquivos de teste automatizados (pytest/jest).
+-   **Known regressions**: Nenhum no momento, pois os bugs reportados (PDF/Excel) foram corrigidos.
 
 **Credentials to test flow:**
 -   **Usuário**: 
 -   **Senha**: 
 
 **What agent forgot to execute**
--   A refatoração do  foi identificada como necessária em várias ocasiões, mas ainda não foi executada. Este é o principal débito técnico pendente.</analysis>
+-   A refatoração do  é o débito técnico mais significativo que foi consistentemente adiado.
+-   Não foram criados testes automatizados (ex: pytest) para os endpoints, o que leva à descoberta de bugs (como o da exportação de Excel) tardiamente pelo usuário.</analysis>
