@@ -5271,16 +5271,25 @@ IMPORTANTE:
             extra_text = "".join(excel_text_contents)
             
             response = await chat.send_message(UserMessage(
-                text=f"""Analise os arquivos de apontamentos enviados e extraia os dados.
+                text=f"""ANALISE O DOCUMENTO DE APONTAMENTO e extraia TODOS os dados para preencher a planilha.
 
-TEMPLATE DE DESTINO (estrutura da planilha SCI para preencher):
-Colunas: {json.dumps(template_info.get('header_names', []), ensure_ascii=False)}
+=== COLUNAS DA PLANILHA DE DESTINO ===
+{json.dumps(header_names, ensure_ascii=False)}
 
-Arquivos enviados: {len(file_contents)} arquivo(s) de apontamentos
-Competência: {competencia or 'não informada'}
-{extra_text}
+=== COMPETÊNCIA ===
+{competencia or 'Não informada - identifique pelo documento'}
 
-Extraia os dados e formate conforme o template.""",
+=== DADOS DO DOCUMENTO DE APONTAMENTO ===
+{extra_text if extra_text else "(Analise os arquivos de imagem/PDF anexados)"}
+
+=== INSTRUÇÕES ===
+1. Leia TODOS os dados do documento de apontamento
+2. Identifique CADA funcionário e CADA evento/lançamento
+3. Preencha os registros usando os NOMES EXATOS das colunas acima
+4. Gere uma linha para cada combinação funcionário + evento
+5. Retorne o JSON com os registros preenchidos
+
+ATENÇÃO: Extraia TODOS os dados visíveis no documento. Não deixe de incluir nenhum funcionário ou evento.""",
                 file_contents=file_contents if file_contents else None
             ))
             
