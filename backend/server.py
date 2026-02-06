@@ -96,8 +96,7 @@ class ClienteCreate(BaseModel):
     responsavel_dp: Optional[str] = None
     contador_responsavel: Optional[str] = None
     observacoes: Optional[str] = None
-    # Convenção Coletiva
-    convencao_coletiva: Optional[Dict[str, Any]] = None
+    data_base_dissidio: Optional[str] = None
 
 class ClienteResponse(BaseModel):
     id: str
@@ -125,10 +124,12 @@ class ClienteResponse(BaseModel):
     responsavel_dp: Optional[str] = None
     contador_responsavel: Optional[str] = None
     observacoes: Optional[str] = None
+    data_base_dissidio: Optional[str] = None
     created_at: str
     total_colaboradores: int = 0
-    # Convenção Coletiva
+    # Convenções Coletivas - atual e histórico
     convencao_coletiva: Optional[Dict[str, Any]] = None
+    historico_convencoes: Optional[List[Dict[str, Any]]] = None
 
 # Colaborador Models - Completo eSocial
 class ColaboradorCreate(BaseModel):
