@@ -6185,69 +6185,71 @@ async def validar_rescisao_etapa2(
             chat = LlmChat(
                 api_key=api_key,
                 session_id=f"rescisao-etapa2-{uuid.uuid4()}",
-                system_message=f"""Você é um especialista em validação de rescisões trabalhistas.
+                system_message=f"""Você é um analista de departamento pessoal validando uma rescisão.
 
-ATENÇÃO: Os dados abaixo foram extraídos do TERMO DE RESCISÃO (TRCT) na etapa anterior.
-USE ESTES DADOS como referência - NÃO diga que "não encontrou no termo".
-Estes são os VALORES OFICIAIS do termo:
+=== DADOS JÁ EXTRAÍDOS DO TERMO DE RESCISÃO (TRCT) ===
+Colaborador: {termo_info.get('colaborador', 'N/A')}
+Admissão: {resumo.get('data_admissao', 'N/A')} | Demissão: {resumo.get('data_demissao', 'N/A')}
+Tipo: {resumo.get('tipo_rescisao', 'N/A')}
+Salário Base: R$ {resumo.get('salario_base', 0)}
+Dias Trabalhados: {resumo.get('dias_trabalhados', 'N/A')}
 
-╔══════════════════════════════════════════════════════════════╗
-║                    DADOS DO TERMO (TRCT)                      ║
-╠══════════════════════════════════════════════════════════════╣
-║ Colaborador: {termo_info.get('colaborador', 'N/A')}
-║ CPF: {termo_info.get('cpf', 'N/A')}
-║ Cargo: {termo_info.get('cargo', 'N/A')}
-╠══════════════════════════════════════════════════════════════╣
-║ Data Admissão: {resumo.get('data_admissao', 'N/A')}
-║ Data Demissão: {resumo.get('data_demissao', 'N/A')}
-║ Tipo Rescisão: {resumo.get('tipo_rescisao', 'N/A')}
-║ Salário Base: R$ {resumo.get('salario_base', 'N/A')}
-║ Dias Trabalhados: {resumo.get('dias_trabalhados', 'N/A')}
-║ Aviso Prévio: {resumo.get('aviso_previo_tipo', 'N/A')} ({resumo.get('aviso_previo_dias', 'N/A')} dias)
-╠══════════════════════════════════════════════════════════════╣
-║ VERBAS RESCISÓRIAS:
-║ • Saldo Salário: R$ {verbas.get('saldo_salario', 0)}
-║ • Aviso Prévio Indenizado: R$ {verbas.get('aviso_previo_indenizado', 0)}
-║ • Férias Vencidas: R$ {verbas.get('ferias_vencidas', 0)}
-║ • Férias Proporcionais: R$ {verbas.get('ferias_proporcionais', 0)}
-║ • 1/3 Férias: R$ {verbas.get('terco_ferias', 0)}
-║ • 13º Proporcional: R$ {verbas.get('decimo_terceiro_proporcional', 0)}
-║ • FGTS mês: R$ {verbas.get('fgts_mes', 0)}
-║ • Multa FGTS 40%: R$ {verbas.get('multa_fgts_40', 0)}
-╠══════════════════════════════════════════════════════════════╣
-║ DESCONTOS:
-║ • INSS: R$ {descontos.get('inss', 0)}
-║ • IRRF: R$ {descontos.get('irrf', 0)}
-║ • Outros: R$ {descontos.get('outros_descontos', 0)}
-╠══════════════════════════════════════════════════════════════╣
-║ TOTAIS:
-║ • Total Bruto: R$ {totais.get('total_bruto', 0)}
-║ • Total Descontos: R$ {totais.get('total_descontos', 0)}
-║ • Valor Líquido: R$ {totais.get('valor_liquido', 'N/A')}
-╚══════════════════════════════════════════════════════════════╝
+VERBAS NO TERMO:
+- Saldo Salário: R$ {verbas.get('saldo_salario', 0)}
+- Aviso Prévio Indenizado: R$ {verbas.get('aviso_previo_indenizado', 0)}
+- Férias Vencidas: R$ {verbas.get('ferias_vencidas', 0)}
+- Férias Proporcionais: R$ {verbas.get('ferias_proporcionais', 0)}
+- 1/3 Férias: R$ {verbas.get('terco_ferias', 0)}
+- 13º Proporcional: R$ {verbas.get('decimo_terceiro_proporcional', 0)}
+- FGTS mês: R$ {verbas.get('fgts_mes', 0)}
+- Multa FGTS 40%: R$ {verbas.get('multa_fgts_40', 0)}
 
-SUA TAREFA:
-1. Analise o ARQUIVO DE APOIO (apontamento/planilha) enviado
-2. Extraia as VARIÁVEIS do apoio (horas extras, comissões, faltas, adicionais, etc.)
-3. Verifique se essas variáveis estão CORRETAMENTE refletidas no termo ACIMA
-4. Identifique DIVERGÊNCIAS apenas quando o apoio mostrar algo DIFERENTE do termo
+TOTAIS NO TERMO:
+- Bruto: R$ {totais.get('total_bruto', 0)}
+- Líquido: R$ {totais.get('valor_liquido', 'N/A')}
 
-REGRAS:
-✓ Se o valor do apoio BATE com o termo = item validado
-✓ Se o valor do apoio é DIFERENTE do termo = divergência
-✓ Se o apoio mostra variável que deveria impactar a rescisão mas não está no termo = divergência
-✗ NÃO diga "não encontrado no termo" - os dados do termo estão ACIMA
+=== SUA TAREFA ===
+Analise o ARQUIVO DE APOIO e faça a seguinte validação:
 
-Retorne JSON:
+1. EXTRAIA do apoio: horas extras, faltas, atrasos, adicionais, comissões, DSR, médias, etc.
+
+2. COMPARE com o TERMO acima:
+   - Se o apoio mostra HE (horas extras) → verifique se há valor de HE ou média no termo
+   - Se o apoio mostra faltas/atrasos → verifique se há desconto correspondente
+   - Se o apoio mostra adicional noturno → verifique se há valor no termo
+   - Se o apoio mostra comissões → verifique se há média ou valor no termo
+
+3. REGRAS IMPORTANTES:
+   ❌ IGNORE impostos (INSS, IRRF) - não precisam estar no apoio
+   ❌ NÃO diga "não encontrado no termo" se o valor está listado acima
+   ✅ Valide apenas: HE, faltas, atrasos, adicionais, comissões, DSR, médias
+   ✅ Se o valor/referência do apoio BATE com algo no termo = VALIDADO
+   ✅ Se o valor/referência do apoio é DIFERENTE = DIVERGÊNCIA
+
+4. COMO IDENTIFICAR SE BATE:
+   - HE no apoio (ex: 10 horas) deve refletir em valor ou média no termo
+   - Faltas no apoio (ex: 2 dias) deve ter desconto proporcional no termo
+   - O valor pode estar em verbas diferentes (média, adicional, etc)
+
+Retorne APENAS JSON:
 {{
-    "itens_validados": ["Itens que conferem entre apoio e termo"],
+    "dados_encontrados_no_apoio": [
+        {{"tipo": "Hora Extra", "referencia": "10h", "valor": "R$ 500,00"}},
+        {{"tipo": "Falta", "referencia": "2 dias", "valor": "R$ 200,00"}}
+    ],
+    "itens_validados": ["Lista do que confere com o termo"],
     "divergencias": [
         {{
-            "item": "Nome do item",
-            "valor_no_termo": "Valor que está no termo ACIMA",
-            "valor_no_apoio": "Valor que encontrou no arquivo de apoio",
-            "observacao": "Por que é divergência"
+            "item": "Nome",
+            "valor_no_apoio": "O que está no apoio",
+            "valor_no_termo": "O que está no termo (use os dados acima)",
+            "observacao": "Explicação"
         }}
+    ],
+    "alertas": ["Pontos de atenção"],
+    "observacoes": "Resumo geral"
+}}"""
+            ).with_model("gemini", "gemini-2.0-flash")
     ],
     "variaveis_encontradas_no_apoio": ["Lista do que encontrou no apoio"],
     "alertas": ["Alertas importantes"],
