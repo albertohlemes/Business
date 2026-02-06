@@ -3485,6 +3485,7 @@ async def calcular_dissidio_retroativo(
     Calcula dissídio retroativo automaticamente.
     - convencao_dados: JSON com dados extraídos da convenção
     - holerites: Lista de holerites dos meses retroativos
+    - Exclui impostos (INSS, IRRF) pois serão calculados na competência de pagamento
     """
     try:
         from document_processor import doc_processor
@@ -3493,6 +3494,14 @@ async def calcular_dissidio_retroativo(
         conv = json.loads(convencao_dados)
         percentual = float(conv.get('percentual_reajuste', 0)) / 100
         verbas_com_reajuste = [v.lower() for v in conv.get('verbas_com_reajuste', [])]
+        
+        # Verbas que são IMPOSTOS/DESCONTOS LEGAIS - não entram no cálculo de retroativo
+        # Serão calculados automaticamente na competência de pagamento
+        verbas_impostos_excluir = [
+            'inss', 'irrf', 'ir', 'imposto_renda', 'contribuicao_sindical',
+            'fgts', 'pensao_alimenticia', 'adiantamento', 'vale_transporte',
+            'desconto_vt', 'desc_vt', 'faltas', 'atrasos', 'desconto'
+        ]
         
         if not percentual:
             raise HTTPException(status_code=400, detail="Percentual de reajuste não informado")
@@ -3527,7 +3536,9 @@ async def calcular_dissidio_retroativo(
                     'arquivo': holerite.filename,
                     'competencia': competencia,
                     'colaboradores': [],
-                    'total_retroativo_mes': 0
+                    'total_retroativo_mes': 0,
+                    'total_valor_anterior_mes': 0,
+                    'total_valor_novo_mes': 0
                 }
                 
                 for colab in colaboradores:
@@ -3536,6 +3547,8 @@ async def calcular_dissidio_retroativo(
                     # Calcular reajuste sobre verbas aplicáveis
                     valor_base_reajuste = 0
                     verbas_calculadas = []
+                    total_valor_anterior_colab = 0
+                    total_valor_novo_colab = 0
                     
                     # Mapear campos do colaborador para verbas da convenção
                     mapeamento_verbas = {
@@ -3547,9 +3560,16 @@ async def calcular_dissidio_retroativo(
                         'comissao': ['comissao', 'comissoes'],
                         'gratificacao': ['gratificacao', 'gratificacoes'],
                         'quebra_caixa': ['quebra_caixa', 'quebra_de_caixa'],
+                        'adicional_insalubridade': ['adicional_insalubridade', 'insalubridade'],
+                        'adicional_periculosidade': ['adicional_periculosidade', 'periculosidade'],
                     }
                     
                     for verba_conv in verbas_com_reajuste:
+                        # EXCLUIR impostos e descontos legais do cálculo
+                        verba_lower = verba_conv.lower()
+                        if any(imp in verba_lower for imp in verbas_impostos_excluir):
+                            continue
+                        
                         # Encontrar o campo correspondente no holerite
                         campos_holerite = mapeamento_verbas.get(verba_conv, [verba_conv])
                         
@@ -3562,10 +3582,16 @@ async def calcular_dissidio_retroativo(
                         
                         if valor > 0:
                             diferenca = valor * percentual
+                            valor_novo = valor + diferenca
                             valor_base_reajuste += valor
+                            total_valor_anterior_colab += valor
+                            total_valor_novo_colab += valor_novo
+                            
                             verbas_calculadas.append({
                                 'verba': verba_conv,
-                                'valor_original': round(valor, 2),
+                                'valor_anterior': round(valor, 2),
+                                'valor_original': round(valor, 2),  # Mantido para compatibilidade
+                                'valor_novo': round(valor_novo, 2),
                                 'diferenca': round(diferenca, 2)
                             })
                     
@@ -3575,12 +3601,16 @@ async def calcular_dissidio_retroativo(
                         'nome': nome,
                         'cpf': colab.get('cpf', ''),
                         'valor_base_reajuste': round(valor_base_reajuste, 2),
+                        'total_valor_anterior': round(total_valor_anterior_colab, 2),
+                        'total_valor_novo': round(total_valor_novo_colab, 2),
                         'retroativo': round(retroativo_colab, 2),
                         'verbas': verbas_calculadas
                     }
                     
                     mes_resultado['colaboradores'].append(colab_resultado)
                     mes_resultado['total_retroativo_mes'] += retroativo_colab
+                    mes_resultado['total_valor_anterior_mes'] += total_valor_anterior_colab
+                    mes_resultado['total_valor_novo_mes'] += total_valor_novo_colab
                     
                     # Consolidar por colaborador
                     if nome not in colaboradores_consolidado:
@@ -3588,20 +3618,35 @@ async def calcular_dissidio_retroativo(
                             'nome': nome,
                             'cpf': colab.get('cpf', ''),
                             'meses': [],
-                            'total_retroativo': 0
+                            'total_retroativo': 0,
+                            'total_valor_anterior': 0,
+                            'total_valor_novo': 0
                         }
                     colaboradores_consolidado[nome]['meses'].append({
                         'competencia': competencia,
-                        'retroativo': round(retroativo_colab, 2)
+                        'retroativo': round(retroativo_colab, 2),
+                        'valor_anterior': round(total_valor_anterior_colab, 2),
+                        'valor_novo': round(total_valor_novo_colab, 2),
+                        'verbas': verbas_calculadas
                     })
                     colaboradores_consolidado[nome]['total_retroativo'] += retroativo_colab
+                    colaboradores_consolidado[nome]['total_valor_anterior'] += total_valor_anterior_colab
+                    colaboradores_consolidado[nome]['total_valor_novo'] += total_valor_novo_colab
                 
                 mes_resultado['total_retroativo_mes'] = round(mes_resultado['total_retroativo_mes'], 2)
+                mes_resultado['total_valor_anterior_mes'] = round(mes_resultado['total_valor_anterior_mes'], 2)
+                mes_resultado['total_valor_novo_mes'] = round(mes_resultado['total_valor_novo_mes'], 2)
                 total_geral_retroativo += mes_resultado['total_retroativo_mes']
                 resultados_por_mes.append(mes_resultado)
                 
             finally:
                 os.unlink(tmp_path)
+        
+        # Arredondar totais consolidados
+        for colab_data in colaboradores_consolidado.values():
+            colab_data['total_retroativo'] = round(colab_data['total_retroativo'], 2)
+            colab_data['total_valor_anterior'] = round(colab_data['total_valor_anterior'], 2)
+            colab_data['total_valor_novo'] = round(colab_data['total_valor_novo'], 2)
         
         # Salvar cálculo no banco
         calculo_id = str(uuid.uuid4())
@@ -3615,6 +3660,8 @@ async def calcular_dissidio_retroativo(
             "resultados_por_mes": resultados_por_mes,
             "colaboradores_consolidado": list(colaboradores_consolidado.values()),
             "total_retroativo": round(total_geral_retroativo, 2),
+            "impostos_excluidos": True,  # Flag para indicar que impostos foram excluídos
+            "nota_impostos": "INSS, IRRF e demais encargos serão calculados na competência de pagamento",
             "status": "calculado",
             "user_id": current_user["id"],
             "created_at": datetime.now(timezone.utc).isoformat()
@@ -3631,6 +3678,8 @@ async def calcular_dissidio_retroativo(
             "total_retroativo": round(total_geral_retroativo, 2),
             "resultados_por_mes": resultados_por_mes,
             "colaboradores_consolidado": list(colaboradores_consolidado.values()),
+            "impostos_excluidos": True,
+            "nota_impostos": "INSS, IRRF e demais encargos serão calculados na competência de pagamento",
             "message": f"Cálculo concluído: R$ {total_geral_retroativo:,.2f} de retroativo"
         }
         
