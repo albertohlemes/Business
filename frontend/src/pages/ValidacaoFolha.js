@@ -1049,7 +1049,7 @@ const ValidacaoFolha = () => {
                     <div className="flex flex-wrap gap-2">
                       {analysisResult.referencias_apoio.map((ref, i) => (
                         <Badge key={i} variant="outline" className="text-blue-600 border-blue-300">
-                          {ref.identificador}: {ref.valor} {ref.tipo.replace('_', ' ')}
+                          {ref.nome || ref.identificador}: {ref.campo || ref.tipo ? (ref.campo || ref.tipo).replace('_', ' ') : ''} = {ref.valor}
                           <span className="text-[10px] text-slate-400 ml-1">({ref.arquivo})</span>
                         </Badge>
                       ))}
