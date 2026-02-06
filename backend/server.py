@@ -6795,6 +6795,71 @@ async def validar_rescisao_etapa4(
 
 # ==================== DASHBOARD ====================
 
+@api_router.get("/dashboard/convencoes-vencimento")
+async def get_convencoes_vencimento(current_user: dict = Depends(get_current_user)):
+    """Retorna lista de convenções com status de vencimento para alertas no dashboard."""
+    clientes = await db.clientes.find(
+        {"user_id": current_user["id"], "convencao_coletiva": {"$exists": True, "$ne": None}},
+        {"_id": 0, "id": 1, "razao_social": 1, "cnpj": 1, "convencao_coletiva": 1}
+    ).to_list(length=100)
+    
+    alertas = []
+    for cliente in clientes:
+        conv = cliente.get("convencao_coletiva", {})
+        vigencia = conv.get("vigencia", {})
+        
+        if not vigencia:
+            continue
+        
+        data_fim_str = vigencia.get("data_fim", "")
+        status = "desconhecido"
+        dias = None
+        
+        if data_fim_str:
+            try:
+                parts = data_fim_str.split("/")
+                if len(parts) == 3:
+                    data_fim = datetime(int(parts[2]), int(parts[1]), int(parts[0]))
+                    hoje = datetime.now()
+                    dias_diff = (data_fim - hoje).days
+                    
+                    if dias_diff < 0:
+                        status = "vencida"
+                        dias = abs(dias_diff)
+                    elif dias_diff <= 30:
+                        status = "critico"
+                        dias = dias_diff
+                    elif dias_diff <= 60:
+                        status = "atencao"
+                        dias = dias_diff
+                    else:
+                        status = "ok"
+                        dias = dias_diff
+            except:
+                pass
+        
+        if status in ["vencida", "critico", "atencao"]:
+            alertas.append({
+                "cliente_id": cliente["id"],
+                "razao_social": cliente.get("razao_social", ""),
+                "cnpj": cliente.get("cnpj", ""),
+                "sindicato": conv.get("identificacao", {}).get("sindicato_laboral", ""),
+                "data_fim": data_fim_str,
+                "status": status,
+                "dias": dias,
+                "data_base": vigencia.get("data_base", "")
+            })
+    
+    # Ordenar por status (vencida primeiro, depois critico, depois atencao)
+    ordem_status = {"vencida": 0, "critico": 1, "atencao": 2}
+    alertas.sort(key=lambda x: (ordem_status.get(x["status"], 99), x.get("dias", 999)))
+    
+    return {
+        "total_alertas": len(alertas),
+        "alertas": alertas
+    }
+
+
 @api_router.get("/dashboard", response_model=DashboardStats)
 async def get_dashboard(
     cliente_id: Optional[str] = None,
