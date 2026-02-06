@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -8,7 +8,8 @@ import { Textarea } from '../components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Building2, Users, Pencil, Trash2, Search, X, RefreshCw, Loader2, MapPin, FileText, Briefcase } from 'lucide-react';
+import { Plus, Building2, Users, Pencil, Trash2, Search, X, RefreshCw, Loader2, MapPin, FileText, Briefcase, Upload, FileSpreadsheet, Download, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -16,9 +17,12 @@ const Clientes = () => {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [buscandoReceita, setBuscandoReceita] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
   const [formData, setFormData] = useState({
     razao_social: '',
     cnpj: '',
@@ -43,7 +47,8 @@ const Clientes = () => {
     situacao: '',
     responsavel_dp: '',
     contador_responsavel: '',
-    observacoes: ''
+    observacoes: '',
+    data_base_dissidio: ''
   });
 
   useEffect(() => {
