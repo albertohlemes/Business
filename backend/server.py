@@ -491,6 +491,67 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Usuário não encontrado")
     return User(**user)
 
+def parse_xml_evento_cancelamento(xml_content: str) -> Dict[str, Any]:
+    """
+    Verifica se o XML é um evento de cancelamento de NFe.
+    Retorna os dados do cancelamento ou None se não for um evento de cancelamento.
+    
+    Tipos de evento:
+    - 110111: Cancelamento de NFe
+    - 110112: Cancelamento por substituição
+    """
+    try:
+        data = xmltodict.parse(xml_content)
+        
+        # Verificar estrutura de evento (procEventoNFe)
+        proc_evento = data.get('procEventoNFe', {})
+        if not proc_evento:
+            # Tentar estrutura alternativa
+            proc_evento = data.get('envEvento', {})
+        
+        if not proc_evento:
+            return None
+        
+        evento = proc_evento.get('evento', {})
+        if not evento:
+            return None
+            
+        inf_evento = evento.get('infEvento', {})
+        if not inf_evento:
+            return None
+        
+        # Verificar tipo de evento (110111 = Cancelamento)
+        tp_evento = str(inf_evento.get('tpEvento', ''))
+        if tp_evento not in ['110111', '110112']:
+            return None
+        
+        # Extrair chave da NFe cancelada
+        chave_nfe = inf_evento.get('chNFe', '')
+        
+        # Dados do cancelamento
+        det_evento = inf_evento.get('detEvento', {})
+        justificativa = det_evento.get('xJust', '') if det_evento else ''
+        
+        # Data do evento
+        dh_evento = inf_evento.get('dhEvento', '')
+        
+        # Protocolo do cancelamento (do retEvento)
+        ret_evento = proc_evento.get('retEvento', {})
+        inf_ret = ret_evento.get('infEvento', {}) if ret_evento else {}
+        n_prot = inf_ret.get('nProt', '')
+        
+        return {
+            'tipo': 'cancelamento',
+            'chave_nfe': chave_nfe,
+            'tp_evento': tp_evento,
+            'justificativa': justificativa,
+            'data_cancelamento': dh_evento,
+            'protocolo': n_prot
+        }
+        
+    except Exception as e:
+        return None
+
 def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
     try:
         data = xmltodict.parse(xml_content)
