@@ -1232,13 +1232,16 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
     lines.append("|0100|BUSINESS CONTABILIDADE||CRC-SP|12345678000199|01310100|AV PAULISTA|1000|||BELA VISTA|1140787878||business@businessconta.com.br|3550308|")
     
     # Registro 0150 - Participantes (fornecedores/clientes) com dados completos
+    # NÃO incluir a própria empresa como participante
+    cnpj_empresa = company.cnpj.replace('.','').replace('/','').replace('-','') if company.cnpj else ''
+    
     participantes = {}
     for doc in documents:
         emit_cnpj = doc.emitente_cnpj.replace('.','').replace('/','').replace('-','') if doc.emitente_cnpj else ''
         dest_cnpj = doc.destinatario_cnpj.replace('.','').replace('/','').replace('-','') if doc.destinatario_cnpj else ''
         
-        # Coletar dados do emitente
-        if emit_cnpj and emit_cnpj not in participantes:
+        # Coletar dados do emitente (se não for a própria empresa)
+        if emit_cnpj and emit_cnpj not in participantes and emit_cnpj != cnpj_empresa:
             emit_end = getattr(doc, 'emitente_endereco', {}) or {}
             participantes[emit_cnpj] = {
                 'nome': (doc.emitente_nome or 'FORNECEDOR')[:60],
@@ -1253,8 +1256,8 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
                 'cod_pais': emit_end.get('cod_pais', '1058'),
             }
         
-        # Coletar dados do destinatário
-        if dest_cnpj and dest_cnpj not in participantes:
+        # Coletar dados do destinatário (se não for a própria empresa)
+        if dest_cnpj and dest_cnpj not in participantes and dest_cnpj != cnpj_empresa:
             dest_end = getattr(doc, 'destinatario_endereco', {}) or {}
             participantes[dest_cnpj] = {
                 'nome': (doc.destinatario_nome or 'CLIENTE')[:60],
