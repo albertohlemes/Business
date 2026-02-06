@@ -3710,8 +3710,13 @@ async def calcular_dissidio_retroativo(
                     'total_valor_novo_mes': 0
                 }
                 
+                # Obter pisos salariais da convenção para validação
+                pisos_por_funcao = conv.get('pisos_por_funcao', [])
+                piso_salarial_geral = conv.get('piso_salarial')
+                
                 for colab in colaboradores:
                     nome = colab.get('nome', 'Sem Nome')
+                    cargo = colab.get('cargo', colab.get('funcao', ''))
                     
                     # Calcular reajuste sobre verbas aplicáveis
                     valor_base_reajuste = 0
@@ -3732,6 +3737,13 @@ async def calcular_dissidio_retroativo(
                         'adicional_insalubridade': ['adicional_insalubridade', 'insalubridade'],
                         'adicional_periculosidade': ['adicional_periculosidade', 'periculosidade'],
                     }
+                    
+                    # Obter salário base do colaborador para verificação de piso
+                    salario_base_colab = 0
+                    for campo in ['salario_base', 'salario', 'salario_mensalista']:
+                        if colab.get(campo, 0) > 0:
+                            salario_base_colab = colab.get(campo, 0)
+                            break
                     
                     for verba_conv in verbas_com_reajuste:
                         # EXCLUIR impostos e descontos legais do cálculo
@@ -3766,14 +3778,59 @@ async def calcular_dissidio_retroativo(
                     
                     retroativo_colab = sum(v['diferenca'] for v in verbas_calculadas)
                     
+                    # ========== VALIDAÇÃO DO PISO SALARIAL ==========
+                    alerta_piso = None
+                    piso_aplicavel = None
+                    piso_funcao_nome = None
+                    
+                    # 1. Verificar piso específico por função/cargo
+                    if cargo and pisos_por_funcao:
+                        cargo_lower = cargo.lower().strip()
+                        for piso_func in pisos_por_funcao:
+                            funcao_piso = piso_func.get('funcao', '').lower().strip()
+                            # Match parcial: se o cargo contém a função ou vice-versa
+                            if funcao_piso and (funcao_piso in cargo_lower or cargo_lower in funcao_piso):
+                                piso_aplicavel = piso_func.get('piso_novo', 0)
+                                piso_funcao_nome = piso_func.get('funcao')
+                                break
+                    
+                    # 2. Se não encontrou piso específico, usar piso geral
+                    if piso_aplicavel is None and piso_salarial_geral:
+                        try:
+                            piso_aplicavel = float(piso_salarial_geral)
+                        except:
+                            piso_aplicavel = None
+                    
+                    # 3. Verificar se salário novo está abaixo do piso
+                    salario_novo_calculado = salario_base_colab * (1 + percentual) if salario_base_colab else 0
+                    
+                    if piso_aplicavel and salario_novo_calculado > 0:
+                        try:
+                            piso_val = float(piso_aplicavel)
+                            if salario_novo_calculado < piso_val:
+                                diferenca_piso = piso_val - salario_novo_calculado
+                                alerta_piso = {
+                                    'tipo': 'SALARIO_ABAIXO_PISO',
+                                    'mensagem': f'Salário abaixo do piso salarial',
+                                    'salario_calculado': round(salario_novo_calculado, 2),
+                                    'piso_aplicavel': round(piso_val, 2),
+                                    'diferenca': round(diferenca_piso, 2),
+                                    'funcao_piso': piso_funcao_nome or 'Piso Geral',
+                                    'cargo_colaborador': cargo or 'Não informado'
+                                }
+                        except (ValueError, TypeError):
+                            pass
+                    
                     colab_resultado = {
                         'nome': nome,
                         'cpf': colab.get('cpf', ''),
+                        'cargo': cargo,
                         'valor_base_reajuste': round(valor_base_reajuste, 2),
                         'total_valor_anterior': round(total_valor_anterior_colab, 2),
                         'total_valor_novo': round(total_valor_novo_colab, 2),
                         'retroativo': round(retroativo_colab, 2),
-                        'verbas': verbas_calculadas
+                        'verbas': verbas_calculadas,
+                        'alerta_piso': alerta_piso
                     }
                     
                     mes_resultado['colaboradores'].append(colab_resultado)
@@ -3786,21 +3843,31 @@ async def calcular_dissidio_retroativo(
                         colaboradores_consolidado[nome] = {
                             'nome': nome,
                             'cpf': colab.get('cpf', ''),
+                            'cargo': cargo,
                             'meses': [],
                             'total_retroativo': 0,
                             'total_valor_anterior': 0,
-                            'total_valor_novo': 0
+                            'total_valor_novo': 0,
+                            'alertas_piso': []
                         }
                     colaboradores_consolidado[nome]['meses'].append({
                         'competencia': competencia,
                         'retroativo': round(retroativo_colab, 2),
                         'valor_anterior': round(total_valor_anterior_colab, 2),
                         'valor_novo': round(total_valor_novo_colab, 2),
-                        'verbas': verbas_calculadas
+                        'verbas': verbas_calculadas,
+                        'alerta_piso': alerta_piso
                     })
                     colaboradores_consolidado[nome]['total_retroativo'] += retroativo_colab
                     colaboradores_consolidado[nome]['total_valor_anterior'] += total_valor_anterior_colab
                     colaboradores_consolidado[nome]['total_valor_novo'] += total_valor_novo_colab
+                    
+                    # Acumular alertas de piso por colaborador
+                    if alerta_piso:
+                        colaboradores_consolidado[nome]['alertas_piso'].append({
+                            'competencia': competencia,
+                            **alerta_piso
+                        })
                 
                 mes_resultado['total_retroativo_mes'] = round(mes_resultado['total_retroativo_mes'], 2)
                 mes_resultado['total_valor_anterior_mes'] = round(mes_resultado['total_valor_anterior_mes'], 2)
