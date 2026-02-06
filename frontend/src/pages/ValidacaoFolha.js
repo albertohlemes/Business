@@ -42,6 +42,10 @@ const ValidacaoFolha = () => {
   const [apoioFiles, setApoioFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   
+  // Selection state for batch delete
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleting, setDeleting] = useState(false);
+  
   // Filters
   const [filterCliente, setFilterCliente] = useState('all');
   const [filterCompetencia, setFilterCompetencia] = useState('');
