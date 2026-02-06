@@ -127,6 +127,8 @@ class ClienteResponse(BaseModel):
     observacoes: Optional[str] = None
     created_at: str
     total_colaboradores: int = 0
+    # Convenção Coletiva
+    convencao_coletiva: Optional[Dict[str, Any]] = None
 
 # Colaborador Models - Completo eSocial
 class ColaboradorCreate(BaseModel):
