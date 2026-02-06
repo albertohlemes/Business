@@ -38,6 +38,198 @@ const ApuracaoMensal = ({ user, onLogout }) => {
   
   // Ordenação das tabelas
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  
+  // Estado para modal de exportação
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportType, setExportType] = useState('cfop'); // cfop ou ncm
+  const [exportFormat, setExportFormat] = useState('excel'); // excel ou pdf
+
+  // Função para exportar Excel
+  const exportToExcel = (tipoAgrupamento) => {
+    if (!data) return;
+    
+    const wb = XLSX.utils.book_new();
+    const competencia = selectedCompetencia || 'Competência';
+    const empresa = selectedCompany?.razao_social || 'Empresa';
+    
+    // Preparar dados de entradas
+    const entradasData = [];
+    if (data.entradas?.lista) {
+      data.entradas.lista.forEach(item => {
+        entradasData.push({
+          [tipoAgrupamento.toUpperCase()]: item[tipoAgrupamento] || item.cfop || '',
+          'Descrição': item.descricao || '',
+          'Valor Total': item.valor || 0,
+          'BC ICMS': item.bc_icms || 0,
+          'ICMS': item.v_icms || 0,
+          'PIS': item.v_pis || 0,
+          'COFINS': item.v_cofins || 0,
+          'Qtd Itens': item.qtd_itens || 0
+        });
+      });
+    }
+    
+    // Preparar dados de saídas
+    const saidasData = [];
+    if (data.saidas?.lista) {
+      data.saidas.lista.forEach(item => {
+        saidasData.push({
+          [tipoAgrupamento.toUpperCase()]: item[tipoAgrupamento] || item.cfop || '',
+          'Descrição': item.descricao || '',
+          'Valor Total': item.valor || 0,
+          'BC ICMS': item.bc_icms || 0,
+          'ICMS': item.v_icms || 0,
+          'PIS': item.v_pis || 0,
+          'COFINS': item.v_cofins || 0,
+          'Qtd Itens': item.qtd_itens || 0
+        });
+      });
+    }
+    
+    // Criar planilha de entradas
+    if (entradasData.length > 0) {
+      const wsEntradas = XLSX.utils.json_to_sheet(entradasData);
+      XLSX.utils.book_append_sheet(wb, wsEntradas, `Entradas por ${tipoAgrupamento.toUpperCase()}`);
+    }
+    
+    // Criar planilha de saídas
+    if (saidasData.length > 0) {
+      const wsSaidas = XLSX.utils.json_to_sheet(saidasData);
+      XLSX.utils.book_append_sheet(wb, wsSaidas, `Saídas por ${tipoAgrupamento.toUpperCase()}`);
+    }
+    
+    // Criar planilha de resumo
+    const resumoData = [
+      { 'Descrição': 'ENTRADAS', 'Valor': data.entradas?.subtotal?.valor || 0 },
+      { 'Descrição': 'ICMS Crédito', 'Valor': data.entradas?.subtotal?.v_icms || 0 },
+      { 'Descrição': 'PIS Crédito', 'Valor': pisCofinsData?.apuracao?.pis?.credito || 0 },
+      { 'Descrição': 'COFINS Crédito', 'Valor': pisCofinsData?.apuracao?.cofins?.credito || 0 },
+      { 'Descrição': '', 'Valor': '' },
+      { 'Descrição': 'SAÍDAS', 'Valor': data.saidas?.subtotal?.valor || 0 },
+      { 'Descrição': 'ICMS Débito', 'Valor': data.saidas?.subtotal?.v_icms || 0 },
+      { 'Descrição': 'PIS Débito', 'Valor': data.saidas?.subtotal?.v_pis || 0 },
+      { 'Descrição': 'COFINS Débito', 'Valor': data.saidas?.subtotal?.v_cofins || 0 },
+      { 'Descrição': '', 'Valor': '' },
+      { 'Descrição': 'ICMS A PAGAR', 'Valor': Math.max(0, (data.saidas?.subtotal?.v_icms || 0) - (data.entradas?.subtotal?.v_icms || 0)) },
+      { 'Descrição': 'PIS A PAGAR', 'Valor': pisCofinsData?.apuracao?.pis?.a_pagar || 0 },
+      { 'Descrição': 'COFINS A PAGAR', 'Valor': pisCofinsData?.apuracao?.cofins?.a_pagar || 0 },
+    ];
+    const wsResumo = XLSX.utils.json_to_sheet(resumoData);
+    XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
+    
+    // Baixar arquivo
+    XLSX.writeFile(wb, `Apuracao_${tipoAgrupamento.toUpperCase()}_${empresa.substring(0, 20)}_${competencia.replace('/', '-')}.xlsx`);
+    setShowExportModal(false);
+  };
+  
+  // Função para exportar PDF
+  const exportToPDF = (tipoAgrupamento) => {
+    if (!data) return;
+    
+    const doc = new jsPDF('landscape');
+    const competencia = selectedCompetencia || 'Competência';
+    const empresa = selectedCompany?.razao_social || 'Empresa';
+    
+    // Título
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Apuração Mensal por ${tipoAgrupamento.toUpperCase()}`, 14, 15);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Empresa: ${empresa}`, 14, 22);
+    doc.text(`Competência: ${competencia}`, 14, 28);
+    
+    let yPos = 35;
+    
+    // Tabela de Entradas
+    if (data.entradas?.lista?.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('ENTRADAS', 14, yPos);
+      yPos += 5;
+      
+      const entradasRows = data.entradas.lista.map(item => [
+        item[tipoAgrupamento] || item.cfop || '',
+        (item.descricao || '').substring(0, 30),
+        formatCurrencySimple(item.valor || 0),
+        formatCurrencySimple(item.bc_icms || 0),
+        formatCurrencySimple(item.v_icms || 0),
+        formatCurrencySimple(item.v_pis || 0),
+        formatCurrencySimple(item.v_cofins || 0)
+      ]);
+      
+      doc.autoTable({
+        startY: yPos,
+        head: [[tipoAgrupamento.toUpperCase(), 'Descrição', 'Valor', 'BC ICMS', 'ICMS', 'PIS', 'COFINS']],
+        body: entradasRows,
+        theme: 'grid',
+        headStyles: { fillColor: [220, 53, 69], textColor: 255, fontSize: 8 },
+        bodyStyles: { fontSize: 7 },
+        columnStyles: {
+          0: { cellWidth: 25 },
+          1: { cellWidth: 60 },
+          2: { cellWidth: 30, halign: 'right' },
+          3: { cellWidth: 30, halign: 'right' },
+          4: { cellWidth: 25, halign: 'right' },
+          5: { cellWidth: 25, halign: 'right' },
+          6: { cellWidth: 25, halign: 'right' }
+        }
+      });
+      
+      yPos = doc.lastAutoTable.finalY + 10;
+    }
+    
+    // Nova página para saídas se necessário
+    if (yPos > 150) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    // Tabela de Saídas
+    if (data.saidas?.lista?.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SAÍDAS', 14, yPos);
+      yPos += 5;
+      
+      const saidasRows = data.saidas.lista.map(item => [
+        item[tipoAgrupamento] || item.cfop || '',
+        (item.descricao || '').substring(0, 30),
+        formatCurrencySimple(item.valor || 0),
+        formatCurrencySimple(item.bc_icms || 0),
+        formatCurrencySimple(item.v_icms || 0),
+        formatCurrencySimple(item.v_pis || 0),
+        formatCurrencySimple(item.v_cofins || 0)
+      ]);
+      
+      doc.autoTable({
+        startY: yPos,
+        head: [[tipoAgrupamento.toUpperCase(), 'Descrição', 'Valor', 'BC ICMS', 'ICMS', 'PIS', 'COFINS']],
+        body: saidasRows,
+        theme: 'grid',
+        headStyles: { fillColor: [40, 167, 69], textColor: 255, fontSize: 8 },
+        bodyStyles: { fontSize: 7 },
+        columnStyles: {
+          0: { cellWidth: 25 },
+          1: { cellWidth: 60 },
+          2: { cellWidth: 30, halign: 'right' },
+          3: { cellWidth: 30, halign: 'right' },
+          4: { cellWidth: 25, halign: 'right' },
+          5: { cellWidth: 25, halign: 'right' },
+          6: { cellWidth: 25, halign: 'right' }
+        }
+      });
+    }
+    
+    // Salvar PDF
+    doc.save(`Apuracao_${tipoAgrupamento.toUpperCase()}_${empresa.substring(0, 20)}_${competencia.replace('/', '-')}.pdf`);
+    setShowExportModal(false);
+  };
+  
+  // Função auxiliar para formatar moeda simples (sem R$)
+  const formatCurrencySimple = (value) => {
+    return (value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
   useEffect(() => {
     if (selectedCompany && selectedCompetencia) {
