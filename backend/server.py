@@ -5435,23 +5435,6 @@ async def converter_admissional(
                 "qualificacaoMensagem": None,
                 "qualificacaoOrientacao": None
             }
-                "pisPasep": colab.get("pis_pasep", "").replace(".", "").replace("-", ""),
-                "ctpsNumero": ctps.get("numero"),
-                "ctpsSerie": ctps.get("serie"),
-                "ctpsUf": ctps.get("uf"),
-                "dataAdmissao": converter_data(colab.get("data_admissao")),
-                "cargoId": None,  # Código do cargo no sistema
-                "cargoDescricao": colab.get("cargo") or colab.get("funcao"),
-                "salario": colab.get("salario"),
-                "bancoId": dados_bancarios.get("banco_codigo"),
-                "bancoNome": dados_bancarios.get("banco_nome"),
-                "agencia": dados_bancarios.get("agencia"),
-                "conta": dados_bancarios.get("conta"),
-                "tipoConta": tipo_conta_codigo,
-                "corRacaId": cor_raca_codigo,
-                "deficienciaId": None,
-                "deficienciaDescricao": colab.get("deficiencia")
-            }
             
             return {
                 "success": True,
