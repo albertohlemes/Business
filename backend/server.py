@@ -4003,20 +4003,45 @@ async def analisar_convencao(
 
 @api_router.post("/dissidio/calcular-retroativo")
 async def calcular_dissidio_retroativo(
-    convencao_dados: str = Form(...),
+    convencao_dados: Optional[str] = Form(None),
     holerites: List[UploadFile] = File(...),
     cliente_id: str = Form(...),
     current_user: dict = Depends(get_current_user)
 ):
     """
     Calcula dissídio retroativo automaticamente.
-    - convencao_dados: JSON com dados extraídos da convenção
+    - convencao_dados: JSON com dados extraídos da convenção (opcional - se não informado, busca do cadastro do cliente)
     - holerites: Lista de holerites dos meses retroativos
     - Exclui impostos (INSS, IRRF) pois serão calculados na competência de pagamento
     - Aplica proporcionalidade para funcionários admitidos durante o período retroativo
     """
     try:
         from document_processor import doc_processor
+        
+        # Verificar cliente primeiro
+        cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
+        if not cliente:
+            raise HTTPException(status_code=404, detail="Empresa não encontrada")
+        
+        # Parse dados da convenção - prioridade para dados enviados, senão busca do cadastro
+        if convencao_dados:
+            conv = json.loads(convencao_dados)
+        elif cliente.get("convencao_coletiva"):
+            # Usar CCT cadastrada no cliente
+            cct = cliente["convencao_coletiva"]
+            conv = {
+                "percentual_reajuste": cct.get("reajuste", {}).get("percentual_reajuste", 0),
+                "verbas_com_reajuste": ["salario", "horas_extras", "adicional_noturno", "dsr"],
+                "tabela_proporcionalidade": cct.get("reajuste", {}).get("tabela_proporcionalidade", []),
+                "data_base": f"{cct.get('vigencia', {}).get('data_base', '01')}/{datetime.now().year}",
+                "piso_salarial": cct.get("piso_salarial", {}).get("valor_geral", 0),
+                "pisos_por_funcao": cct.get("piso_salarial", {}).get("pisos_por_funcao", []),
+                "sindicato": cct.get("identificacao", {}).get("sindicato_laboral", ""),
+                "vigencia": cct.get("vigencia", {}),
+                "_origem": "cadastro_cliente"
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Convenção coletiva não informada e não há CCT cadastrada para este cliente")
         
         # Parse dados da convenção
         conv = json.loads(convencao_dados)
