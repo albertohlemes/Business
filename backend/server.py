@@ -762,6 +762,7 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                 'v_bc_icms_st': v_bc_st,
                 'v_icms_st': v_icms_st,
                 'v_ipi': v_ipi,
+                'v_ipi_devol': v_ipi_devol,
                 'v_frete': v_frete_item,
                 'v_seguro': v_seg_item,
                 'v_outras_despesas': v_outro_item,
