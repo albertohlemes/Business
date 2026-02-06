@@ -926,28 +926,92 @@ async def _extract_with_emergent_ai(tmp_path: str, suffix: str, tipo_documento: 
 
 IMPORTANTE: O documento pode conter MÚLTIPLOS FUNCIONÁRIOS/VÍNCULOS. Extraia TODOS os colaboradores encontrados.
 
-Retorne em formato JSON com ARRAY de colaboradores:
+Retorne em formato JSON com ARRAY de colaboradores com TODOS os campos disponíveis:
 {{
     "colaboradores": [
         {{
-            "nome": "nome completo",
-            "cpf": "CPF",
-            "cargo": "cargo/função",
-            "salario_base": 0,
-            "data_admissao": "DD/MM/AAAA",
+            "nome": "NOME COMPLETO EM MAIUSCULAS",
+            "cpf": "000.000.000-00",
+            "rg": "número do RG",
+            "rg_orgao_emissor": "SSP/SP",
+            "rg_data_emissao": "DD/MM/AAAA",
+            "rg_uf": "SP",
             "data_nascimento": "DD/MM/AAAA",
-            "rg": "RG",
-            "pis": "PIS",
-            "ctps": "CTPS",
-            "endereco": "endereço",
+            "cidade_nascimento": "cidade de nascimento",
+            "uf_nascimento": "UF",
+            "sexo": "M ou F",
+            "estado_civil": "solteiro/casado/divorciado/viuvo/separado/uniao_estavel",
+            "grau_instrucao": "fundamental/medio/superior/pos_graduacao/mestrado/doutorado",
+            "etnia": "branca/preta/parda/amarela/indigena",
+            "nome_mae": "nome da mãe",
+            "nome_pai": "nome do pai",
+            "nome_conjuge": "nome do cônjuge se casado",
+            "endereco": "logradouro completo",
+            "numero": "número do endereço",
+            "complemento": "apto/bloco/etc",
+            "bairro": "bairro",
             "cidade": "cidade",
-            "uf": "UF"
+            "uf": "UF",
+            "cep": "00000-000",
+            "ddd": "11",
+            "celular": "999999999",
+            "telefone": "telefone fixo",
+            "email": "email@exemplo.com",
+            "pis": "número PIS/PASEP",
+            "ctps": "número CTPS",
+            "ctps_serie": "série CTPS",
+            "ctps_uf": "UF da CTPS",
+            "ctps_data_emissao": "DD/MM/AAAA",
+            "titulo_eleitor": "número título",
+            "titulo_zona": "zona",
+            "titulo_secao": "seção",
+            "reservista": "número certificado reservista",
+            "cnh": "número CNH",
+            "cnh_uf": "UF",
+            "cnh_categoria": "AB/B/etc",
+            "cnh_vencimento": "DD/MM/AAAA",
+            "cnh_emissao": "DD/MM/AAAA",
+            "cnh_primeira_habilitacao": "DD/MM/AAAA",
+            "cargo": "cargo/função",
+            "data_admissao": "DD/MM/AAAA",
+            "salario_base": 0.00,
+            "horista": false,
+            "departamento": "departamento/setor",
+            "prazo_experiencia": "45/90 dias",
+            "quadro_horario": "horário de trabalho",
+            "data_exame_admissional": "DD/MM/AAAA",
+            "insalubridade_percentual": null,
+            "periculosidade_percentual": null,
+            "vale_transporte": true/false,
+            "adiantamento_salarial": true/false,
+            "desconto_sindical": true/false,
+            "deficiencia": false,
+            "tipo_deficiencia": null,
+            "banco": "código ou nome do banco",
+            "agencia": "número agência",
+            "conta": "número conta",
+            "dependentes": [
+                {{
+                    "nome": "nome do dependente",
+                    "parentesco": "filho/cônjuge/etc",
+                    "data_nascimento": "DD/MM/AAAA",
+                    "cpf": "CPF do dependente"
+                }}
+            ]
         }}
     ]
 }}
 
-REGRAS: Extraia TODOS os funcionários. Salário como número. Datas DD/MM/AAAA."""
-    ).with_model("gemini", "gemini-2.5-flash")
+REGRAS IMPORTANTES:
+1. Extraia TODOS os funcionários encontrados no documento
+2. Salário deve ser número decimal (ex: 1850.00)
+3. Datas no formato DD/MM/AAAA
+4. CPF com pontuação (000.000.000-00)
+5. Se não encontrar um campo, use null (não omita o campo)
+6. Nome em MAIÚSCULAS
+7. Dependentes: extraia todos que encontrar
+8. Dados bancários: banco pode ser código (001) ou nome (Banco do Brasil)"""
+    ).with_model("gemini", "gemini-2.0-flash")
     
     mime_types = {
         ".pdf": "application/pdf",
@@ -968,7 +1032,7 @@ REGRAS: Extraia TODOS os funcionários. Salário como número. Datas DD/MM/AAAA.
     for attempt in range(max_retries):
         try:
             response = await chat.send_message(UserMessage(
-                text=f"Extraia TODOS os funcionários. {doc_context}",
+                text=f"Extraia TODOS os dados de TODOS os funcionários deste documento. {doc_context} Não omita nenhum campo - se não encontrar, coloque null.",
                 file_contents=[file_content]
             ))
             break
