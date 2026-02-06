@@ -63,11 +63,11 @@ const Layout = () => {
       {/* Sidebar */}
       <aside className={`sidebar transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out z-40`}>
         {/* Logo */}
-        <div className="h-20 flex items-center px-6 border-b border-slate-800/50">
+        <div className="h-20 flex items-center justify-center px-4 border-b border-slate-800/50">
           <img 
             src={LOGO_URL} 
             alt="Business Contabilidade" 
-            className="h-7 w-auto"
+            className="h-10 w-auto object-contain"
           />
         </div>
 
