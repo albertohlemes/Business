@@ -882,7 +882,7 @@ const Dissidio = () => {
                           </thead>
                           <tbody className="divide-y divide-slate-100">
                             {mes.colaboradores?.map((colab, colabIdx) => (
-                              <>
+                              <React.Fragment key={`colab-${colabIdx}`}>
                                 {colab.verbas?.map((verba, verbaIdx) => (
                                   <tr key={`${colabIdx}-${verbaIdx}`} className="hover:bg-slate-50/50">
                                     {verbaIdx === 0 && (
@@ -913,7 +913,7 @@ const Dissidio = () => {
                                   </tr>
                                 ))}
                                 {/* Subtotal por colaborador */}
-                                <tr key={`${colabIdx}-subtotal`} className="bg-slate-50">
+                                <tr className="bg-slate-50">
                                   <td className="p-2 text-right text-xs text-slate-500 font-medium" colSpan={4}>
                                     Subtotal {colab.nome?.split(' ')[0]}:
                                   </td>
@@ -921,7 +921,7 @@ const Dissidio = () => {
                                     R$ {colab.retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                   </td>
                                 </tr>
-                              </>
+                              </React.Fragment>
                             ))}
                           </tbody>
                           <tfoot>
