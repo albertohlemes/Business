@@ -881,50 +881,53 @@ async def importar_colaborador_documento(
 
 
 async def _extract_with_emergent_ai(tmp_path: str, suffix: str, tipo_documento: str, api_key: str) -> List[Dict]:
-    """Extração usando Emergent AI (pago) - chamada interna"""
+    """Extração usando Emergent AI - chamada interna"""
     from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
-    
-    # Determine document type for better extraction
-    doc_context = ""
-    if tipo_documento == "ficha_registro":
-        doc_context = "Este é uma FICHA DE REGISTRO DE EMPREGADO. PODE CONTER MÚLTIPLOS FUNCIONÁRIOS/VÍNCULOS."
-    elif tipo_documento == "holerite":
-        doc_context = "Este é um HOLERITE/CONTRACHEQUE. PODE CONTER MÚLTIPLOS FUNCIONÁRIOS."
-    elif tipo_documento == "ficha_esocial":
-        doc_context = "Este é uma FICHA DE ADMISSÃO eSocial. PODE CONTER MÚLTIPLOS FUNCIONÁRIOS."
-    else:
-        doc_context = "Este documento pode conter UM OU MAIS FUNCIONÁRIOS. Identifique e extraia TODOS."
     
     chat = LlmChat(
         api_key=api_key,
         session_id=f"importar-colab-{uuid.uuid4()}",
-        system_message=f"""Você é um especialista em departamento pessoal brasileiro. {doc_context}
+        system_message="""Você é um especialista em departamento pessoal brasileiro.
+Sua tarefa é extrair dados de FUNCIONÁRIOS/COLABORADORES de documentos de RH.
 
-IMPORTANTE: O documento pode conter MÚLTIPLOS FUNCIONÁRIOS/VÍNCULOS. Extraia TODOS os colaboradores encontrados.
+⚠️ ATENÇÃO - REGRAS CRÍTICAS:
+1. SEPARE dados da EMPRESA dos dados do FUNCIONÁRIO
+2. O NOME do funcionário NUNCA é o nome da empresa (LTDA, EIRELI, S/A, ME, etc são empresas!)
+3. O CPF do funcionário tem 11 dígitos, CNPJ tem 14 dígitos - NÃO CONFUNDA
+4. Cada funcionário é uma PESSOA FÍSICA com nome próprio
 
-Retorne em formato JSON com ARRAY de colaboradores com TODOS os campos disponíveis:
-{{
+📋 ESTRUTURA DO DOCUMENTO:
+- Geralmente no TOPO: dados da EMPRESA (razão social, CNPJ, endereço da empresa)
+- No CORPO: dados dos FUNCIONÁRIOS (nome, CPF, cargo, salário, etc)
+
+🔍 COMO IDENTIFICAR UM FUNCIONÁRIO:
+- Tem CPF (11 dígitos)
+- Tem nome de PESSOA (João, Maria, Carlos, etc)
+- Pode ter cargo, salário, data de admissão
+- NUNCA tem CNPJ
+
+Retorne em formato JSON EXATAMENTE assim:
+{
     "colaboradores": [
-        {{
-            "nome": "NOME COMPLETO EM MAIUSCULAS",
+        {
+            "nome": "NOME COMPLETO DO FUNCIONÁRIO EM MAIÚSCULAS",
             "cpf": "000.000.000-00",
             "rg": "número do RG",
-            "rg_orgao_emissor": "SSP/SP",
+            "rg_orgao_emissor": "SSP",
             "rg_data_emissao": "DD/MM/AAAA",
             "rg_uf": "SP",
             "data_nascimento": "DD/MM/AAAA",
-            "cidade_nascimento": "cidade de nascimento",
-            "uf_nascimento": "UF",
-            "sexo": "M ou F",
+            "cidade_nascimento": "cidade",
+            "uf_nascimento": "SP",
+            "sexo": "masculino ou feminino",
             "estado_civil": "solteiro/casado/divorciado/viuvo/separado/uniao_estavel",
             "grau_instrucao": "fundamental/medio/superior/pos_graduacao/mestrado/doutorado",
             "etnia": "branca/preta/parda/amarela/indigena",
-            "nome_mae": "nome da mãe",
-            "nome_pai": "nome do pai",
-            "nome_conjuge": "nome do cônjuge se casado",
-            "endereco": "logradouro completo",
-            "numero": "número do endereço",
-            "complemento": "apto/bloco/etc",
+            "nome_mae": "nome completo da mãe",
+            "nome_pai": "nome completo do pai",
+            "endereco": "rua/avenida completa",
+            "numero": "número",
+            "complemento": "apto/bloco",
             "bairro": "bairro",
             "cidade": "cidade",
             "uf": "UF",
@@ -935,58 +938,55 @@ Retorne em formato JSON com ARRAY de colaboradores com TODOS os campos disponív
             "email": "email@exemplo.com",
             "pis": "número PIS/PASEP",
             "ctps": "número CTPS",
-            "ctps_serie": "série CTPS",
-            "ctps_uf": "UF da CTPS",
+            "ctps_serie": "série",
+            "ctps_uf": "UF",
             "ctps_data_emissao": "DD/MM/AAAA",
-            "titulo_eleitor": "número título",
+            "titulo_eleitor": "número",
             "titulo_zona": "zona",
             "titulo_secao": "seção",
-            "reservista": "número certificado reservista",
+            "reservista": "número certificado",
             "cnh": "número CNH",
             "cnh_uf": "UF",
-            "cnh_categoria": "AB/B/etc",
+            "cnh_categoria": "B/AB/C/D/E",
             "cnh_vencimento": "DD/MM/AAAA",
-            "cnh_emissao": "DD/MM/AAAA",
-            "cnh_primeira_habilitacao": "DD/MM/AAAA",
             "cargo": "cargo/função",
+            "departamento": "setor/departamento",
             "data_admissao": "DD/MM/AAAA",
             "salario_base": 0.00,
             "horista": false,
-            "departamento": "departamento/setor",
             "prazo_experiencia": "45/90 dias",
-            "quadro_horario": "horário de trabalho",
+            "quadro_horario": "08:00 às 17:00",
             "data_exame_admissional": "DD/MM/AAAA",
             "insalubridade_percentual": null,
             "periculosidade_percentual": null,
-            "vale_transporte": true/false,
-            "adiantamento_salarial": true/false,
-            "desconto_sindical": true/false,
+            "vale_transporte": true,
+            "adiantamento_salarial": false,
+            "desconto_sindical": false,
             "deficiencia": false,
             "tipo_deficiencia": null,
-            "banco": "código ou nome do banco",
-            "agencia": "número agência",
-            "conta": "número conta",
+            "banco": "código ou nome",
+            "agencia": "número",
+            "conta": "número",
             "dependentes": [
-                {{
+                {
                     "nome": "nome do dependente",
-                    "parentesco": "filho/cônjuge/etc",
+                    "parentesco": "filho/cônjuge/pai/mae",
                     "data_nascimento": "DD/MM/AAAA",
-                    "cpf": "CPF do dependente"
-                }}
+                    "cpf": "CPF"
+                }
             ]
-        }}
+        }
     ]
-}}
+}
 
-REGRAS IMPORTANTES:
-1. Extraia TODOS os funcionários encontrados no documento
-2. Salário deve ser número decimal (ex: 1850.00)
-3. Datas no formato DD/MM/AAAA
-4. CPF com pontuação (000.000.000-00)
-5. Se não encontrar um campo, use null (não omita o campo)
-6. Nome em MAIÚSCULAS
-7. Dependentes: extraia todos que encontrar
-8. Dados bancários: banco pode ser código (001) ou nome (Banco do Brasil)"""
+REGRAS:
+1. Extraia TODOS os funcionários do documento
+2. O campo "sexo" deve ser "masculino" ou "feminino" (baseado no nome se não explícito)
+3. Salário SEMPRE como número decimal (ex: 1850.00, não "R$ 1.850,00")
+4. Datas SEMPRE no formato DD/MM/AAAA
+5. CPF com pontuação (000.000.000-00)
+6. Se não encontrar um campo, use null
+7. NUNCA coloque dados da empresa como se fossem do funcionário"""
     ).with_model("gemini", "gemini-2.0-flash")
     
     mime_types = {
@@ -1008,7 +1008,15 @@ REGRAS IMPORTANTES:
     for attempt in range(max_retries):
         try:
             response = await chat.send_message(UserMessage(
-                text=f"Extraia TODOS os dados de TODOS os funcionários deste documento. {doc_context} Não omita nenhum campo - se não encontrar, coloque null.",
+                text="""EXTRAIA OS DADOS DOS FUNCIONÁRIOS deste documento.
+
+IMPORTANTE:
+- IGNORE os dados da empresa (razão social, CNPJ, endereço da empresa)
+- EXTRAIA apenas dados de PESSOAS FÍSICAS (funcionários/colaboradores)
+- O nome do funcionário é de PESSOA (ex: João Silva, Maria Santos), NUNCA de empresa
+- Preencha TODOS os campos que conseguir encontrar
+- Inclua sexo, estado civil, endereço completo, documentos, dados bancários
+- Se houver múltiplos funcionários, extraia TODOS""",
                 file_contents=[file_content]
             ))
             break
@@ -1027,8 +1035,28 @@ REGRAS IMPORTANTES:
             if response_text.startswith("json"):
                 response_text = response_text[4:]
         resultado = json.loads(response_text.strip())
-        return resultado.get("colaboradores", [])
-    except (json.JSONDecodeError, IndexError, KeyError):
+        colaboradores = resultado.get("colaboradores", [])
+        
+        # Validação adicional - remove registros que parecem ser empresas
+        colaboradores_validos = []
+        for c in colaboradores:
+            nome = c.get('nome', '').upper()
+            # Verifica se o nome parece ser de empresa
+            empresa_indicators = ['LTDA', 'EIRELI', 'S/A', 'S.A.', 'ME', 'EPP', 'CNPJ', 'EMPRESA', 'COMERCIO', 'SERVICOS', 'INDUSTRIA']
+            is_empresa = any(ind in nome for ind in empresa_indicators)
+            
+            # Verifica se tem CPF válido (11 dígitos)
+            cpf = c.get('cpf', '').replace('.', '').replace('-', '').replace(' ', '')
+            has_valid_cpf = len(cpf) == 11 and cpf.isdigit()
+            
+            # Só adiciona se parecer ser pessoa física
+            if not is_empresa and (has_valid_cpf or len(nome.split()) >= 2):
+                colaboradores_validos.append(c)
+        
+        return colaboradores_validos if colaboradores_validos else colaboradores
+        
+    except (json.JSONDecodeError, IndexError, KeyError) as e:
+        logger.error(f"Erro ao parsear resposta da IA: {e}")
         return []
 
 @api_router.post("/colaboradores/salvar-lote")
