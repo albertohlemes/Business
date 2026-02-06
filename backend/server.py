@@ -4063,11 +4063,6 @@ async def calcular_dissidio_retroativo(
         if not percentual:
             raise HTTPException(status_code=400, detail="Percentual de reajuste não informado")
         
-        # Verificar cliente
-        cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]})
-        if not cliente:
-            raise HTTPException(status_code=404, detail="Empresa não encontrada")
-        
         # Função auxiliar para calcular proporcionalidade baseada na data de admissão
         def calcular_proporcionalidade(data_admissao_str, data_base_str, meses_retroativos):
             """
