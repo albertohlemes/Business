@@ -3,6 +3,7 @@
 **Última atualização**: 2026-02-06
 
 ## Changelog Recente
+- **2026-02-06**: ✅ NOVO: Validação de Rescisão redesenhada com fluxo guiado em 4 etapas (Termo → Apoio → Convenção → FGTS)
 - **2026-02-06**: ✅ CORREÇÃO CRÍTICA: Importação de colaboradores agora extrai dados corretamente usando IA (corrigido problema onde arquivos TXT não eram processados pela IA)
 - **2026-02-06**: ✅ Importação de colaboradores extrai todos os campos: nome, cpf, sexo, estado_civil, endereco, cidade, uf, cep, rg, pis, ctps, nome_mae, nome_pai, dados bancários, dependentes
 - **2026-02-06**: ✅ IA agora distingue corretamente dados do funcionário dos dados da empresa (não confunde mais nome da empresa com nome do funcionário)
