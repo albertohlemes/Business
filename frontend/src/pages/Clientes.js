@@ -289,13 +289,131 @@ const Clientes = () => {
           <h1 className="text-2xl font-bold text-white">Empresas</h1>
           <p className="text-slate-500 mt-1">Gerencie as empresas cadastradas no sistema</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button data-testid="add-cliente-btn" className="bg-red-600 hover:bg-red-700">
-              <Plus size={18} className="mr-2" />
-              Nova Empresa
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-3">
+          {/* Botão Importar em Lote */}
+          <Dialog open={importDialogOpen} onOpenChange={(open) => { setImportDialogOpen(open); if (!open) setImportResult(null); }}>
+            <DialogTrigger asChild>
+              <Button data-testid="import-clientes-btn" variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800">
+                <Upload size={18} className="mr-2" />
+                Importar em Lote
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg bg-slate-900 border-slate-800 text-white">
+              <DialogHeader>
+                <DialogTitle className="text-xl flex items-center gap-2">
+                  <FileSpreadsheet size={24} className="text-red-500" />
+                  Importar Empresas em Lote
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-4 mt-4">
+                {!importResult ? (
+                  <>
+                    <div
+                      {...getRootProps()}
+                      className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                        isDragActive 
+                          ? 'border-red-500 bg-red-500/10' 
+                          : 'border-slate-700 hover:border-red-500/50 hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <input {...getInputProps()} />
+                      {importing ? (
+                        <div className="flex flex-col items-center gap-3">
+                          <Loader2 className="animate-spin text-red-500" size={40} />
+                          <p className="text-slate-400">Processando arquivo...</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20">
+                            <Upload className="text-red-500" size={32} />
+                          </div>
+                          <div>
+                            <p className="text-white font-medium">Arraste o arquivo aqui</p>
+                            <p className="text-sm text-slate-500 mt-1">ou clique para selecionar</p>
+                          </div>
+                          <p className="text-xs text-slate-600">Formatos: CSV, XLS, XLSX</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+                      <p className="text-sm text-slate-400 mb-3">
+                        O arquivo deve conter as colunas: <span className="text-white">CNPJ, Razão Social</span> (obrigatórias), 
+                        Nome Fantasia, Endereço, Telefone, Email, Tipo Atividade, Data Base Dissídio, Sindicato.
+                      </p>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={downloadModelo}
+                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                      >
+                        <Download size={16} className="mr-2" />
+                        Baixar modelo CSV
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Resultado da importação */}
+                    <div className={`rounded-xl p-6 border ${
+                      importResult.erros === 0 
+                        ? 'bg-emerald-500/10 border-emerald-500/30' 
+                        : 'bg-amber-500/10 border-amber-500/30'
+                    }`}>
+                      <div className="flex items-center gap-4">
+                        {importResult.erros === 0 ? (
+                          <CheckCircle2 className="text-emerald-500" size={40} />
+                        ) : (
+                          <AlertCircle className="text-amber-500" size={40} />
+                        )}
+                        <div>
+                          <p className="text-lg font-semibold text-white">
+                            {importResult.importadas} empresa(s) importada(s)
+                          </p>
+                          <p className="text-sm text-slate-400">
+                            de {importResult.total_processadas} linha(s) processadas
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {importResult.erros > 0 && (
+                      <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 max-h-48 overflow-y-auto">
+                        <p className="text-sm font-medium text-amber-500 mb-2">
+                          {importResult.erros} erro(s) encontrado(s):
+                        </p>
+                        <div className="space-y-2">
+                          {importResult.empresas_erros?.map((erro, idx) => (
+                            <div key={idx} className="text-xs text-slate-400">
+                              <span className="text-slate-500">Linha {erro.linha}:</span> {erro.erro}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <Button 
+                      onClick={() => { setImportResult(null); }}
+                      className="w-full bg-red-600 hover:bg-red-700"
+                    >
+                      Importar outro arquivo
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+          
+          {/* Botão Nova Empresa */}
+          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button data-testid="add-cliente-btn" className="bg-red-600 hover:bg-red-700">
+                <Plus size={18} className="mr-2" />
+                Nova Empresa
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl flex items-center gap-2">
