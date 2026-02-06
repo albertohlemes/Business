@@ -3505,6 +3505,17 @@ async def analisar_convencao(
                 - Piso do cargo Y: R$ valor
                 - Se houver apenas um piso geral, informe apenas esse
                 
+                IMPORTANTE - VIGÊNCIA:
+                Identifique claramente o período de vigência da convenção (data início e fim).
+                
+                MUITO IMPORTANTE - PROPORCIONALIDADE POR DATA DE ADMISSÃO:
+                Muitas convenções definem que funcionários admitidos DURANTE o período de retroatividade
+                recebem o retroativo de forma PROPORCIONAL. Procure por tabelas ou cláusulas que definam:
+                - "Admitidos em janeiro: 100% do retroativo"
+                - "Admitidos em fevereiro: 11/12 do retroativo"
+                - Etc.
+                Se não encontrar tabela específica, deixe como null.
+                
                 IMPORTANTE - Identifique também:
                 1. VERBAS QUE RECEBEM REAJUSTE (salário, horas extras, DSR, adicional noturno, etc)
                 2. VERBAS QUE NÃO RECEBEM REAJUSTE (vale transporte, vale refeição fixo, INSS, IRRF, etc)
@@ -3538,6 +3549,12 @@ async def analisar_convencao(
                             "piso_anterior": 3300.00
                         }
                     ],
+                    "tabela_proporcionalidade": [
+                        {"mes_admissao": 1, "percentual": 100, "descricao": "Janeiro - 12/12"},
+                        {"mes_admissao": 2, "percentual": 91.67, "descricao": "Fevereiro - 11/12"},
+                        {"mes_admissao": 3, "percentual": 83.33, "descricao": "Março - 10/12"}
+                    ],
+                    "proporcionalidade_extraida_da_convencao": true ou false,
                     "verbas_com_reajuste": [
                         "salario_base",
                         "horas_extras_50",
@@ -3598,6 +3615,13 @@ async def analisar_convencao(
                     ],
                     "clausulas_importantes": ["cláusulas relevantes para DP"],
                     "vigencia_inicio": "DD/MM/YYYY",
+                    "vigencia_fim": "DD/MM/YYYY",
+                    "resumo": "resumo executivo em 2-3 frases"
+                }
+                
+                Se não encontrar informação sobre algum campo, use null.
+                Para benefícios e descontos, extraia TODOS que encontrar com seus valores.
+                Se não encontrar tabela de proporcionalidade na convenção, deixe tabela_proporcionalidade como null e proporcionalidade_extraida_da_convencao como false."""
                     "vigencia_fim": "DD/MM/YYYY",
                     "resumo": "resumo executivo em 2-3 frases"
                 }
