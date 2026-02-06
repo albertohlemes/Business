@@ -871,10 +871,10 @@ const Dissidio = () => {
                       <tr key={i} className="hover:bg-slate-800/50 transition-colors">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-bold text-sm">
                               {colab.nome?.charAt(0)}
                             </div>
-                            <span className="font-medium text-slate-800">{colab.nome}</span>
+                            <span className="font-medium text-white">{colab.nome}</span>
                           </div>
                         </td>
                         <td className="p-4 text-slate-400 text-sm">{colab.cpf || '-'}</td>
