@@ -172,8 +172,21 @@ const Clientes = () => {
       const updatedCliente = { ...editingCliente, convencao_coletiva: newConvencao };
       setEditingCliente(updatedCliente);
       
-      // Recarregar a lista de clientes em background
-      await fetchClientes();
+      // Atualizar também na lista de clientes para quando reabrir
+      setClientes(prevClientes => 
+        prevClientes.map(c => 
+          c.id === editingCliente.id 
+            ? { ...c, convencao_coletiva: newConvencao }
+            : c
+        )
+      );
+      
+      // Recarregar a lista de clientes em background para sincronizar com o banco
+      try {
+        await fetchClientes();
+      } catch (error) {
+        console.error('Erro ao recarregar clientes:', error);
+      }
     }
   };
 
