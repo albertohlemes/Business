@@ -3931,6 +3931,9 @@ async def list_documents(
     if competencia:
         query['competencia'] = competencia
     
+    # EXCLUIR notas canceladas da listagem
+    query["$or"] = [{"cancelada": {"$exists": False}}, {"cancelada": False}]
+    
     documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
     
     for doc in documents:
