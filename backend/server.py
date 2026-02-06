@@ -1337,11 +1337,56 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
     lines.append("|C001|0|")  # 0 = com movimento
     
     for doc in documents:
-        # Indicador de operação: 0=Entrada, 1=Saída
-        ind_oper = '1' if doc.tipo == 'saida' else '0'
+        # Verificar primeiro CFOP para determinar operação corretamente
+        # CFOPs iniciados em 1, 2, 3 = ENTRADA / CFOPs iniciados em 5, 6, 7 = SAÍDA
+        primeiro_cfop = ''
+        if doc.produtos:
+            primeiro_cfop = str(doc.produtos[0].get('cfop', '') or '')
         
-        # Indicador do emitente: 0=Emissão própria, 1=Terceiros
-        ind_emit = '0' if doc.tipo == 'saida' else '1'
+        primeiro_digito_cfop = primeiro_cfop[0] if primeiro_cfop else ''
+        
+        # Usar CFOP para determinar se é entrada ou saída (mais confiável que doc.tipo)
+        # Isso corrige o problema de devoluções de entrada emitidas pela própria empresa
+        if primeiro_digito_cfop in ['1', '2', '3']:
+            ind_oper = '0'  # Entrada
+            is_entrada = True
+        elif primeiro_digito_cfop in ['5', '6', '7']:
+            ind_oper = '1'  # Saída
+            is_entrada = False
+        else:
+            # Fallback para doc.tipo se não conseguir determinar pelo CFOP
+            ind_oper = '1' if doc.tipo == 'saida' else '0'
+            is_entrada = doc.tipo != 'saida'
+        
+        # Limpar CNPJs
+        emit_cnpj = doc.emitente_cnpj.replace('.','').replace('/','').replace('-','') if doc.emitente_cnpj else ''
+        dest_cnpj = doc.destinatario_cnpj.replace('.','').replace('/','').replace('-','') if doc.destinatario_cnpj else ''
+        cnpj_empresa = company.cnpj.replace('.','').replace('/','').replace('-','') if company.cnpj else ''
+        
+        # Determinar COD_PART (participante) e IND_EMIT corretamente
+        # Para ENTRADA: participante é o EMITENTE (fornecedor), emissão de terceiros
+        # Para SAÍDA: participante é o DESTINATÁRIO (cliente), emissão própria
+        if is_entrada:
+            # Entrada: verificar se é emissão própria (devolução) ou de terceiros
+            if emit_cnpj == cnpj_empresa:
+                # Devolução de entrada emitida pela própria empresa
+                # Participante é o DESTINATÁRIO (para quem foi a devolução)
+                cod_part = dest_cnpj
+                ind_emit = '0'  # Emissão própria
+            else:
+                # Entrada normal de terceiros
+                cod_part = emit_cnpj
+                ind_emit = '1'  # Terceiros
+        else:
+            # Saída: verificar se é emissão própria ou de terceiros (devolução recebida)
+            if emit_cnpj == cnpj_empresa:
+                # Saída normal emitida pela empresa
+                cod_part = dest_cnpj
+                ind_emit = '0'  # Emissão própria
+            else:
+                # Devolução recebida de cliente
+                cod_part = emit_cnpj
+                ind_emit = '1'  # Terceiros
         
         # Formatar data (DDMMAAAA)
         data_emissao = ''
