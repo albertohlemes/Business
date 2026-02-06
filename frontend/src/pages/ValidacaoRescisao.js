@@ -9,7 +9,7 @@ import { useDropzone } from 'react-dropzone';
 import { 
   FileCheck, Upload, Loader2, CheckCircle2, AlertTriangle, XCircle,
   FileText, Trash2, Building2, DollarSign, Calendar, User, Shield,
-  ChevronRight, ChevronLeft, ArrowRight, Check, FileSpreadsheet, Scale
+  ChevronRight, ChevronLeft, FileSpreadsheet, Scale, FileUp
 } from 'lucide-react';
 import EmpresaSelectorModal from '../components/EmpresaSelectorModal';
 
@@ -45,37 +45,52 @@ const ValidacaoRescisao = () => {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const { empresaSelecionada } = useEmpresa();
 
+  // Callbacks para onDrop - definidos FORA do useDropzone
+  const onDropTermo = useCallback((acceptedFiles) => {
+    if (acceptedFiles.length > 0) {
+      setTermoRescisao(acceptedFiles[0]);
+    }
+  }, []);
+
+  const onDropApoio = useCallback((acceptedFiles) => {
+    setApoio(prev => [...prev, ...acceptedFiles]);
+  }, []);
+
+  const onDropConvencao = useCallback((acceptedFiles) => {
+    if (acceptedFiles.length > 0) {
+      setConvencao(acceptedFiles[0]);
+    }
+  }, []);
+
+  const onDropFgts = useCallback((acceptedFiles) => {
+    if (acceptedFiles.length > 0) {
+      setExtratoFgts(acceptedFiles[0]);
+    }
+  }, []);
+
   // Dropzones
-  const termoDropzone = useDropzone({
-    onDrop: useCallback((files) => { if (files.length > 0) setTermoRescisao(files[0]); }, []),
+  const { getRootProps: getTermoRootProps, getInputProps: getTermoInputProps, isDragActive: isTermoDragActive } = useDropzone({
+    onDrop: onDropTermo,
     accept: { 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'] },
-    multiple: false,
-    noClick: false,
-    noKeyboard: false
+    multiple: false
   });
-  
-  const apoioDropzone = useDropzone({
-    onDrop: useCallback((files) => { setApoio(prev => [...prev, ...files]); }, []),
+
+  const { getRootProps: getApoioRootProps, getInputProps: getApoioInputProps, isDragActive: isApoioDragActive } = useDropzone({
+    onDrop: onDropApoio,
     accept: { 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
-    multiple: true,
-    noClick: false,
-    noKeyboard: false
+    multiple: true
   });
-  
-  const convencaoDropzone = useDropzone({
-    onDrop: useCallback((files) => { if (files.length > 0) setConvencao(files[0]); }, []),
+
+  const { getRootProps: getConvencaoRootProps, getInputProps: getConvencaoInputProps, isDragActive: isConvencaoDragActive } = useDropzone({
+    onDrop: onDropConvencao,
     accept: { 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'] },
-    multiple: false,
-    noClick: false,
-    noKeyboard: false
+    multiple: false
   });
-  
-  const fgtsDropzone = useDropzone({
-    onDrop: useCallback((files) => { if (files.length > 0) setExtratoFgts(files[0]); }, []),
+
+  const { getRootProps: getFgtsRootProps, getInputProps: getFgtsInputProps, isDragActive: isFgtsDragActive } = useDropzone({
+    onDrop: onDropFgts,
     accept: { 'application/pdf': ['.pdf'], 'image/*': ['.png', '.jpg', '.jpeg'] },
-    multiple: false,
-    noClick: false,
-    noKeyboard: false
+    multiple: false
   });
 
   // Processar Etapa 1 - Termo de Rescisão
@@ -88,7 +103,6 @@ const ValidacaoRescisao = () => {
       const formData = new FormData();
       formData.append('cliente_id', empresaSelecionada.id);
       formData.append('termo_rescisao', termoRescisao);
-      formData.append('etapa', '1');
 
       const response = await axios.post(`${API_URL}/api/validacao/rescisao/etapa1`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -189,73 +203,6 @@ const ValidacaoRescisao = () => {
     setFgtsData(null);
   };
 
-  // Componente de Upload Box
-  const UploadBox = ({ dropzone, label, file, files, icon: Icon, color, onRemove, description }) => {
-    const { getRootProps, getInputProps, isDragActive } = dropzone;
-    
-    const rootProps = getRootProps();
-    
-    return (
-      <div className="space-y-2">
-        <div 
-          {...rootProps}
-          className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-            isDragActive ? 'border-red-500 bg-red-500/10' : 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/50'
-          }`}
-        >
-          <input {...getInputProps()} data-testid="file-input" />
-          {file ? (
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <CheckCircle2 className="text-emerald-500" size={32} />
-              </div>
-              <div className="text-center">
-                <p className="text-white font-medium">{file.name}</p>
-                <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-slate-400 hover:text-red-500"
-                onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRemove(); }}
-              >
-                <Trash2 size={14} className="mr-1" /> Remover
-              </Button>
-            </div>
-          ) : files?.length > 0 ? (
-            <div className="space-y-2">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="text-emerald-500" size={32} />
-              </div>
-              <p className="text-white font-medium">{files.length} arquivo(s) selecionado(s)</p>
-              <div className="space-y-1 max-h-32 overflow-y-auto">
-                {files.map((f, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm bg-slate-800 rounded px-3 py-1.5">
-                    <span className="text-slate-300 truncate">{f.name}</span>
-                    <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRemove(i); }} className="text-slate-500 hover:text-red-500 ml-2">
-                      <XCircle size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-3">
-              <div className={`w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center ${color}`}>
-                <Icon size={32} />
-              </div>
-              <div className="text-center">
-                <p className="text-white font-medium">{label}</p>
-                <p className="text-sm text-slate-500">{description}</p>
-              </div>
-              <p className="text-xs text-slate-600">Clique ou arraste arquivos aqui</p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   // Componente de Resultado Card
   const ResultCard = ({ data, title, icon: Icon, color }) => {
     if (!data) return null;
@@ -284,7 +231,7 @@ const ValidacaoRescisao = () => {
               {Object.entries(data.resumo).map(([key, value]) => (
                 <div key={key} className="bg-slate-800/50 rounded p-2">
                   <p className="text-xs text-slate-500 capitalize">{key.replace(/_/g, ' ')}</p>
-                  <p className="text-white font-mono text-sm">{value || '-'}</p>
+                  <p className="text-white font-mono text-sm">{String(value) || '-'}</p>
                 </div>
               ))}
             </div>
@@ -359,15 +306,45 @@ const ValidacaoRescisao = () => {
               </p>
             </div>
             
-            <UploadBox 
-              dropzone={termoDropzone}
-              label="Upload do Termo de Rescisão"
-              description="PDF ou imagem do TRCT"
-              file={termoRescisao}
-              icon={FileCheck}
-              color="text-red-500"
-              onRemove={() => setTermoRescisao(null)}
-            />
+            {/* Upload Area - Termo */}
+            <div 
+              {...getTermoRootProps()} 
+              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                isTermoDragActive ? 'border-red-500 bg-red-500/10' : 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/50'
+              }`}
+            >
+              <input {...getTermoInputProps()} />
+              {termoRescisao ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <CheckCircle2 className="text-emerald-500" size={32} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-white font-medium">{termoRescisao.name}</p>
+                    <p className="text-xs text-slate-500">{(termoRescisao.size / 1024).toFixed(1)} KB</p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-slate-400 hover:text-red-500"
+                    onClick={(e) => { e.stopPropagation(); setTermoRescisao(null); }}
+                  >
+                    <Trash2 size={14} className="mr-1" /> Remover
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-red-500">
+                    <FileUp size={32} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-white font-medium">Upload do Termo de Rescisão</p>
+                    <p className="text-sm text-slate-500">PDF ou imagem do TRCT</p>
+                  </div>
+                  <p className="text-xs text-slate-600">Clique ou arraste arquivos aqui</p>
+                </div>
+              )}
+            </div>
             
             <Button 
               onClick={processarTermo} 
@@ -416,15 +393,44 @@ const ValidacaoRescisao = () => {
               </div>
             )}
             
-            <UploadBox 
-              dropzone={apoioDropzone}
-              label="Upload do Apontamento de Apoio"
-              description="Planilha, PDF ou relatório do sistema"
-              files={apoio}
-              icon={FileSpreadsheet}
-              color="text-purple-500"
-              onRemove={(i) => setApoio(prev => prev.filter((_, idx) => idx !== i))}
-            />
+            {/* Upload Area - Apoio */}
+            <div 
+              {...getApoioRootProps()} 
+              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                isApoioDragActive ? 'border-purple-500 bg-purple-500/10' : 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/50'
+              }`}
+            >
+              <input {...getApoioInputProps()} />
+              {apoio.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="text-emerald-500" size={32} />
+                  </div>
+                  <p className="text-white font-medium">{apoio.length} arquivo(s) selecionado(s)</p>
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {apoio.map((f, i) => (
+                      <div key={i} className="flex items-center justify-between text-sm bg-slate-800 rounded px-3 py-1.5 mx-auto max-w-xs">
+                        <span className="text-slate-300 truncate">{f.name}</span>
+                        <button onClick={(e) => { e.stopPropagation(); setApoio(prev => prev.filter((_, idx) => idx !== i)); }} className="text-slate-500 hover:text-red-500 ml-2">
+                          <XCircle size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-purple-500">
+                    <FileUp size={32} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-white font-medium">Upload do Apontamento de Apoio</p>
+                    <p className="text-sm text-slate-500">Planilha, PDF ou relatório do sistema</p>
+                  </div>
+                  <p className="text-xs text-slate-600">Clique ou arraste arquivos aqui</p>
+                </div>
+              )}
+            </div>
             
             <div className="flex gap-3">
               <Button 
@@ -484,15 +490,45 @@ const ValidacaoRescisao = () => {
               </div>
             )}
             
-            <UploadBox 
-              dropzone={convencaoDropzone}
-              label="Upload da Convenção Coletiva"
-              description="PDF da CCT vigente"
-              file={convencao}
-              icon={Scale}
-              color="text-blue-500"
-              onRemove={() => setConvencao(null)}
-            />
+            {/* Upload Area - Convenção */}
+            <div 
+              {...getConvencaoRootProps()} 
+              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                isConvencaoDragActive ? 'border-blue-500 bg-blue-500/10' : 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/50'
+              }`}
+            >
+              <input {...getConvencaoInputProps()} />
+              {convencao ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <CheckCircle2 className="text-emerald-500" size={32} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-white font-medium">{convencao.name}</p>
+                    <p className="text-xs text-slate-500">{(convencao.size / 1024).toFixed(1)} KB</p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-slate-400 hover:text-red-500"
+                    onClick={(e) => { e.stopPropagation(); setConvencao(null); }}
+                  >
+                    <Trash2 size={14} className="mr-1" /> Remover
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-blue-500">
+                    <FileUp size={32} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-white font-medium">Upload da Convenção Coletiva</p>
+                    <p className="text-sm text-slate-500">PDF da CCT vigente</p>
+                  </div>
+                  <p className="text-xs text-slate-600">Clique ou arraste arquivos aqui</p>
+                </div>
+              )}
+            </div>
             
             <div className="flex gap-3">
               <Button 
@@ -558,15 +594,45 @@ const ValidacaoRescisao = () => {
               </div>
             )}
             
-            <UploadBox 
-              dropzone={fgtsDropzone}
-              label="Upload do Extrato FGTS"
-              description="Extrato ou relatório de fins rescisórios"
-              file={extratoFgts}
-              icon={Shield}
-              color="text-emerald-500"
-              onRemove={() => setExtratoFgts(null)}
-            />
+            {/* Upload Area - FGTS */}
+            <div 
+              {...getFgtsRootProps()} 
+              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                isFgtsDragActive ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/50'
+              }`}
+            >
+              <input {...getFgtsInputProps()} />
+              {extratoFgts ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <CheckCircle2 className="text-emerald-500" size={32} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-white font-medium">{extratoFgts.name}</p>
+                    <p className="text-xs text-slate-500">{(extratoFgts.size / 1024).toFixed(1)} KB</p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-slate-400 hover:text-red-500"
+                    onClick={(e) => { e.stopPropagation(); setExtratoFgts(null); }}
+                  >
+                    <Trash2 size={14} className="mr-1" /> Remover
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-emerald-500">
+                    <FileUp size={32} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-white font-medium">Upload do Extrato FGTS</p>
+                    <p className="text-sm text-slate-500">Extrato ou relatório de fins rescisórios</p>
+                  </div>
+                  <p className="text-xs text-slate-600">Clique ou arraste arquivos aqui</p>
+                </div>
+              )}
+            </div>
             
             <div className="flex gap-3">
               <Button 
@@ -603,12 +669,6 @@ const ValidacaoRescisao = () => {
       default:
         return null;
     }
-  };
-
-  // Calcular se pode avançar
-  const canGoNext = () => {
-    if (currentStep === 1) return stepCompleted[1];
-    return true;
   };
 
   return (
