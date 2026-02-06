@@ -117,17 +117,11 @@ const Login = () => {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="lg:hidden flex justify-center mb-8">
-            <div className="flex items-center gap-3">
-              <img 
-                src={LOGO_URL} 
-                alt="Business Contabilidade" 
-                className="h-12 w-auto"
-              />
-              <div className="flex flex-col">
-                <span className="text-2xl font-bold text-white tracking-tight">BUSINESS</span>
-                <span className="text-[10px] text-slate-500 uppercase tracking-[0.2em]">Contabilidade</span>
-              </div>
-            </div>
+            <img 
+              src={LOGO_URL} 
+              alt="Business Contabilidade" 
+              className="h-10 w-auto"
+            />
           </div>
           
           {/* Form card */}
