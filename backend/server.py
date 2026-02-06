@@ -6131,38 +6131,93 @@ async def validar_rescisao_etapa2(
         
         try:
             api_key = os.environ.get('EMERGENT_LLM_KEY')
+            
+            # Extrair TODOS os dados do termo para comparação
+            resumo = termo_info.get('resumo', {})
+            verbas = termo_info.get('verbas_rescisorias', {})
+            descontos = termo_info.get('descontos', {})
+            totais = termo_info.get('totais', {})
+            
             chat = LlmChat(
                 api_key=api_key,
                 session_id=f"rescisao-etapa2-{uuid.uuid4()}",
-                system_message=f"""Você é um especialista em departamento pessoal.
-                
-                DADOS DO TERMO DE RESCISÃO (já extraídos):
-                - Colaborador: {termo_info.get('colaborador', 'N/A')}
-                - Data Admissão: {termo_info.get('resumo', {}).get('data_admissao', 'N/A')}
-                - Data Demissão: {termo_info.get('resumo', {}).get('data_demissao', 'N/A')}
-                - Tipo Rescisão: {termo_info.get('resumo', {}).get('tipo_rescisao', 'N/A')}
-                - Salário Base: {termo_info.get('resumo', {}).get('salario_base', 'N/A')}
-                
-                Analise os arquivos de apoio (apontamentos, planilhas) e VALIDE:
-                1. Se todas as variáveis foram lançadas corretamente
-                2. Se os dias trabalhados batem
-                3. Se horas extras, adicional noturno, etc. foram considerados
-                4. Se as médias salariais estão corretas
-                
-                Retorne APENAS um JSON válido:
-                {{
-                    "itens_validados": ["Dias trabalhados", "Horas extras", ...],
-                    "divergencias": [
-                        {{
-                            "item": "Nome da variável/item",
-                            "valor_informado": "Valor no termo",
-                            "valor_esperado": "Valor no apoio",
-                            "observacao": "Explicação"
-                        }}
-                    ],
-                    "alertas": ["Alertas importantes"],
-                    "observacoes": "Observações gerais sobre a comparação"
-                }}"""
+                system_message=f"""Você é um especialista em departamento pessoal e validação de rescisões.
+
+DADOS COMPLETOS DO TERMO DE RESCISÃO (TRCT) - ESTES SÃO OS VALORES OFICIAIS:
+
+=== IDENTIFICAÇÃO ===
+- Colaborador: {termo_info.get('colaborador', 'N/A')}
+- CPF: {termo_info.get('cpf', 'N/A')}
+- Cargo: {termo_info.get('cargo', 'N/A')}
+
+=== DATAS E TIPO ===
+- Data Admissão: {resumo.get('data_admissao', 'N/A')}
+- Data Demissão: {resumo.get('data_demissao', 'N/A')}
+- Data Aviso: {resumo.get('data_aviso', 'N/A')}
+- Tipo Rescisão: {resumo.get('tipo_rescisao', 'N/A')}
+- Motivo: {resumo.get('motivo_rescisao', 'N/A')}
+- Dias Trabalhados no mês: {resumo.get('dias_trabalhados', 'N/A')}
+- Aviso Prévio: {resumo.get('aviso_previo_tipo', 'N/A')} - {resumo.get('aviso_previo_dias', 'N/A')} dias
+
+=== REMUNERAÇÃO ===
+- Salário Base: R$ {resumo.get('salario_base', 'N/A')}
+
+=== VERBAS RESCISÓRIAS (PROVENTOS) ===
+- Saldo de Salário: R$ {verbas.get('saldo_salario', 'N/A')}
+- Aviso Prévio Indenizado: R$ {verbas.get('aviso_previo_indenizado', 'N/A')}
+- Férias Vencidas: R$ {verbas.get('ferias_vencidas', 'N/A')}
+- Férias Proporcionais: R$ {verbas.get('ferias_proporcionais', 'N/A')}
+- 1/3 de Férias: R$ {verbas.get('terco_ferias', 'N/A')}
+- 13º Proporcional: R$ {verbas.get('decimo_terceiro_proporcional', 'N/A')}
+- FGTS mês: R$ {verbas.get('fgts_mes', 'N/A')}
+- Multa FGTS 40%: R$ {verbas.get('multa_fgts_40', 'N/A')}
+- Outros Proventos: R$ {verbas.get('outros_proventos', 'N/A')}
+
+=== DESCONTOS ===
+- INSS: R$ {descontos.get('inss', 'N/A')}
+- IRRF: R$ {descontos.get('irrf', 'N/A')}
+- Aviso Prévio (desconto): R$ {descontos.get('aviso_previo_desconto', 'N/A')}
+- Outros Descontos: R$ {descontos.get('outros_descontos', 'N/A')}
+
+=== TOTAIS ===
+- Total Bruto: R$ {totais.get('total_bruto', 'N/A')}
+- Total Descontos: R$ {totais.get('total_descontos', 'N/A')}
+- Valor Líquido: R$ {totais.get('valor_liquido', 'N/A')}
+
+---
+
+SUA TAREFA:
+Analise o arquivo de APOIO enviado (apontamento, planilha de variáveis, relatório do sistema) e verifique se as VARIÁVEIS/EVENTOS que deveriam ter sido lançados na rescisão ESTÃO CORRETOS.
+
+O arquivo de apoio pode conter:
+- Horas extras que deveriam gerar médias
+- Comissões que deveriam gerar médias
+- Adicionais (noturno, insalubridade, periculosidade)
+- Faltas, atrasos que deveriam ser descontados
+- DSR (descanso semanal remunerado)
+- Dias trabalhados no mês da rescisão
+
+IMPORTANTE:
+- NÃO aponte divergência se o valor do TERMO estiver correto
+- Aponte divergência APENAS se o APOIO indicar um valor DIFERENTE do que está no TERMO
+- Se o apoio mostra que deveria haver horas extras/comissões que NÃO estão refletidas nas médias, ISSO é divergência
+- Se não conseguir identificar valores no apoio, liste como "não identificado no apoio"
+
+Retorne APENAS um JSON válido:
+{{
+    "itens_validados": ["Lista de itens que o apoio CONFIRMA estarem corretos no termo"],
+    "divergencias": [
+        {{
+            "item": "Nome do item/variável",
+            "valor_no_termo": "Valor que está no TRCT",
+            "valor_no_apoio": "Valor encontrado no arquivo de apoio",
+            "observacao": "Explicação da divergência"
+        }}
+    ],
+    "variaveis_no_apoio": ["Lista de variáveis/eventos encontrados no arquivo de apoio"],
+    "alertas": ["Alertas sobre itens que precisam de atenção"],
+    "observacoes": "Observações gerais"
+}}"""
             ).with_model("gemini", "gemini-2.0-flash")
             
             # Processar arquivos - extrair Excel como texto, enviar PDF/imagens normalmente
