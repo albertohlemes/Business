@@ -818,6 +818,7 @@ const Clientes = () => {
                 {/* Card Body */}
                 <div className="p-4">
                   <h3 className="font-bold text-white text-lg leading-tight mb-1">
+                    <span className="text-red-500 font-mono mr-2">#{cliente.id?.slice(0, 4).toUpperCase()}</span>
                     {cliente.nome_fantasia || cliente.razao_social}
                   </h3>
                   {cliente.nome_fantasia && (
