@@ -804,8 +804,8 @@ async def importar_colaborador_documento(
     use_ai: bool = True,  # Se False, usa apenas OCR local
     current_user: dict = Depends(get_current_user)
 ):
-    """Importa colaboradores usando OCR local + IA opcional (híbrido)"""
-    from document_processor import doc_processor, GoogleAIProcessor
+    """Importa colaboradores usando IA (Emergent) para melhor precisão"""
+    from document_processor import doc_processor
     
     # Validate cliente
     if cliente_id:
@@ -821,67 +821,43 @@ async def importar_colaborador_documento(
         tmp_path = tmp.name
     
     try:
-        # 1. PRIMEIRO: Tenta OCR local (rápido e gratuito)
-        logger.info(f"Extraindo texto com OCR local de {file.filename}")
-        extracted_text = doc_processor.extract_text(tmp_path)
-        
         colaboradores = []
         confianca = "baixa"
         
-        if extracted_text and len(extracted_text) > 100:
-            # Tenta extrair colaboradores do texto com regex
-            colaboradores = doc_processor.parse_colaboradores_from_text(extracted_text)
-            
-            if colaboradores and len(colaboradores) > 0:
-                # Se encontrou colaboradores com OCR local
-                confianca = "media"
-                logger.info(f"OCR local extraiu {len(colaboradores)} colaborador(es)")
-        
-        # 2. Se OCR local não funcionou bem e IA está habilitada, tenta IA
-        google_ai_key = os.environ.get('GOOGLE_AI_API_KEY')
+        # SEMPRE usa IA para melhor precisão na extração
         emergent_key = os.environ.get('EMERGENT_LLM_KEY')
         
-        # Filtra colaboradores inválidos (nomes que não parecem nomes de pessoas)
-        invalid_names = ['registro', 'colaboradores', 'empregado', 'funcionário', 'empresa', 'ficha']
-        colaboradores = [c for c in colaboradores if c.get('nome') and not any(inv in c.get('nome', '').lower() for inv in invalid_names)]
+        if emergent_key:
+            try:
+                import asyncio
+                logger.info(f"Extraindo colaboradores com IA de {file.filename}")
+                colaboradores_ai = await asyncio.wait_for(
+                    _extract_with_emergent_ai(tmp_path, suffix, tipo_documento, emergent_key),
+                    timeout=60.0  # 60 segundos para documentos grandes
+                )
+                if colaboradores_ai:
+                    colaboradores = colaboradores_ai
+                    confianca = "alta"
+                    logger.info(f"IA extraiu {len(colaboradores)} colaborador(es)")
+            except asyncio.TimeoutError:
+                logger.warning("IA timeout - tentando OCR local")
+            except Exception as e:
+                logger.error(f"IA falhou: {e}")
         
-        # Verifica se tem colaboradores válidos suficientes
-        valid_count = sum(1 for c in colaboradores if c.get('nome') and len(c.get('nome', '').split()) >= 2)
-        
-        if use_ai and valid_count < 2:
-            logger.info("OCR insuficiente, tentando IA...")
+        # Fallback para OCR local se IA não funcionou
+        if not colaboradores:
+            logger.info(f"Usando OCR local para {file.filename}")
+            extracted_text = doc_processor.extract_text(tmp_path)
             
-            # Tenta Google AI Studio primeiro (gratuito)
-            if google_ai_key:
-                try:
-                    google_ai = GoogleAIProcessor(google_ai_key)
-                    if google_ai.is_available():
-                        ai_colaboradores = await google_ai.extract_colaboradores(extracted_text)
-                        if ai_colaboradores:
-                            colaboradores = ai_colaboradores
-                            confianca = "alta"
-                            logger.info(f"Google AI extraiu {len(colaboradores)} colaborador(es)")
-                except Exception as e:
-                    logger.warning(f"Google AI falhou: {e}")
-            
-            # Se Google AI não disponível/falhou, tenta Emergent (pago) - com timeout
-            if (not colaboradores or valid_count < 2) and emergent_key:
-                try:
-                    import asyncio
-                    # Timeout de 30 segundos para não travar
-                    colaboradores_ai = await asyncio.wait_for(
-                        _extract_with_emergent_ai(tmp_path, suffix, tipo_documento, emergent_key),
-                        timeout=30.0
-                    )
-                    if colaboradores_ai:
-                        colaboradores = colaboradores_ai
-                        confianca = "alta"
-                        logger.info(f"Emergent AI extraiu {len(colaboradores)} colaborador(es)")
-                except asyncio.TimeoutError:
-                    logger.warning("Emergent AI timeout - usando resultado do OCR")
-                except Exception as e:
-                    logger.error(f"Emergent AI falhou: {e}")
-                    # Retorna o que OCR conseguiu
+            if extracted_text and len(extracted_text) > 100:
+                colaboradores = doc_processor.parse_colaboradores_from_text(extracted_text)
+                
+                # Filtra nomes inválidos
+                invalid_names = ['registro', 'colaboradores', 'empregado', 'funcionário', 'empresa', 'ficha', 'ltda', 'eireli', 's/a', 'cnpj']
+                colaboradores = [c for c in colaboradores if c.get('nome') and not any(inv in c.get('nome', '').lower() for inv in invalid_names)]
+                
+                if colaboradores:
+                    confianca = "media"
         
         # Prepara resposta
         if not colaboradores:
