@@ -264,9 +264,16 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - [x] ~~**BUG: ICMS ST/Despesa no totalizador** - Corrigido na Iteration 40~~ ✅ CONCLUÍDO
 - [x] ~~**BUG: Seletor de competências** - Corrigido na Iteration 40~~ ✅ CONCLUÍDO
 - [x] ~~**ExportMenu sincroniza contexto** - Implementado na Iteration 40~~ ✅ CONCLUÍDO
+- [x] **Alinhamento PIS/COFINS Dashboard vs Apuração Mensal** - ✅ CONCLUÍDO (06/02/2026)
+  - Valores de débito de PIS/COFINS agora são idênticos em todas as telas
+  - Cálculo feito sobre a base total acumulada (não por produto)
+  - Endpoints alinhados: `/api/dashboard/stats`, `/api/apuracao-periodo`, `/api/apuracao-pis-cofins`
 - [ ] Finalizar e testar a funcionalidade de exportação do **SPED Fiscal**
 - [ ] Barras de pesquisa nas páginas Documentos e Validação (UI adicionada, lint corrigido)
 - [ ] Hiperlink da NF deve abrir documento específico
+- [ ] **Melhorias Análise Tributária IA:**
+  - Identificar compras de fornecedores do Simples Nacional (extrair campo CRT do XML)
+  - Refinar lógica para casos como arroz (entrada tributada → saída mista)
 
 ### P2 - Média Prioridade
 - [ ] **Análise de Saídas e Divergências:** Agrupar por produto e filtrar itens com tributação indevida
