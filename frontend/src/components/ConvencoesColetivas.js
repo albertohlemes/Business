@@ -1127,7 +1127,57 @@ const ConvencaoDetalhada = ({ convencao, isAtual, isExpanded, onToggle, onRemove
 const ConvencoesColetivas = ({ clienteId, convencaoAtual, historicoConvencoes = [], onUpdate }) => {
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [expandedId, setExpandedId] = useState(convencaoAtual ? 'atual' : null);
+
+  // Função para exportar PDF
+  const handleExportPDF = async () => {
+    if (!convencaoAtual) {
+      toast.error('Nenhuma convenção para exportar');
+      return;
+    }
+    
+    setExporting(true);
+    try {
+      const response = await axios.get(
+        `${API_URL}/api/clientes/${clienteId}/convencao/export-pdf`,
+        { 
+          responseType: 'blob',
+          timeout: 60000 
+        }
+      );
+      
+      // Criar URL do blob e fazer download
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      
+      // Extrair nome do arquivo do header ou usar padrão
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = 'CCT_Resumo.pdf';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename=([^;]+)/);
+        if (filenameMatch) {
+          filename = filenameMatch[1].replace(/"/g, '');
+        }
+      }
+      
+      // Criar link e disparar download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('PDF exportado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      toast.error('Erro ao exportar PDF: ' + (error.response?.data?.detail || error.message));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const onDrop = useCallback(async (acceptedFiles) => {
     if (acceptedFiles.length === 0) return;
