@@ -51,6 +51,7 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - ✅ **Extração Completa**: Sindicato, vigência, pisos salariais, benefícios, jornada, estabilidades, rescisão
 - ✅ **Alertas de Vencimento**: Widget no Dashboard com CCTs vencidas ou próximas do vencimento
 - ✅ **Integração Automática**: Módulos de Dissídio e Rescisão consomem a CCT cadastrada automaticamente
+- ✅ **Exportar para PDF**: Gera PDF profissional com logo da empresa contendo todo o resumo da CCT (NOVO)
 
 ### Módulo Conversões (NOVO - 06/02/2026)
 - ✅ **Conversão de Apontamentos**: Converte arquivos do cliente (imagens, emails, planilhas) para layout SCI Único
