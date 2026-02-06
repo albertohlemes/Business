@@ -6219,45 +6219,40 @@ Salario Base: R$ {resumo.get('salario_base', 0)}
 Bruto: R$ {totais.get('total_bruto', 0)} | Liquido: R$ {totais.get('valor_liquido', 'N/A')}
 
 === SUA TAREFA ===
-Analise o ARQUIVO DE APOIO e faca a seguinte validacao:
+Analise o ARQUIVO DE APOIO e compare com as RUBRICAS DO TERMO listadas acima.
 
-1. EXTRAIA do apoio: horas extras, faltas, atrasos, adicionais, comissoes, DSR, medias, etc.
+1. EXTRAIA do apoio: horas extras, faltas, atrasos, adicionais, comissoes, DSR, etc.
 
-2. COMPARE com o TERMO acima:
-   - Se o apoio mostra HE (horas extras), verifique se ha valor de HE ou media no termo
-   - Se o apoio mostra faltas/atrasos, verifique se ha desconto correspondente
-   - Se o apoio mostra adicional noturno, verifique se ha valor no termo
-   - Se o apoio mostra comissoes, verifique se ha media ou valor no termo
+2. COMPARE cada item do apoio com as RUBRICAS DO TERMO:
+   - Se o apoio mostra "HE 5:23" e o termo tem rubrica "Hs. Extras 5,36 horas" = VALIDADO (valores proximos)
+   - Se o apoio mostra "Adicional Noturno 5:36" e o termo tem "Adic. Noturno 5:36 horas" = VALIDADO
+   - Se o apoio mostra "Faltas 5 dias" e o termo tem "Faltas nao justificadas dias 4" = DIVERGENCIA (valores diferentes)
+   - Se o apoio mostra "Atrasos 8:27" e o termo tem "Faltas nao justificadas horas 08:27" = VALIDADO
 
-3. REGRAS IMPORTANTES:
-   - IGNORE impostos (INSS, IRRF) - nao precisam estar no apoio
-   - NAO diga "nao encontrado no termo" se o valor esta listado acima
-   - Valide apenas: HE, faltas, atrasos, adicionais, comissoes, DSR, medias
-   - Se o valor/referencia do apoio BATE com algo no termo = VALIDADO
-   - Se o valor/referencia do apoio e DIFERENTE = DIVERGENCIA
-
-4. COMO IDENTIFICAR SE BATE:
-   - HE no apoio (ex: 10 horas) deve refletir em valor ou media no termo
-   - Faltas no apoio (ex: 2 dias) deve ter desconto proporcional no termo
-   - O valor pode estar em verbas diferentes (media, adicional, etc)
+3. REGRAS:
+   - IGNORE impostos (INSS, IRRF) - nao precisa validar
+   - Use as RUBRICAS DETALHADAS do termo para comparar (codigo, descricao, referencia)
+   - Valores aproximados (diferencas pequenas por arredondamento) = VALIDADO
+   - Valores muito diferentes = DIVERGENCIA
+   - Se achou no apoio E achou rubrica correspondente no termo = VALIDADO
 
 Retorne APENAS JSON:
 {{
     "dados_encontrados_no_apoio": [
-        {{"tipo": "Hora Extra", "referencia": "10h", "valor": "R$ 500,00"}},
-        {{"tipo": "Falta", "referencia": "2 dias", "valor": "R$ 200,00"}}
+        {{"tipo": "Hora Extra 50%", "referencia": "5:23", "valor": ""}},
+        {{"tipo": "Adicional Noturno", "referencia": "5:36", "valor": ""}}
     ],
-    "itens_validados": ["Lista do que confere com o termo"],
+    "itens_validados": ["HE 50% - apoio 5:23 / termo 5,36h", "Adic. Noturno - apoio 5:36 / termo 5:36h"],
     "divergencias": [
         {{
-            "item": "Nome",
-            "valor_no_apoio": "O que esta no apoio",
-            "valor_no_termo": "O que esta no termo (use os dados acima)",
-            "observacao": "Explicacao"
+            "item": "Faltas dias",
+            "valor_no_apoio": "5 dias",
+            "valor_no_termo": "4 dias (rubrica 115.5)",
+            "observacao": "Diferenca de 1 dia"
         }}
     ],
-    "alertas": ["Pontos de atencao"],
-    "observacoes": "Resumo geral"
+    "alertas": [],
+    "observacoes": "Resumo"
 }}"""
             ).with_model("gemini", "gemini-2.0-flash")
             
