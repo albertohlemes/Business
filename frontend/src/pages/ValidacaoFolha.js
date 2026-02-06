@@ -843,8 +843,25 @@ const ValidacaoFolha = () => {
 
             {/* Progress Bar */}
             {uploading && (
-              <div className="py-4">
-                <ValidacaoFolhaProgress isProcessing={uploading} />
+              <div className="py-4 space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-slate-700">{processingStep || 'Processando...'}</span>
+                  <span className="text-slate-500">{uploadProgress}%</span>
+                </div>
+                <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-indigo-500 via-indigo-400 to-indigo-500 rounded-full transition-all duration-500"
+                    style={{ width: `${uploadProgress}%` }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 text-center">
+                  {uploadProgress < 25 ? 'Enviando arquivos para o servidor...' :
+                   uploadProgress < 50 ? 'Extraindo dados dos documentos...' :
+                   uploadProgress < 75 ? 'Analisando com inteligência artificial...' :
+                   uploadProgress < 95 ? 'Comparando e validando...' : 'Finalizando validação...'}
+                </p>
               </div>
             )}
 
