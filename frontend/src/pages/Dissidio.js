@@ -216,6 +216,27 @@ const Dissidio = () => {
     }
   };
 
+  // Exportar PDF da Convenção a partir de um cálculo anterior
+  const exportarConvencaoPDFCalculo = async (calculoId) => {
+    try {
+      const response = await axios.get(`${API_URL}/api/calculos-dissidio/${calculoId}/exportar-convencao-pdf`, {
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `resumo_convencao_${calculoId.substring(0, 8)}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('PDF da convenção gerado com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao gerar PDF da convenção');
+      console.error(error);
+    }
+  };
+
   // Exportar Resumo da Convenção em PDF
   const exportarResumoPDF = async () => {
     if (!convencaoData) {
