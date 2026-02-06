@@ -238,28 +238,87 @@ const ValidacaoFolha = () => {
     });
 
     setUploading(true);
-    setUploadProgress(0);
+    setUploadProgress(5);
+    setProcessingStep('Enviando arquivos...');
+    
     try {
+      // Passo 1: Enviar arquivos e iniciar job
       const response = await axios.post(`${API_URL}/api/validacoes/validar-completa`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 300000, // 5 minutes for complex analysis with AI
+        timeout: 60000, // 1 minuto para upload
         onUploadProgress: (progressEvent) => {
-          const progress = Math.round((progressEvent.loaded * 50) / progressEvent.total);
-          setUploadProgress(progress); // Upload vai até 50%
+          const progress = Math.round((progressEvent.loaded * 20) / progressEvent.total);
+          setUploadProgress(progress);
         }
       });
-      setUploadProgress(100);
-      setAnalysisResult(response.data);
-      setDialogOpen(false);
-      setResultDialogOpen(true);
-      toast.success(`Validação concluída! ${response.data.funcionarios_analisados || 0} colaborador(es) analisado(s)`);
-      fetchData();
+      
+      const { job_id } = response.data;
+      setCurrentJobId(job_id);
+      setUploadProgress(25);
+      setProcessingStep('Processando validação...');
+      
+      // Passo 2: Iniciar polling
+      const pollStatus = async () => {
+        try {
+          const statusRes = await axios.get(`${API_URL}/api/validacoes/job-status/${job_id}`);
+          const { status, progress, step, result, error } = statusRes.data;
+          
+          setUploadProgress(25 + Math.floor(progress * 0.75)); // 25-100%
+          setProcessingStep(step);
+          
+          if (status === 'completed' && result) {
+            // Validação concluída!
+            clearInterval(pollingInterval);
+            setPollingInterval(null);
+            setUploading(false);
+            setUploadProgress(100);
+            setCurrentJobId(null);
+            setAnalysisResult(result);
+            setDialogOpen(false);
+            setResultDialogOpen(true);
+            toast.success(`Validação concluída! ${result.funcionarios_analisados || 0} colaborador(es) analisado(s)`);
+            fetchData();
+          } else if (status === 'failed') {
+            // Falha na validação
+            clearInterval(pollingInterval);
+            setPollingInterval(null);
+            setUploading(false);
+            setCurrentJobId(null);
+            toast.error(error || 'Erro ao validar folha');
+          }
+          // Se ainda está "processing", o polling continua
+        } catch (pollError) {
+          console.error('Erro no polling:', pollError);
+          // Não parar o polling por erros temporários
+        }
+      };
+      
+      // Iniciar intervalo de polling a cada 2 segundos
+      const interval = setInterval(pollStatus, 2000);
+      setPollingInterval(interval);
+      
+      // Fazer primeira verificação imediatamente
+      pollStatus();
+      
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Erro ao validar folha'));
-    } finally {
       setUploading(false);
+      setCurrentJobId(null);
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        setPollingInterval(null);
+      }
+      toast.error(getErrorMessage(error, 'Erro ao iniciar validação'));
     }
   };
+
+  // Limpar polling quando componente desmonta
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
 
   const resetDialog = () => {
     setSelectedCliente(empresaSelecionada?.id || '');
