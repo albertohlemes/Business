@@ -4910,7 +4910,10 @@ async def apuracao_pis_cofins(
                     creditos["aliquota_zero"]["total"] += valor
                 elif cst_usado == '50' or ((cfop in CFOPS_COM_CREDITO_PIS_COFINS or not cfop) and regime == 'lucro_real'):
                     # Gera crédito - CST 50 (apenas Lucro Real)
-                    # CALCULAR crédito com alíquotas do Lucro Real (1,65% PIS, 7,6% COFINS)
+                    # ACUMULAR base - cálculo será feito no final sobre a base total
+                    base_credito_acumulada += valor
+                    
+                    # Para agrupamento por CFOP/NCM, ainda calcular valores individuais (para visualização)
                     pis_calc = round(valor * 0.0165, 2)  # PIS Lucro Real: 1,65%
                     cofins_calc = round(valor * 0.076, 2)  # COFINS Lucro Real: 7,6%
                     
@@ -4918,8 +4921,6 @@ async def apuracao_pis_cofins(
                     add_to_dict(creditos["com_credito"]["por_ncm"], ncm or "SEM NCM", valor, pis_calc, cofins_calc, '50')
                     add_to_dict(creditos["com_credito"]["por_cst"], '50', valor, pis_calc, cofins_calc, '50')
                     creditos["com_credito"]["total"] += valor
-                    creditos["com_credito"]["pis"] += pis_calc
-                    creditos["com_credito"]["cofins"] += cofins_calc
                 else:
                     # CFOP não gera crédito ou empresa é Lucro Presumido - CST 70
                     add_to_dict(creditos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0, '70')
