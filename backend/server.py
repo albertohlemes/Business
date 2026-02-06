@@ -4370,14 +4370,6 @@ async def get_dashboard_stats(
     divergencias_pis_cofins = []
     
     if regime_tributario == 'lucro_real':
-        # Calcular valores esperados com alíquotas do Lucro Real
-        debito_pis_esperado = total_base_pis_cofins * ALIQ_PIS_LUCRO_REAL
-        debito_cofins_esperado = total_base_pis_cofins * ALIQ_COFINS_LUCRO_REAL
-        
-        # Usar valores esperados (alíquotas corretas do regime)
-        debito_pis = debito_pis_esperado
-        debito_cofins = debito_cofins_esperado
-        
         # Usar valores do XML (são os valores declarados/reais)
         debito_pis = debito_pis_xml
         debito_cofins = debito_cofins_xml
