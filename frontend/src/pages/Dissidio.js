@@ -347,29 +347,29 @@ const Dissidio = () => {
 
       {/* Step 2: Revisar Dados da Convenção */}
       {step === 2 && convencaoData && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="text-emerald-600" />
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader className="border-b border-slate-800">
+            <CardTitle className="flex items-center gap-2 text-white">
+              <CheckCircle2 className="text-emerald-500" />
               Revisar e Ajustar Dados da Convenção
             </CardTitle>
-            <p className="text-sm text-slate-500">Confira os dados extraídos e ajuste se necessário</p>
+            <p className="text-sm text-slate-400">Confira os dados extraídos e ajuste se necessário</p>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 pt-6">
             {/* Dados principais EDITÁVEIS */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label className="text-red-500 font-medium">Percentual de Reajuste (%)</Label>
+                <Label className="text-red-400 font-medium">Percentual de Reajuste (%)</Label>
                 <Input 
                   type="number" 
                   step="0.01"
                   value={convencaoData.percentual_reajuste || ''} 
                   onChange={(e) => setConvencaoData({...convencaoData, percentual_reajuste: parseFloat(e.target.value) || 0})}
-                  className="text-lg font-bold"
+                  className="text-lg font-bold bg-slate-800 border-slate-700 text-white"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-600 font-medium">Data Base (MM/AAAA)</Label>
+                <Label className="text-slate-300 font-medium">Data Base (MM/AAAA)</Label>
                 <Input 
                   value={convencaoData.data_base || ''} 
                   onChange={(e) => {
@@ -381,10 +381,11 @@ const Dissidio = () => {
                     }));
                   }}
                   placeholder="05/2025"
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-600 font-medium">Mês que Recebi a Convenção</Label>
+                <Label className="text-slate-300 font-medium">Mês que Recebi a Convenção</Label>
                 <Input 
                   value={convencaoData.mes_convencao || ''} 
                   onChange={(e) => {
@@ -396,48 +397,50 @@ const Dissidio = () => {
                     }));
                   }}
                   placeholder="08/2025"
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                 />
-                <p className="text-xs text-slate-400">Ajuste se demorou para descobrir que saiu</p>
+                <p className="text-xs text-slate-500">Ajuste se demorou para descobrir que saiu</p>
               </div>
-              <div className="bg-amber-50 p-4 rounded-lg flex flex-col justify-center">
-                <p className="text-xs text-amber-600 font-medium">Meses Retroativos</p>
-                <p className="text-3xl font-bold text-amber-700">{convencaoData.meses_retroativos || '?'}</p>
-                <p className="text-xs text-amber-600">calculado automaticamente</p>
+              <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-lg flex flex-col justify-center">
+                <p className="text-xs text-amber-400 font-medium">Meses Retroativos</p>
+                <p className="text-3xl font-bold text-amber-300">{convencaoData.meses_retroativos || '?'}</p>
+                <p className="text-xs text-amber-400">calculado automaticamente</p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Sindicato</Label>
+              <Label className="text-slate-300">Sindicato</Label>
               <Input 
                 value={convencaoData.sindicato || ''} 
                 onChange={(e) => setConvencaoData({...convencaoData, sindicato: e.target.value})}
+                className="bg-slate-800 border-slate-700 text-white"
               />
             </div>
 
             {/* Verbas */}
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="border rounded-lg p-4">
-                <p className="text-sm font-medium text-emerald-700 mb-2 flex items-center gap-1">
+              <div className="border border-slate-700 rounded-lg p-4 bg-slate-800/50">
+                <p className="text-sm font-medium text-emerald-400 mb-2 flex items-center gap-1">
                   <CheckCircle2 size={14} /> Verbas COM Reajuste
                 </p>
                 <div className="flex flex-wrap gap-1">
                   {convencaoData.verbas_com_reajuste?.map((v, i) => (
-                    <Badge key={i} variant="outline" className="text-emerald-600 border-emerald-300">
+                    <Badge key={i} variant="outline" className="text-emerald-400 border-emerald-500/50 bg-emerald-500/10">
                       {v.replace(/_/g, ' ')}
                     </Badge>
-                  )) || <span className="text-slate-400 text-sm">Não identificado</span>}
+                  )) || <span className="text-slate-500 text-sm">Não identificado</span>}
                 </div>
               </div>
-              <div className="border rounded-lg p-4">
-                <p className="text-sm font-medium text-rose-700 mb-2 flex items-center gap-1">
+              <div className="border border-slate-700 rounded-lg p-4 bg-slate-800/50">
+                <p className="text-sm font-medium text-rose-400 mb-2 flex items-center gap-1">
                   <AlertTriangle size={14} /> Verbas SEM Reajuste
                 </p>
                 <div className="flex flex-wrap gap-1">
                   {convencaoData.verbas_sem_reajuste?.map((v, i) => (
-                    <Badge key={i} variant="outline" className="text-rose-600 border-rose-300">
+                    <Badge key={i} variant="outline" className="text-rose-400 border-rose-500/50 bg-rose-500/10">
                       {v.replace(/_/g, ' ')}
                     </Badge>
-                  )) || <span className="text-slate-400 text-sm">Não identificado</span>}
+                  )) || <span className="text-slate-500 text-sm">Não identificado</span>}
                 </div>
               </div>
             </div>
