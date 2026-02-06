@@ -7016,6 +7016,14 @@ async def analise_tributaria_ia(
             cst = str(prod.get('cst_icms', '') or '')
             p_icms = float(prod.get('p_icms', 0) or 0)  # Alíquota real do XML
             
+            # Se p_icms não estiver disponível, calcular a partir de v_icms e v_bc_icms
+            if p_icms == 0 and v_icms > 0:
+                bc_icms = float(prod.get('v_bc_icms', 0) or 0)
+                if bc_icms > 0:
+                    p_icms = round((v_icms / bc_icms) * 100)
+                elif valor > 0:
+                    p_icms = round((v_icms / valor) * 100)
+            
             is_st = cfop in CFOPS_ST_ENTRADA or cst in ['10', '30', '60', '70']
             is_despesa = cfop in CFOPS_DESPESA
             is_simples = cst in CSOSN_SIMPLES or is_fornecedor_simples
