@@ -10322,6 +10322,142 @@ async def relacao_notas(
     }
 
 
+@api_router.get("/relacao-notas-detalhada/{company_id}")
+async def relacao_notas_detalhada(
+    company_id: str,
+    competencia: str,
+    incluir_canceladas: bool = True,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna relação completa de notas fiscais com DETALHAMENTO de impostos (IPI, ST, Frete, Desconto).
+    Mostra separadamente cada componente do valor da NF.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar documentos
+    query = {
+        "company_id": company_id,
+        "competencia": competencia
+    }
+    
+    if not incluir_canceladas:
+        query["$or"] = [{"cancelada": {"$exists": False}}, {"cancelada": False}]
+    
+    documents = await db.xml_documents.find(
+        query, 
+        {"_id": 0, "xml_content": 0}
+    ).to_list(None)
+    
+    # Processar notas
+    notas = []
+    for doc in documents:
+        produtos = doc.get('produtos', [])
+        
+        # Calcular totais dos produtos
+        total_valor_produto = 0
+        total_ipi = 0
+        total_icms_st = 0
+        total_frete = 0
+        total_seguro = 0
+        total_outras = 0
+        total_desconto = 0
+        
+        # Determinar CFOP principal
+        cfop_valores = {}
+        for prod in produtos:
+            cfop = str(prod.get('cfop', '') or '')
+            valor_prod = float(prod.get('valor_produto', 0) or 0)
+            v_ipi = float(prod.get('v_ipi', 0) or 0)
+            v_st = float(prod.get('v_icms_st', 0) or 0)
+            v_frete = float(prod.get('v_frete', 0) or 0)
+            v_seg = float(prod.get('v_seguro', 0) or 0)
+            v_outro = float(prod.get('v_outras_despesas', 0) or 0)
+            v_desc = float(prod.get('v_desconto', 0) or 0)
+            
+            total_valor_produto += valor_prod
+            total_ipi += v_ipi
+            total_icms_st += v_st
+            total_frete += v_frete
+            total_seguro += v_seg
+            total_outras += v_outro
+            total_desconto += v_desc
+            
+            if cfop:
+                if cfop not in cfop_valores:
+                    cfop_valores[cfop] = 0
+                cfop_valores[cfop] += valor_prod
+        
+        # CFOP principal
+        cfop_principal = max(cfop_valores.keys(), key=lambda k: cfop_valores[k]) if cfop_valores else ''
+        
+        # Determinar tipo pela CFOP principal
+        tipo_operacao = doc.get('tipo', '')
+        if cfop_principal:
+            primeiro = cfop_principal[0] if cfop_principal else ''
+            if primeiro in ['1', '2', '3']:
+                tipo_operacao = 'entrada'
+            elif primeiro in ['5', '6', '7']:
+                tipo_operacao = 'saida'
+        
+        # Status da nota
+        cancelada = doc.get('cancelada', False)
+        status = 'CANCELADA' if cancelada else 'ATIVA'
+        
+        nota_info = {
+            'numero_nfe': doc.get('numero_nfe', ''),
+            'chave_nfe': doc.get('chave_nfe', ''),
+            'data_emissao': doc.get('data_emissao', ''),
+            'emitente_cnpj': doc.get('emitente_cnpj', ''),
+            'emitente_nome': doc.get('emitente_nome', ''),
+            'destinatario_cnpj': doc.get('destinatario_cnpj', ''),
+            'destinatario_nome': doc.get('destinatario_nome', ''),
+            'tipo_operacao': tipo_operacao,
+            'cfop_principal': cfop_principal,
+            # Valor total da NF (conforme XML)
+            'valor_total': round(doc.get('valor_total', 0), 2),
+            # Detalhamento dos componentes
+            'total_valor_produto': round(total_valor_produto, 2),  # vProd
+            'total_ipi': round(total_ipi, 2),
+            'total_icms_st': round(total_icms_st, 2),
+            'total_frete': round(total_frete, 2),
+            'total_seguro': round(total_seguro, 2),
+            'total_outras_despesas': round(total_outras, 2),
+            'total_desconto': round(total_desconto, 2),
+            # Valor calculado = vProd + IPI + ST + Frete + Seg + Outras - Desc
+            'valor_calculado': round(total_valor_produto + total_ipi + total_icms_st + total_frete + total_seguro + total_outras - total_desconto, 2),
+            # Diferença
+            'diferenca': round(doc.get('valor_total', 0) - (total_valor_produto + total_ipi + total_icms_st + total_frete + total_seguro + total_outras - total_desconto), 2),
+            'status': status,
+            'cancelada': cancelada
+        }
+        
+        notas.append(nota_info)
+    
+    # Ordenar por tipo e número da NF
+    notas.sort(key=lambda x: (x['tipo_operacao'], x['numero_nfe']))
+    
+    # Separar entradas e saídas
+    entradas = [n for n in notas if n['tipo_operacao'] == 'entrada']
+    saidas = [n for n in notas if n['tipo_operacao'] == 'saida']
+    
+    return {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', '')
+        },
+        "competencia": competencia,
+        "entradas": entradas,
+        "saidas": saidas
+    }
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
