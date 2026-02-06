@@ -752,6 +752,15 @@ const Clientes = () => {
                 </CardContent>
               </Card>
 
+              {/* Convenção Coletiva - Apenas ao editar */}
+              {editingCliente && (
+                <ConvencaoColetiva 
+                  clienteId={editingCliente.id}
+                  convencao={editingCliente.convencao_coletiva}
+                  onUpdate={handleConvencaoUpdate}
+                />
+              )}
+
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
