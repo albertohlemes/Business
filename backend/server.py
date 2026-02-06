@@ -2215,6 +2215,58 @@ async def delete_validacoes_batch(ids: List[str], current_user: dict = Depends(g
         "deleted_count": result.deleted_count
     }
 
+# ==================== ITENS FIXOS ROUTES ====================
+
+@api_router.get("/itens-fixos")
+async def listar_itens_fixos(
+    cliente_id: str = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Lista itens fixos (proventos/descontos recorrentes)"""
+    query = {"user_id": current_user["id"]}
+    if cliente_id:
+        query["cliente_id"] = cliente_id
+    
+    itens = await db.itens_fixos.find(query, {"_id": 0}).to_list(500)
+    return itens
+
+@api_router.post("/itens-fixos")
+async def criar_item_fixo(
+    item: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Cria um item fixo (provento/desconto recorrente)"""
+    item_doc = {
+        "id": str(uuid.uuid4()),
+        "cliente_id": item.get("cliente_id"),
+        "cliente_nome": item.get("cliente_nome"),
+        "colaborador_nome": item.get("colaborador_nome"),  # Opcional - se vazio, aplica a todos
+        "campo": item.get("campo"),  # Ex: "vale_transporte", "quebra_caixa"
+        "tipo": item.get("tipo", "valor"),  # "valor" ou "referencia"
+        "descricao": item.get("descricao", ""),
+        "user_id": current_user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.itens_fixos.insert_one(item_doc)
+    return {"id": item_doc["id"], "message": "Item fixo criado com sucesso"}
+
+@api_router.delete("/itens-fixos/{item_id}")
+async def deletar_item_fixo(
+    item_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Remove um item fixo"""
+    result = await db.itens_fixos.delete_one({
+        "id": item_id,
+        "user_id": current_user["id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Item não encontrado")
+    
+    return {"message": "Item fixo removido"}
+
 # ==================== MÉDIAS ROUTES ====================
 
 @api_router.post("/medias/importar")
