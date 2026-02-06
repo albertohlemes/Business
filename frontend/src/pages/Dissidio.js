@@ -482,22 +482,19 @@ const Dissidio = () => {
             {/* Piso Salarial */}
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-slate-300">Piso Salarial Novo (R$)</Label>
+                <Label className="text-slate-300">Piso Salarial Novo</Label>
                 <Input 
-                  type="number"
-                  step="0.01"
-                  value={convencaoData.piso_salarial || ''} 
-                  onChange={(e) => setConvencaoData({...convencaoData, piso_salarial: parseFloat(e.target.value) || null})}
-                  placeholder="1.500,00"
+                  placeholder="R$ 0,00"
+                  value={convencaoData.piso_salarial ? formatarInputMoeda(String(Math.round(convencaoData.piso_salarial * 100))) : ''} 
+                  onChange={(e) => setConvencaoData({...convencaoData, piso_salarial: parseMoeda(e.target.value) || null})}
                   className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-slate-300">Piso Salarial Anterior (R$)</Label>
+                <Label className="text-slate-300">Piso Salarial Anterior</Label>
                 <Input 
-                  type="number"
-                  step="0.01"
-                  value={convencaoData.piso_salarial_anterior || ''} 
+                  placeholder="R$ 0,00"
+                  value={convencaoData.piso_salarial_anterior ? formatarInputMoeda(String(Math.round(convencaoData.piso_salarial_anterior * 100))) : ''} 
                   onChange={(e) => setConvencaoData({...convencaoData, piso_salarial_anterior: parseFloat(e.target.value) || null})}
                   placeholder="1.412,00"
                   className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
