@@ -274,33 +274,67 @@ const Dissidio = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle2 className="text-emerald-600" />
-              Dados Extraídos da Convenção
+              Revisar e Ajustar Dados da Convenção
             </CardTitle>
+            <p className="text-sm text-slate-500">Confira os dados extraídos e ajuste se necessário</p>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Dados principais */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-indigo-50 p-4 rounded-lg">
-                <p className="text-xs text-indigo-600 font-medium">Reajuste</p>
-                <p className="text-2xl font-bold text-indigo-700">{convencaoData.percentual_reajuste}%</p>
+            {/* Dados principais EDITÁVEIS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label className="text-indigo-600 font-medium">Percentual de Reajuste (%)</Label>
+                <Input 
+                  type="number" 
+                  step="0.01"
+                  value={convencaoData.percentual_reajuste || ''} 
+                  onChange={(e) => setConvencaoData({...convencaoData, percentual_reajuste: parseFloat(e.target.value) || 0})}
+                  className="text-lg font-bold"
+                />
               </div>
-              <div className="bg-slate-50 p-4 rounded-lg">
-                <p className="text-xs text-slate-600 font-medium">Data Base</p>
-                <p className="text-lg font-semibold">{convencaoData.data_base || 'N/I'}</p>
+              <div className="space-y-2">
+                <Label className="text-slate-600 font-medium">Data Base (MM/AAAA)</Label>
+                <Input 
+                  value={convencaoData.data_base || ''} 
+                  onChange={(e) => {
+                    const newDataBase = e.target.value;
+                    setConvencaoData(prev => ({
+                      ...prev, 
+                      data_base: newDataBase,
+                      meses_retroativos: calcularMesesRetroativos(newDataBase, prev.mes_convencao)
+                    }));
+                  }}
+                  placeholder="05/2025"
+                />
               </div>
-              <div className="bg-slate-50 p-4 rounded-lg">
-                <p className="text-xs text-slate-600 font-medium">Mês Convenção</p>
-                <p className="text-lg font-semibold">{convencaoData.mes_convencao || 'N/I'}</p>
+              <div className="space-y-2">
+                <Label className="text-slate-600 font-medium">Mês que Recebi a Convenção</Label>
+                <Input 
+                  value={convencaoData.mes_convencao || ''} 
+                  onChange={(e) => {
+                    const newMesConvencao = e.target.value;
+                    setConvencaoData(prev => ({
+                      ...prev, 
+                      mes_convencao: newMesConvencao,
+                      meses_retroativos: calcularMesesRetroativos(prev.data_base, newMesConvencao)
+                    }));
+                  }}
+                  placeholder="08/2025"
+                />
+                <p className="text-xs text-slate-400">Ajuste se demorou para descobrir que saiu</p>
               </div>
-              <div className="bg-amber-50 p-4 rounded-lg">
+              <div className="bg-amber-50 p-4 rounded-lg flex flex-col justify-center">
                 <p className="text-xs text-amber-600 font-medium">Meses Retroativos</p>
-                <p className="text-2xl font-bold text-amber-700">{convencaoData.meses_retroativos || '?'}</p>
+                <p className="text-3xl font-bold text-amber-700">{convencaoData.meses_retroativos || '?'}</p>
+                <p className="text-xs text-amber-600">calculado automaticamente</p>
               </div>
             </div>
 
-            <div>
-              <p className="text-sm font-medium text-slate-700 mb-1">Sindicato</p>
-              <p className="text-slate-600">{convencaoData.sindicato || 'Não identificado'}</p>
+            <div className="space-y-2">
+              <Label>Sindicato</Label>
+              <Input 
+                value={convencaoData.sindicato || ''} 
+                onChange={(e) => setConvencaoData({...convencaoData, sindicato: e.target.value})}
+              />
             </div>
 
             {/* Verbas */}
