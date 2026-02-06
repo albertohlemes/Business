@@ -5117,24 +5117,6 @@ async def apuracao_periodo(
             is_entrada = doc_tipo == 'entrada'
             is_saida = doc_tipo == 'saida'
             
-            # Verificar NCM e CST para alíquota zero / sem incidência
-            ncm = str(prod.get('ncm', ''))
-            cst_pis = str(prod.get('cst_pis', '')).strip()
-            ncm_aliq_zero = prod.get('ncm_aliq_zero', False)
-            
-            # CFOPs de saída que não geram débito (remessa, devolução, transferência)
-            CFOPS_SAIDA_SEM_DEBITO = {
-                '5901', '5902', '5903', '5904', '5905', '5906', '5907', '5908', '5909', '5910',
-                '5911', '5912', '5913', '5914', '5915', '5916', '5917', '5918', '5919', '5920',
-                '5921', '5922', '5923', '5924', '5925', '5926', '5927', '5928', '5929', '5932',
-                '6901', '6902', '6903', '6904', '6905', '6906', '6907', '6908', '6909', '6910',
-                '6911', '6912', '6913', '6914', '6915', '6916', '6917', '6918', '6919', '6920',
-                '6921', '6922', '6923', '6924', '6925', '6926', '6927', '6928', '6929', '6932',
-                '5411', '5412', '5413', '6411', '6412', '6413',  # Devolução ST
-                '5201', '5202', '5206', '5207', '5208', '5209', '5210',  # Devolução
-                '6201', '6202', '6206', '6207', '6208', '6209', '6210'
-            }
-            
             if is_entrada:
                 # CRÉDITO: Usar valores do XML (o que foi destacado pelo fornecedor)
                 v_pis = float(prod.get('v_pis', 0) or 0)
