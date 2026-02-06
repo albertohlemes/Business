@@ -4171,15 +4171,9 @@ async def exportar_resumo_convencao_pdf(
     piso_anterior = dados_convencao.get('piso_salarial_anterior')
     if piso_atual:
         elementos.append(Paragraph("PISO SALARIAL", estilo_subtitulo))
-        try:
-            piso_ant_str = f"R$ {float(piso_anterior):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if piso_anterior else "N/A"
-            piso_novo_str = f"R$ {float(piso_atual):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        except:
-            piso_ant_str = str(piso_anterior) if piso_anterior else "N/A"
-            piso_novo_str = str(piso_atual)
         piso_data = [
-            ["Piso Anterior:", piso_ant_str],
-            ["Piso Novo:", piso_novo_str],
+            ["Piso Anterior:", formatar_valor(piso_anterior)],
+            ["Piso Novo:", formatar_valor(piso_atual)],
         ]
         tabela_piso = Table(piso_data, colWidths=[4.5*cm, 12.5*cm])
         tabela_piso.setStyle(TableStyle([
