@@ -3086,10 +3086,11 @@ async def upload_xml_batch(
                     
                     if cfops_entrada and len(cfops_entrada) == len(cfops_xml):
                         # Todos os CFOPs são de entrada - NF irregular de terceiro
+                        cfops_unicos = list(set(cfops_entrada))[:3]
                         rejeitadas_cnpj.append({
                             "filename": file.filename,
                             "numero_nfe": parsed_data.get('numero_nfe', ''),
-                            "motivo": f"NF de terceiro com CFOP de entrada ({', '.join(set(cfops_entrada)[:3])}). Emitente ({parsed_data.get('emitente_nome', '')[:30]}) não é a empresa selecionada. Esta NF não deve ser escriturada.",
+                            "motivo": f"NF de terceiro com CFOP de entrada ({', '.join(cfops_unicos)}). Emitente ({parsed_data.get('emitente_nome', '')[:30]}) não é a empresa selecionada. Esta NF não deve ser escriturada.",
                             "emitente": parsed_data.get('emitente_nome', ''),
                             "destinatario": parsed_data.get('destinatario_nome', ''),
                             "tipo_rejeicao": "nf_terceiro_cfop_entrada"
