@@ -4374,10 +4374,31 @@ async def get_dashboard_stats(
     nfce = [d for d in documents if d.get('modelo') == 'nfce']
     nfse = [d for d in documents if d.get('modelo') == 'nfse']
     
-    # Valores totais
-    total_entradas = sum(d.get('valor_total', 0) for d in nfe_entrada)
-    total_vendas = sum(d.get('valor_total', 0) for d in nfe_saida)
-    total_cupons = sum(d.get('valor_total', 0) for d in nfce)
+    # Valores totais - SOMAR PRODUTOS (igual Apuração) para consistência
+    # Isso garante que Dashboard e Apuração mostrem os mesmos valores
+    total_entradas = 0
+    total_vendas = 0
+    total_cupons = 0
+    
+    # Somar valores dos produtos das entradas (apenas CFOPs de entrada 1,2,3)
+    for doc in nfe_entrada:
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', '') or '')
+            if cfop and cfop[0] in ['1', '2', '3']:
+                total_entradas += float(prod.get('valor_total', 0) or 0)
+    
+    # Somar valores dos produtos das saídas (apenas CFOPs de saída 5,6,7)
+    for doc in nfe_saida:
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', '') or '')
+            if cfop and cfop[0] in ['5', '6', '7']:
+                total_vendas += float(prod.get('valor_total', 0) or 0)
+    
+    # Cupons (NFC-e) - somar produtos também
+    for doc in nfce:
+        for prod in doc.get('produtos', []):
+            total_cupons += float(prod.get('valor_total', 0) or 0)
+    
     total_servicos = sum(d.get('valor_total', 0) for d in nfse)
     faturamento_total = total_vendas + total_cupons + total_servicos
     
