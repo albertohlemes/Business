@@ -166,10 +166,14 @@ const Clientes = () => {
     setDialogOpen(true);
   };
 
-  const handleConvencaoUpdate = (newConvencao) => {
+  const handleConvencaoUpdate = async (newConvencao) => {
     if (editingCliente) {
-      setEditingCliente({ ...editingCliente, convencao_coletiva: newConvencao });
-      fetchClientes();
+      // Atualizar o estado local imediatamente
+      const updatedCliente = { ...editingCliente, convencao_coletiva: newConvencao };
+      setEditingCliente(updatedCliente);
+      
+      // Recarregar a lista de clientes em background
+      await fetchClientes();
     }
   };
 
