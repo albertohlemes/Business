@@ -301,6 +301,131 @@ const Documents = ({ user, onLogout }) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   };
 
+  // Função de exportação para Excel
+  const exportToExcel = () => {
+    if (sortedAndFilteredDocuments.length === 0) {
+      alert('Não há documentos para exportar');
+      return;
+    }
+
+    const wb = XLSX.utils.book_new();
+    const empresa = ctxCompany?.razao_social || 'Todas';
+    const competencia = selectedCompetencia || 'Todas';
+
+    // Formatar data
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('pt-BR');
+      } catch {
+        return dateStr.split('T')[0] || dateStr;
+      }
+    };
+
+    // Preparar dados das notas
+    const notasData = sortedAndFilteredDocuments.map(doc => ({
+      'NF': doc.numero_nfe,
+      'Série': doc.serie || '',
+      'Data Emissão': formatDate(doc.data_emissao),
+      'Tipo': doc.tipo === 'entrada' ? 'ENTRADA' : 'SAÍDA',
+      'Emitente': doc.emitente_nome || '',
+      'CNPJ Emitente': doc.emitente_cnpj || '',
+      'Destinatário': doc.destinatario_nome || '',
+      'CNPJ Destinatário': doc.destinatario_cnpj || '',
+      'Valor NF': doc.valor_total || 0,
+      'Qtd Produtos': doc.produtos?.length || 0,
+      'Status': doc.status_validacao === 'validado' ? 'Validado' : doc.status_validacao === 'com_excecao' ? 'Com Exceção' : 'Pendente',
+      'Chave': doc.chave_nfe || ''
+    }));
+
+    // Criar planilha de notas
+    const wsNotas = XLSX.utils.json_to_sheet(notasData);
+    wsNotas['!cols'] = [
+      { wch: 10 }, // NF
+      { wch: 6 },  // Série
+      { wch: 12 }, // Data
+      { wch: 10 }, // Tipo
+      { wch: 40 }, // Emitente
+      { wch: 18 }, // CNPJ Emit
+      { wch: 40 }, // Destinatário
+      { wch: 18 }, // CNPJ Dest
+      { wch: 14 }, // Valor
+      { wch: 10 }, // Qtd
+      { wch: 12 }, // Status
+      { wch: 50 }  // Chave
+    ];
+    XLSX.utils.book_append_sheet(wb, wsNotas, 'Notas Fiscais');
+
+    // Preparar dados dos produtos (detalhamento)
+    const produtosData = [];
+    sortedAndFilteredDocuments.forEach(doc => {
+      (doc.produtos || []).forEach(prod => {
+        produtosData.push({
+          'NF': doc.numero_nfe,
+          'Tipo': doc.tipo === 'entrada' ? 'ENTRADA' : 'SAÍDA',
+          'Data': formatDate(doc.data_emissao),
+          'Código': prod.codigo || '',
+          'Descrição': prod.descricao || '',
+          'NCM': prod.ncm || '',
+          'CFOP': prod.cfop || '',
+          'CST': prod.cst || '',
+          'Qtd': prod.quantidade || 0,
+          'Vlr Unit': prod.valor_unitario || 0,
+          'Vlr Produto': prod.valor_produto || 0,
+          'Vlr Total': prod.valor_total || 0,
+          'BC ICMS': prod.v_bc_icms || 0,
+          'ICMS': prod.v_icms || 0,
+          'BC ST': prod.v_bc_icms_st || 0,
+          'ICMS ST': prod.v_icms_st || 0,
+          'IPI': prod.v_ipi || 0,
+          'PIS': prod.v_pis || 0,
+          'COFINS': prod.v_cofins || 0
+        });
+      });
+    });
+
+    if (produtosData.length > 0) {
+      const wsProdutos = XLSX.utils.json_to_sheet(produtosData);
+      wsProdutos['!cols'] = [
+        { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 15 }, { wch: 40 },
+        { wch: 10 }, { wch: 8 }, { wch: 6 }, { wch: 10 }, { wch: 12 },
+        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
+      ];
+      XLSX.utils.book_append_sheet(wb, wsProdutos, 'Produtos');
+    }
+
+    // Resumo
+    const totalEntradas = sortedAndFilteredDocuments.filter(d => d.tipo === 'entrada').reduce((sum, d) => sum + (d.valor_total || 0), 0);
+    const totalSaidas = sortedAndFilteredDocuments.filter(d => d.tipo === 'saida').reduce((sum, d) => sum + (d.valor_total || 0), 0);
+    const qtdEntradas = sortedAndFilteredDocuments.filter(d => d.tipo === 'entrada').length;
+    const qtdSaidas = sortedAndFilteredDocuments.filter(d => d.tipo === 'saida').length;
+
+    const resumoData = [
+      { 'Descrição': 'RESUMO DA EXPORTAÇÃO', 'Quantidade': '', 'Valor': '' },
+      { 'Descrição': '', 'Quantidade': '', 'Valor': '' },
+      { 'Descrição': 'Empresa', 'Quantidade': '', 'Valor': empresa },
+      { 'Descrição': 'Competência', 'Quantidade': '', 'Valor': competencia },
+      { 'Descrição': '', 'Quantidade': '', 'Valor': '' },
+      { 'Descrição': 'Notas de Entrada', 'Quantidade': qtdEntradas, 'Valor': totalEntradas },
+      { 'Descrição': 'Notas de Saída', 'Quantidade': qtdSaidas, 'Valor': totalSaidas },
+      { 'Descrição': '', 'Quantidade': '', 'Valor': '' },
+      { 'Descrição': 'TOTAL DE NOTAS', 'Quantidade': sortedAndFilteredDocuments.length, 'Valor': totalEntradas + totalSaidas }
+    ];
+
+    const wsResumo = XLSX.utils.json_to_sheet(resumoData);
+    wsResumo['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
+
+    // Gerar nome do arquivo
+    const tipoFiltro = selectedTipo ? `_${selectedTipo.toUpperCase()}` : '';
+    const statusFiltro = selectedStatus ? `_${selectedStatus}` : '';
+    const fileName = `Notas_${empresa.substring(0, 15)}${tipoFiltro}${statusFiltro}_${competencia.replace('/', '-')}.xlsx`;
+
+    XLSX.writeFile(wb, fileName);
+  };
+
   // Handler de ordenação
   const handleSort = (field) => {
     if (sortField === field) {
