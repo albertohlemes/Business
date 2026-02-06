@@ -128,12 +128,23 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 - Cliente ID: 897c7b37-a18f-4e66-9562-961697a460b3
 
 ## Última Atualização
-- **Data**: 05/02/2026
-- **Funcionalidade**: Validação de Folha POR COLABORADOR
+- **Data**: 06/02/2026
+- **Funcionalidade**: Polling Assíncrono para Validação de Folha
 - **Mudanças**:
-  - Extração de múltiplos colaboradores de uma folha
-  - Comparação individual com mês anterior (variação percentual)
-  - Cruzamento com arquivos de apoio por colaborador
-  - Tabela de colaboradores na visualização expandida
-- **Resultado**: ✅ 100% dos testes passaram (Backend 16/16, Frontend OK)
-- **Relatório**: /app/test_reports/iteration_12.json
+  - Refatorado `POST /api/validacoes/validar-completa` para processamento em background
+  - Novo endpoint `GET /api/validacoes/job-status/{job_id}` para consultar progresso
+  - Frontend atualizado para usar polling (2s) em vez de requisição síncrona
+  - Barra de progresso real com steps: "Enviando", "Extraindo", "Analisando IA", "Validando"
+  - Novos endpoints de exclusão: DELETE individual e POST batch
+- **Problema Resolvido**: UI travava durante validação de documentos com IA (operação longa)
+- **Resultado**: ✅ 100% dos testes passaram (Backend 12/12, Frontend OK)
+- **Relatório**: /app/test_reports/iteration_13.json
+
+---
+
+### Histórico de Atualizações Anteriores
+- **05/02/2026**: Validação de Folha POR COLABORADOR
+  - Extração de múltiplos colaboradores
+  - Comparação individual com mês anterior
+  - Cruzamento com arquivos de apoio
+  - ✅ Backend 16/16, Frontend OK
