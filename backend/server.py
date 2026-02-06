@@ -1947,37 +1947,27 @@ async def process_validacao_background(
                         else:
                             # Campos de valor (R$) - comparação normal
                             diff = abs(valor_holerite - valor_apoio)
-                            if v:
-                                valor_holerite = v
-                                break
-                        
-                        if valor_holerite == 0:
-                            for p in colab.get('proventos', []):
-                                if campo_ref.replace('_', ' ') in p.get('descricao', '').lower():
-                                    valor_holerite = p.get('valor', 0)
-                                    break
-                        
-                        diff = abs(valor_holerite - valor_apoio)
-                        campo_display = campo_ref.replace('_', ' ').title()
-                        
-                        if diff > 0.50:
-                            colab_resultado['status'] = 'divergente'
-                            colab_resultado['divergencias_apoio'].append({
-                                'campo': campo_display,
-                                'valor_apoio': valor_apoio,
-                                'valor_holerite': valor_holerite,
-                                'diferenca': round(diff, 2),
-                                'arquivo': ref.get('arquivo', ''),
-                                'severidade': 'alta' if diff > 100 else 'media',
-                                'texto_original': ref.get('texto_original', '')
-                            })
-                            total_divergencias += 1
-                        else:
-                            colab_resultado['conferidos'].append({
-                                'campo': campo_display,
-                                'valor': valor_apoio,
-                                'fonte': ref.get('arquivo', ''),
-                                'status': 'ok'
+                            
+                            if diff > 0.50:  # Tolerância de R$ 0,50
+                                colab_resultado['status'] = 'divergente'
+                                colab_resultado['divergencias_apoio'].append({
+                                    'campo': campo_display,
+                                    'valor_apoio': valor_apoio,
+                                    'valor_holerite': valor_holerite,
+                                    'diferenca': round(diff, 2),
+                                    'arquivo': ref.get('arquivo', ''),
+                                    'severidade': 'alta' if diff > 100 else 'media',
+                                    'texto_original': ref.get('texto_original', '')
+                                })
+                                total_divergencias += 1
+                            else:
+                                colab_resultado['conferidos'].append({
+                                    'campo': campo_display,
+                                    'valor': valor_apoio,
+                                    'fonte': ref.get('arquivo', ''),
+                                    'status': 'ok'
+                                })
+                                total_conferidos += 1
                             })
                             total_conferidos += 1
             
