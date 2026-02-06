@@ -230,39 +230,77 @@ const ListaProcessos = ({ minutas, loading, tipoProcesso, onRefresh, onEdit, emp
 
     const downloadWord = async (processoId) => {
         try {
+            toast.loading('Gerando documento Word...');
             const response = await axios.get(`${API_URL}/api/minutas/${processoId}/download/word`, {
-                responseType: 'blob'
+                responseType: 'blob',
+                headers: {
+                    'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                }
             });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            
+            // Criar blob e URL
+            const blob = new Blob([response.data], { 
+                type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+            });
+            const url = window.URL.createObjectURL(blob);
+            
+            // Criar link e forçar download
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `processo_${processoId}.docx`);
+            link.download = `processo_${processoId}.docx`;
+            link.style.display = 'none';
             document.body.appendChild(link);
             link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-            toast.success('Word baixado!');
+            
+            // Limpar
+            setTimeout(() => {
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+            
+            toast.dismiss();
+            toast.success('Download iniciado!');
         } catch (e) {
-            toast.error('Erro ao baixar Word');
+            toast.dismiss();
+            console.error('Erro ao baixar Word:', e);
+            toast.error('Erro ao baixar Word: ' + (e.response?.data?.detail || e.message));
         }
     };
     
     const downloadPDF = async (processoId) => {
         try {
+            toast.loading('Gerando documento PDF...');
             const response = await axios.get(`${API_URL}/api/minutas/${processoId}/download/pdf`, {
-                responseType: 'blob'
+                responseType: 'blob',
+                headers: {
+                    'Accept': 'application/pdf'
+                }
             });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            
+            // Criar blob e URL
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            
+            // Criar link e forçar download
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `processo_${processoId}.pdf`);
+            link.download = `processo_${processoId}.pdf`;
+            link.style.display = 'none';
             document.body.appendChild(link);
             link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-            toast.success('PDF baixado!');
+            
+            // Limpar
+            setTimeout(() => {
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+            
+            toast.dismiss();
+            toast.success('Download iniciado!');
         } catch (e) {
-            toast.error('Erro ao baixar PDF');
+            toast.dismiss();
+            console.error('Erro ao baixar PDF:', e);
+            toast.error('Erro ao baixar PDF: ' + (e.response?.data?.detail || e.message));
         }
     };
 
