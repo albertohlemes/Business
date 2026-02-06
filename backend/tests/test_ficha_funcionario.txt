@@ -1,0 +1,117 @@
+==================================================
+        FICHA DE REGISTRO DE EMPREGADO
+==================================================
+
+EMPRESA EMPREGADORA:
+Razão Social: BUSINESS CONTABILIDADE LTDA
+CNPJ: 12.345.678/0001-99
+Endereço: Rua das Flores, 123 - Centro
+Cidade: São Paulo - SP
+CEP: 01234-567
+
+--------------------------------------------------
+               DADOS DO FUNCIONÁRIO
+--------------------------------------------------
+
+NOME: MARIA APARECIDA DA SILVA SANTOS
+CPF: 123.456.789-00
+RG: 12.345.678-9
+Órgão Emissor: SSP
+UF: SP
+Data Emissão RG: 15/03/2010
+
+SEXO: Feminino
+DATA DE NASCIMENTO: 25/06/1990
+NATURALIDADE: São Paulo - SP
+ESTADO CIVIL: Casada
+GRAU DE INSTRUÇÃO: Ensino Superior Completo
+COR/RAÇA: Parda
+
+NOME DA MÃE: ANA MARIA DA SILVA
+NOME DO PAI: JOSÉ CARLOS DA SILVA
+
+--------------------------------------------------
+                    ENDEREÇO
+--------------------------------------------------
+
+LOGRADOURO: Rua dos Girassóis
+NÚMERO: 456
+COMPLEMENTO: Apto 102 Bloco B
+BAIRRO: Jardim América
+CIDADE: São Paulo
+UF: SP
+CEP: 04567-890
+
+--------------------------------------------------
+                    CONTATO
+--------------------------------------------------
+
+DDD: 11
+CELULAR: 98765-4321
+TELEFONE: 3456-7890
+E-MAIL: maria.santos@email.com.br
+
+--------------------------------------------------
+               DOCUMENTOS TRABALHISTAS
+--------------------------------------------------
+
+PIS/PASEP: 123.45678.90-1
+CTPS: 1234567
+Série: 001
+UF CTPS: SP
+Data Emissão CTPS: 20/01/2015
+
+TÍTULO DE ELEITOR: 123456789012
+Zona: 123
+Seção: 456
+
+RESERVISTA: N/A (Feminino)
+
+CNH: 12345678901
+Categoria: AB
+UF CNH: SP
+Validade: 15/06/2028
+
+--------------------------------------------------
+              DADOS CONTRATUAIS
+--------------------------------------------------
+
+DATA DE ADMISSÃO: 01/02/2024
+CARGO: Analista de Recursos Humanos
+DEPARTAMENTO: Recursos Humanos
+SALÁRIO BASE: R$ 4.500,00
+HORÁRIO DE TRABALHO: 08:00 às 17:00
+PRAZO DE EXPERIÊNCIA: 45 + 45 dias
+
+INSALUBRIDADE: Não se aplica
+PERICULOSIDADE: Não se aplica
+
+[ X ] Vale Transporte
+[   ] Adiantamento Salarial
+[ X ] Desconto Sindical
+
+--------------------------------------------------
+               DADOS BANCÁRIOS
+--------------------------------------------------
+
+BANCO: Banco do Brasil (001)
+AGÊNCIA: 1234-5
+CONTA: 12345-6
+
+--------------------------------------------------
+                 DEPENDENTES
+--------------------------------------------------
+
+1. JOÃO PEDRO SANTOS
+   CPF: 987.654.321-00
+   Nascimento: 10/03/2015
+   Parentesco: Filho
+   [ X ] IR  [ X ] Salário Família
+
+2. CARLOS EDUARDO SANTOS (Cônjuge)
+   CPF: 111.222.333-44
+   Nascimento: 12/08/1988
+   Parentesco: Cônjuge
+   [ X ] IR  [   ] Salário Família
+
+==================================================
