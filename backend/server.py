@@ -7355,8 +7355,10 @@ async def analise_tributaria_ia(
         analise_ncm[ncm]['entrada_icms_creditavel'] += prod.get('total_icms_creditavel', 0)
         analise_ncm[ncm]['entrada_qtd'] += prod['qtd_itens']
         analise_ncm[ncm]['tem_st_entrada'] = prod.get('tem_st', False)
+        analise_ncm[ncm]['tem_simples_entrada'] = prod.get('tem_simples', False)
         analise_ncm[ncm]['tem_tributado_entrada'] = prod.get('tem_tributado', False)
-        analise_ncm[ncm]['aliq_entrada'] = prod.get('aliq_creditavel', prod.get('aliq_icms_media', 0))
+        # Usar alíquota predominante (inteira) em vez de média
+        analise_ncm[ncm]['aliq_entrada'] = prod.get('aliquota_predominante', 0)
     
     for ncm, prod in produtos_saida.items():
         if ncm not in analise_ncm:
