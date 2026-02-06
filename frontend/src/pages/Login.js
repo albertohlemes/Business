@@ -73,17 +73,11 @@ const Login = () => {
         <div className="relative z-10 flex flex-col justify-center p-16">
           {/* Logo */}
           <div className="mb-12">
-            <div className="flex items-center gap-4">
-              <img 
-                src={LOGO_URL} 
-                alt="Business Contabilidade" 
-                className="h-16 w-auto"
-              />
-              <div className="flex flex-col">
-                <span className="text-3xl font-bold text-white tracking-tight">BUSINESS</span>
-                <span className="text-xs text-slate-500 uppercase tracking-[0.25em]">Contabilidade</span>
-              </div>
-            </div>
+            <img 
+              src={LOGO_URL} 
+              alt="Business Contabilidade" 
+              className="h-12 w-auto"
+            />
           </div>
           
           <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
