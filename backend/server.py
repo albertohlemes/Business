@@ -6325,9 +6325,9 @@ INSTRUÇÕES:
             return {
                 "success": True,
                 "etapa": 2,
+                "dados_encontrados_no_apoio": dados.get("dados_encontrados_no_apoio", []),
                 "itens_validados": dados.get("itens_validados", []),
                 "divergencias": divergencias,
-                "variaveis_no_apoio": dados.get("variaveis_no_apoio", []),
                 "alertas": dados.get("alertas", []),
                 "observacoes": dados.get("observacoes", "")
             }
