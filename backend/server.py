@@ -4378,6 +4378,14 @@ async def get_dashboard_stats(
         debito_pis = debito_pis_esperado
         debito_cofins = debito_cofins_esperado
         
+        # Usar valores do XML (são os valores declarados/reais)
+        debito_pis = debito_pis_xml
+        debito_cofins = debito_cofins_xml
+        
+        # Calcular valores esperados para alertar divergências
+        debito_pis_esperado = total_base_pis_cofins * ALIQ_PIS_LUCRO_REAL
+        debito_cofins_esperado = total_base_pis_cofins * ALIQ_COFINS_LUCRO_REAL
+        
         # Verificar divergências com XML
         tolerancia = 0.01  # 1% de tolerância para arredondamentos
         
