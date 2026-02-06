@@ -1,0 +1,95 @@
+{
+  "summary": "Iteration 16 - Testing new dissídio features: proporcionalidade table, vigência highlight, and PDF export. All 13 backend tests passed. Frontend UI verified with PDF export working correctly.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Dashboard",
+        "issues": ["Console warnings about chart dimensions (-1 width/height) - minor issue, charts still render"]
+      }
+    ]
+  },
+  
+  "passed_tests": [
+    "POST /api/convencao/analisar - requires authentication (403 without token)",
+    "POST /api/convencao/analisar - returns proporcionalidade_extraida_da_convencao field",
+    "POST /api/dissidio/calcular-retroativo - requires authentication (403 without token)",
+    "POST /api/dissidio/calcular-retroativo - requires holerite files (422 without)",
+    "POST /api/dissidio/calcular-retroativo - requires percentual_reajuste (400/422 without)",
+    "POST /api/dissidio/calcular-retroativo - accepts proporcionalidade data and returns calculation",
+    "GET /api/calculos-dissidio/{id}/exportar-convencao-pdf - requires authentication (403 without token)",
+    "GET /api/calculos-dissidio/{id}/exportar-convencao-pdf - returns 404 for non-existent calculation",
+    "GET /api/calculos-dissidio/{id}/exportar-convencao-pdf - exports valid PDF with correct content-type",
+    "GET /api/calculos-dissidio - requires authentication (403 without token)",
+    "GET /api/calculos-dissidio - lists calculations successfully",
+    "Proporcionalidade calculation for employees after data base",
+    "Vigência fields present in calculation response"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_proporcionalidade_vigencia.py",
+    "/app/test_reports/pytest/pytest_proporcionalidade.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Vigência section (lines 466-497 in Dissidio.js) properly implemented with blue gradient background and Calendar icon",
+    "Proporcionalidade table (lines 627-709 in Dissidio.js) properly implemented with color-coded percentages",
+    "Backend calcular_proporcionalidade function (lines 3728-3767 in server.py) correctly calculates proportional retroactive based on admission date",
+    "PDF export endpoint working correctly - toast shows 'PDF da convenção gerado com sucesso!'",
+    "AI prompt (lines 3493-3624 in server.py) properly instructs extraction of tabela_proporcionalidade and proporcionalidade_extraida_da_convencao"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_proporcionalidade_vigencia.py (new test file)"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (13/13 passed)",
+    "frontend": "100% (PDF export, navigation, login all working)"
+  },
+  
+  "test_credentials": {
+    "email": "admin@teste.com",
+    "password": "admin123"
+  },
+  
+  "seed_data_creation": "Tests use existing cliente 'Empresa Exemplo' for testing",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "New features tested in iteration 16: 1) POST /api/convencao/analisar now returns tabela_proporcionalidade and proporcionalidade_extraida_da_convencao fields. If not found in convention, a default table is auto-generated. 2) POST /api/dissidio/calcular-retroativo applies proporcionalidade for employees hired after data base - uses calcular_proporcionalidade function. 3) GET /api/calculos-dissidio/{id}/exportar-convencao-pdf exports PDF from existing calculation. 4) Frontend Step 2 (Revisar Dados) shows vigência section with blue gradient and proporcionalidade table with cyan styling. PDF buttons visible in calculations list.",
+  
+  "features_verified": {
+    "vigencia_highlight": {
+      "location": "Frontend Step 2 (Revisar Dados)",
+      "status": "IMPLEMENTED",
+      "description": "Blue gradient section with Calendar icon showing vigencia_inicio and vigencia_fim fields"
+    },
+    "proporcionalidade_table": {
+      "location": "Frontend Step 2 (Revisar Dados)",
+      "status": "IMPLEMENTED",
+      "description": "Cyan-styled table showing month, avos, percentage, and description. Badge indicates if extracted from convention or auto-calculated"
+    },
+    "retroativo_proporcional": {
+      "location": "Backend calcular-retroativo endpoint",
+      "status": "IMPLEMENTED",
+      "description": "Employees hired after data base receive proportional retroactive based on months worked"
+    },
+    "pdf_export_button": {
+      "location": "Frontend calculations list",
+      "status": "WORKING",
+      "description": "Blue PDF button visible for each calculation. Toast confirms 'PDF da convenção gerado com sucesso!'"
+    }
+  }
+}
