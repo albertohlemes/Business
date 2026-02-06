@@ -1340,6 +1340,16 @@ const Dissidio = () => {
                           R$ {calc.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={(e) => { e.stopPropagation(); exportarConvencaoPDFCalculo(calc.id); }} 
+                        className="gap-1 border-blue-500/50 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300"
+                        title="Exportar Resumo da Convenção (PDF)"
+                      >
+                        <FileDown size={14} />
+                        PDF
+                      </Button>
                       <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); exportarExcel(calc.id); }} className="gap-1 border-slate-600 text-slate-300 hover:bg-slate-700">
                         <Download size={14} />
                         Excel
