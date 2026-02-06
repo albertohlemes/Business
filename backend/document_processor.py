@@ -597,7 +597,8 @@ Se não encontrar nenhuma referência, retorne: {"referencias": []}
                     import PIL.Image
                     
                     genai.configure(api_key=google_key)
-                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    # Usar gemini-1.5-flash ou gemini-pro-vision
+                    model = genai.GenerativeModel('gemini-2.0-flash')
                     
                     # Carregar imagem
                     img = PIL.Image.open(file_path)
