@@ -5005,6 +5005,10 @@ async def converter_admissional(
     from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
     
     try:
+        # Buscar dados da empresa
+        cliente = await db.clientes.find_one({"id": cliente_id, "user_id": current_user["id"]}, {"_id": 0})
+        empresa_id = cliente.get("codigo_interno", cliente.get("id", "")[:8]) if cliente else ""
+        
         temp_files = []
         for arquivo in arquivos:
             content = await arquivo.read()
@@ -5027,57 +5031,79 @@ async def converter_admissional(
                 
                 CAMPOS OBRIGATÓRIOS para eSocial:
                 - Nome completo
-                - CPF
+                - CPF (apenas números)
                 - RG (número e órgão emissor)
-                - Data de nascimento
-                - Endereço completo (rua, número, bairro, cidade, estado, CEP)
-                - Cargo
+                - Data de nascimento (DD/MM/AAAA)
+                - Sexo (M ou F)
+                - Estado civil (solteiro, casado, divorciado, viuvo, separado, uniao_estavel)
+                - Nacionalidade
+                - Endereço completo (rua, número, complemento, bairro, cidade, estado, CEP)
+                - Cargo/função
                 - Salário
-                - Data de admissão
+                - Data de admissão (DD/MM/AAAA)
                 - PIS/PASEP
                 - CTPS (número e série)
-                - Dados bancários (banco, agência, conta)
-                
-                CAMPOS ADICIONAIS (se encontrar):
-                - Sexo
-                - Estado civil
-                - Nacionalidade
-                - Escolaridade
+                - Dados bancários (banco, agência, conta, tipo conta)
                 - Email
-                - Telefone
+                - Telefone/Celular
                 - Nome da mãe
-                - Dependentes
-                - CNH
-                - Título de eleitor
+                - Nome do pai
+                - Deficiência (se houver)
                 
                 Retorne APENAS um JSON válido:
                 {
                     "colaborador": {
-                        "nome_completo": "...",
-                        "cpf": "...",
-                        "rg": {"numero": "...", "orgao": "..."},
+                        "nome_completo": "NOME COMPLETO EM MAIUSCULAS",
+                        "cpf": "00000000000",
+                        "rg": {"numero": "...", "orgao": "SSP", "uf": "SP", "data_emissao": "DD/MM/AAAA"},
                         "data_nascimento": "DD/MM/AAAA",
-                        "endereco": {"rua": "...", "numero": "...", "bairro": "...", "cidade": "...", "estado": "...", "cep": "..."},
+                        "sexo": "M ou F",
+                        "estado_civil": "solteiro/casado/divorciado/viuvo/separado/uniao_estavel",
+                        "nacionalidade": "brasileiro",
+                        "naturalidade": {"cidade": "...", "uf": "..."},
+                        "nome_mae": "...",
+                        "nome_pai": "...",
+                        "endereco": {
+                            "cep": "00000000",
+                            "logradouro_tipo": "Rua/Avenida/etc",
+                            "logradouro": "Nome da rua",
+                            "numero": "...",
+                            "complemento": "...",
+                            "bairro": "...",
+                            "cidade": "...",
+                            "uf": "..."
+                        },
+                        "telefone": "00000000000",
+                        "celular": "00000000000",
+                        "email": "...",
                         "cargo": "...",
+                        "funcao": "...",
                         "salario": 0.00,
                         "data_admissao": "DD/MM/AAAA",
                         "pis_pasep": "...",
-                        "ctps": {"numero": "...", "serie": "..."},
-                        "dados_bancarios": {"banco": "...", "agencia": "...", "conta": "..."},
-                        ... demais campos ...
+                        "ctps": {"numero": "...", "serie": "...", "uf": "..."},
+                        "dados_bancarios": {"banco_codigo": "000", "banco_nome": "...", "agencia": "0000", "conta": "000000", "tipo_conta": "corrente/poupanca"},
+                        "escolaridade": "fundamental/medio/superior/pos_graduacao/mestrado/doutorado",
+                        "deficiencia": null,
+                        "cor_raca": "branca/preta/parda/amarela/indigena"
                     },
                     "campos_encontrados": ["Nome completo", "CPF", ...],
                     "campos_faltantes": ["CTPS", "PIS/PASEP", ...],
                     "observacoes": "observações sobre documentos ilegíveis ou dados inconsistentes"
                 }
                 
-                Se não encontrar algum campo, deixe como null."""
+                IMPORTANTE:
+                - CPF deve conter apenas números (11 dígitos)
+                - CEP deve conter apenas números (8 dígitos)
+                - Telefones devem conter apenas números (com DDD)
+                - Datas no formato DD/MM/AAAA
+                - Se não encontrar algum campo, deixe como null."""
             ).with_model("gemini", "gemini-2.0-flash")
             
             file_contents = [FileContentWithMimeType(file_path=tf["path"], mime_type=tf["mime"]) for tf in temp_files]
             
             response = await chat.send_message(UserMessage(
-                text=f"Extraia todos os dados admissionais destes {len(temp_files)} documento(s).",
+                text=f"Extraia todos os dados admissionais destes {len(temp_files)} documento(s). Preciso dos dados formatados para importação no sistema de folha de pagamento.",
                 file_contents=file_contents
             ))
             
@@ -5090,14 +5116,115 @@ async def converter_admissional(
                 response_text = response_text[:-3]
             
             dados = json.loads(response_text.strip())
+            colab = dados.get("colaborador", {})
+            
+            # Gerar o JSON no formato de importação do sistema
+            endereco = colab.get("endereco", {})
+            dados_bancarios = colab.get("dados_bancarios", {})
+            ctps = colab.get("ctps", {})
+            rg = colab.get("rg", {})
+            naturalidade = colab.get("naturalidade", {})
+            
+            # Mapear sexo para código
+            sexo_map = {"M": "1", "F": "2", "masculino": "1", "feminino": "2"}
+            sexo_codigo = sexo_map.get(colab.get("sexo", "").upper(), None)
+            
+            # Mapear estado civil para código
+            estado_civil_map = {
+                "solteiro": "1", "casado": "2", "divorciado": "3", 
+                "viuvo": "4", "separado": "5", "uniao_estavel": "6"
+            }
+            estado_civil_codigo = estado_civil_map.get(colab.get("estado_civil", "").lower(), None)
+            
+            # Mapear escolaridade para código
+            escolaridade_map = {
+                "analfabeto": "1", "fundamental_incompleto": "2", "fundamental": "3",
+                "medio_incompleto": "4", "medio": "5", "superior_incompleto": "6",
+                "superior": "7", "pos_graduacao": "8", "mestrado": "9", "doutorado": "10"
+            }
+            escolaridade_codigo = escolaridade_map.get(colab.get("escolaridade", "").lower(), None)
+            
+            # Mapear tipo de conta
+            tipo_conta_map = {"corrente": "1", "poupanca": "2", "salario": "3"}
+            tipo_conta_codigo = tipo_conta_map.get(dados_bancarios.get("tipo_conta", "").lower(), "1")
+            
+            # Mapear cor/raça para código
+            cor_raca_map = {"branca": "1", "preta": "2", "parda": "3", "amarela": "4", "indigena": "5"}
+            cor_raca_codigo = cor_raca_map.get(colab.get("cor_raca", "").lower(), None)
+            
+            # Converter data para formato ISO (AAAA-MM-DD)
+            def converter_data(data_str):
+                if not data_str:
+                    return None
+                try:
+                    partes = data_str.split("/")
+                    if len(partes) == 3:
+                        return f"{partes[2]}-{partes[1]}-{partes[0]}"
+                except:
+                    pass
+                return None
+            
+            # Gerar JSON no formato do sistema de importação
+            json_importacao = {
+                "tipo": "0",  # 0 = Colaborador
+                "empresaId": empresa_id,
+                "funcionarioContribuinteId": None,  # Será gerado pelo sistema
+                "vFuncionarioContribuinteId": None,  # Campo ignorado
+                "nome": colab.get("nome_completo"),
+                "email": colab.get("email"),
+                "enderecoCep": endereco.get("cep", "").replace("-", "").replace(".", ""),
+                "enderecoLogradouroId": None,  # Tipo de logradouro (Rua=1, Av=2, etc)
+                "endereco": endereco.get("logradouro"),
+                "enderecoNumero": endereco.get("numero"),
+                "enderecoComplemento": endereco.get("complemento"),
+                "enderecoBairro": endereco.get("bairro"),
+                "enderecoMunicipioId": None,  # Código IBGE do município
+                "enderecoMunicipio": endereco.get("cidade"),
+                "enderecoUf": endereco.get("uf"),
+                "cpf": colab.get("cpf", "").replace(".", "").replace("-", ""),
+                "rgNumero": rg.get("numero"),
+                "rgOrgaoExpedidor": rg.get("orgao"),
+                "rgUf": rg.get("uf"),
+                "rgDataExpedicao": converter_data(rg.get("data_emissao")),
+                "sexoId": sexo_codigo,
+                "estadoCivilId": estado_civil_codigo,
+                "dataNascimento": converter_data(colab.get("data_nascimento")),
+                "naturalidadeMunicipioId": None,
+                "naturalidadeMunicipio": naturalidade.get("cidade"),
+                "naturalidadeUf": naturalidade.get("uf"),
+                "nacionalidadeId": "10" if colab.get("nacionalidade", "").lower() == "brasileiro" else None,
+                "nomeMae": colab.get("nome_mae"),
+                "nomePai": colab.get("nome_pai"),
+                "grauInstrucaoId": escolaridade_codigo,
+                "telefone": colab.get("telefone", "").replace("(", "").replace(")", "").replace("-", "").replace(" ", ""),
+                "celular": colab.get("celular", "").replace("(", "").replace(")", "").replace("-", "").replace(" ", ""),
+                "pisPasep": colab.get("pis_pasep", "").replace(".", "").replace("-", ""),
+                "ctpsNumero": ctps.get("numero"),
+                "ctpsSerie": ctps.get("serie"),
+                "ctpsUf": ctps.get("uf"),
+                "dataAdmissao": converter_data(colab.get("data_admissao")),
+                "cargoId": None,  # Código do cargo no sistema
+                "cargoDescricao": colab.get("cargo") or colab.get("funcao"),
+                "salario": colab.get("salario"),
+                "bancoId": dados_bancarios.get("banco_codigo"),
+                "bancoNome": dados_bancarios.get("banco_nome"),
+                "agencia": dados_bancarios.get("agencia"),
+                "conta": dados_bancarios.get("conta"),
+                "tipoConta": tipo_conta_codigo,
+                "corRacaId": cor_raca_codigo,
+                "deficienciaId": None,
+                "deficienciaDescricao": colab.get("deficiencia")
+            }
             
             return {
                 "success": True,
-                "colaborador": dados.get("colaborador", {}),
-                "colaborador_nome": dados.get("colaborador", {}).get("nome_completo", "Dados Extraídos"),
+                "colaborador": colab,
+                "colaborador_nome": colab.get("nome_completo", "Dados Extraídos"),
                 "campos_encontrados": dados.get("campos_encontrados", []),
                 "campos_faltantes": dados.get("campos_faltantes", []),
-                "observacoes": dados.get("observacoes", "")
+                "observacoes": dados.get("observacoes", ""),
+                "json_importacao": json_importacao,
+                "empresa_id": empresa_id
             }
             
         finally:
