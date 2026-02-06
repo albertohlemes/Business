@@ -213,6 +213,16 @@ class XMLDocument(BaseModel):
     status_validacao: str = "pendente"
     uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     uploaded_by: str = ""
+    # Campos de cancelamento
+    cancelada: bool = False
+    cStat_cancelamento: str = ""
+    xMotivo_cancelamento: str = ""
+    dhRecbto_cancelamento: str = ""
+    nProt_cancelamento: str = ""
+    # Campos de cancelamento por evento (mantidos por compatibilidade)
+    data_cancelamento: str = ""
+    justificativa_cancelamento: str = ""
+    protocolo_cancelamento: str = ""
 
 class CFOPRule(BaseModel):
     model_config = ConfigDict(extra="ignore")
