@@ -74,6 +74,7 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 ### Módulo Controles
 - ✅ Dashboard com métricas de negócio
 - ✅ Gestão de Empresas com importação em lote
+- ✅ Widget de Alertas de CCTs vencendo no Dashboard
 
 ## APIs Principais
 
@@ -83,6 +84,8 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 ### Clientes/Empresas
 - `GET /api/receita/{cnpj}`, CRUD `/api/clientes`
 - `POST /api/clientes/importar-lote` - Importação em lote
+- `POST /api/clientes/{cliente_id}/convencao` - Upload e análise de CCT (NOVO)
+- `DELETE /api/clientes/{cliente_id}/convencao` - Remove CCT do cadastro (NOVO)
 
 ### Colaboradores
 - CRUD `/api/colaboradores`
@@ -92,24 +95,29 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 ### Dissídio
 - CRUD `/api/dissidios`
 - `POST /api/convencao/analisar` - Análise de convenção por IA
-- `POST /api/dissidio/calcular-retroativo` - Cálculo de retroativo (com validação de piso salarial)
+- `POST /api/dissidio/calcular-retroativo` - Cálculo de retroativo (agora pode usar CCT cadastrada)
 - `POST /api/convencao/exportar-resumo-pdf` - Exportação em PDF
-- `GET /api/calculos-dissidio/{id}/exportar-convencao-pdf` - Exporta PDF da convenção a partir de cálculo existente (NOVO)
+- `GET /api/calculos-dissidio/{id}/exportar-convencao-pdf` - Exporta PDF da convenção a partir de cálculo existente
 
-### Conversões (NOVOS)
+### Conversões
 - `POST /api/conversao/apontamentos` - Converte para SCI Único
 - `POST /api/conversao/admissional` - Extrai dados admissionais
 
 ### Validações
 - `POST /api/validacoes/validar-completa` - Validação de folha
-- `POST /api/validacao/rescisao` - Validação de rescisão (NOVO)
+- `POST /api/validacao/rescisao/etapa1` - Análise do termo de rescisão
+- `POST /api/validacao/rescisao/etapa2` - Validação com apoio
+- `POST /api/validacao/rescisao/etapa3` - Validação com convenção (pode usar CCT cadastrada)
+- `POST /api/validacao/rescisao/etapa4` - Validação FGTS
 
 ### Dashboard
 - `GET /api/dashboard/completo` - Métricas completas para o dashboard
+- `GET /api/dashboard/convencoes-vencimento` - Alertas de CCTs vencendo (NOVO)
 
 ## Backlog
 
 ### P0 (Concluídos nesta sessão)
+- ✅ **NOVO: Gestão Centralizada de Convenções Coletivas (CCT)**
 - ✅ **CORREÇÃO CRÍTICA**: Importação de colaboradores com IA funcionando corretamente
 - ✅ Exportação do resumo da convenção em PDF
 - ✅ Exportação de PDF a partir de cálculos anteriores
