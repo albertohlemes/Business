@@ -90,7 +90,10 @@ Portal para o Departamento Pessoal de escritório de contabilidade com foco em a
 ### Validação de Folha
 - `GET /api/validacoes` - Lista validações (filtro por cliente opcional)
 - `GET /api/validacoes/{id}` - Detalhes completos com array de colaboradores
-- `POST /api/validacoes/validar-completa` - Validação com suporte a múltiplos colaboradores
+- `POST /api/validacoes/validar-completa` - Inicia validação assíncrona, retorna `job_id`
+- `GET /api/validacoes/job-status/{job_id}` - Consulta status do job (polling)
+- `DELETE /api/validacoes/{id}` - Exclusão individual
+- `POST /api/validacoes/delete-batch` - Exclusão em lote
 
 ### Informes de Rendimento
 - `GET /api/informes/historico`, `POST /api/informes/comparar`
