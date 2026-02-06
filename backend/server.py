@@ -10166,6 +10166,162 @@ async def save_estoque_competencia(company_id: str, estoque: EstoqueCompetencia,
     )
     return {"success": True, "message": "Estoque salvo com sucesso"}
 
+
+@api_router.get("/relacao-notas/{company_id}")
+async def relacao_notas(
+    company_id: str,
+    competencia: str,
+    incluir_canceladas: bool = True,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna relação completa de notas fiscais com CFOP, valores e status (ativa/cancelada).
+    Inclui tanto entradas quanto saídas.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar documentos - incluir ou não canceladas
+    query = {
+        "company_id": company_id,
+        "competencia": competencia
+    }
+    
+    if not incluir_canceladas:
+        query["$or"] = [{"cancelada": {"$exists": False}}, {"cancelada": False}]
+    
+    documents = await db.xml_documents.find(
+        query, 
+        {"_id": 0, "xml_content": 0}
+    ).to_list(None)
+    
+    # Processar notas
+    notas = []
+    for doc in documents:
+        # Determinar se é entrada ou saída pelo CFOP dos produtos
+        tipo_operacao = doc.get('tipo', '')
+        produtos = doc.get('produtos', [])
+        
+        # Calcular totais por CFOP da nota
+        cfops_nota = {}
+        for prod in produtos:
+            cfop = str(prod.get('cfop', '') or '')
+            valor = float(prod.get('valor_total', 0) or 0)
+            v_icms = float(prod.get('v_icms', 0) or 0)
+            v_pis = float(prod.get('v_pis', 0) or 0)
+            v_cofins = float(prod.get('v_cofins', 0) or 0)
+            
+            if cfop not in cfops_nota:
+                cfops_nota[cfop] = {
+                    'valor': 0,
+                    'v_icms': 0,
+                    'v_pis': 0,
+                    'v_cofins': 0,
+                    'qtd_itens': 0
+                }
+            
+            cfops_nota[cfop]['valor'] += valor
+            cfops_nota[cfop]['v_icms'] += v_icms
+            cfops_nota[cfop]['v_pis'] += v_pis
+            cfops_nota[cfop]['v_cofins'] += v_cofins
+            cfops_nota[cfop]['qtd_itens'] += 1
+        
+        # Determinar o CFOP principal (o de maior valor)
+        cfop_principal = ''
+        if cfops_nota:
+            cfop_principal = max(cfops_nota.keys(), key=lambda k: cfops_nota[k]['valor']) if cfops_nota else ''
+        
+        # Determinar tipo pela CFOP principal
+        if cfop_principal:
+            primeiro = cfop_principal[0] if cfop_principal else ''
+            if primeiro in ['1', '2', '3']:
+                tipo_operacao = 'entrada'
+            elif primeiro in ['5', '6', '7']:
+                tipo_operacao = 'saida'
+        
+        # Status da nota
+        cancelada = doc.get('cancelada', False)
+        status = 'CANCELADA' if cancelada else 'ATIVA'
+        
+        nota_info = {
+            'numero_nfe': doc.get('numero_nfe', ''),
+            'chave_nfe': doc.get('chave_nfe', ''),
+            'data_emissao': doc.get('data_emissao', ''),
+            'emitente_cnpj': doc.get('emitente_cnpj', ''),
+            'emitente_nome': doc.get('emitente_nome', ''),
+            'destinatario_cnpj': doc.get('destinatario_cnpj', ''),
+            'destinatario_nome': doc.get('destinatario_nome', ''),
+            'tipo_operacao': tipo_operacao,
+            'cfop_principal': cfop_principal,
+            'valor_total': doc.get('valor_total', 0),
+            'status': status,
+            'cancelada': cancelada,
+            # Dados de cancelamento (se houver)
+            'cStat_cancelamento': doc.get('cStat_cancelamento', ''),
+            'xMotivo_cancelamento': doc.get('xMotivo_cancelamento', ''),
+            'dhRecbto_cancelamento': doc.get('dhRecbto_cancelamento', ''),
+            # Detalhamento por CFOP
+            'cfops_detalhados': [
+                {
+                    'cfop': cfop,
+                    'valor': round(dados['valor'], 2),
+                    'v_icms': round(dados['v_icms'], 2),
+                    'v_pis': round(dados['v_pis'], 2),
+                    'v_cofins': round(dados['v_cofins'], 2),
+                    'qtd_itens': dados['qtd_itens']
+                }
+                for cfop, dados in cfops_nota.items()
+            ]
+        }
+        
+        notas.append(nota_info)
+    
+    # Ordenar por tipo e número da NF
+    notas.sort(key=lambda x: (x['tipo_operacao'], x['numero_nfe']))
+    
+    # Separar entradas e saídas
+    entradas = [n for n in notas if n['tipo_operacao'] == 'entrada']
+    saidas = [n for n in notas if n['tipo_operacao'] == 'saida']
+    
+    # Totalizadores
+    total_entradas_ativas = sum(n['valor_total'] for n in entradas if not n['cancelada'])
+    total_entradas_canceladas = sum(n['valor_total'] for n in entradas if n['cancelada'])
+    total_saidas_ativas = sum(n['valor_total'] for n in saidas if not n['cancelada'])
+    total_saidas_canceladas = sum(n['valor_total'] for n in saidas if n['cancelada'])
+    
+    return {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', '')
+        },
+        "competencia": competencia,
+        "resumo": {
+            "total_notas": len(notas),
+            "entradas": {
+                "total": len(entradas),
+                "ativas": len([n for n in entradas if not n['cancelada']]),
+                "canceladas": len([n for n in entradas if n['cancelada']]),
+                "valor_ativas": round(total_entradas_ativas, 2),
+                "valor_canceladas": round(total_entradas_canceladas, 2)
+            },
+            "saidas": {
+                "total": len(saidas),
+                "ativas": len([n for n in saidas if not n['cancelada']]),
+                "canceladas": len([n for n in saidas if n['cancelada']]),
+                "valor_ativas": round(total_saidas_ativas, 2),
+                "valor_canceladas": round(total_saidas_canceladas, 2)
+            }
+        },
+        "entradas": entradas,
+        "saidas": saidas
+    }
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
