@@ -4,7 +4,7 @@ O usuário, proprietário do escritório Business Contabilidade, precisa de um s
 **PRODUCT REQUIREMENTS:**
 1.  **Autenticação:** Clientes ou funcionários devem fazer login.
 2.  **Upload de Documentos Fiscais:** Permitir upload em lote de XML (NF-e, NFC-e, NFS-e).
-3.  **Validação Inteligente de CFOP:** Classificar produtos em **REVENDA**, **INSUMO**, **DESPESA**, **ATIVO IMOBILIZADO**, ou **COMBUSTÍVEL** com base na atividade da empresa, com aprendizado contínuo e **justificativa da IA** para cada classificação. Adicionar campos de palavras-chave no cadastro da empresa para guiar a IA.
+3.  **Validação Inteligente de CFOP:** Classificar produtos em **REVENDA**, **INSUMO**, **DESPESA**, **ATIVO IMOBILIZADO**, ou **COMBUSTÍVEL** com base na atividade da empresa, com aprendizado contínuo e **justificativa da IA** para cada classificação.
 4.  **Reclassificação Manual com IA:** Permitir que o usuário corrija uma classificação e a IA memorize a regra.
 5.  **Gerenciamento de Empresas:** Cadastro com busca de CNPJ, campos detalhados e funcionalidade para **editar** empresas.
 6.  **Gerenciamento por Competência:** Trabalhar com dados separados por empresa e competência (mês/ano).
@@ -19,55 +19,71 @@ O usuário, proprietário do escritório Business Contabilidade, precisa de um s
 15. **Integração com SIEG:** O sistema deve buscar os XMLs diretamente da API do SIEG.
 16. **Reprocessamento com Preservação de IA:** A funcionalidade de reprocessar XMLs deve manter as classificações de produtos já realizadas pela IA.
 17. **Validação Pós-Exportação do SPED:** Confrontar o arquivo  gerado com os dados do sistema para garantir a integridade.
-18. **Análise Tributária com IA:** Uma nova página para identificar vilões tributários (ex: produto entra com crédito de ICMS de 12% e sai com débito de 18%), oportunidades e fornecer insights estratégicos por competência.
+18. **Análise Tributária com IA:** Uma nova página para identificar vilões tributários, oportunidades e fornecer insights estratégicos por competência.
 
 **User's preferred language**: O usuário comunica-se em **Português (Brasil)**. O próximo agente DEVE responder em Português.
 
 **what currently exists?**
-Uma aplicação full-stack (FastAPI + React) com autenticação e funcionalidades para upload e classificação de documentos fiscais. A sessão atual focou na implementação de duas novas funcionalidades solicitadas pelo usuário: uma **página de Análise Tributária IA** e um **mecanismo de validação pós-exportação do SPED Fiscal**. Foram corrigidos múltiplos bugs críticos relacionados ao cálculo e exibição do ICMS, e a lógica foi alinhada para usar os valores do XML, sinalizando inconsistências em vez de recalcular automaticamente. A refatoração do backend () continua pausada.
+Uma aplicação full-stack (FastAPI + React) com autenticação, upload e classificação de documentos fiscais. A sessão atual corrigiu múltiplos bugs de exibição e cálculo em  e . Foram feitas melhorias de UX, como pré-seleção de filtros e adição de botões de ação. A página  foi profundamente refatorada para ser mais precisa e atender às novas exigências do usuário. A página  foi completamente redesenhada para uma melhor visualização dos dados. A refatoração do backend () continua em pausa.
 
 **Last working item**:
-- **Last item agent was working**: O agente estava corrigindo um bug reportado pelo usuário onde o crédito de ICMS de despesas e Substituição Tributária (ST) ainda era considerado nos totalizadores em dois locais: na página **Apuração Mensal** e no **relatório da página de Exportação (Validação SPED)**.
+- **Last item agent was working**: O agente estava finalizando o alinhamento dos cálculos de débito de PIS/COFINS entre o Dashboard e a Apuração Mensal. O usuário exigiu que os valores fossem idênticos. A causa da divergência de centavos foi identificada como sendo o arredondamento (cálculo por produto vs. cálculo sobre a base total). O agente estava ajustando o endpoint  para usar a mesma metodologia do Dashboard: somar a base de cálculo total dos produtos tributáveis primeiro e aplicar a alíquota do regime tributário uma única vez.
 - **Status**: IN PROGRESS
-- **Agent Testing Done**: Y (Backend via ), N (Frontend)
-- **Which testing method agent to use?**: frontend testing agent. O agente precisa verificar o componente  para garantir que o totalizador de crédito de ICMS exibe o valor correto (já calculado no backend). Adicionalmente, deve verificar o relatório de validação em  para assegurar que a exibição do ICMS está clara para o usuário, diferenciando o total por CFOP do total de crédito apurado.
+- **Agent Testing Done**: Y (Backend via  e scripts Python)
+- **Which testing method agent to use?**: backend testing agent. É necessário executar um teste para chamar os endpoints  e  com os mesmos parâmetros (empresa e competência) e validar programaticamente que os valores de  e  retornados são idênticos.
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: ICMS de despesa/ST é exibido incorretamente na UI (P0)**
-- **Issue 2: Seletor de competências não exibe todas as opções disponíveis (P1)**
+- **Issue 1: Finalizar alinhamento de PIS/COFINS (P0)**
+- **Issue 2: Melhorias pendentes na Análise Tributária IA (P1)**
+- **Issue 3: Verificar nova página de Auditoria PIS/COFINS (P2)**
 
 **Issues Detail:**
-- **Issue 1: ICMS de despesa/ST é exibido incorretamente na UI**
-    - **Attempted fixes**: O agente confirmou que o backend ( e ) já calcula e retorna os valores de crédito de ICMS corretamente, excluindo despesas/ST quando a flag está ativa. O bug persiste na camada de visualização.
+- **Issue 1: Finalizar alinhamento de PIS/COFINS**
+    - **Attempted fixes**: O agente unificou as constantes e a lógica de verificação de NCMs com alíquota zero entre os dois endpoints. Isso aproximou os valores, mas não resolveu a diferença de centavos. A causa foi identificada como sendo o método de cálculo (arredondamento). A correção final está em andamento.
     - **Next debug checklist**:
-        1.  **Apuração Mensal:** Investigue . Verifique como o valor  é renderizado nos cards de totalizadores para garantir que não há uma soma incorreta no frontend.
-        2.  **Relatório de Exportação:** Investigue . O relatório de validação mostra o valor total por CFOP, o que pode confundir o usuário. Adicione um indicador visual ou uma nota de texto para clarificar que, embora o valor do CFOP seja exibido, ele foi excluído do cálculo do crédito total de ICMS.
-    - **Why fix this issue and what will be achieved with the fix?** A precisão fiscal é crítica. A correção garantirá que os usuários confiem nos números apresentados nas telas de apuração e validação.
+        1.  No arquivo , revisar a lógica do endpoint .
+        2.  Confirmar que a variável que acumula a base de cálculo de PIS/COFINS () está sendo usada corretamente.
+        3.  Assegurar que o cálculo do débito de PIS/COFINS ( e ) seja feito **após** o loop de produtos, aplicando a alíquota do regime sobre essa base total acumulada.
+        4.  Executar o teste de verificação para garantir que os valores são idênticos aos do Dashboard.
+    - **Why fix this issue and what will be achieved with the fix?** Garante a consistência dos dados em toda a aplicação, o que é crítico para a confiança do usuário em uma ferramenta fiscal.
     - **Status**: IN PROGRESS
-    - **Is recurring issue?** Y (A lógica de ICMS é complexa e tem sido um tema recorrente).
-    - **Should Test frontend/backend/both after fix?** frontend
+    - **Is recurring issue?** Y (A consistência de dados entre diferentes telas tem sido um tema recorrente).
+    - **Should Test frontend/backend/both after fix?** backend
     - **Blocked on other issue:** N/A
 
-- **Issue 2: Seletor de competências não exibe todas as opções disponíveis**
-    - **Attempted fixes**: Nenhum. O agente observou que a competência , que possui dados, não aparece nos dropdowns, impedindo os testes.
+- **Issue 2: Melhorias pendentes na Análise Tributária IA**
+    - **Attempted fixes**: A maior parte das solicitações do usuário foi implementada (correção de alíquotas, formatação de insights, remoção de colunas). No entanto, dois pontos permanecem:
+        1.  **Arroz (entra 12% sai 0%):** A lógica de alíquota predominante não funciona bem para NCMs com saídas mistas (tributadas e isentas).
+        2.  **Compras do Simples Nacional:** A identificação não é possível pois o campo  do XML não é extraído.
     - **Next debug checklist**:
-        1.  Identifique o endpoint do backend responsável por fornecer a lista de competências para a UI.
-        2.  Verifique por que este endpoint não está retornando todas as competências que contêm documentos ( está faltando).
-        3.  Garanta que a UI em páginas como  e  renderize a lista completa recebida.
-    - **Why fix this issue and what will be achieved with the fix?** Desbloqueia a capacidade do usuário de trabalhar e testar a aplicação em diferentes períodos fiscais.
+        1.  **(Simples Nacional):** Modificar a lógica de parsing de XML em  para extrair o campo  e salvá-lo no documento no MongoDB. Depois, atualizar o endpoint  para usar este campo na identificação de vilões.
+        2.  **(Arroz):** Refinar a lógica de oportunidades em . Adicionar uma verificação que, para um NCM, se  for  e a entrada gerar crédito, deve ser sinalizado como uma oportunidade, mesmo que a alíquota predominante de saída não seja zero.
+    - **Why fix this issue and what will be achieved with the fix?** Atende a requisitos de negócio específicos do usuário para uma análise fiscal mais profunda e precisa.
     - **Status**: NOT STARTED
     - **Is recurring issue?** N
     - **Should Test frontend/backend/both after fix?** both
     - **Blocked on other issue:** N/A
 
+- **Issue 3: Verificar nova página de Auditoria PIS/COFINS**
+    - **Attempted fixes**: O agente redesenhou completamente a página , mas o teste com screenshot falhou por timeout, e a atenção foi desviada para outro bug.
+    - **Next debug checklist**:
+        1.  Navegar até a página Auditoria PIS/COFINS no frontend.
+        2.  Verificar se os cards de resumo e os filtros por tipo de divergência carregam os dados corretamente.
+        3.  Clicar para expandir um item de cada categoria de divergência e confirmar que os detalhes são exibidos conforme o design.
+    - **Why fix this issue and what will be achieved with the fix?** Garante que a nova funcionalidade, solicitada pelo usuário, está funcionando como esperado.
+    - **Status**: USER VERIFICATION PENDING
+    - **Is recurring issue?** N
+    - **Should Test frontend/backend/both after fix?** frontend
+    - **Blocked on other issue:** N/A
+
 **In progress Task List**:
-- **Task 1: Refatorar  (P1)**
-    - **Where to resume:** Mover sistematicamente os endpoints e a lógica de negócios de  para os módulos  e , começando pelos domínios de ,  e . A estrutura de pastas já existe.
+- **Task 1: Refatorar  (P2)**
+    - **Where to resume**: Mover sistematicamente os endpoints e a lógica de negócios de  para os módulos  e , começando pelos domínios de ,  e .
     - **What will be achieved with this?** Aumentar a manutenibilidade, escalabilidade e estabilidade do backend.
-    - **Status**: IN PROGRESS (Pausado para atender a bugs críticos).
+    - **Status**: IN PROGRESS (Pausado)
     - **Should Test frontend/backend/both after fix?** both
-    - **Blocked on something:** Aguardando a resolução dos bugs de alta prioridade (P0).
+    - **Blocked on something:** Aguardando a resolução dos bugs e melhorias de maior prioridade.
 
 **Upcoming and Future Tasks**
 *   **Upcoming Tasks:**
@@ -79,23 +95,23 @@ Uma aplicação full-stack (FastAPI + React) com autenticação e funcionalidade
     *   **P3 - Tutorial de integração (Onboarding):** Adicionar um guia ou tour rápido para novos usuários.
 
 **Completed work in this session**
-- **Nova Funcionalidade: Análise Tributária por IA:**
-  - Implementada uma nova página () que usa GPT-4o para identificar vilões tributários, oportunidades e fornecer insights estratégicos. A página inclui filtros por NCM/produto e colunas ordenáveis.
-- **Nova Funcionalidade: Validação Pós-Exportação do SPED:**
-  - O fluxo de exportação agora valida o arquivo  gerado, comparando os totais do sistema com os totais do SPED e exibindo divergências por CFOP.
-- **Bug Crítico Corrigido: Lógica de Cálculo do ICMS:**
-  - Alinhada a lógica de geração e validação do SPED para **usar o valor de ICMS do XML original**, conforme solicitado pelo usuário.
-  - Implementada uma sinalização para **Itens Pendentes**, que alerta o usuário sobre produtos com CST tributável mas com ICMS zerado no XML, permitindo correção manual.
-- **Bug Crítico Corrigido: Flag :**
-  - Corrigida a lógica no backend para que a flag que exclui créditos de despesa e ST seja aplicada corretamente tanto na geração do SPED (registro ) quanto na validação dos totais.
-- **Melhoria de UX: Remoção de Página Quebrada:**
-  - A antiga página Análise Tributária, que congelava a UI, foi completamente removida do menu e das rotas da aplicação.
+- **Correção de Bug Crítico (ICMS):** O totalizador de ICMS na página  agora exclui corretamente os valores de ST e despesas, resolvendo a inconsistência visual.
+- **Correção de Bug Crítico (PIS/COFINS):** Alinhada a lógica de cálculo de PIS/COFINS (crédito e débito) entre o Dashboard e a Apuração Mensal. O débito agora é calculado com base na alíquota do regime, conforme solicitado. O ajuste final para zerar a diferença de arredondamento está em andamento.
+- **Melhoria de UX (Exportação):** Na página , a empresa e a competência agora vêm pré-selecionadas do contexto. Foi adicionado um botão de ação Corrigir Item para as inconsistências de CST, que remove o item da lista após a ação do usuário.
+- **Melhoria de UX (Seletor de Competências):** O seletor de competências agora ordena os períodos cronologicamente e seleciona corretamente o valor do contexto global.
+- **Refatoração da Análise Tributária IA:**
+    - A lógica de cálculo de alíquotas foi corrigida para usar o  do XML ou derivá-lo, resultando em alíquotas inteiras.
+    - A detecção de vilões e oportunidades foi aprimorada para analisar cenários mais complexos (ex: entrada tributada -> saída isenta).
+    - A UI foi ajustada para exibir uma descrição representativa do produto como título para cada grupo de NCM.
+    - A formatação dos insights da IA foi corrigida para renderizar markdown (listas e negrito) corretamente.
+- **Redesenho da Auditoria PIS/COFINS:** A página  foi completamente reescrita com um layout mais visual, incluindo cards de resumo, filtros e listas de problemas expansíveis.
+- **Verificação do Ponto de Equilíbrio:** Confirmado que a lógica de cálculo da Despesa Máxima para não ter Lucro na Apuração Mensal está correta e reage dinamicamente às mudanças no valor do estoque.
 
 **Earlier issues found/mentioned but not fixed**
 - N/A
 
 **Known issue recurrence from previous fork**
-- A dívida técnica do arquivo monolítico  persiste. A refatoração foi iniciada, mas continua pausada.
+- A dívida técnica do arquivo monolítico  persiste. A refatoração foi iniciada, mas continua pausada devido a tarefas de maior prioridade.
 
 **Code Architecture**
 
@@ -104,58 +120,60 @@ Uma aplicação full-stack (FastAPI + React) com autenticação e funcionalidade
 *   **Backend:** FastAPI, Pydantic, pymongo, lxml
 *   **Frontend:** React, React Context, , , axios, TailwindCSS
 *   **IA:**  para chamadas ao GPT-4o.
-*   **Arquitetura:** Backend monolítico com uma estrutura modular parcialmente implementada (não utilizada ativamente).
+*   **Arquitetura:** Backend monolítico.
 
 **key DB schema**
 - Nenhuma alteração no esquema do banco de dados nesta sessão.
 
 **All files of reference**
-*   **Criados:**
-    *   : Nova página para a funcionalidade de análise de vilões tributários com IA.
 *   **Fortemente Modificados:**
-    *   : Adicionados endpoints  e . A lógica de geração e validação do SPED foi extensivamente modificada para alinhar com os requisitos do usuário sobre ICMS.
-    *   : UI reescrita para suportar a validação pós-exportação, exibir o comparativo Sistema vs SPED e listar itens pendentes.
+    *   : Lógica alterada nos endpoints , ,  e .
+    *   : UI e lógica de renderização refeitas para acomodar a nova estrutura de dados da API.
+    *   : Arquivo completamente reescrito para uma nova UX.
 *   **Modificados:**
-    *   : Adicionada a rota para a nova página e removida a rota antiga.
-    *   : Adicionado o link no menu para a nova página e removido o link antigo.
+    *   : Ajustes nos totalizadores e na exibição de dados.
+    *   : Ajustes nos  para carregar e selecionar dados do contexto, adição de nova funcionalidade de correção.
+    *   : Atualizado com as conclusões da sessão.
 
 **Areas that need refactoring**:
-*   ****: **CRÍTICO.** A refatoração é a principal prioridade após a resolução dos bugs atuais para garantir a sustentabilidade do projeto.
-*   **Gerenciamento de Estado do Frontend**: O estado global (empresa/competência selecionada) é gerenciado de forma inconsistente, causando bugs como seletores que não atualizam. É necessário um refatoramento para usar o  de forma consistente em todas as páginas.
+*   ****: **CRÍTICO.** A complexidade continua a aumentar, tornando a refatoração cada vez mais necessária.
+*   **Gerenciamento de Estado do Frontend**: A correção do seletor de competências foi um paliativo. Uma revisão global do uso do  para gerenciar empresa e competência selecionadas evitaria bugs futuros.
 
 **key api endpoints**
-*   : **NOVO**. Gera o SPED, valida e retorna o comparativo e itens pendentes.
-*   : **NOVO**. Realiza a análise tributária com IA.
-*   : Usado pela página Apuração Mensal. O backend foi verificado e está correto.
+*   : Modificado para alinhar cálculos de PIS/COFINS.
+*   : Modificado para alinhar cálculos de PIS/COFINS.
+*   : Lógica de análise profundamente alterada.
+*   : Payload de retorno modificado para .
 
 **Critical Info for New Agent**
-*   **PRIORIDADE MÁXIMA:** Corrija o bug de exibição do ICMS na UI (**Issue 1**). O backend já está retornando os dados corretos; o problema está na forma como as páginas  e  estão renderizando esses dados.
-*   **SEGUNDA PRIORIDADE:** Corrija o bug no seletor de competências (**Issue 2**). Isso é essencial para que o usuário possa testar e usar a aplicação em diferentes períodos.
-*   **LÓGICA DO ICMS DEFINIDA:** Após várias iterações, a regra é: o sistema deve sempre usar o valor de ICMS () do arquivo XML. Casos onde o ICMS é zero em um item que deveria ser tributado são sinalizados como pendentes para revisão do usuário, mas o sistema **não** deve recalcular o valor por conta própria.
-*   **FLAG DE EXCLUSÃO:** A flag  está funcionando no backend. O desafio é garantir que a UI reflita seu estado de forma clara e precisa.
+*   **PRIORIDADE MÁXIMA (P0):** Finalize o alinhamento dos valores de PIS/COFINS entre o Dashboard e a Apuração Mensal. O usuário não aceita nenhuma diferença, nem de centavos. A abordagem correta é calcular a base de cálculo total primeiro e aplicar a alíquota do regime uma única vez no final, em ambos os endpoints.
+*   **REGRA DE NEGÓCIO (PIS/COFINS):** O **crédito** de PIS/COFINS vem dos valores no XML de entrada. O **débito** de PIS/COFINS deve ser **recalculado** com base na alíquota do regime tributário da empresa (Lucro Real/Presumido), excluindo da base os produtos com alíquota zero e CFOPs sem incidência.
+*   **SEGUNDA PRIORIDADE (P1):** Implementar as melhorias pendentes na Análise Tributária IA (identificação de compras do Simples Nacional e refinar o caso do arroz).
 
 **documents and test reports created in this job**
 *    (atualizado)
 *   
+*   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User (LATEST):**  - Reporta que o ICMS de despesa/ST ainda aparece somado na UI. **Status: IN PROGRESS.**
-2.  **User:**  - Escolheu a opção 3 para lidar com ICMS zerado no XML: sinalizar como pendente em vez de recalcular. **Status: CONCLUÍDO.**
-3.  **User:**  - Clarificou a regra de negócio para o cálculo de ICMS. **Status: CONCLUÍDO (lógica implementada).**
-4.  **User:**  - Forneceu dados para reproduzir o bug do ICMS. **Status: CONCLUÍDO (bug reproduzido).**
-5.  **User:**  - Reportou a divergência inicial no ICMS. **Status: CONCLUÍDO (causa raiz encontrada).**
-6.  **User:**  - Aprovou a sugestão, mas reportou bugs e pediu melhorias. **Status: CONCLUÍDO.**
-7.  **User:**  - Refinou o requisito da página de Análise Tributária IA. **Status: CONCLUÍDO.**
-8.  **User:**  - Solicitou as duas principais funcionalidades da sessão. **Status: CONCLUÍDO.**
-9.  **User:**  - Aprovou o plano inicial do agente. **Status: CONCLUÍDO.**
+1.  **User (LATEST):**  - Exige que os valores de PIS/COFINS entre o Dashboard e a Apuração sejam idênticos, sem nenhuma diferença de arredondamento. **Status: IN PROGRESS.**
+2.  **User:**  - Forneceu a regra de negócio crucial para o cálculo do débito de PIS/COFINS. **Status: IN PROGRESS (lógica sendo implementada).**
+3.  **User:**  - Reportou a divergência de valores que se tornou a tarefa prioritária. **Status: IN PROGRESS.**
+4.  **User:**  - Elogiou as melhorias recentes e solicitou um redesenho da página de auditoria de PIS/COFINS. **Status: CONCLUÍDO (página redesenhada).**
+5.  **User:**  - Questionou a ausência da análise de Simples Nacional, pediu títulos nos NCMs e confirmou a lógica do ponto de equilíbrio. **Status: PARCIALMENTE CONCLUÍDO (títulos adicionados, Simples Nacional pendente).**
+6.  **User:**  - Deu feedback detalhado sobre a Análise Tributária IA, apontando falhas e áreas de melhoria. **Status: PARCIALMENTE CONCLUÍDO (maioria dos pontos corrigidos).**
+7.  **User:**  - Reportou múltiplos problemas, incluindo a persistência de itens corrigidos, erro no totalizador de ICMS e a falta de inteligência na análise tributária. **Status: CONCLUÍDO (maioria dos pontos corrigidos).**
+8.  **User:**  - Aprovou o plano e adicionou novos requisitos para a tela de exportação. **Status: CONCLUÍDO.**
+9.  **User (from previous fork):** Reportou que o ICMS de despesa/ST ainda aparecia na UI. **Status: CONCLUÍDO.**
+10. **User (from previous fork):** Escolheu a opção de sinalizar ICMS zerado como pendente. **Status: CONCLUÍDO.**
 
 **Project Health Check:**
 *   **Broken:**
-    *   A exibição dos totalizadores de ICMS na página Apuração Mensal.
-    *   O seletor de competências que não carrega todas as opções disponíveis, bloqueando testes em certos períodos.
+    *   A consistência de dados entre o Dashboard e a Apuração Mensal (em vias de ser corrigida).
 *   **In Progress:**
-    *   Correção do bug de exibição do ICMS na UI.
+    *   Correção final da divergência de PIS/COFINS.
     *   Refatoração do  (pausada).
+*   **Mocked:** N/A
 
 **3rd Party Integrations**
 *   **Brasil API:** Para busca de dados de CNPJ.
@@ -163,7 +181,7 @@ Uma aplicação full-stack (FastAPI + React) com autenticação e funcionalidade
 *   **SIEG Soluções:** Para contagem e download de XMLs fiscais.
 
 **Testing status**
-- **Testing agent used after significant changes**: YES. O relatório está em . No entanto, o usuário encontrou bugs adicionais após os testes, que agora são a prioridade.
+- **Testing agent used after significant changes**: YES. Dois relatórios foram gerados:  e .
 - **Troubleshoot agent used after agent stuck in loop**: NO
 - **Test files created**: N/A
 - **Known regressions**: N/A
@@ -173,5 +191,4 @@ Uma aplicação full-stack (FastAPI + React) com autenticação e funcionalidade
 *   **Senha:** 
 
 **What agent forgot to execute**
-*   O agente identificou o bug do seletor de competências não carregar todas as opções, mas não o priorizou ou agendou para correção, apesar de ser um bloqueador de usabilidade.
-*   O agente confirmou que o backend para a Apuração Mensal está correto, mas não prosseguiu para a depuração do frontend () para resolver o problema de exibição relatado pelo usuário.</analysis>
+*   O agente não concluiu a verificação completa da nova página  após redesenhá-la, pois o screenshot falhou e o foco mudou para o bug de PIS/COFINS. A verificação visual e funcional da nova interface ainda é necessária.</analysis>
