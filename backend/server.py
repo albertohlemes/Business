@@ -1969,6 +1969,20 @@ async def delete_validacao(validacao_id: str, current_user: dict = Depends(get_c
     
     return {"message": "Validação excluída com sucesso", "id": validacao_id}
 
+
+@api_router.post("/validacoes/delete-batch")
+async def delete_validacoes_batch(ids: List[str], current_user: dict = Depends(get_current_user)):
+    """Exclui múltiplas validações de uma vez"""
+    result = await db.validacoes.delete_many({
+        "id": {"$in": ids},
+        "user_id": current_user["id"]
+    })
+    
+    return {
+        "message": f"{result.deleted_count} validação(ões) excluída(s)",
+        "deleted_count": result.deleted_count
+    }
+
 # ==================== MÉDIAS ROUTES ====================
 
 @api_router.post("/medias/importar")
