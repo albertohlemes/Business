@@ -4009,204 +4009,224 @@ async def exportar_resumo_convencao_pdf(
     cliente_id: str = Body(None),
     current_user: dict = Depends(get_current_user)
 ):
-    """Gera PDF com resumo da convenção em papel timbrado da Business Contabilidade"""
+    """Gera PDF profissional com resumo da convenção coletiva"""
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.lib.units import mm, cm
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
+    from reportlab.graphics.shapes import Drawing, Rect, String
+    from reportlab.graphics import renderPDF
     from io import BytesIO
-    from fastapi.responses import StreamingResponse
     from datetime import datetime
     
-    # Cores da Business Contabilidade
-    COR_PRIMARIA = colors.HexColor("#991b1b")  # Vermelho escuro
-    COR_SECUNDARIA = colors.HexColor("#1e293b")  # Slate escuro
-    COR_FUNDO = colors.HexColor("#f8fafc")  # Fundo claro
+    # Cores profissionais
+    VERMELHO = colors.HexColor("#991b1b")
+    VERMELHO_CLARO = colors.HexColor("#fef2f2")
+    AZUL_ESCURO = colors.HexColor("#1e293b")
+    VERDE = colors.HexColor("#059669")
+    VERDE_CLARO = colors.HexColor("#ecfdf5")
+    CINZA = colors.HexColor("#64748b")
+    CINZA_CLARO = colors.HexColor("#f1f5f9")
     
     buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=2*cm,
-        leftMargin=2*cm,
-        topMargin=2.5*cm,
-        bottomMargin=2*cm
-    )
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=1.5*cm, leftMargin=1.5*cm, topMargin=1.5*cm, bottomMargin=1.5*cm)
     
-    # Estilos
     styles = getSampleStyleSheet()
     
-    estilo_titulo = ParagraphStyle(
-        'Titulo',
-        parent=styles['Heading1'],
-        fontSize=18,
-        textColor=COR_PRIMARIA,
-        alignment=TA_CENTER,
-        spaceAfter=6*mm,
-        fontName='Helvetica-Bold'
-    )
-    
-    # Helper para formatar valores monetários de forma segura
-    def formatar_valor(val):
-        if val is None:
-            return "N/A"
+    # Helper para formatar valores
+    def fmt_valor(val):
+        if val is None: return "N/A"
         try:
-            valor_float = float(val)
-            return f"R$ {valor_float:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        except (ValueError, TypeError):
+            v = float(val)
+            return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        except:
             return str(val) if val else "N/A"
     
-    estilo_subtitulo = ParagraphStyle(
-        'Subtitulo',
-        parent=styles['Heading2'],
-        fontSize=14,
-        textColor=COR_SECUNDARIA,
-        alignment=TA_LEFT,
-        spaceAfter=4*mm,
-        spaceBefore=6*mm,
-        fontName='Helvetica-Bold'
-    )
+    def fmt_pct(val):
+        try:
+            return f"{float(val):.2f}%"
+        except:
+            return str(val) if val else "0%"
     
-    estilo_normal = ParagraphStyle(
-        'Normal',
-        parent=styles['Normal'],
-        fontSize=10,
-        textColor=colors.black,
-        alignment=TA_JUSTIFY,
-        spaceAfter=3*mm
-    )
+    # Estilos customizados
+    est_header = ParagraphStyle('Header', fontSize=20, textColor=VERMELHO, alignment=TA_CENTER, fontName='Helvetica-Bold', spaceAfter=2*mm)
+    est_subheader = ParagraphStyle('SubHeader', fontSize=10, textColor=CINZA, alignment=TA_CENTER, spaceAfter=8*mm)
+    est_secao = ParagraphStyle('Secao', fontSize=12, textColor=AZUL_ESCURO, fontName='Helvetica-Bold', spaceBefore=6*mm, spaceAfter=3*mm)
+    est_normal = ParagraphStyle('Normal', fontSize=10, textColor=colors.black, alignment=TA_JUSTIFY, spaceAfter=2*mm)
+    est_pequeno = ParagraphStyle('Pequeno', fontSize=8, textColor=CINZA, alignment=TA_CENTER)
+    est_destaque_titulo = ParagraphStyle('DestaqueTitulo', fontSize=9, textColor=CINZA, alignment=TA_CENTER, fontName='Helvetica')
+    est_destaque_valor = ParagraphStyle('DestaqueValor', fontSize=22, textColor=VERMELHO, alignment=TA_CENTER, fontName='Helvetica-Bold')
+    est_destaque_valor_verde = ParagraphStyle('DestaqueValorVerde', fontSize=22, textColor=VERDE, alignment=TA_CENTER, fontName='Helvetica-Bold')
     
-    estilo_destaque = ParagraphStyle(
-        'Destaque',
-        parent=styles['Normal'],
-        fontSize=11,
-        textColor=COR_PRIMARIA,
-        fontName='Helvetica-Bold',
-        alignment=TA_CENTER,
-        spaceAfter=4*mm
-    )
-    
-    estilo_rodape = ParagraphStyle(
-        'Rodape',
-        parent=styles['Normal'],
-        fontSize=8,
-        textColor=colors.gray,
-        alignment=TA_CENTER
-    )
-    
-    # Elementos do documento
     elementos = []
     
-    # HEADER - Business Contabilidade
-    header_data = [
-        [Paragraph("<b>BUSINESS CONTABILIDADE</b>", ParagraphStyle('HeaderTitle', fontSize=16, textColor=COR_PRIMARIA, alignment=TA_CENTER, fontName='Helvetica-Bold'))],
-        [Paragraph("Departamento Pessoal", ParagraphStyle('HeaderSub', fontSize=10, textColor=COR_SECUNDARIA, alignment=TA_CENTER))]
-    ]
-    header_table = Table(header_data, colWidths=[17*cm])
-    header_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2*mm),
-        ('TOPPADDING', (0, 0), (-1, -1), 2*mm),
-    ]))
-    elementos.append(header_table)
-    elementos.append(Spacer(1, 8*mm))
+    # ========== CABEÇALHO ==========
+    elementos.append(Paragraph("<b>BUSINESS CONTABILIDADE</b>", est_header))
+    elementos.append(Paragraph("Análise de Convenção Coletiva de Trabalho", est_subheader))
     
-    # Linha decorativa
-    linha_decorativa = Table([['']], colWidths=[17*cm], rowHeights=[2])
-    linha_decorativa.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), COR_PRIMARIA),
-    ]))
-    elementos.append(linha_decorativa)
-    elementos.append(Spacer(1, 8*mm))
+    # Linha divisória
+    elementos.append(HRFlowable(width="100%", thickness=2, color=VERMELHO, spaceBefore=0, spaceAfter=8*mm))
     
-    # Título do documento
-    elementos.append(Paragraph("RESUMO DA CONVENÇÃO COLETIVA", estilo_titulo))
-    elementos.append(Spacer(1, 4*mm))
+    # ========== DESTAQUE PRINCIPAL - REAJUSTE E PISOS ==========
+    percentual = dados_convencao.get('percentual_reajuste', 0)
+    piso_novo = dados_convencao.get('piso_salarial')
+    piso_anterior = dados_convencao.get('piso_salarial_anterior')
+    meses_retro = dados_convencao.get('meses_retroativos', 0)
     
-    # Informações do cliente (se disponível)
-    if cliente_id:
-        cliente = await db.clientes.find_one({"id": cliente_id}, {"_id": 0})
-        if cliente:
-            nome_empresa = cliente.get('nome_fantasia') or cliente.get('razao_social') or 'N/A'
-            cnpj = cliente.get('cnpj', 'N/A')
-            elementos.append(Paragraph(f"<b>Empresa:</b> {nome_empresa}", estilo_normal))
-            elementos.append(Paragraph(f"<b>CNPJ:</b> {cnpj}", estilo_normal))
-            elementos.append(Spacer(1, 4*mm))
+    # Calcular variação do piso
+    variacao_piso = ""
+    if piso_novo and piso_anterior:
+        try:
+            var = ((float(piso_novo) - float(piso_anterior)) / float(piso_anterior)) * 100
+            variacao_piso = f"+{var:.1f}%"
+        except:
+            pass
     
-    # Dados principais da convenção
-    elementos.append(Paragraph("DADOS DA CONVENÇÃO", estilo_subtitulo))
-    
-    dados_principais = [
-        ["Sindicato:", dados_convencao.get('sindicato', 'Não informado')],
-        ["Categoria:", dados_convencao.get('categoria', 'Não informado')],
-        ["Data Base:", dados_convencao.get('data_base', 'Não informado')],
-        ["Mês da Convenção:", dados_convencao.get('mes_convencao', 'Não informado')],
-        ["Vigência:", f"{dados_convencao.get('vigencia_inicio', 'N/A')} a {dados_convencao.get('vigencia_fim', 'N/A')}"],
+    # Box de destaque principal
+    destaque_data = [
+        [
+            Paragraph("REAJUSTE SALARIAL", est_destaque_titulo),
+            Paragraph("PISO ANTERIOR", est_destaque_titulo),
+            Paragraph("PISO NOVO", est_destaque_titulo),
+            Paragraph("MESES RETROATIVOS", est_destaque_titulo)
+        ],
+        [
+            Paragraph(f"<b>{fmt_pct(percentual)}</b>", est_destaque_valor),
+            Paragraph(f"<b>{fmt_valor(piso_anterior)}</b>", ParagraphStyle('V', fontSize=16, textColor=CINZA, alignment=TA_CENTER, fontName='Helvetica-Bold')),
+            Paragraph(f"<b>{fmt_valor(piso_novo)}</b>", est_destaque_valor_verde),
+            Paragraph(f"<b>{meses_retro}</b>", ParagraphStyle('V', fontSize=22, textColor=AZUL_ESCURO, alignment=TA_CENTER, fontName='Helvetica-Bold'))
+        ]
     ]
     
-    tabela_dados = Table(dados_principais, colWidths=[4.5*cm, 12.5*cm])
-    tabela_dados.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('TEXTCOLOR', (0, 0), (0, -1), COR_SECUNDARIA),
-        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+    tabela_destaque = Table(destaque_data, colWidths=[4.5*cm, 4.5*cm, 4.5*cm, 4.5*cm])
+    tabela_destaque.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), CINZA_CLARO),
+        ('BOX', (0, 0), (-1, -1), 2, VERMELHO),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.white),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3*mm),
-        ('TOPPADDING', (0, 0), (-1, -1), 2*mm),
+        ('TOPPADDING', (0, 0), (-1, 0), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 2),
+        ('TOPPADDING', (0, 1), (-1, 1), 2),
+        ('BOTTOMPADDING', (0, 1), (-1, 1), 10),
+        ('BACKGROUND', (0, 0), (0, -1), VERMELHO_CLARO),
+        ('BACKGROUND', (2, 0), (2, -1), VERDE_CLARO),
     ]))
-    elementos.append(tabela_dados)
+    elementos.append(tabela_destaque)
+    elementos.append(Spacer(1, 8*mm))
+    
+    # ========== DADOS DA CONVENÇÃO ==========
+    elementos.append(Paragraph("DADOS DA CONVENÇÃO", est_secao))
+    
+    sindicato = dados_convencao.get('sindicato', 'Não informado')
+    categoria = dados_convencao.get('categoria', 'Não informado')
+    data_base = dados_convencao.get('data_base', 'Não informado')
+    mes_conv = dados_convencao.get('mes_convencao', 'Não informado')
+    vigencia_ini = dados_convencao.get('vigencia_inicio', 'N/A')
+    vigencia_fim = dados_convencao.get('vigencia_fim', 'N/A')
+    
+    info_data = [
+        ["Sindicato:", sindicato, "Categoria:", categoria],
+        ["Data Base:", data_base, "Mês Convenção:", mes_conv],
+        ["Vigência:", f"{vigencia_ini} a {vigencia_fim}", "", ""]
+    ]
+    
+    tabela_info = Table(info_data, colWidths=[3*cm, 6*cm, 3*cm, 6*cm])
+    tabela_info.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('TEXTCOLOR', (0, 0), (0, -1), CINZA),
+        ('TEXTCOLOR', (2, 0), (2, -1), CINZA),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BACKGROUND', (0, 0), (-1, -1), CINZA_CLARO),
+        ('BOX', (0, 0), (-1, -1), 0.5, CINZA),
+    ]))
+    elementos.append(tabela_info)
     elementos.append(Spacer(1, 6*mm))
     
-    # Destaque do reajuste
-    percentual = dados_convencao.get('percentual_reajuste', 0)
-    meses_retro = dados_convencao.get('meses_retroativos', 0)
-    elementos.append(Paragraph(f"PERCENTUAL DE REAJUSTE: {percentual}%", estilo_destaque))
-    elementos.append(Paragraph(f"MESES RETROATIVOS: {meses_retro}", estilo_destaque))
-    elementos.append(Spacer(1, 4*mm))
+    # ========== ANÁLISE DO REAJUSTE ==========
+    elementos.append(Paragraph("ANÁLISE DO IMPACTO", est_secao))
     
-    # Piso Salarial
-    piso_atual = dados_convencao.get('piso_salarial')
-    piso_anterior = dados_convencao.get('piso_salarial_anterior')
-    if piso_atual:
-        elementos.append(Paragraph("PISO SALARIAL", estilo_subtitulo))
-        piso_data = [
-            ["Piso Anterior:", formatar_valor(piso_anterior)],
-            ["Piso Novo:", formatar_valor(piso_atual)],
-        ]
-        tabela_piso = Table(piso_data, colWidths=[4.5*cm, 12.5*cm])
-        tabela_piso.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('TEXTCOLOR', (0, 0), (0, -1), COR_SECUNDARIA),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 2*mm),
-        ]))
-        elementos.append(tabela_piso)
-        elementos.append(Spacer(1, 4*mm))
+    # Calcular impactos
+    try:
+        pct = float(percentual) / 100
+        exemplo_salario = float(piso_anterior) if piso_anterior else 1500
+        impacto_mensal = exemplo_salario * pct
+        impacto_retro = impacto_mensal * int(meses_retro)
+    except:
+        impacto_mensal = 0
+        impacto_retro = 0
     
-    # Verbas com Reajuste
+    analise_texto = f"""
+    Com base no reajuste de <b>{fmt_pct(percentual)}</b> definido na convenção coletiva, 
+    apresentamos a seguinte análise de impacto financeiro:
+    """
+    elementos.append(Paragraph(analise_texto.strip(), est_normal))
+    
+    # Tabela de impacto
+    impacto_data = [
+        ["Descrição", "Cálculo", "Valor"],
+        ["Aumento mensal (base piso)", f"{fmt_valor(piso_anterior)} × {fmt_pct(percentual)}", fmt_valor(impacto_mensal)],
+        ["Diferença de piso", f"{fmt_valor(piso_novo)} - {fmt_valor(piso_anterior)}", fmt_valor(float(piso_novo or 0) - float(piso_anterior or 0)) if piso_novo and piso_anterior else "N/A"],
+        [f"Retroativo ({meses_retro} meses)", f"{fmt_valor(impacto_mensal)} × {meses_retro}", fmt_valor(impacto_retro)],
+    ]
+    
+    tabela_impacto = Table(impacto_data, colWidths=[6*cm, 6*cm, 6*cm])
+    tabela_impacto.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), AZUL_ESCURO),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 0.5, CINZA),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, CINZA_CLARO]),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('FONTNAME', (2, 1), (2, -1), 'Helvetica-Bold'),
+        ('TEXTCOLOR', (2, -1), (2, -1), VERDE),
+    ]))
+    elementos.append(tabela_impacto)
+    elementos.append(Spacer(1, 6*mm))
+    
+    # ========== VERBAS ==========
     verbas_com = dados_convencao.get('verbas_com_reajuste', [])
-    if verbas_com:
-        elementos.append(Paragraph("VERBAS QUE RECEBEM REAJUSTE", estilo_subtitulo))
-        verbas_texto = ", ".join([v.replace('_', ' ').title() for v in verbas_com])
-        elementos.append(Paragraph(verbas_texto, estilo_normal))
-        elementos.append(Spacer(1, 4*mm))
-    
-    # Verbas sem Reajuste
     verbas_sem = dados_convencao.get('verbas_sem_reajuste', [])
-    if verbas_sem:
-        elementos.append(Paragraph("VERBAS SEM REAJUSTE", estilo_subtitulo))
-        verbas_sem_texto = ", ".join([v.replace('_', ' ').title() for v in verbas_sem])
-        elementos.append(Paragraph(verbas_sem_texto, estilo_normal))
-        elementos.append(Spacer(1, 4*mm))
     
-    # Benefícios
+    if verbas_com or verbas_sem:
+        elementos.append(Paragraph("VERBAS AFETADAS", est_secao))
+        
+        verbas_data = [["✓ COM REAJUSTE", "✗ SEM REAJUSTE"]]
+        max_len = max(len(verbas_com), len(verbas_sem), 1)
+        for i in range(max_len):
+            v_com = verbas_com[i].replace('_', ' ').title() if i < len(verbas_com) else ""
+            v_sem = verbas_sem[i].replace('_', ' ').title() if i < len(verbas_sem) else ""
+            verbas_data.append([v_com, v_sem])
+        
+        tabela_verbas = Table(verbas_data, colWidths=[9*cm, 9*cm])
+        tabela_verbas.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), VERDE_CLARO),
+            ('BACKGROUND', (1, 0), (1, 0), VERMELHO_CLARO),
+            ('TEXTCOLOR', (0, 0), (0, 0), VERDE),
+            ('TEXTCOLOR', (1, 0), (1, 0), VERMELHO),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, CINZA),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        elementos.append(tabela_verbas)
+        elementos.append(Spacer(1, 6*mm))
+    
+    # ========== BENEFÍCIOS ==========
     beneficios = dados_convencao.get('beneficios', [])
     if beneficios:
-        elementos.append(Paragraph("BENEFÍCIOS", estilo_subtitulo))
-        beneficio_headers = ['Benefício', 'Valor Anterior', 'Valor Novo', 'Variação']
-        beneficio_data = [beneficio_headers]
+        elementos.append(Paragraph("BENEFÍCIOS", est_secao))
+        
+        ben_data = [["Benefício", "Valor Anterior", "Valor Novo", "Variação"]]
         for ben in beneficios:
             nome = ben.get('nome', ben.get('tipo', 'N/A'))
             val_ant = ben.get('valor_anterior')
@@ -4214,95 +4234,75 @@ async def exportar_resumo_convencao_pdf(
             variacao = ""
             try:
                 if val_ant and val_novo:
-                    val_ant_f = float(val_ant)
-                    val_novo_f = float(val_novo)
-                    if val_ant_f > 0:
-                        var_pct = ((val_novo_f - val_ant_f) / val_ant_f * 100)
-                        variacao = f"+{var_pct:.1f}%"
+                    var = ((float(val_novo) - float(val_ant)) / float(val_ant)) * 100
+                    variacao = f"+{var:.1f}%"
             except:
                 pass
-            beneficio_data.append([
-                nome,
-                formatar_valor(val_ant),
-                formatar_valor(val_novo),
-                variacao
-            ])
+            ben_data.append([nome, fmt_valor(val_ant), fmt_valor(val_novo), variacao])
         
-        tabela_beneficios = Table(beneficio_data, colWidths=[6*cm, 3.5*cm, 3.5*cm, 3*cm])
-        tabela_beneficios.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), COR_PRIMARIA),
+        tabela_ben = Table(ben_data, colWidths=[6*cm, 4*cm, 4*cm, 4*cm])
+        tabela_ben.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), VERDE),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.gray),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 2*mm),
-            ('TOPPADDING', (0, 0), (-1, -1), 2*mm),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, COR_FUNDO]),
+            ('GRID', (0, 0), (-1, -1), 0.5, CINZA),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, VERDE_CLARO]),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
         ]))
-        elementos.append(tabela_beneficios)
-        elementos.append(Spacer(1, 4*mm))
-    
-    # Descontos
-    descontos = dados_convencao.get('descontos', [])
-    if descontos:
-        elementos.append(Paragraph("DESCONTOS", estilo_subtitulo))
-        desconto_headers = ['Desconto', 'Valor Anterior', 'Valor Novo', 'Observação']
-        desconto_data = [desconto_headers]
-        for desc in descontos:
-            nome = desc.get('nome', desc.get('tipo', 'N/A'))
-            val_ant = desc.get('valor_anterior')
-            val_novo = desc.get('valor_novo')
-            obs = desc.get('observacao', '')
-            desconto_data.append([
-                nome,
-                formatar_valor(val_ant),
-                formatar_valor(val_novo),
-                obs[:30] if obs else "-"
-            ])
-        
-        tabela_descontos = Table(desconto_data, colWidths=[5*cm, 3.5*cm, 3.5*cm, 4*cm])
-        tabela_descontos.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#dc2626")),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.gray),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 2*mm),
-            ('TOPPADDING', (0, 0), (-1, -1), 2*mm),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor("#fef2f2")]),
-        ]))
-        elementos.append(tabela_descontos)
-        elementos.append(Spacer(1, 4*mm))
-    
-    # Cláusulas Importantes
-    clausulas = dados_convencao.get('clausulas_importantes', [])
-    if clausulas:
-        elementos.append(Paragraph("PONTOS DE ATENÇÃO", estilo_subtitulo))
-        for clausula in clausulas[:5]:  # Limitar a 5 cláusulas
-            elementos.append(Paragraph(f"• {clausula}", estilo_normal))
-        elementos.append(Spacer(1, 4*mm))
-    
-    # Resumo
-    resumo = dados_convencao.get('resumo')
-    if resumo:
-        elementos.append(Paragraph("RESUMO EXECUTIVO", estilo_subtitulo))
-        elementos.append(Paragraph(resumo, estilo_normal))
+        elementos.append(tabela_ben)
         elementos.append(Spacer(1, 6*mm))
     
-    # Rodapé
-    elementos.append(Spacer(1, 10*mm))
-    linha_rodape = Table([['']], colWidths=[17*cm], rowHeights=[1])
-    linha_rodape.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.gray),
-    ]))
-    elementos.append(linha_rodape)
-    elementos.append(Spacer(1, 3*mm))
+    # ========== DESCONTOS ==========
+    descontos = dados_convencao.get('descontos', [])
+    if descontos:
+        elementos.append(Paragraph("DESCONTOS", est_secao))
+        
+        desc_data = [["Desconto", "Valor Anterior", "Valor Novo", "Observação"]]
+        for desc in descontos:
+            nome = desc.get('nome', desc.get('tipo', 'N/A'))
+            desc_data.append([nome, fmt_valor(desc.get('valor_anterior')), fmt_valor(desc.get('valor_novo')), desc.get('observacao', '-')[:25]])
+        
+        tabela_desc = Table(desc_data, colWidths=[5*cm, 4*cm, 4*cm, 5*cm])
+        tabela_desc.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), VERMELHO),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (1, 0), (2, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, CINZA),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, VERMELHO_CLARO]),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        elementos.append(tabela_desc)
+        elementos.append(Spacer(1, 6*mm))
+    
+    # ========== PONTOS DE ATENÇÃO ==========
+    clausulas = dados_convencao.get('clausulas_importantes', [])
+    if clausulas:
+        elementos.append(Paragraph("⚠ PONTOS DE ATENÇÃO", est_secao))
+        for clausula in clausulas[:5]:
+            elementos.append(Paragraph(f"• {clausula}", est_normal))
+        elementos.append(Spacer(1, 4*mm))
+    
+    # ========== RESUMO EXECUTIVO ==========
+    resumo = dados_convencao.get('resumo')
+    if resumo:
+        elementos.append(Paragraph("RESUMO EXECUTIVO", est_secao))
+        elementos.append(Paragraph(resumo, est_normal))
+        elementos.append(Spacer(1, 4*mm))
+    
+    # ========== RODAPÉ ==========
+    elementos.append(Spacer(1, 8*mm))
+    elementos.append(HRFlowable(width="100%", thickness=1, color=CINZA, spaceBefore=0, spaceAfter=4*mm))
     
     data_geracao = datetime.now().strftime("%d/%m/%Y às %H:%M")
-    elementos.append(Paragraph(f"Documento gerado em {data_geracao}", estilo_rodape))
-    elementos.append(Paragraph("Business Contabilidade - Departamento Pessoal", estilo_rodape))
+    elementos.append(Paragraph(f"Documento gerado automaticamente em {data_geracao}", est_pequeno))
+    elementos.append(Paragraph("<b>Business Contabilidade</b> - Departamento Pessoal", est_pequeno))
+    elementos.append(Paragraph("Este documento é apenas informativo e não substitui a leitura integral da convenção coletiva.", est_pequeno))
     
     # Construir PDF
     doc.build(elementos)
