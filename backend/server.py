@@ -6049,59 +6049,68 @@ async def validar_rescisao_etapa1(
             chat = LlmChat(
                 api_key=api_key,
                 session_id=f"rescisao-etapa1-{uuid.uuid4()}",
-                system_message="""Você é um especialista em departamento pessoal e rescisões trabalhistas no Brasil.
-                Analise o termo de rescisão (TRCT) e extraia TODOS os dados.
-                
-                Retorne APENAS um JSON válido:
-                {
-                    "colaborador": "Nome completo do colaborador",
-                    "cpf": "CPF do colaborador",
-                    "cargo": "Cargo/função",
-                    "resumo": {
-                        "colaborador": "Nome",
-                        "data_admissao": "DD/MM/AAAA",
-                        "data_demissao": "DD/MM/AAAA",
-                        "data_aviso": "DD/MM/AAAA ou null se não houver",
-                        "tipo_rescisao": "Sem justa causa / Pedido de demissão / Justa causa / Acordo mútuo / Término contrato",
-                        "motivo_rescisao": "Código do motivo se houver",
-                        "salario_base": 0.00,
-                        "dias_trabalhados": 0,
-                        "aviso_previo_tipo": "Indenizado / Trabalhado / Não aplicável",
-                        "aviso_previo_dias": 0
-                    },
-                    "verbas_rescisorias": {
-                        "saldo_salario": 0.00,
-                        "aviso_previo_indenizado": 0.00,
-                        "ferias_vencidas": 0.00,
-                        "ferias_proporcionais": 0.00,
-                        "terco_ferias": 0.00,
-                        "decimo_terceiro_proporcional": 0.00,
-                        "fgts_mes": 0.00,
-                        "multa_fgts_40": 0.00,
-                        "outros_proventos": 0.00
-                    },
-                    "descontos": {
-                        "inss": 0.00,
-                        "irrf": 0.00,
-                        "aviso_previo_desconto": 0.00,
-                        "outros_descontos": 0.00
-                    },
-                    "totais": {
-                        "total_bruto": 0.00,
-                        "total_descontos": 0.00,
-                        "valor_liquido": "0.000,00"
-                    },
-                    "itens_validados": ["Saldo de salário", "Férias", "13º", ...],
-                    "alertas": ["Lista de alertas ou observações importantes"],
-                    "observacoes": "Observações gerais sobre o documento"
-                }
-                
-                IMPORTANTE:
-                - Valores sempre como números decimais (ex: 1500.00)
-                - Datas no formato DD/MM/AAAA
-                - Se não encontrar algum campo, use null ou 0
-                - Identifique corretamente o TIPO de rescisão
-                - Se houver multa de 40% do FGTS, extraia o valor"""
+                system_message="""Voce e um especialista em departamento pessoal e rescisoes trabalhistas no Brasil.
+Analise o termo de rescisao (TRCT) e extraia TODOS os dados, incluindo TODAS as rubricas detalhadas.
+
+Retorne APENAS um JSON valido:
+{
+    "colaborador": "Nome completo",
+    "cpf": "CPF",
+    "cargo": "Cargo",
+    "resumo": {
+        "colaborador": "Nome",
+        "data_admissao": "DD/MM/AAAA",
+        "data_demissao": "DD/MM/AAAA",
+        "tipo_rescisao": "Tipo",
+        "salario_base": 0.00,
+        "dias_trabalhados": 0,
+        "aviso_previo_tipo": "Indenizado/Trabalhado",
+        "aviso_previo_dias": 0
+    },
+    "rubricas_proventos": [
+        {"codigo": "50", "descricao": "Saldo de 20 dias", "referencia": "20 dias", "valor": 1873.81},
+        {"codigo": "55", "descricao": "Adic. Noturno", "referencia": "5:36 horas", "valor": 10.22},
+        {"codigo": "56.2", "descricao": "Hs. Extras Not", "referencia": "5,36 horas a 50%", "valor": 92.46},
+        {"codigo": "50.1", "descricao": "Horas Extras", "referencia": "357,25 horas a 50%", "valor": 7668.60}
+    ],
+    "rubricas_descontos": [
+        {"codigo": "115.14", "descricao": "Faltas nao justificadas", "referencia": "horas 08:27", "valor": 77.51},
+        {"codigo": "115.5", "descricao": "Faltas nao justificadas", "referencia": "dias 4", "valor": 267.69},
+        {"codigo": "112.1", "descricao": "Previdencia Social", "referencia": "", "valor": 988.07}
+    ],
+    "totais": {
+        "total_bruto": 0.00,
+        "total_descontos": 0.00,
+        "valor_liquido": "0,00"
+    },
+    "verbas_rescisorias": {
+        "saldo_salario": 0.00,
+        "horas_extras": 0.00,
+        "adicional_noturno": 0.00,
+        "ferias_vencidas": 0.00,
+        "ferias_proporcionais": 0.00,
+        "terco_ferias": 0.00,
+        "decimo_terceiro_proporcional": 0.00,
+        "aviso_previo_indenizado": 0.00,
+        "multa_fgts_40": 0.00
+    },
+    "descontos": {
+        "faltas_dias": 0.00,
+        "faltas_horas": 0.00,
+        "atrasos": 0.00,
+        "inss": 0.00,
+        "irrf": 0.00,
+        "outros_descontos": 0.00
+    },
+    "observacoes": ""
+}
+
+MUITO IMPORTANTE:
+- Extraia TODAS as rubricas de proventos listadas (codigo, descricao, referencia, valor)
+- Extraia TODAS as rubricas de descontos listadas (codigo, descricao, referencia, valor)
+- A referencia pode conter horas, dias, percentual, etc.
+- Valores sempre como numeros decimais
+- Inclua horas extras, adicional noturno, faltas, atrasos, DSR, etc."""
             ).with_model("gemini", "gemini-2.0-flash")
             
             mime_type = termo_rescisao.content_type or "application/pdf"
