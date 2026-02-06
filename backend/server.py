@@ -1968,8 +1968,6 @@ async def process_validacao_background(
                                     'status': 'ok'
                                 })
                                 total_conferidos += 1
-                            })
-                            total_conferidos += 1
             
             resultado_colaboradores.append(colab_resultado)
         
