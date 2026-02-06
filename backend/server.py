@@ -3773,6 +3773,23 @@ async def upload_xml_with_progress(
             doc = xml_doc.model_dump()
             doc['uploaded_at'] = doc['uploaded_at'].isoformat()
             
+            # ==== VERIFICAR SE HÁ EVENTO DE CANCELAMENTO PENDENTE ====
+            chave_nfe = parsed_data.get('chave_nfe', '')
+            if chave_nfe:
+                evento_cancelamento = await db.eventos_cancelamento.find_one({"chave_nfe": chave_nfe})
+                if evento_cancelamento:
+                    # Marcar nota como cancelada
+                    doc['cancelada'] = True
+                    doc['data_cancelamento'] = evento_cancelamento.get('data_cancelamento', '')
+                    doc['justificativa_cancelamento'] = evento_cancelamento.get('justificativa', '')
+                    doc['protocolo_cancelamento'] = evento_cancelamento.get('protocolo', '')
+                    
+                    # Marcar evento como processado
+                    await db.eventos_cancelamento.update_one(
+                        {"chave_nfe": chave_nfe},
+                        {"$set": {"processado": True}}
+                    )
+            
             await db.xml_documents.insert_one(doc)
             
             results.append({
