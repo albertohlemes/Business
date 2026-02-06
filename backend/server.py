@@ -7321,25 +7321,6 @@ async def analise_tributaria_ia(
                     'cfops_saida': list(saida['cfops']),
                     'explicacao': f"Entra a {aliq_creditavel}% e sai a {aliq_saida}%. Crédito maior que débito gera benefício de R$ {round(beneficio, 2):,.2f}."
                 })
-            if beneficio > 100:  # Benefício mínimo de R$ 100
-                oportunidades.append({
-                    'tipo': 'ALIQUOTA_FAVORAVEL',
-                    'ncm': ncm,
-                    'descricao': descricao_principal,
-                    'descricoes_entrada': descricoes_entrada,
-                    'descricoes_saida': descricoes_saida,
-                    'aliq_entrada': aliq_creditavel,
-                    'aliq_saida': aliq_saida,
-                    'diferenca_aliquota': round(aliq_creditavel - aliq_saida, 2),
-                    'icms_credito': round(icms_credito, 2),
-                    'icms_debito': round(icms_debito, 2),
-                    'beneficio': round(beneficio, 2),
-                    'qtd_entrada': entrada['qtd_itens'],
-                    'qtd_saida': saida['qtd_itens'],
-                    'cfops_entrada': list(entrada['cfops']),
-                    'cfops_saida': list(saida['cfops']),
-                    'explicacao': f"NCM {ncm}: Entra com {aliq_creditavel}% e sai com {aliq_saida}%. Crédito maior que débito gera benefício de R$ {round(beneficio, 2):,.2f}"
-                })
     
     # Ordenar vilões pelo impacto (maior primeiro)
     viloes = sorted(viloes, key=lambda x: x.get('impacto_negativo', 0), reverse=True)
