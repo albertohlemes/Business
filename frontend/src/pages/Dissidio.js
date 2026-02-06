@@ -383,6 +383,182 @@ const Dissidio = () => {
               </div>
             </div>
 
+            {/* Piso Salarial */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Piso Salarial Novo (R$)</Label>
+                <Input 
+                  type="number"
+                  step="0.01"
+                  value={convencaoData.piso_salarial || ''} 
+                  onChange={(e) => setConvencaoData({...convencaoData, piso_salarial: parseFloat(e.target.value) || null})}
+                  placeholder="1.500,00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Piso Salarial Anterior (R$)</Label>
+                <Input 
+                  type="number"
+                  step="0.01"
+                  value={convencaoData.piso_salarial_anterior || ''} 
+                  onChange={(e) => setConvencaoData({...convencaoData, piso_salarial_anterior: parseFloat(e.target.value) || null})}
+                  placeholder="1.412,00"
+                />
+              </div>
+            </div>
+
+            {/* Benefícios */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-blue-700 flex items-center gap-1">
+                  <TrendingUp size={14} /> Benefícios (Valores Novos)
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setConvencaoData({
+                    ...convencaoData, 
+                    beneficios: [...(convencaoData.beneficios || []), {tipo: '', nome: '', valor_novo: 0, valor_anterior: 0}]
+                  })}
+                >
+                  + Adicionar
+                </Button>
+              </div>
+              {convencaoData.beneficios?.length > 0 ? (
+                <div className="space-y-2">
+                  {convencaoData.beneficios.map((ben, i) => (
+                    <div key={i} className="grid grid-cols-5 gap-2 items-center bg-blue-50 p-2 rounded">
+                      <Input 
+                        placeholder="Nome"
+                        value={ben.nome || ''} 
+                        onChange={(e) => {
+                          const newBen = [...convencaoData.beneficios];
+                          newBen[i] = {...newBen[i], nome: e.target.value};
+                          setConvencaoData({...convencaoData, beneficios: newBen});
+                        }}
+                        className="text-sm"
+                      />
+                      <Input 
+                        type="number"
+                        placeholder="Valor Anterior"
+                        value={ben.valor_anterior || ''} 
+                        onChange={(e) => {
+                          const newBen = [...convencaoData.beneficios];
+                          newBen[i] = {...newBen[i], valor_anterior: parseFloat(e.target.value) || 0};
+                          setConvencaoData({...convencaoData, beneficios: newBen});
+                        }}
+                        className="text-sm"
+                      />
+                      <Input 
+                        type="number"
+                        placeholder="Valor Novo"
+                        value={ben.valor_novo || ''} 
+                        onChange={(e) => {
+                          const newBen = [...convencaoData.beneficios];
+                          newBen[i] = {...newBen[i], valor_novo: parseFloat(e.target.value) || 0};
+                          setConvencaoData({...convencaoData, beneficios: newBen});
+                        }}
+                        className="text-sm"
+                      />
+                      <span className={`text-xs font-medium ${ben.valor_novo > ben.valor_anterior ? 'text-emerald-600' : 'text-slate-500'}`}>
+                        {ben.valor_anterior && ben.valor_novo ? 
+                          `${((ben.valor_novo - ben.valor_anterior) / ben.valor_anterior * 100).toFixed(1)}%` : '-'}
+                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          const newBen = convencaoData.beneficios.filter((_, idx) => idx !== i);
+                          setConvencaoData({...convencaoData, beneficios: newBen});
+                        }}
+                        className="text-rose-500 hover:text-rose-700"
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-slate-400 text-sm">Nenhum benefício identificado. Clique em "Adicionar" para incluir.</p>
+              )}
+            </div>
+
+            {/* Descontos */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-amber-700 flex items-center gap-1">
+                  <AlertTriangle size={14} /> Descontos (Valores Novos)
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setConvencaoData({
+                    ...convencaoData, 
+                    descontos: [...(convencaoData.descontos || []), {tipo: '', nome: '', valor_novo: 0, valor_anterior: 0}]
+                  })}
+                >
+                  + Adicionar
+                </Button>
+              </div>
+              {convencaoData.descontos?.length > 0 ? (
+                <div className="space-y-2">
+                  {convencaoData.descontos.map((desc, i) => (
+                    <div key={i} className="grid grid-cols-5 gap-2 items-center bg-amber-50 p-2 rounded">
+                      <Input 
+                        placeholder="Nome"
+                        value={desc.nome || ''} 
+                        onChange={(e) => {
+                          const newDesc = [...convencaoData.descontos];
+                          newDesc[i] = {...newDesc[i], nome: e.target.value};
+                          setConvencaoData({...convencaoData, descontos: newDesc});
+                        }}
+                        className="text-sm"
+                      />
+                      <Input 
+                        type="number"
+                        placeholder="Valor Anterior"
+                        value={desc.valor_anterior || ''} 
+                        onChange={(e) => {
+                          const newDesc = [...convencaoData.descontos];
+                          newDesc[i] = {...newDesc[i], valor_anterior: parseFloat(e.target.value) || 0};
+                          setConvencaoData({...convencaoData, descontos: newDesc});
+                        }}
+                        className="text-sm"
+                      />
+                      <Input 
+                        type="number"
+                        placeholder="Valor Novo"
+                        value={desc.valor_novo || ''} 
+                        onChange={(e) => {
+                          const newDesc = [...convencaoData.descontos];
+                          newDesc[i] = {...newDesc[i], valor_novo: parseFloat(e.target.value) || 0};
+                          setConvencaoData({...convencaoData, descontos: newDesc});
+                        }}
+                        className="text-sm"
+                      />
+                      <span className={`text-xs font-medium ${desc.valor_novo > desc.valor_anterior ? 'text-rose-600' : 'text-emerald-500'}`}>
+                        {desc.valor_anterior && desc.valor_novo ? 
+                          `${((desc.valor_novo - desc.valor_anterior) / desc.valor_anterior * 100).toFixed(1)}%` : '-'}
+                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          const newDesc = convencaoData.descontos.filter((_, idx) => idx !== i);
+                          setConvencaoData({...convencaoData, descontos: newDesc});
+                        }}
+                        className="text-rose-500 hover:text-rose-700"
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-slate-400 text-sm">Nenhum desconto identificado. Clique em "Adicionar" para incluir.</p>
+              )}
+            </div>
+
             {convencaoData.resumo && (
               <div className="bg-slate-50 p-4 rounded-lg">
                 <p className="text-sm font-medium text-slate-700 mb-1">Resumo</p>
