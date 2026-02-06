@@ -393,9 +393,9 @@ const Documents = ({ user, onLogout }) => {
     return filtered;
   }, [documents, ctxCompany, selectedCompetencia, selectedStatus, selectedTipo, selectedIntegridade, searchTerm, sortField, sortDirection]);
 
-  // Calcular resumo de integridade
+  // Calcular resumo de integridade - Usa TODOS os documentos, não apenas os filtrados
   const integritySummary = useMemo(() => {
-    return sortedAndFilteredDocuments.reduce((acc, doc) => {
+    return documents.reduce((acc, doc) => {
       const check = quickCheckIntegrity(doc);
       if (check === null) {
         acc.semProdutos++;
@@ -407,7 +407,7 @@ const Documents = ({ user, onLogout }) => {
       acc.total++;
       return acc;
     }, { total: 0, validos: 0, divergentes: 0, semProdutos: 0 });
-  }, [sortedAndFilteredDocuments]);
+  }, [documents]);
 
   // Modal de detalhamento do documento - usando função de render
   const renderDocumentDetailModal = () => {
