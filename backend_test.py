@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 class PortalDPAPITester:
-    def __init__(self, base_url="https://workforce-portal-19.preview.emergentagent.com"):
+    def __init__(self, base_url="https://labor-compliance-2.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.tests_run = 0
