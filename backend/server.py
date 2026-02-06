@@ -3615,7 +3615,7 @@ async def list_documents(
     if competencia:
         query['competencia'] = competencia
     
-    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(1000)
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
     
     for doc in documents:
         if isinstance(doc['uploaded_at'], str):
@@ -4263,7 +4263,7 @@ async def get_dashboard_stats(
     
     # Buscar todos os documentos da empresa na competência
     query = {"company_id": company_id, "competencia": competencia}
-    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(1000)
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
     
     # Buscar aprovações do localStorage (persistidas no backend se houver)
     # Por enquanto, vamos calcular baseado no status_validacao
@@ -5422,7 +5422,7 @@ async def analise_aliquotas_saida(
     
     # Buscar apenas documentos de saída
     query = {"company_id": company_id, "competencia": competencia, "tipo": "saida"}
-    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(1000)
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
     
     alertas = []
     produtos_analisados = []
