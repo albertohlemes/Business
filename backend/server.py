@@ -5340,28 +5340,15 @@ async def apuracao_periodo(
             is_despesa = cfop in CFOPS_DESPESA
             sem_credito = cfop in CFOPS_SEM_CREDITO
             
-            # Determinar se é entrada ou saída pelo TIPO DO DOCUMENTO (não pelo CFOP)
-            # Isso é importante porque em notas de entrada, o CFOP vem do emitente (que é saída para ele)
-            primeiro_digito = cfop[0] if cfop else ''
+            # Usar CFOP como chave diretamente (não converter mais)
+            cfop_key = cfop if cfop else f"SEM CFOP"
             
-            # Converter CFOP de saída para entrada quando for documento de entrada
-            if is_entrada and primeiro_digito in ['5', '6', '7']:
-                # Converter: 5xxx -> 1xxx, 6xxx -> 2xxx, 7xxx -> 3xxx
-                cfop_convertido = cfop.replace(primeiro_digito, {'5': '1', '6': '2', '7': '3'}[primeiro_digito], 1)
-                cfop_key = cfop_convertido
-            elif is_saida and primeiro_digito in ['1', '2', '3']:
-                # Converter: 1xxx -> 5xxx, 2xxx -> 6xxx, 3xxx -> 7xxx (caso raro)
-                cfop_convertido = cfop.replace(primeiro_digito, {'1': '5', '2': '6', '3': '7'}[primeiro_digito], 1)
-                cfop_key = cfop_convertido
-            else:
-                cfop_key = cfop if cfop else f"SEM CFOP ({doc_tipo.upper()})"
-            
-            # Verificar ST/Despesa no CFOP convertido
+            # Verificar ST/Despesa para entradas
             if is_entrada:
                 cfops_st_entrada = ['1403', '1409', '2403', '2409', '3403', '3409']
                 cfops_despesa_entrada = ['1407', '2407', '1556', '2556', '1557', '2557', '1128', '2128', '1551', '2551', '1406', '2406']
-                is_st = cfop_key in cfops_st_entrada
-                is_despesa = cfop_key in cfops_despesa_entrada
+                is_st = cfop in cfops_st_entrada
+                is_despesa = cfop in cfops_despesa_entrada
                 sem_credito = is_st or is_despesa
             
             if is_entrada:
