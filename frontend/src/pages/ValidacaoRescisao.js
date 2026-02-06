@@ -191,18 +191,19 @@ const ValidacaoRescisao = () => {
 
   // Componente de Upload Box
   const UploadBox = ({ dropzone, label, file, files, icon: Icon, color, onRemove, description }) => {
-    const { getRootProps, getInputProps, isDragActive, open } = dropzone;
+    const { getRootProps, getInputProps, isDragActive } = dropzone;
+    
+    const rootProps = getRootProps();
     
     return (
       <div className="space-y-2">
         <div 
-          {...getRootProps()} 
-          onClick={open}
+          {...rootProps}
           className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
             isDragActive ? 'border-red-500 bg-red-500/10' : 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/50'
           }`}
         >
-          <input {...getInputProps()} />
+          <input {...getInputProps()} data-testid="file-input" />
           {file ? (
             <div className="flex flex-col items-center gap-3">
               <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
