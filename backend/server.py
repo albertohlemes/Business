@@ -2021,30 +2021,7 @@ async def process_validacao_background(
                                     'severidade': 'alta' if diff > 100 else 'media',
                                     'texto_original': ref.get('texto_original', '')
                                 })
-                        else:
-                            # Campos de valor (R$) - comparação normal
-                            diff = abs(valor_holerite - valor_apoio)
-                            
-                            if diff > 0.50:  # Tolerância de R$ 0,50
-                                colab_resultado['status'] = 'divergente'
-                                colab_resultado['divergencias_apoio'].append({
-                                    'campo': campo_display,
-                                    'valor_apoio': valor_apoio,
-                                    'valor_holerite': valor_holerite,
-                                    'diferenca': round(diff, 2),
-                                    'arquivo': ref.get('arquivo', ''),
-                                    'severidade': 'alta' if diff > 100 else 'media',
-                                    'texto_original': ref.get('texto_original', '')
-                                })
                                 total_divergencias += 1
-                            else:
-                                colab_resultado['conferidos'].append({
-                                    'campo': campo_display,
-                                    'valor': valor_apoio,
-                                    'fonte': ref.get('arquivo', ''),
-                                    'status': 'ok'
-                                })
-                                total_conferidos += 1
             
             resultado_colaboradores.append(colab_resultado)
         
