@@ -228,14 +228,14 @@ const Medias = () => {
     <div data-testid="medias-page" className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Importação de Médias</h1>
+          <h1 className="text-2xl font-bold text-white">Importação de Médias</h1>
           <p className="text-slate-500 mt-1">Extraia médias do relatório da antiga contabilidade e gere arquivo para o SCI Único</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetDialog(); }}>
           <Button
             data-testid="importar-medias-btn"
             onClick={() => setDialogOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700"
+            className="bg-red-600 hover:bg-red-700"
             disabled={clientes.length === 0}
           >
             <Upload size={18} className="mr-2" />
@@ -244,15 +244,15 @@ const Medias = () => {
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Calculator className="text-indigo-600" size={20} />
+                <Calculator className="text-red-500" size={20} />
                 Importar Relatório de Médias
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
-              <Card className="border-indigo-200 bg-indigo-50">
+              <Card className="border-red-500/30 bg-red-500/10">
                 <CardContent className="p-3 text-sm text-indigo-800">
                   <p className="font-medium">Como funciona:</p>
-                  <ol className="list-decimal list-inside mt-1 text-indigo-700 space-y-1">
+                  <ol className="list-decimal list-inside mt-1 text-red-600 space-y-1">
                     <li>Faça upload do relatório da antiga contabilidade</li>
                     <li>A IA extrai os dados de médias automaticamente</li>
                     <li>Revise e ajuste os valores se necessário</li>
@@ -355,18 +355,18 @@ const Medias = () => {
               {/* Employees and their medias */}
               <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                 {extractedData.funcionarios?.map((func, funcIndex) => (
-                  <Card key={funcIndex} className="border-slate-200">
+                  <Card key={funcIndex} className="border-slate-700">
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+                          <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center text-red-500 font-bold">
                             {func.nome?.charAt(0) || '?'}
                           </div>
                           <div>
                             <Input
                               value={func.nome || ''}
                               onChange={(e) => handleUpdateFuncionario(funcIndex, 'nome', e.target.value)}
-                              className="font-medium text-slate-900 h-8 px-2"
+                              className="font-medium text-white h-8 px-2"
                               placeholder="Nome do funcionário"
                             />
                             <div className="flex items-center gap-2 mt-1">
@@ -399,7 +399,7 @@ const Medias = () => {
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
-                            <tr className="border-b border-slate-200">
+                            <tr className="border-b border-slate-700">
                               <th className="text-left py-2 px-1 text-xs text-slate-500">Competência</th>
                               <th className="text-right py-2 px-1 text-xs text-slate-500">Salário</th>
                               <th className="text-right py-2 px-1 text-xs text-slate-500">Horas Extras</th>
@@ -493,7 +493,7 @@ const Medias = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="mt-2 text-indigo-600"
+                        className="mt-2 text-red-500"
                         onClick={() => handleAddMedia(funcIndex)}
                       >
                         <Plus size={14} className="mr-1" /> Adicionar mês
@@ -504,7 +504,7 @@ const Medias = () => {
               </div>
 
               {extractedData.observacoes && (
-                <Card className="border-slate-200 bg-slate-50">
+                <Card className="border-slate-700 bg-slate-800/50">
                   <CardContent className="p-3 text-sm text-slate-600">
                     <p className="font-medium text-slate-700 mb-1">Observações da IA:</p>
                     {extractedData.observacoes}
@@ -550,12 +550,12 @@ const Medias = () => {
       {importacoes.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {importacoes.map((imp) => (
-            <Card key={imp.id} className="border-slate-200">
+            <Card key={imp.id} className="border-slate-700">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <FileSpreadsheet className="text-indigo-600" size={20} />
-                    <span className="font-medium text-slate-900">
+                    <FileSpreadsheet className="text-red-500" size={20} />
+                    <span className="font-medium text-white">
                       {getClienteName(imp.cliente_id)}
                     </span>
                   </div>
@@ -575,7 +575,7 @@ const Medias = () => {
           ))}
         </div>
       ) : (
-        <Card className="border-slate-200">
+        <Card className="border-slate-700">
           <CardContent className="py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
               <Calculator className="text-slate-400" size={32} />

@@ -358,7 +358,7 @@ const Colaboradores = () => {
             <Label>Empresa *</Label>
             <Select value={formData.cliente_id} onValueChange={(v) => updateCurrentColaborador({ ...formData, cliente_id: v })}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>{sortClientesBySelection(clientes, empresaSelecionada?.id).map(c => <SelectItem key={c.id} value={c.id}><span className="font-mono text-xs text-indigo-600 mr-2">{generateEmpresaCode(c.id, c.codigo_interno)}</span>{c.nome_fantasia || c.razao_social}</SelectItem>)}</SelectContent>
+              <SelectContent>{sortClientesBySelection(clientes, empresaSelecionada?.id).map(c => <SelectItem key={c.id} value={c.id}><span className="font-mono text-xs text-red-500 mr-2">{generateEmpresaCode(c.id, c.codigo_interno)}</span>{c.nome_fantasia || c.razao_social}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="sm:col-span-2">
@@ -442,7 +442,7 @@ const Colaboradores = () => {
         ) : (
           <div className="space-y-3">
             {(formData.dependentes || []).map((dep, idx) => (
-              <Card key={idx} className="border-slate-200">
+              <Card key={idx} className="border-slate-700">
                 <CardContent className="p-3">
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-sm font-medium">Dependente {idx + 1}</p>
@@ -473,21 +473,21 @@ const Colaboradores = () => {
     <div data-testid="colaboradores-page" className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Colaboradores</h1>
+          <h1 className="text-2xl font-bold text-white">Colaboradores</h1>
           <p className="text-slate-500 mt-1">Gerencie os funcionários das empresas</p>
         </div>
         <div className="flex gap-2">
           <Dialog open={importDialogOpen} onOpenChange={(o) => { setImportDialogOpen(o); if (!o) { setImportResult(null); setTipoDocumento('auto'); } }}>
             <DialogTrigger asChild>
-              <Button data-testid="import-colaborador-btn" variant="outline" className="border-indigo-200 text-indigo-600 hover:bg-indigo-50" disabled={clientes.length === 0}>
+              <Button data-testid="import-colaborador-btn" variant="outline" className="border-red-500/30 text-red-500 hover:bg-red-500/10" disabled={clientes.length === 0}>
                 <Upload size={18} className="mr-2" />Importar Documento
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle className="flex items-center gap-2"><FileText size={24} className="text-indigo-600" />Importar Colaboradores por Documento</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle className="flex items-center gap-2"><FileText size={24} className="text-red-500" />Importar Colaboradores por Documento</DialogTitle></DialogHeader>
               <div className="space-y-4 mt-4">
-                <Card className="border-indigo-200 bg-indigo-50"><CardContent className="p-3 text-sm text-indigo-800"><p className="font-medium">Suporte a múltiplos vínculos!</p><p className="text-indigo-600">Envie uma ficha de registro com vários colaboradores. A IA extrai todos automaticamente.</p></CardContent></Card>
-                <div><Label>Empresa</Label><Select value={formData.cliente_id || empresaSelecionada?.id || ''} onValueChange={(v) => setFormData({ ...formData, cliente_id: v })}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{sortClientesBySelection(clientes, empresaSelecionada?.id).map(c => <SelectItem key={c.id} value={c.id}><span className="font-mono text-xs text-indigo-600 mr-2">{generateEmpresaCode(c.id, c.codigo_interno)}</span>{c.nome_fantasia || c.razao_social}</SelectItem>)}</SelectContent></Select></div>
+                <Card className="border-red-500/30 bg-red-500/10"><CardContent className="p-3 text-sm text-indigo-800"><p className="font-medium">Suporte a múltiplos vínculos!</p><p className="text-red-500">Envie uma ficha de registro com vários colaboradores. A IA extrai todos automaticamente.</p></CardContent></Card>
+                <div><Label>Empresa</Label><Select value={formData.cliente_id || empresaSelecionada?.id || ''} onValueChange={(v) => setFormData({ ...formData, cliente_id: v })}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{sortClientesBySelection(clientes, empresaSelecionada?.id).map(c => <SelectItem key={c.id} value={c.id}><span className="font-mono text-xs text-red-500 mr-2">{generateEmpresaCode(c.id, c.codigo_interno)}</span>{c.nome_fantasia || c.razao_social}</SelectItem>)}</SelectContent></Select></div>
                 <div><Label>Tipo de Documento</Label><Select value={tipoDocumento} onValueChange={setTipoDocumento}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="auto">Detectar automaticamente</SelectItem><SelectItem value="ficha_registro">Ficha de Registro (multi-vínculos)</SelectItem><SelectItem value="ficha_esocial">Ficha eSocial</SelectItem><SelectItem value="holerite">Holerite</SelectItem></SelectContent></Select></div>
                 
                 {uploading ? (
@@ -507,14 +507,14 @@ const Colaboradores = () => {
           </Dialog>
 
           <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
-            <DialogTrigger asChild><Button data-testid="add-colaborador-btn" className="bg-indigo-600 hover:bg-indigo-700" disabled={clientes.length === 0}><Plus size={18} className="mr-2" />Novo Colaborador</Button></DialogTrigger>
+            <DialogTrigger asChild><Button data-testid="add-colaborador-btn" className="bg-red-600 hover:bg-red-700" disabled={clientes.length === 0}><Plus size={18} className="mr-2" />Novo Colaborador</Button></DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>{editingColaborador ? 'Editar Colaborador' : 'Novo Colaborador'}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="mt-4">
                 {renderFormFields()}
                 <div className="flex justify-end gap-3 pt-6 border-t mt-6">
                   <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-                  <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">{editingColaborador ? 'Atualizar' : 'Cadastrar'}</Button>
+                  <Button type="submit" className="bg-red-600 hover:bg-red-700">{editingColaborador ? 'Atualizar' : 'Cadastrar'}</Button>
                 </div>
               </form>
             </DialogContent>
@@ -545,7 +545,7 @@ const Colaboradores = () => {
           {importResult && extractedColaboradores.length > 0 && (
             <>
               {/* Info bar e navegação */}
-              <div className="flex-shrink-0 px-6 py-3 bg-slate-50 border-b flex items-center justify-between">
+              <div className="flex-shrink-0 px-6 py-3 bg-slate-800/50 border-b flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
                     importResult.confianca === 'alta' ? 'bg-emerald-100 text-emerald-700' : 
@@ -563,7 +563,7 @@ const Colaboradores = () => {
                   <Button variant="outline" size="sm" className="h-8" disabled={currentColabIndex === 0} onClick={() => goToColaborador(currentColabIndex - 1)}>
                     <ChevronLeft size={16} />
                   </Button>
-                  <span className="text-sm font-semibold px-3 py-1 bg-white rounded border min-w-[80px] text-center">
+                  <span className="text-sm font-semibold px-3 py-1 bg-slate-900 rounded border min-w-[80px] text-center">
                     {currentColabIndex + 1} / {extractedColaboradores.length}
                   </span>
                   <Button variant="outline" size="sm" className="h-8" disabled={currentColabIndex === extractedColaboradores.length - 1} onClick={() => goToColaborador(currentColabIndex + 1)}>
@@ -573,7 +573,7 @@ const Colaboradores = () => {
               </div>
 
               {/* Lista de colaboradores - horizontal scrollável */}
-              <div className="flex-shrink-0 px-6 py-3 border-b bg-white">
+              <div className="flex-shrink-0 px-6 py-3 border-b bg-slate-900">
                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
                   {extractedColaboradores.map((colab, idx) => {
                     const isComplete = colab.nome && colab.cpf;
@@ -584,7 +584,7 @@ const Colaboradores = () => {
                         onClick={() => goToColaborador(idx)}
                         className={`flex-shrink-0 p-3 rounded-xl cursor-pointer transition-all min-w-[160px] ${
                           isActive 
-                            ? 'bg-indigo-600 text-white shadow-lg scale-105' 
+                            ? 'bg-red-600 text-white shadow-lg scale-105' 
                             : isComplete 
                               ? 'bg-emerald-50 border-2 border-emerald-200 hover:border-emerald-400' 
                               : 'bg-amber-50 border-2 border-amber-200 hover:border-amber-400'
@@ -616,7 +616,7 @@ const Colaboradores = () => {
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="mt-2 h-6 text-xs text-white/80 hover:text-white hover:bg-white/20 w-full" 
+                            className="mt-2 h-6 text-xs text-white/80 hover:text-white hover:bg-slate-900/20 w-full" 
                             onClick={(e) => { e.stopPropagation(); removeColaborador(idx); }}
                           >
                             <Trash2 size={12} className="mr-1" /> Remover
@@ -630,12 +630,12 @@ const Colaboradores = () => {
 
               {/* Formulário com scroll */}
               <div className="flex-1 overflow-y-auto px-6 py-4">
-                <Card className="border-slate-200 shadow-sm">
-                  <CardHeader className="pb-3 bg-slate-50 rounded-t-lg">
+                <Card className="border-slate-700 shadow-sm">
+                  <CardHeader className="pb-3 bg-slate-800/50 rounded-t-lg">
                     <CardTitle className="text-base flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
-                          <User className="text-indigo-600" size={18} />
+                        <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
+                          <User className="text-red-500" size={18} />
                         </div>
                         <div>
                           <span className="text-lg">{formData.nome || 'Nome não informado'}</span>
@@ -664,7 +664,7 @@ const Colaboradores = () => {
               </div>
 
               {/* Footer fixo com ações */}
-              <div className="flex-shrink-0 px-6 py-4 border-t bg-white flex items-center justify-between">
+              <div className="flex-shrink-0 px-6 py-4 border-t bg-slate-900 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
@@ -705,7 +705,7 @@ const Colaboradores = () => {
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Eye className="text-indigo-600" size={20} />Detalhes do Colaborador</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Eye className="text-red-500" size={20} />Detalhes do Colaborador</DialogTitle></DialogHeader>
           {viewingColaborador && (
             <div className="mt-4 space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -717,7 +717,7 @@ const Colaboradores = () => {
               </div>
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button variant="outline" onClick={() => setViewDialogOpen(false)}>Fechar</Button>
-                <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={() => { setViewDialogOpen(false); handleEdit(viewingColaborador); }}><Pencil size={14} className="mr-2" />Editar</Button>
+                <Button className="bg-red-600 hover:bg-red-700" onClick={() => { setViewDialogOpen(false); handleEdit(viewingColaborador); }}><Pencil size={14} className="mr-2" />Editar</Button>
               </div>
             </div>
           )}
@@ -733,20 +733,20 @@ const Colaboradores = () => {
         </div>
         <Select value={filterCliente} onValueChange={setFilterCliente}>
           <SelectTrigger className="w-full sm:w-64"><SelectValue placeholder="Filtrar por empresa" /></SelectTrigger>
-          <SelectContent><SelectItem value="all">Todas as empresas</SelectItem>{sortClientesBySelection(clientes, empresaSelecionada?.id).map(c => <SelectItem key={c.id} value={c.id}><span className="font-mono text-xs text-indigo-600 mr-2">{generateEmpresaCode(c.id, c.codigo_interno)}</span>{c.nome_fantasia || c.razao_social}</SelectItem>)}</SelectContent>
+          <SelectContent><SelectItem value="all">Todas as empresas</SelectItem>{sortClientesBySelection(clientes, empresaSelecionada?.id).map(c => <SelectItem key={c.id} value={c.id}><span className="font-mono text-xs text-red-500 mr-2">{generateEmpresaCode(c.id, c.codigo_interno)}</span>{c.nome_fantasia || c.razao_social}</SelectItem>)}</SelectContent>
         </Select>
       </div>
 
       {/* Table */}
       {filteredColaboradores.length > 0 ? (
-        <Card className="border-slate-200 overflow-hidden">
+        <Card className="border-slate-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="table-dp">
               <thead><tr><th>Colaborador</th><th>CPF</th><th>Empresa</th><th>Cargo</th><th>Salário</th><th className="text-right">Ações</th></tr></thead>
               <tbody>
                 {filteredColaboradores.map((colab) => (
                   <tr key={colab.id}>
-                    <td><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center"><Users className="text-slate-500" size={18} /></div><div><p className="font-medium text-slate-900">{colab.nome}</p>{colab.email && <p className="text-xs text-slate-500">{colab.email}</p>}</div></div></td>
+                    <td><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center"><Users className="text-slate-500" size={18} /></div><div><p className="font-medium text-white">{colab.nome}</p>{colab.email && <p className="text-xs text-slate-500">{colab.email}</p>}</div></div></td>
                     <td className="font-mono text-sm">{colab.cpf}</td>
                     <td className="text-sm">{getClienteName(colab.cliente_id)}</td>
                     <td className="text-sm">{colab.cargo || '-'}</td>
@@ -765,7 +765,7 @@ const Colaboradores = () => {
           </div>
         </Card>
       ) : (
-        <Card className="border-slate-200">
+        <Card className="border-slate-700">
           <CardContent className="py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4"><Users className="text-slate-400" size={32} /></div>
             <p className="text-slate-500">{searchTerm || filterCliente !== 'all' ? 'Nenhum colaborador encontrado' : 'Nenhum colaborador cadastrado'}</p>

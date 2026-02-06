@@ -180,14 +180,14 @@ const InformesRendimento = () => {
     <div data-testid="informes-page" className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Informes de Rendimento</h1>
+          <h1 className="text-2xl font-bold text-white">Informes de Rendimento</h1>
           <p className="text-slate-500 mt-1">Compare eSocial com o SCI Único e detecte divergências</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEsocialFile(null); setSistemaFile(null); } }}>
           <Button
             data-testid="comparar-informes-btn"
             onClick={() => setDialogOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700"
+            className="bg-red-600 hover:bg-red-700"
           >
             <ArrowLeftRight size={18} className="mr-2" />
             Comparar Informes
@@ -195,22 +195,22 @@ const InformesRendimento = () => {
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <FileSpreadsheet className="text-indigo-600" size={20} />
+                <FileSpreadsheet className="text-red-500" size={20} />
                 Comparar Informes de Rendimento
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
-              <Card className="border-indigo-200 bg-indigo-50">
+              <Card className="border-red-500/30 bg-red-500/10">
                 <CardContent className="p-3 text-sm text-indigo-800">
                   <p className="font-medium">eSocial vs SCI Único</p>
-                  <p className="text-indigo-600">Faça upload dos relatórios para verificar divergências em rendimentos, IR, INSS e FGTS.</p>
+                  <p className="text-red-500">Faça upload dos relatórios para verificar divergências em rendimentos, IR, INSS e FGTS.</p>
                 </CardContent>
               </Card>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                    <span className="w-2 h-2 rounded-full bg-red-500/100"></span>
                     Relatório eSocial
                   </p>
                   <EsocialDropzone />
@@ -234,7 +234,7 @@ const InformesRendimento = () => {
               <Button
                 onClick={handleCompare}
                 disabled={!esocialFile || !sistemaFile || uploading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700"
+                className="w-full bg-red-600 hover:bg-red-700"
                 data-testid="start-comparison-btn"
               >
                 {uploading ? (
@@ -264,9 +264,9 @@ const InformesRendimento = () => {
             <div className="space-y-4 mt-4">
               {/* Summary */}
               <div className="grid grid-cols-3 gap-4">
-                <Card className="border-slate-200">
+                <Card className="border-slate-700">
                   <CardContent className="p-4 text-center">
-                    <p className="text-2xl font-bold text-slate-900 font-mono">{comparisonResult.total_comparados || 0}</p>
+                    <p className="text-2xl font-bold text-white font-mono">{comparisonResult.total_comparados || 0}</p>
                     <p className="text-xs text-slate-500">Funcionários Comparados</p>
                   </CardContent>
                 </Card>
@@ -278,7 +278,7 @@ const InformesRendimento = () => {
                     <p className="text-xs text-slate-500">Divergências</p>
                   </CardContent>
                 </Card>
-                <Card className="border-slate-200">
+                <Card className="border-slate-700">
                   <CardContent className="p-4 text-center">
                     {comparisonResult.divergencias_encontradas === 0 ? (
                       <CheckCircle2 className="mx-auto text-emerald-500" size={32} />
@@ -296,12 +296,12 @@ const InformesRendimento = () => {
               {(comparisonResult.funcionarios_apenas_esocial?.length > 0 || comparisonResult.funcionarios_apenas_sci?.length > 0) && (
                 <div className="grid grid-cols-2 gap-4">
                   {comparisonResult.funcionarios_apenas_esocial?.length > 0 && (
-                    <Card className="border-indigo-200">
+                    <Card className="border-red-500/30">
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm text-indigo-800">Apenas no eSocial</CardTitle>
                       </CardHeader>
                       <CardContent className="pt-0">
-                        <ul className="text-sm text-indigo-700 space-y-1">
+                        <ul className="text-sm text-red-600 space-y-1">
                           {comparisonResult.funcionarios_apenas_esocial.map((f, i) => (
                             <li key={i}>• {f}</li>
                           ))}
@@ -328,7 +328,7 @@ const InformesRendimento = () => {
 
               {/* Divergências */}
               {comparisonResult.divergencias && comparisonResult.divergencias.length > 0 && (
-                <Card className="border-slate-200 overflow-hidden">
+                <Card className="border-slate-700 overflow-hidden">
                   <CardHeader>
                     <CardTitle className="text-base">Divergências Encontradas</CardTitle>
                   </CardHeader>
@@ -368,9 +368,9 @@ const InformesRendimento = () => {
 
               {/* Resumo */}
               {comparisonResult.resumo && (
-                <Card className="border-slate-200 bg-slate-50">
+                <Card className="border-slate-700 bg-slate-800/50">
                   <CardContent className="p-4">
-                    <h4 className="font-medium text-slate-900 mb-2">Resumo</h4>
+                    <h4 className="font-medium text-white mb-2">Resumo</h4>
                     <p className="text-sm text-slate-600">{comparisonResult.resumo}</p>
                   </CardContent>
                 </Card>
@@ -406,7 +406,7 @@ const InformesRendimento = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {historico.slice(0, 6).map((comp) => (
-              <Card key={comp.id} className="border-slate-200">
+              <Card key={comp.id} className="border-slate-700">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-slate-500">
@@ -431,7 +431,7 @@ const InformesRendimento = () => {
 
       {/* Instructions Card - Only show if no history */}
       {!loadingHistorico && historico.length === 0 && (
-        <Card className="border-slate-200">
+        <Card className="border-slate-700">
           <CardContent className="py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
               <FileSpreadsheet className="text-slate-400" size={32} />
@@ -442,7 +442,7 @@ const InformesRendimento = () => {
             </p>
             <Button
               onClick={() => setDialogOpen(true)}
-              className="mt-6 bg-indigo-600 hover:bg-indigo-700"
+              className="mt-6 bg-red-600 hover:bg-red-700"
               data-testid="start-comparison-cta"
             >
               Iniciar Comparação

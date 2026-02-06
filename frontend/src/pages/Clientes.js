@@ -224,12 +224,12 @@ const Clientes = () => {
     <div data-testid="clientes-page" className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Empresas</h1>
+          <h1 className="text-2xl font-bold text-white">Empresas</h1>
           <p className="text-slate-500 mt-1">Gerencie as empresas cadastradas no sistema</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button data-testid="add-cliente-btn" className="bg-indigo-600 hover:bg-indigo-700">
+            <Button data-testid="add-cliente-btn" className="bg-red-600 hover:bg-red-700">
               <Plus size={18} className="mr-2" />
               Nova Empresa
             </Button>
@@ -237,16 +237,16 @@ const Clientes = () => {
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl flex items-center gap-2">
-                <Building2 size={24} className="text-indigo-600" />
+                <Building2 size={24} className="text-red-500" />
                 {editingCliente ? 'Editar Empresa' : 'Cadastrar Nova Empresa'}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-6 mt-4">
               
               {/* Busca Receita Federal */}
-              <Card className="border-indigo-200 bg-gradient-to-r from-indigo-50 to-blue-50">
+              <Card className="border-red-500/30 bg-gradient-to-r from-indigo-50 to-blue-50">
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-2 text-indigo-700 font-semibold mb-3">
+                  <div className="flex items-center gap-2 text-red-600 font-semibold mb-3">
                     <RefreshCw size={18} />
                     Busca Automática na Receita Federal
                   </div>
@@ -269,7 +269,7 @@ const Clientes = () => {
                         data-testid="buscar-receita-btn"
                         onClick={buscarReceita}
                         disabled={buscandoReceita || formData.cnpj.replace(/\D/g, '').length !== 14}
-                        className="bg-indigo-600 hover:bg-indigo-700 h-10"
+                        className="bg-red-600 hover:bg-red-700 h-10"
                       >
                         {buscandoReceita ? (
                           <Loader2 className="animate-spin" size={18} />
@@ -282,14 +282,14 @@ const Clientes = () => {
                       </Button>
                     </div>
                   </div>
-                  <p className="text-xs text-indigo-600 mt-2">
+                  <p className="text-xs text-red-500 mt-2">
                     Digite o CNPJ completo e clique no botão para preencher automaticamente
                   </p>
                 </CardContent>
               </Card>
 
               {/* Dados Básicos */}
-              <Card className="border-slate-200">
+              <Card className="border-slate-700">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Building2 size={18} className="text-slate-500" />
@@ -344,7 +344,7 @@ const Clientes = () => {
               </Card>
 
               {/* CNAE e Atividade */}
-              <Card className="border-slate-200">
+              <Card className="border-slate-700">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Briefcase size={18} className="text-slate-500" />
@@ -448,7 +448,7 @@ const Clientes = () => {
               </Card>
 
               {/* Endereço e Contato */}
-              <Card className="border-slate-200">
+              <Card className="border-slate-700">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <MapPin size={18} className="text-slate-500" />
@@ -520,7 +520,7 @@ const Clientes = () => {
               </Card>
 
               {/* Responsáveis e Observações */}
-              <Card className="border-slate-200">
+              <Card className="border-slate-700">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <FileText size={18} className="text-slate-500" />
@@ -563,11 +563,11 @@ const Clientes = () => {
                 </CardContent>
               </Card>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" data-testid="save-cliente-btn" className="bg-indigo-600 hover:bg-indigo-700">
+                <Button type="submit" data-testid="save-cliente-btn" className="bg-red-600 hover:bg-red-700">
                   {editingCliente ? 'Atualizar Empresa' : 'Cadastrar Empresa'}
                 </Button>
               </div>
@@ -600,15 +600,15 @@ const Clientes = () => {
       {filteredClientes.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredClientes.map((cliente) => (
-            <Card key={cliente.id} data-testid={`cliente-card-${cliente.id}`} className="border-slate-200 hover:shadow-md transition-shadow overflow-hidden">
+            <Card key={cliente.id} data-testid={`cliente-card-${cliente.id}`} className="border-slate-700 hover:shadow-md transition-shadow overflow-hidden">
               <CardContent className="p-0">
                 {/* Card Header */}
-                <div className="flex items-center justify-between p-4 bg-slate-50 border-b border-slate-100">
+                <div className="flex items-center justify-between p-4 bg-slate-800/50 border-b border-slate-100">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                      <Building2 className="text-indigo-600" size={20} />
+                    <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+                      <Building2 className="text-red-500" size={20} />
                     </div>
-                    <span className="px-2 py-1 bg-indigo-600 text-white text-xs font-bold rounded">
+                    <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold rounded">
                       {cliente.codigo_interno || generateCode(cliente.id)}
                     </span>
                   </div>
@@ -636,7 +636,7 @@ const Clientes = () => {
 
                 {/* Card Body */}
                 <div className="p-4">
-                  <h3 className="font-bold text-slate-900 text-lg leading-tight mb-1">
+                  <h3 className="font-bold text-white text-lg leading-tight mb-1">
                     {cliente.nome_fantasia || cliente.razao_social}
                   </h3>
                   {cliente.nome_fantasia && (
@@ -681,7 +681,7 @@ const Clientes = () => {
           ))}
         </div>
       ) : (
-        <Card className="border-slate-200">
+        <Card className="border-slate-700">
           <CardContent className="py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
               <Building2 className="text-slate-400" size={32} />

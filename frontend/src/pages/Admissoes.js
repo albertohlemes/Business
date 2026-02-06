@@ -156,14 +156,14 @@ const Admissoes = () => {
     <div data-testid="admissoes-page" className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Admissões</h1>
+          <h1 className="text-2xl font-bold text-white">Admissões</h1>
           <p className="text-slate-500 mt-1">Extraia dados de documentos automaticamente com IA</p>
         </div>
         <Dialog open={uploadDialogOpen} onOpenChange={(open) => { setUploadDialogOpen(open); if (!open) resetForm(); }}>
           <Button
             data-testid="nova-admissao-btn"
             onClick={() => setUploadDialogOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700"
+            className="bg-red-600 hover:bg-red-700"
             disabled={clientes.length === 0}
           >
             <UserPlus size={18} className="mr-2" />
@@ -198,7 +198,7 @@ const Admissoes = () => {
                 <input {...getInputProps()} disabled={!selectedCliente || uploading} />
                 {uploading ? (
                   <div className="flex flex-col items-center">
-                    <Loader2 className="animate-spin text-indigo-600 mb-2" size={32} />
+                    <Loader2 className="animate-spin text-red-500 mb-2" size={32} />
                     <p className="text-slate-600">Extraindo dados com IA...</p>
                     <p className="text-xs text-slate-400 mt-1">Isso pode levar alguns segundos</p>
                   </div>
@@ -374,11 +374,11 @@ const Admissoes = () => {
       {admissoes.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {admissoes.map((admissao) => (
-            <Card key={admissao.id} data-testid={`admissao-card-${admissao.id}`} className="border-slate-200">
+            <Card key={admissao.id} data-testid={`admissao-card-${admissao.id}`} className="border-slate-700">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-base font-semibold text-slate-900">
+                    <CardTitle className="text-base font-semibold text-white">
                       {admissao.dados_extraidos?.nome || 'Novo Funcionário'}
                     </CardTitle>
                     <p className="text-sm text-slate-500">{getClienteName(admissao.cliente_id)}</p>
@@ -401,7 +401,7 @@ const Admissoes = () => {
                 {admissao.status === 'pendente' && (
                   <Button
                     onClick={() => handleReview(admissao)}
-                    className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700"
+                    className="w-full mt-4 bg-red-600 hover:bg-red-700"
                     data-testid={`review-${admissao.id}`}
                   >
                     <Edit3 size={16} className="mr-1" />
@@ -413,7 +413,7 @@ const Admissoes = () => {
           ))}
         </div>
       ) : (
-        <Card className="border-slate-200">
+        <Card className="border-slate-700">
           <CardContent className="py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
               <UserPlus className="text-slate-400" size={32} />

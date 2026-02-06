@@ -208,7 +208,7 @@ const Dissidio = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-indigo-600" size={32} />
+        <Loader2 className="animate-spin text-red-500" size={32} />
       </div>
     );
   }
@@ -218,7 +218,7 @@ const Dissidio = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Cálculo de Dissídio</h1>
+          <h1 className="text-2xl font-bold text-white">Cálculo de Dissídio</h1>
           <p className="text-slate-500 text-sm mt-1">Análise automática de convenção e cálculo de retroativo</p>
         </div>
         {step > 1 && (
@@ -229,7 +229,7 @@ const Dissidio = () => {
       </div>
 
       {/* Steps Indicator */}
-      <div className="flex items-center gap-2 p-4 bg-slate-50 rounded-lg">
+      <div className="flex items-center gap-2 p-4 bg-slate-800/50 rounded-lg">
         {[
           { num: 1, label: 'Convenção' },
           { num: 2, label: 'Revisar Dados' },
@@ -238,11 +238,11 @@ const Dissidio = () => {
         ].map((s, i) => (
           <div key={s.num} className="flex items-center">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              step >= s.num ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-500'
+              step >= s.num ? 'bg-red-600 text-white' : 'bg-slate-200 text-slate-500'
             }`}>
               {step > s.num ? <CheckCircle2 size={16} /> : s.num}
             </div>
-            <span className={`ml-2 text-sm ${step >= s.num ? 'text-indigo-600 font-medium' : 'text-slate-500'}`}>
+            <span className={`ml-2 text-sm ${step >= s.num ? 'text-red-500 font-medium' : 'text-slate-500'}`}>
               {s.label}
             </span>
             {i < 3 && <ChevronRight className="mx-3 text-slate-300" size={16} />}
@@ -255,7 +255,7 @@ const Dissidio = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="text-indigo-600" />
+              <FileText className="text-red-500" />
               Upload da Convenção Coletiva
             </CardTitle>
           </CardHeader>
@@ -279,14 +279,14 @@ const Dissidio = () => {
             <div
               {...getConvencaoProps()}
               className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                isDragConvencao ? 'border-indigo-500 bg-indigo-50' : 'border-slate-300 hover:border-indigo-400'
+                isDragConvencao ? 'border-red-500 bg-red-500/10' : 'border-slate-600 hover:border-red-400'
               }`}
             >
               <input {...getConvencaoInput()} />
               {uploading ? (
                 <div className="flex flex-col items-center">
-                  <Loader2 className="animate-spin text-indigo-600 mb-2" size={40} />
-                  <p className="text-indigo-600 font-medium">Analisando convenção com IA...</p>
+                  <Loader2 className="animate-spin text-red-500 mb-2" size={40} />
+                  <p className="text-red-500 font-medium">Analisando convenção com IA...</p>
                   <p className="text-sm text-slate-500">Isso pode levar alguns segundos</p>
                 </div>
               ) : (
@@ -315,7 +315,7 @@ const Dissidio = () => {
             {/* Dados principais EDITÁVEIS */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label className="text-indigo-600 font-medium">Percentual de Reajuste (%)</Label>
+                <Label className="text-red-500 font-medium">Percentual de Reajuste (%)</Label>
                 <Input 
                   type="number" 
                   step="0.01"
@@ -575,7 +575,7 @@ const Dissidio = () => {
             </div>
 
             {convencaoData.resumo && (
-              <div className="bg-slate-50 p-4 rounded-lg">
+              <div className="bg-slate-800/50 p-4 rounded-lg">
                 <p className="text-sm font-medium text-slate-700 mb-1">Resumo</p>
                 <p className="text-slate-600 text-sm">{convencaoData.resumo}</p>
               </div>
@@ -583,7 +583,7 @@ const Dissidio = () => {
 
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setStep(1)}>Voltar</Button>
-              <Button onClick={() => setStep(3)} className="bg-indigo-600 hover:bg-indigo-700">
+              <Button onClick={() => setStep(3)} className="bg-red-600 hover:bg-red-700">
                 Continuar para Upload dos Holerites
                 <ChevronRight size={16} className="ml-1" />
               </Button>
@@ -597,7 +597,7 @@ const Dissidio = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileUp className="text-indigo-600" />
+              <FileUp className="text-red-500" />
               Upload dos Holerites Retroativos
             </CardTitle>
             <p className="text-sm text-slate-500">
@@ -608,7 +608,7 @@ const Dissidio = () => {
             <div
               {...getHoleritesProps()}
               className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                isDragHolerites ? 'border-indigo-500 bg-indigo-50' : 'border-slate-300 hover:border-indigo-400'
+                isDragHolerites ? 'border-red-500 bg-red-500/10' : 'border-slate-600 hover:border-red-400'
               }`}
             >
               <input {...getHoleritesInput()} />
@@ -621,7 +621,7 @@ const Dissidio = () => {
               <div className="space-y-2">
                 <p className="text-sm font-medium text-slate-700">{holeriteFiles.length} arquivo(s) selecionado(s):</p>
                 {holeriteFiles.map((file, i) => (
-                  <div key={i} className="flex items-center justify-between bg-slate-50 p-2 rounded">
+                  <div key={i} className="flex items-center justify-between bg-slate-800/50 p-2 rounded">
                     <div className="flex items-center gap-2">
                       <FileText size={16} className="text-slate-400" />
                       <span className="text-sm">{file.name}</span>
@@ -639,7 +639,7 @@ const Dissidio = () => {
               <Button 
                 onClick={calcularDissidio} 
                 disabled={holeriteFiles.length === 0 || uploading}
-                className="bg-indigo-600 hover:bg-indigo-700"
+                className="bg-red-600 hover:bg-red-700"
               >
                 {uploading ? (
                   <>
@@ -663,8 +663,8 @@ const Dissidio = () => {
         <div className="space-y-6">
           {/* Header com resultado principal */}
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 p-8 text-white shadow-xl">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-slate-900/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-slate-900/5 rounded-full translate-y-1/2 -translate-x-1/2" />
             
             <div className="relative flex items-center justify-between">
               <div>
@@ -734,12 +734,12 @@ const Dissidio = () => {
           )}
 
           {/* Resumo Geral por Colaborador */}
-          <Card className="shadow-lg border-0 bg-white">
-            <CardHeader className="border-b bg-slate-50/50">
+          <Card className="shadow-lg border-0 bg-slate-900">
+            <CardHeader className="border-b bg-slate-800/50/50">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                    <Users className="text-indigo-600" size={20} />
+                  <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+                    <Users className="text-red-500" size={20} />
                   </div>
                   <div>
                     <span>Resumo por Colaborador</span>
@@ -756,7 +756,7 @@ const Dissidio = () => {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
+                    <tr className="bg-slate-800/50 text-xs uppercase tracking-wider text-slate-500">
                       <th className="text-left p-4 font-semibold">Colaborador</th>
                       <th className="text-left p-4 font-semibold">CPF</th>
                       <th className="text-right p-4 font-semibold">Total Verbas (Era)</th>
@@ -766,7 +766,7 @@ const Dissidio = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {calculoResult.colaboradores_consolidado?.map((colab, i) => (
-                      <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={i} className="hover:bg-slate-800/50/50 transition-colors">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
@@ -779,7 +779,7 @@ const Dissidio = () => {
                         <td className="p-4 text-right font-mono text-sm text-slate-600">
                           R$ {(colab.total_valor_anterior || 0)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </td>
-                        <td className="p-4 text-right font-mono text-sm text-indigo-600 font-medium">
+                        <td className="p-4 text-right font-mono text-sm text-red-500 font-medium">
                           R$ {(colab.total_valor_novo || 0)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </td>
                         <td className="p-4 text-right">
@@ -798,7 +798,7 @@ const Dissidio = () => {
                       <td className="p-4 text-right font-mono text-slate-600">
                         R$ {calculoResult.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_anterior || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="p-4 text-right font-mono text-indigo-700">
+                      <td className="p-4 text-right font-mono text-red-600">
                         R$ {calculoResult.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_novo || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="p-4 text-right">
@@ -814,8 +814,8 @@ const Dissidio = () => {
           </Card>
 
           {/* Memória de Cálculo - Por Mês */}
-          <Card className="shadow-lg border-0 bg-white">
-            <CardHeader className="border-b bg-slate-50/50">
+          <Card className="shadow-lg border-0 bg-slate-900">
+            <CardHeader className="border-b bg-slate-800/50/50">
               <CardTitle className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
                   <Calendar className="text-blue-600" size={20} />
@@ -828,7 +828,7 @@ const Dissidio = () => {
             </CardHeader>
             <CardContent className="p-4 space-y-3">
               {calculoResult.resultados_por_mes?.map((mes, mesIdx) => (
-                <div key={mesIdx} className="rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+                <div key={mesIdx} className="rounded-xl border border-slate-700 overflow-hidden hover:shadow-md transition-shadow">
                   <div 
                     className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 flex items-center justify-between cursor-pointer"
                     onClick={() => toggleExpand(`mes-${mesIdx}`)}
@@ -852,25 +852,25 @@ const Dissidio = () => {
                           R$ {mes.total_retroativo_mes?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
-                      <div className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-slate-900 shadow flex items-center justify-center">
                         {isExpanded(`mes-${mesIdx}`) ? <ChevronUp size={18} className="text-slate-600" /> : <ChevronDown size={18} className="text-slate-600" />}
                       </div>
                     </div>
                   </div>
                   
                   {isExpanded(`mes-${mesIdx}`) && (
-                    <div className="bg-white border-t">
+                    <div className="bg-slate-900 border-t">
                       {/* Subtotais do mês */}
-                      <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50/50 border-b">
-                        <div className="text-center p-3 rounded-lg bg-white border">
+                      <div className="grid grid-cols-3 gap-4 p-4 bg-slate-800/50/50 border-b">
+                        <div className="text-center p-3 rounded-lg bg-slate-900 border">
                           <p className="text-xs text-slate-500 mb-1">Soma Era</p>
                           <p className="font-mono font-semibold text-slate-700">
                             R$ {mes.colaboradores?.reduce((acc, c) => acc + (c.total_valor_anterior || c.valor_base_reajuste || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </p>
                         </div>
-                        <div className="text-center p-3 rounded-lg bg-white border">
+                        <div className="text-center p-3 rounded-lg bg-slate-900 border">
                           <p className="text-xs text-slate-500 mb-1">Soma Ficou</p>
-                          <p className="font-mono font-semibold text-indigo-600">
+                          <p className="font-mono font-semibold text-red-500">
                             R$ {mes.colaboradores?.reduce((acc, c) => acc + (c.total_valor_novo || (c.valor_base_reajuste || 0) * (1 + calculoResult.percentual_reajuste/100)), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </p>
                         </div>
@@ -899,7 +899,7 @@ const Dissidio = () => {
                             {mes.colaboradores?.map((colab, colabIdx) => (
                               <React.Fragment key={`colab-${colabIdx}`}>
                                 {colab.verbas?.map((verba, verbaIdx) => (
-                                  <tr key={`${colabIdx}-${verbaIdx}`} className="hover:bg-slate-50/50">
+                                  <tr key={`${colabIdx}-${verbaIdx}`} className="hover:bg-slate-800/50/50">
                                     {verbaIdx === 0 && (
                                       <td className="p-3 align-top" rowSpan={colab.verbas.length + 1}>
                                         <div className="flex items-center gap-2">
@@ -915,11 +915,11 @@ const Dissidio = () => {
                                       {(verba.valor_anterior || verba.valor_original)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                     </td>
                                     <td className="p-3 text-center">
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 text-xs font-medium">
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-500/20 text-red-600 text-xs font-medium">
                                         +{calculoResult.percentual_reajuste}%
                                       </span>
                                     </td>
-                                    <td className="p-3 text-right font-mono text-indigo-600 font-medium">
+                                    <td className="p-3 text-right font-mono text-red-500 font-medium">
                                       {verba.valor_novo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '-'}
                                     </td>
                                     <td className="p-3 text-right font-mono text-emerald-600 font-semibold">
@@ -928,7 +928,7 @@ const Dissidio = () => {
                                   </tr>
                                 ))}
                                 {/* Subtotal por colaborador */}
-                                <tr className="bg-slate-50">
+                                <tr className="bg-slate-800/50">
                                   <td className="p-2 text-right text-xs text-slate-500 font-medium" colSpan={4}>
                                     Subtotal {colab.nome?.split(' ')[0]}:
                                   </td>
@@ -972,8 +972,8 @@ const Dissidio = () => {
           </Card>
 
           {/* Memória de Cálculo - Por Colaborador */}
-          <Card className="shadow-lg border-0 bg-white">
-            <CardHeader className="border-b bg-slate-50/50">
+          <Card className="shadow-lg border-0 bg-slate-900">
+            <CardHeader className="border-b bg-slate-800/50/50">
               <CardTitle className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                   <Users className="text-purple-600" size={20} />
@@ -986,7 +986,7 @@ const Dissidio = () => {
             </CardHeader>
             <CardContent className="p-4 space-y-3">
               {calculoResult.colaboradores_consolidado?.map((colab, colabIdx) => (
-                <div key={colabIdx} className="rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+                <div key={colabIdx} className="rounded-xl border border-slate-700 overflow-hidden hover:shadow-md transition-shadow">
                   <div 
                     className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 flex items-center justify-between cursor-pointer"
                     onClick={() => toggleExpand(`colab-${colabIdx}`)}
@@ -1007,17 +1007,17 @@ const Dissidio = () => {
                           R$ {colab.total_retroativo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
-                      <div className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-slate-900 shadow flex items-center justify-center">
                         {isExpanded(`colab-${colabIdx}`) ? <ChevronUp size={18} className="text-slate-600" /> : <ChevronDown size={18} className="text-slate-600" />}
                       </div>
                     </div>
                   </div>
                   
                   {isExpanded(`colab-${colabIdx}`) && (
-                    <div className="bg-white border-t p-4 space-y-4">
+                    <div className="bg-slate-900 border-t p-4 space-y-4">
                       {colab.meses?.map((mes, mesIdx) => (
-                        <div key={mesIdx} className="rounded-lg border border-slate-200 overflow-hidden">
-                          <div className="bg-slate-50 px-4 py-2 flex items-center justify-between">
+                        <div key={mesIdx} className="rounded-lg border border-slate-700 overflow-hidden">
+                          <div className="bg-slate-800/50 px-4 py-2 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <Calendar size={14} className="text-slate-400" />
                               <span className="font-medium text-slate-700">{mes.competencia}</span>
@@ -1040,15 +1040,15 @@ const Dissidio = () => {
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                   {mes.verbas.map((verba, verbaIdx) => (
-                                    <tr key={verbaIdx} className="hover:bg-slate-50/50">
+                                    <tr key={verbaIdx} className="hover:bg-slate-800/50/50">
                                       <td className="p-2 text-slate-700 capitalize">{verba.verba?.replace(/_/g, ' ')}</td>
                                       <td className="p-2 text-right font-mono text-slate-500">
                                         {(verba.valor_anterior || verba.valor_original)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                       </td>
                                       <td className="p-2 text-center">
-                                        <span className="text-xs text-indigo-600 font-medium">+{calculoResult.percentual_reajuste}%</span>
+                                        <span className="text-xs text-red-500 font-medium">+{calculoResult.percentual_reajuste}%</span>
                                       </td>
-                                      <td className="p-2 text-right font-mono text-indigo-600">
+                                      <td className="p-2 text-right font-mono text-red-500">
                                         {verba.valor_novo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '-'}
                                       </td>
                                       <td className="p-2 text-right font-mono text-emerald-600 font-semibold">
@@ -1103,8 +1103,8 @@ const Dissidio = () => {
 
       {/* Cálculos Anteriores */}
       {calculosAnteriores.length > 0 && step === 1 && (
-        <Card className="shadow-lg border-0 bg-white">
-          <CardHeader className="border-b bg-slate-50/50">
+        <Card className="shadow-lg border-0 bg-slate-900">
+          <CardHeader className="border-b bg-slate-800/50/50">
             <CardTitle className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
                 <Clock className="text-slate-600" size={20} />
@@ -1118,7 +1118,7 @@ const Dissidio = () => {
           <CardContent className="p-4">
             <div className="space-y-3">
               {calculosAnteriores.map((calc) => (
-                <div key={calc.id} className="rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+                <div key={calc.id} className="rounded-xl border border-slate-700 overflow-hidden hover:shadow-md transition-shadow">
                   <div 
                     className="bg-gradient-to-r from-slate-50 to-slate-100 p-4 flex items-center justify-between cursor-pointer"
                     onClick={() => toggleExpand(calc.id)}
@@ -1152,14 +1152,14 @@ const Dissidio = () => {
                         <Download size={14} />
                         Excel
                       </Button>
-                      <div className="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-slate-900 shadow flex items-center justify-center">
                         {isExpanded(calc.id) ? <ChevronUp size={18} className="text-slate-600" /> : <ChevronDown size={18} className="text-slate-600" />}
                       </div>
                     </div>
                   </div>
                   
                   {isExpanded(calc.id) && (
-                    <div className="border-t bg-white">
+                    <div className="border-t bg-slate-900">
                       {/* Nota sobre impostos */}
                       {calc.impostos_excluidos && (
                         <div className="mx-4 mt-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-3 flex items-center gap-3">
@@ -1174,15 +1174,15 @@ const Dissidio = () => {
                       
                       {/* Totalizadores Gerais */}
                       <div className="grid grid-cols-3 gap-4 p-4">
-                        <div className="text-center p-4 rounded-xl bg-slate-50 border">
+                        <div className="text-center p-4 rounded-xl bg-slate-800/50 border">
                           <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">Total Era</p>
                           <p className="font-mono font-semibold text-slate-700">
                             R$ {calc.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_anterior || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </p>
                         </div>
-                        <div className="text-center p-4 rounded-xl bg-indigo-50 border border-indigo-200">
-                          <p className="text-xs text-indigo-600 uppercase tracking-wide mb-1">Total Ficou</p>
-                          <p className="font-mono font-semibold text-indigo-700">
+                        <div className="text-center p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+                          <p className="text-xs text-red-500 uppercase tracking-wide mb-1">Total Ficou</p>
+                          <p className="font-mono font-semibold text-red-600">
                             R$ {calc.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_novo || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </p>
                         </div>
@@ -1201,7 +1201,7 @@ const Dissidio = () => {
                           Memória de Cálculo por Mês
                         </p>
                         {calc.resultados_por_mes?.map((mes, mesIdx) => (
-                          <div key={mesIdx} className="rounded-lg border border-slate-200 overflow-hidden">
+                          <div key={mesIdx} className="rounded-lg border border-slate-700 overflow-hidden">
                             <div 
                               className="bg-gradient-to-r from-blue-50 to-indigo-50 p-3 flex items-center justify-between cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-colors"
                               onClick={(e) => { e.stopPropagation(); toggleExpand(`${calc.id}-mes-${mesIdx}`); }}
@@ -1224,9 +1224,9 @@ const Dissidio = () => {
                             </div>
                             
                             {isExpanded(`${calc.id}-mes-${mesIdx}`) && (
-                              <div className="border-t bg-white p-3 max-h-96 overflow-y-auto">
+                              <div className="border-t bg-slate-900 p-3 max-h-96 overflow-y-auto">
                                 <table className="w-full text-sm">
-                                  <thead className="sticky top-0 bg-white">
+                                  <thead className="sticky top-0 bg-slate-900">
                                     <tr className="text-xs uppercase tracking-wider text-slate-500 border-b">
                                       <th className="text-left p-2 font-semibold">Colaborador</th>
                                       <th className="text-left p-2 font-semibold">Verba</th>
@@ -1240,7 +1240,7 @@ const Dissidio = () => {
                                     {mes.colaboradores?.map((colab, colabIdx) => (
                                       <React.Fragment key={`calc-colab-${colabIdx}`}>
                                         {colab.verbas?.map((verba, verbaIdx) => (
-                                          <tr key={`${colabIdx}-${verbaIdx}`} className="hover:bg-slate-50/50">
+                                          <tr key={`${colabIdx}-${verbaIdx}`} className="hover:bg-slate-800/50/50">
                                             {verbaIdx === 0 && (
                                               <td className="p-2 align-top" rowSpan={colab.verbas.length}>
                                                 <div className="flex items-center gap-2">
@@ -1256,11 +1256,11 @@ const Dissidio = () => {
                                               {(verba.valor_anterior || verba.valor_original)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                             </td>
                                             <td className="p-2 text-center">
-                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 text-xs font-medium">
+                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-500/20 text-red-600 text-xs font-medium">
                                                 +{calc.percentual_reajuste}%
                                               </span>
                                             </td>
-                                            <td className="p-2 text-right font-mono text-indigo-600">
+                                            <td className="p-2 text-right font-mono text-red-500">
                                               {verba.valor_novo?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '-'}
                                             </td>
                                             <td className="p-2 text-right font-mono text-emerald-600 font-semibold">
@@ -1269,7 +1269,7 @@ const Dissidio = () => {
                                           </tr>
                                         ))}
                                         {/* Subtotal por colaborador */}
-                                        <tr className="bg-slate-50">
+                                        <tr className="bg-slate-800/50">
                                           <td className="p-2 text-right text-xs text-slate-500 font-medium" colSpan={5}>
                                             Subtotal {colab.nome?.split(' ')[0]}:
                                           </td>
@@ -1319,7 +1319,7 @@ const Dissidio = () => {
                         <div className="rounded-lg border overflow-hidden">
                           <table className="w-full text-sm">
                             <thead>
-                              <tr className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
+                              <tr className="bg-slate-800/50 text-xs uppercase tracking-wider text-slate-500">
                                 <th className="text-left p-3 font-semibold">Colaborador</th>
                                 <th className="text-right p-3 font-semibold">Total Era</th>
                                 <th className="text-right p-3 font-semibold">Total Ficou</th>
@@ -1328,7 +1328,7 @@ const Dissidio = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                               {calc.colaboradores_consolidado?.map((c, i) => (
-                                <tr key={i} className="hover:bg-slate-50/50">
+                                <tr key={i} className="hover:bg-slate-800/50/50">
                                   <td className="p-3">
                                     <div className="flex items-center gap-2">
                                       <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white text-xs font-bold">
@@ -1340,7 +1340,7 @@ const Dissidio = () => {
                                   <td className="p-3 text-right font-mono text-slate-500">
                                     R$ {(c.total_valor_anterior || 0)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                   </td>
-                                  <td className="p-3 text-right font-mono text-indigo-600">
+                                  <td className="p-3 text-right font-mono text-red-500">
                                     R$ {(c.total_valor_novo || 0)?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                   </td>
                                   <td className="p-3 text-right">
@@ -1357,7 +1357,7 @@ const Dissidio = () => {
                                 <td className="p-3 text-right font-mono text-slate-600">
                                   R$ {calc.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_anterior || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </td>
-                                <td className="p-3 text-right font-mono text-indigo-700">
+                                <td className="p-3 text-right font-mono text-red-600">
                                   R$ {calc.colaboradores_consolidado?.reduce((acc, c) => acc + (c.total_valor_novo || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </td>
                                 <td className="p-3 text-right">

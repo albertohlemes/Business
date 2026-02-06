@@ -85,10 +85,10 @@ const Relatorios = () => {
   const getColorClasses = (color) => {
     const colors = {
       indigo: {
-        bg: 'bg-indigo-50',
-        border: 'border-indigo-200',
-        icon: 'text-indigo-600',
-        button: 'bg-indigo-600 hover:bg-indigo-700'
+        bg: 'bg-red-500/10',
+        border: 'border-red-500/30',
+        icon: 'text-red-500',
+        button: 'bg-red-600 hover:bg-red-700'
       },
       emerald: {
         bg: 'bg-emerald-50',
@@ -110,13 +110,13 @@ const Relatorios = () => {
     <div data-testid="relatorios-page" className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Relatórios</h1>
+          <h1 className="text-2xl font-bold text-white">Relatórios</h1>
           <p className="text-slate-500 mt-1">Exporte dados em Excel para análise e conferência</p>
         </div>
       </div>
 
       {/* Filtro de Empresa */}
-      <Card className="border-slate-200">
+      <Card className="border-slate-700">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex-1 max-w-xs">
@@ -160,7 +160,7 @@ const Relatorios = () => {
                     <Icon className={colors.icon} size={24} />
                   </div>
                   <div>
-                    <CardTitle className="text-lg font-semibold text-slate-900">
+                    <CardTitle className="text-lg font-semibold text-white">
                       {relatorio.titulo}
                     </CardTitle>
                     <p className="text-sm text-slate-500 mt-1">{relatorio.descricao}</p>
@@ -172,7 +172,7 @@ const Relatorios = () => {
                   <p className="text-xs text-slate-400 mb-2">Campos incluídos:</p>
                   <div className="flex flex-wrap gap-1">
                     {relatorio.campos.map((campo, i) => (
-                      <span key={i} className="inline-block px-2 py-0.5 bg-white rounded text-xs text-slate-600 border border-slate-200">
+                      <span key={i} className="inline-block px-2 py-0.5 bg-slate-900 rounded text-xs text-slate-600 border border-slate-700">
                         {campo}
                       </span>
                     ))}
@@ -203,14 +203,14 @@ const Relatorios = () => {
       </div>
 
       {/* Info Card */}
-      <Card className="border-slate-200 bg-slate-50">
+      <Card className="border-slate-700 bg-slate-800/50">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-              <FileSpreadsheet className="text-indigo-600" size={24} />
+            <div className="w-12 h-12 rounded-lg bg-red-500/20 flex items-center justify-center flex-shrink-0">
+              <FileSpreadsheet className="text-red-500" size={24} />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-900 mb-1">Sobre os Relatórios</h3>
+              <h3 className="font-semibold text-white mb-1">Sobre os Relatórios</h3>
               <p className="text-sm text-slate-600">
                 Os relatórios são gerados em formato <strong>Excel (.xlsx)</strong> compatível com Microsoft Excel, 
                 Google Sheets e LibreOffice Calc. Os dados são formatados automaticamente com cabeçalhos, 

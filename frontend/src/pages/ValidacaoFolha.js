@@ -396,7 +396,7 @@ const ValidacaoFolha = () => {
   const getTipoValidacaoLabel = (tipo) => {
     switch (tipo) {
       case 'completa':
-        return <Badge className="bg-indigo-600">Completa</Badge>;
+        return <Badge className="bg-red-600">Completa</Badge>;
       case 'comparacao_mensal':
         return <Badge className="bg-blue-600">Comparação Mensal</Badge>;
       case 'comparacao_apoio':
@@ -446,13 +446,13 @@ const ValidacaoFolha = () => {
     <div data-testid="validacao-page" className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Validação de Folha</h1>
+          <h1 className="text-2xl font-bold text-white">Validação de Folha</h1>
           <p className="text-slate-500 mt-1">Análise cirúrgica de holerites com comparação inteligente</p>
         </div>
         <Button
           data-testid="nova-validacao-btn"
           onClick={() => setDialogOpen(true)}
-          className="bg-indigo-600 hover:bg-indigo-700"
+          className="bg-red-600 hover:bg-red-700"
           disabled={clientes.length === 0}
         >
           <ClipboardCheck size={18} className="mr-2" />
@@ -471,7 +471,7 @@ const ValidacaoFolha = () => {
               <SelectItem value="all">Todas as empresas</SelectItem>
               {sortClientesBySelection(clientes, empresaSelecionada?.id).map(c => (
                 <SelectItem key={c.id} value={c.id}>
-                  <span className="font-mono text-xs text-indigo-600 mr-2">{generateEmpresaCode(c.id, c.codigo_interno)}</span>
+                  <span className="font-mono text-xs text-red-500 mr-2">{generateEmpresaCode(c.id, c.codigo_interno)}</span>
                   {c.nome_fantasia || c.razao_social}
                 </SelectItem>
               ))}
@@ -505,15 +505,15 @@ const ValidacaoFolha = () => {
               );
               
               return (
-              <Card key={competencia} className="border-slate-200 overflow-hidden">
-                <CardHeader className="py-3 bg-slate-50 border-b">
+              <Card key={competencia} className="border-slate-700 overflow-hidden">
+                <CardHeader className="py-3 bg-slate-800/50 border-b">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Checkbox 
                         checked={sortedVals.every(v => selectedIds.includes(v.id))}
                         onCheckedChange={() => selectAllInCompetencia(competencia, sortedVals)}
                       />
-                      <Calendar className="text-indigo-600" size={20} />
+                      <Calendar className="text-red-500" size={20} />
                       <CardTitle className="text-base font-semibold">Competência {competencia}</CardTitle>
                       <Badge variant="outline" className="text-xs">{sortedVals.length} validação(ões)</Badge>
                     </div>
@@ -534,7 +534,7 @@ const ValidacaoFolha = () => {
                 <CardContent className="p-0">
                   <div className="divide-y divide-slate-100">
                     {sortedVals.map((v, idx) => (
-                      <div key={v.id} className="hover:bg-slate-50 transition-colors group">
+                      <div key={v.id} className="hover:bg-slate-800/50 transition-colors group">
                         <div className="p-4 flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <Checkbox 
@@ -546,8 +546,8 @@ const ValidacaoFolha = () => {
                               className="flex items-center gap-3 flex-1 cursor-pointer"
                               onClick={() => toggleRow(v.id)}
                             >
-                              <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
-                                <span className="text-xs font-bold text-indigo-600">#{idx + 1}</span>
+                              <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
+                                <span className="text-xs font-bold text-red-500">#{idx + 1}</span>
                               </div>
                               <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
                                 {(v.total_divergencias || v.total_erros) > 0 ? (
@@ -557,7 +557,7 @@ const ValidacaoFolha = () => {
                                 )}
                               </div>
                               <div>
-                                <p className="font-medium text-slate-900 text-sm">{v.cliente_nome || getClienteName(v.cliente_id)}</p>
+                                <p className="font-medium text-white text-sm">{v.cliente_nome || getClienteName(v.cliente_id)}</p>
                                 <p className="text-xs text-slate-500">
                                   {new Date(v.created_at).toLocaleDateString('pt-BR')} às {new Date(v.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                 </p>
@@ -595,7 +595,7 @@ const ValidacaoFolha = () => {
                         </div>
                         
                         {expandedRows[v.id] && (
-                          <div className="px-4 pb-4 bg-slate-50 border-t border-slate-100">
+                          <div className="px-4 pb-4 bg-slate-800/50 border-t border-slate-100">
                             <div className="pt-3 space-y-3">
                               {/* Arquivos */}
                               {v.arquivos && (
@@ -622,13 +622,13 @@ const ValidacaoFolha = () => {
                               
                               {/* Tabela de Colaboradores (se existir) */}
                               {v.colaboradores?.length > 0 && (
-                                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                                  <div className="bg-indigo-50 px-3 py-2 border-b border-slate-200">
-                                    <p className="text-sm font-medium text-indigo-700">Validação por Colaborador</p>
+                                <div className="bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
+                                  <div className="bg-red-500/10 px-3 py-2 border-b border-slate-700">
+                                    <p className="text-sm font-medium text-red-600">Validação por Colaborador</p>
                                   </div>
                                   <div className="overflow-x-auto">
                                     <table className="w-full text-xs">
-                                      <thead className="bg-slate-50">
+                                      <thead className="bg-slate-800/50">
                                         <tr>
                                           <th className="text-left p-2 font-medium">Status</th>
                                           <th className="text-left p-2 font-medium">Colaborador</th>
@@ -676,7 +676,7 @@ const ValidacaoFolha = () => {
                                       </tbody>
                                     </table>
                                     {v.colaboradores.length > 5 && (
-                                      <div className="px-3 py-2 bg-slate-50 text-xs text-slate-500 text-center">
+                                      <div className="px-3 py-2 bg-slate-800/50 text-xs text-slate-500 text-center">
                                         ... e mais {v.colaboradores.length - 5} colaborador(es)
                                       </div>
                                     )}
@@ -750,7 +750,7 @@ const ValidacaoFolha = () => {
             })}
         </div>
       ) : (
-        <Card className="border-slate-200">
+        <Card className="border-slate-700">
           <CardContent className="py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
               <ClipboardCheck className="text-slate-400" size={32} />
@@ -766,17 +766,17 @@ const ValidacaoFolha = () => {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <ClipboardCheck className="text-indigo-600" size={24} />
+              <ClipboardCheck className="text-red-500" size={24} />
               Nova Validação de Folha
             </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-6 mt-4">
             {/* Info Card */}
-            <Card className="border-indigo-200 bg-indigo-50">
+            <Card className="border-red-500/30 bg-red-500/10">
               <CardContent className="p-4 text-sm text-indigo-800">
                 <p className="font-medium mb-2">Análise Inteligente de Folha de Pagamento</p>
-                <ul className="list-disc list-inside space-y-1 text-indigo-600">
+                <ul className="list-disc list-inside space-y-1 text-red-500">
                   <li><strong>Holerite Atual</strong>: Documento principal a ser validado (obrigatório)</li>
                   <li><strong>Mês Anterior</strong>: Compare variações mês a mês (opcional)</li>
                   <li><strong>Arquivos de Apoio</strong>: Emails, planilhas, imagens para cruzar dados (opcional, múltiplos)</li>
@@ -795,7 +795,7 @@ const ValidacaoFolha = () => {
                   <SelectContent>
                     {sortClientesBySelection(clientes, empresaSelecionada?.id).map(c => (
                       <SelectItem key={c.id} value={c.id}>
-                        <span className="font-mono text-xs text-indigo-600 mr-2">{generateEmpresaCode(c.id, c.codigo_interno)}</span>
+                        <span className="font-mono text-xs text-red-500 mr-2">{generateEmpresaCode(c.id, c.codigo_interno)}</span>
                         {c.nome_fantasia || c.razao_social}
                       </SelectItem>
                     ))}
@@ -957,7 +957,7 @@ const ValidacaoFolha = () => {
               <Button
                 onClick={handleValidar}
                 disabled={uploading || !holeriteAtual || !selectedCliente || !mesReferencia}
-                className="bg-indigo-600 hover:bg-indigo-700"
+                className="bg-red-600 hover:bg-red-700"
                 data-testid="btn-validar"
               >
                 {uploading ? (
@@ -995,31 +995,31 @@ const ValidacaoFolha = () => {
             <div className="space-y-6 mt-4">
               {/* Summary Cards */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <Card className="border-slate-200">
+                <Card className="border-slate-700">
                   <CardContent className="p-3 text-center">
-                    <p className="text-2xl font-bold text-slate-900">{analysisResult.funcionarios_analisados || 0}</p>
+                    <p className="text-2xl font-bold text-white">{analysisResult.funcionarios_analisados || 0}</p>
                     <p className="text-xs text-slate-500">Colaboradores</p>
                   </CardContent>
                 </Card>
-                <Card className="border-slate-200 bg-emerald-50">
+                <Card className="border-slate-700 bg-emerald-50">
                   <CardContent className="p-3 text-center">
                     <p className="text-2xl font-bold text-emerald-600">{analysisResult.estatisticas?.ok || 0}</p>
                     <p className="text-xs text-slate-500">OK</p>
                   </CardContent>
                 </Card>
-                <Card className="border-slate-200 bg-amber-50">
+                <Card className="border-slate-700 bg-amber-50">
                   <CardContent className="p-3 text-center">
                     <p className="text-2xl font-bold text-amber-600">{analysisResult.estatisticas?.atencao || 0}</p>
                     <p className="text-xs text-slate-500">Atenção</p>
                   </CardContent>
                 </Card>
-                <Card className="border-slate-200 bg-rose-50">
+                <Card className="border-slate-700 bg-rose-50">
                   <CardContent className="p-3 text-center">
                     <p className="text-2xl font-bold text-rose-600">{analysisResult.estatisticas?.divergente || 0}</p>
                     <p className="text-xs text-slate-500">Divergente</p>
                   </CardContent>
                 </Card>
-                <Card className="border-slate-200">
+                <Card className="border-slate-700">
                   <CardContent className="p-3 text-center">
                     <p className="text-lg font-bold text-amber-600">{formatCurrency(analysisResult.impacto_financeiro_total || 0)}</p>
                     <p className="text-xs text-slate-500">Impacto</p>
@@ -1029,24 +1029,24 @@ const ValidacaoFolha = () => {
 
               {/* Resumo */}
               {analysisResult.resumo_executivo && (
-                <div className="bg-slate-50 rounded-lg p-4">
+                <div className="bg-slate-800/50 rounded-lg p-4">
                   <p className="text-sm text-slate-700">{analysisResult.resumo_executivo}</p>
                 </div>
               )}
 
               {/* Tabela de Colaboradores */}
               {analysisResult.colaboradores?.length > 0 && (
-                <Card className="border-slate-200">
-                  <CardHeader className="pb-2 bg-slate-50 border-b">
+                <Card className="border-slate-700">
+                  <CardHeader className="pb-2 bg-slate-800/50 border-b">
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <Building2 size={16} className="text-indigo-600" />
+                      <Building2 size={16} className="text-red-500" />
                       Validação por Colaborador
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead className="bg-slate-50 border-b">
+                        <thead className="bg-slate-800/50 border-b">
                           <tr>
                             <th className="text-left p-3 font-medium">Status</th>
                             <th className="text-left p-3 font-medium">Colaborador</th>
@@ -1057,7 +1057,7 @@ const ValidacaoFolha = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {analysisResult.colaboradores.map((colab, idx) => (
-                            <tr key={idx} className={`hover:bg-slate-50 ${colab.status === 'divergente' ? 'bg-rose-50/50' : colab.status === 'atencao' ? 'bg-amber-50/50' : ''}`}>
+                            <tr key={idx} className={`hover:bg-slate-800/50 ${colab.status === 'divergente' ? 'bg-rose-50/50' : colab.status === 'atencao' ? 'bg-amber-50/50' : ''}`}>
                               <td className="p-3">
                                 {colab.status === 'ok' && <CheckCircle2 className="text-emerald-500" size={20} />}
                                 {colab.status === 'atencao' && <AlertTriangle className="text-amber-500" size={20} />}
@@ -1065,10 +1065,10 @@ const ValidacaoFolha = () => {
                               </td>
                               <td className="p-3">
                                 <div>
-                                  <p className="font-medium text-slate-900">{colab.nome}</p>
+                                  <p className="font-medium text-white">{colab.nome}</p>
                                   <p className="text-xs text-slate-500">
                                     {colab.cpf && <span className="mr-2">{colab.cpf}</span>}
-                                    {colab.cargo && <span className="text-indigo-600">{colab.cargo}</span>}
+                                    {colab.cargo && <span className="text-red-500">{colab.cargo}</span>}
                                   </p>
                                 </div>
                               </td>
@@ -1191,7 +1191,7 @@ const ValidacaoFolha = () => {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Eye className="text-indigo-600" size={24} />
+              <Eye className="text-red-500" size={24} />
               Detalhes da Validação
             </DialogTitle>
           </DialogHeader>
@@ -1199,9 +1199,9 @@ const ValidacaoFolha = () => {
           {selectedValidacao && (
             <div className="space-y-6 mt-4">
               {/* Header Info */}
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+              <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
                 <div>
-                  <p className="font-medium text-slate-900">{selectedValidacao.cliente_nome || getClienteName(selectedValidacao.cliente_id)}</p>
+                  <p className="font-medium text-white">{selectedValidacao.cliente_nome || getClienteName(selectedValidacao.cliente_id)}</p>
                   <p className="text-sm text-slate-500">Competência: {selectedValidacao.mes_referencia}/{selectedValidacao.ano_referencia}</p>
                 </div>
                 {getTipoValidacaoLabel(selectedValidacao.tipo_validacao)}
@@ -1227,7 +1227,7 @@ const ValidacaoFolha = () => {
 
               {/* Resumo */}
               {selectedValidacao.resumo_executivo && (
-                <Card className="border-slate-200">
+                <Card className="border-slate-700">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Resumo</CardTitle>
                   </CardHeader>
@@ -1257,7 +1257,7 @@ const ValidacaoFolha = () => {
                         </thead>
                         <tbody className="divide-y">
                           {selectedValidacao.comparacoes.com_mes_anterior.map((c, i) => (
-                            <tr key={i} className="hover:bg-slate-50">
+                            <tr key={i} className="hover:bg-slate-800/50">
                               <td className="p-3">{c.funcionario}</td>
                               <td className="p-3">{c.campo}</td>
                               <td className="p-3 text-right font-mono">{formatCurrency(c.valor_anterior)}</td>
