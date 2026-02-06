@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEmpresa } from '../contexts/EmpresaContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import EmpresaSelectorModal from './EmpresaSelectorModal';
 import { 
   LayoutDashboard, 
@@ -31,6 +31,20 @@ import {
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_4f7d5596-5b20-477c-ba75-d49f33573db4/artifacts/junuf5pl_logo%20business%20Grande%20Horizontal%20Branco.png";
 
+// Função helper para gerar código da empresa
+const getEmpresaCodigo = (id) => {
+  if (!id) return '';
+  return `#${id.slice(0, 4).toUpperCase()}`;
+};
+
+// Função helper para nome completo com código
+const getEmpresaNomeCompleto = (empresa) => {
+  if (!empresa) return '';
+  const codigo = getEmpresaCodigo(empresa.id);
+  const nome = empresa.nome_fantasia || empresa.razao_social;
+  return `${codigo} ${nome}`;
+};
+
 const Layout = () => {
   const { user, logout } = useAuth();
   const { empresaSelecionada, competencia } = useEmpresa();
@@ -39,6 +53,21 @@ const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState(['conversoes', 'validacoes', 'calculos', 'controles']);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
+
+  // Abrir modal de seleção se não houver empresa selecionada ao entrar
+  useEffect(() => {
+    if (!initialCheckDone) {
+      setInitialCheckDone(true);
+      // Pequeno delay para garantir que o contexto carregou do localStorage
+      const timer = setTimeout(() => {
+        if (!empresaSelecionada) {
+          setSelectorOpen(true);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [initialCheckDone, empresaSelecionada]);
 
   const handleLogout = () => {
     logout();
@@ -51,6 +80,18 @@ const Layout = () => {
         ? prev.filter(s => s !== section)
         : [...prev, section]
     );
+  };
+
+  // Formatar competência com barra (garante formato MM/AAAA)
+  const formatCompetencia = (comp) => {
+    if (!comp) return '';
+    // Se já tem barra, retorna como está
+    if (comp.includes('/')) return comp;
+    // Se não tem, formata
+    if (comp.length >= 6) {
+      return `${comp.slice(0, 2)}/${comp.slice(2, 6)}`;
+    }
+    return comp;
   };
 
   const menuSections = [
@@ -247,12 +288,13 @@ const Layout = () => {
                       <Building2 size={16} className="text-red-500" />
                     </div>
                     <div className="text-left hidden sm:block">
-                      <p className="text-sm font-medium text-white max-w-[150px] truncate">
+                      <p className="text-sm font-medium text-white max-w-[200px] truncate">
+                        <span className="text-red-500 font-mono mr-1">{getEmpresaCodigo(empresaSelecionada.id)}</span>
                         {empresaSelecionada.nome_fantasia || empresaSelecionada.razao_social}
                       </p>
                       <div className="flex items-center gap-1 text-xs text-slate-500">
                         <Calendar size={10} />
-                        <span className="font-mono">{competencia}</span>
+                        <span className="font-mono">{formatCompetencia(competencia)}</span>
                       </div>
                     </div>
                   </div>
