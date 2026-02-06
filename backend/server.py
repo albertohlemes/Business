@@ -5702,11 +5702,11 @@ async def apuracao_periodo(
         },
         "competencia": competencia,
         "entradas": {
-            "itens": lista_entradas,
+            "lista": lista_entradas,
             "subtotal": subtotal_entradas
         },
         "saidas": {
-            "itens": lista_saidas,
+            "lista": lista_saidas,
             "subtotal": subtotal_saidas
         }
     }
