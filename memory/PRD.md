@@ -145,14 +145,18 @@ CONTROLES
 ## Última Atualização
 - **Data**: 06/02/2026
 - **Funcionalidades Implementadas**:
+  - **CORREÇÃO CRÍTICA**: Importação de colaboradores com IA (corrigido bug onde arquivos TXT causavam erro "The document has no pages")
+  - Arquivos TXT agora têm seu conteúdo enviado diretamente na mensagem da IA
+  - Arquivos PDF e imagens continuam sendo enviados como anexos
+  - Extração de todos os campos: nome, cpf, sexo, estado_civil, endereco, cidade, uf, cep, rg, pis, ctps, nome_mae, nome_pai, banco, agencia, conta, dependentes
   - Tabela de proporcionalidade por data de admissão (auto-calculada ou extraída da convenção)
   - Cálculo retroativo proporcional baseado na data de admissão do colaborador
   - Seção de vigência da convenção em destaque (background azul com ícone de calendário)
   - Endpoint `GET /api/calculos-dissidio/{id}/exportar-convencao-pdf` para exportar PDF do resumo
   - Validação de piso salarial no cálculo retroativo (campo `alertas_piso` na resposta)
   - Botão de exportação de PDF na lista de "Cálculos Anteriores"
-- **Resultado**: ✅ 100% dos testes passaram (Backend 13/13, Frontend OK)
-- **Relatório**: /app/test_reports/iteration_16.json
+- **Resultado**: ✅ 100% dos testes passaram (Backend 9/9 para importação de colaboradores)
+- **Relatório**: /app/test_reports/iteration_17.json
 
 ---
 
