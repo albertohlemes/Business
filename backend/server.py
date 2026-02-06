@@ -5111,9 +5111,24 @@ async def apuracao_periodo(
             bc_icms = float(prod.get('v_bc_icms', 0) or prod.get('v_bc', 0) or 0)
             v_icms = float(prod.get('v_icms', 0) or 0)
             
-            # PIS e COFINS - USAR VALORES DO XML (não recalcular)
-            v_pis = float(prod.get('v_pis', 0) or 0)
-            v_cofins = float(prod.get('v_cofins', 0) or 0)
+            # PIS e COFINS - Crédito usa XML, Débito usa alíquota do regime
+            # Determinar tipo do documento antes de calcular PIS/COFINS
+            doc_tipo = doc.get('tipo', 'entrada')
+            is_entrada = doc_tipo == 'entrada'
+            is_saida = doc_tipo == 'saida'
+            
+            if is_entrada:
+                # CRÉDITO: Usar valores do XML (o que foi destacado pelo fornecedor)
+                v_pis = float(prod.get('v_pis', 0) or 0)
+                v_cofins = float(prod.get('v_cofins', 0) or 0)
+            else:
+                # DÉBITO: Calcular com alíquota do regime tributário
+                if regime == 'lucro_real':
+                    v_pis = round(valor * 0.0165, 2)  # PIS Lucro Real: 1,65%
+                    v_cofins = round(valor * 0.076, 2)  # COFINS Lucro Real: 7,6%
+                else:
+                    v_pis = round(valor * 0.0065, 2)  # PIS Lucro Presumido: 0,65%
+                    v_cofins = round(valor * 0.03, 2)  # COFINS Lucro Presumido: 3%
             
             # Verificar se é CFOP de Substituição Tributária ou Despesa
             is_st = cfop in CFOPS_ST
@@ -5123,11 +5138,6 @@ async def apuracao_periodo(
             # Determinar se é entrada ou saída pelo TIPO DO DOCUMENTO (não pelo CFOP)
             # Isso é importante porque em notas de entrada, o CFOP vem do emitente (que é saída para ele)
             primeiro_digito = cfop[0] if cfop else ''
-            
-            # Usar o tipo do documento como critério principal
-            doc_tipo = doc.get('tipo', 'entrada')
-            is_entrada = doc_tipo == 'entrada'
-            is_saida = doc_tipo == 'saida'
             
             # Converter CFOP de saída para entrada quando for documento de entrada
             if is_entrada and primeiro_digito in ['5', '6', '7']:
