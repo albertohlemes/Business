@@ -7067,6 +7067,9 @@ async def analise_tributaria_ia(
     # Processar saídas - agrupar por NCM
     produtos_saida = {}
     
+    # CSTs de saída que não geram débito (isentos, ST, etc.)
+    CSTS_SEM_DEBITO = ['40', '41', '50', '51', '60']  # Isento, não tributado, suspensão, diferimento, ST
+    
     for doc in saidas:
         for prod in doc.get('produtos', []):
             ncm = str(prod.get('ncm', ''))[:8]
@@ -7078,7 +7081,13 @@ async def analise_tributaria_ia(
             v_icms = float(prod.get('v_icms', 0) or 0)
             valor = float(prod.get('valor_total', 0) or 0)
             cst = str(prod.get('cst_icms', '') or '')
-            is_st = cfop in CFOPS_ST_SAIDA or cst in ['10', '30', '60', '70']
+            p_icms = float(prod.get('p_icms', 0) or 0)  # Alíquota real do XML
+            
+            # Identificar CST numérico (últimos 2 dígitos)
+            cst_num = cst[-2:] if len(cst) >= 2 else cst
+            
+            is_st = cfop in CFOPS_ST_SAIDA or cst_num in ['10', '30', '60', '70']
+            is_isento = cst_num in CSTS_SEM_DEBITO or v_icms == 0
             
             if ncm not in produtos_saida:
                 produtos_saida[ncm] = {
@@ -7086,12 +7095,15 @@ async def analise_tributaria_ia(
                     'descricoes': set(),
                     'total_icms': 0,
                     'total_valor': 0,
+                    'total_valor_tributado': 0,  # Apenas itens tributados
                     'qtd_itens': 0,
                     'tem_st': False,
                     'tem_tributado': False,
+                    'tem_isento': False,  # Saída isenta/0%
                     'cfops': set(),
                     'csts': set(),
-                    'aliquotas': []
+                    'aliquotas_reais': [],  # Alíquotas do XML (p_icms)
+                    'aliquota_predominante': 0
                 }
             
             produtos_saida[ncm]['descricoes'].add(descricao)
@@ -7100,13 +7112,18 @@ async def analise_tributaria_ia(
             produtos_saida[ncm]['qtd_itens'] += 1
             produtos_saida[ncm]['cfops'].add(cfop)
             produtos_saida[ncm]['csts'].add(cst)
+            
+            # Registrar alíquota real apenas de itens tributados
+            if p_icms > 0:
+                produtos_saida[ncm]['aliquotas_reais'].append(p_icms)
+                produtos_saida[ncm]['total_valor_tributado'] += valor
+            
             if is_st:
                 produtos_saida[ncm]['tem_st'] = True
+            elif is_isento:
+                produtos_saida[ncm]['tem_isento'] = True
             else:
                 produtos_saida[ncm]['tem_tributado'] = True
-            if valor > 0:
-                aliq = round((v_icms / valor) * 100, 2)
-                produtos_saida[ncm]['aliquotas'].append(aliq)
     
     # Calcular alíquota média de ICMS
     for ncm, prod in produtos_entrada.items():
