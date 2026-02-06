@@ -7383,7 +7383,10 @@ async def analise_tributaria_ia(
         analise_ncm[ncm]['saida_valor'] += prod['total_valor']
         analise_ncm[ncm]['saida_icms'] += prod['total_icms']
         analise_ncm[ncm]['saida_qtd'] += prod['qtd_itens']
-        analise_ncm[ncm]['aliq_saida'] = prod.get('aliq_icms_media', 0)
+        analise_ncm[ncm]['tem_isento_saida'] = prod.get('tem_isento', False)
+        analise_ncm[ncm]['tem_st_saida'] = prod.get('tem_st', False)
+        # Usar alíquota predominante (inteira) em vez de média
+        analise_ncm[ncm]['aliq_saida'] = prod.get('aliquota_predominante', 0)
     
     # Calcular saldo e margem usando crédito correto (excluindo ST)
     for ncm, dados in analise_ncm.items():
