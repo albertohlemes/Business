@@ -1506,6 +1506,191 @@ class FiscalSystemAPITester:
         print("✅ ALL BULK DELETE FILTER TESTS PASSED")
         return True, {"message": "Bulk delete with filters functionality verified successfully"}
 
+    def test_cancelled_notes_report_endpoints(self):
+        """Test cancelled notes report endpoints as requested in review"""
+        print("\n🔍 Testing Cancelled Notes Report Endpoints...")
+        
+        # Step 1: Login with specified credentials
+        login_data = {
+            "email": "admin@test.com",
+            "password": "123456"
+        }
+        success, response = self.run_test(
+            "Step 1: Login",
+            "POST",
+            "auth/login",
+            200,
+            data=login_data
+        )
+        
+        if not success or 'access_token' not in response:
+            print("❌ Step 1 Failed: Could not login with admin@test.com / 123456")
+            return False, {}
+        
+        admin_token = response['access_token']
+        headers = {'Authorization': f'Bearer {admin_token}'}
+        print(f"✅ Step 1 Complete: Successfully logged in")
+        
+        # Step 2: Get company (search for existing company)
+        success, companies_response = self.run_test(
+            "Step 2: Get Companies",
+            "GET",
+            "companies",
+            200,
+            headers=headers
+        )
+        
+        if not success or not companies_response or len(companies_response) == 0:
+            print("❌ Step 2 Failed: No companies found, creating one...")
+            
+            # Create a test company if none exist
+            import time
+            timestamp = str(int(time.time() * 1000000))[-6:]
+            company_data = {
+                "cnpj": f"88.{timestamp[:3]}.{timestamp[3:]}/0001-99",
+                "razao_social": "Empresa Teste Canceladas LTDA",
+                "nome_fantasia": "Teste Canceladas Corp",
+                "uf": "SP",
+                "inscricao_estadual": "123456789",
+                "endereco": "Rua Teste Canceladas, 123",
+                "cidade": "São Paulo",
+                "cep": "01000-000"
+            }
+            
+            success, response = self.run_test(
+                "Create Test Company",
+                "POST",
+                "companies",
+                200,
+                data=company_data,
+                headers=headers
+            )
+            
+            if not success or 'id' not in response:
+                print("❌ Failed to create test company")
+                return False, {}
+            
+            company_id = response['id']
+        else:
+            # Use first available company
+            company_id = companies_response[0]['id']
+        
+        print(f"✅ Step 2 Complete: Using company ID: {company_id}")
+        
+        # Step 3: Test main cancelled notes report endpoint
+        success, response = self.run_test(
+            "Step 3: Test Cancelled Notes Report Endpoint",
+            "GET",
+            f"relatorio-notas-canceladas/{company_id}",
+            200,
+            headers=headers
+        )
+        
+        if not success:
+            print("❌ Step 3 Failed: Cancelled notes report endpoint failed")
+            return False, {}
+        
+        # Step 4: Verify response structure
+        print("🔍 Step 4: Verifying response structure...")
+        
+        expected_keys = ['titulo', 'empresa', 'competencia', 'data_geracao', 'resumo', 'descricao', 'notas']
+        missing_keys = []
+        
+        for key in expected_keys:
+            if key not in response:
+                missing_keys.append(key)
+        
+        if missing_keys:
+            print(f"❌ Step 4 Failed: Missing required keys: {missing_keys}")
+            return False, {}
+        
+        # Verify resumo structure
+        resumo = response.get('resumo', {})
+        resumo_keys = ['total_notas', 'total_entradas', 'total_saidas', 'valor_total_entradas', 'valor_total_saidas', 'valor_total']
+        missing_resumo_keys = []
+        
+        for key in resumo_keys:
+            if key not in resumo:
+                missing_resumo_keys.append(key)
+        
+        if missing_resumo_keys:
+            print(f"❌ Step 4 Failed: Missing resumo keys: {missing_resumo_keys}")
+            return False, {}
+        
+        print(f"✅ Step 4 Complete: All required structure verified")
+        print(f"   - Titulo: {response.get('titulo', '')}")
+        print(f"   - Empresa: {response.get('empresa', {}).get('razao_social', 'N/A')}")
+        print(f"   - Competencia: {response.get('competencia', 'N/A')}")
+        print(f"   - Total notas: {resumo.get('total_notas', 0)}")
+        print(f"   - Total entradas: {resumo.get('total_entradas', 0)}")
+        print(f"   - Total saidas: {resumo.get('total_saidas', 0)}")
+        print(f"   - Valor total: {resumo.get('valor_total', 0)}")
+        
+        # Step 5: Test Excel export endpoint
+        success, excel_response = self.run_test(
+            "Step 5: Test Excel Export",
+            "GET",
+            f"relatorio-notas-canceladas/{company_id}/exportar?formato=excel",
+            200,
+            headers=headers
+        )
+        
+        if success:
+            print(f"✅ Step 5 Complete: Excel export endpoint working")
+            # Note: We can't easily verify Content-Type in this test framework, 
+            # but the 200 response indicates the endpoint exists and responds
+        else:
+            print(f"❌ Step 5 Failed: Excel export endpoint failed")
+            return False, {}
+        
+        # Step 6: Test Word export endpoint  
+        success, word_response = self.run_test(
+            "Step 6: Test Word Export",
+            "GET",
+            f"relatorio-notas-canceladas/{company_id}/exportar?formato=word",
+            200,
+            headers=headers
+        )
+        
+        if success:
+            print(f"✅ Step 6 Complete: Word export endpoint working")
+        else:
+            print(f"❌ Step 6 Failed: Word export endpoint failed")
+            return False, {}
+        
+        # Step 7: Test authentication requirement
+        success, auth_response = self.run_test(
+            "Step 7: Test Authentication Required",
+            "GET",
+            f"relatorio-notas-canceladas/{company_id}",
+            401,  # Should return 401 without token
+            headers={}  # No authorization header
+        )
+        
+        if success:
+            print(f"✅ Step 7 Complete: Authentication properly required")
+        else:
+            print(f"❌ Step 7 Failed: Authentication not properly enforced")
+            return False, {}
+        
+        # Step 8: Test invalid company ID
+        success, invalid_response = self.run_test(
+            "Step 8: Test Invalid Company ID",
+            "GET",
+            f"relatorio-notas-canceladas/invalid-company-id",
+            404,  # Should return 404 for non-existent company
+            headers=headers
+        )
+        
+        if success:
+            print(f"✅ Step 8 Complete: Proper 404 for invalid company ID")
+        else:
+            print(f"❌ Step 8 Failed: Invalid company ID not handled properly")
+            return False, {}
+        
+        print("✅ ALL CANCELLED NOTES REPORT ENDPOINT TESTS PASSED")
+        return True, {"message": "Cancelled notes report endpoints verified successfully"}
+
     def test_supplier_return_report_endpoints(self):
         """Test supplier return report endpoints as requested in review"""
         print("\n🔍 Testing Supplier Return Report Endpoints...")
