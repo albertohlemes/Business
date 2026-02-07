@@ -487,6 +487,57 @@ const Documents = ({ user, onLogout }) => {
     }
   };
 
+  // ======= RELATÓRIO DE NOTAS CANCELADAS =======
+  const fetchRelatorioCanceladas = async () => {
+    if (!ctxCompany) return;
+    
+    setLoadingCanceladas(true);
+    try {
+      const token = localStorage.getItem('token');
+      const compParam = selectedCompetencia ? `?competencia=${selectedCompetencia}` : '';
+      const res = await axios.get(`${API}/relatorio-notas-canceladas/${ctxCompany.id}${compParam}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setRelatorioCanceladas(res.data);
+      setShowRelatorioCanceladas(true);
+    } catch (err) {
+      console.error('Erro ao buscar relatório de canceladas:', err);
+      alert('Erro ao buscar relatório de notas canceladas');
+    } finally {
+      setLoadingCanceladas(false);
+    }
+  };
+
+  const exportarRelatorioCanceladas = async (formato) => {
+    if (!ctxCompany) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const compParam = selectedCompetencia ? `competencia=${selectedCompetencia}&` : '';
+      const response = await axios.get(
+        `${API}/relatorio-notas-canceladas/${ctxCompany.id}/exportar?${compParam}formato=${formato}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      );
+      
+      // Criar link para download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const ext = formato === 'excel' ? 'xlsx' : 'docx';
+      link.setAttribute('download', `notas_canceladas_${ctxCompany.razao_social?.substring(0, 15) || ctxCompany.id}_${selectedCompetencia || 'todas'}.${ext}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Erro ao exportar relatório:', err);
+      alert('Erro ao exportar relatório de canceladas');
+    }
+  };
+
   // Handler de ordenação
   const handleSort = (field) => {
     if (sortField === field) {
