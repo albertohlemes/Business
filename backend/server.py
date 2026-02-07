@@ -817,7 +817,9 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             'total_desconto': vDesc_total,
             'total_ipi': vIPI_total,
             'total_icms_st': vICMSST_total,
-            'produtos': produtos
+            'produtos': produtos,
+            # NFe referenciada (para devoluções)
+            'nfe_referenciada': nfe_referenciada
         }
         
         # Adicionar dados de cancelamento se a nota estiver cancelada
