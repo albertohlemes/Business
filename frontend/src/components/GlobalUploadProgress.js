@@ -151,24 +151,24 @@ const GlobalUploadProgress = () => {
         )}
 
         {/* Resultado do upload */}
-        {uploadResults && (
+        {uploadResults && !isUploading && (
           <div>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="bg-green-50 rounded-lg p-2">
                 <p className="text-xl font-bold text-green-600">
-                  {uploadResults.resumo?.importados || 0}
+                  {uploadResults.resumo?.importados || uploadResults.success?.length || 0}
                 </p>
                 <p className="text-xs text-green-700">Importados</p>
               </div>
               <div className="bg-amber-50 rounded-lg p-2">
                 <p className="text-xl font-bold text-amber-600">
-                  {uploadResults.resumo?.duplicados || 0}
+                  {uploadResults.resumo?.duplicados || uploadResults.duplicadas?.length || 0}
                 </p>
                 <p className="text-xs text-amber-700">Duplicados</p>
               </div>
               <div className="bg-red-50 rounded-lg p-2">
                 <p className="text-xl font-bold text-red-600">
-                  {uploadResults.resumo?.erros || 0}
+                  {uploadResults.resumo?.erros || uploadResults.errors?.length || 0}
                 </p>
                 <p className="text-xs text-red-700">Erros</p>
               </div>
@@ -182,9 +182,29 @@ const GlobalUploadProgress = () => {
               </div>
             )}
 
-            <p className="text-xs text-gray-500 mt-3 text-center">
-              Clique no X para fechar ou vá para Upload XML para ver detalhes
-            </p>
+            {/* Botões de ação */}
+            <div className="mt-3 flex gap-2">
+              <a
+                href="/upload"
+                className="flex-1 py-2 text-sm text-center bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                Ver Detalhes
+              </a>
+              <button
+                onClick={() => exportarRelatorio('word')}
+                className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                title="Exportar Word"
+              >
+                📄
+              </button>
+              <button
+                onClick={() => exportarRelatorio('pdf')}
+                className="px-3 py-2 text-sm bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                title="Exportar PDF"
+              >
+                📋
+              </button>
+            </div>
           </div>
         )}
 
