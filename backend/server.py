@@ -4158,7 +4158,7 @@ async def upload_xml_with_progress(
             # Indicar se a nota é devolução do fornecedor (desconsiderada)
             if is_devolucao_fornecedor:
                 result_entry['status'] = 'devolucao_fornecedor'
-                result_entry['mensagem'] = f'Devolução do fornecedor - desconsiderada das apurações'
+                result_entry['mensagem'] = 'Devolução do fornecedor - desconsiderada das apurações'
                 result_entry['nfe_referenciada'] = nfe_ref_devolucao
             
             # Indicar se a nota foi importada já cancelada
