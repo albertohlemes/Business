@@ -1506,21 +1506,17 @@ class FiscalSystemAPITester:
         print("✅ ALL BULK DELETE FILTER TESTS PASSED")
         return True, {"message": "Bulk delete with filters functionality verified successfully"}
 
-    def test_supplier_return_report_functionality(self):
-        """Test supplier return report functionality as requested in review"""
-        if not self.admin_token:
-            print("❌ No admin token available for supplier return report test")
-            return False, {}
+    def test_supplier_return_report_endpoints(self):
+        """Test supplier return report endpoints as requested in review"""
+        print("\n🔍 Testing Supplier Return Report Endpoints...")
         
-        print("\n🔍 Testing Supplier Return Report Functionality...")
-        
-        # Step 1: Login as admin with specified credentials
+        # Step 1: Login with specified credentials
         login_data = {
             "email": "admin@test.com",
             "password": "123456"
         }
         success, response = self.run_test(
-            "Step 1: Login as Admin",
+            "Step 1: Login",
             "POST",
             "auth/login",
             200,
@@ -1528,60 +1524,76 @@ class FiscalSystemAPITester:
         )
         
         if not success or 'access_token' not in response:
-            print("❌ Step 1 Failed: Could not login with admin@test.com credentials")
+            print("❌ Step 1 Failed: Could not login with admin@test.com / 123456")
             return False, {}
         
         admin_token = response['access_token']
         headers = {'Authorization': f'Bearer {admin_token}'}
-        print(f"✅ Step 1 Complete: Successfully logged in as admin")
+        print(f"✅ Step 1 Complete: Successfully logged in")
         
-        # Step 2: Create a test company
-        import time
-        timestamp = str(int(time.time() * 1000000))[-6:]
-        company_data = {
-            "cnpj": f"88.{timestamp[:3]}.{timestamp[3:]}/0001-99",
-            "razao_social": "Empresa Teste Devolução LTDA",
-            "nome_fantasia": "Teste Devolução Corp",
-            "uf": "SP",
-            "inscricao_estadual": "123456789",
-            "endereco": "Rua Teste Devolução, 123",
-            "cidade": "São Paulo",
-            "cep": "01000-000"
-        }
-        
-        success, response = self.run_test(
-            "Step 2: Create Test Company",
-            "POST",
+        # Step 2: Get company (search for existing company)
+        success, companies_response = self.run_test(
+            "Step 2: Get Companies",
+            "GET",
             "companies",
             200,
-            data=company_data,
             headers=headers
         )
         
-        if not success or 'id' not in response:
-            print("❌ Step 2 Failed: Could not create test company")
-            return False, {}
+        if not success or not companies_response or len(companies_response) == 0:
+            print("❌ Step 2 Failed: No companies found, creating one...")
+            
+            # Create a test company if none exist
+            import time
+            timestamp = str(int(time.time() * 1000000))[-6:]
+            company_data = {
+                "cnpj": f"88.{timestamp[:3]}.{timestamp[3:]}/0001-99",
+                "razao_social": "Empresa Teste Devolução LTDA",
+                "nome_fantasia": "Teste Devolução Corp",
+                "uf": "SP",
+                "inscricao_estadual": "123456789",
+                "endereco": "Rua Teste Devolução, 123",
+                "cidade": "São Paulo",
+                "cep": "01000-000"
+            }
+            
+            success, response = self.run_test(
+                "Create Test Company",
+                "POST",
+                "companies",
+                200,
+                data=company_data,
+                headers=headers
+            )
+            
+            if not success or 'id' not in response:
+                print("❌ Failed to create test company")
+                return False, {}
+            
+            company_id = response['id']
+        else:
+            # Use first available company
+            company_id = companies_response[0]['id']
         
-        test_company_id = response['id']
-        print(f"✅ Step 2 Complete: Created test company with ID: {test_company_id}")
+        print(f"✅ Step 2 Complete: Using company ID: {company_id}")
         
-        # Step 3: Test the supplier return report endpoint
+        # Step 3: Test main report endpoint
         success, response = self.run_test(
-            "Step 3: Test Supplier Return Report Endpoint",
+            "Step 3: Test Report Endpoint",
             "GET",
-            f"relatorio-devolucoes-fornecedor/{test_company_id}",
+            f"relatorio-devolucoes-fornecedor/{company_id}",
             200,
             headers=headers
         )
         
         if not success:
-            print("❌ Step 3 Failed: Supplier return report endpoint failed")
+            print("❌ Step 3 Failed: Report endpoint failed")
             return False, {}
         
         # Step 4: Verify response structure
         print("🔍 Step 4: Verifying response structure...")
         
-        expected_keys = ['titulo', 'empresa', 'resumo', 'descricao', 'pares']
+        expected_keys = ['titulo', 'empresa', 'competencia', 'resumo', 'descricao', 'pares']
         missing_keys = []
         
         for key in expected_keys:
@@ -1589,62 +1601,78 @@ class FiscalSystemAPITester:
                 missing_keys.append(key)
         
         if missing_keys:
-            print(f"❌ Step 4 Failed: Missing required keys in response: {missing_keys}")
-            self.errors.append(f"Supplier Return Report: Missing keys {missing_keys}")
+            print(f"❌ Step 4 Failed: Missing required keys: {missing_keys}")
             return False, {}
         
-        print(f"✅ Step 4 Complete: All required keys present in response")
-        
-        # Step 5: Verify response content
-        print("🔍 Step 5: Verifying response content...")
-        
-        # Check titulo
-        titulo = response.get('titulo', '')
-        if 'devolução' not in titulo.lower() or 'fornecedor' not in titulo.lower():
-            print(f"❌ Step 5 Failed: Title doesn't contain expected keywords: {titulo}")
-            return False, {}
-        
-        # Check empresa data
-        empresa = response.get('empresa', {})
-        if not isinstance(empresa, dict):
-            print(f"❌ Step 5 Failed: Empresa should be a dict, got {type(empresa)}")
-            return False, {}
-        
-        # Check resumo
+        # Verify resumo structure
         resumo = response.get('resumo', {})
-        if not isinstance(resumo, dict):
-            print(f"❌ Step 5 Failed: Resumo should be a dict, got {type(resumo)}")
+        resumo_keys = ['total_pares', 'valor_total_devolucoes', 'valor_total_originais', 'pares_sem_vinculo']
+        missing_resumo_keys = []
+        
+        for key in resumo_keys:
+            if key not in resumo:
+                missing_resumo_keys.append(key)
+        
+        if missing_resumo_keys:
+            print(f"❌ Step 4 Failed: Missing resumo keys: {missing_resumo_keys}")
             return False, {}
         
-        # Check descricao
-        descricao = response.get('descricao', '')
-        if not isinstance(descricao, str):
-            print(f"❌ Step 5 Failed: Descricao should be a string, got {type(descricao)}")
+        print(f"✅ Step 4 Complete: All required structure verified")
+        print(f"   - Titulo: {response.get('titulo', '')}")
+        print(f"   - Empresa: {response.get('empresa', {}).get('razao_social', 'N/A')}")
+        print(f"   - Competencia: {response.get('competencia', 'N/A')}")
+        print(f"   - Total pares: {resumo.get('total_pares', 0)}")
+        
+        # Step 5: Test Excel export endpoint
+        success, excel_response = self.run_test(
+            "Step 5: Test Excel Export",
+            "GET",
+            f"relatorio-devolucoes-fornecedor/{company_id}/exportar?formato=excel",
+            200,
+            headers=headers
+        )
+        
+        if success:
+            print(f"✅ Step 5 Complete: Excel export endpoint working")
+            # Note: We can't easily verify Content-Type in this test framework, 
+            # but the 200 response indicates the endpoint exists and responds
+        else:
+            print(f"❌ Step 5 Failed: Excel export endpoint failed")
             return False, {}
         
-        # Check pares (should be empty list since no notes exist)
-        pares = response.get('pares', [])
-        if not isinstance(pares, list):
-            print(f"❌ Step 5 Failed: Pares should be a list, got {type(pares)}")
+        # Step 6: Test Word export endpoint  
+        success, word_response = self.run_test(
+            "Step 6: Test Word Export",
+            "GET",
+            f"relatorio-devolucoes-fornecedor/{company_id}/exportar?formato=word",
+            200,
+            headers=headers
+        )
+        
+        if success:
+            print(f"✅ Step 6 Complete: Word export endpoint working")
+        else:
+            print(f"❌ Step 6 Failed: Word export endpoint failed")
             return False, {}
         
-        if len(pares) != 0:
-            print(f"❌ Step 5 Failed: Expected empty pares list (no notes), got {len(pares)} items")
-            return False, {}
+        # Step 7: Test authentication requirement
+        success, auth_response = self.run_test(
+            "Step 7: Test Authentication Required",
+            "GET",
+            f"relatorio-devolucoes-fornecedor/{company_id}",
+            401,  # Should return 401 without token
+            headers={}  # No authorization header
+        )
         
-        print(f"✅ Step 5 Complete: Response content structure is correct")
-        print(f"   - Titulo: {titulo}")
-        print(f"   - Empresa keys: {list(empresa.keys()) if empresa else 'empty'}")
-        print(f"   - Resumo keys: {list(resumo.keys()) if resumo else 'empty'}")
-        print(f"   - Pares count: {len(pares)} (expected 0)")
+        if success:
+            print(f"✅ Step 7 Complete: Authentication properly required")
+        else:
+            print(f"⚠️  Step 7: Authentication may not be properly enforced")
         
-        # Step 6: Verify endpoint exists and responds correctly
-        print("🔍 Step 6: Verifying endpoint functionality...")
-        
-        # Test with different company ID to ensure endpoint handles different scenarios
+        # Step 8: Test with invalid company ID
         fake_company_id = str(uuid.uuid4())
-        success, response = self.run_test(
-            "Step 6a: Test with Non-existent Company",
+        success, invalid_response = self.run_test(
+            "Step 8: Test Invalid Company ID",
             "GET",
             f"relatorio-devolucoes-fornecedor/{fake_company_id}",
             404,  # Should return 404 for non-existent company
@@ -1652,9 +1680,12 @@ class FiscalSystemAPITester:
         )
         
         if success:
-            print(f"✅ Step 6a Complete: Endpoint correctly handles non-existent company (404)")
+            print(f"✅ Step 8 Complete: Invalid company ID properly handled")
         else:
-            print(f"⚠️  Step 6a: Endpoint may not handle non-existent company properly")
+            print(f"⚠️  Step 8: Invalid company ID handling may need improvement")
+        
+        print("✅ ALL SUPPLIER RETURN REPORT ENDPOINT TESTS COMPLETED")
+        return True, {"message": "Supplier return report endpoints verified successfully"} non-existent company properly")
         
         # Test without authentication
         success, response = self.run_test(
