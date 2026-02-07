@@ -3517,29 +3517,6 @@ async def upload_xml_batch(
         
         except Exception as e:
             errors.append({"filename": dev.get('filename', 'devolucao'), "error": f"Erro ao processar devolução: {str(e)}"})
-                    
-                    notas_desconsideradas_salvas.append({
-                        "tipo": "saida_original",
-                        "chave_nfe": nfe_ref,
-                        "numero_nfe": nota_original.get('numero_nfe', ''),
-                        "data_emissao": nota_original.get('data_emissao', ''),
-                        "valor_total": nota_original.get('valor_total', 0),
-                        "destinatario": nota_original.get('destinatario_nome', ''),
-                        "vinculada_a": dev['numero_nfe'],
-                        "motivo": f"Nota devolvida pelo fornecedor. Devolução: NF {dev['numero_nfe']}"
-                    })
-                else:
-                    # Nota original não encontrada - registrar para referência
-                    notas_desconsideradas_salvas.append({
-                        "tipo": "saida_original_nao_encontrada",
-                        "chave_nfe": nfe_ref,
-                        "numero_nfe": "N/A",
-                        "vinculada_a": dev['numero_nfe'],
-                        "motivo": f"Nota original referenciada não encontrada no sistema. Chave: {nfe_ref[:20]}..."
-                    })
-        
-        except Exception as e:
-            errors.append({"filename": dev.get('filename', 'devolucao'), "error": f"Erro ao processar devolução: {str(e)}"})
     
     return {
         "success": results,
