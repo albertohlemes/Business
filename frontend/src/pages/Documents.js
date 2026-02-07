@@ -431,6 +431,57 @@ const Documents = ({ user, onLogout }) => {
     XLSX.writeFile(wb, fileName);
   };
 
+  // ======= RELATÓRIO DE DEVOLUÇÕES DO FORNECEDOR =======
+  const fetchRelatorioDevolucoes = async () => {
+    if (!ctxCompany) return;
+    
+    setLoadingDevolucoes(true);
+    try {
+      const token = localStorage.getItem('token');
+      const compParam = selectedCompetencia ? `?competencia=${selectedCompetencia}` : '';
+      const res = await axios.get(`${API}/relatorio-devolucoes-fornecedor/${ctxCompany.id}${compParam}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setRelatorioDevolucoes(res.data);
+      setShowRelatorioDevolucoes(true);
+    } catch (err) {
+      console.error('Erro ao buscar relatório de devoluções:', err);
+      alert('Erro ao buscar relatório de devoluções');
+    } finally {
+      setLoadingDevolucoes(false);
+    }
+  };
+
+  const exportarRelatorioDevolucoes = async (formato) => {
+    if (!ctxCompany) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const compParam = selectedCompetencia ? `competencia=${selectedCompetencia}&` : '';
+      const response = await axios.get(
+        `${API}/relatorio-devolucoes-fornecedor/${ctxCompany.id}/exportar?${compParam}formato=${formato}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      );
+      
+      // Criar link para download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const ext = formato === 'excel' ? 'xlsx' : 'docx';
+      link.setAttribute('download', `devolucoes_fornecedor_${ctxCompany.razao_social?.substring(0, 15) || ctxCompany.id}_${selectedCompetencia || 'todas'}.${ext}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Erro ao exportar relatório:', err);
+      alert('Erro ao exportar relatório');
+    }
+  };
+
   // Handler de ordenação
   const handleSort = (field) => {
     if (sortField === field) {
