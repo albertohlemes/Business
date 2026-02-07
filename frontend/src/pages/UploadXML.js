@@ -135,7 +135,8 @@ const UploadXML = ({ user, onLogout }) => {
     const empresaNome = company?.razao_social || company?.nome_fantasia || 'Empresa';
     
     // Usar upload global para permitir navegação durante o processo
-    const success = await startGlobalUpload(files, selectedCompany, competencia, empresaNome);
+    // Passa o tipo (entrada/saida) como parâmetro
+    const success = await startGlobalUpload(files, selectedCompany, competencia, empresaNome, tipo);
     
     if (success) {
       // Limpar arquivos selecionados
