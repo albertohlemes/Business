@@ -86,10 +86,10 @@ class TestDevolucaoFornecedor:
         # First, delete any existing document with this key to ensure clean test
         chave_nfe = "35260146443440000114550010002618251462953996"
         
-        # Check if document already exists
+        # Check if document already exists and delete it
         response = self.session.get(
             f"{BASE_URL}/api/xml/documents",
-            params={"company_id": TEST_COMPANY_ID, "competencia": "01/2026"}
+            params={"company_id": TEST_COMPANY_ID, "competencia": "01/2026", "include_desconsideradas": "true"}
         )
         
         if response.status_code == 200:
@@ -100,17 +100,34 @@ class TestDevolucaoFornecedor:
                     delete_response = self.session.delete(f"{BASE_URL}/api/xml/{doc.get('id')}")
                     print(f"  Deleted existing document: {doc.get('id')}")
         
-        # Upload the test XML
+        # Step 1: Initialize upload session
+        headers = {"Authorization": f"Bearer {self.token}"}
+        init_data = {
+            'company_id': TEST_COMPANY_ID,
+            'competencia': '01/2026',
+            'tipo': 'entrada',
+            'total_files': 1
+        }
+        
+        init_response = requests.post(
+            f"{BASE_URL}/api/xml/upload-init",
+            data=init_data,
+            headers=headers
+        )
+        
+        print(f"Init response status: {init_response.status_code}")
+        print(f"Init response: {init_response.text}")
+        
+        assert init_response.status_code == 200, f"Upload init failed: {init_response.text}"
+        
+        upload_id = init_response.json().get('upload_id')
+        assert upload_id, "upload_id not returned"
+        print(f"  Got upload_id: {upload_id}")
+        
+        # Step 2: Upload the test XML
         with open(TEST_DEVOLUCAO_XML, 'rb') as f:
             files = {'files': ('test_devolucao.xml', f, 'application/xml')}
-            data = {
-                'company_id': TEST_COMPANY_ID,
-                'competencia': '01/2026',
-                'tipo': 'entrada'
-            }
-            
-            # Remove Content-Type header for multipart upload
-            headers = {"Authorization": f"Bearer {self.token}"}
+            data = {'upload_id': upload_id}
             
             response = requests.post(
                 f"{BASE_URL}/api/xml/upload-stream",
@@ -120,7 +137,7 @@ class TestDevolucaoFornecedor:
             )
         
         print(f"Upload response status: {response.status_code}")
-        print(f"Upload response: {response.text[:500] if response.text else 'No response'}")
+        print(f"Upload response: {response.text[:1000] if response.text else 'No response'}")
         
         assert response.status_code == 200, f"Upload failed: {response.text}"
         
