@@ -124,6 +124,7 @@ function App() {
             <Route path="/apuracao" element={<Navigate to="/apuracao-mensal" />} />
             <Route path="/apuracao-pis-cofins" element={<Navigate to="/apuracao-mensal" />} />
           </Routes>
+          </UploadProvider>
         </AppProvider>
       </BrowserRouter>
     </div>
