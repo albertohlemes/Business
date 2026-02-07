@@ -61,6 +61,7 @@ const Documents = ({ user, onLogout }) => {
     try {
       const token = localStorage.getItem('token');
       const companyParam = ctxCompany ? `?company_id=${ctxCompany.id}` : '';
+      console.log('Documents: Fetching data, company:', ctxCompany?.id, 'param:', companyParam);
       const [companiesRes, documentsRes] = await Promise.all([
         axios.get(`${API}/companies`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -69,6 +70,7 @@ const Documents = ({ user, onLogout }) => {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
+      console.log('Documents: Received', documentsRes.data?.length || 0, 'documents');
       setCompanies(companiesRes.data);
       setDocuments(documentsRes.data);
     } catch (err) {
