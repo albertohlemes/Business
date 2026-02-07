@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
+import { UploadProvider } from './context/UploadContext';
 import CompanySelector from './components/CompanySelector';
+import GlobalUploadProgress from './components/GlobalUploadProgress';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
