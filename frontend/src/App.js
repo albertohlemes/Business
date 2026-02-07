@@ -59,12 +59,14 @@ function App() {
     <div className="App">
       <BrowserRouter>
         <AppProvider>
-          <CompanySelector />
-          <Routes>
-            <Route 
-              path="/login" 
-              element={!user ? <Login onLogin={handleLogin} /> : <Navigate to="/" />} 
-            />
+          <UploadProvider>
+            <CompanySelector />
+            <GlobalUploadProgress />
+            <Routes>
+              <Route 
+                path="/login" 
+                element={!user ? <Login onLogin={handleLogin} /> : <Navigate to="/" />} 
+              />
             <Route
               path="/"
               element={user ? <Dashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
