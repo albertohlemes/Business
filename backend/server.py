@@ -3102,23 +3102,40 @@ async def upload_xml_batch(
                     })
                     continue
                 
-                # NOVA VALIDAÇÃO: Rejeitar NF de terceiro com CFOP de entrada
+                # NOVA VALIDAÇÃO: Detectar devolução do fornecedor
                 # Se o emitente NÃO é a empresa, mas os CFOPs no XML já são de entrada (1xxx, 2xxx, 3xxx),
-                # isso significa que um terceiro emitiu uma nota com CFOP de entrada - não devemos escriturar
+                # isso significa que um terceiro emitiu uma nota com CFOP de entrada
+                # Isso pode ser uma devolução de venda que fizemos para esse fornecedor
                 if cnpj_emitente != cnpj_empresa:
                     cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
                     cfops_entrada = [c for c in cfops_xml if c and c[0] in ['1', '2', '3']]
                     
+                    # Verificar se é CFOP de devolução de venda (1201, 1202, 1203, 2201, 2202, 2203, etc)
+                    cfops_devolucao = ['1201', '1202', '1203', '1204', '1208', '1209', '1410', '1411',
+                                       '2201', '2202', '2203', '2204', '2208', '2209', '2410', '2411']
+                    
                     if cfops_entrada and len(cfops_entrada) == len(cfops_xml):
-                        # Todos os CFOPs são de entrada - NF irregular de terceiro
+                        # Todos os CFOPs são de entrada - Devolução do fornecedor
                         cfops_unicos = list(set(cfops_entrada))[:3]
-                        rejeitadas_cnpj.append({
+                        nfe_ref = parsed_data.get('nfe_referenciada', '')
+                        
+                        # Esta é uma devolução do fornecedor - registrar para desconsiderar
+                        notas_devolucao_fornecedor.append({
+                            "tipo": "devolucao_entrada",  # A nota de devolução que está entrando
                             "filename": file.filename,
+                            "chave_nfe": chave_nfe,
                             "numero_nfe": parsed_data.get('numero_nfe', ''),
-                            "motivo": f"NF de terceiro com CFOP de entrada ({', '.join(cfops_unicos)}). Emitente ({parsed_data.get('emitente_nome', '')[:30]}) não é a empresa selecionada. Esta NF não deve ser escriturada.",
-                            "emitente": parsed_data.get('emitente_nome', ''),
-                            "destinatario": parsed_data.get('destinatario_nome', ''),
-                            "tipo_rejeicao": "nf_terceiro_cfop_entrada"
+                            "data_emissao": parsed_data.get('data_emissao', ''),
+                            "valor_total": parsed_data.get('valor_total', 0),
+                            "cfops": cfops_unicos,
+                            "emitente_cnpj": cnpj_emitente,
+                            "emitente_nome": parsed_data.get('emitente_nome', ''),
+                            "destinatario_cnpj": cnpj_destinatario,
+                            "destinatario_nome": parsed_data.get('destinatario_nome', ''),
+                            "nfe_referenciada": nfe_ref,
+                            "motivo": f"Devolução emitida pelo fornecedor ({parsed_data.get('emitente_nome', '')[:40]}) com CFOP de entrada ({', '.join(cfops_unicos)}). Nota e sua referência serão desconsideradas das apurações.",
+                            "parsed_data": parsed_data,
+                            "xml_content": xml_str
                         })
                         continue
             else:  # saida
