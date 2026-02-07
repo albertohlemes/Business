@@ -1,0 +1,84 @@
+{
+  "summary": "Tested Devolução de Fornecedor (Supplier Return) detection feature - 8/8 tests passed. The bug fix is working correctly.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Authentication working correctly",
+    "Test company COMERCIAL RS LTDA exists (ID: d7f30ea1-9df3-4124-a561-12984ffff64b)",
+    "XML parser correctly extracts finNFe=4 and DFeReferenciado/chaveAcesso from test XML",
+    "Upload of devolução XML (finNFe=4, CFOP 1411) correctly detects and marks as desconsiderada",
+    "Document has desconsiderada_devolucao=True after upload",
+    "nfe_referenciada field correctly extracted from DFeReferenciado/chaveAcesso (35251246443440000114550010002602511453763036)",
+    "Relatório de devoluções endpoint (/api/relatorio-devolucoes-fornecedor) returns the desconsiderada note with correct data",
+    "Normal notes (non-devolução) are not marked as desconsiderada_devolucao"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_devolucao_fornecedor.py",
+    "/app/test_reports/pytest/pytest_devolucao_fornecedor.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "Bug fix verified: upload_xml_with_progress function now correctly detects devoluções using finNFe=4, natureza de operação, and CFOP criteria",
+    "DFeReferenciado/chaveAcesso extraction working correctly in parse_xml_nfe function",
+    "Detection criteria: (finNFe=4) OR (CFOP devolução + NFe referenciada) OR (natureza DEV + NFe referenciada) OR (CFOP devolução + natureza DEV)",
+    "CFOP 1411 is included in CFOPS_DEVOLUCAO_ENTRADA list",
+    "Document correctly saved with desconsiderada_devolucao=True, nfe_referenciada, and motivo_desconsideracao fields"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_devolucao_fornecedor.py (new test file)"
+  ],
+
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "N/A (backend only testing)"
+  },
+
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+
+  "seed_data_creation": "Test devolução note already exists in DB: NF 261825 (chave: 35260146443440000114550010002618251462953996) from GRF DISTRIBUICAO LTDA, competência 01/2026, marked as desconsiderada_devolucao=True",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Devolução de fornecedor detection feature fully tested and working. Test XML at /tmp/test_devolucao.xml has finNFe=4, CFOP 1411, DFeReferenciado with chaveAcesso. The document is correctly marked as desconsiderada_devolucao=True and appears in /api/relatorio-devolucoes-fornecedor endpoint. The referenced NFe (35251246443440000114550010002602511453763036) is from competência 12/2025 and not imported, so it shows as 'NÃO ENCONTRADA' in the relatório.",
+
+  "features_verified": {
+    "upload_devolucao_xml_detection": "PASSED - finNFe=4 correctly detected as devolução",
+    "desconsiderada_devolucao_flag": "PASSED - Document saved with desconsiderada_devolucao=True",
+    "nfe_referenciada_extraction": "PASSED - DFeReferenciado/chaveAcesso correctly extracted",
+    "relatorio_devolucoes_endpoint": "PASSED - Returns desconsiderada notes with correct data",
+    "normal_notes_not_affected": "PASSED - Regular notes not marked as desconsiderada"
+  },
+
+  "bug_fix_verification": {
+    "original_issue": "Notas fiscais de devolução emitidas por fornecedores (finNFe=4, CFOP 1411) eram importadas como compras normais",
+    "fix_applied": "Lógica de detecção de devolução adicionada em upload_xml_with_progress (linha ~3883)",
+    "verification_result": "PASSED - Devolução corretamente detectada e marcada como desconsiderada",
+    "test_data": {
+      "chave_nfe": "35260146443440000114550010002618251462953996",
+      "numero_nfe": "261825",
+      "fornecedor": "GRF DISTRIBUICAO LTDA",
+      "finNFe": "4",
+      "cfop_original": "1411",
+      "nfe_referenciada": "35251246443440000114550010002602511453763036"
+    }
+  }
+}
