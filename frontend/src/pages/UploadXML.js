@@ -643,39 +643,39 @@ const UploadXML = ({ user, onLogout }) => {
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-3">
                   <AlertCircle className="w-5 h-5 text-yellow-600" />
-                  <h3 className="font-semibold text-yellow-900">Notas Duplicadas ({results.exists_details.length})</h3>
+                  <h3 className="font-semibold text-yellow-900">Notas Duplicadas ({results.duplicadas.length})</h3>
                 </div>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {results.exists_details.slice(0, 10).map((item, index) => (
+                  {results.duplicadas.slice(0, 10).map((item, index) => (
                     <div key={index} className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                      <p className="text-sm font-medium text-yellow-900">{item.filename || item}</p>
+                      <p className="text-sm font-medium text-yellow-900">{typeof item === 'string' ? item : (item.filename || item.numero_nfe || 'Duplicada')}</p>
                     </div>
                   ))}
-                  {results.exists_details.length > 10 && (
+                  {results.duplicadas.length > 10 && (
                     <p className="text-sm text-gray-500 text-center py-2">
-                      ... e mais {results.exists_details.length - 10} duplicadas
+                      ... e mais {results.duplicadas.length - 10} duplicadas
                     </p>
                   )}
                 </div>
               </div>
             )}
 
-            {results.error_details && results.error_details.length > 0 && (
+            {results.errors && results.errors.length > 0 && (
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <X className="w-5 h-5 text-red-600" />
-                  <h3 className="font-semibold text-red-900">Erros ({results.error_details.length})</h3>
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                  <h3 className="font-semibold text-red-900">Erros ({results.errors.length})</h3>
                 </div>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {results.error_details.slice(0, 10).map((item, index) => (
+                  {results.errors.slice(0, 10).map((item, index) => (
                     <div key={index} className="bg-red-50 p-3 rounded-lg border border-red-200">
-                      <p className="text-sm font-medium text-red-900">{item.filename || item}</p>
-                      <p className="text-xs text-red-700">{item.error || item.motivo || ''}</p>
+                      <p className="text-sm font-medium text-red-900">{typeof item === 'string' ? item : (item.filename || 'Erro')}</p>
+                      <p className="text-xs text-red-700">{typeof item === 'object' ? (item.error || item.motivo || '') : ''}</p>
                     </div>
                   ))}
-                  {results.error_details.length > 10 && (
+                  {results.errors.length > 10 && (
                     <p className="text-sm text-gray-500 text-center py-2">
-                      ... e mais {results.error_details.length - 10} erros
+                      ... e mais {results.errors.length - 10} erros
                     </p>
                   )}
                 </div>
