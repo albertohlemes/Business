@@ -5632,12 +5632,13 @@ async def apuracao_periodo(
     
     regime = company.get('regime_tributario', 'lucro_presumido')
     
-    # Buscar documentos da competência - EXCLUIR notas canceladas
-    documents = await db.xml_documents.find({
+    # Buscar documentos da competência - EXCLUIR notas canceladas e desconsideradas
+    query = {
         "company_id": company_id,
-        "competencia": competencia,
-        "$or": [{"cancelada": {"$exists": False}}, {"cancelada": False}]
-    }, {"_id": 0}).to_list(None)
+        "competencia": competencia
+    }
+    query.update(get_filtro_notas_ativas())
+    documents = await db.xml_documents.find(query, {"_id": 0}).to_list(None)
     
     # CFOPs de Substituição Tributária (não dão direito a crédito de ICMS)
     CFOPS_ST = ['1403', '1409', '2403', '2409', '5403', '5405', '5409', '6403', '6404', '6409']
