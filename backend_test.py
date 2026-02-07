@@ -1685,7 +1685,7 @@ class FiscalSystemAPITester:
             print(f"⚠️  Step 8: Invalid company ID handling may need improvement")
         
         print("✅ ALL SUPPLIER RETURN REPORT ENDPOINT TESTS COMPLETED")
-        return True, {"message": "Supplier return report endpoints verified successfully"} non-existent company properly")
+        return True, {"message": "Supplier return report endpoints verified successfully"}
         
         # Test without authentication
         success, response = self.run_test(
