@@ -3436,6 +3436,12 @@ async def upload_xml_batch(
                     # Cancelamento detectado por evento externo
                     result_entry['mensagem'] = 'Nota importada como CANCELADA (evento de cancelamento encontrado)'
             
+            # Indicar se a nota foi importada como devolução do fornecedor
+            if is_devolucao_fornecedor:
+                result_entry['status'] = 'devolucao_fornecedor'
+                result_entry['mensagem'] = motivo_devolucao
+                result_entry['nfe_referenciada'] = nfe_ref_devolucao
+            
             results.append(result_entry)
             
             if file_conversions:
@@ -3448,14 +3454,26 @@ async def upload_xml_batch(
         except Exception as e:
             errors.append({"filename": file.filename, "error": str(e)})
     
-    # ===== PROCESSAR NOTAS DE DEVOLUÇÃO DO FORNECEDOR =====
-    # Salvar as notas de devolução como desconsideradas e também marcar as notas originais referenciadas
+    # ===== PROCESSAR NOTAS ORIGINAIS REFERENCIADAS NAS DEVOLUÇÕES =====
+    # Marcar as notas originais que foram referenciadas nas devoluções como desconsideradas também
     notas_desconsideradas_salvas = []
     for dev in notas_devolucao_fornecedor:
         try:
-            parsed_data = dev['parsed_data']
             chave_nfe_dev = dev['chave_nfe']
             nfe_ref = dev.get('nfe_referenciada', '')
+            
+            # Registrar a devolução no relatório
+            nota_dev_info = {
+                "tipo": "devolucao_entrada",
+                "chave_nfe": chave_nfe_dev,
+                "numero_nfe": dev.get('numero_nfe', ''),
+                "data_emissao": dev.get('data_emissao', ''),
+                "valor_total": dev.get('valor_total', 0),
+                "emitente": dev.get('emitente_nome', ''),
+                "nfe_referenciada": nfe_ref,
+                "motivo": dev.get('motivo', '')
+            }
+            notas_desconsideradas_salvas.append(nota_dev_info)
             
             # 1. Salvar a nota de devolução como desconsiderada
             doc_devolucao = XMLDocument(
