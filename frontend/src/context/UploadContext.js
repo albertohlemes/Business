@@ -116,12 +116,15 @@ export const UploadProvider = ({ children }) => {
         const batch = files.slice(i, i + BATCH_SIZE);
         const formData = new FormData();
         
+        // upload_id deve ser enviado via FormData, não query string
+        formData.append('upload_id', upload_id);
+        
         batch.forEach(file => {
           formData.append('files', file);
         });
 
         const uploadResponse = await fetch(
-          `${API}/xml/upload-with-progress/${upload_id}?company_id=${companyId}&competencia=${encodeURIComponent(competencia)}`,
+          `${API}/xml/upload-stream`,
           {
             method: 'POST',
             headers: {
