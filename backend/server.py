@@ -3391,6 +3391,13 @@ async def upload_xml_batch(
             doc = xml_doc.model_dump()
             doc['uploaded_at'] = doc['uploaded_at'].isoformat()
             
+            # ==== VERIFICAR SE É DEVOLUÇÃO DO FORNECEDOR ====
+            if is_devolucao_fornecedor:
+                doc['desconsiderada_devolucao'] = True
+                doc['motivo_desconsideracao'] = motivo_devolucao
+                doc['nfe_referenciada'] = nfe_ref_devolucao
+                doc['status_validacao'] = 'desconsiderada'
+            
             # ==== VERIFICAR SE HÁ EVENTO DE CANCELAMENTO PENDENTE ====
             chave_nfe = parsed_data.get('chave_nfe', '')
             if chave_nfe:
