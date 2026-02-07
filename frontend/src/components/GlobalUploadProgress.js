@@ -176,6 +176,7 @@ const GlobalUploadProgress = () => {
   }
 
   return (
+    <>
     <div className="fixed bottom-4 right-4 z-50 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
       {/* Header */}
       <div className={`px-4 py-3 flex items-center justify-between ${
