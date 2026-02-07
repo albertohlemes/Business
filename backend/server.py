@@ -5109,7 +5109,12 @@ async def get_dashboard_stats(
         "competencia": competencia
     }
     query.update(get_filtro_notas_ativas())
+    
+    logger.info(f"DASHBOARD: Query = {query}")
+    
     documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    logger.info(f"DASHBOARD: Documentos encontrados = {len(documents)}")
     
     # Buscar aprovações do localStorage (persistidas no backend se houver)
     # Por enquanto, vamos calcular baseado no status_validacao
