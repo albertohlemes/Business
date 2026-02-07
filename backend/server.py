@@ -3791,6 +3791,8 @@ async def upload_xml_with_progress(
     uf_empresa = company.get('uf', 'SP')
     regime_tributario = company.get('regime_tributario', 'lucro_presumido')
     
+    logger.info(f"UPLOAD-STREAM: Iniciando processamento - Tipo: {tipo}, Empresa: {cnpj_empresa}, Competência: {competencia}")
+    
     results = []
     errors = []
     conversion_report = []
