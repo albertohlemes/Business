@@ -313,12 +313,15 @@ const Documents = ({ user, onLogout }) => {
 
   // Função de exportação para Excel
   const exportToExcel = () => {
+    console.log('exportToExcel chamada, docs:', sortedAndFilteredDocuments.length);
+    
     if (sortedAndFilteredDocuments.length === 0) {
       alert('Não há documentos para exportar');
       return;
     }
 
-    const wb = XLSX.utils.book_new();
+    try {
+      const wb = XLSX.utils.book_new();
     const empresa = ctxCompany?.razao_social || 'Todas';
     const competencia = selectedCompetencia || 'Todas';
 
