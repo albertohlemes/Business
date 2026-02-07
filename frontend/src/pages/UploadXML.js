@@ -119,8 +119,7 @@ const UploadXML = ({ user, onLogout }) => {
   // Reduzido para 500 para evitar timeouts e problemas de conexão
   const BATCH_SIZE = 500;
 
-  // Upload em segundo plano (usando contexto global)
-  const handleBackgroundUpload = async () => {
+  const handleUpload = async () => {
     if (!selectedCompany || files.length === 0 || !competencia) {
       alert('Selecione empresa, competência e pelo menos um arquivo XML');
       return;
@@ -129,17 +128,17 @@ const UploadXML = ({ user, onLogout }) => {
     const company = companies.find(c => c.id === selectedCompany);
     const empresaNome = company?.razao_social || company?.nome_fantasia || 'Empresa';
     
-    // Iniciar upload em segundo plano
+    // Usar upload global para permitir navegação durante o processo
     const success = await startGlobalUpload(files, selectedCompany, competencia, empresaNome);
     
     if (success) {
       // Limpar arquivos selecionados
       setFiles([]);
-      // Usuário pode navegar para outras páginas
     }
   };
 
-  const handleUpload = async () => {
+  // Manter função antiga como backup (não usada por padrão)
+  const handleUploadLegacy = async () => {
     if (!selectedCompany || files.length === 0 || !competencia) {
       alert('Selecione empresa, competência e pelo menos um arquivo XML');
       return;
