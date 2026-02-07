@@ -341,6 +341,207 @@ const GlobalUploadProgress = () => {
         )}
       </div>
     </div>
+
+    {/* Modal de Detalhes do Upload */}
+    {showDetailModal && uploadResults && (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+        <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="text-2xl font-bold">Relatório de Importação</h2>
+                <p className="text-red-200 mt-1">
+                  {uploadInfo.empresa} | Competência: {uploadInfo.competencia}
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowDetailModal(false)}
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            {/* Resumo */}
+            <div className="grid grid-cols-4 gap-4 mt-4">
+              <div className="bg-white/10 rounded-lg p-3 text-center">
+                <p className="text-3xl font-bold">{uploadResults.resumo?.total_arquivos || 0}</p>
+                <p className="text-xs text-red-200">Total Arquivos</p>
+              </div>
+              <div className="bg-white/10 rounded-lg p-3 text-center">
+                <p className="text-3xl font-bold text-green-300">{uploadResults.resumo?.importados || uploadResults.success?.length || 0}</p>
+                <p className="text-xs text-red-200">Importados</p>
+              </div>
+              <div className="bg-white/10 rounded-lg p-3 text-center">
+                <p className="text-3xl font-bold text-amber-300">{uploadResults.resumo?.duplicados || uploadResults.duplicadas?.length || 0}</p>
+                <p className="text-xs text-red-200">Duplicados</p>
+              </div>
+              <div className="bg-white/10 rounded-lg p-3 text-center">
+                <p className="text-3xl font-bold text-red-300">{uploadResults.resumo?.erros || uploadResults.errors?.length || 0}</p>
+                <p className="text-xs text-red-200">Erros</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Conteúdo */}
+          <div className="p-6 overflow-y-auto max-h-[50vh]">
+            {/* Notas Importadas */}
+            {uploadResults.success && uploadResults.success.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold text-green-700 mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5" />
+                  Notas Importadas ({uploadResults.success.length})
+                </h3>
+                <div className="bg-green-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                  <div className="grid grid-cols-4 gap-2 text-xs">
+                    {uploadResults.success.slice(0, 50).map((nota, idx) => (
+                      <div key={idx} className="bg-white rounded px-2 py-1 border border-green-200">
+                        NF {nota.nfe || nota.numero_nfe || idx + 1}
+                      </div>
+                    ))}
+                    {uploadResults.success.length > 50 && (
+                      <div className="col-span-4 text-center text-green-700 py-2">
+                        ... e mais {uploadResults.success.length - 50} notas
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Duplicadas */}
+            {uploadResults.duplicadas && uploadResults.duplicadas.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold text-amber-700 mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  Notas Duplicadas ({uploadResults.duplicadas.length})
+                </h3>
+                <div className="bg-amber-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                  {uploadResults.duplicadas.slice(0, 20).map((dup, idx) => (
+                    <div key={idx} className="text-sm text-amber-800 py-1 border-b border-amber-200 last:border-0">
+                      {typeof dup === 'string' ? dup : (dup.filename || dup.numero_nfe || `Duplicada ${idx + 1}`)}
+                    </div>
+                  ))}
+                  {uploadResults.duplicadas.length > 20 && (
+                    <div className="text-center text-amber-700 py-2">
+                      ... e mais {uploadResults.duplicadas.length - 20} duplicadas
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Erros */}
+            {uploadResults.errors && uploadResults.errors.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold text-red-700 mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  Erros ({uploadResults.errors.length})
+                </h3>
+                <div className="bg-red-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                  {uploadResults.errors.slice(0, 20).map((err, idx) => (
+                    <div key={idx} className="text-sm text-red-800 py-2 border-b border-red-200 last:border-0">
+                      <span className="font-medium">{typeof err === 'string' ? err : (err.filename || `Arquivo ${idx + 1}`)}</span>
+                      {typeof err === 'object' && err.error && (
+                        <span className="text-red-600 ml-2">- {err.error}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Rejeitados por CNPJ */}
+            {uploadResults.rejeitadas_cnpj && uploadResults.rejeitadas_cnpj.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold text-orange-700 mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  Rejeitadas por CNPJ ({uploadResults.rejeitadas_cnpj.length})
+                </h3>
+                <div className="bg-orange-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                  {uploadResults.rejeitadas_cnpj.map((rej, idx) => (
+                    <div key={idx} className="text-sm text-orange-800 py-2 border-b border-orange-200 last:border-0">
+                      <span className="font-medium">NF {rej.numero_nfe || idx + 1}</span>
+                      <span className="text-orange-600 ml-2">- {rej.motivo}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Devoluções do Fornecedor */}
+            {uploadResults.notas_desconsideradas_devolucao && uploadResults.notas_desconsideradas_devolucao.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Devoluções do Fornecedor ({uploadResults.notas_desconsideradas_devolucao.length})
+                </h3>
+                <div className="bg-slate-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                  {uploadResults.notas_desconsideradas_devolucao.map((dev, idx) => (
+                    <div key={idx} className="text-sm text-slate-800 py-2 border-b border-slate-200 last:border-0">
+                      <span className="font-medium">NF {dev.numero_nfe || idx + 1}</span>
+                      <span className="text-slate-600 ml-2">- {dev.emitente || ''}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Conversões de CFOP */}
+            {uploadResults.relatorio_conversoes && uploadResults.relatorio_conversoes.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold text-blue-700 mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5" />
+                  Conversões de CFOP ({uploadResults.total_conversoes || uploadResults.relatorio_conversoes.length})
+                </h3>
+                <div className="bg-blue-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                  {uploadResults.relatorio_conversoes.slice(0, 20).map((conv, idx) => (
+                    <div key={idx} className="text-sm text-blue-800 py-1">
+                      <span className="font-medium">NF {conv.nfe}</span>
+                      <span className="text-blue-600 ml-2">
+                        {conv.conversoes?.map(c => `${c.cfop_original}→${c.cfop_convertido}`).join(', ')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Footer */}
+          <div className="bg-gray-50 px-6 py-4 border-t flex justify-between items-center">
+            <p className="text-sm text-gray-500">
+              Gerado em: {new Date().toLocaleString('pt-BR')}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => exportarRelatorio('word')}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                📄 Exportar Word
+              </button>
+              <button
+                onClick={() => exportarRelatorio('pdf')}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+              >
+                📋 Imprimir/PDF
+              </button>
+              <button
+                onClick={() => {
+                  setShowDetailModal(false);
+                  clearResults();
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 
