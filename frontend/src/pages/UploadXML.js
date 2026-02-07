@@ -535,41 +535,29 @@ const UploadXML = ({ user, onLogout }) => {
               </div>
             )}
 
-            <div className="flex gap-3">
-              <button
-                data-testid="upload-files-button"
-                onClick={handleUpload}
-                disabled={uploading || globalUploading || !selectedCompany || !competencia || files.length === 0}
-                className="flex-1 bg-red-600 text-white py-4 rounded-lg font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-lg flex items-center justify-center gap-2"
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                    Processando... {progress.percent}%
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-6 h-6" />
-                    Importar {files.length.toLocaleString('pt-BR')} arquivo(s)
-                    {files.length > BATCH_SIZE && ` (${Math.ceil(files.length / BATCH_SIZE)} lotes)`}
-                  </>
-                )}
-              </button>
-              
-              <button
-                onClick={handleBackgroundUpload}
-                disabled={uploading || globalUploading || !selectedCompany || !competencia || files.length === 0}
-                className="bg-slate-700 text-white px-6 py-4 rounded-lg font-medium hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2"
-                title="Importar em segundo plano e continuar navegando"
-              >
-                <Upload className="w-5 h-5" />
-                <span className="hidden md:inline">2º Plano</span>
-              </button>
-            </div>
+            <button
+              data-testid="upload-files-button"
+              onClick={handleUpload}
+              disabled={uploading || globalUploading || !selectedCompany || !competencia || files.length === 0}
+              className="w-full bg-red-600 text-white py-4 rounded-lg font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-lg flex items-center justify-center gap-2"
+            >
+              {uploading || globalUploading ? (
+                <>
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  Processando... {globalUploading ? globalProgress.percent : progress.percent}%
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-6 h-6" />
+                  Importar {files.length.toLocaleString('pt-BR')} arquivo(s)
+                  {files.length > BATCH_SIZE && ` (${Math.ceil(files.length / BATCH_SIZE)} lotes)`}
+                </>
+              )}
+            </button>
             
-            {globalUploading && (
-              <p className="text-sm text-amber-600 mt-2 text-center">
-                ⏳ Upload em andamento em segundo plano. Você pode navegar para outras páginas.
+            {(uploading || globalUploading) && (
+              <p className="text-sm text-slate-600 mt-3 text-center">
+                💡 Você pode navegar para outras páginas. O progresso será exibido no canto inferior direito.
               </p>
             )}
           </div>
