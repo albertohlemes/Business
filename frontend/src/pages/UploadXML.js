@@ -597,47 +597,49 @@ const UploadXML = ({ user, onLogout }) => {
             {/* Resumo geral */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-green-50 p-4 rounded-lg border border-green-200 text-center">
-                <p className="text-2xl font-bold text-green-700">{results.success || 0}</p>
-                <p className="text-sm text-green-600">Processados</p>
+                <p className="text-2xl font-bold text-green-700">{results.resumo?.importados || results.success?.length || 0}</p>
+                <p className="text-sm text-green-600">Importados</p>
               </div>
               <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-center">
-                <p className="text-2xl font-bold text-yellow-700">{results.already_exists || 0}</p>
+                <p className="text-2xl font-bold text-yellow-700">{results.resumo?.duplicados || results.duplicadas?.length || 0}</p>
                 <p className="text-sm text-yellow-600">Duplicados</p>
               </div>
               <div className="bg-red-50 p-4 rounded-lg border border-red-200 text-center">
-                <p className="text-2xl font-bold text-red-700">{results.errors || 0}</p>
+                <p className="text-2xl font-bold text-red-700">{results.resumo?.erros || results.errors?.length || 0}</p>
                 <p className="text-sm text-red-600">Erros</p>
               </div>
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 text-center">
-                <p className="text-2xl font-bold text-blue-700">{results.total || 0}</p>
+                <p className="text-2xl font-bold text-blue-700">{results.resumo?.total_arquivos || 0}</p>
                 <p className="text-sm text-blue-600">Total</p>
               </div>
             </div>
 
             {/* Conversões CFOP */}
-            {results.conversions && results.conversions.length > 0 && (
+            {results.relatorio_conversoes && results.relatorio_conversoes.length > 0 && (
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Check className="w-5 h-5 text-green-600" />
-                  <h3 className="font-semibold text-green-900">Conversões de CFOP ({results.conversions.length})</h3>
+                  <h3 className="font-semibold text-green-900">Conversões de CFOP ({results.total_conversoes || 0})</h3>
                 </div>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {results.conversions.slice(0, 20).map((item, index) => (
+                  {results.relatorio_conversoes.slice(0, 10).map((arquivo, index) => (
                     <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
-                      <p className="text-sm font-medium text-green-900">{item.filename || item.chave}</p>
-                      <p className="text-xs text-green-700">{item.cfop_original} → {item.cfop_novo}</p>
+                      <p className="text-sm font-medium text-green-900">NF {arquivo.nfe} - {arquivo.arquivo}</p>
+                      <p className="text-xs text-green-700">
+                        {arquivo.conversoes?.map(c => `${c.cfop_original}→${c.cfop_convertido}`).join(', ')}
+                      </p>
                     </div>
                   ))}
-                  {results.conversions.length > 20 && (
+                  {results.relatorio_conversoes.length > 10 && (
                     <p className="text-sm text-gray-500 text-center py-2">
-                      ... e mais {results.conversions.length - 20} conversões
+                      ... e mais {results.relatorio_conversoes.length - 10} arquivos com conversões
                     </p>
                   )}
                 </div>
               </div>
             )}
 
-            {results.exists_details && results.exists_details.length > 0 && (
+            {results.duplicadas && results.duplicadas.length > 0 && (
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-3">
                   <AlertCircle className="w-5 h-5 text-yellow-600" />
