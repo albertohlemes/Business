@@ -5127,26 +5127,20 @@ async def get_dashboard_stats(
     
     logger.info(f"DASHBOARD: NFe Entrada={len(nfe_entrada)}, NFe Saída={len(nfe_saida)}, NFCe={len(nfce)}, NFSe={len(nfse)}")
     
-    # Valores totais - SOMAR PRODUTOS pelo CFOP para consistência
-    # Isso garante que Dashboard e Apuração mostrem os mesmos valores
+    # Valores totais - SOMAR valor_total dos documentos pelo TIPO
+    # Isso garante consistência com o relatório de documentos exportado
+    # NOTA: Antes somava por CFOP dos produtos, mas isso incluía devoluções de venda
+    # (CFOP 1202 em notas de saída) erroneamente nas entradas
     total_entradas = 0
     total_vendas = 0
     total_cupons = 0
     
-    # Somar valores dos produtos - USAR CFOP para determinar entrada/saída
-    # Independente do tipo do documento
-    all_docs = nfe_entrada + nfe_saida
+    # Somar valores pelo TIPO do documento (não pelo CFOP)
+    for doc in nfe_entrada:
+        total_entradas += float(doc.get('valor_total', 0) or 0)
     
-    for doc in all_docs:
-        for prod in doc.get('produtos', []):
-            cfop = str(prod.get('cfop', '') or '')
-            valor = float(prod.get('valor_total', 0) or 0)
-            if cfop:
-                primeiro = cfop[0]
-                if primeiro in ['1', '2', '3']:
-                    total_entradas += valor
-                elif primeiro in ['5', '6', '7']:
-                    total_vendas += valor
+    for doc in nfe_saida:
+        total_vendas += float(doc.get('valor_total', 0) or 0)
     
     logger.info(f"DASHBOARD: Total Entradas={total_entradas}, Total Vendas={total_vendas}")
     
