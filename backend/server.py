@@ -4073,6 +4073,7 @@ async def upload_xml_with_progress(
                             })
             else:
                 cnpj_valido = cnpj_emitente == cnpj_empresa
+                logger.info(f"VALIDAÇÃO SAÍDA: NF {parsed_data.get('numero_nfe')} - Emitente: {cnpj_emitente}, Empresa: {cnpj_empresa}, Válido: {cnpj_valido}")
                 if not cnpj_valido:
                     rejeitadas_cnpj.append({
                         "filename": file.filename,
