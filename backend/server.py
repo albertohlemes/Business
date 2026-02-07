@@ -408,6 +408,19 @@ CFOPS_SAIDA_SEM_INCIDENCIA = [
     '7651', '7654', '7667', '7930', '7949'
 ]
 
+# Filtro padrão para excluir notas canceladas e desconsideradas das apurações
+def get_filtro_notas_ativas():
+    """
+    Retorna o filtro MongoDB para excluir notas canceladas e desconsideradas.
+    Usar em todos os endpoints de apuração/cálculo.
+    """
+    return {
+        "$and": [
+            {"$or": [{"cancelada": {"$exists": False}}, {"cancelada": False}]},
+            {"$or": [{"desconsiderada_devolucao": {"$exists": False}}, {"desconsiderada_devolucao": False}]}
+        ]
+    }
+
 def calcular_cst_pis_cofins(ncm: str, cfop: str, tipo_operacao: str, cst_xml: str = None, regime: str = 'lucro_real') -> dict:
     """
     Calcula o CST correto de PIS/COFINS baseado nas regras fiscais.
