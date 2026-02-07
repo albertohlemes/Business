@@ -3475,24 +3475,7 @@ async def upload_xml_batch(
             }
             notas_desconsideradas_salvas.append(nota_dev_info)
             
-            # 1. Salvar a nota de devolução como desconsiderada
-            doc_devolucao = XMLDocument(
-                company_id=company_id,
-                competencia=competencia,
-                tipo='entrada',
-                modelo='nfe',
-                chave_nfe=chave_nfe_dev,
-                numero_nfe=parsed_data.get('numero_nfe', ''),
-                serie=parsed_data.get('serie', ''),
-                data_emissao=parsed_data.get('data_emissao', ''),
-                emitente_cnpj=parsed_data.get('emitente_cnpj', ''),
-                emitente_nome=parsed_data.get('emitente_nome', ''),
-                emitente_ie=parsed_data.get('emitente_ie', ''),
-                emitente_uf=parsed_data.get('emitente_uf', ''),
-                emitente_endereco=parsed_data.get('emitente_endereco', {}),
-                destinatario_cnpj=parsed_data.get('destinatario_cnpj', ''),
-                destinatario_nome=parsed_data.get('destinatario_nome', ''),
-                destinatario_ie=parsed_data.get('destinatario_ie', ''),
+            # Se tiver NFe referenciada, marcar a nota original como desconsiderada também
                 destinatario_uf=parsed_data.get('destinatario_uf', ''),
                 destinatario_endereco=parsed_data.get('destinatario_endereco', {}),
                 valor_total=parsed_data.get('valor_total', 0),
