@@ -30,6 +30,11 @@ const Documents = ({ user, onLogout }) => {
   // Modal de detalhamento
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  
+  // Relatório de Devoluções do Fornecedor
+  const [relatorioDevolucoes, setRelatorioDevolucoes] = useState(null);
+  const [loadingDevolucoes, setLoadingDevolucoes] = useState(false);
+  const [showRelatorioDevolucoes, setShowRelatorioDevolucoes] = useState(false);
 
   useEffect(() => {
     fetchData();
