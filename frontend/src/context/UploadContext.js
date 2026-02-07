@@ -80,22 +80,32 @@ export const UploadProvider = ({ children }) => {
         try {
           const data = JSON.parse(event.data);
           
-          if (data.status === 'processing') {
-            setProgress({
-              current: data.current,
-              total: data.total,
-              percent: Math.round((data.current / data.total) * 100)
+          // Verificar se realmente concluiu (completed=true E results presente)
+          if (data.completed && data.results) {
+            setProgress({ 
+              current: data.total_files || data.processed_files, 
+              total: data.total_files, 
+              percent: 100 
             });
-            setCurrentFile(data.filename || `Processando ${data.current}/${data.total}...`);
-          } else if (data.status === 'completed') {
-            setProgress({ current: data.total, total: data.total, percent: 100 });
             setCurrentFile('Concluído!');
             setUploadResults(data.results);
             setIsUploading(false);
             eventSource.close();
             eventSourceRef.current = null;
-          } else if (data.status === 'error') {
-            setUploadError(data.message || 'Erro durante o upload');
+          } else if (data.status === 'processing' || !data.completed) {
+            // Ainda processando
+            const processed = data.processed_files || 0;
+            const total = data.total_files || 1;
+            const percent = data.progress_percent || Math.round((processed / total) * 100);
+            
+            setProgress({
+              current: processed,
+              total: total,
+              percent: percent
+            });
+            setCurrentFile(data.current_file || data.current_step || `Processando ${processed}/${total}...`);
+          } else if (data.status === 'error' || data.error) {
+            setUploadError(data.error || data.message || 'Erro durante o upload');
             setIsUploading(false);
             eventSource.close();
             eventSourceRef.current = null;
