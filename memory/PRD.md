@@ -53,6 +53,18 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
   - Listagem de documentos
 - **Feedback no Upload:** Ao importar um XML cancelado, o sistema retorna status `cancelada` com a mensagem do motivo
 
+### ✅ **Detecção de Devolução do Fornecedor** (07/02/2026) 🆕
+- **Problema Corrigido:** Notas de devolução emitidas por fornecedores (com finNFe=4, CFOP de entrada 1411/2411, natureza "DEV") estavam sendo importadas como compras normais
+- **Solução Implementada:** O sistema agora detecta automaticamente devoluções usando 4 critérios:
+  1. **finNFe = 4** (Finalidade Devolução no XML)
+  2. **Natureza de Operação** contendo "DEV", "DEVOLUC", "DEVOL"
+  3. **CFOP de Devolução** (1411, 2411, 1201, 2201, etc.)
+  4. **NFe Referenciada** presente (DFeReferenciado/chaveAcesso ou NFref/refNFe)
+- **Campos Armazenados:** `desconsiderada_devolucao`, `nfe_referenciada`, `motivo_desconsideracao`
+- **Exclusão Automática:** Notas marcadas como devolução do fornecedor são excluídas de todas as apurações fiscais
+- **Relatório Dedicado:** Endpoint `/api/relatorio-devolucoes-fornecedor/{company_id}` lista pares (devolução + nota original)
+- **Extração de DFeReferenciado:** Suporte ao novo formato de referência no XML 4.0 (DFeReferenciado/chaveAcesso)
+
 ### ✅ **Exportação de Relação de Notas** (06/02/2026) 🆕
 - **Novo Endpoint:** `GET /api/relacao-notas/{company_id}` retorna todas as notas (entrada e saída) com status Ativa/Cancelada
 - **Nova Opção de Exportação:** Na página de Apuração Mensal, botão "Exportar" agora tem 3 opções:
