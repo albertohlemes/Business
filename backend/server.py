@@ -3184,6 +3184,7 @@ async def upload_xml_batch(
             
             if tipo == 'entrada':
                 cnpj_valido = cnpj_destinatario == cnpj_empresa
+                logger.info(f"VALIDAÇÃO ENTRADA: NF {parsed_data.get('numero_nfe')} - Destinatário: {cnpj_destinatario}, Empresa: {cnpj_empresa}, Válido: {cnpj_valido}")
                 if not cnpj_valido:
                     rejeitadas_cnpj.append({
                         "filename": file.filename,
@@ -3997,6 +3998,7 @@ async def upload_xml_with_progress(
             
             if tipo == 'entrada':
                 cnpj_valido = cnpj_destinatario == cnpj_empresa
+                logger.info(f"VALIDAÇÃO ENTRADA: NF {parsed_data.get('numero_nfe')} - Destinatário: {cnpj_destinatario}, Empresa: {cnpj_empresa}, Válido: {cnpj_valido}")
                 if not cnpj_valido:
                     rejeitadas_cnpj.append({
                         "filename": file.filename,
