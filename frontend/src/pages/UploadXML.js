@@ -770,6 +770,12 @@ const UploadXML = ({ user, onLogout }) => {
                       <p className="text-xs text-amber-600">Alertas CFOP</p>
                     </div>
                   )}
+                  {results.resumo.desconsideradas_devolucao > 0 && (
+                    <div className="bg-slate-200 p-3 rounded-lg">
+                      <p className="text-2xl font-bold text-slate-700">{results.resumo.desconsideradas_devolucao}</p>
+                      <p className="text-xs text-slate-600">Dev. Fornecedor</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
