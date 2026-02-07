@@ -671,6 +671,71 @@ const UploadXML = ({ user, onLogout }) => {
               </div>
             )}
 
+            {/* NOTAS DESCONSIDERADAS POR DEVOLUÇÃO DO FORNECEDOR */}
+            {results.notas_desconsideradas_devolucao && results.notas_desconsideradas_devolucao.length > 0 && (
+              <div className="mb-4">
+                <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-lg p-4 mb-3">
+                  <h3 className="font-bold text-xl mb-1 flex items-center gap-2">
+                    🚫 NOTAS DESCONSIDERADAS - Devolução do Fornecedor
+                  </h3>
+                  <p className="text-slate-200">
+                    {results.notas_desconsideradas_devolucao.length} notas identificadas como devolução emitida pelo fornecedor.
+                  </p>
+                  <p className="text-slate-300 text-sm mt-1">
+                    Estas notas e suas referências serão excluídas de todas as apurações fiscais.
+                  </p>
+                </div>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {results.notas_desconsideradas_devolucao.map((nota, idx) => (
+                    <div key={idx} className={`p-4 rounded-lg border-2 ${
+                      nota.tipo === 'devolucao_entrada' 
+                        ? 'bg-slate-100 border-slate-400' 
+                        : nota.tipo === 'saida_original'
+                        ? 'bg-orange-50 border-orange-300'
+                        : 'bg-gray-100 border-gray-300'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        {nota.tipo === 'devolucao_entrada' && (
+                          <span className="px-2 py-1 bg-slate-700 text-white text-xs rounded font-bold">DEVOLUÇÃO</span>
+                        )}
+                        {nota.tipo === 'saida_original' && (
+                          <span className="px-2 py-1 bg-orange-600 text-white text-xs rounded font-bold">ORIGINAL VINCULADA</span>
+                        )}
+                        {nota.tipo === 'saida_original_nao_encontrada' && (
+                          <span className="px-2 py-1 bg-gray-600 text-white text-xs rounded font-bold">NÃO ENCONTRADA</span>
+                        )}
+                        <p className="font-bold text-gray-900">
+                          NF-e {nota.numero_nfe}
+                          {nota.valor_total > 0 && (
+                            <span className="ml-2 text-sm font-normal text-gray-600">
+                              R$ {nota.valor_total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <p className="text-sm text-gray-700">{nota.motivo}</p>
+                      {nota.emitente && (
+                        <p className="text-xs text-gray-600 mt-1">Emitente: {nota.emitente}</p>
+                      )}
+                      {nota.destinatario && (
+                        <p className="text-xs text-gray-600">Destinatário: {nota.destinatario}</p>
+                      )}
+                      {nota.nfe_referenciada && (
+                        <p className="text-xs text-blue-600 mt-1">
+                          📎 Referência: {nota.nfe_referenciada.substring(0, 30)}...
+                        </p>
+                      )}
+                      {nota.vinculada_a && (
+                        <p className="text-xs text-orange-600 mt-1">
+                          ↳ Vinculada à NF {nota.vinculada_a}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {results.resumo && (
               <div className="mb-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <h3 className="font-bold text-gray-900 mb-3">Resumo da Importação</h3>
