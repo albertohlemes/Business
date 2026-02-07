@@ -6093,135 +6093,110 @@ async def relatorio_devolucoes_fornecedor(
     """
     Gera relatório de notas desconsideradas por devolução do próprio fornecedor.
     
-    Este relatório lista:
-    - Notas de devolução (entrada) emitidas pelo fornecedor com CFOP de entrada
-    - Notas de saída originais que foram referenciadas nas devoluções
-    
-    Ambas são excluídas das apurações fiscais.
+    Retorna pares agrupados: Nota de Devolução (entrada) + Nota Original (saída)
+    Campos: Data, Fornecedor, Número, Valor
+    Se não encontrar a nota referenciada, retorna mensagem informativa.
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    # Buscar notas desconsideradas por devolução
+    # Buscar notas de devolução (que têm nfe_referenciada preenchida)
     filtro = {
         "company_id": company_id,
-        "desconsiderada_devolucao": True
+        "desconsiderada_devolucao": True,
+        "nfe_referenciada": {"$exists": True, "$ne": None, "$ne": ""}
     }
     
     if competencia:
         filtro["competencia"] = competencia
     
-    documentos = await db.xml_documents.find(filtro, {"_id": 0, "xml_content": 0}).to_list(length=1000)
+    notas_devolucao = await db.xml_documents.find(filtro, {"_id": 0, "xml_content": 0}).to_list(length=1000)
     
-    # Organizar por pares (devolução + original)
-    pares_devolucao = []
-    notas_processadas = set()
+    # Organizar por pares agrupados
+    pares = []
     
-    for doc in documentos:
-        chave = doc.get('chave_nfe', '')
-        if chave in notas_processadas:
-            continue
+    for devolucao in notas_devolucao:
+        nfe_ref = devolucao.get('nfe_referenciada', '')
         
-        # Se é uma nota de devolução (tem nfe_referenciada)
-        if doc.get('nfe_referenciada'):
-            nfe_ref = doc['nfe_referenciada']
-            
-            # Buscar a nota original
-            nota_original = next((d for d in documentos if d.get('chave_nfe') == nfe_ref), None)
-            
-            # Se não encontrou nos documentos desconsiderados, buscar no banco
-            if not nota_original:
-                nota_original = await db.xml_documents.find_one(
-                    {"company_id": company_id, "chave_nfe": nfe_ref},
-                    {"_id": 0, "xml_content": 0}
-                )
-            
-            par = {
-                "devolucao": {
-                    "id": doc.get('id', ''),
-                    "chave_nfe": chave,
-                    "numero_nfe": doc.get('numero_nfe', ''),
-                    "serie": doc.get('serie', ''),
-                    "data_emissao": doc.get('data_emissao', '')[:10] if doc.get('data_emissao') else '',
-                    "competencia": doc.get('competencia', ''),
-                    "emitente_cnpj": doc.get('emitente_cnpj', ''),
-                    "emitente_nome": doc.get('emitente_nome', ''),
-                    "valor_total": doc.get('valor_total', 0),
-                    "motivo": doc.get('motivo_desconsideracao', ''),
-                    "produtos": len(doc.get('produtos', [])),
-                    "cfops": list(set([p.get('cfop', '') for p in doc.get('produtos', [])]))
-                },
-                "nota_original": None
-            }
-            
-            if nota_original:
-                par["nota_original"] = {
-                    "id": nota_original.get('id', ''),
-                    "chave_nfe": nfe_ref,
-                    "numero_nfe": nota_original.get('numero_nfe', ''),
-                    "serie": nota_original.get('serie', ''),
-                    "data_emissao": nota_original.get('data_emissao', '')[:10] if nota_original.get('data_emissao') else '',
-                    "competencia": nota_original.get('competencia', ''),
-                    "destinatario_cnpj": nota_original.get('destinatario_cnpj', ''),
-                    "destinatario_nome": nota_original.get('destinatario_nome', ''),
-                    "valor_total": nota_original.get('valor_total', 0),
-                    "motivo": nota_original.get('motivo_desconsideracao', 'Nota devolvida pelo fornecedor'),
-                    "produtos": len(nota_original.get('produtos', [])),
-                    "cfops": list(set([p.get('cfop', '') for p in nota_original.get('produtos', [])]))
-                }
-                notas_processadas.add(nfe_ref)
-            else:
-                par["nota_original"] = {
-                    "chave_nfe": nfe_ref,
-                    "numero_nfe": "N/A",
-                    "status": "não encontrada no sistema",
-                    "motivo": "A nota original referenciada não foi localizada"
-                }
-            
-            pares_devolucao.append(par)
-            notas_processadas.add(chave)
+        # Formatar data
+        data_devolucao = devolucao.get('data_emissao', '')
+        if data_devolucao and 'T' in data_devolucao:
+            data_devolucao = data_devolucao[:10]
         
-        # Se é uma nota original que foi devolvida (tem nfe_vinculada_devolucao)
-        elif doc.get('nfe_vinculada_devolucao') and chave not in notas_processadas:
-            nfe_dev = doc['nfe_vinculada_devolucao']
+        # Buscar a nota original referenciada
+        nota_original = await db.xml_documents.find_one(
+            {"company_id": company_id, "chave_nfe": nfe_ref},
+            {"_id": 0, "xml_content": 0}
+        )
+        
+        # Também buscar em outras competências se não encontrar
+        if not nota_original:
+            nota_original = await db.xml_documents.find_one(
+                {"chave_nfe": nfe_ref},
+                {"_id": 0, "xml_content": 0}
+            )
+        
+        par = {
+            "fornecedor": devolucao.get('emitente_nome', 'N/A'),
+            "fornecedor_cnpj": devolucao.get('emitente_cnpj', ''),
+            "devolucao": {
+                "id": devolucao.get('id', ''),
+                "tipo": "DEVOLUÇÃO (Entrada)",
+                "numero": devolucao.get('numero_nfe', ''),
+                "serie": devolucao.get('serie', ''),
+                "data": data_devolucao,
+                "valor": round(devolucao.get('valor_total', 0), 2),
+                "competencia": devolucao.get('competencia', ''),
+                "chave": devolucao.get('chave_nfe', ''),
+                "cfops": list(set([p.get('cfop', '') for p in devolucao.get('produtos', [])])),
+                "qtd_itens": len(devolucao.get('produtos', []))
+            },
+            "nota_original": None,
+            "status_vinculo": "ok"
+        }
+        
+        if nota_original:
+            data_original = nota_original.get('data_emissao', '')
+            if data_original and 'T' in data_original:
+                data_original = data_original[:10]
             
-            # Buscar a nota de devolução
-            nota_dev = next((d for d in documentos if d.get('chave_nfe') == nfe_dev), None)
-            
-            if nota_dev:
-                # Já foi processada como par
-                continue
-            
-            # Nota original sem a devolução encontrada
-            par = {
-                "devolucao": {
-                    "chave_nfe": nfe_dev,
-                    "numero_nfe": "N/A",
-                    "status": "não encontrada no sistema"
-                },
-                "nota_original": {
-                    "id": doc.get('id', ''),
-                    "chave_nfe": chave,
-                    "numero_nfe": doc.get('numero_nfe', ''),
-                    "serie": doc.get('serie', ''),
-                    "data_emissao": doc.get('data_emissao', '')[:10] if doc.get('data_emissao') else '',
-                    "competencia": doc.get('competencia', ''),
-                    "destinatario_cnpj": doc.get('destinatario_cnpj', ''),
-                    "destinatario_nome": doc.get('destinatario_nome', ''),
-                    "valor_total": doc.get('valor_total', 0),
-                    "motivo": doc.get('motivo_desconsideracao', ''),
-                    "produtos": len(doc.get('produtos', [])),
-                    "cfops": list(set([p.get('cfop', '') for p in doc.get('produtos', [])]))
-                }
+            par["nota_original"] = {
+                "id": nota_original.get('id', ''),
+                "tipo": "SAÍDA ORIGINAL",
+                "numero": nota_original.get('numero_nfe', ''),
+                "serie": nota_original.get('serie', ''),
+                "data": data_original,
+                "valor": round(nota_original.get('valor_total', 0), 2),
+                "competencia": nota_original.get('competencia', ''),
+                "chave": nfe_ref,
+                "destinatario": nota_original.get('destinatario_nome', ''),
+                "destinatario_cnpj": nota_original.get('destinatario_cnpj', ''),
+                "cfops": list(set([p.get('cfop', '') for p in nota_original.get('produtos', [])])),
+                "qtd_itens": len(nota_original.get('produtos', [])),
+                "desconsiderada": nota_original.get('desconsiderada_devolucao', False)
             }
-            pares_devolucao.append(par)
-            notas_processadas.add(chave)
+        else:
+            par["nota_original"] = {
+                "tipo": "NÃO ENCONTRADA",
+                "numero": "N/A",
+                "data": "N/A",
+                "valor": 0,
+                "chave": nfe_ref,
+                "mensagem": f"Nota fiscal referenciada (chave: {nfe_ref[:25]}...) não foi localizada no sistema. Pode estar em outra competência ou não ter sido importada."
+            }
+            par["status_vinculo"] = "nao_encontrada"
+        
+        pares.append(par)
+    
+    # Ordenar por data da devolução (mais recente primeiro)
+    pares.sort(key=lambda x: x['devolucao']['data'], reverse=True)
     
     # Calcular totais
-    total_devolucoes = len(pares_devolucao)
-    valor_total_devolucoes = sum(p['devolucao'].get('valor_total', 0) for p in pares_devolucao if p['devolucao'].get('valor_total'))
-    valor_total_originais = sum(p['nota_original'].get('valor_total', 0) for p in pares_devolucao if p['nota_original'] and p['nota_original'].get('valor_total'))
+    total_pares = len(pares)
+    valor_total_devolucoes = sum(p['devolucao']['valor'] for p in pares)
+    valor_total_originais = sum(p['nota_original']['valor'] for p in pares if p['nota_original'] and p['nota_original'].get('valor'))
+    pares_sem_vinculo = len([p for p in pares if p['status_vinculo'] == 'nao_encontrada'])
     
     return {
         "titulo": "Notas Desconsideradas por Devolução do Próprio Fornecedor",
@@ -6231,14 +6206,315 @@ async def relatorio_devolucoes_fornecedor(
             "cnpj": company.get('cnpj', '')
         },
         "competencia": competencia or "Todas",
+        "data_geracao": datetime.now(timezone.utc).isoformat(),
         "resumo": {
-            "total_pares": total_devolucoes,
+            "total_pares": total_pares,
             "valor_total_devolucoes": round(valor_total_devolucoes, 2),
-            "valor_total_originais": round(valor_total_originais, 2)
+            "valor_total_originais": round(valor_total_originais, 2),
+            "pares_sem_vinculo": pares_sem_vinculo
         },
-        "descricao": "Este relatório lista notas fiscais que foram desconsideradas das apurações porque representam devoluções emitidas pelo próprio fornecedor. Quando o fornecedor emite uma nota com CFOP de entrada (1xxx/2xxx) referenciando uma venda que a empresa fez, tanto a nota de devolução quanto a nota original de venda são excluídas dos cálculos fiscais.",
-        "pares": pares_devolucao
+        "descricao": "Este relatório lista notas fiscais desconsideradas das apurações por representarem devoluções emitidas pelo próprio fornecedor. Quando o fornecedor emite uma nota com CFOP de entrada referenciando uma venda anterior, ambas as notas são excluídas dos cálculos fiscais.",
+        "pares": pares
     }
+
+
+@api_router.get("/relatorio-devolucoes-fornecedor/{company_id}/exportar")
+async def exportar_relatorio_devolucoes(
+    company_id: str,
+    formato: str = "excel",  # excel ou word
+    competencia: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Exporta o relatório de devoluções do fornecedor em Excel ou Word.
+    """
+    from io import BytesIO
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar dados do relatório
+    filtro = {
+        "company_id": company_id,
+        "desconsiderada_devolucao": True,
+        "nfe_referenciada": {"$exists": True, "$ne": None, "$ne": ""}
+    }
+    if competencia:
+        filtro["competencia"] = competencia
+    
+    notas_devolucao = await db.xml_documents.find(filtro, {"_id": 0, "xml_content": 0}).to_list(length=1000)
+    
+    # Montar dados para exportação
+    dados_exportacao = []
+    valor_total_dev = 0
+    valor_total_orig = 0
+    
+    for devolucao in notas_devolucao:
+        nfe_ref = devolucao.get('nfe_referenciada', '')
+        
+        # Formatar data
+        data_dev = devolucao.get('data_emissao', '')[:10] if devolucao.get('data_emissao') else ''
+        
+        # Buscar nota original
+        nota_original = await db.xml_documents.find_one(
+            {"chave_nfe": nfe_ref},
+            {"_id": 0, "xml_content": 0}
+        )
+        
+        valor_dev = round(devolucao.get('valor_total', 0), 2)
+        valor_total_dev += valor_dev
+        
+        linha = {
+            "fornecedor": devolucao.get('emitente_nome', ''),
+            "fornecedor_cnpj": devolucao.get('emitente_cnpj', ''),
+            "dev_numero": devolucao.get('numero_nfe', ''),
+            "dev_data": data_dev,
+            "dev_valor": valor_dev,
+            "dev_competencia": devolucao.get('competencia', ''),
+            "orig_numero": "",
+            "orig_data": "",
+            "orig_valor": 0,
+            "orig_competencia": "",
+            "status": "NÃO ENCONTRADA"
+        }
+        
+        if nota_original:
+            data_orig = nota_original.get('data_emissao', '')[:10] if nota_original.get('data_emissao') else ''
+            valor_orig = round(nota_original.get('valor_total', 0), 2)
+            valor_total_orig += valor_orig
+            
+            linha["orig_numero"] = nota_original.get('numero_nfe', '')
+            linha["orig_data"] = data_orig
+            linha["orig_valor"] = valor_orig
+            linha["orig_competencia"] = nota_original.get('competencia', '')
+            linha["status"] = "VINCULADA"
+        
+        dados_exportacao.append(linha)
+    
+    # Ordenar por data
+    dados_exportacao.sort(key=lambda x: x['dev_data'], reverse=True)
+    
+    if formato.lower() == "excel":
+        # Exportar Excel
+        try:
+            import openpyxl
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+            from openpyxl.utils import get_column_letter
+        except ImportError:
+            raise HTTPException(status_code=500, detail="Biblioteca openpyxl não instalada")
+        
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Devoluções Fornecedor"
+        
+        # Estilos
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="4A5568", end_color="4A5568", fill_type="solid")
+        dev_fill = PatternFill(start_color="FED7D7", end_color="FED7D7", fill_type="solid")
+        orig_fill = PatternFill(start_color="C6F6D5", end_color="C6F6D5", fill_type="solid")
+        warning_fill = PatternFill(start_color="FEFCBF", end_color="FEFCBF", fill_type="solid")
+        thin_border = Border(
+            left=Side(style='thin'), right=Side(style='thin'),
+            top=Side(style='thin'), bottom=Side(style='thin')
+        )
+        
+        # Título
+        ws.merge_cells('A1:K1')
+        ws['A1'] = "RELATÓRIO DE NOTAS DESCONSIDERADAS POR DEVOLUÇÃO DO FORNECEDOR"
+        ws['A1'].font = Font(bold=True, size=14)
+        ws['A1'].alignment = Alignment(horizontal='center')
+        
+        # Info empresa
+        ws['A2'] = f"Empresa: {company.get('razao_social', '')} - CNPJ: {company.get('cnpj', '')}"
+        ws['A3'] = f"Competência: {competencia or 'Todas'} | Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        
+        # Resumo
+        ws['A5'] = "RESUMO"
+        ws['A5'].font = Font(bold=True)
+        ws['A6'] = f"Total de Pares: {len(dados_exportacao)}"
+        ws['A7'] = f"Valor Total Devoluções: R$ {valor_total_dev:,.2f}"
+        ws['A8'] = f"Valor Total Originais: R$ {valor_total_orig:,.2f}"
+        
+        # Cabeçalhos
+        headers = [
+            "Fornecedor", "CNPJ Fornecedor",
+            "NF Devolução", "Data Dev.", "Valor Dev.", "Comp. Dev.",
+            "NF Original", "Data Orig.", "Valor Orig.", "Comp. Orig.",
+            "Status"
+        ]
+        
+        row = 10
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=row, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal='center')
+        
+        # Dados
+        for linha in dados_exportacao:
+            row += 1
+            valores = [
+                linha['fornecedor'],
+                linha['fornecedor_cnpj'],
+                linha['dev_numero'],
+                linha['dev_data'],
+                linha['dev_valor'],
+                linha['dev_competencia'],
+                linha['orig_numero'],
+                linha['orig_data'],
+                linha['orig_valor'],
+                linha['orig_competencia'],
+                linha['status']
+            ]
+            
+            for col, valor in enumerate(valores, 1):
+                cell = ws.cell(row=row, column=col, value=valor)
+                cell.border = thin_border
+                
+                # Colorir células de devolução
+                if col in [3, 4, 5, 6]:
+                    cell.fill = dev_fill
+                # Colorir células de original
+                elif col in [7, 8, 9, 10]:
+                    if linha['status'] == 'VINCULADA':
+                        cell.fill = orig_fill
+                    else:
+                        cell.fill = warning_fill
+                # Status
+                elif col == 11:
+                    if linha['status'] == 'NÃO ENCONTRADA':
+                        cell.fill = warning_fill
+        
+        # Ajustar larguras
+        for col in range(1, 12):
+            ws.column_dimensions[get_column_letter(col)].width = 15
+        ws.column_dimensions['A'].width = 35
+        ws.column_dimensions['B'].width = 18
+        
+        # Salvar
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        filename = f"devolucoes_fornecedor_{company_id}_{competencia or 'todas'}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
+    elif formato.lower() == "word":
+        # Exportar Word
+        try:
+            from docx import Document
+            from docx.shared import Inches, Pt, Cm
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+            from docx.enum.table import WD_TABLE_ALIGNMENT
+            from docx.oxml.ns import nsdecls
+            from docx.oxml import parse_xml
+        except ImportError:
+            raise HTTPException(status_code=500, detail="Biblioteca python-docx não instalada")
+        
+        doc = Document()
+        
+        # Título
+        titulo = doc.add_heading('RELATÓRIO DE NOTAS DESCONSIDERADAS', level=1)
+        titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        subtitulo = doc.add_heading('Devolução do Próprio Fornecedor', level=2)
+        subtitulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # Info empresa
+        doc.add_paragraph(f"Empresa: {company.get('razao_social', '')}")
+        doc.add_paragraph(f"CNPJ: {company.get('cnpj', '')}")
+        doc.add_paragraph(f"Competência: {competencia or 'Todas'}")
+        doc.add_paragraph(f"Data de Geração: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        
+        doc.add_paragraph()
+        
+        # Resumo
+        doc.add_heading('Resumo', level=2)
+        doc.add_paragraph(f"Total de Pares de Notas: {len(dados_exportacao)}")
+        doc.add_paragraph(f"Valor Total das Devoluções: R$ {valor_total_dev:,.2f}")
+        doc.add_paragraph(f"Valor Total das Notas Originais: R$ {valor_total_orig:,.2f}")
+        
+        doc.add_paragraph()
+        
+        # Descrição
+        doc.add_heading('Descrição', level=2)
+        desc = doc.add_paragraph(
+            "Este relatório lista notas fiscais que foram desconsideradas das apurações "
+            "porque representam devoluções emitidas pelo próprio fornecedor. Quando o "
+            "fornecedor emite uma nota com CFOP de entrada referenciando uma venda anterior "
+            "da empresa, tanto a nota de devolução quanto a nota original são excluídas "
+            "dos cálculos fiscais."
+        )
+        
+        doc.add_paragraph()
+        
+        # Tabela de dados
+        if dados_exportacao:
+            doc.add_heading('Detalhamento', level=2)
+            
+            for i, linha in enumerate(dados_exportacao, 1):
+                # Separador
+                doc.add_heading(f"Par {i} - {linha['fornecedor'][:40]}", level=3)
+                
+                # Tabela para o par
+                table = doc.add_table(rows=3, cols=5)
+                table.style = 'Table Grid'
+                
+                # Cabeçalhos
+                hdr_cells = table.rows[0].cells
+                hdr_cells[0].text = "Tipo"
+                hdr_cells[1].text = "NF"
+                hdr_cells[2].text = "Data"
+                hdr_cells[3].text = "Valor"
+                hdr_cells[4].text = "Competência"
+                
+                # Devolução
+                dev_cells = table.rows[1].cells
+                dev_cells[0].text = "DEVOLUÇÃO"
+                dev_cells[1].text = str(linha['dev_numero'])
+                dev_cells[2].text = linha['dev_data']
+                dev_cells[3].text = f"R$ {linha['dev_valor']:,.2f}"
+                dev_cells[4].text = linha['dev_competencia']
+                
+                # Original
+                orig_cells = table.rows[2].cells
+                orig_cells[0].text = "ORIGINAL"
+                if linha['status'] == 'VINCULADA':
+                    orig_cells[1].text = str(linha['orig_numero'])
+                    orig_cells[2].text = linha['orig_data']
+                    orig_cells[3].text = f"R$ {linha['orig_valor']:,.2f}"
+                    orig_cells[4].text = linha['orig_competencia']
+                else:
+                    orig_cells[1].text = "NÃO ENCONTRADA"
+                    orig_cells[2].text = "-"
+                    orig_cells[3].text = "-"
+                    orig_cells[4].text = "-"
+                
+                doc.add_paragraph()
+        
+        # Salvar
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+        
+        filename = f"devolucoes_fornecedor_{company_id}_{competencia or 'todas'}_{datetime.now().strftime('%Y%m%d')}.docx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
+    else:
+        raise HTTPException(status_code=400, detail="Formato inválido. Use 'excel' ou 'word'")
+
 
 @api_router.get("/relatorio-divergencias-saida/{company_id}")
 async def relatorio_divergencias_saida(
