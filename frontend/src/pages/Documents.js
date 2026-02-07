@@ -42,7 +42,9 @@ const Documents = ({ user, onLogout }) => {
   const [showRelatorioCanceladas, setShowRelatorioCanceladas] = useState(false);
 
   useEffect(() => {
-    fetchData();
+    if (ctxCompany) {
+      fetchData();
+    }
   }, [ctxCompany]);
   
   // Auto-abrir documento se highlight estiver na URL
