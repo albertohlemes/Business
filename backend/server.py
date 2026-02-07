@@ -4083,6 +4083,27 @@ async def upload_xml_with_progress(
                         "destinatario": parsed_data.get('destinatario_nome', '')
                     })
                     continue
+                
+                # ==== VALIDAR CFOP PARA SAÍDAS ====
+                # Se a empresa é emitente mas os CFOPs são de ENTRADA (1xxx, 2xxx, 3xxx),
+                # esta é uma nota de devolução que a empresa emitiu para devolver mercadoria
+                # a um fornecedor. Deve ser classificada como ENTRADA, não SAÍDA.
+                cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
+                cfops_entrada_na_saida = [c for c in cfops_xml if c and len(c) >= 1 and c[0] in ['1', '2', '3']]
+                cfops_saida = [c for c in cfops_xml if c and len(c) >= 1 and c[0] in ['5', '6', '7']]
+                
+                # Se TODOS os CFOPs são de entrada, esta NF não deve ser importada como saída
+                if cfops_entrada_na_saida and not cfops_saida:
+                    logger.info(f"VALIDAÇÃO SAÍDA: NF {parsed_data.get('numero_nfe')} tem apenas CFOPs de entrada {cfops_entrada_na_saida} - desconsiderando na importação de saídas")
+                    results.append({
+                        "filename": file.filename,
+                        "status": "desconsiderada_cfop_entrada",
+                        "numero_nfe": parsed_data.get('numero_nfe', ''),
+                        "chave": chave_nfe,
+                        "motivo": f"NF emitida pela empresa com CFOP de entrada ({', '.join(cfops_entrada_na_saida[:3])}). Esta é uma devolução a fornecedor e deve ser importada como ENTRADA.",
+                        "cfops": cfops_entrada_na_saida
+                    })
+                    continue
             
             data_emissao = parsed_data.get('data_emissao', '')
             if data_emissao:
