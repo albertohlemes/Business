@@ -1663,7 +1663,7 @@ class FiscalSystemAPITester:
             "Step 7: Test Authentication Required",
             "GET",
             f"relatorio-notas-canceladas/{company_id}",
-            401,  # Should return 401 without token
+            403,  # Should return 403 without token (FastAPI returns 403 for missing auth)
             headers={}  # No authorization header
         )
         
