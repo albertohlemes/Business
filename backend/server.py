@@ -8309,12 +8309,13 @@ async def exportar_e_validar_sped(
     
     company = Company(**company_doc)
     
-    # Buscar documentos da competência - EXCLUIR notas canceladas
-    documents_cursor = db.xml_documents.find({
+    # Buscar documentos da competência - EXCLUIR notas canceladas e desconsideradas
+    query = {
         "company_id": company_id,
-        "competencia": competencia,
-        "$or": [{"cancelada": {"$exists": False}}, {"cancelada": False}]
-    }, {"_id": 0})
+        "competencia": competencia
+    }
+    query.update(get_filtro_notas_ativas())
+    documents_cursor = db.xml_documents.find(query, {"_id": 0})
     documents_data = await documents_cursor.to_list(10000)
     
     if not documents_data:
