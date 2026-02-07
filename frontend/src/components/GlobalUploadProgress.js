@@ -303,12 +303,12 @@ const GlobalUploadProgress = () => {
 
             {/* Botões de ação */}
             <div className="mt-3 flex gap-2">
-              <a
-                href="/upload"
+              <button
+                onClick={() => setShowDetailModal(true)}
                 className="flex-1 py-2 text-sm text-center bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
               >
                 Ver Detalhes
-              </a>
+              </button>
               <button
                 onClick={() => exportarRelatorio('word')}
                 className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
