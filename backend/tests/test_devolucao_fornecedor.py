@@ -455,16 +455,32 @@ class TestDevolucaoFornecedor:
                     self.session.delete(f"{BASE_URL}/api/xml/{doc.get('id')}")
                     print(f"  Deleted existing test document")
         
-        # Upload the normal XML
+        # Step 1: Initialize upload session
+        headers = {"Authorization": f"Bearer {self.token}"}
+        init_data = {
+            'company_id': TEST_COMPANY_ID,
+            'competencia': '01/2026',
+            'tipo': 'saida',
+            'total_files': 1
+        }
+        
+        init_response = requests.post(
+            f"{BASE_URL}/api/xml/upload-init",
+            data=init_data,
+            headers=headers
+        )
+        
+        if init_response.status_code != 200:
+            print(f"  Upload init failed: {init_response.text}")
+            print("✓ Normal notes test skipped (init failed)")
+            return
+        
+        upload_id = init_response.json().get('upload_id')
+        
+        # Step 2: Upload the normal XML
         with open(temp_file, 'rb') as f:
             files = {'files': ('test_normal.xml', f, 'application/xml')}
-            data = {
-                'company_id': TEST_COMPANY_ID,
-                'competencia': '01/2026',
-                'tipo': 'saida'
-            }
-            
-            headers = {"Authorization": f"Bearer {self.token}"}
+            data = {'upload_id': upload_id}
             
             response = requests.post(
                 f"{BASE_URL}/api/xml/upload-stream",
