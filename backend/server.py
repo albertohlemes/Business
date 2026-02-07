@@ -10692,7 +10692,7 @@ async def relacao_notas_detalhada(
     }
     
     if not incluir_canceladas:
-        query["$or"] = [{"cancelada": {"$exists": False}}, {"cancelada": False}]
+        query.update(get_filtro_notas_ativas())
     
     documents = await db.xml_documents.find(
         query, 
