@@ -1465,6 +1465,163 @@ const Documents = ({ user, onLogout }) => {
           </div>
         </div>
       )}
+
+      {/* Modal do Relatório de Notas Canceladas */}
+      {showRelatorioCanceladas && relatorioCanceladas && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold">{relatorioCanceladas.titulo}</h2>
+                  <p className="text-red-200 mt-1">
+                    {relatorioCanceladas.empresa?.razao_social} | Competência: {relatorioCanceladas.competencia}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowRelatorioCanceladas(false)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              {/* Resumo */}
+              <div className="grid grid-cols-5 gap-4 mt-4">
+                <div className="bg-white/10 rounded-lg p-3 text-center">
+                  <p className="text-3xl font-bold">{relatorioCanceladas.resumo?.total_notas || 0}</p>
+                  <p className="text-xs text-red-200">Total Canceladas</p>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-blue-300">{relatorioCanceladas.resumo?.total_entradas || 0}</p>
+                  <p className="text-xs text-red-200">Entradas</p>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-green-300">{relatorioCanceladas.resumo?.total_saidas || 0}</p>
+                  <p className="text-xs text-red-200">Saídas</p>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3 text-center">
+                  <p className="text-lg font-bold">
+                    R$ {(relatorioCanceladas.resumo?.valor_total_entradas || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-red-200">Valor Entradas</p>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3 text-center">
+                  <p className="text-lg font-bold">
+                    R$ {(relatorioCanceladas.resumo?.valor_total_saidas || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-red-200">Valor Saídas</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Descrição */}
+            <div className="px-6 py-4 bg-red-50 border-b">
+              <p className="text-sm text-red-800">{relatorioCanceladas.descricao}</p>
+            </div>
+            
+            {/* Lista de Notas */}
+            <div className="p-6 overflow-y-auto max-h-[50vh]">
+              {relatorioCanceladas.notas?.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <XCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                  <p>Nenhuma nota cancelada encontrada nesta competência.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {relatorioCanceladas.notas?.map((nota, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`border rounded-lg overflow-hidden ${
+                        nota.tipo === 'ENTRADA' 
+                          ? 'border-blue-200 bg-blue-50' 
+                          : 'border-green-200 bg-green-50'
+                      }`}
+                    >
+                      <div className={`px-4 py-2 flex items-center justify-between ${
+                        nota.tipo === 'ENTRADA' ? 'bg-blue-100' : 'bg-green-100'
+                      }`}>
+                        <div className="flex items-center gap-3">
+                          <span className={`px-2 py-1 text-xs font-bold rounded ${
+                            nota.tipo === 'ENTRADA' 
+                              ? 'bg-blue-600 text-white' 
+                              : 'bg-green-600 text-white'
+                          }`}>
+                            {nota.tipo}
+                          </span>
+                          <span className="font-bold text-gray-800">NF-e {nota.numero}</span>
+                          {nota.serie && <span className="text-gray-500 text-sm">Série {nota.serie}</span>}
+                        </div>
+                        <span className="font-bold text-red-700">
+                          R$ {(nota.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      
+                      <div className="px-4 py-3 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500 block">Data Emissão</span>
+                          <span className="font-medium">{nota.data_emissao || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block">Data Cancelamento</span>
+                          <span className="font-medium text-red-600">{nota.data_cancelamento || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block">{nota.tipo === 'ENTRADA' ? 'Emitente' : 'Destinatário'}</span>
+                          <span className="font-medium truncate block" title={nota.tipo === 'ENTRADA' ? nota.emitente : nota.destinatario}>
+                            {(nota.tipo === 'ENTRADA' ? nota.emitente : nota.destinatario)?.substring(0, 25) || '-'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block">Competência</span>
+                          <span className="font-medium">{nota.competencia || '-'}</span>
+                        </div>
+                      </div>
+                      
+                      {nota.justificativa && (
+                        <div className="px-4 py-2 bg-white/50 border-t">
+                          <span className="text-gray-500 text-xs">Justificativa: </span>
+                          <span className="text-gray-700 text-sm">{nota.justificativa}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Footer com botões de exportação */}
+            <div className="bg-gray-50 px-6 py-4 border-t flex justify-between items-center">
+              <p className="text-sm text-gray-500">
+                Gerado em: {new Date(relatorioCanceladas.data_geracao).toLocaleString('pt-BR')}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => exportarRelatorioCanceladas('excel')}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  Exportar Excel
+                </button>
+                <button
+                  onClick={() => exportarRelatorioCanceladas('word')}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  <FileDown className="w-4 h-4" />
+                  Exportar Word
+                </button>
+                <button
+                  onClick={() => setShowRelatorioCanceladas(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Modal de Detalhamento */}
       {renderDocumentDetailModal()}
