@@ -4139,6 +4139,13 @@ async def upload_xml_with_progress(
                         {"$set": {"processado": True}}
                     )
             
+            # ==== MARCAR COMO DESCONSIDERADA SE FOR DEVOLUÇÃO DO FORNECEDOR ====
+            if is_devolucao_fornecedor:
+                doc['desconsiderada_devolucao'] = True
+                doc['nfe_referenciada'] = nfe_ref_devolucao
+                doc['motivo_desconsideracao'] = motivo_devolucao
+                logger.info(f"UPLOAD-STREAM: Marcando NF {parsed_data.get('numero_nfe')} como desconsiderada por devolução")
+            
             await db.xml_documents.insert_one(doc)
             
             result_entry = {
