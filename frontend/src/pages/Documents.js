@@ -437,7 +437,25 @@ const Documents = ({ user, onLogout }) => {
     const fileName = `Notas_${empresa.substring(0, 15)}${tipoFiltro}${statusFiltro}_${competencia.replace('/', '-')}.xlsx`;
 
     console.log('Gerando arquivo:', fileName);
-    XLSX.writeFile(wb, fileName);
+    
+    // Usar método alternativo de download para garantir compatibilidade
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    
+    // Criar link de download e clicar
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    
+    // Limpar
+    setTimeout(() => {
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    }, 100);
+    
     console.log('Arquivo gerado com sucesso');
     } catch (error) {
       console.error('Erro ao exportar Excel:', error);
