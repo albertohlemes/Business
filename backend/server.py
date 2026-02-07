@@ -3572,6 +3572,7 @@ async def init_upload(
         "status": "initialized",
         "total_files": total_files,
         "processed_files": 0,
+        "processed_in_session": 0,  # Total processado em todos os lotes
         "current_file": "",
         "current_step": "Aguardando arquivos...",
         "progress_percent": 0,
@@ -3580,7 +3581,16 @@ async def init_upload(
         "tipo": tipo,
         "user_id": current_user.id,
         "results": None,
-        "completed": False
+        "completed": False,
+        "all_results": {  # Acumula resultados de todos os lotes
+            "success": [],
+            "errors": [],
+            "duplicadas": [],
+            "rejeitadas_cnpj": [],
+            "relatorio_conversoes": [],
+            "alertas_cfop": [],
+            "notas_desconsideradas_devolucao": []
+        }
     }
     
     return {"upload_id": upload_id}
