@@ -5148,6 +5148,8 @@ async def get_dashboard_stats(
                 elif primeiro in ['5', '6', '7']:
                     total_vendas += valor
     
+    logger.info(f"DASHBOARD: Total Entradas={total_entradas}, Total Vendas={total_vendas}")
+    
     # Cupons (NFC-e) - somar produtos também
     for doc in nfce:
         for prod in doc.get('produtos', []):
