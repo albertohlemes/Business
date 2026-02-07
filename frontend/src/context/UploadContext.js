@@ -28,7 +28,7 @@ export const UploadProvider = ({ children }) => {
   const API = `${BACKEND_URL}/api`;
 
   // Iniciar upload em segundo plano
-  const startUpload = useCallback(async (files, companyId, competencia, empresaNome) => {
+  const startUpload = useCallback(async (files, companyId, competencia, empresaNome, tipo = 'entrada') => {
     if (isUploading) {
       alert('Já existe um upload em andamento. Aguarde a conclusão.');
       return false;
@@ -45,7 +45,7 @@ export const UploadProvider = ({ children }) => {
     setCurrentFile('Iniciando...');
     setUploadResults(null);
     setUploadError(null);
-    setUploadInfo({ empresa: empresaNome, competencia });
+    setUploadInfo({ empresa: empresaNome, competencia, tipo });
     setMinimized(false);
 
     try {
@@ -53,8 +53,10 @@ export const UploadProvider = ({ children }) => {
       const initFormData = new FormData();
       initFormData.append('company_id', companyId);
       initFormData.append('competencia', competencia);
-      initFormData.append('tipo', 'entrada'); // Tipo padrão
+      initFormData.append('tipo', tipo);  // Usar o tipo passado como parâmetro
       initFormData.append('total_files', files.length.toString());
+      
+      console.log('UploadContext: Iniciando upload com tipo:', tipo);
       
       const initResponse = await fetch(`${API}/xml/upload-init`, {
         method: 'POST',
