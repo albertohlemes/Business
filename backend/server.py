@@ -3415,6 +3415,108 @@ async def upload_xml_batch(
         except Exception as e:
             errors.append({"filename": file.filename, "error": str(e)})
     
+    # ===== PROCESSAR NOTAS DE DEVOLUÇÃO DO FORNECEDOR =====
+    # Salvar as notas de devolução como desconsideradas e também marcar as notas originais referenciadas
+    notas_desconsideradas_salvas = []
+    for dev in notas_devolucao_fornecedor:
+        try:
+            parsed_data = dev['parsed_data']
+            chave_nfe_dev = dev['chave_nfe']
+            nfe_ref = dev.get('nfe_referenciada', '')
+            
+            # 1. Salvar a nota de devolução como desconsiderada
+            doc_devolucao = XMLDocument(
+                company_id=company_id,
+                competencia=competencia,
+                tipo='entrada',
+                modelo='nfe',
+                chave_nfe=chave_nfe_dev,
+                numero_nfe=parsed_data.get('numero_nfe', ''),
+                serie=parsed_data.get('serie', ''),
+                data_emissao=parsed_data.get('data_emissao', ''),
+                emitente_cnpj=parsed_data.get('emitente_cnpj', ''),
+                emitente_nome=parsed_data.get('emitente_nome', ''),
+                emitente_ie=parsed_data.get('emitente_ie', ''),
+                emitente_uf=parsed_data.get('emitente_uf', ''),
+                emitente_endereco=parsed_data.get('emitente_endereco', {}),
+                destinatario_cnpj=parsed_data.get('destinatario_cnpj', ''),
+                destinatario_nome=parsed_data.get('destinatario_nome', ''),
+                destinatario_ie=parsed_data.get('destinatario_ie', ''),
+                destinatario_uf=parsed_data.get('destinatario_uf', ''),
+                destinatario_endereco=parsed_data.get('destinatario_endereco', {}),
+                valor_total=parsed_data.get('valor_total', 0),
+                total_ipi=parsed_data.get('total_ipi', 0),
+                total_icms_st=parsed_data.get('total_icms_st', 0),
+                total_frete=parsed_data.get('total_frete', 0),
+                total_seguro=parsed_data.get('total_seguro', 0),
+                total_outras_despesas=parsed_data.get('total_outras_despesas', 0),
+                total_desconto=parsed_data.get('total_desconto', 0),
+                xml_content=dev['xml_content'],
+                produtos=parsed_data.get('produtos', []),
+                status_validacao='desconsiderada',
+                uploaded_by=current_user.email,
+                desconsiderada_devolucao=True,
+                motivo_desconsideracao=dev['motivo'],
+                nfe_referenciada=nfe_ref
+            )
+            
+            await db.xml_documents.insert_one(doc_devolucao.model_dump())
+            
+            nota_dev_info = {
+                "tipo": "devolucao_entrada",
+                "chave_nfe": chave_nfe_dev,
+                "numero_nfe": dev['numero_nfe'],
+                "data_emissao": dev.get('data_emissao', ''),
+                "valor_total": dev.get('valor_total', 0),
+                "emitente": dev.get('emitente_nome', ''),
+                "nfe_referenciada": nfe_ref,
+                "motivo": dev['motivo']
+            }
+            notas_desconsideradas_salvas.append(nota_dev_info)
+            
+            # 2. Se tiver NFe referenciada, marcar a nota original como desconsiderada também
+            if nfe_ref:
+                # Buscar a nota original pela chave referenciada
+                nota_original = await db.xml_documents.find_one({
+                    "company_id": company_id,
+                    "chave_nfe": nfe_ref
+                })
+                
+                if nota_original:
+                    # Marcar a nota original como desconsiderada
+                    await db.xml_documents.update_one(
+                        {"id": nota_original['id']},
+                        {"$set": {
+                            "desconsiderada_devolucao": True,
+                            "motivo_desconsideracao": f"Nota devolvida pelo fornecedor. Devolução: NF {dev['numero_nfe']}",
+                            "nfe_vinculada_devolucao": chave_nfe_dev,
+                            "status_validacao": "desconsiderada"
+                        }}
+                    )
+                    
+                    notas_desconsideradas_salvas.append({
+                        "tipo": "saida_original",
+                        "chave_nfe": nfe_ref,
+                        "numero_nfe": nota_original.get('numero_nfe', ''),
+                        "data_emissao": nota_original.get('data_emissao', ''),
+                        "valor_total": nota_original.get('valor_total', 0),
+                        "destinatario": nota_original.get('destinatario_nome', ''),
+                        "vinculada_a": dev['numero_nfe'],
+                        "motivo": f"Nota devolvida pelo fornecedor. Devolução: NF {dev['numero_nfe']}"
+                    })
+                else:
+                    # Nota original não encontrada - registrar para referência
+                    notas_desconsideradas_salvas.append({
+                        "tipo": "saida_original_nao_encontrada",
+                        "chave_nfe": nfe_ref,
+                        "numero_nfe": "N/A",
+                        "vinculada_a": dev['numero_nfe'],
+                        "motivo": f"Nota original referenciada não encontrada no sistema. Chave: {nfe_ref[:20]}..."
+                    })
+        
+        except Exception as e:
+            errors.append({"filename": dev.get('filename', 'devolucao'), "error": f"Erro ao processar devolução: {str(e)}"})
+    
     return {
         "success": results,
         "errors": errors,
@@ -3423,6 +3525,7 @@ async def upload_xml_batch(
         "rejeitadas_competencia": rejeitadas_competencia,
         "relatorio_conversoes": conversion_report,
         "alertas_cfop": alertas_cfop,
+        "notas_desconsideradas_devolucao": notas_desconsideradas_salvas,
         "total_conversoes": sum(len(r['conversoes']) for r in conversion_report),
         "total_alertas_cfop": sum(len(a['alertas']) for a in alertas_cfop),
         "performance": {
@@ -3437,6 +3540,7 @@ async def upload_xml_batch(
             "duplicados": len(duplicadas),
             "rejeitados_cnpj": len(rejeitadas_cnpj),
             "rejeitados_competencia": len(rejeitadas_competencia),
+            "desconsideradas_devolucao": len(notas_devolucao_fornecedor),
             "erros": len(errors),
             "alertas_cfop": len(alertas_cfop)
         }
