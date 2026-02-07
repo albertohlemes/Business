@@ -3143,33 +3143,58 @@ async def upload_xml_batch(
                     continue
                 
                 # NOVA VALIDAÇÃO: Detectar devolução do fornecedor
-                # Se o emitente NÃO é a empresa, mas os CFOPs no XML já são de entrada (1xxx, 2xxx, 3xxx),
-                # isso significa que um terceiro emitiu uma nota com CFOP de entrada
-                # Isso pode ser uma devolução de venda que fizemos para esse fornecedor
+                # Critérios para identificar devolução:
+                # 1. finNFe = 4 (finalidade = devolução)
+                # 2. Natureza de operação contém "DEVOLUC" ou "DEV "
+                # 3. CFOPs de devolução de entrada (1411, 2411, 1201, 2201, etc.)
+                # 4. Emitente é diferente da empresa (fornecedor emitiu a nota)
                 is_devolucao_fornecedor = False
                 motivo_devolucao = ""
                 nfe_ref_devolucao = ""
                 
+                # Extrair dados para análise
+                finalidade_nfe = parsed_data.get('finalidade_nfe', '1')
+                natureza_operacao = parsed_data.get('natureza_operacao', '').upper()
+                cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
+                nfe_ref_devolucao = parsed_data.get('nfe_referenciada', '') or ''
+                
+                # CFOPs típicos de devolução de entrada
+                cfops_devolucao_entrada = ['1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209', '1210',
+                                           '1411', '1410', '1503', '1504', '1553', '1660', '1661', '1662',
+                                           '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209', '2210',
+                                           '2411', '2410', '2503', '2504', '2553', '2660', '2661', '2662',
+                                           '3201', '3202', '3211']
+                
                 # Verificar se emitente é diferente da empresa (fornecedor emitiu a nota)
                 if cnpj_emitente != cnpj_empresa:
-                    cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
                     cfops_entrada = [c for c in cfops_xml if c and len(c) >= 1 and c[0] in ['1', '2', '3']]
                     
                     # Log para debug
                     print(f"DEBUG DEVOLUÇÃO: NF {parsed_data.get('numero_nfe')} - Emitente: {cnpj_emitente}, Empresa: {cnpj_empresa}")
-                    print(f"DEBUG DEVOLUÇÃO: CFOPs no XML: {cfops_xml}, CFOPs entrada: {cfops_entrada}")
+                    print(f"DEBUG DEVOLUÇÃO: finNFe: {finalidade_nfe}, natOp: {natureza_operacao}")
+                    print(f"DEBUG DEVOLUÇÃO: CFOPs no XML: {cfops_xml}, NFe Ref: {nfe_ref_devolucao}")
                     
-                    # Se TODOS os CFOPs são de entrada (1xxx, 2xxx, 3xxx)
-                    if cfops_entrada and len(cfops_entrada) == len(cfops_xml) and len(cfops_xml) > 0:
-                        # Todos os CFOPs são de entrada - Devolução do fornecedor
-                        cfops_unicos = list(set(cfops_entrada))[:3]
-                        nfe_ref_devolucao = parsed_data.get('nfe_referenciada', '') or ''
+                    # CRITÉRIO PRINCIPAL: Verificar se é devolução
+                    is_devolucao_por_finalidade = str(finalidade_nfe) == '4'  # finNFe = 4 significa Devolução
+                    is_devolucao_por_natureza = any(termo in natureza_operacao for termo in ['DEVOLUC', 'DEV ', 'DEVOL'])
+                    is_devolucao_por_cfop = any(cfop in cfops_devolucao_entrada for cfop in cfops_xml)
+                    tem_nfe_referenciada = bool(nfe_ref_devolucao and len(nfe_ref_devolucao) > 10)
+                    
+                    print(f"DEBUG DEVOLUÇÃO: Por finalidade: {is_devolucao_por_finalidade}, Por natureza: {is_devolucao_por_natureza}, Por CFOP: {is_devolucao_por_cfop}, Tem NFe Ref: {tem_nfe_referenciada}")
+                    
+                    # Se atender a pelo menos UM dos critérios de devolução + ter NFe referenciada OU ser devolução por finalidade
+                    if (is_devolucao_por_finalidade or 
+                        (is_devolucao_por_cfop and tem_nfe_referenciada) or 
+                        (is_devolucao_por_natureza and tem_nfe_referenciada) or
+                        (is_devolucao_por_cfop and is_devolucao_por_natureza)):
+                        
+                        cfops_unicos = list(set(cfops_xml))[:3]
                         
                         print(f"DEBUG DEVOLUÇÃO: DETECTADA! CFOPs únicos: {cfops_unicos}, NFe Ref: {nfe_ref_devolucao}")
                         
                         # Marcar como devolução do fornecedor (será processada mas desconsiderada)
                         is_devolucao_fornecedor = True
-                        motivo_devolucao = f"Devolução emitida pelo fornecedor ({parsed_data.get('emitente_nome', '')[:40]}) com CFOP de entrada ({', '.join(cfops_unicos)}). Nota e sua referência serão desconsideradas das apurações."
+                        motivo_devolucao = f"Devolução emitida pelo fornecedor ({parsed_data.get('emitente_nome', '')[:40]}) - finNFe: {finalidade_nfe}, natOp: {natureza_operacao[:30]}, CFOP: {', '.join(cfops_unicos)}. Nota e sua referência serão desconsideradas das apurações."
                         
                         # Registrar para o relatório de retorno
                         notas_devolucao_fornecedor.append({
