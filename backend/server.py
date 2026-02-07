@@ -223,6 +223,11 @@ class XMLDocument(BaseModel):
     data_cancelamento: str = ""
     justificativa_cancelamento: str = ""
     protocolo_cancelamento: str = ""
+    # Campos para notas desconsideradas por devolução de fornecedor
+    desconsiderada_devolucao: bool = False
+    motivo_desconsideracao: str = ""
+    nfe_referenciada: str = ""  # Chave da NF original (quando é uma devolução)
+    nfe_vinculada_devolucao: str = ""  # Chave da NF de devolução que causou desconsideração
 
 class CFOPRule(BaseModel):
     model_config = ConfigDict(extra="ignore")
