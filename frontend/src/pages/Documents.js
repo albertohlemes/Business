@@ -436,7 +436,13 @@ const Documents = ({ user, onLogout }) => {
     const statusFiltro = selectedStatus ? `_${selectedStatus}` : '';
     const fileName = `Notas_${empresa.substring(0, 15)}${tipoFiltro}${statusFiltro}_${competencia.replace('/', '-')}.xlsx`;
 
+    console.log('Gerando arquivo:', fileName);
     XLSX.writeFile(wb, fileName);
+    console.log('Arquivo gerado com sucesso');
+    } catch (error) {
+      console.error('Erro ao exportar Excel:', error);
+      alert('Erro ao exportar: ' + error.message);
+    }
   };
 
   // ======= RELATÓRIO DE DEVOLUÇÕES DO FORNECEDOR =======
