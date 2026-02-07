@@ -3879,6 +3879,51 @@ async def upload_xml_with_progress(
             is_devolucao_fornecedor = False
             motivo_devolucao = ""
             nfe_ref_devolucao = ""
+            is_mesma_empresa = False  # Flag para notas onde emitente = destinatário = empresa
+            motivo_desconsideracao_mesma_empresa = ""
+            
+            # ==== DETECTAR NOTA DA PRÓPRIA EMPRESA (EMITENTE = DESTINATÁRIO) ====
+            # Quando a empresa é emitente E destinatária, devemos:
+            # - Preservar o CFOP original (sem conversão)
+            # - Importar apenas no tipo correspondente ao CFOP
+            # - CFOP 5xxx/6xxx → apenas SAÍDA (desconsiderar entrada)
+            # - CFOP 1xxx/2xxx → apenas ENTRADA (desconsiderar saída)
+            if cnpj_emitente == cnpj_empresa and cnpj_destinatario == cnpj_empresa:
+                cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
+                cfops_saida = [c for c in cfops_xml if c and len(c) >= 1 and c[0] in ['5', '6', '7']]
+                cfops_entrada = [c for c in cfops_xml if c and len(c) >= 1 and c[0] in ['1', '2', '3']]
+                
+                logger.info(f"MESMA EMPRESA: NF {parsed_data.get('numero_nfe')} - Emitente=Destinatário={cnpj_empresa}")
+                logger.info(f"MESMA EMPRESA: CFOPs saída: {cfops_saida}, CFOPs entrada: {cfops_entrada}, Tipo import: {tipo}")
+                
+                # Determinar se os CFOPs são de saída ou entrada
+                if len(cfops_saida) >= len(cfops_entrada):
+                    # Maioria dos CFOPs são de saída - esta NF é de SAÍDA
+                    if tipo == 'entrada':
+                        # Tentando importar como ENTRADA uma NF de SAÍDA - DESCONSIDERAR
+                        is_mesma_empresa = True
+                        motivo_desconsideracao_mesma_empresa = f"NF emitida pela própria empresa com CFOP de saída ({', '.join(cfops_saida[:3])}). Deve ser escriturada apenas como SAÍDA."
+                        logger.info(f"MESMA EMPRESA: DESCONSIDERANDO na entrada - {motivo_desconsideracao_mesma_empresa}")
+                else:
+                    # Maioria dos CFOPs são de entrada - esta NF é de ENTRADA
+                    if tipo == 'saida':
+                        # Tentando importar como SAÍDA uma NF de ENTRADA - DESCONSIDERAR
+                        is_mesma_empresa = True
+                        motivo_desconsideracao_mesma_empresa = f"NF emitida pela própria empresa com CFOP de entrada ({', '.join(cfops_entrada[:3])}). Deve ser escriturada apenas como ENTRADA."
+                        logger.info(f"MESMA EMPRESA: DESCONSIDERANDO na saída - {motivo_desconsideracao_mesma_empresa}")
+                
+                # Se for desconsiderada, pular para o próximo arquivo
+                if is_mesma_empresa:
+                    # Registrar como nota desconsiderada (não erro, apenas informativo)
+                    results.append({
+                        "filename": file.filename,
+                        "status": "desconsiderada_mesma_empresa",
+                        "numero_nfe": parsed_data.get('numero_nfe', ''),
+                        "chave": chave_nfe,
+                        "motivo": motivo_desconsideracao_mesma_empresa,
+                        "cfops": cfops_saida if cfops_saida else cfops_entrada
+                    })
+                    continue
             
             if tipo == 'entrada':
                 cnpj_valido = cnpj_destinatario == cnpj_empresa
