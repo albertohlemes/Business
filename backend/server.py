@@ -3214,8 +3214,10 @@ async def upload_xml_batch(
                 # CFOPs típicos de devolução de entrada
                 cfops_devolucao_entrada = ['1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209', '1210',
                                            '1411', '1410', '1503', '1504', '1553', '1660', '1661', '1662',
+                                           '1920', '1921',  # Retorno de vasilhame/sacaria
                                            '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209', '2210',
                                            '2411', '2410', '2503', '2504', '2553', '2660', '2661', '2662',
+                                           '2920', '2921',  # Retorno de vasilhame/sacaria interestadual
                                            '3201', '3202', '3211']
                 
                 # Verificar se emitente é diferente da empresa (fornecedor emitiu a nota)
