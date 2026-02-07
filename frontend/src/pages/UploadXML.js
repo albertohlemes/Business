@@ -3,12 +3,22 @@ import axios from 'axios';
 import Layout from '../components/Layout';
 import { Upload, FileText, Check, AlertCircle, Sparkles, Calendar, Loader2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useUpload } from '../context/UploadContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL + '/api';
 
 const UploadXML = ({ user, onLogout }) => {
   const { selectedCompany: ctxCompany, selectedCompetencia: ctxCompetencia } = useAppContext();
+  const { 
+    isUploading: globalUploading, 
+    progress: globalProgress, 
+    uploadResults: globalResults,
+    uploadError: globalError,
+    startUpload: startGlobalUpload,
+    clearResults: clearGlobalResults
+  } = useUpload();
+  
   const [companies, setCompanies] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState('');
   const [competencia, setCompetencia] = useState('');
@@ -17,7 +27,7 @@ const UploadXML = ({ user, onLogout }) => {
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState(null);
   
-  // Progress state
+  // Progress state (local, usado quando não estiver usando o global)
   const [progress, setProgress] = useState({
     percent: 0,
     currentFile: '',
@@ -37,6 +47,28 @@ const UploadXML = ({ user, onLogout }) => {
       }
     };
   }, []);
+  
+  // Sincronizar resultados do upload global
+  useEffect(() => {
+    if (globalResults) {
+      setResults(globalResults);
+      setUploading(false);
+    }
+  }, [globalResults]);
+  
+  // Sincronizar estado de uploading global
+  useEffect(() => {
+    if (globalUploading) {
+      setUploading(true);
+      setProgress({
+        percent: globalProgress.percent,
+        currentFile: '',
+        currentStep: 'Processando...',
+        processedFiles: globalProgress.current,
+        totalFiles: globalProgress.total
+      });
+    }
+  }, [globalUploading, globalProgress]);
 
   // SEMPRE priorizar empresa/competência do contexto global
   useEffect(() => {
