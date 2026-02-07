@@ -48,13 +48,16 @@ const UploadXML = ({ user, onLogout }) => {
     };
   }, []);
   
-  // Sincronizar resultados do upload global
+  // Sincronizar resultados do upload global - SEMPRE que a página carrega
   useEffect(() => {
     if (globalResults) {
       setResults(globalResults);
       setUploading(false);
     }
-  }, [globalResults]);
+    if (globalUploading) {
+      setUploading(true);
+    }
+  }, [globalResults, globalUploading]);
   
   // Sincronizar estado de uploading global
   useEffect(() => {
@@ -67,8 +70,11 @@ const UploadXML = ({ user, onLogout }) => {
         processedFiles: globalProgress.current,
         totalFiles: globalProgress.total
       });
+    } else if (globalResults) {
+      setUploading(false);
+      setResults(globalResults);
     }
-  }, [globalUploading, globalProgress]);
+  }, [globalUploading, globalProgress, globalResults]);
 
   // SEMPRE priorizar empresa/competência do contexto global
   useEffect(() => {
