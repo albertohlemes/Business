@@ -6228,8 +6228,6 @@ async def exportar_relatorio_devolucoes(
     """
     Exporta o relatório de devoluções do fornecedor em Excel ou Word.
     """
-    from io import BytesIO
-    
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
