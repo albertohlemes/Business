@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUpload } from '../context/UploadContext';
 import { X, ChevronUp, ChevronDown, CheckCircle2, AlertCircle, Loader2, FileText } from 'lucide-react';
 
 const GlobalUploadProgress = () => {
   const location = useLocation();
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const {
     isUploading,
     progress,
