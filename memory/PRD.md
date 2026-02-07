@@ -1086,3 +1086,23 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - ✅ Auto-preenchimento de competência nas páginas Upload XML, Reclassificação IA e Exportar SPED
 - ✅ Verificado que filtro entrada/saída nos relatórios funciona corretamente
 - ✅ Todas as funcionalidades testadas e aprovadas (100% backend, 100% frontend)
+
+### 02/2026 - Verificação de Bugs (07/02/2026)
+- ✅ **VERIFICADO: Dashboard funcionando corretamente**
+  - **Problema reportado:** O endpoint `/api/dashboard/stats/{company_id}` retornava valores zerados
+  - **Investigação:** Logs no backend confirmaram que os cálculos estavam corretos
+  - **Causa raiz:** O teste estava usando competência errada (01/2025 em vez de 01/2026)
+  - **Resultado:** API retorna valores corretos quando a competência tem documentos
+  - **Teste com curl:** `total_entradas: 11980397.41, total_vendas: 11871817.60`
+
+- ✅ **VERIFICADO: Botão de Exportação funcionando corretamente**
+  - **Problema reportado:** O botão "Exportar" na página de Documentos não funcionava
+  - **Investigação:** Código da função `exportToExcel` em `Documents.js` estava correto
+  - **Causa raiz:** A página não tinha documentos na competência selecionada (02/2026 vs 01/2026)
+  - **Teste realizado:** Após criar documentos de teste em 02/2026:
+    - Console log: `exportToExcel chamada, docs: 50`
+    - Console log: `Gerando arquivo: Notas_COMERCIAL RS LT_02-2026.xlsx`
+    - Console log: `Arquivo gerado com sucesso`
+  - **Resultado:** Download de Excel funcionando normalmente
+
+- ℹ️ **NOTA:** Ambos os "bugs" eram problemas de dados de teste (competência errada), não de código
