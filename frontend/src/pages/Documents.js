@@ -326,8 +326,8 @@ const Documents = ({ user, onLogout }) => {
 
     try {
       const wb = XLSX.utils.book_new();
-    const empresa = ctxCompany?.razao_social || 'Todas';
-    const competencia = selectedCompetencia || 'Todas';
+      const empresa = ctxCompany?.razao_social || 'Todas';
+      const competencia = selectedCompetencia || 'Todas';
 
     // Formatar data
     const formatDate = (dateStr) => {
