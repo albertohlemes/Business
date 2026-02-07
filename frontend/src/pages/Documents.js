@@ -35,6 +35,11 @@ const Documents = ({ user, onLogout }) => {
   const [relatorioDevolucoes, setRelatorioDevolucoes] = useState(null);
   const [loadingDevolucoes, setLoadingDevolucoes] = useState(false);
   const [showRelatorioDevolucoes, setShowRelatorioDevolucoes] = useState(false);
+  
+  // Relatório de Notas Canceladas
+  const [relatorioCanceladas, setRelatorioCanceladas] = useState(null);
+  const [loadingCanceladas, setLoadingCanceladas] = useState(false);
+  const [showRelatorioCanceladas, setShowRelatorioCanceladas] = useState(false);
 
   useEffect(() => {
     fetchData();
