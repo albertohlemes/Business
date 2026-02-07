@@ -1848,8 +1848,8 @@ def main():
     
     # Test sequence - focusing on the specific review request
     tests = [
-        # PRIORITY TEST: Supplier return report functionality as requested in review
-        tester.test_supplier_return_report_functionality,
+        # PRIORITY TEST: Supplier return report endpoints as requested in review
+        tester.test_supplier_return_report_endpoints,
         # Additional tests: Single document delete verification
         tester.test_single_document_delete_verification,
         # Additional tests: AI batch classification integration
