@@ -3852,8 +3852,23 @@ async def upload_xml_with_progress(
         progress["status"] = "processing"
         
         try:
-            content = await file.read()
-            xml_str = content.decode('utf-8')
+            # Tentar ler o arquivo com tratamento de erro
+            try:
+                content = await file.read()
+                if not content:
+                    errors.append({
+                        "filename": file.filename,
+                        "error": "Arquivo vazio ou não pôde ser lido"
+                    })
+                    continue
+                xml_str = content.decode('utf-8')
+            except Exception as read_error:
+                logger.error(f"Erro ao ler arquivo {file.filename}: {str(read_error)}")
+                errors.append({
+                    "filename": file.filename,
+                    "error": f"Erro ao ler arquivo: {str(read_error)}"
+                })
+                continue
             
             # Atualizar progresso: validando
             progress["current_step"] = f"Validando {file.filename}..."
