@@ -6068,6 +6068,163 @@ async def analise_aliquotas_saida(
         "produtos": produtos_analisados
     }
 
+# ============== RELATÓRIO DE NOTAS DESCONSIDERADAS POR DEVOLUÇÃO DO FORNECEDOR ==============
+@api_router.get("/relatorio-devolucoes-fornecedor/{company_id}")
+async def relatorio_devolucoes_fornecedor(
+    company_id: str,
+    competencia: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Gera relatório de notas desconsideradas por devolução do próprio fornecedor.
+    
+    Este relatório lista:
+    - Notas de devolução (entrada) emitidas pelo fornecedor com CFOP de entrada
+    - Notas de saída originais que foram referenciadas nas devoluções
+    
+    Ambas são excluídas das apurações fiscais.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar notas desconsideradas por devolução
+    filtro = {
+        "company_id": company_id,
+        "desconsiderada_devolucao": True
+    }
+    
+    if competencia:
+        filtro["competencia"] = competencia
+    
+    documentos = await db.xml_documents.find(filtro, {"_id": 0, "xml_content": 0}).to_list(length=1000)
+    
+    # Organizar por pares (devolução + original)
+    pares_devolucao = []
+    notas_processadas = set()
+    
+    for doc in documentos:
+        chave = doc.get('chave_nfe', '')
+        if chave in notas_processadas:
+            continue
+        
+        # Se é uma nota de devolução (tem nfe_referenciada)
+        if doc.get('nfe_referenciada'):
+            nfe_ref = doc['nfe_referenciada']
+            
+            # Buscar a nota original
+            nota_original = next((d for d in documentos if d.get('chave_nfe') == nfe_ref), None)
+            
+            # Se não encontrou nos documentos desconsiderados, buscar no banco
+            if not nota_original:
+                nota_original = await db.xml_documents.find_one(
+                    {"company_id": company_id, "chave_nfe": nfe_ref},
+                    {"_id": 0, "xml_content": 0}
+                )
+            
+            par = {
+                "devolucao": {
+                    "id": doc.get('id', ''),
+                    "chave_nfe": chave,
+                    "numero_nfe": doc.get('numero_nfe', ''),
+                    "serie": doc.get('serie', ''),
+                    "data_emissao": doc.get('data_emissao', '')[:10] if doc.get('data_emissao') else '',
+                    "competencia": doc.get('competencia', ''),
+                    "emitente_cnpj": doc.get('emitente_cnpj', ''),
+                    "emitente_nome": doc.get('emitente_nome', ''),
+                    "valor_total": doc.get('valor_total', 0),
+                    "motivo": doc.get('motivo_desconsideracao', ''),
+                    "produtos": len(doc.get('produtos', [])),
+                    "cfops": list(set([p.get('cfop', '') for p in doc.get('produtos', [])]))
+                },
+                "nota_original": None
+            }
+            
+            if nota_original:
+                par["nota_original"] = {
+                    "id": nota_original.get('id', ''),
+                    "chave_nfe": nfe_ref,
+                    "numero_nfe": nota_original.get('numero_nfe', ''),
+                    "serie": nota_original.get('serie', ''),
+                    "data_emissao": nota_original.get('data_emissao', '')[:10] if nota_original.get('data_emissao') else '',
+                    "competencia": nota_original.get('competencia', ''),
+                    "destinatario_cnpj": nota_original.get('destinatario_cnpj', ''),
+                    "destinatario_nome": nota_original.get('destinatario_nome', ''),
+                    "valor_total": nota_original.get('valor_total', 0),
+                    "motivo": nota_original.get('motivo_desconsideracao', 'Nota devolvida pelo fornecedor'),
+                    "produtos": len(nota_original.get('produtos', [])),
+                    "cfops": list(set([p.get('cfop', '') for p in nota_original.get('produtos', [])]))
+                }
+                notas_processadas.add(nfe_ref)
+            else:
+                par["nota_original"] = {
+                    "chave_nfe": nfe_ref,
+                    "numero_nfe": "N/A",
+                    "status": "não encontrada no sistema",
+                    "motivo": "A nota original referenciada não foi localizada"
+                }
+            
+            pares_devolucao.append(par)
+            notas_processadas.add(chave)
+        
+        # Se é uma nota original que foi devolvida (tem nfe_vinculada_devolucao)
+        elif doc.get('nfe_vinculada_devolucao') and chave not in notas_processadas:
+            nfe_dev = doc['nfe_vinculada_devolucao']
+            
+            # Buscar a nota de devolução
+            nota_dev = next((d for d in documentos if d.get('chave_nfe') == nfe_dev), None)
+            
+            if nota_dev:
+                # Já foi processada como par
+                continue
+            
+            # Nota original sem a devolução encontrada
+            par = {
+                "devolucao": {
+                    "chave_nfe": nfe_dev,
+                    "numero_nfe": "N/A",
+                    "status": "não encontrada no sistema"
+                },
+                "nota_original": {
+                    "id": doc.get('id', ''),
+                    "chave_nfe": chave,
+                    "numero_nfe": doc.get('numero_nfe', ''),
+                    "serie": doc.get('serie', ''),
+                    "data_emissao": doc.get('data_emissao', '')[:10] if doc.get('data_emissao') else '',
+                    "competencia": doc.get('competencia', ''),
+                    "destinatario_cnpj": doc.get('destinatario_cnpj', ''),
+                    "destinatario_nome": doc.get('destinatario_nome', ''),
+                    "valor_total": doc.get('valor_total', 0),
+                    "motivo": doc.get('motivo_desconsideracao', ''),
+                    "produtos": len(doc.get('produtos', [])),
+                    "cfops": list(set([p.get('cfop', '') for p in doc.get('produtos', [])]))
+                }
+            }
+            pares_devolucao.append(par)
+            notas_processadas.add(chave)
+    
+    # Calcular totais
+    total_devolucoes = len(pares_devolucao)
+    valor_total_devolucoes = sum(p['devolucao'].get('valor_total', 0) for p in pares_devolucao if p['devolucao'].get('valor_total'))
+    valor_total_originais = sum(p['nota_original'].get('valor_total', 0) for p in pares_devolucao if p['nota_original'] and p['nota_original'].get('valor_total'))
+    
+    return {
+        "titulo": "Notas Desconsideradas por Devolução do Próprio Fornecedor",
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', '')
+        },
+        "competencia": competencia or "Todas",
+        "resumo": {
+            "total_pares": total_devolucoes,
+            "valor_total_devolucoes": round(valor_total_devolucoes, 2),
+            "valor_total_originais": round(valor_total_originais, 2)
+        },
+        "descricao": "Este relatório lista notas fiscais que foram desconsideradas das apurações porque representam devoluções emitidas pelo próprio fornecedor. Quando o fornecedor emite uma nota com CFOP de entrada (1xxx/2xxx) referenciando uma venda que a empresa fez, tanto a nota de devolução quanto a nota original de venda são excluídas dos cálculos fiscais.",
+        "pares": pares_devolucao
+    }
+
 @api_router.get("/relatorio-divergencias-saida/{company_id}")
 async def relatorio_divergencias_saida(
     company_id: str,
