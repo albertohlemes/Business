@@ -5125,6 +5125,8 @@ async def get_dashboard_stats(
     nfce = [d for d in documents if d.get('modelo') == 'nfce']
     nfse = [d for d in documents if d.get('modelo') == 'nfse']
     
+    logger.info(f"DASHBOARD: NFe Entrada={len(nfe_entrada)}, NFe Saída={len(nfe_saida)}, NFCe={len(nfce)}, NFSe={len(nfse)}")
+    
     # Valores totais - SOMAR PRODUTOS pelo CFOP para consistência
     # Isso garante que Dashboard e Apuração mostrem os mesmos valores
     total_entradas = 0
