@@ -49,8 +49,11 @@ import starlette.formparsers
 
 # Aumentar limite de arquivos no FormData (padrão é 1000)
 # Isso permite upload de mais de 1000 arquivos por requisição
-starlette.formparsers.MultiPartParser.max_files = 10000
-starlette.formparsers.MultiPartParser.max_fields = 10000
+starlette.formparsers.MultiPartParser.max_files = 20000
+starlette.formparsers.MultiPartParser.max_fields = 20000
+
+# Configurar tamanho máximo de spool para arquivos temporários (100MB)
+starlette.formparsers.MultiPartParser.spool_max_size = 100 * 1024 * 1024
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
