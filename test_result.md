@@ -1,5 +1,65 @@
 # Test Results
 
+## Iteration 43 - Notas Desconsideradas por Devolução do Fornecedor (07/02/2026)
+
+### Feature Implementada
+**Problema**: Ao importar notas fiscais, algumas notas de entrada eram emitidas por terceiros (fornecedores) com CFOP de entrada (1xxx/2xxx), quando na verdade representavam devoluções que o fornecedor fez de uma venda anterior. Essas notas não deveriam ser escrituradas.
+
+**Solução Implementada**:
+
+1. **Detecção Automática de Devolução do Fornecedor**:
+   - Durante o upload, o sistema detecta notas onde:
+     - O emitente é um terceiro (CNPJ ≠ empresa)
+     - O destinatário é a empresa
+     - Todos os CFOPs são de entrada (1xxx, 2xxx)
+   - Essas notas são identificadas como "Devolução do Fornecedor"
+
+2. **Extração de NFe Referenciada**:
+   - O parser de XML agora extrai o campo `NFref > refNFe` (chave da nota referenciada)
+   - Quando a nota de devolução referencia uma nota de saída anterior, ambas são desconsideradas
+
+3. **Novos Campos no Modelo XMLDocument**:
+   - `desconsiderada_devolucao`: boolean - indica se a nota foi desconsiderada
+   - `motivo_desconsideracao`: string - motivo da desconsideração
+   - `nfe_referenciada`: string - chave da NF original (para devoluções)
+   - `nfe_vinculada_devolucao`: string - chave da NF de devolução que causou desconsideração
+
+4. **Filtro Global para Apurações**:
+   - Criada função `get_filtro_notas_ativas()` que exclui notas canceladas E desconsideradas
+   - Aplicado em todos os endpoints de cálculo: Dashboard, Apuração Mensal, PIS/COFINS, SPED, etc.
+
+5. **Relatório "Notas Desconsideradas por Devolução do Fornecedor"**:
+   - Novo endpoint: `GET /api/relatorio-devolucoes-fornecedor/{company_id}`
+   - Mostra pares: nota de devolução + nota original referenciada
+   - Resumo com totais de valores desconsiderados
+   - Descrição explicativa do motivo
+
+6. **UI no Upload XML**:
+   - Nova seção no resultado do upload mostrando notas desconsideradas
+   - Cards diferenciados para devolução (slate) e nota original (orange)
+   - Contador no resumo da importação
+
+### Arquivos Modificados
+- `/app/backend/server.py`:
+  - `parse_xml_nfe()` - extração de NFe referenciada
+  - `XMLDocument` - novos campos
+  - `upload_xml_batch()` - detecção e processamento de devoluções
+  - `get_filtro_notas_ativas()` - função helper para filtros
+  - Todos os endpoints de apuração atualizados com filtro combinado
+  - Novo endpoint `/api/relatorio-devolucoes-fornecedor/{company_id}`
+  
+- `/app/frontend/src/pages/UploadXML.js`:
+  - Seção "NOTAS DESCONSIDERADAS - Devolução do Fornecedor"
+  - Card no resumo para devoluções desconsideradas
+
+### Testes
+- ✅ Backend: Endpoint do relatório funcionando corretamente
+- ✅ Estrutura de resposta validada (titulo, empresa, resumo, descricao, pares)
+- ✅ Autenticação e validação de empresa funcionando
+
+---
+
+
 ## Iteration 1
 ### Bug Fixes
 - **Documents Delete Button**: Fixed backend permissions (bcrypt hash issue, role check) and frontend logic. Verified via reproduction script and UI testing.
