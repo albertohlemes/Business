@@ -1121,7 +1121,246 @@ const Documents = ({ user, onLogout }) => {
             </div>
           </div>
         )}
+
+        {/* SEÇÃO: Relatórios Especiais */}
+        {ctxCompany && (
+          <div className="bg-gradient-to-r from-slate-700 to-slate-800 rounded-xl shadow-md p-6">
+            <h3 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              Relatórios Especiais
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Relatório de Devoluções do Fornecedor */}
+              <div className="bg-white/10 rounded-lg p-4 hover:bg-white/20 transition-colors">
+                <h4 className="text-white font-semibold mb-2">
+                  Notas Desconsideradas por Devolução do Fornecedor
+                </h4>
+                <p className="text-slate-300 text-sm mb-4">
+                  Notas de devolução emitidas por fornecedores e suas respectivas notas de saída originais, excluídas das apurações fiscais.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={fetchRelatorioDevolucoes}
+                    disabled={loadingDevolucoes}
+                    className="flex items-center gap-2 px-4 py-2 bg-white text-slate-800 rounded-lg hover:bg-slate-100 transition-colors text-sm font-medium disabled:opacity-50"
+                  >
+                    {loadingDevolucoes ? (
+                      <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                    Visualizar
+                  </button>
+                  <button
+                    onClick={() => exportarRelatorioDevolucoes('excel')}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    Excel
+                  </button>
+                  <button
+                    onClick={() => exportarRelatorioDevolucoes('word')}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    Word
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Modal do Relatório de Devoluções */}
+      {showRelatorioDevolucoes && relatorioDevolucoes && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold">{relatorioDevolucoes.titulo}</h2>
+                  <p className="text-slate-300 mt-1">
+                    {relatorioDevolucoes.empresa?.razao_social} | Competência: {relatorioDevolucoes.competencia}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowRelatorioDevolucoes(false)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              {/* Resumo */}
+              <div className="grid grid-cols-4 gap-4 mt-4">
+                <div className="bg-white/10 rounded-lg p-3 text-center">
+                  <p className="text-3xl font-bold">{relatorioDevolucoes.resumo?.total_pares || 0}</p>
+                  <p className="text-xs text-slate-300">Pares de Notas</p>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3 text-center">
+                  <p className="text-xl font-bold">
+                    R$ {(relatorioDevolucoes.resumo?.valor_total_devolucoes || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-slate-300">Total Devoluções</p>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3 text-center">
+                  <p className="text-xl font-bold">
+                    R$ {(relatorioDevolucoes.resumo?.valor_total_originais || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-slate-300">Total Originais</p>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3 text-center">
+                  <p className="text-3xl font-bold text-amber-400">{relatorioDevolucoes.resumo?.pares_sem_vinculo || 0}</p>
+                  <p className="text-xs text-slate-300">Sem Vínculo</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Descrição */}
+            <div className="px-6 py-4 bg-slate-50 border-b">
+              <p className="text-sm text-slate-600">{relatorioDevolucoes.descricao}</p>
+            </div>
+            
+            {/* Lista de Pares */}
+            <div className="p-6 overflow-y-auto max-h-[50vh]">
+              {relatorioDevolucoes.pares?.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                  <p>Nenhuma nota de devolução do fornecedor encontrada nesta competência.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {relatorioDevolucoes.pares?.map((par, idx) => (
+                    <div key={idx} className="border border-gray-200 rounded-xl overflow-hidden">
+                      {/* Cabeçalho do Par */}
+                      <div className="bg-gray-100 px-4 py-3 flex items-center justify-between">
+                        <div>
+                          <span className="font-bold text-gray-800">Fornecedor: </span>
+                          <span className="text-gray-700">{par.fornecedor}</span>
+                          <span className="text-gray-500 text-sm ml-2">({par.fornecedor_cnpj})</span>
+                        </div>
+                        {par.status_vinculo === 'nao_encontrada' && (
+                          <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">
+                            ⚠ Original não encontrada
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Grid com as duas notas */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+                        {/* Nota de Devolução */}
+                        <div className="p-4 bg-red-50">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold rounded">DEVOLUÇÃO</span>
+                            <span className="text-gray-600 text-sm">(Entrada)</span>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Número:</span>
+                              <span className="font-semibold">{par.devolucao?.numero}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Data:</span>
+                              <span className="font-semibold">{par.devolucao?.data}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Valor:</span>
+                              <span className="font-bold text-red-700">
+                                R$ {(par.devolucao?.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">CFOPs:</span>
+                              <span className="text-xs">{par.devolucao?.cfops?.join(', ')}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Nota Original */}
+                        <div className={`p-4 ${par.nota_original?.tipo === 'NÃO ENCONTRADA' ? 'bg-amber-50' : 'bg-green-50'}`}>
+                          {par.nota_original?.tipo === 'NÃO ENCONTRADA' ? (
+                            <div>
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className="px-2 py-1 bg-amber-500 text-white text-xs font-bold rounded">NÃO ENCONTRADA</span>
+                              </div>
+                              <div className="p-3 bg-amber-100 rounded-lg">
+                                <p className="text-amber-800 text-sm">
+                                  {par.nota_original?.mensagem}
+                                </p>
+                                <p className="text-amber-700 text-xs mt-2 break-all">
+                                  Chave: {par.nota_original?.chave}
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className="px-2 py-1 bg-green-600 text-white text-xs font-bold rounded">ORIGINAL</span>
+                                <span className="text-gray-600 text-sm">(Saída)</span>
+                              </div>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Número:</span>
+                                  <span className="font-semibold">{par.nota_original?.numero}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Data:</span>
+                                  <span className="font-semibold">{par.nota_original?.data}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Valor:</span>
+                                  <span className="font-bold text-green-700">
+                                    R$ {(par.nota_original?.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Destinatário:</span>
+                                  <span className="text-xs truncate max-w-32">{par.nota_original?.destinatario}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Footer com botões de exportação */}
+            <div className="bg-gray-50 px-6 py-4 border-t flex justify-between items-center">
+              <p className="text-sm text-gray-500">
+                Gerado em: {new Date(relatorioDevolucoes.data_geracao).toLocaleString('pt-BR')}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => exportarRelatorioDevolucoes('excel')}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  Exportar Excel
+                </button>
+                <button
+                  onClick={() => exportarRelatorioDevolucoes('word')}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  <FileDown className="w-4 h-4" />
+                  Exportar Word
+                </button>
+                <button
+                  onClick={() => setShowRelatorioDevolucoes(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Modal de Detalhamento */}
       {renderDocumentDetailModal()}
