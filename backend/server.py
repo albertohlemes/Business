@@ -3024,6 +3024,7 @@ async def upload_xml_batch(
     rejeitadas_cnpj = []
     rejeitadas_competencia = []
     alertas_cfop = []  # Alertas de CFOPs de operações distintas
+    notas_devolucao_fornecedor = []  # Notas desconsideradas por devolução do fornecedor
     
     # Estatísticas de performance do cache
     total_stats = {"from_cache": 0, "from_rules": 0, "from_ai": 0, "total": 0}
