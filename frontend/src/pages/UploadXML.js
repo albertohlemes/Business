@@ -201,6 +201,11 @@ const UploadXML = ({ user, onLogout }) => {
         initFormData.append('competencia', competencia);
         initFormData.append('tipo', tipo);
         initFormData.append('total_files', batchFiles.length);
+        
+        console.log('=== UPLOAD INIT ===');
+        console.log('Tipo selecionado:', tipo);
+        console.log('Company:', selectedCompany);
+        console.log('Competência:', competencia);
 
         const initResponse = await axios.post(API + '/xml/upload-init', initFormData, {
           headers: {
