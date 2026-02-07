@@ -3864,6 +3864,10 @@ async def upload_xml_with_progress(
             cnpj_destinatario = parsed_data.get('destinatario_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
             
             cnpj_valido = False
+            is_devolucao_fornecedor = False
+            motivo_devolucao = ""
+            nfe_ref_devolucao = ""
+            
             if tipo == 'entrada':
                 cnpj_valido = cnpj_destinatario == cnpj_empresa
                 if not cnpj_valido:
@@ -3875,6 +3879,48 @@ async def upload_xml_with_progress(
                         "destinatario": parsed_data.get('destinatario_nome', '')
                     })
                     continue
+                
+                # ==== DETECTAR DEVOLUÇÃO DO FORNECEDOR ====
+                # Critérios: finNFe=4, natureza contém DEV, CFOP de devolução, emitente terceiro
+                if cnpj_emitente != cnpj_empresa:
+                    finalidade_nfe = parsed_data.get('finalidade_nfe', '1')
+                    natureza_operacao = parsed_data.get('natureza_operacao', '').upper()
+                    cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
+                    nfe_ref_devolucao = parsed_data.get('nfe_referenciada', '') or ''
+                    
+                    logger.info(f"UPLOAD-STREAM DEVOLUÇÃO: NF {parsed_data.get('numero_nfe')} - finNFe: {finalidade_nfe}, natOp: {natureza_operacao}, CFOPs: {cfops_xml}")
+                    
+                    is_devolucao_por_finalidade = str(finalidade_nfe) == '4'
+                    is_devolucao_por_natureza = any(termo in natureza_operacao for termo in ['DEVOLUC', 'DEV ', 'DEVOL'])
+                    is_devolucao_por_cfop = any(cfop in CFOPS_DEVOLUCAO_ENTRADA for cfop in cfops_xml)
+                    tem_nfe_referenciada = bool(nfe_ref_devolucao and len(nfe_ref_devolucao) > 10)
+                    
+                    logger.info(f"UPLOAD-STREAM DEVOLUÇÃO: Por finalidade: {is_devolucao_por_finalidade}, Por natureza: {is_devolucao_por_natureza}, Por CFOP: {is_devolucao_por_cfop}, Tem NFe Ref: {tem_nfe_referenciada}")
+                    
+                    if (is_devolucao_por_finalidade or 
+                        (is_devolucao_por_cfop and tem_nfe_referenciada) or 
+                        (is_devolucao_por_natureza and tem_nfe_referenciada) or
+                        (is_devolucao_por_cfop and is_devolucao_por_natureza)):
+                        
+                        cfops_unicos = list(set(cfops_xml))[:3]
+                        is_devolucao_fornecedor = True
+                        motivo_devolucao = f"Devolução emitida pelo fornecedor ({parsed_data.get('emitente_nome', '')[:40]}) - finNFe: {finalidade_nfe}, CFOP: {', '.join(cfops_unicos)}"
+                        
+                        logger.info(f"UPLOAD-STREAM DEVOLUÇÃO: DETECTADA! {motivo_devolucao}")
+                        
+                        notas_devolucao_fornecedor.append({
+                            "tipo": "devolucao_entrada",
+                            "filename": file.filename,
+                            "chave_nfe": chave_nfe,
+                            "numero_nfe": parsed_data.get('numero_nfe', ''),
+                            "data_emissao": parsed_data.get('data_emissao', ''),
+                            "valor_total": parsed_data.get('valor_total', 0),
+                            "cfops": cfops_unicos,
+                            "emitente_cnpj": cnpj_emitente,
+                            "emitente_nome": parsed_data.get('emitente_nome', ''),
+                            "nfe_referenciada": nfe_ref_devolucao,
+                            "motivo": motivo_devolucao
+                        })
             else:
                 cnpj_valido = cnpj_emitente == cnpj_empresa
                 if not cnpj_valido:
