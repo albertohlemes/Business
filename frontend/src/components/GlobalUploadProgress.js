@@ -1,8 +1,10 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { useUpload } from '../context/UploadContext';
-import { Upload, X, ChevronUp, ChevronDown, CheckCircle2, AlertCircle, Loader2, FileText } from 'lucide-react';
+import { X, ChevronUp, ChevronDown, CheckCircle2, AlertCircle, Loader2, FileText } from 'lucide-react';
 
 const GlobalUploadProgress = () => {
+  const location = useLocation();
   const {
     isUploading,
     progress,
@@ -19,6 +21,23 @@ const GlobalUploadProgress = () => {
   // Não mostrar se não há nada acontecendo
   if (!isUploading && !uploadResults && !uploadError) {
     return null;
+  }
+  
+  // Na página de upload, mostrar apenas se minimizado ou concluído
+  const isOnUploadPage = location.pathname === '/upload';
+  if (isOnUploadPage && isUploading && !minimized) {
+    // Mostrar apenas a dica para minimizar
+    return (
+      <div className="fixed bottom-4 right-4 z-50">
+        <button
+          onClick={toggleMinimize}
+          className="bg-slate-700 text-white px-4 py-2 rounded-full shadow-lg text-sm flex items-center gap-2 hover:bg-slate-600 transition-colors"
+        >
+          <ChevronDown className="w-4 h-4" />
+          Minimizar progresso
+        </button>
+      </div>
+    );
   }
 
   // Versão minimizada
