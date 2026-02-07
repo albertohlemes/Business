@@ -3173,9 +3173,9 @@ async def upload_xml_batch(
                     cfops_entrada = [c for c in cfops_xml if c and len(c) >= 1 and c[0] in ['1', '2', '3']]
                     
                     # Log para debug
-                    print(f"DEBUG DEVOLUÇÃO: NF {parsed_data.get('numero_nfe')} - Emitente: {cnpj_emitente}, Empresa: {cnpj_empresa}")
-                    print(f"DEBUG DEVOLUÇÃO: finNFe: {finalidade_nfe}, natOp: {natureza_operacao}")
-                    print(f"DEBUG DEVOLUÇÃO: CFOPs no XML: {cfops_xml}, NFe Ref: {nfe_ref_devolucao}")
+                    logger.info(f"DEBUG DEVOLUÇÃO: NF {parsed_data.get('numero_nfe')} - Emitente: {cnpj_emitente}, Empresa: {cnpj_empresa}")
+                    logger.info(f"DEBUG DEVOLUÇÃO: finNFe: {finalidade_nfe}, natOp: {natureza_operacao}")
+                    logger.info(f"DEBUG DEVOLUÇÃO: CFOPs no XML: {cfops_xml}, NFe Ref: {nfe_ref_devolucao}")
                     
                     # CRITÉRIO PRINCIPAL: Verificar se é devolução
                     is_devolucao_por_finalidade = str(finalidade_nfe) == '4'  # finNFe = 4 significa Devolução
@@ -3183,7 +3183,7 @@ async def upload_xml_batch(
                     is_devolucao_por_cfop = any(cfop in cfops_devolucao_entrada for cfop in cfops_xml)
                     tem_nfe_referenciada = bool(nfe_ref_devolucao and len(nfe_ref_devolucao) > 10)
                     
-                    print(f"DEBUG DEVOLUÇÃO: Por finalidade: {is_devolucao_por_finalidade}, Por natureza: {is_devolucao_por_natureza}, Por CFOP: {is_devolucao_por_cfop}, Tem NFe Ref: {tem_nfe_referenciada}")
+                    logger.info(f"DEBUG DEVOLUÇÃO: Por finalidade: {is_devolucao_por_finalidade}, Por natureza: {is_devolucao_por_natureza}, Por CFOP: {is_devolucao_por_cfop}, Tem NFe Ref: {tem_nfe_referenciada}")
                     
                     # Se atender a pelo menos UM dos critérios de devolução + ter NFe referenciada OU ser devolução por finalidade
                     if (is_devolucao_por_finalidade or 
@@ -3193,7 +3193,7 @@ async def upload_xml_batch(
                         
                         cfops_unicos = list(set(cfops_xml))[:3]
                         
-                        print(f"DEBUG DEVOLUÇÃO: DETECTADA! CFOPs únicos: {cfops_unicos}, NFe Ref: {nfe_ref_devolucao}")
+                        logger.info(f"DEBUG DEVOLUÇÃO: DETECTADA! CFOPs únicos: {cfops_unicos}, NFe Ref: {nfe_ref_devolucao}")
                         
                         # Marcar como devolução do fornecedor (será processada mas desconsiderada)
                         is_devolucao_fornecedor = True
@@ -3216,7 +3216,7 @@ async def upload_xml_batch(
                     else:
                         # Nota de terceiro mas não é devolução pura - pode ser uma compra normal
                         # NÃO rejeitar automaticamente, deixar passar como entrada normal
-                        print(f"DEBUG: NF {parsed_data.get('numero_nfe')} - Terceiro com CFOPs mistos, processando como entrada normal")
+                        logger.info(f"DEBUG: NF {parsed_data.get('numero_nfe')} - Terceiro com CFOPs mistos, processando como entrada normal")
             else:  # saida
                 cnpj_valido = cnpj_emitente == cnpj_empresa
                 if not cnpj_valido:
