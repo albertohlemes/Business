@@ -861,7 +861,10 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             'total_icms_st': vICMSST_total,
             'produtos': produtos,
             # NFe referenciada (para devoluções)
-            'nfe_referenciada': nfe_referenciada
+            'nfe_referenciada': nfe_referenciada,
+            # Finalidade da NFe (1=Normal, 2=Complementar, 3=Ajuste, 4=Devolução)
+            'finalidade_nfe': finalidade_nfe,
+            'natureza_operacao': natureza_operacao
         }
         
         # Adicionar dados de cancelamento se a nota estiver cancelada
