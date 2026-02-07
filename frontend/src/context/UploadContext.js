@@ -79,9 +79,11 @@ export const UploadProvider = ({ children }) => {
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          console.log('SSE Event:', data); // Debug
           
           // Verificar se realmente concluiu (completed=true E results presente)
-          if (data.completed && data.results) {
+          if (data.completed === true && data.results) {
+            console.log('Upload REALMENTE concluído com resultados');
             setProgress({ 
               current: data.total_files || data.processed_files, 
               total: data.total_files, 
@@ -92,8 +94,15 @@ export const UploadProvider = ({ children }) => {
             setIsUploading(false);
             eventSource.close();
             eventSourceRef.current = null;
-          } else if (data.status === 'processing' || !data.completed) {
-            // Ainda processando
+          } else if (data.error) {
+            // Erro explícito
+            console.log('Erro no upload:', data.error);
+            setUploadError(data.error || 'Erro durante o upload');
+            setIsUploading(false);
+            eventSource.close();
+            eventSourceRef.current = null;
+          } else {
+            // Ainda processando (completed=false ou ausente)
             const processed = data.processed_files || 0;
             const total = data.total_files || 1;
             const percent = data.progress_percent || Math.round((processed / total) * 100);
@@ -104,11 +113,6 @@ export const UploadProvider = ({ children }) => {
               percent: percent
             });
             setCurrentFile(data.current_file || data.current_step || `Processando ${processed}/${total}...`);
-          } else if (data.status === 'error' || data.error) {
-            setUploadError(data.error || data.message || 'Erro durante o upload');
-            setIsUploading(false);
-            eventSource.close();
-            eventSourceRef.current = null;
           }
         } catch (e) {
           console.error('Erro ao processar evento SSE:', e);
