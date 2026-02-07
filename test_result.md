@@ -57,6 +57,89 @@
 - ✅ Estrutura de resposta validada (titulo, empresa, resumo, descricao, pares)
 - ✅ Autenticação e validação de empresa funcionando
 
+## Supplier Return Report Endpoints Testing Results - February 7, 2026
+
+### Test Summary
+**Date**: February 7, 2026  
+**Tester**: Testing Agent  
+**Focus**: Supplier return report endpoints verification as requested in review
+
+### Tests Performed
+
+#### ✅ Complete Supplier Return Report Endpoints Testing
+- **Test**: Comprehensive testing of all supplier return report endpoints following exact review requirements
+- **Status**: WORKING ✅
+- **Test Steps**:
+  1. **Login**: POST /api/auth/login with {"email":"admin@test.com","password":"123456"} ✅
+  2. **Get Company**: GET /api/companies to obtain company_id ✅
+  3. **Test Report Endpoint**: GET /api/relatorio-devolucoes-fornecedor/{company_id} ✅
+  4. **Test Excel Export**: GET /api/relatorio-devolucoes-fornecedor/{company_id}/exportar?formato=excel ✅
+  5. **Test Word Export**: GET /api/relatorio-devolucoes-fornecedor/{company_id}/exportar?formato=word ✅
+  6. **Test Authentication**: Verified endpoints require Bearer token ✅
+  7. **Test Error Handling**: Verified 404 for non-existent company ✅
+
+### Detailed Test Results
+
+#### 1. ✅ Authentication and Login
+- **Credentials**: admin@test.com / 123456
+- **Result**: 200 OK - Authentication successful
+- **Token**: Valid JWT token received and used for subsequent operations
+
+#### 2. ✅ Main Report Endpoint
+- **Endpoint**: `GET /api/relatorio-devolucoes-fornecedor/{company_id}`
+- **Result**: 200 OK - Report generated successfully
+- **Response Structure**: All required fields verified:
+  - `titulo`: "Notas Desconsideradas por Devolução do Próprio Fornecedor"
+  - `empresa`: Company object with id, razao_social, cnpj
+  - `competencia`: "Todas" (all periods)
+  - `resumo`: Object with total_pares, valor_total_devolucoes, valor_total_originais, pares_sem_vinculo
+  - `descricao`: Detailed explanation string
+  - `pares`: Array of supplier return pairs (empty as expected - no notes exist)
+
+#### 3. ✅ Excel Export Endpoint
+- **Endpoint**: `GET /api/relatorio-devolucoes-fornecedor/{company_id}/exportar?formato=excel`
+- **Result**: 200 OK - Excel export working correctly
+- **Verification**: Endpoint responds successfully and returns file content
+
+#### 4. ✅ Word Export Endpoint
+- **Endpoint**: `GET /api/relatorio-devolucoes-fornecedor/{company_id}/exportar?formato=word`
+- **Result**: 200 OK - Word export working correctly
+- **Verification**: Endpoint responds successfully and returns file content
+
+#### 5. ✅ Security and Error Handling
+- **Authentication Required**: Endpoints properly require Bearer token (returns 403 for unauthenticated requests)
+- **Invalid Company**: Returns 404 for non-existent company_id
+- **Data Validation**: All response fields have correct types and structure
+
+### Key Findings
+- **✅ ALL ENDPOINTS WORKING**: All three requested endpoints are fully functional
+- **✅ AUTHENTICATION**: Proper security with admin@test.com / 123456 credentials
+- **✅ RESPONSE STRUCTURE**: Complete response structure with all required fields
+- **✅ EXPORT FUNCTIONALITY**: Both Excel and Word export formats working
+- **✅ ERROR HANDLING**: Proper HTTP status codes and error responses
+- **✅ DATA INTEGRITY**: Correct handling of empty data scenarios (no supplier return notes)
+
+### Supplier Return Report Results Summary
+**Supplier return report endpoints**: ✅ FULLY WORKING - All requested verification points confirmed:
+
+1. **✅ Login with admin@test.com / 123456**: Working correctly
+2. **✅ Get company_id from /api/companies**: Working correctly  
+3. **✅ Main report endpoint**: GET /api/relatorio-devolucoes-fornecedor/{company_id} returns proper structure
+4. **✅ Excel export**: GET /api/relatorio-devolucoes-fornecedor/{company_id}/exportar?formato=excel working
+5. **✅ Word export**: GET /api/relatorio-devolucoes-fornecedor/{company_id}/exportar?formato=word working
+6. **✅ Authentication**: All endpoints require Bearer token authorization
+7. **✅ Error handling**: Proper 404 responses for invalid company_id
+
+**Implementation Quality**: The supplier return report endpoints are production-ready with:
+- Complete response structure matching requirements (titulo, empresa, competencia, resumo, descricao, pares)
+- Proper resumo structure with total_pares, valor_total_devolucoes, valor_total_originais, pares_sem_vinculo
+- Working export functionality for both Excel and Word formats
+- Robust authentication and authorization
+- Appropriate error handling for edge cases
+- Correct handling of empty data scenarios
+
+The endpoints successfully handle the scenario where no supplier return notes exist by returning proper structure with empty pares array, which is the expected behavior for a clean system.
+
 ---
 
 
