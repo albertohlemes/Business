@@ -1506,6 +1506,187 @@ class FiscalSystemAPITester:
         print("✅ ALL BULK DELETE FILTER TESTS PASSED")
         return True, {"message": "Bulk delete with filters functionality verified successfully"}
 
+    def test_supplier_return_report_functionality(self):
+        """Test supplier return report functionality as requested in review"""
+        if not self.admin_token:
+            print("❌ No admin token available for supplier return report test")
+            return False, {}
+        
+        print("\n🔍 Testing Supplier Return Report Functionality...")
+        
+        # Step 1: Login as admin with specified credentials
+        login_data = {
+            "email": "admin@test.com",
+            "password": "123456"
+        }
+        success, response = self.run_test(
+            "Step 1: Login as Admin",
+            "POST",
+            "auth/login",
+            200,
+            data=login_data
+        )
+        
+        if not success or 'access_token' not in response:
+            print("❌ Step 1 Failed: Could not login with admin@test.com credentials")
+            return False, {}
+        
+        admin_token = response['access_token']
+        headers = {'Authorization': f'Bearer {admin_token}'}
+        print(f"✅ Step 1 Complete: Successfully logged in as admin")
+        
+        # Step 2: Create a test company
+        import time
+        timestamp = str(int(time.time() * 1000000))[-6:]
+        company_data = {
+            "cnpj": f"88.{timestamp[:3]}.{timestamp[3:]}/0001-99",
+            "razao_social": "Empresa Teste Devolução LTDA",
+            "nome_fantasia": "Teste Devolução Corp",
+            "uf": "SP",
+            "inscricao_estadual": "123456789",
+            "endereco": "Rua Teste Devolução, 123",
+            "cidade": "São Paulo",
+            "cep": "01000-000"
+        }
+        
+        success, response = self.run_test(
+            "Step 2: Create Test Company",
+            "POST",
+            "companies",
+            200,
+            data=company_data,
+            headers=headers
+        )
+        
+        if not success or 'id' not in response:
+            print("❌ Step 2 Failed: Could not create test company")
+            return False, {}
+        
+        test_company_id = response['id']
+        print(f"✅ Step 2 Complete: Created test company with ID: {test_company_id}")
+        
+        # Step 3: Test the supplier return report endpoint
+        success, response = self.run_test(
+            "Step 3: Test Supplier Return Report Endpoint",
+            "GET",
+            f"relatorio-devolucoes-fornecedor/{test_company_id}",
+            200,
+            headers=headers
+        )
+        
+        if not success:
+            print("❌ Step 3 Failed: Supplier return report endpoint failed")
+            return False, {}
+        
+        # Step 4: Verify response structure
+        print("🔍 Step 4: Verifying response structure...")
+        
+        expected_keys = ['titulo', 'empresa', 'resumo', 'descricao', 'pares']
+        missing_keys = []
+        
+        for key in expected_keys:
+            if key not in response:
+                missing_keys.append(key)
+        
+        if missing_keys:
+            print(f"❌ Step 4 Failed: Missing required keys in response: {missing_keys}")
+            self.errors.append(f"Supplier Return Report: Missing keys {missing_keys}")
+            return False, {}
+        
+        print(f"✅ Step 4 Complete: All required keys present in response")
+        
+        # Step 5: Verify response content
+        print("🔍 Step 5: Verifying response content...")
+        
+        # Check titulo
+        titulo = response.get('titulo', '')
+        if 'devolução' not in titulo.lower() or 'fornecedor' not in titulo.lower():
+            print(f"❌ Step 5 Failed: Title doesn't contain expected keywords: {titulo}")
+            return False, {}
+        
+        # Check empresa data
+        empresa = response.get('empresa', {})
+        if not isinstance(empresa, dict):
+            print(f"❌ Step 5 Failed: Empresa should be a dict, got {type(empresa)}")
+            return False, {}
+        
+        # Check resumo
+        resumo = response.get('resumo', {})
+        if not isinstance(resumo, dict):
+            print(f"❌ Step 5 Failed: Resumo should be a dict, got {type(resumo)}")
+            return False, {}
+        
+        # Check descricao
+        descricao = response.get('descricao', '')
+        if not isinstance(descricao, str):
+            print(f"❌ Step 5 Failed: Descricao should be a string, got {type(descricao)}")
+            return False, {}
+        
+        # Check pares (should be empty list since no notes exist)
+        pares = response.get('pares', [])
+        if not isinstance(pares, list):
+            print(f"❌ Step 5 Failed: Pares should be a list, got {type(pares)}")
+            return False, {}
+        
+        if len(pares) != 0:
+            print(f"❌ Step 5 Failed: Expected empty pares list (no notes), got {len(pares)} items")
+            return False, {}
+        
+        print(f"✅ Step 5 Complete: Response content structure is correct")
+        print(f"   - Titulo: {titulo}")
+        print(f"   - Empresa keys: {list(empresa.keys()) if empresa else 'empty'}")
+        print(f"   - Resumo keys: {list(resumo.keys()) if resumo else 'empty'}")
+        print(f"   - Pares count: {len(pares)} (expected 0)")
+        
+        # Step 6: Verify endpoint exists and responds correctly
+        print("🔍 Step 6: Verifying endpoint functionality...")
+        
+        # Test with different company ID to ensure endpoint handles different scenarios
+        fake_company_id = str(uuid.uuid4())
+        success, response = self.run_test(
+            "Step 6a: Test with Non-existent Company",
+            "GET",
+            f"relatorio-devolucoes-fornecedor/{fake_company_id}",
+            404,  # Should return 404 for non-existent company
+            headers=headers
+        )
+        
+        if success:
+            print(f"✅ Step 6a Complete: Endpoint correctly handles non-existent company (404)")
+        else:
+            print(f"⚠️  Step 6a: Endpoint may not handle non-existent company properly")
+        
+        # Test without authentication
+        success, response = self.run_test(
+            "Step 6b: Test without Authentication",
+            "GET",
+            f"relatorio-devolucoes-fornecedor/{test_company_id}",
+            401,  # Should return 401 for unauthorized access
+            headers={}
+        )
+        
+        if success:
+            print(f"✅ Step 6b Complete: Endpoint correctly requires authentication (401)")
+        else:
+            print(f"⚠️  Step 6b: Endpoint may not properly enforce authentication")
+        
+        # Step 7: Cleanup - delete the test company
+        success, response = self.run_test(
+            "Step 7: Cleanup - Delete Test Company",
+            "DELETE",
+            f"companies/{test_company_id}",
+            200,
+            headers=headers
+        )
+        
+        if success:
+            print("✅ Step 7 Complete: Cleanup completed - test company deleted")
+        else:
+            print("⚠️  Step 7: Could not cleanup test company")
+        
+        print("✅ SUPPLIER RETURN REPORT FUNCTIONALITY TEST COMPLETED SUCCESSFULLY")
+        return True, {"message": "Supplier return report functionality verified successfully"}
+
     def test_single_document_delete_verification(self):
         """Test single document delete verification as requested in review"""
         if not self.admin_token:
