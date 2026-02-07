@@ -49,22 +49,24 @@ export const UploadProvider = ({ children }) => {
     setMinimized(false);
 
     try {
-      // 1. Inicializar upload e obter ID
+      // 1. Inicializar upload e obter ID (usando FormData)
+      const initFormData = new FormData();
+      initFormData.append('company_id', companyId);
+      initFormData.append('competencia', competencia);
+      initFormData.append('tipo', 'entrada'); // Tipo padrão
+      initFormData.append('total_files', files.length.toString());
+      
       const initResponse = await fetch(`${API}/xml/upload-init`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          company_id: companyId,
-          competencia: competencia,
-          total_files: files.length
-        })
+        body: initFormData
       });
 
       if (!initResponse.ok) {
-        throw new Error('Falha ao inicializar upload');
+        const errData = await initResponse.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Falha ao inicializar upload');
       }
 
       const { upload_id } = await initResponse.json();
