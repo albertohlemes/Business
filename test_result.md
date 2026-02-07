@@ -1,5 +1,54 @@
 # Test Results
 
+## Iteration 43.1 - Melhorias no Relatório de Devoluções (07/02/2026)
+
+### Melhorias Implementadas
+Com base no feedback do usuário, foram feitas as seguintes melhorias no relatório de notas desconsideradas por devolução do fornecedor:
+
+1. **Agrupamento de Notas**:
+   - Pares organizados: Devolução (entrada) + Original (saída)
+   - Cabeçalho com nome e CNPJ do fornecedor
+   - Cards visuais diferenciados por tipo (vermelho para devolução, verde para original)
+
+2. **Campos Exibidos**:
+   - Data, Fornecedor, Número, Valor
+   - CFOPs utilizados
+   - Competência
+
+3. **Tratamento de Nota Original Não Encontrada**:
+   - Mensagem clara: "Nota fiscal referenciada não foi localizada no sistema"
+   - Exibição da chave NFe para referência
+   - Contador de "Pares sem vínculo" no resumo
+
+4. **Exportação em Excel e Word**:
+   - Endpoint: `GET /api/relatorio-devolucoes-fornecedor/{company_id}/exportar?formato=excel|word`
+   - Excel: Formatação com cores, cabeçalhos, resumo automático
+   - Word: Documento estruturado com tabelas por par
+
+5. **Acesso no Menu Documentos**:
+   - Nova seção "Relatórios Especiais" na página de Documentos
+   - Botões: Visualizar, Exportar Excel, Exportar Word
+   - Modal de visualização com todos os dados
+
+### Arquivos Modificados
+- `/app/backend/server.py`:
+  - Endpoint melhorado: `/api/relatorio-devolucoes-fornecedor/{company_id}`
+  - Novo endpoint: `/api/relatorio-devolucoes-fornecedor/{company_id}/exportar`
+  
+- `/app/frontend/src/pages/Documents.js`:
+  - Seção "Relatórios Especiais"
+  - Modal de visualização do relatório
+  - Funções de exportação
+
+### Testes
+- ✅ Endpoint de relatório: 200 OK
+- ✅ Exportação Excel: 200 OK (arquivo gerado)
+- ✅ Exportação Word: 200 OK (arquivo gerado)
+- ✅ Autenticação: Bearer token funcionando
+- ✅ Validação de empresa: 404 para ID inválido
+
+---
+
 ## Iteration 43 - Notas Desconsideradas por Devolução do Fornecedor (07/02/2026)
 
 ### Feature Implementada
