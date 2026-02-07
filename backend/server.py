@@ -618,7 +618,7 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
         det = nfe.get('det', [])
         
         # ===== EXTRAIR NFe REFERENCIADA (para devoluções) =====
-        nfe_referenciada = None
+        nfe_referenciada = ""  # Sempre inicializar como string vazia
         nfref = ide.get('NFref', {})
         if nfref:
             # Pode ser uma lista ou um dict único
@@ -626,13 +626,17 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                 nfref = nfref[0] if nfref else {}
             # A chave pode estar em refNFe (NF-e) ou em refNF (NF modelo 1/1A)
             if isinstance(nfref, dict):
-                nfe_referenciada = nfref.get('refNFe', '')
+                nfe_referenciada = nfref.get('refNFe', '') or ''
                 if not nfe_referenciada:
                     # Tentar NF modelo 1/1A
                     ref_nf = nfref.get('refNF', {})
                     if isinstance(ref_nf, dict):
                         # Montar identificação da NF modelo 1
                         nfe_referenciada = f"{ref_nf.get('cUF', '')}-{ref_nf.get('CNPJ', '')}-{ref_nf.get('mod', '')}-{ref_nf.get('serie', '')}-{ref_nf.get('nNF', '')}"
+        
+        # Garantir que nunca seja None
+        if nfe_referenciada is None:
+            nfe_referenciada = ""
         
         # Extrair dados completos do emitente (endereço)
         enderEmit = emit.get('enderEmit', {})
