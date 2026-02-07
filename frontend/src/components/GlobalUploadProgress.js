@@ -18,6 +18,124 @@ const GlobalUploadProgress = () => {
     toggleMinimize
   } = useUpload();
 
+  // Função para exportar relatório de importação
+  const exportarRelatorio = (formato) => {
+    if (!uploadResults) return;
+    
+    const resumo = uploadResults.resumo || {};
+    const dataAtual = new Date().toLocaleString('pt-BR');
+    
+    // Montar conteúdo do relatório
+    let conteudo = `RELATÓRIO DE IMPORTAÇÃO DE NOTAS FISCAIS\n`;
+    conteudo += `==========================================\n\n`;
+    conteudo += `Empresa: ${uploadInfo.empresa || 'N/A'}\n`;
+    conteudo += `Competência: ${uploadInfo.competencia || 'N/A'}\n`;
+    conteudo += `Data/Hora: ${dataAtual}\n\n`;
+    
+    conteudo += `RESUMO\n`;
+    conteudo += `------\n`;
+    conteudo += `Total de Arquivos: ${resumo.total_arquivos || 0}\n`;
+    conteudo += `Importados com Sucesso: ${resumo.importados || uploadResults.success?.length || 0}\n`;
+    conteudo += `Duplicados (já existiam): ${resumo.duplicados || uploadResults.duplicadas?.length || 0}\n`;
+    conteudo += `Erros: ${resumo.erros || uploadResults.errors?.length || 0}\n`;
+    conteudo += `Rejeitados por CNPJ: ${resumo.rejeitados_cnpj || 0}\n`;
+    conteudo += `Devoluções de Fornecedor: ${resumo.desconsideradas_devolucao || 0}\n\n`;
+    
+    // Detalhes de erros
+    if (uploadResults.errors && uploadResults.errors.length > 0) {
+      conteudo += `ERROS DETALHADOS\n`;
+      conteudo += `----------------\n`;
+      uploadResults.errors.forEach((err, idx) => {
+        const filename = typeof err === 'string' ? err : (err.filename || 'Arquivo');
+        const error = typeof err === 'object' ? (err.error || err.motivo || '') : '';
+        conteudo += `${idx + 1}. ${filename}: ${error}\n`;
+      });
+      conteudo += `\n`;
+    }
+    
+    // Detalhes de rejeitados
+    if (uploadResults.rejeitadas_cnpj && uploadResults.rejeitadas_cnpj.length > 0) {
+      conteudo += `REJEITADOS POR CNPJ\n`;
+      conteudo += `-------------------\n`;
+      uploadResults.rejeitadas_cnpj.forEach((rej, idx) => {
+        conteudo += `${idx + 1}. NF ${rej.numero_nfe || 'N/A'}: ${rej.motivo || ''}\n`;
+      });
+      conteudo += `\n`;
+    }
+    
+    // Devoluções
+    if (uploadResults.notas_desconsideradas_devolucao && uploadResults.notas_desconsideradas_devolucao.length > 0) {
+      conteudo += `DEVOLUÇÕES DO FORNECEDOR\n`;
+      conteudo += `------------------------\n`;
+      uploadResults.notas_desconsideradas_devolucao.forEach((dev, idx) => {
+        conteudo += `${idx + 1}. NF ${dev.numero_nfe || 'N/A'} - ${dev.emitente || ''}\n`;
+        conteudo += `   Motivo: ${dev.motivo || ''}\n`;
+      });
+      conteudo += `\n`;
+    }
+    
+    if (formato === 'word') {
+      // Criar arquivo .txt que pode ser aberto no Word
+      const blob = new Blob([conteudo], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `relatorio_importacao_${uploadInfo.competencia?.replace('/', '-') || 'upload'}_${Date.now()}.doc`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } else {
+      // PDF - abrir em nova janela para imprimir
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+        <head>
+          <title>Relatório de Importação</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { color: #333; border-bottom: 2px solid #e53e3e; padding-bottom: 10px; }
+            h2 { color: #555; margin-top: 20px; }
+            pre { background: #f5f5f5; padding: 15px; border-radius: 5px; white-space: pre-wrap; }
+            .resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; }
+            .resumo-item { background: #f0f0f0; padding: 15px; border-radius: 8px; text-align: center; }
+            .resumo-item.success { background: #d4edda; }
+            .resumo-item.warning { background: #fff3cd; }
+            .resumo-item.error { background: #f8d7da; }
+            .numero { font-size: 24px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>Relatório de Importação de Notas Fiscais</h1>
+          <p><strong>Empresa:</strong> ${uploadInfo.empresa || 'N/A'}</p>
+          <p><strong>Competência:</strong> ${uploadInfo.competencia || 'N/A'}</p>
+          <p><strong>Data/Hora:</strong> ${dataAtual}</p>
+          
+          <div class="resumo">
+            <div class="resumo-item success">
+              <div class="numero">${resumo.importados || uploadResults.success?.length || 0}</div>
+              <div>Importados</div>
+            </div>
+            <div class="resumo-item warning">
+              <div class="numero">${resumo.duplicados || uploadResults.duplicadas?.length || 0}</div>
+              <div>Duplicados</div>
+            </div>
+            <div class="resumo-item error">
+              <div class="numero">${resumo.erros || uploadResults.errors?.length || 0}</div>
+              <div>Erros</div>
+            </div>
+          </div>
+          
+          <pre>${conteudo}</pre>
+          
+          <script>window.print();</script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  };
+
   // Não mostrar se não há nada acontecendo
   if (!isUploading && !uploadResults && !uploadError) {
     return null;
