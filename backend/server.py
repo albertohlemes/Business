@@ -6083,6 +6083,357 @@ async def analise_aliquotas_saida(
         "produtos": produtos_analisados
     }
 
+# ============== RELATÓRIO DE NOTAS CANCELADAS ==============
+@api_router.get("/relatorio-notas-canceladas/{company_id}")
+async def relatorio_notas_canceladas(
+    company_id: str,
+    competencia: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Gera relatório de notas fiscais canceladas.
+    
+    Lista todas as notas que foram canceladas (evento de cancelamento ou cStat 101/151).
+    Campos: Data, Emitente/Destinatário, Número, Valor, Motivo do cancelamento.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar notas canceladas
+    filtro = {
+        "company_id": company_id,
+        "cancelada": True
+    }
+    
+    if competencia:
+        filtro["competencia"] = competencia
+    
+    notas_canceladas = await db.xml_documents.find(filtro, {"_id": 0, "xml_content": 0}).to_list(length=1000)
+    
+    # Organizar notas por tipo (entrada/saída)
+    notas = []
+    valor_total_entradas = 0
+    valor_total_saidas = 0
+    
+    for nota in notas_canceladas:
+        data_emissao = nota.get('data_emissao', '')
+        if data_emissao and 'T' in data_emissao:
+            data_emissao = data_emissao[:10]
+        
+        data_cancel = nota.get('data_cancelamento', '')
+        if data_cancel and 'T' in data_cancel:
+            data_cancel = data_cancel[:10]
+        
+        tipo = nota.get('tipo', 'entrada')
+        valor = round(nota.get('valor_total', 0), 2)
+        
+        if tipo == 'entrada':
+            valor_total_entradas += valor
+        else:
+            valor_total_saidas += valor
+        
+        notas.append({
+            "id": nota.get('id', ''),
+            "tipo": "ENTRADA" if tipo == 'entrada' else "SAÍDA",
+            "numero": nota.get('numero_nfe', ''),
+            "serie": nota.get('serie', ''),
+            "data_emissao": data_emissao,
+            "data_cancelamento": data_cancel,
+            "valor": valor,
+            "competencia": nota.get('competencia', ''),
+            "chave": nota.get('chave_nfe', ''),
+            "emitente": nota.get('emitente_nome', ''),
+            "emitente_cnpj": nota.get('emitente_cnpj', ''),
+            "destinatario": nota.get('destinatario_nome', ''),
+            "destinatario_cnpj": nota.get('destinatario_cnpj', ''),
+            "justificativa": nota.get('justificativa_cancelamento', 'Cancelamento por evento fiscal'),
+            "protocolo": nota.get('protocolo_cancelamento', ''),
+            "cfops": list(set([p.get('cfop', '') for p in nota.get('produtos', [])])),
+            "qtd_itens": len(nota.get('produtos', []))
+        })
+    
+    # Ordenar por data de cancelamento (mais recente primeiro)
+    notas.sort(key=lambda x: x['data_cancelamento'] or x['data_emissao'], reverse=True)
+    
+    # Calcular totais
+    total_notas = len(notas)
+    total_entradas = len([n for n in notas if n['tipo'] == 'ENTRADA'])
+    total_saidas = len([n for n in notas if n['tipo'] == 'SAÍDA'])
+    
+    return {
+        "titulo": "Notas Fiscais Canceladas",
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', '')
+        },
+        "competencia": competencia or "Todas",
+        "data_geracao": datetime.now(timezone.utc).isoformat(),
+        "resumo": {
+            "total_notas": total_notas,
+            "total_entradas": total_entradas,
+            "total_saidas": total_saidas,
+            "valor_total_entradas": round(valor_total_entradas, 2),
+            "valor_total_saidas": round(valor_total_saidas, 2),
+            "valor_total": round(valor_total_entradas + valor_total_saidas, 2)
+        },
+        "descricao": "Este relatório lista todas as notas fiscais que foram canceladas e excluídas das apurações fiscais. O cancelamento pode ter ocorrido por evento fiscal (transmitido à SEFAZ) ou por detecção automática do sistema.",
+        "notas": notas
+    }
+
+
+@api_router.get("/relatorio-notas-canceladas/{company_id}/exportar")
+async def exportar_relatorio_canceladas(
+    company_id: str,
+    formato: str = "excel",  # excel ou word
+    competencia: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Exporta o relatório de notas canceladas em Excel ou Word.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar notas canceladas
+    filtro = {
+        "company_id": company_id,
+        "cancelada": True
+    }
+    if competencia:
+        filtro["competencia"] = competencia
+    
+    notas_canceladas = await db.xml_documents.find(filtro, {"_id": 0, "xml_content": 0}).to_list(length=1000)
+    
+    # Montar dados para exportação
+    dados_exportacao = []
+    valor_total = 0
+    
+    for nota in notas_canceladas:
+        data_emissao = nota.get('data_emissao', '')[:10] if nota.get('data_emissao') else ''
+        data_cancel = nota.get('data_cancelamento', '')[:10] if nota.get('data_cancelamento') else ''
+        valor = round(nota.get('valor_total', 0), 2)
+        valor_total += valor
+        
+        tipo = nota.get('tipo', 'entrada')
+        
+        dados_exportacao.append({
+            "tipo": "ENTRADA" if tipo == 'entrada' else "SAÍDA",
+            "numero": nota.get('numero_nfe', ''),
+            "serie": nota.get('serie', ''),
+            "data_emissao": data_emissao,
+            "data_cancelamento": data_cancel,
+            "valor": valor,
+            "emitente": nota.get('emitente_nome', ''),
+            "emitente_cnpj": nota.get('emitente_cnpj', ''),
+            "destinatario": nota.get('destinatario_nome', ''),
+            "destinatario_cnpj": nota.get('destinatario_cnpj', ''),
+            "justificativa": nota.get('justificativa_cancelamento', 'Cancelamento fiscal'),
+            "competencia": nota.get('competencia', '')
+        })
+    
+    # Ordenar por data
+    dados_exportacao.sort(key=lambda x: x['data_cancelamento'] or x['data_emissao'], reverse=True)
+    
+    if formato.lower() == "excel":
+        # Exportar Excel
+        try:
+            import openpyxl
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+            from openpyxl.utils import get_column_letter
+        except ImportError:
+            raise HTTPException(status_code=500, detail="Biblioteca openpyxl não instalada")
+        
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Notas Canceladas"
+        
+        # Estilos
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="DC2626", end_color="DC2626", fill_type="solid")
+        entrada_fill = PatternFill(start_color="DBEAFE", end_color="DBEAFE", fill_type="solid")
+        saida_fill = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
+        thin_border = Border(
+            left=Side(style='thin'), right=Side(style='thin'),
+            top=Side(style='thin'), bottom=Side(style='thin')
+        )
+        
+        # Título
+        ws.merge_cells('A1:L1')
+        ws['A1'] = "RELATÓRIO DE NOTAS FISCAIS CANCELADAS"
+        ws['A1'].font = Font(bold=True, size=14)
+        ws['A1'].alignment = Alignment(horizontal='center')
+        
+        # Info empresa
+        ws['A2'] = f"Empresa: {company.get('razao_social', '')} - CNPJ: {company.get('cnpj', '')}"
+        ws['A3'] = f"Competência: {competencia or 'Todas'} | Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        
+        # Resumo
+        ws['A5'] = "RESUMO"
+        ws['A5'].font = Font(bold=True)
+        total_entradas = len([d for d in dados_exportacao if d['tipo'] == 'ENTRADA'])
+        total_saidas = len([d for d in dados_exportacao if d['tipo'] == 'SAÍDA'])
+        ws['A6'] = f"Total de Notas Canceladas: {len(dados_exportacao)}"
+        ws['A7'] = f"Entradas: {total_entradas} | Saídas: {total_saidas}"
+        ws['A8'] = f"Valor Total: R$ {valor_total:,.2f}"
+        
+        # Cabeçalhos
+        headers = [
+            "Tipo", "NF", "Série", "Data Emissão", "Data Cancel.", "Valor",
+            "Emitente", "CNPJ Emit.", "Destinatário", "CNPJ Dest.",
+            "Justificativa", "Competência"
+        ]
+        
+        row = 10
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=row, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal='center')
+        
+        # Dados
+        for linha in dados_exportacao:
+            row += 1
+            valores = [
+                linha['tipo'],
+                linha['numero'],
+                linha['serie'],
+                linha['data_emissao'],
+                linha['data_cancelamento'],
+                linha['valor'],
+                linha['emitente'],
+                linha['emitente_cnpj'],
+                linha['destinatario'],
+                linha['destinatario_cnpj'],
+                linha['justificativa'],
+                linha['competencia']
+            ]
+            
+            for col, valor in enumerate(valores, 1):
+                cell = ws.cell(row=row, column=col, value=valor)
+                cell.border = thin_border
+                
+                # Colorir linha por tipo
+                if linha['tipo'] == 'ENTRADA':
+                    cell.fill = entrada_fill
+                else:
+                    cell.fill = saida_fill
+        
+        # Ajustar larguras
+        col_widths = [10, 10, 8, 12, 12, 12, 30, 18, 30, 18, 40, 10]
+        for col, width in enumerate(col_widths, 1):
+            ws.column_dimensions[get_column_letter(col)].width = width
+        
+        # Salvar
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        filename = f"notas_canceladas_{company_id}_{competencia or 'todas'}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
+    elif formato.lower() == "word":
+        # Exportar Word
+        try:
+            from docx import Document
+            from docx.shared import Inches, Pt, Cm
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+            from docx.enum.table import WD_TABLE_ALIGNMENT
+        except ImportError:
+            raise HTTPException(status_code=500, detail="Biblioteca python-docx não instalada")
+        
+        doc = Document()
+        
+        # Título
+        titulo = doc.add_heading('RELATÓRIO DE NOTAS FISCAIS CANCELADAS', level=1)
+        titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # Info empresa
+        doc.add_paragraph(f"Empresa: {company.get('razao_social', '')}")
+        doc.add_paragraph(f"CNPJ: {company.get('cnpj', '')}")
+        doc.add_paragraph(f"Competência: {competencia or 'Todas'}")
+        doc.add_paragraph(f"Data de Geração: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        
+        doc.add_paragraph()
+        
+        # Resumo
+        doc.add_heading('Resumo', level=2)
+        total_entradas = len([d for d in dados_exportacao if d['tipo'] == 'ENTRADA'])
+        total_saidas = len([d for d in dados_exportacao if d['tipo'] == 'SAÍDA'])
+        doc.add_paragraph(f"Total de Notas Canceladas: {len(dados_exportacao)}")
+        doc.add_paragraph(f"Entradas: {total_entradas} | Saídas: {total_saidas}")
+        doc.add_paragraph(f"Valor Total: R$ {valor_total:,.2f}")
+        
+        doc.add_paragraph()
+        
+        # Descrição
+        doc.add_heading('Descrição', level=2)
+        doc.add_paragraph(
+            "Este relatório lista todas as notas fiscais que foram canceladas e excluídas "
+            "das apurações fiscais. O cancelamento pode ter ocorrido por evento fiscal "
+            "(transmitido à SEFAZ) ou por detecção automática do sistema."
+        )
+        
+        doc.add_paragraph()
+        
+        # Tabela de dados
+        if dados_exportacao:
+            doc.add_heading('Detalhamento', level=2)
+            
+            # Agrupar por tipo
+            for tipo in ['ENTRADA', 'SAÍDA']:
+                notas_tipo = [d for d in dados_exportacao if d['tipo'] == tipo]
+                if notas_tipo:
+                    doc.add_heading(f'Notas de {tipo} ({len(notas_tipo)})', level=3)
+                    
+                    table = doc.add_table(rows=1, cols=6)
+                    table.style = 'Table Grid'
+                    
+                    # Cabeçalhos
+                    hdr_cells = table.rows[0].cells
+                    hdr_cells[0].text = "NF"
+                    hdr_cells[1].text = "Data Emissão"
+                    hdr_cells[2].text = "Data Cancel."
+                    hdr_cells[3].text = "Valor"
+                    hdr_cells[4].text = "Emitente/Destinatário"
+                    hdr_cells[5].text = "Justificativa"
+                    
+                    for nota in notas_tipo:
+                        row_cells = table.add_row().cells
+                        row_cells[0].text = str(nota['numero'])
+                        row_cells[1].text = nota['data_emissao']
+                        row_cells[2].text = nota['data_cancelamento']
+                        row_cells[3].text = f"R$ {nota['valor']:,.2f}"
+                        row_cells[4].text = nota['emitente'] if tipo == 'ENTRADA' else nota['destinatario']
+                        row_cells[5].text = nota['justificativa'][:50] + '...' if len(nota['justificativa']) > 50 else nota['justificativa']
+                    
+                    doc.add_paragraph()
+        
+        # Salvar
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+        
+        filename = f"notas_canceladas_{company_id}_{competencia or 'todas'}_{datetime.now().strftime('%Y%m%d')}.docx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
+    else:
+        raise HTTPException(status_code=400, detail="Formato inválido. Use 'excel' ou 'word'")
+
+
 # ============== RELATÓRIO DE NOTAS DESCONSIDERADAS POR DEVOLUÇÃO DO FORNECEDOR ==============
 @api_router.get("/relatorio-devolucoes-fornecedor/{company_id}")
 async def relatorio_devolucoes_fornecedor(
