@@ -2033,6 +2033,8 @@ def main():
     
     # Test sequence - focusing on the specific review request
     tests = [
+        # PRIORITY TEST: Cancelled notes report endpoints as requested in review
+        tester.test_cancelled_notes_report_endpoints,
         # PRIORITY TEST: Supplier return report endpoints as requested in review
         tester.test_supplier_return_report_endpoints,
         # Additional tests: Single document delete verification
