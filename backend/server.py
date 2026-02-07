@@ -617,8 +617,15 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
         total = nfe.get('total', {}).get('ICMSTot', {})
         det = nfe.get('det', [])
         
+        # ===== EXTRAIR FINALIDADE DA NFe (finNFe) =====
+        # 1=Normal, 2=Complementar, 3=Ajuste, 4=Devolução
+        finalidade_nfe = ide.get('finNFe', '1')
+        natureza_operacao = ide.get('natOp', '').upper()
+        
         # ===== EXTRAIR NFe REFERENCIADA (para devoluções) =====
         nfe_referenciada = ""  # Sempre inicializar como string vazia
+        
+        # Método 1: NFref tradicional
         nfref = ide.get('NFref', {})
         if nfref:
             # Pode ser uma lista ou um dict único
@@ -633,6 +640,19 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                     if isinstance(ref_nf, dict):
                         # Montar identificação da NF modelo 1
                         nfe_referenciada = f"{ref_nf.get('cUF', '')}-{ref_nf.get('CNPJ', '')}-{ref_nf.get('mod', '')}-{ref_nf.get('serie', '')}-{ref_nf.get('nNF', '')}"
+        
+        # Método 2: DFeReferenciado nos itens (novo formato em algumas NF-e 4.0)
+        if not nfe_referenciada:
+            # det pode ser lista ou dict único
+            det_list = det if isinstance(det, list) else [det] if det else []
+            for det_item in det_list:
+                if isinstance(det_item, dict):
+                    dfe_ref = det_item.get('DFeReferenciado', {})
+                    if isinstance(dfe_ref, dict):
+                        chave_acesso = dfe_ref.get('chaveAcesso', '')
+                        if chave_acesso:
+                            nfe_referenciada = chave_acesso
+                            break
         
         # Garantir que nunca seja None
         if nfe_referenciada is None:
