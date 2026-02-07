@@ -4194,6 +4194,7 @@ async def upload_xml_with_progress(
         "rejeitadas_competencia": rejeitadas_competencia,
         "relatorio_conversoes": conversion_report,
         "alertas_cfop": alertas_cfop,
+        "notas_desconsideradas_devolucao": notas_devolucao_fornecedor,
         "total_conversoes": sum(len(r['conversoes']) for r in conversion_report),
         "total_alertas_cfop": sum(len(a['alertas']) for a in alertas_cfop),
         "performance": {
@@ -4209,7 +4210,8 @@ async def upload_xml_with_progress(
             "rejeitados_cnpj": len(rejeitadas_cnpj),
             "rejeitados_competencia": len(rejeitadas_competencia),
             "erros": len(errors),
-            "alertas_cfop": len(alertas_cfop)
+            "alertas_cfop": len(alertas_cfop),
+            "desconsideradas_devolucao": len(notas_devolucao_fornecedor)
         }
     }
     
@@ -4226,6 +4228,7 @@ async def upload_xml_with_progress(
     all_results["rejeitadas_cnpj"].extend(rejeitadas_cnpj)
     all_results["relatorio_conversoes"].extend(conversion_report)
     all_results["alertas_cfop"].extend(alertas_cfop)
+    all_results["notas_desconsideradas_devolucao"].extend(notas_devolucao_fornecedor)
     
     progress["all_results"] = all_results
     
