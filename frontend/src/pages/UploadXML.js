@@ -397,10 +397,38 @@ const UploadXML = ({ user, onLogout }) => {
 
   return (
     <Layout user={user} onLogout={onLogout}>
-      {/* Barra de progresso fixa no topo */}
-      {uploading && <ProgressBar />}
+      {/* Barra de progresso fixa no topo - usa dados do contexto global */}
+      {(uploading || globalUploading) && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg">
+          <div className="max-w-5xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                <div>
+                  <p className="font-bold">Importando XMLs...</p>
+                  <p className="text-sm text-red-200">
+                    {globalProgress.current} de {globalProgress.total} arquivos processados
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-bold">{globalProgress.percent}%</p>
+              </div>
+            </div>
+            <div className="w-full h-3 bg-white/30 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-white rounded-full transition-all duration-300"
+                style={{ width: `${globalProgress.percent}%` }}
+              />
+            </div>
+            <p className="text-xs text-red-200 mt-2">
+              💡 Você pode navegar para outras páginas. O progresso será exibido no canto inferior direito.
+            </p>
+          </div>
+        </div>
+      )}
       
-      <div data-testid="upload-xml-page" className={`space-y-6 max-w-5xl mx-auto ${uploading ? 'pt-28' : ''}`}>
+      <div data-testid="upload-xml-page" className={`space-y-6 max-w-5xl mx-auto ${(uploading || globalUploading) ? 'pt-32' : ''}`}>
         <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl p-6 shadow-lg">
           <div className="flex items-center gap-3 mb-2">
             <Sparkles className="w-8 h-8" />
