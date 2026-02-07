@@ -6105,7 +6105,7 @@ async def relatorio_devolucoes_fornecedor(
     filtro = {
         "company_id": company_id,
         "desconsiderada_devolucao": True,
-        "nfe_referenciada": {"$exists": True, "$ne": None, "$ne": ""}
+        "nfe_referenciada": {"$exists": True, "$nin": [None, ""]}
     }
     
     if competencia:
