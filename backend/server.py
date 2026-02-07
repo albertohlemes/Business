@@ -4089,14 +4089,72 @@ async def upload_xml_with_progress(
         }
     }
     
-    progress["processed_files"] = total_files
-    progress["progress_percent"] = 100
-    progress["current_step"] = "Upload concluído!"
-    progress["status"] = "completed"
-    progress["completed"] = True
-    progress["results"] = final_results
+    # Acumular resultados no progress store
+    all_results = progress.get("all_results", {
+        "success": [], "errors": [], "duplicadas": [], 
+        "rejeitadas_cnpj": [], "relatorio_conversoes": [],
+        "alertas_cfop": [], "notas_desconsideradas_devolucao": []
+    })
     
-    return final_results
+    all_results["success"].extend(results)
+    all_results["errors"].extend(errors)
+    all_results["duplicadas"].extend(duplicadas)
+    all_results["rejeitadas_cnpj"].extend(rejeitadas_cnpj)
+    all_results["relatorio_conversoes"].extend(conversion_report)
+    all_results["alertas_cfop"].extend(alertas_cfop)
+    
+    progress["all_results"] = all_results
+    
+    # Atualizar contador global de processados
+    processed_in_session = progress.get("processed_in_session", 0) + len(files)
+    progress["processed_in_session"] = processed_in_session
+    progress["processed_files"] = processed_in_session
+    
+    total_expected = progress.get("total_files", len(files))
+    progress["progress_percent"] = min(100, int((processed_in_session / total_expected) * 100))
+    
+    # Verificar se TODOS os arquivos foram processados
+    if processed_in_session >= total_expected:
+        # Montar resultado final consolidado
+        final_results = {
+            "success": all_results["success"],
+            "errors": all_results["errors"],
+            "duplicadas": all_results["duplicadas"],
+            "rejeitadas_cnpj": all_results["rejeitadas_cnpj"],
+            "rejeitadas_competencia": [],
+            "relatorio_conversoes": all_results["relatorio_conversoes"],
+            "alertas_cfop": all_results["alertas_cfop"],
+            "notas_desconsideradas_devolucao": all_results.get("notas_desconsideradas_devolucao", []),
+            "total_conversoes": sum(len(r.get('conversoes', [])) for r in all_results["relatorio_conversoes"]),
+            "total_alertas_cfop": sum(len(a.get('alertas', [])) for a in all_results["alertas_cfop"]),
+            "performance": {
+                "produtos_do_cache": total_stats["from_cache"],
+                "produtos_de_regras": total_stats["from_rules"],
+                "produtos_da_ia": total_stats["from_ai"],
+                "total_classificados": total_stats["total"]
+            },
+            "resumo": {
+                "total_arquivos": total_expected,
+                "importados": len(all_results["success"]),
+                "duplicados": len(all_results["duplicadas"]),
+                "rejeitados_cnpj": len(all_results["rejeitadas_cnpj"]),
+                "rejeitados_competencia": 0,
+                "erros": len(all_results["errors"]),
+                "alertas_cfop": len(all_results["alertas_cfop"]),
+                "desconsideradas_devolucao": len(all_results.get("notas_desconsideradas_devolucao", []))
+            }
+        }
+        
+        progress["current_step"] = "Upload concluído!"
+        progress["status"] = "completed"
+        progress["completed"] = True
+        progress["results"] = final_results
+    else:
+        progress["current_step"] = f"Lote processado ({processed_in_session}/{total_expected} arquivos)"
+        progress["status"] = "processing"
+        progress["completed"] = False
+    
+    return {"processed": len(files), "total_processed": processed_in_session, "total_expected": total_expected}
 
 
 @api_router.get("/xml/documents")
