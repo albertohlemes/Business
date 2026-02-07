@@ -3127,14 +3127,22 @@ async def upload_xml_batch(
                 motivo_devolucao = ""
                 nfe_ref_devolucao = ""
                 
+                # Verificar se emitente é diferente da empresa (fornecedor emitiu a nota)
                 if cnpj_emitente != cnpj_empresa:
                     cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
-                    cfops_entrada = [c for c in cfops_xml if c and c[0] in ['1', '2', '3']]
+                    cfops_entrada = [c for c in cfops_xml if c and len(c) >= 1 and c[0] in ['1', '2', '3']]
                     
-                    if cfops_entrada and len(cfops_entrada) == len(cfops_xml):
+                    # Log para debug
+                    print(f"DEBUG DEVOLUÇÃO: NF {parsed_data.get('numero_nfe')} - Emitente: {cnpj_emitente}, Empresa: {cnpj_empresa}")
+                    print(f"DEBUG DEVOLUÇÃO: CFOPs no XML: {cfops_xml}, CFOPs entrada: {cfops_entrada}")
+                    
+                    # Se TODOS os CFOPs são de entrada (1xxx, 2xxx, 3xxx)
+                    if cfops_entrada and len(cfops_entrada) == len(cfops_xml) and len(cfops_xml) > 0:
                         # Todos os CFOPs são de entrada - Devolução do fornecedor
                         cfops_unicos = list(set(cfops_entrada))[:3]
-                        nfe_ref_devolucao = parsed_data.get('nfe_referenciada', '')
+                        nfe_ref_devolucao = parsed_data.get('nfe_referenciada', '') or ''
+                        
+                        print(f"DEBUG DEVOLUÇÃO: DETECTADA! CFOPs únicos: {cfops_unicos}, NFe Ref: {nfe_ref_devolucao}")
                         
                         # Marcar como devolução do fornecedor (será processada mas desconsiderada)
                         is_devolucao_fornecedor = True
@@ -3155,15 +3163,9 @@ async def upload_xml_batch(
                             "motivo": motivo_devolucao
                         })
                     else:
-                        # Nota de terceiro com CFOP misto ou de saída - rejeitar
-                        rejeitadas_cnpj.append({
-                            "filename": file.filename,
-                            "numero_nfe": parsed_data.get('numero_nfe', ''),
-                            "motivo": f"CNPJ do emitente ({cnpj_emitente}) não corresponde à empresa selecionada ({cnpj_empresa}). Esta NF não pode ser escriturada como entrada.",
-                            "emitente": parsed_data.get('emitente_nome', ''),
-                            "destinatario": parsed_data.get('destinatario_nome', '')
-                        })
-                        continue
+                        # Nota de terceiro mas não é devolução pura - pode ser uma compra normal
+                        # NÃO rejeitar automaticamente, deixar passar como entrada normal
+                        print(f"DEBUG: NF {parsed_data.get('numero_nfe')} - Terceiro com CFOPs mistos, processando como entrada normal")
             else:  # saida
                 cnpj_valido = cnpj_emitente == cnpj_empresa
                 if not cnpj_valido:
