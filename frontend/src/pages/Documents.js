@@ -479,7 +479,22 @@ const Documents = ({ user, onLogout }) => {
           </div>
         </div>
 
-        {/* Barra de busca e contagem */}
+        {/* Totalizador */}
+        <div className="flex items-center gap-6 py-3 px-4 bg-[#141414] rounded-lg border border-[#2A2A2A]">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-[#A1A1AA]" />
+            <span className="text-sm text-[#A1A1AA]">Documentos:</span>
+            <span className="text-sm font-semibold text-white">{totais.quantidade}</span>
+          </div>
+          <div className="w-px h-4 bg-[#2A2A2A]" />
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-[#A1A1AA]" />
+            <span className="text-sm text-[#A1A1AA]">Total:</span>
+            <span className="text-sm font-semibold text-[#C8A951]">{formatCurrency(totais.valorTotal)}</span>
+          </div>
+        </div>
+
+        {/* Barra de busca */}
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-3 w-5 h-5 text-[#A1A1AA]" />
@@ -490,9 +505,6 @@ const Documents = ({ user, onLogout }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-11 pr-4 py-2.5 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
             />
-          </div>
-          <div className="text-sm text-[#A1A1AA]">
-            {filteredDocuments.length} documento(s)
           </div>
         </div>
 
