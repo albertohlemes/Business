@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, DollarSign, FileText,
   ChevronDown, ChevronUp, Download, RefreshCw, 
   Building2, Package, Hash, BarChart3, ArrowRight,
-  ArrowLeftRight, Minus
+  ArrowLeftRight, Minus, Truck
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -16,6 +16,7 @@ const ApuracaoICMS = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [dados, setDados] = useState(null);
+  const [activeTab, setActiveTab] = useState('icms'); // 'icms' ou 'icms_st'
   const [expandedSections, setExpandedSections] = useState({
     entradas: true,
     saidas: true
