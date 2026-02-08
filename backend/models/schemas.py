@@ -8,6 +8,10 @@ import uuid
 
 
 class UserRole:
+    SUPER_ADMIN = "super_admin"  # Dono do escritório - acesso total
+    MASTER = "master"            # Vê todas as empresas, pode filtrar por usuário responsável
+    OPERACIONAL = "operacional"  # Vê apenas empresas das quais é responsável
+    # Legacy roles (para compatibilidade)
     ADMIN = "admin"
     CLIENT = "client"
 
@@ -17,17 +21,30 @@ class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     email: str
     name: str
-    role: str
-    company_ids: List[str] = []
+    role: str = UserRole.OPERACIONAL
+    company_ids: List[str] = []  # Empresas que o usuário é responsável
+    is_active: bool = True
+    created_by: Optional[str] = None  # ID do usuário que criou
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: Optional[datetime] = None
+    last_login: Optional[datetime] = None
+    preferences: Dict[str, Any] = Field(default_factory=lambda: {"menu_mode": "vertical"})
 
 
 class UserCreate(BaseModel):
     email: str
     password: str
     name: str
-    role: str = UserRole.CLIENT
+    role: str = UserRole.OPERACIONAL
     company_ids: List[str] = []
+
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
+    company_ids: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+    preferences: Optional[Dict[str, Any]] = None
 
 
 class UserLogin(BaseModel):
