@@ -5797,19 +5797,13 @@ async def apuracao_pis_cofins(
             
             # Entradas (créditos)
             if is_entrada:
-                cst_usado = cst_calculado or calcular_cst_pis_cofins(ncm, cfop, 'entrada', cst_xml, regime)['cst_calculado']
-                
-                if cst_usado == '98' or cfop in CFOPS_ENTRADA_SEM_INCIDENCIA:
-                    # Sem incidência - CST 98 - não gera crédito (remessa/devolução/transferência)
-                    add_to_dict(creditos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0, '98')
-                    add_to_dict(creditos["aliquota_zero"]["por_ncm"], ncm or "SEM NCM", valor, 0, 0, '98')
-                    add_to_dict(creditos["aliquota_zero"]["por_cst"], '98', valor, 0, 0, '98')
-                    creditos["aliquota_zero"]["total"] += valor
-                elif regime == 'lucro_real':
-                    # Lucro Real: USAR VALORES DO XML para créditos (igual Dashboard)
-                    # O crédito é o valor que o fornecedor destacou na NF
-                    # Classificar por CST para visualização, mas usar v_pis/v_cofins do XML
-                    cst_display = '73' if (aliq_zero or cst_usado == '73') else '50'
+                # Lucro Real: USAR VALORES DO XML para créditos (igual Dashboard)
+                # O crédito é o valor que o fornecedor destacou na NF
+                # Isso garante consistência entre Dashboard e Apuração
+                if regime == 'lucro_real':
+                    cst_usado = cst_calculado or calcular_cst_pis_cofins(ncm, cfop, 'entrada', cst_xml, regime)['cst_calculado']
+                    cst_display = cst_usado if cst_usado else '50'
+                    
                     add_to_dict(creditos["com_credito"]["por_cfop"], cfop_key, valor, v_pis, v_cofins, cst_display)
                     add_to_dict(creditos["com_credito"]["por_ncm"], ncm or "SEM NCM", valor, v_pis, v_cofins, cst_display)
                     add_to_dict(creditos["com_credito"]["por_cst"], cst_display, valor, v_pis, v_cofins, cst_display)
