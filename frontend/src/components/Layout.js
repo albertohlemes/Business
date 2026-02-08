@@ -54,9 +54,10 @@ const Layout = ({ user, onLogout, children }) => {
     { name: 'Alertas', href: '/alertas-cfop', icon: AlertTriangle, testId: 'nav-alertas-cfop' },
     { name: 'Validação IA', href: '/classificacao', icon: Brain, testId: 'nav-classificacao' },
     { name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
-    { name: 'Apuração', href: '/apuracao-mensal', icon: Calculator, testId: 'nav-apuracao-mensal' },
+    { name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' },
+    { name: 'Apuração', href: '/apuracao-mensal', icon: BarChart3, testId: 'nav-apuracao-mensal' },
     { name: 'Análise IA', href: '/analise-tributaria-ia', icon: Sparkles, testId: 'nav-analise-tributaria-ia' },
-    { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
+    { name: 'Relatórios', href: '/reports', icon: FileText, testId: 'nav-reports' },
     { name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' },
   ];
 
