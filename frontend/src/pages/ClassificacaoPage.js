@@ -1180,7 +1180,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                       <div className="text-sm flex-1">
                         <span className="font-medium">{rule.produto_descricao}</span>
                         <span className="text-gray-500 mx-2">→</span>
-                        {getCategoryBadge(rule.categoria_correta || rule.categoria)}
+                        {getCategoryBadge(rule.categoria_correta || rule.categoria, '')}
                         <span className="text-gray-500 ml-2 font-mono">CFOP {rule.cfop_correto || rule.cfop}</span>
                       </div>
                       <div className="flex gap-1">
