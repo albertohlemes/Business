@@ -308,26 +308,26 @@ const Dashboard = ({ user, onLogout }) => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* ICMS com informação de ST */}
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                  <h4 className="font-semibold text-gray-900 mb-3">ICMS</h4>
+                <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                  <h4 className="font-semibold text-white mb-3">ICMS</h4>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-green-600">Crédito:</span>
-                      <span className="font-medium text-green-700">{formatCurrency(stats.creditos.icms)}</span>
+                      <span className="text-emerald-400">Crédito:</span>
+                      <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos.icms)}</span>
                     </div>
                     {stats.creditos.icms_st_desconsiderado > 0 && (
-                      <div className="flex justify-between text-xs bg-orange-50 -mx-2 px-2 py-1 rounded">
-                        <span className="text-orange-600">ICMS-ST (sem crédito):</span>
-                        <span className="font-medium text-orange-700">{formatCurrency(stats.creditos.icms_st_desconsiderado)}</span>
+                      <div className="flex justify-between text-xs bg-amber-500/10 -mx-2 px-2 py-1 rounded">
+                        <span className="text-amber-400">ICMS-ST (sem crédito):</span>
+                        <span className="font-medium text-amber-400">{formatCurrency(stats.creditos.icms_st_desconsiderado)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-sm">
-                      <span className="text-red-600">Débito:</span>
-                      <span className="font-medium text-red-700">{formatCurrency(stats.debitos.icms)}</span>
+                      <span className="text-red-400">Débito:</span>
+                      <span className="font-medium text-red-400">{formatCurrency(stats.debitos.icms)}</span>
                     </div>
-                    <div className="border-t pt-2 flex justify-between text-sm font-bold">
-                      <span className="text-gray-700">A Pagar:</span>
-                      <span className={stats.impostos_pagar.icms > 0 ? 'text-red-700' : 'text-green-700'}>
+                    <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
+                      <span className="text-[#A1A1AA]">A Pagar:</span>
+                      <span className={stats.impostos_pagar.icms > 0 ? 'text-red-400' : 'text-emerald-400'}>
                         {formatCurrency(stats.impostos_pagar.icms)}
                       </span>
                     </div>
