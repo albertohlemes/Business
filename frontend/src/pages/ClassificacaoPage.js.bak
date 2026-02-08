@@ -32,7 +32,7 @@ const NFsList = ({ ocorrencias, maxVisible = 999 }) => {
           >
             {o.nf || o.numero_nfe || '?'}
           </Link>
-          {idx < visibleNFs.length - 1 && <span className="text-[#666666]">, </span>}
+          {idx < visibleNFs.length - 1 && <span className="text-gray-400">, </span>}
         </span>
       ))}
       {hasMore && (
@@ -52,7 +52,7 @@ const NFsList = ({ ocorrencias, maxVisible = 999 }) => {
             e.stopPropagation();
             setExpanded(false);
           }}
-          className="ml-1 text-[#A1A1AA] hover:text-[#E0E0E0]"
+          className="ml-1 text-gray-500 hover:text-gray-700"
         >
           (ocultar)
         </button>
@@ -367,7 +367,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
       'INSUMO': { produtos: [], cor: 'bg-blue-500', corFundo: 'bg-blue-50', icon: '⚙️' },
       'DESPESA': { produtos: [], cor: 'bg-orange-500', corFundo: 'bg-orange-50', icon: '📋' },
       'ATIVO_IMOBILIZADO': { produtos: [], cor: 'bg-purple-500', corFundo: 'bg-purple-50', icon: '🏭' },
-      'COMBUSTIVEL': { produtos: [], cor: 'bg-gray-700', corFundo: 'bg-[#0C0C0C]', icon: '⛽' },
+      'COMBUSTIVEL': { produtos: [], cor: 'bg-gray-700', corFundo: 'bg-gray-50', icon: '⛽' },
       // Categorias de operações distintas (classificadas em Alertas CFOP)
       'BONIFICAÇÃO': { produtos: [], cor: 'bg-pink-500', corFundo: 'bg-pink-50', icon: '🎁' },
       'DEVOLUÇÃO': { produtos: [], cor: 'bg-amber-500', corFundo: 'bg-amber-50', icon: '↩️' },
@@ -791,7 +791,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     else badge = badges[categoria?.toLowerCase()];
     
     if (!badge) {
-      badge = { bg: 'bg-[#1A1A1A]', text: 'text-white', label: categoria?.toUpperCase() || 'N/A' };
+      badge = { bg: 'bg-gray-100', text: 'text-gray-800', label: categoria?.toUpperCase() || 'N/A' };
     }
     
     return (
@@ -807,35 +807,35 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     const allApproved = approved === total;
     
     return (
-      <div className={`px-6 py-3 border-b border-[#2A2A2A] hover:bg-[#0C0C0C] flex items-center justify-between ${allApproved ? 'bg-green-50/50' : ''}`}>
+      <div className={`px-6 py-3 border-b border-gray-100 hover:bg-gray-50 flex items-center justify-between ${allApproved ? 'bg-green-50/50' : ''}`}>
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <button
             onClick={() => toggleApproveProductAll(product.codigo)}
             className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
               allApproved 
                 ? 'bg-green-600 border-green-600 text-white' 
-                : 'border-[#333333] hover:border-green-500'
+                : 'border-gray-300 hover:border-green-500'
             }`}
           >
             {allApproved && <Check className="w-4 h-4" />}
           </button>
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-white truncate">{product.descricao}</p>
-            <p className="text-xs text-[#A1A1AA]">
+            <p className="font-medium text-gray-900 truncate">{product.descricao}</p>
+            <p className="text-xs text-gray-500">
               Código: {product.codigo} • NCM: <span className="font-mono">{product.ncm}</span> • CFOP: {product.cfop}
             </p>
             <p className="text-xs">
-              <span className="text-[#A1A1AA]">NFs: </span>
+              <span className="text-gray-500">NFs: </span>
               <NFsList ocorrencias={product.ocorrencias} maxVisible={5} />
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4 ml-4">
           <div className="text-right">
-            <p className="font-bold text-white">
+            <p className="font-bold text-gray-900">
               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.valor_total)}
             </p>
-            <p className="text-xs text-[#A1A1AA]">{product.ocorrencias.length} NF(s)</p>
+            <p className="text-xs text-gray-500">{product.ocorrencias.length} NF(s)</p>
           </div>
           <button
             onClick={() => setReclassifyingProduct({
@@ -861,7 +861,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     if (showOnlyPending && allApproved) return null;
     
     return (
-      <div key={product.codigo} className={`grid grid-cols-12 gap-2 items-center px-4 py-3 border-b hover:bg-[#0C0C0C] transition-colors ${allApproved ? 'bg-green-50' : ''}`}>
+      <div key={product.codigo} className={`grid grid-cols-12 gap-2 items-center px-4 py-3 border-b hover:bg-gray-50 transition-colors ${allApproved ? 'bg-green-50' : ''}`}>
         {/* Checkbox + Aprovação */}
         <div className="col-span-1 flex items-center justify-center gap-2">
           <button
@@ -873,7 +873,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
               }
             }}
             className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-              isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-[#333333] hover:border-blue-500'
+              isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300 hover:border-blue-500'
             }`}
           >
             {isSelected && <Check className="w-3 h-3" />}
@@ -886,31 +886,31 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                 ? 'bg-green-600 border-green-600 text-white' 
                 : approved > 0 
                   ? 'bg-yellow-100 border-yellow-400'
-                  : 'border-[#333333] hover:border-green-500'
+                  : 'border-gray-300 hover:border-green-500'
             }`}
             title={allApproved ? 'Remover aprovação' : 'Aprovar em todas as NFs'}
           >
-            {allApproved ? <Check className="w-4 h-4" /> : approved > 0 ? <span className="text-xs font-bold text-amber-400">{approved}</span> : null}
+            {allApproved ? <Check className="w-4 h-4" /> : approved > 0 ? <span className="text-xs font-bold text-yellow-700">{approved}</span> : null}
           </button>
         </div>
         
         {/* Produto */}
         <div className="col-span-3">
-          <p className="font-semibold text-white text-sm truncate" title={product.descricao}>
+          <p className="font-semibold text-gray-900 text-sm truncate" title={product.descricao}>
             {product.descricao}
           </p>
-          <p className="text-xs text-[#A1A1AA]">
+          <p className="text-xs text-gray-500">
             Cód: {product.codigo}
           </p>
           <p className="text-xs">
-            <span className="text-[#A1A1AA]">NFs: </span>
+            <span className="text-gray-500">NFs: </span>
             <NFsList ocorrencias={product.ocorrencias || []} maxVisible={3} />
           </p>
         </div>
         
         {/* NCM */}
         <div className="col-span-1">
-          <span className="font-mono text-xs bg-[#1A1A1A] px-1.5 py-0.5 rounded">
+          <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">
             {product.ncm || '-'}
           </span>
         </div>
@@ -937,14 +937,14 @@ const ClassificacaoPage = ({ user, onLogout }) => {
         
         {/* CFOP */}
         <div className="col-span-1">
-          <span className="px-2 py-1 rounded font-mono text-sm font-semibold bg-[#1A1A1A] text-white">
+          <span className="px-2 py-1 rounded font-mono text-sm font-semibold bg-gray-100 text-gray-800">
             {product.cfop}
           </span>
         </div>
         
         {/* Valor */}
         <div className="col-span-2 text-right">
-          <p className="font-semibold text-white">
+          <p className="font-semibold text-gray-900">
             R$ {product.valor_total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
         </div>
@@ -965,14 +965,14 @@ const ClassificacaoPage = ({ user, onLogout }) => {
       <div data-testid="classificacao-page" className="space-y-6">
         {/* Mensagem de Sucesso */}
         {successMessage && (
-          <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-pulse">
+          <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-pulse">
             <CheckCircle className="w-5 h-5" />
             {successMessage}
           </div>
         )}
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-red-600 text-white rounded-lg p-6 shadow-lg">
+        <div className="bg-gradient-to-r from-purple-600 to-red-600 text-white rounded-xl p-6 shadow-lg">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -986,15 +986,15 @@ const ClassificacaoPage = ({ user, onLogout }) => {
             
             {/* Estatísticas */}
             <div className="flex gap-4">
-              <div className="bg-[#141414]/20 px-4 py-2 rounded-lg text-center">
+              <div className="bg-white/20 px-4 py-2 rounded-lg text-center">
                 <p className="text-2xl font-bold">{totalApproved}</p>
                 <p className="text-xs text-purple-100">Aprovados</p>
               </div>
-              <div className="bg-[#141414]/20 px-4 py-2 rounded-lg text-center">
+              <div className="bg-white/20 px-4 py-2 rounded-lg text-center">
                 <p className="text-2xl font-bold">{totalPending}</p>
                 <p className="text-xs text-purple-100">Pendentes</p>
               </div>
-              <div className="bg-[#141414]/20 px-4 py-2 rounded-lg text-center">
+              <div className="bg-white/20 px-4 py-2 rounded-lg text-center">
                 <p className="text-2xl font-bold">{learnedRules.length}</p>
                 <p className="text-xs text-purple-100">Regras IA</p>
               </div>
@@ -1003,13 +1003,13 @@ const ClassificacaoPage = ({ user, onLogout }) => {
         </div>
 
         {/* Ações em Lote */}
-        <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A] shadow-sm">
+        <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <RefreshCw className="w-5 h-5 text-[#A1A1AA]" />
+              <RefreshCw className="w-5 h-5 text-gray-600" />
               <div>
-                <h3 className="font-semibold text-white">Reimportar Entradas</h3>
-                <p className="text-sm text-[#A1A1AA]">Reprocessa e classifica apenas notas de ENTRADA (saídas são ignoradas)</p>
+                <h3 className="font-semibold text-gray-900">Reimportar Entradas</h3>
+                <p className="text-sm text-gray-500">Reprocessa e classifica apenas notas de ENTRADA (saídas são ignoradas)</p>
               </div>
             </div>
             <button
@@ -1026,20 +1026,20 @@ const ClassificacaoPage = ({ user, onLogout }) => {
           
           {/* Barra de Progresso */}
           {reimportProgress && (
-            <div className="mt-4 pt-4 border-t border-[#2A2A2A]">
+            <div className="mt-4 pt-4 border-t border-gray-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-[#E0E0E0]">{reimportProgress.step}</span>
-                <span className="text-sm text-[#A1A1AA]">
+                <span className="text-sm font-medium text-gray-700">{reimportProgress.step}</span>
+                <span className="text-sm text-gray-500">
                   {reimportProgress.processed}/{reimportProgress.total} docs ({reimportProgress.percent}%)
                 </span>
               </div>
-              <div className="w-full bg-[#2A2A2A] rounded-full h-3 overflow-hidden">
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div 
                   className="bg-orange-500 h-3 rounded-full transition-all duration-300 ease-out"
                   style={{ width: `${reimportProgress.percent}%` }}
                 />
               </div>
-              <div className="flex items-center gap-4 mt-2 text-xs text-[#A1A1AA]">
+              <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                 <span>🤖 Classificados: {reimportProgress.classificados || 0}</span>
                 {reimportProgress.errors > 0 && (
                   <span className="text-red-500">❌ Erros: {reimportProgress.errors}</span>
@@ -1050,7 +1050,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
         </div>
 
         {/* Painel de Comando IA */}
-        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 border-2 border-purple-200">
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border-2 border-purple-200">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-5 h-5 text-purple-600" />
             <h3 className="font-bold text-purple-900">Comando para IA</h3>
@@ -1066,19 +1066,19 @@ const ClassificacaoPage = ({ user, onLogout }) => {
           <div className="flex gap-2 mb-3 flex-wrap">
             <button 
               onClick={() => setAiCommand('Reclassifique produtos de limpeza como DESPESA')}
-              className="text-xs px-2 py-1 bg-[#141414] text-[#E0E0E0] rounded hover:bg-[#1A1A1A] border"
+              className="text-xs px-2 py-1 bg-white text-gray-700 rounded hover:bg-gray-100 border"
             >
               limpeza → DESPESA
             </button>
             <button 
               onClick={() => setAiCommand('Produtos com NCM 30* são medicamentos - classificar como DESPESA')}
-              className="text-xs px-2 py-1 bg-[#141414] text-[#E0E0E0] rounded hover:bg-[#1A1A1A] border"
+              className="text-xs px-2 py-1 bg-white text-gray-700 rounded hover:bg-gray-100 border"
             >
               NCM 30* → DESPESA
             </button>
             <button 
               onClick={() => setAiCommand('Material de escritório é DESPESA (CFOP 1556)')}
-              className="text-xs px-2 py-1 bg-[#141414] text-[#E0E0E0] rounded hover:bg-[#1A1A1A] border"
+              className="text-xs px-2 py-1 bg-white text-gray-700 rounded hover:bg-gray-100 border"
             >
               escritório → DESPESA
             </button>
@@ -1116,7 +1116,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
 
         {/* Resultado da IA */}
         {aiResult && (
-          <div className={`rounded-lg p-4 border-2 ${aiResult.success ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
+          <div className={`rounded-xl p-4 border-2 ${aiResult.success ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
             <h3 className={`font-bold mb-2 ${aiResult.success ? 'text-green-900' : 'text-red-900'}`}>
               {aiResult.success ? '✓ Processamento Concluído' : '✗ Erro'}
             </h3>
@@ -1131,7 +1131,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
 
         {/* Regras Aprendidas */}
         {showRules && learnedRules.length > 0 && (
-          <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+          <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-purple-900 flex items-center gap-2">
                 <BookOpen className="w-5 h-5" />
@@ -1149,7 +1149,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                 )}
                 <button
                   onClick={handleDeleteAllRules}
-                  className="px-3 py-1 bg-[#C8A951] text-white rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-[#B09240]"
+                  className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-red-700"
                 >
                   <Trash2 className="w-4 h-4" />
                   Limpar Tudo
@@ -1169,14 +1169,14 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                     setSelectedRules(learnedRules.map(r => r.id));
                   }
                 }}
-                className="rounded border-[#333333]"
+                className="rounded border-gray-300"
               />
               <span className="text-sm text-purple-700 font-medium">Selecionar todas</span>
             </div>
             
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {learnedRules.map((rule) => (
-                <div key={rule.id} className="bg-[#141414] p-3 rounded-lg border border-purple-100 flex items-center gap-3">
+                <div key={rule.id} className="bg-white p-3 rounded-lg border border-purple-100 flex items-center gap-3">
                   {/* Checkbox */}
                   <input
                     type="checkbox"
@@ -1188,7 +1188,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                         setSelectedRules(prev => [...prev, rule.id]);
                       }
                     }}
-                    className="rounded border-[#333333]"
+                    className="rounded border-gray-300"
                   />
                   
                   {editingRule === rule.id ? (
@@ -1219,7 +1219,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                       <button onClick={() => handleSaveRule(rule.id)} className="p-1 bg-green-100 text-green-700 rounded hover:bg-green-200">
                         <Check className="w-4 h-4" />
                       </button>
-                      <button onClick={() => setEditingRule(null)} className="p-1 bg-[#1A1A1A] text-[#E0E0E0] rounded hover:bg-[#2A2A2A]">
+                      <button onClick={() => setEditingRule(null)} className="p-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
                         <X className="w-4 h-4" />
                       </button>
                     </div>
@@ -1227,9 +1227,9 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                     <>
                       <div className="text-sm flex-1">
                         <span className="font-medium">{rule.produto_descricao}</span>
-                        <span className="text-[#A1A1AA] mx-2">→</span>
+                        <span className="text-gray-500 mx-2">→</span>
                         {getCategoryBadge(rule.categoria_correta || rule.categoria, '')}
-                        <span className="text-[#A1A1AA] ml-2 font-mono">CFOP {rule.cfop_correto || rule.cfop}</span>
+                        <span className="text-gray-500 ml-2 font-mono">CFOP {rule.cfop_correto || rule.cfop}</span>
                       </div>
                       <div className="flex gap-1">
                         <button
@@ -1241,7 +1241,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDeleteRule(rule.id)} className="p-1 text-[#C8A951] hover:bg-red-50 rounded">
+                        <button onClick={() => handleDeleteRule(rule.id)} className="p-1 text-red-600 hover:bg-red-50 rounded">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -1255,18 +1255,18 @@ const ClassificacaoPage = ({ user, onLogout }) => {
 
         {/* Controles */}
         {selectedCompany && (
-          <div className="bg-[#141414] rounded-lg p-4 shadow-md border border-[#2A2A2A] flex items-center justify-between flex-wrap gap-4">
+          <div className="bg-white rounded-xl p-4 shadow-md border border-gray-100 flex items-center justify-between flex-wrap gap-4">
             <div>
-              <p className="text-sm text-[#A1A1AA]">Validando entradas de</p>
-              <p className="font-bold text-white">{selectedCompany.razao_social}</p>
-              <p className="text-sm text-[#A1A1AA]">Competência: {selectedCompetencia}</p>
+              <p className="text-sm text-gray-600">Validando entradas de</p>
+              <p className="font-bold text-gray-900">{selectedCompany.razao_social}</p>
+              <p className="text-sm text-gray-500">Competência: {selectedCompetencia}</p>
             </div>
             
             <div className="flex gap-2">
               <button
                 onClick={() => setShowOnlyPending(!showOnlyPending)}
                 className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
-                  showOnlyPending ? 'bg-red-100 text-red-700' : 'bg-[#1A1A1A] text-[#E0E0E0]'
+                  showOnlyPending ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
                 }`}
               >
                 <Filter className="w-4 h-4" />
@@ -1287,22 +1287,22 @@ const ClassificacaoPage = ({ user, onLogout }) => {
         )}
 
         {/* Lista de Produtos */}
-        <div className="bg-[#141414] rounded-lg shadow-md border border-[#2A2A2A] overflow-hidden">
-          <div className="bg-[#0C0C0C] px-4 py-3 border-b border-[#2A2A2A]">
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+          <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
             <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-              <h3 className="font-semibold text-white">
+              <h3 className="font-semibold text-gray-900">
                 Produtos de Entrada ({sortedProducts.length})
               </h3>
               
               <div className="flex items-center gap-2">
                 {/* Toggle Agrupado/Lista */}
-                <div className="flex bg-[#2A2A2A] rounded-lg p-1">
+                <div className="flex bg-gray-200 rounded-lg p-1">
                   <button
                     onClick={() => setDisplayMode('agrupado')}
                     className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                       displayMode === 'agrupado' 
-                        ? 'bg-[#141414] text-purple-700 shadow-sm' 
-                        : 'text-[#A1A1AA] hover:text-white'
+                        ? 'bg-white text-purple-700 shadow-sm' 
+                        : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     <Layers className="w-4 h-4 inline mr-1" />
@@ -1312,8 +1312,8 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                     onClick={() => setDisplayMode('lista')}
                     className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                       displayMode === 'lista' 
-                        ? 'bg-[#141414] text-purple-700 shadow-sm' 
-                        : 'text-[#A1A1AA] hover:text-white'
+                        ? 'bg-white text-purple-700 shadow-sm' 
+                        : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     Lista
@@ -1333,21 +1333,21 @@ const ClassificacaoPage = ({ user, onLogout }) => {
         </div>
             
           {/* Campo de Busca */}
-          <div className="px-4 py-3 bg-[#0C0C0C] border-b border-[#2A2A2A]">
+          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
             <div className="relative">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-[#666666]" />
+              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 data-testid="search-products"
                 placeholder="Buscar produto, código, NCM, CFOP, NF, emitente..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-10 py-2 border border-[#333333] rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               />
               {searchTerm && (
                 <button 
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666666] hover:text-[#A1A1AA]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1357,7 +1357,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
           
           {/* Visualização Agrupada por Categoria */}
           {displayMode === 'agrupado' && (
-            <div className="divide-y divide-[#2A2A2A]">
+            <div className="divide-y divide-gray-200">
               {Object.entries(productsByCategoria).map(([categoria, { produtos, cor, corFundo, icon }]) => (
                 produtos.length > 0 && (
                   <div key={categoria}>
@@ -1370,14 +1370,14 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                           {icon}
                         </span>
                         <div className="text-left">
-                          <p className="font-bold text-white">{categoria.replace('_', ' ')}</p>
-                          <p className="text-sm text-[#A1A1AA]">{produtos.length} produto(s) • {produtos.reduce((s, p) => s + p.ocorrencias.length, 0)} ocorrência(s)</p>
+                          <p className="font-bold text-gray-900">{categoria.replace('_', ' ')}</p>
+                          <p className="text-sm text-gray-600">{produtos.length} produto(s) • {produtos.reduce((s, p) => s + p.ocorrencias.length, 0)} ocorrência(s)</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
-                          <p className="text-sm text-[#A1A1AA]">Valor Total</p>
-                          <p className="font-bold text-white">
+                          <p className="text-sm text-gray-500">Valor Total</p>
+                          <p className="font-bold text-gray-900">
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                               produtos.reduce((s, p) => s + p.valor_total, 0)
                             )}
@@ -1389,7 +1389,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                     
                     {/* Lista de produtos expandida */}
                     {expandedCategoria === categoria && (
-                      <div className="bg-[#141414]">
+                      <div className="bg-white">
                         {produtos.map((product) => renderProductRow(product))}
                       </div>
                     )}
@@ -1403,7 +1403,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
           {displayMode === 'lista' && (
             <>
               {/* Cabeçalho ordenável */}
-              <div className="bg-[#1A1A1A] px-4 py-2 border-b border-[#2A2A2A] grid grid-cols-12 gap-2 items-center text-sm font-semibold text-[#E0E0E0]">
+              <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 grid grid-cols-12 gap-2 items-center text-sm font-semibold text-gray-700">
                 <div className="col-span-1 text-center">
                   <input 
                     type="checkbox"
@@ -1411,7 +1411,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                     onChange={() => setSelectedProductCodes(
                       selectedProductCodes.length === groupedProducts.length ? [] : groupedProducts.map(p => p.codigo)
                     )}
-                    className="rounded border-[#333333]"
+                    className="rounded border-gray-300"
                   />
             </div>
             
@@ -1419,42 +1419,42 @@ const ClassificacaoPage = ({ user, onLogout }) => {
               Produto
               {sortConfig.field === 'descricao' ? (
                 sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-              ) : <ArrowUpDown className="w-4 h-4 text-[#666666]" />}
+              ) : <ArrowUpDown className="w-4 h-4 text-gray-400" />}
             </button>
             
             <button onClick={() => toggleSort('ncm')} className="col-span-1 flex items-center gap-1 hover:text-purple-700">
               NCM
               {sortConfig.field === 'ncm' ? (
                 sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-              ) : <ArrowUpDown className="w-4 h-4 text-[#666666]" />}
+              ) : <ArrowUpDown className="w-4 h-4 text-gray-400" />}
             </button>
             
             <button onClick={() => toggleSort('categoria')} className="col-span-2 flex items-center gap-1 hover:text-purple-700">
               Classificação
               {sortConfig.field === 'categoria' ? (
                 sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-              ) : <ArrowUpDown className="w-4 h-4 text-[#666666]" />}
+              ) : <ArrowUpDown className="w-4 h-4 text-gray-400" />}
             </button>
             
             <button onClick={() => toggleSort('cfop')} className="col-span-1 flex items-center gap-1 hover:text-purple-700">
               CFOP
               {sortConfig.field === 'cfop' ? (
                 sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-              ) : <ArrowUpDown className="w-4 h-4 text-[#666666]" />}
+              ) : <ArrowUpDown className="w-4 h-4 text-gray-400" />}
             </button>
             
             <button onClick={() => toggleSort('valor')} className="col-span-2 flex items-center gap-1 hover:text-purple-700 justify-end">
               Valor
               {sortConfig.field === 'valor' ? (
                 sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-              ) : <ArrowUpDown className="w-4 h-4 text-[#666666]" />}
+              ) : <ArrowUpDown className="w-4 h-4 text-gray-400" />}
             </button>
             
             <button onClick={() => toggleSort('ocorrencias')} className="col-span-2 flex items-center gap-1 hover:text-purple-700 justify-end">
               NFs
               {sortConfig.field === 'ocorrencias' ? (
                 sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-              ) : <ArrowUpDown className="w-4 h-4 text-[#666666]" />}
+              ) : <ArrowUpDown className="w-4 h-4 text-gray-400" />}
             </button>
           </div>
           
@@ -1466,8 +1466,8 @@ const ClassificacaoPage = ({ user, onLogout }) => {
             ) : sortedProducts.length === 0 ? (
               <div className="p-12 text-center">
                 <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">Nenhum produto encontrado</h3>
-                <p className="text-[#A1A1AA]">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Nenhum produto encontrado</h3>
+                <p className="text-gray-600">
                   {selectedCompany ? 'Nenhuma NF-e de entrada nesta competência' : 'Selecione uma empresa no header'}
                 </p>
               </div>
@@ -1483,7 +1483,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
       {/* Modal de Reclassificação */}
       {reclassifyingProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#141414] rounded-lg shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
             <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 text-white">
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <Layers className="w-5 h-5" />
@@ -1494,15 +1494,15 @@ const ClassificacaoPage = ({ user, onLogout }) => {
               </p>
             </div>
             <div className="p-6 space-y-4">
-              <div className="bg-[#0C0C0C] rounded-lg p-4">
-                <p className="font-semibold text-white">{reclassifyingProduct.product.descricao}</p>
-                <p className="text-sm text-[#A1A1AA]">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="font-semibold text-gray-900">{reclassifyingProduct.product.descricao}</p>
+                <p className="text-sm text-gray-600">
                   Código: {reclassifyingProduct.product.codigo} | NCM: {reclassifyingProduct.product.ncm}
                 </p>
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-[#E0E0E0] mb-2">Nova Categoria</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Nova Categoria</label>
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { id: 'revenda', label: 'REVENDA', desc: 'Comercialização' },
@@ -1518,24 +1518,24 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                       className={`p-3 rounded-lg border-2 text-left transition-all ${
                         newCategoria === cat.id 
                           ? 'border-purple-500 bg-purple-50' 
-                          : 'border-[#2A2A2A] hover:border-[#333333]'
+                          : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <span className={`font-bold text-sm ${newCategoria === cat.id ? 'text-purple-700' : 'text-white'}`}>
+                      <span className={`font-bold text-sm ${newCategoria === cat.id ? 'text-purple-700' : 'text-gray-800'}`}>
                         {cat.label}
                       </span>
-                      <p className="text-xs text-[#A1A1AA]">{cat.desc}</p>
+                      <p className="text-xs text-gray-500">{cat.desc}</p>
                     </button>
                   ))}
                 </div>
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-[#E0E0E0] mb-2">Justificativa (opcional)</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Justificativa (opcional)</label>
                 <textarea
                   value={reclassifyMotivo}
                   onChange={(e) => setReclassifyMotivo(e.target.value)}
-                  className="w-full px-4 py-2 border border-[#333333] rounded-lg text-sm"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
                   rows="2"
                   placeholder="Ex: Produto usado na produção"
                 />
@@ -1546,14 +1546,14 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                 <span>A IA vai memorizar esta classificação para futuras importações.</span>
               </div>
             </div>
-            <div className="px-6 py-4 bg-[#0C0C0C] flex gap-3 justify-end">
+            <div className="px-6 py-4 bg-gray-50 flex gap-3 justify-end">
               <button
                 onClick={() => {
                   setReclassifyingProduct(null);
                   setNewCategoria('');
                   setReclassifyMotivo('');
                 }}
-                className="px-4 py-2 bg-[#2A2A2A] text-[#E0E0E0] rounded-lg font-medium hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300"
               >
                 Cancelar
               </button>

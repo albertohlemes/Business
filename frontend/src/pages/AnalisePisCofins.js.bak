@@ -195,16 +195,16 @@ const AnalisePisCofins = ({ user, onLogout }) => {
         case 'ALIQ_INCORRETA':
           return { 
             icon: <AlertCircle className="w-5 h-5" />, 
-            bg: 'bg-amber-500/10 border-yellow-300', 
-            iconBg: 'bg-amber-500/100',
+            bg: 'bg-yellow-50 border-yellow-300', 
+            iconBg: 'bg-yellow-500',
             label: 'Alíquota Incorreta',
             sublabel: 'Valor calculado diferente do esperado'
           };
         default:
           return { 
             icon: <AlertTriangle className="w-5 h-5" />, 
-            bg: 'bg-[#0C0C0C] border-[#333333]', 
-            iconBg: 'bg-[#0C0C0C]0',
+            bg: 'bg-gray-50 border-gray-300', 
+            iconBg: 'bg-gray-500',
             label: 'Outro',
             sublabel: 'Divergência identificada'
           };
@@ -217,7 +217,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
       <div className={`rounded-lg border-2 ${style.bg} overflow-hidden transition-all`}>
         {/* Header do card - sempre visível */}
         <div 
-          className="p-3 cursor-pointer hover:bg-[#141414]/50 transition-colors"
+          className="p-3 cursor-pointer hover:bg-white/50 transition-colors"
           onClick={() => toggleExpand(idx)}
         >
           <div className="flex items-start gap-3">
@@ -229,10 +229,10 @@ const AnalisePisCofins = ({ user, onLogout }) => {
             {/* Info principal */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold text-white">{item.descricao?.substring(0, 40)}{item.descricao?.length > 40 ? '...' : ''}</span>
-                <span className="text-xs font-mono bg-[#2A2A2A] px-1.5 py-0.5 rounded">{item.ncm}</span>
+                <span className="font-bold text-gray-900">{item.descricao?.substring(0, 40)}{item.descricao?.length > 40 ? '...' : ''}</span>
+                <span className="text-xs font-mono bg-gray-200 px-1.5 py-0.5 rounded">{item.ncm}</span>
               </div>
-              <div className="flex items-center gap-3 mt-1 text-sm text-[#A1A1AA]">
+              <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
                 <span className="flex items-center gap-1">
                   <FileText className="w-3 h-3" />
                   NF {item.numero_nfe}
@@ -244,30 +244,30 @@ const AnalisePisCofins = ({ user, onLogout }) => {
             
             {/* Impacto */}
             <div className="text-right shrink-0">
-              <div className={`text-lg font-bold ${impactoPositivo ? 'text-green-600' : 'text-[#C8A951]'}`}>
+              <div className={`text-lg font-bold ${impactoPositivo ? 'text-green-600' : 'text-red-600'}`}>
                 {impactoPositivo ? '+' : ''}{formatCurrency(item.impactoTotal)}
               </div>
-              <div className="text-xs text-[#A1A1AA]">{style.sublabel}</div>
+              <div className="text-xs text-gray-500">{style.sublabel}</div>
             </div>
             
             {/* Chevron */}
-            <ChevronDown className={`w-5 h-5 text-[#666666] transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
           </div>
         </div>
         
         {/* Detalhes expandidos */}
         {isExpanded && (
-          <div className="border-t bg-[#141414] p-4">
+          <div className="border-t bg-white p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* PIS */}
               <div className="space-y-2">
-                <h4 className="font-semibold text-[#E0E0E0] flex items-center gap-2">
+                <h4 className="font-semibold text-gray-700 flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                   PIS
                 </h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="bg-red-50 rounded p-2">
-                    <p className="text-xs text-[#C8A951] font-medium">No XML</p>
+                    <p className="text-xs text-red-600 font-medium">No XML</p>
                     <p className="font-mono">CST: {item.cst_pis_atual || '-'}</p>
                     <p className="font-bold">{formatCurrency(item.v_pis_atual)}</p>
                   </div>
@@ -278,7 +278,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                   </div>
                 </div>
                 {item.impactoPis !== 0 && (
-                  <div className={`text-sm font-medium ${item.impactoPis > 0 ? 'text-green-600' : 'text-[#C8A951]'}`}>
+                  <div className={`text-sm font-medium ${item.impactoPis > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     Diferença: {item.impactoPis > 0 ? '+' : ''}{formatCurrency(item.impactoPis)}
                   </div>
                 )}
@@ -286,13 +286,13 @@ const AnalisePisCofins = ({ user, onLogout }) => {
               
               {/* COFINS */}
               <div className="space-y-2">
-                <h4 className="font-semibold text-[#E0E0E0] flex items-center gap-2">
+                <h4 className="font-semibold text-gray-700 flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-purple-500"></div>
                   COFINS
                 </h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="bg-red-50 rounded p-2">
-                    <p className="text-xs text-[#C8A951] font-medium">No XML</p>
+                    <p className="text-xs text-red-600 font-medium">No XML</p>
                     <p className="font-mono">CST: {item.cst_cofins_atual || '-'}</p>
                     <p className="font-bold">{formatCurrency(item.v_cofins_atual)}</p>
                   </div>
@@ -303,7 +303,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                   </div>
                 </div>
                 {item.impactoCofins !== 0 && (
-                  <div className={`text-sm font-medium ${item.impactoCofins > 0 ? 'text-green-600' : 'text-[#C8A951]'}`}>
+                  <div className={`text-sm font-medium ${item.impactoCofins > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     Diferença: {item.impactoCofins > 0 ? '+' : ''}{formatCurrency(item.impactoCofins)}
                   </div>
                 )}
@@ -311,7 +311,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
             </div>
             
             {/* Info adicional */}
-            <div className="mt-3 pt-3 border-t text-sm text-[#A1A1AA] flex items-center gap-4">
+            <div className="mt-3 pt-3 border-t text-sm text-gray-600 flex items-center gap-4">
               <span>Valor do Produto: <strong>{formatCurrency(item.valor_produto)}</strong></span>
               <span>CFOP: <strong>{item.cfop}</strong></span>
             </div>
@@ -327,7 +327,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-[#E0E0E0]">Selecione uma empresa e competência</h2>
+            <h2 className="text-xl font-semibold text-gray-700">Selecione uma empresa e competência</h2>
           </div>
         </div>
       </Layout>
@@ -342,18 +342,18 @@ const AnalisePisCofins = ({ user, onLogout }) => {
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="analise-pis-cofins-page" className="space-y-4">
         {/* Header */}
-        <div className="bg-gradient-to-r from-red-700 to-red-800 rounded-lg p-5 text-white">
+        <div className="bg-gradient-to-r from-red-700 to-red-800 rounded-xl p-5 text-white">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold flex items-center gap-2">
                 <DollarSign className="w-6 h-6" /> Auditoria de PIS/COFINS
               </h1>
-              <p className="text-[#A1A1AA] text-sm mt-1">
+              <p className="text-red-100 text-sm mt-1">
                 Competência {selectedCompetencia} • Regime: {dados?.regime_tributario || '-'}
                 {dados?.aliquotas_regime && ` (PIS ${dados.aliquotas_regime.pis}% / COFINS ${dados.aliquotas_regime.cofins}%)`}
               </p>
             </div>
-            <button onClick={fetchData} disabled={loading} className="px-3 py-2 bg-[#141414]/20 hover:bg-[#141414]/30 rounded-lg flex items-center gap-2 text-sm">
+            <button onClick={fetchData} disabled={loading} className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg flex items-center gap-2 text-sm">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar
             </button>
           </div>
@@ -361,56 +361,56 @@ const AnalisePisCofins = ({ user, onLogout }) => {
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <RefreshCw className="w-8 h-8 animate-spin text-[#C8A951]" />
+            <RefreshCw className="w-8 h-8 animate-spin text-red-600" />
           </div>
         ) : dados ? (
           <>
             {/* Cards de Resumo */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-[#141414] rounded-lg p-4 border shadow-sm">
-                <p className="text-xs text-[#A1A1AA] uppercase font-medium">Total Analisado</p>
-                <p className="text-2xl font-bold text-white">{formatCurrency(dados.resumo?.total_valor_saidas)}</p>
-                <p className="text-xs text-[#666666] mt-1">{dados.total_documentos} NFs • {dados.total_produtos} itens</p>
+              <div className="bg-white rounded-xl p-4 border shadow-sm">
+                <p className="text-xs text-gray-500 uppercase font-medium">Total Analisado</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(dados.resumo?.total_valor_saidas)}</p>
+                <p className="text-xs text-gray-400 mt-1">{dados.total_documentos} NFs • {dados.total_produtos} itens</p>
               </div>
               
-              <div className="bg-[#141414] rounded-lg p-4 border shadow-sm">
-                <p className="text-xs text-[#A1A1AA] uppercase font-medium">Divergências</p>
+              <div className="bg-white rounded-xl p-4 border shadow-sm">
+                <p className="text-xs text-gray-500 uppercase font-medium">Divergências</p>
                 <p className="text-2xl font-bold text-amber-600">{dados.total_divergentes}</p>
-                <p className="text-xs text-[#666666] mt-1">itens com problema</p>
+                <p className="text-xs text-gray-400 mt-1">itens com problema</p>
               </div>
               
-              <div className={`rounded-lg p-4 border shadow-sm ${pagoAMais > 0 ? 'bg-green-50 border-green-200' : 'bg-[#141414]'}`}>
+              <div className={`rounded-xl p-4 border shadow-sm ${pagoAMais > 0 ? 'bg-green-50 border-green-200' : 'bg-white'}`}>
                 <p className="text-xs text-green-700 uppercase font-medium flex items-center gap-1">
                   <TrendingUp className="w-3 h-3" /> Crédito a Recuperar
                 </p>
-                <p className={`text-2xl font-bold ${pagoAMais > 0 ? 'text-green-600' : 'text-[#666666]'}`}>
+                <p className={`text-2xl font-bold ${pagoAMais > 0 ? 'text-green-600' : 'text-gray-400'}`}>
                   {formatCurrency(pagoAMais)}
                 </p>
                 <p className="text-xs text-green-600 mt-1">Pagou a mais</p>
               </div>
               
-              <div className={`rounded-lg p-4 border shadow-sm ${pagoAMenos > 0 ? 'bg-red-50 border-red-200' : 'bg-[#141414]'}`}>
+              <div className={`rounded-xl p-4 border shadow-sm ${pagoAMenos > 0 ? 'bg-red-50 border-red-200' : 'bg-white'}`}>
                 <p className="text-xs text-red-700 uppercase font-medium flex items-center gap-1">
                   <TrendingDown className="w-3 h-3" /> Passivo Tributário
                 </p>
-                <p className={`text-2xl font-bold ${pagoAMenos > 0 ? 'text-[#C8A951]' : 'text-[#666666]'}`}>
+                <p className={`text-2xl font-bold ${pagoAMenos > 0 ? 'text-red-600' : 'text-gray-400'}`}>
                   {formatCurrency(pagoAMenos)}
                 </p>
-                <p className="text-xs text-[#C8A951] mt-1">Pagou a menos</p>
+                <p className="text-xs text-red-600 mt-1">Pagou a menos</p>
               </div>
             </div>
 
             {/* Filtros por Tipo de Problema */}
             {dados.total_divergentes > 0 && (
-              <div className="bg-[#141414] rounded-lg p-4 border shadow-sm">
-                <p className="text-xs text-[#A1A1AA] uppercase font-medium mb-3">Filtrar por Tipo de Problema</p>
+              <div className="bg-white rounded-xl p-4 border shadow-sm">
+                <p className="text-xs text-gray-500 uppercase font-medium mb-3">Filtrar por Tipo de Problema</p>
                 <div className="flex flex-wrap gap-2">
                   <button 
                     onClick={() => setFiltroProblema('todos')} 
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                       filtroProblema === 'todos' 
                         ? 'bg-gray-800 text-white shadow' 
-                        : 'bg-[#1A1A1A] text-[#E0E0E0] hover:bg-[#2A2A2A]'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     Todos ({dados.total_divergentes})
@@ -435,7 +435,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                       onClick={() => setFiltroProblema(filtroProblema === 'NAO_DESTACOU' ? 'todos' : 'NAO_DESTACOU')} 
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                         filtroProblema === 'NAO_DESTACOU' 
-                          ? 'bg-[#C8A951] text-white shadow' 
+                          ? 'bg-red-600 text-white shadow' 
                           : 'bg-red-100 text-red-800 hover:bg-red-200'
                       }`}
                     >
@@ -479,7 +479,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
             {dados.total_divergentes > 0 && (
               <div className="flex items-center gap-3">
                 <div className="relative flex-1 max-w-md">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#666666]" />
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input 
                     type="text" 
                     placeholder="Buscar por produto, NCM ou NF..." 
@@ -501,7 +501,7 @@ const AnalisePisCofins = ({ user, onLogout }) => {
             {/* Lista de Problemas */}
             {problemas.length > 0 ? (
               <div className="space-y-3">
-                <p className="text-sm text-[#A1A1AA]">
+                <p className="text-sm text-gray-500">
                   Mostrando {problemas.length} {problemas.length === 1 ? 'problema' : 'problemas'}
                   {filtroProblema !== 'todos' && ' (filtrado)'}
                   . Clique para expandir e ver detalhes.
@@ -511,16 +511,16 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                 ))}
               </div>
             ) : dados.total_divergentes === 0 ? (
-              <div className="bg-[#141414] rounded-lg p-10 border text-center">
+              <div className="bg-white rounded-xl p-10 border text-center">
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold text-white">Tudo certo!</h2>
-                <p className="text-[#A1A1AA] mt-2">Nenhuma divergência de PIS/COFINS identificada nesta competência.</p>
+                <h2 className="text-xl font-semibold text-gray-900">Tudo certo!</h2>
+                <p className="text-gray-500 mt-2">Nenhuma divergência de PIS/COFINS identificada nesta competência.</p>
               </div>
             ) : (
-              <div className="bg-[#141414] rounded-lg p-10 border text-center">
-                <Package className="w-16 h-16 text-[#666666] mx-auto mb-4" />
-                <h2 className="text-lg font-semibold text-[#E0E0E0]">Nenhum resultado</h2>
-                <p className="text-[#A1A1AA] mt-2">Tente alterar os filtros ou a busca.</p>
+              <div className="bg-white rounded-xl p-10 border text-center">
+                <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h2 className="text-lg font-semibold text-gray-700">Nenhum resultado</h2>
+                <p className="text-gray-500 mt-2">Tente alterar os filtros ou a busca.</p>
               </div>
             )}
           </>
