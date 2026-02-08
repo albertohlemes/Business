@@ -1089,11 +1089,15 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ### 02/2026 - Correção de Bug Crítico (07-08/02/2026)
 
+- ✅ **BUGFIX P0: Comparativo SPED vs Sistema com divergências falsas**
+  - **Problema:** A tela de comparativo pós-exportação mostrava divergências entre "Valor Sistema" e "Valor SPED" que não eram reais
+  - **Causa raiz:** "Valor Sistema" usava `valor_total` (inclui IPI, ST) enquanto "Valor SPED" usava `VL_ITEM` (sem IPI, ST)
+  - **Solução:** Alterado cálculo do "Valor Sistema" para usar a mesma lógica do VL_ITEM: `valor_produto + frete + seguro + outras_despesas`
+  - **Resultado:** Comparativo agora mostra divergências reais, não diferenças esperadas de layout SPED
+  - **Arquivo:** `/app/backend/server.py` (função de validação SPED)
+
 - ✅ **BUGFIX P0: SPED sem considerar "outras despesas", frete e seguro**
-  - **Problema:** Em NFs com "outras despesas" (ex: NF 10397 com R$ 62,40), o VL_ITEM não incluía esses valores
-  - **Causa raiz:** VL_ITEM usava apenas `valor_produto`, sem somar frete, seguro e outras despesas
-  - **Solução:** Alterado cálculo do VL_ITEM para: `valor_produto + frete + seguro + outras_despesas`
-  - **Resultado:** VL_ITEM + VL_IPI + VL_ICMS_ST - VL_DESC = valor_total do Sistema
+  - **Solução:** VL_ITEM = valor_produto + frete + seguro + outras_despesas
   - **Arquivo:** `/app/backend/server.py` (registro C170)
 
 - ✅ **BUGFIX P0: SPED sem campos de ICMS ST preenchidos**
