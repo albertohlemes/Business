@@ -13257,6 +13257,43 @@ async def apurar_pis_cofins(
         'saldo_reclassificacao': round(total_recolhido_maior - total_recolhido_menor, 2)
     }
     
+    # Preparar Top 10
+    for ncm_data in ncms_credito.values():
+        ncm_data["produtos"] = list(ncm_data["produtos"])[:3]
+    for ncm_data in ncms_debito.values():
+        ncm_data["produtos"] = list(ncm_data["produtos"])[:3]
+    
+    top_produtos_credito = sorted(produtos_credito.values(), key=lambda x: -x["valor_total"])[:10]
+    top_produtos_debito = sorted(produtos_debito.values(), key=lambda x: -x["valor_total"])[:10]
+    top_ncms_credito = sorted(ncms_credito.values(), key=lambda x: -x["valor_total"])[:10]
+    top_ncms_debito = sorted(ncms_debito.values(), key=lambda x: -x["valor_total"])[:10]
+    
+    # Arredondar Top 10
+    for item in top_produtos_credito + top_produtos_debito:
+        item["valor_pis"] = round(item["valor_pis"], 2)
+        item["valor_cofins"] = round(item["valor_cofins"], 2)
+        item["valor_total"] = round(item["valor_total"], 2)
+    for item in top_ncms_credito + top_ncms_debito:
+        item["valor_pis"] = round(item["valor_pis"], 2)
+        item["valor_cofins"] = round(item["valor_cofins"], 2)
+        item["valor_total"] = round(item["valor_total"], 2)
+    
+    resultado['top_10'] = {
+        "produtos_credito": top_produtos_credito,
+        "produtos_debito": top_produtos_debito,
+        "ncms_credito": top_ncms_credito,
+        "ncms_debito": top_ncms_debito
+    }
+    
+    # Preparar agrupamento por CFOP + CST
+    lista_cfop_cst = sorted(cfop_cst_agrupado.values(), key=lambda x: (x["tipo"], x["cfop"], x["cst"]))
+    for item in lista_cfop_cst:
+        item["valor_base"] = round(item["valor_base"], 2)
+        item["valor_pis"] = round(item["valor_pis"], 2)
+        item["valor_cofins"] = round(item["valor_cofins"], 2)
+    
+    resultado['por_cfop_cst'] = lista_cfop_cst
+    
     # Arredondar todos os valores
     for regime in ['lucro_real', 'lucro_presumido']:
         for categoria in ['creditos', 'debitos_comercio', 'debitos_servicos', 'debitos_total', 'saldo', 'imposto_a_pagar']:
