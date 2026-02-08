@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import { 
   Building2, Plus, Search, RefreshCw, Trash2, Edit, X, Settings, 
-  Users, ChevronDown, ChevronRight, Filter 
+  Users, ChevronDown, ChevronRight, Filter, Upload, FileSpreadsheet, Download, CheckCircle, AlertCircle
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import * as XLSX from 'xlsx';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL + '/api';
@@ -21,6 +22,13 @@ const Companies = ({ user, onLogout }) => {
   const [filterResponsavel, setFilterResponsavel] = useState('');
   const [loadingCNPJ, setLoadingCNPJ] = useState(false);
   const [expandedCompany, setExpandedCompany] = useState(null);
+  
+  // Importação em lote
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importData, setImportData] = useState([]);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0, errors: [] });
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
   
   const isMasterOrAdmin = user?.role === 'admin' || user?.role === 'master' || user?.role === 'super_admin';
   
