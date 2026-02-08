@@ -12561,6 +12561,8 @@ async def apurar_icms(
             valor_total = float(prod.get('valor_total', 0) or prod.get('valor_produto', 0) or 0)
             bc_icms = float(prod.get('v_bc_icms', 0) or 0)
             valor_icms = float(prod.get('v_icms', 0) or 0)
+            valor_icms_st = float(prod.get('v_icms_st', 0) or 0)
+            bc_icms_st = float(prod.get('v_bc_icms_st', 0) or 0)
             
             # Determinar tipo pela CFOP do produto (mais preciso)
             cfop_primeiro = cfop[0] if cfop and cfop != 'SEM CFOP' else ''
