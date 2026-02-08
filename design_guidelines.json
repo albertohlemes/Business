@@ -1,0 +1,155 @@
+{
+  "identity": {
+    "name": "AURION",
+    "slogan": "Seu Núcleo de Inteligência Operacional",
+    "tone": "Ultra Premium, Corporate, Stealth Wealth, High-Performance",
+    "keywords": ["Precision", "Authority", "Flow", "Intelligence"]
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Manrope, sans-serif",
+      "body": "Inter, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "weights": {
+      "light": 300,
+      "regular": 400,
+      "medium": 500,
+      "bold": 600
+    },
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-light tracking-tight",
+      "h2": "text-3xl font-light tracking-tight",
+      "h3": "text-2xl font-medium tracking-tight",
+      "body": "text-sm leading-relaxed",
+      "small": "text-xs text-muted-foreground uppercase tracking-wider"
+    }
+  },
+  "colors": {
+    "theme": "dark",
+    "palette": {
+      "background": {
+        "hex": "#0C0C0C",
+        "hsl": "0 0% 5%",
+        "usage": "Main app background. Deepest matte black."
+      },
+      "card": {
+        "hex": "#141414",
+        "hsl": "0 0% 8%",
+        "usage": "Cards, Sidebar, Modals. Slightly lighter than bg."
+      },
+      "primary": {
+        "hex": "#C8A951",
+        "hsl": "44 53% 55%",
+        "usage": "Primary Buttons, Active States, Key KPIs. USE SPARINGLY.",
+        "foreground": "#0C0C0C"
+      },
+      "secondary": {
+        "hex": "#2A2A2A",
+        "hsl": "0 0% 16%",
+        "usage": "Secondary Buttons, Borders, Separators, Hover States.",
+        "foreground": "#EDEDED"
+      },
+      "muted": {
+        "hex": "#1F1F1F",
+        "hsl": "0 0% 12%",
+        "usage": "Muted backgrounds, disabled states."
+      },
+      "accent": {
+        "hex": "#C8A951",
+        "hsl": "44 53% 55%",
+        "usage": "Subtle glows, thin borders on active items."
+      },
+      "text": {
+        "main": "#EDEDED",
+        "muted": "#A1A1AA"
+      },
+      "status": {
+        "success": "#10B981",
+        "warning": "#F59E0B",
+        "error": "#EF4444",
+        "info": "#3B82F6"
+      }
+    }
+  },
+  "visual_enhancers": {
+    "radius": "0.25rem",
+    "borders": "1px solid #2A2A2A",
+    "shadows": {
+      "card": "0 1px 2px 0 rgba(0, 0, 0, 0.5)",
+      "hover": "0 4px 12px 0 rgba(0, 0, 0, 0.5)",
+      "glow": "0 0 20px -5px rgba(200, 169, 81, 0.15)"
+    },
+    "glassmorphism": {
+      "enabled": true,
+      "class": "bg-black/40 backdrop-blur-md border-b border-white/5"
+    },
+    "gradients": {
+      "gold_subtle": "linear-gradient(135deg, #C8A951 0%, #A08538 100%)",
+      "dark_surface": "linear-gradient(180deg, #1A1A1A 0%, #141414 100%)"
+    }
+  },
+  "layout_strategies": {
+    "container": "max-w-[1600px] mx-auto px-6 md:px-8",
+    "spacing": {
+      "section": "py-12 md:py-16",
+      "component": "p-6 md:p-8"
+    },
+    "grid_system": {
+      "dashboard": "grid grid-cols-1 md:grid-cols-12 gap-6",
+      "bento_hero": "col-span-12 md:col-span-8 lg:col-span-9",
+      "bento_sidebar": "col-span-12 md:col-span-4 lg:col-span-3"
+    },
+    "company_list": {
+      "mode": "list",
+      "density": "compact",
+      "style": "border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-[#C8A951] text-black hover:bg-[#B09240] font-medium rounded shadow-sm transition-all",
+      "secondary": "bg-[#2A2A2A] text-white hover:bg-[#333333] border border-white/5 rounded transition-all",
+      "ghost": "hover:bg-white/5 text-muted-foreground hover:text-white transition-all"
+    },
+    "cards": {
+      "base": "bg-[#141414] border border-[#2A2A2A] rounded shadow-sm p-6",
+      "interactive": "hover:border-[#C8A951]/50 transition-colors duration-300"
+    },
+    "inputs": {
+      "base": "bg-[#0C0C0C] border-[#2A2A2A] focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951] text-white placeholder:text-white/20 rounded h-10"
+    },
+    "sidebar": {
+      "base": "bg-[#0C0C0C] border-r border-[#2A2A2A] w-64 h-screen fixed left-0 top-0 z-40",
+      "item": "flex items-center gap-3 px-4 py-2 text-sm text-muted-foreground hover:text-white hover:bg-white/5 rounded-md transition-colors",
+      "active": "text-[#C8A951] bg-[#C8A951]/10 border-l-2 border-[#C8A951]"
+    }
+  },
+  "image_urls": {
+    "login_background": {
+      "url": "https://images.unsplash.com/photo-1761437856144-99d74817b551?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzV8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGJsYWNrJTIwYW5kJTIwZ29sZCUyMGdlb21ldHJpYyUyMGx1eHVyeSUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzcwNTc0OTMyfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Abstract golden ribbed texture on black. Use with overlay 'bg-black/80' for login screen background."
+    },
+    "logo_placeholder": {
+      "type": "svg",
+      "content": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' class='w-8 h-8 text-[#C8A951]'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>",
+      "description": "Geometric isometric stack icon representing structure and wealth."
+    }
+  },
+  "instructions_to_main_agent": [
+    "1. THEME SETUP: Update 'tailwind.config.js' and 'index.css' immediately with the HSL values provided in 'colors.palette'. Ensure 'darkMode' is set to 'class' but default the app to dark mode visually.",
+    "2. FONT INSTALLATION: Add '@import url(\"https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap\");' to 'index.css'.",
+    "3. LAYOUT REFACTOR: Create a 'Layout' component that supports a 'menuMode' prop (vertical/horizontal). Use a state manager (Context or Zustand) to persist this preference.",
+    "4. COMPANY LIST: Implement the company list using a dense table layout. Avoid large cards for the list items. Use a 'sticky' header for the table.",
+    "5. GOLD USAGE: Do NOT use the gold color for backgrounds of large sections. Use it ONLY for: Primary Buttons, Active Sidebar Indicators, Key Metric Numbers (e.g., 'R$ 1.2M'), and subtle borders on hover.",
+    "6. SHADCN CUSTOMIZATION: Override default Shadcn radius to '0.25rem'. Override 'popover' and 'card' background colors to match the palette.",
+    "7. DATA-TESTID: Add 'data-testid' to all inputs, buttons, and list items."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Avoid 'AI Slop': Do not use generic centered layouts. Use asymmetry where appropriate.",
+    "Dark Mode Mastery: Avoid pure black (#000) for cards; use #141414. Use pure black (#0C0C0C) only for the main background.",
+    "Contrast: Ensure text is #EDEDED (93% white) on dark backgrounds, not #FFFFFF (too harsh) or #888888 (too low contrast).",
+    "Motion: Add 'transition-all duration-200' to interactive elements. Use 'active:scale-95' for buttons.",
+    "Forms: Inputs should have a dark background (#0C0C0C) with a subtle border (#2A2A2A). Focus state should be a gold ring (#C8A951)."
+  ]
+}
