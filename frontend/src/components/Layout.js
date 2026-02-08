@@ -57,9 +57,9 @@ const Layout = ({ user, onLogout, children }) => {
     { name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
     { name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' },
     { name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' },
-    { name: 'Apuração', href: '/apuracao-mensal', icon: BarChart3, testId: 'nav-apuracao-mensal' },
-    { name: 'Análise IA', href: '/analise-tributaria-ia', icon: Sparkles, testId: 'nav-analise-tributaria-ia' },
-    { name: 'Relatórios', href: '/reports', icon: FileText, testId: 'nav-reports' },
+    { name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' },
+    { name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' },
+    { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
     { name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' },
   ];
 
