@@ -8594,6 +8594,8 @@ async def validar_sped(
     query = {"company_id": company_id}
     if competencia:
         query['competencia'] = competencia
+    # IMPORTANTE: Excluir notas canceladas e desconsideradas (igual à Apuração Mensal)
+    query.update(get_filtro_notas_ativas())
     
     documents = await db.xml_documents.find(query, {"_id": 0}).to_list(10000)
     
