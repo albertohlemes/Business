@@ -271,6 +271,139 @@ const Companies = ({ user, onLogout }) => {
     return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
   };
 
+  // ========== IMPORTAÇÃO EM LOTE ==========
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const wb = XLSX.read(event.target.result, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        
+        // Mapear colunas
+        const mappedData = data.map((row, idx) => ({
+          _index: idx + 1,
+          cnpj: String(row['CNPJ'] || row['cnpj'] || '').replace(/\D/g, ''),
+          codigo_empresa: String(row['Código'] || row['codigo'] || row['ID'] || ''),
+          razao_social: row['Razão Social'] || row['razao_social'] || row['Empresa'] || '',
+          nome_fantasia: row['Nome Fantasia'] || row['nome_fantasia'] || '',
+          inscricao_estadual: row['IE'] || row['inscricao_estadual'] || '',
+          cidade: row['Cidade'] || row['cidade'] || '',
+          uf: row['UF'] || row['uf'] || 'SP',
+          regime_tributario: (row['Regime'] || row['regime_tributario'] || 'lucro_presumido').toLowerCase().includes('real') 
+            ? 'lucro_real' 
+            : (row['Regime'] || '').toLowerCase().includes('simples') 
+              ? 'simples_nacional' 
+              : 'lucro_presumido',
+          tipo_atividade: (row['Atividade'] || row['tipo_atividade'] || 'comercio').toLowerCase().includes('ind') 
+            ? 'industria' 
+            : (row['Atividade'] || '').toLowerCase().includes('serv') 
+              ? 'servicos' 
+              : 'comercio',
+          _valid: true,
+          _error: ''
+        }));
+        
+        // Validar
+        mappedData.forEach(row => {
+          if (!row.cnpj || row.cnpj.length !== 14) {
+            row._valid = false;
+            row._error = 'CNPJ inválido';
+          } else if (!row.razao_social) {
+            row._valid = false;
+            row._error = 'Razão Social obrigatória';
+          }
+        });
+        
+        setImportData(mappedData);
+        setShowImportModal(true);
+      } catch (err) {
+        console.error('Erro ao ler arquivo:', err);
+        alert('Erro ao ler arquivo. Certifique-se que é um arquivo Excel válido.');
+      }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = '';
+  };
+
+  const downloadTemplate = () => {
+    const template = [
+      {
+        'Código': '001',
+        'CNPJ': '00.000.000/0001-00',
+        'Razão Social': 'Empresa Exemplo Ltda',
+        'Nome Fantasia': 'Exemplo',
+        'IE': '123456789',
+        'Cidade': 'São Paulo',
+        'UF': 'SP',
+        'Regime': 'Lucro Presumido',
+        'Atividade': 'Comércio'
+      }
+    ];
+    
+    const ws = XLSX.utils.json_to_sheet(template);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Empresas');
+    XLSX.writeFile(wb, 'modelo_importacao_empresas.xlsx');
+  };
+
+  const executeImport = async () => {
+    const validRows = importData.filter(r => r._valid);
+    if (validRows.length === 0) {
+      alert('Nenhuma empresa válida para importar');
+      return;
+    }
+    
+    setImporting(true);
+    setImportProgress({ current: 0, total: validRows.length, errors: [] });
+    
+    const token = localStorage.getItem('token');
+    const errors = [];
+    
+    for (let i = 0; i < validRows.length; i++) {
+      const row = validRows[i];
+      try {
+        await axios.post(`${API}/companies`, {
+          cnpj: row.cnpj.replace(/\D/g, '').replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5'),
+          codigo_empresa: row.codigo_empresa,
+          razao_social: row.razao_social,
+          nome_fantasia: row.nome_fantasia,
+          inscricao_estadual: row.inscricao_estadual,
+          cidade: row.cidade,
+          uf: row.uf,
+          regime_tributario: row.regime_tributario,
+          tipo_atividade: row.tipo_atividade,
+          responsavel_ids: []
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch (err) {
+        errors.push({
+          row: row._index,
+          empresa: row.razao_social,
+          error: err.response?.data?.detail || 'Erro desconhecido'
+        });
+      }
+      setImportProgress({ current: i + 1, total: validRows.length, errors });
+    }
+    
+    setImporting(false);
+    
+    if (errors.length === 0) {
+      alert(`✓ ${validRows.length} empresa(s) importada(s) com sucesso!`);
+      setShowImportModal(false);
+      setImportData([]);
+      fetchCompanies();
+      refreshCompanies();
+    } else {
+      alert(`Importação concluída com ${errors.length} erro(s). Verifique o relatório.`);
+    }
+  };
+
   const filteredCompanies = companies.filter(company =>
     company.razao_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     company.cnpj?.includes(searchTerm) ||
