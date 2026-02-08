@@ -1138,3 +1138,21 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
     - Console log: `Gerando arquivo: Notas_COMERCIAL RS LT_02-2026.xlsx`
     - Console log: `Arquivo gerado com sucesso`
   - **Resultado:** Download de Excel funcionando normalmente
+
+### 02/2026 - Iteration 43 (08/02/2026) 🆕
+
+- ✅ **BUGFIX P0: Inconsistência de Dados entre Apuração Mensal e Validação SPED**
+  - **Problema:** O endpoint `/api/sped/validar` incluía notas canceladas e desconsideradas nos cálculos, causando divergência com `/api/apuracao-periodo`
+  - **Causa raiz:** O filtro `get_filtro_notas_ativas()` não estava sendo aplicado na query do endpoint de validação SPED
+  - **Solução:** Adicionado `query.update(get_filtro_notas_ativas())` no endpoint `/api/sped/validar` (linha 8598)
+  - **Resultado:** 
+    - Valores agora são 100% consistentes entre as duas telas
+    - 37 notas (30 canceladas + 7 desconsideradas) são corretamente excluídas
+    - 11 testes de consistência passaram (100% backend)
+  - **Dados de teste verificados:**
+    - Empresa: COMERCIAL RS LTDA
+    - Competência: 01/2026
+    - Total Entradas: R$ 11.970.912,78 (idêntico em ambos endpoints)
+    - Total Saídas: R$ 11.871.817,60 (idêntico em ambos endpoints)
+    - 20 CFOPs de entrada e 15 CFOPs de saída - todos com valores idênticos
+  - **Arquivo:** `/app/backend/server.py` (linhas 8594-8600)
