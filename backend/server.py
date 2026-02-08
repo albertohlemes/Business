@@ -2232,24 +2232,34 @@ async def create_user(
     if existing:
         raise HTTPException(status_code=400, detail="Email já cadastrado")
     
-    user = User(
-        email=user_data.email,
-        name=user_data.name,
-        role=user_data.role,
-        company_ids=user_data.company_ids
-    )
-    user_dict = user.model_dump()
-    user_dict["password_hash"] = get_password_hash(user_data.password)
-    user_dict["created_by"] = current_user.id
-    user_dict["is_active"] = True
-    user_dict["preferences"] = {"menu_mode": "vertical"}
-    user_dict["created_at"] = user_dict["created_at"].isoformat()
+    user_id = str(uuid.uuid4())
+    user_dict = {
+        "id": user_id,
+        "email": user_data.email,
+        "name": user_data.name,
+        "role": user_data.role,
+        "company_ids": user_data.company_ids,
+        "password_hash": get_password_hash(user_data.password),
+        "created_by": current_user.id,
+        "is_active": True,
+        "preferences": {"menu_mode": "vertical"},
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
     
     await db.users.insert_one(user_dict)
     
-    # Return without password_hash
-    del user_dict["password_hash"]
-    return user_dict
+    # Return without password_hash and _id
+    return {
+        "id": user_id,
+        "email": user_data.email,
+        "name": user_data.name,
+        "role": user_data.role,
+        "company_ids": user_data.company_ids,
+        "is_active": True,
+        "preferences": {"menu_mode": "vertical"},
+        "created_at": user_dict["created_at"],
+        "created_by": current_user.id
+    }
 
 @api_router.get("/auth/users/{user_id}")
 async def get_user(
