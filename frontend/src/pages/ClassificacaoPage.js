@@ -363,7 +363,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
   // Agrupar produtos por categoria para visualização agrupada
   const productsByCategoria = useMemo(() => {
     const grupos = {
-      'REVENDA': { produtos: [], cor: 'bg-green-500', corFundo: 'bg-green-50', icon: '🛒' },
+      'REVENDA': { produtos: [], cor: 'bg-emerald-500/100', corFundo: 'bg-emerald-500/10', icon: '🛒' },
       'INSUMO': { produtos: [], cor: 'bg-blue-500', corFundo: 'bg-blue-50', icon: '⚙️' },
       'DESPESA': { produtos: [], cor: 'bg-orange-500', corFundo: 'bg-orange-50', icon: '📋' },
       'ATIVO_IMOBILIZADO': { produtos: [], cor: 'bg-purple-500', corFundo: 'bg-purple-50', icon: '🏭' },
@@ -378,7 +378,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
       'DEMONSTRAÇÃO': { produtos: [], cor: 'bg-emerald-500', corFundo: 'bg-emerald-50', icon: '👁️' },
       'TRANSFERÊNCIA': { produtos: [], cor: 'bg-violet-500', corFundo: 'bg-violet-50', icon: '🔀' },
       'VASILHAME': { produtos: [], cor: 'bg-slate-500', corFundo: 'bg-slate-50', icon: '🫙' },
-      'PENDENTE': { produtos: [], cor: 'bg-red-500', corFundo: 'bg-red-50', icon: '⚠️' },
+      'PENDENTE': { produtos: [], cor: 'bg-amber-500', corFundo: 'bg-amber-500/10', icon: '⚠️' },
     };
     
     // CFOPs de operações distintas para classificação automática
@@ -761,7 +761,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
       'revenda': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'REVENDA' },
       'insumo': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'INSUMO' },
       'despesa': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'DESPESA' },
-      'ativo_imobilizado': { bg: 'bg-green-100', text: 'text-green-800', label: 'ATIVO IMOB.' },
+      'ativo_imobilizado': { bg: 'bg-emerald-500/20', text: 'text-green-800', label: 'ATIVO IMOB.' },
       'combustivel': { bg: 'bg-amber-100', text: 'text-amber-800', label: 'COMBUSTÍVEL' },
       // Novas categorias de operações distintas
       'bonificação': { bg: 'bg-pink-100', text: 'text-pink-800', label: 'BONIFICAÇÃO' },
@@ -807,7 +807,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     const allApproved = approved === total;
     
     return (
-      <div className={`px-6 py-3 border-b border-[#2A2A2A] hover:bg-[#0C0C0C] flex items-center justify-between ${allApproved ? 'bg-green-50/50' : ''}`}>
+      <div className={`px-6 py-3 border-b border-[#2A2A2A] hover:bg-[#0C0C0C] flex items-center justify-between ${allApproved ? 'bg-emerald-500/10/50' : ''}`}>
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <button
             onClick={() => toggleApproveProductAll(product.codigo)}
@@ -861,7 +861,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     if (showOnlyPending && allApproved) return null;
     
     return (
-      <div key={product.codigo} className={`grid grid-cols-12 gap-2 items-center px-4 py-3 border-b hover:bg-[#0C0C0C] transition-colors ${allApproved ? 'bg-green-50' : ''}`}>
+      <div key={product.codigo} className={`grid grid-cols-12 gap-2 items-center px-4 py-3 border-b hover:bg-[#0C0C0C] transition-colors ${allApproved ? 'bg-emerald-500/10' : ''}`}>
         {/* Checkbox + Aprovação */}
         <div className="col-span-1 flex items-center justify-center gap-2">
           <button
@@ -1042,7 +1042,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
               <div className="flex items-center gap-4 mt-2 text-xs text-[#A1A1AA]">
                 <span>🤖 Classificados: {reimportProgress.classificados || 0}</span>
                 {reimportProgress.errors > 0 && (
-                  <span className="text-red-500">❌ Erros: {reimportProgress.errors}</span>
+                  <span className="text-red-400">❌ Erros: {reimportProgress.errors}</span>
                 )}
               </div>
             </div>
@@ -1116,8 +1116,8 @@ const ClassificacaoPage = ({ user, onLogout }) => {
 
         {/* Resultado da IA */}
         {aiResult && (
-          <div className={`rounded-lg p-4 border-2 ${aiResult.success ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
-            <h3 className={`font-bold mb-2 ${aiResult.success ? 'text-green-900' : 'text-red-900'}`}>
+          <div className={`rounded-lg p-4 border-2 ${aiResult.success ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
+            <h3 className={`font-bold mb-2 ${aiResult.success ? 'text-emerald-400' : 'text-amber-400'}`}>
               {aiResult.success ? '✓ Processamento Concluído' : '✗ Erro'}
             </h3>
             <p className="text-sm">{aiResult.mensagem || aiResult.error}</p>
@@ -1141,7 +1141,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                 {selectedRules.length > 0 && (
                   <button
                     onClick={handleDeleteSelectedRules}
-                    className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-red-200"
+                    className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-amber-500/30"
                   >
                     <Trash2 className="w-4 h-4" />
                     Excluir {selectedRules.length}
@@ -1216,7 +1216,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                         className="w-16 px-2 py-1 border rounded text-sm font-mono"
                         placeholder="CFOP"
                       />
-                      <button onClick={() => handleSaveRule(rule.id)} className="p-1 bg-green-100 text-green-700 rounded hover:bg-green-200">
+                      <button onClick={() => handleSaveRule(rule.id)} className="p-1 bg-emerald-500/20 text-green-700 rounded hover:bg-green-200">
                         <Check className="w-4 h-4" />
                       </button>
                       <button onClick={() => setEditingRule(null)} className="p-1 bg-[#1A1A1A] text-[#E0E0E0] rounded hover:bg-[#2A2A2A]">
@@ -1241,7 +1241,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDeleteRule(rule.id)} className="p-1 text-[#C8A951] hover:bg-red-50 rounded">
+                        <button onClick={() => handleDeleteRule(rule.id)} className="p-1 text-[#C8A951] hover:bg-amber-500/10 rounded">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -1266,7 +1266,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
               <button
                 onClick={() => setShowOnlyPending(!showOnlyPending)}
                 className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
-                  showOnlyPending ? 'bg-red-100 text-red-700' : 'bg-[#1A1A1A] text-[#E0E0E0]'
+                  showOnlyPending ? 'bg-amber-500/20 text-amber-400' : 'bg-[#1A1A1A] text-[#E0E0E0]'
                 }`}
               >
                 <Filter className="w-4 h-4" />
