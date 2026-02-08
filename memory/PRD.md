@@ -43,6 +43,23 @@ Sistema de contabilidade fiscal para escritórios de contabilidade brasileiros, 
 - `POST /api/auth/users/{id}/reactivate` - Reativar usuário
 - `PUT /api/auth/me/preferences` - Atualizar preferências (menu mode)
 
+### Nova Navegação de Documentos ✅
+A página de documentos foi redesenhada com navegação em 3 níveis:
+
+**Nível 1 - Tipo de Operação:**
+- ENTRADAS (verde/emerald): Compras e Aquisições
+- SAÍDAS (azul/blue): Vendas e Prestações
+
+**Nível 2 - Tipo de Documento:**
+- Entradas: NF-e, Serviços Tomados, CT-e, Demais Documentos
+- Saídas: NF-e, NFC-e, CT-e, Serviços Prestados
+
+**Nível 3 - Lista de Documentos:**
+- Tabela com número, emitente/destinatário, CNPJ, data, valor, status
+- Botão "Importar XML" integrado em cada lista
+- Campo de busca e ordenação
+- Navegação de voltar entre níveis
+
 ### Gestão de Empresas ✅
 - `GET /api/companies` - Listar empresas (com filtro por responsável)
 - `GET /api/companies/responsaveis` - Listar responsáveis disponíveis
