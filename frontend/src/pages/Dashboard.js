@@ -55,52 +55,52 @@ const Dashboard = ({ user, onLogout }) => {
   // Card de estatística simples
   const StatCard = ({ icon: Icon, title, value, color, link, subtitle }) => (
     <Link to={link} className="block group">
-      <div className="bg-white rounded-xl p-5 shadow-md border border-gray-100 hover:shadow-lg transition-all hover:border-gray-200">
+      <div className="bg-[#141414] rounded-lg p-5 border border-[#2A2A2A] hover:border-[#C8A951]/30 transition-all">
         <div className="flex items-center justify-between mb-3">
           <div className={`w-11 h-11 rounded-lg flex items-center justify-center ${color}`}>
             <Icon className="w-5 h-5 text-white" />
           </div>
-          <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-gray-500 transition-colors" />
+          <ChevronRight className="w-5 h-5 text-[#A1A1AA] group-hover:text-[#C8A951] transition-colors" />
         </div>
-        <h3 className="text-gray-600 text-sm font-medium mb-1">{title}</h3>
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
-        {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+        <h3 className="text-[#A1A1AA] text-sm font-medium mb-1">{title}</h3>
+        <p className="text-2xl font-bold text-white">{value}</p>
+        {subtitle && <p className="text-xs text-[#A1A1AA] mt-1">{subtitle}</p>}
       </div>
     </Link>
   );
 
   // Card de valor financeiro
   const ValueCard = ({ title, value, icon: Icon, color, description }) => (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+    <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
       <div className="flex items-center gap-3 mb-2">
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${color}`}>
           <Icon className="w-4 h-4 text-white" />
         </div>
         <div>
-          <h4 className="text-sm text-gray-600">{title}</h4>
-          <p className="text-lg font-bold text-gray-900">{formatCurrency(value)}</p>
+          <h4 className="text-sm text-[#A1A1AA]">{title}</h4>
+          <p className="text-lg font-bold text-white">{formatCurrency(value)}</p>
         </div>
       </div>
-      {description && <p className="text-xs text-gray-500 ml-12">{description}</p>}
+      {description && <p className="text-xs text-[#A1A1AA] ml-12">{description}</p>}
     </div>
   );
 
   // Card de imposto
   const TaxCard = ({ title, credito, debito, pagar }) => (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-      <h4 className="font-semibold text-gray-900 mb-3">{title}</h4>
+    <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+      <h4 className="font-semibold text-white mb-3">{title}</h4>
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
-          <span className="text-green-600">Crédito:</span>
-          <span className="font-medium text-green-700">{formatCurrency(credito)}</span>
+          <span className="text-emerald-400">Crédito:</span>
+          <span className="font-medium text-emerald-400">{formatCurrency(credito)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-red-600">Débito:</span>
-          <span className="font-medium text-red-700">{formatCurrency(debito)}</span>
+          <span className="text-red-400">Débito:</span>
+          <span className="font-medium text-red-400">{formatCurrency(debito)}</span>
         </div>
-        <div className="border-t pt-2 flex justify-between text-sm font-bold">
-          <span className="text-gray-700">A Pagar:</span>
-          <span className={pagar > 0 ? 'text-red-700' : 'text-green-700'}>
+        <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
+          <span className="text-[#A1A1AA]">A Pagar:</span>
+          <span className={pagar > 0 ? 'text-red-400' : 'text-emerald-400'}>
             {formatCurrency(pagar)}
           </span>
         </div>
@@ -110,39 +110,39 @@ const Dashboard = ({ user, onLogout }) => {
 
   // Card de PIS/COFINS com divergência (para Lucro Real)
   const TaxCardWithDivergence = ({ title, credito, debito, debitoXml, pagar, divergencia }) => (
-    <div className={`bg-white rounded-xl p-4 shadow-sm border ${divergencia ? 'border-orange-300 bg-orange-50' : 'border-gray-100'}`}>
-      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+    <div className={`bg-[#141414] rounded-lg p-4 border ${divergencia ? 'border-amber-500/30 bg-amber-500/5' : 'border-[#2A2A2A]'}`}>
+      <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
         {title}
         {divergencia && (
-          <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full">
+          <span className="text-xs bg-amber-500 text-black px-2 py-0.5 rounded-full">
             Divergência
           </span>
         )}
       </h4>
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
-          <span className="text-green-600">Crédito:</span>
-          <span className="font-medium text-green-700">{formatCurrency(credito)}</span>
+          <span className="text-emerald-400">Crédito:</span>
+          <span className="font-medium text-emerald-400">{formatCurrency(credito)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-red-600">Débito ({title === 'PIS' ? '1.65%' : '7.6%'}):</span>
-          <span className="font-medium text-red-700">{formatCurrency(debito)}</span>
+          <span className="text-red-400">Débito ({title === 'PIS' ? '1.65%' : '7.6%'}):</span>
+          <span className="font-medium text-red-400">{formatCurrency(debito)}</span>
         </div>
         {divergencia && debitoXml !== null && (
-          <div className="flex justify-between text-xs bg-orange-100 -mx-2 px-2 py-1 rounded">
-            <span className="text-orange-700">Valor no XML ({divergencia.aliquota_xml}):</span>
-            <span className="font-medium text-orange-800">{formatCurrency(debitoXml)}</span>
+          <div className="flex justify-between text-xs bg-amber-500/10 -mx-2 px-2 py-1 rounded">
+            <span className="text-amber-400">Valor no XML ({divergencia.aliquota_xml}):</span>
+            <span className="font-medium text-amber-400">{formatCurrency(debitoXml)}</span>
           </div>
         )}
         {divergencia && (
-          <div className="flex justify-between text-xs text-orange-600">
+          <div className="flex justify-between text-xs text-amber-400">
             <span>Diferença:</span>
             <span className="font-medium">{formatCurrency(divergencia.diferenca)}</span>
           </div>
         )}
-        <div className="border-t pt-2 flex justify-between text-sm font-bold">
-          <span className="text-gray-700">A Pagar:</span>
-          <span className={pagar > 0 ? 'text-red-700' : 'text-green-700'}>
+        <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
+          <span className="text-[#A1A1AA]">A Pagar:</span>
+          <span className={pagar > 0 ? 'text-red-400' : 'text-emerald-400'}>
             {formatCurrency(pagar)}
           </span>
         </div>
