@@ -772,6 +772,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
       'amostra': { bg: 'bg-lime-100', text: 'text-lime-800', label: 'AMOSTRA' },
       'demonstração': { bg: 'bg-emerald-100', text: 'text-emerald-800', label: 'DEMONSTRAÇÃO' },
       'transferência': { bg: 'bg-violet-100', text: 'text-violet-800', label: 'TRANSFERÊNCIA' },
+      'vasilhame': { bg: 'bg-slate-100', text: 'text-slate-800', label: 'VASILHAME' },
     };
     
     // Priorizar natureza da operação se disponível
@@ -785,6 +786,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
     else if (nat.includes('amostra')) badge = badges['amostra'];
     else if (nat.includes('demonstra')) badge = badges['demonstração'];
     else if (nat.includes('transfer')) badge = badges['transferência'];
+    else if (nat.includes('vasilhame') || nat.includes('sacaria')) badge = badges['vasilhame'];
     else if (nat.includes('remessa')) badge = badges['remessa'];
     else badge = badges[categoria?.toLowerCase()];
     
