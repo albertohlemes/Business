@@ -1,0 +1,91 @@
+{
+  "summary": "Frontend testing completed for bulk delete functionality in Documents page. All 9 test cases passed. The 'Apagar' button is visible next to 'Importar XML', delete modal opens correctly with all filters (Data, Número, Emitente, CFOPs), preview generates correctly showing ~440 documents with ~R$ 12.4 million total value, and CFOP filter works correctly reducing results to 185 documents.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Login with credentials admin@test.com / 123456 - PASSED",
+    "Change competência to 01/2026 in selector - PASSED",
+    "Navigation to ENTRADAS > NF-e - PASSED",
+    "Verify 'Apagar' button is visible next to 'Importar XML' - PASSED",
+    "Click 'Apagar' button and verify delete modal opens - PASSED",
+    "Verify filters available: Data (Inicial/Final), Número (Inicial/Final), Emitente/Fornecedor, CFOPs - PASSED",
+    "Click 'Visualizar Documentos' to generate preview - PASSED",
+    "Verify preview shows quantity (440) and total value (R$ 12.436.909,02) correctly - PASSED",
+    "Verify CFOP filter works correctly (selecting 1102 reduces to 185 documents) - PASSED"
+  ],
+
+  "test_report_links": [],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "Delete modal correctly scoped to current screen (tipo_operacao + modelo + competencia)",
+    "CFOPs are dynamically loaded from /api/xml/documents/cfops/{company_id} endpoint",
+    "Emitente autocomplete uses /api/xml/documents/emitentes/{company_id} endpoint",
+    "Preview correctly shows document count, total value, and document list",
+    "Delete button shows correct count: 'Excluir X Documento(s)'",
+    "All filters work correctly: Data, Número, Emitente, CFOPs"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "100%"
+  },
+
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+
+  "seed_data_creation": "Used existing company COMERCIAL RS LTDA (#6026) with competência 01/2026",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Bulk delete functionality verified. Delete modal accessible via data-testid='btn-delete'. Modal shows filters for Data (date inputs), Número (number inputs), Emitente (text with autocomplete), and CFOPs (toggle buttons). Preview endpoint: /api/xml/documents/preview-delete. Delete endpoint: /api/xml/documents/delete-bulk. All data-testid attributes working: btn-delete, btn-upload, btn-entradas, btn-saidas, btn-tipo-{id}.",
+
+  "ui_verification": {
+    "delete_button": {
+      "data_testid": "btn-delete",
+      "text": "Apagar",
+      "visible": true,
+      "position": "next to Importar XML button"
+    },
+    "delete_modal": {
+      "title": "Excluir Documentos",
+      "subtitle": "NF-e • Entradas • 01/2026",
+      "filters": {
+        "data_inicial": "date input",
+        "data_final": "date input",
+        "numero_inicial": "number input",
+        "numero_final": "number input",
+        "emitente": "text input with autocomplete",
+        "cfops": "toggle buttons (21 CFOPs available)"
+      },
+      "buttons": ["Visualizar Documentos", "Cancelar", "Excluir X Documento(s)"]
+    },
+    "preview_results": {
+      "without_filters": {
+        "document_count": 440,
+        "total_value": "R$ 12.436.909,02"
+      },
+      "with_cfop_1102_filter": {
+        "document_count": 185,
+        "total_value": "R$ 8.558.761,80"
+      }
+    }
+  }
+}
