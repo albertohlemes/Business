@@ -929,7 +929,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                       cst === '50' || cst === '01' ? 'bg-green-100 text-green-800' :
                       cst === '73' || cst === '06' ? 'bg-yellow-100 text-yellow-800' :
                       cst === '98' || cst === '49' ? 'bg-orange-100 text-orange-800' :
-                      cst === '04' ? 'bg-purple-100 text-purple-800' :
+                      cst === '04' ? 'bg-purple-500/10 text-purple-400' :
                       'bg-[#1A1A1A] text-white'
                     }`}>
                       {cst}
@@ -969,7 +969,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="apuracao-mensal-page" className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-lg p-6 shadow-lg">
+        <div className="bg-[#141414] border border-[#2A2A2A] text-white rounded-lg p-6 shadow-lg">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <Calculator className="w-10 h-10" />
@@ -1280,7 +1280,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                   credito={calculos.pis.credito}
                   debito={calculos.pis.debito}
                   aPagar={calculos.pis.aPagar}
-                  color="bg-purple-600"
+                  color="bg-purple-500"
                 />
                 <TaxCard
                   title="COFINS"
@@ -1402,7 +1402,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
             {/* Detalhamento PIS/COFINS */}
             {pisCofinsData && (
               <div className="bg-[#141414] rounded-lg shadow-sm border border-[#2A2A2A] overflow-hidden">
-                <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-4 text-white">
+                <div className="bg-[#C8A951] px-5 py-4 text-white">
                   <div className="flex items-center justify-between flex-wrap gap-4">
                     <div className="flex items-center gap-3">
                       <FileText className="w-6 h-6" />
@@ -1514,7 +1514,7 @@ const ApuracaoMensal = ({ user, onLogout }) => {
                 </div>
 
                 {/* Separador visual entre Entradas e Saídas */}
-                <div className="bg-gradient-to-r from-purple-600/10 to-pink-600/10 px-5 py-2">
+                <div className="bg-[#C8A951]/10 px-5 py-2">
                   <span className="text-sm font-semibold text-purple-700 flex items-center gap-2">
                     <ArrowUpCircle className="w-4 h-4" />
                     SAÍDAS (DÉBITOS)
