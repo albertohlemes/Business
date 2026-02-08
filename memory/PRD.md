@@ -1089,21 +1089,21 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ### 02/2026 - Correção de Bug Crítico (07/02/2026)
 
+- ✅ **BUGFIX P0: Discrepância de PIS/COFINS entre Dashboard e Apuração**
+  - **Problema:** Dashboard mostrava créditos de PIS/COFINS diferentes da tela de Apuração
+  - **Causa raiz:** O endpoint `/api/apuracao-pis-cofins` aplicava regras de NCM/CST para filtrar créditos, enquanto o Dashboard simplesmente somava os valores do XML
+  - **Solução:** Alinhado o endpoint de Apuração para usar a mesma lógica do Dashboard - somar valores de PIS/COFINS diretamente do XML para créditos
+  - **Resultado:** Valores 100% consistentes entre Dashboard e Apuração
+  - **Arquivo:** `/app/backend/server.py` (função `apuracao_pis_cofins`)
+
 - ✅ **BUGFIX P0: Notas com CFOP de entrada sendo importadas como saídas**
   - **Problema:** Ao importar saídas, notas de devolução a fornecedor (emissão própria com CFOP 1202, 1411, etc.) estavam sendo classificadas como "saida" incorretamente
-  - **Impacto:** 9 notas apareciam no relatório de saídas quando deveriam estar nas entradas
-  - **Causa raiz:** A validação de saídas verificava apenas se o emitente era a empresa, mas não verificava os CFOPs
-  - **Solução:** 
-    1. Adicionada validação de CFOP no upload de saídas: se todos os CFOPs forem de entrada (1xxx, 2xxx), a nota é desconsiderada e o usuário é orientado a importá-la como entrada
-    2. Reclassificadas 9 notas já importadas incorretamente
-  - **Resultado:** Dashboard e relatórios agora mostram valores consistentes
+  - **Solução:** Adicionada validação de CFOP no upload de saídas + reclassificação de 9 notas
   - **Arquivo:** `/app/backend/server.py` (linhas 4074-4107)
 
 - ✅ **BUGFIX P0: Discrepância Dashboard vs Relatório de Documentos**
-  - **Problema:** Dashboard mostrava Total Entradas = R$ 11.980.397,41 enquanto o relatório exportado mostrava R$ 11.970.912,78 (diferença de R$ 9.484,63)
-  - **Causa raiz:** O Dashboard somava produtos pelo CFOP independente do tipo do documento. Isso incluía produtos com CFOP de entrada (1202 = devolução de venda) que estavam em notas de SAÍDA
-  - **Solução:** Alterado cálculo para somar `valor_total` dos documentos pelo campo `tipo` (entrada/saída) em vez de analisar CFOP dos produtos
-  - **Resultado:** Valores 100% alinhados entre Dashboard e Relatório
+  - **Problema:** Dashboard mostrava Total Entradas diferente do relatório exportado
+  - **Solução:** Alterado cálculo para somar `valor_total` pelo campo `tipo` do documento
   - **Arquivo:** `/app/backend/server.py` (linhas 5130-5149)
 
 ### 02/2026 - Verificação de Bugs (07/02/2026)
