@@ -12625,7 +12625,16 @@ async def apurar_icms(
                 totais["saidas"]["valor_total"] += valor_total
                 totais["saidas"]["bc_icms"] += bc_icms
                 totais["saidas"]["valor_icms"] += valor_icms
+                totais["saidas"]["valor_icms_st"] += valor_icms_st
                 totais["saidas"]["qtd_itens"] += 1
+                
+                # ICMS ST de saídas (débito)
+                if valor_icms_st > 0:
+                    if cfop not in icms_st_saidas:
+                        icms_st_saidas[cfop] = {"cfop": cfop, "bc_icms_st": 0, "valor_icms_st": 0, "qtd": 0}
+                    icms_st_saidas[cfop]["bc_icms_st"] += bc_icms_st
+                    icms_st_saidas[cfop]["valor_icms_st"] += valor_icms_st
+                    icms_st_saidas[cfop]["qtd"] += 1
                 
                 # Top produtos débito
                 if valor_icms > 0:
