@@ -96,12 +96,11 @@ Sistema de contabilidade fiscal para escritórios de contabilidade brasileiros, 
 ## Próximas Tarefas (Backlog)
 
 ### P1 - Alta Prioridade
-- [ ] Corrigir bug de usabilidade no CompanySelector (estado)
 - [ ] Criar tela de configuração de CFOPs de devolução
 - [ ] Adicionar indicador visual para notas de "mesma empresa"
 
 ### P2 - Média Prioridade
-- [ ] Refatorar server.py em módulos
+- [ ] Refatorar server.py em módulos (routers)
 - [ ] Implementar sistema de licenças
 - [ ] Dashboard de estatísticas do escritório
 
