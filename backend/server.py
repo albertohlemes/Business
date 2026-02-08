@@ -1859,6 +1859,20 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             v_pis = round(bc_pis * aliq_pis / 100, 2)
             v_cofins = round(bc_cofins * aliq_cofins / 100, 2)
             
+            # ==== IPI ====
+            # Obter valores de IPI do produto
+            v_ipi_prod = float(prod.get('v_ipi', 0) or 0)
+            v_bc_ipi = float(prod.get('v_bc_ipi', 0) or 0)
+            # Se não tiver v_bc_ipi mas tiver v_ipi, usar valor_produto como base
+            if v_ipi_prod > 0 and v_bc_ipi == 0:
+                v_bc_ipi = v_prod_bruto
+            # Calcular alíquota se tiver base e valor
+            p_ipi = 0
+            if v_bc_ipi > 0 and v_ipi_prod > 0:
+                p_ipi = round((v_ipi_prod / v_bc_ipi) * 100, 2)
+            # CST IPI - se tiver IPI é tributado (00), senão é isento/não tributado
+            cst_ipi = '00' if v_ipi_prod > 0 else ''
+            
             # Descrição complementar e outros campos
             descr_compl = ''
             ind_mov = '0'
@@ -1888,11 +1902,11 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
                 '',                                                         # 17 ALIQ_ST (vazio)
                 '',                                                         # 18 VL_ICMS_ST (vazio)
                 '',                                                         # 19 IND_APUR (vazio)
-                '',                                                         # 20 CST_IPI (vazio)
+                cst_ipi,                                                    # 20 CST_IPI
                 '',                                                         # 21 COD_ENQ (vazio)
-                '',                                                         # 22 VL_BC_IPI (vazio)
-                '',                                                         # 23 ALIQ_IPI (vazio)
-                '',                                                         # 24 VL_IPI (vazio)
+                f"{v_bc_ipi:.2f}".replace('.',',') if v_ipi_prod > 0 else '',  # 22 VL_BC_IPI
+                f"{p_ipi:.2f}".replace('.',',') if v_ipi_prod > 0 else '',     # 23 ALIQ_IPI
+                f"{v_ipi_prod:.2f}".replace('.',',') if v_ipi_prod > 0 else '', # 24 VL_IPI
                 cst_pis,                                                    # 25 CST_PIS
                 f"{bc_pis:.2f}".replace('.',','),                          # 26 VL_BC_PIS
                 f"{aliq_pis:.4f}".replace('.',','),                        # 27 ALIQ_PIS (4 decimais)
