@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, FileText, Upload, Download, LogOut, Menu, X, BarChart3, 
   Brain, ChevronDown, Calculator, AlertTriangle, Calendar, 
-  DollarSign, Sparkles, Building2, Users, Settings, PanelLeft, PanelTop
+  DollarSign, Sparkles, Building2, Users, LayoutGrid, LayoutList
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import axios from 'axios';
@@ -50,13 +50,13 @@ const Layout = ({ user, onLogout, children }) => {
   // Navigation items
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
-    { name: 'Upload XML', href: '/upload', icon: Upload, testId: 'nav-upload' },
+    { name: 'Upload', href: '/upload', icon: Upload, testId: 'nav-upload' },
     { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
-    { name: 'Alertas CFOP', href: '/alertas-cfop', icon: AlertTriangle, testId: 'nav-alertas-cfop' },
-    { name: 'Validação & IA', href: '/classificacao', icon: Brain, testId: 'nav-classificacao' },
-    { name: 'Auditoria PIS/COFINS', href: '/analise-pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
-    { name: 'Apuração Mensal', href: '/apuracao-mensal', icon: Calculator, testId: 'nav-apuracao-mensal' },
-    { name: 'Análise Tributária IA', href: '/analise-tributaria-ia', icon: Sparkles, testId: 'nav-analise-tributaria-ia' },
+    { name: 'Alertas', href: '/alertas-cfop', icon: AlertTriangle, testId: 'nav-alertas-cfop' },
+    { name: 'Validação IA', href: '/classificacao', icon: Brain, testId: 'nav-classificacao' },
+    { name: 'PIS/COFINS', href: '/analise-pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
+    { name: 'Apuração', href: '/apuracao-mensal', icon: Calculator, testId: 'nav-apuracao-mensal' },
+    { name: 'Análise IA', href: '/analise-tributaria-ia', icon: Sparkles, testId: 'nav-analise-tributaria-ia' },
     { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
     { name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' },
   ];
@@ -68,8 +68,8 @@ const Layout = ({ user, onLogout, children }) => {
     return false;
   };
 
-  // Render navigation item
-  const NavItem = ({ item, isHorizontal = false }) => {
+  // Render navigation item for vertical menu
+  const NavItemVertical = ({ item }) => {
     const Icon = item.icon;
     const active = isActive(item.href);
     
@@ -78,21 +78,42 @@ const Layout = ({ user, onLogout, children }) => {
         to={item.href}
         data-testid={item.testId}
         onClick={() => setMobileMenuOpen(false)}
-        className={`flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 ${
+        className={`flex items-center gap-3 px-4 py-2.5 text-sm rounded-lg transition-all duration-200 ${
           active
             ? 'text-[#C8A951] bg-[#C8A951]/10 border-l-2 border-[#C8A951]'
             : 'text-[#A1A1AA] hover:text-white hover:bg-white/5'
-        } ${isHorizontal ? 'border-l-0' : ''}`}
+        }`}
       >
         <Icon className="w-4 h-4" />
-        <span className={isHorizontal ? 'hidden xl:inline' : ''}>{item.name}</span>
+        <span>{item.name}</span>
+      </Link>
+    );
+  };
+
+  // Render navigation item for horizontal menu
+  const NavItemHorizontal = ({ item }) => {
+    const Icon = item.icon;
+    const active = isActive(item.href);
+    
+    return (
+      <Link
+        to={item.href}
+        data-testid={item.testId}
+        className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-all duration-200 whitespace-nowrap ${
+          active
+            ? 'text-[#C8A951] bg-[#C8A951]/10'
+            : 'text-[#A1A1AA] hover:text-white hover:bg-white/5'
+        }`}
+      >
+        <Icon className="w-4 h-4" />
+        <span>{item.name}</span>
       </Link>
     );
   };
 
   return (
     <div className="min-h-screen bg-[#0C0C0C]">
-      {/* Header */}
+      {/* Header Principal - Logo e Controles */}
       <header className="bg-[#0C0C0C] border-b border-[#2A2A2A] sticky top-0 z-50">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
@@ -113,16 +134,7 @@ const Layout = ({ user, onLogout, children }) => {
               </div>
             </div>
 
-            {/* Horizontal Menu */}
-            {menuMode === 'horizontal' && (
-              <nav className="hidden lg:flex items-center gap-1">
-                {navigation.map((item) => (
-                  <NavItem key={item.name} item={item} isHorizontal />
-                ))}
-              </nav>
-            )}
-
-            {/* Right side */}
+            {/* Right side controls */}
             <div className="flex items-center gap-3">
               {/* Company Selector */}
               {selectedCompany && (
@@ -171,22 +183,22 @@ const Layout = ({ user, onLogout, children }) => {
                 </div>
               )}
 
-              {/* Menu Mode Toggle */}
+              {/* Menu Mode Toggle - SEMPRE VISÍVEL */}
               <button
                 data-testid="toggle-menu-mode"
                 onClick={toggleMenuMode}
-                className="hidden md:flex items-center gap-2 px-3 py-2 bg-[#2A2A2A] hover:bg-[#333333] text-[#A1A1AA] hover:text-white rounded border border-[#333333] transition-colors"
+                className="hidden md:flex items-center gap-2 px-3 py-2 bg-[#C8A951] hover:bg-[#B09240] text-black rounded font-medium transition-colors"
                 title={menuMode === 'vertical' ? 'Mudar para menu horizontal' : 'Mudar para menu vertical'}
               >
                 {menuMode === 'vertical' ? (
                   <>
-                    <PanelTop className="w-4 h-4" />
-                    <span className="text-xs font-medium">Horizontal</span>
+                    <LayoutGrid className="w-4 h-4" />
+                    <span className="text-xs font-semibold">HORIZONTAL</span>
                   </>
                 ) : (
                   <>
-                    <PanelLeft className="w-4 h-4" />
-                    <span className="text-xs font-medium">Vertical</span>
+                    <LayoutList className="w-4 h-4" />
+                    <span className="text-xs font-semibold">VERTICAL</span>
                   </>
                 )}
               </button>
@@ -221,6 +233,19 @@ const Layout = ({ user, onLogout, children }) => {
             </div>
           </div>
         </div>
+
+        {/* Menu Horizontal - Segunda linha quando em modo horizontal */}
+        {menuMode === 'horizontal' && (
+          <div className="hidden md:block border-t border-[#2A2A2A] bg-[#141414]">
+            <div className="max-w-[1800px] mx-auto px-4 sm:px-6">
+              <nav className="flex items-center gap-1 py-2 overflow-x-auto">
+                {navigation.map((item) => (
+                  <NavItemHorizontal key={item.name} item={item} />
+                ))}
+              </nav>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Mobile Menu */}
@@ -241,7 +266,7 @@ const Layout = ({ user, onLogout, children }) => {
           
           <div className="px-4 py-2 space-y-1">
             {navigation.map((item) => (
-              <NavItem key={item.name} item={item} />
+              <NavItemVertical key={item.name} item={item} />
             ))}
             
             {isMasterOrAdmin && (
@@ -250,7 +275,7 @@ const Layout = ({ user, onLogout, children }) => {
                 <Link
                   to="/companies"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded"
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg"
                 >
                   <Building2 className="w-4 h-4" />
                   <span>Empresas</span>
@@ -258,7 +283,7 @@ const Layout = ({ user, onLogout, children }) => {
                 <Link
                   to="/usuarios"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded"
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg"
                 >
                   <Users className="w-4 h-4" />
                   <span>Usuários</span>
@@ -266,10 +291,20 @@ const Layout = ({ user, onLogout, children }) => {
               </>
             )}
             
+            {/* Toggle menu mode mobile */}
+            <div className="border-t border-[#2A2A2A] my-2" />
+            <button
+              onClick={() => { toggleMenuMode(); setMobileMenuOpen(false); }}
+              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[#C8A951] hover:bg-[#C8A951]/10 rounded-lg"
+            >
+              {menuMode === 'vertical' ? <LayoutGrid className="w-4 h-4" /> : <LayoutList className="w-4 h-4" />}
+              <span>Mudar para {menuMode === 'vertical' ? 'Horizontal' : 'Vertical'}</span>
+            </button>
+            
             <div className="border-t border-[#2A2A2A] my-2" />
             <button
               onClick={() => { onLogout(); setMobileMenuOpen(false); }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-400/10 rounded"
+              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-400/10 rounded-lg"
             >
               <LogOut className="w-4 h-4" />
               <span>Sair</span>
@@ -278,15 +313,16 @@ const Layout = ({ user, onLogout, children }) => {
         </div>
       )}
 
+      {/* Main Content Area */}
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 py-6">
-        <div className={`flex gap-6 ${menuMode === 'horizontal' ? '' : ''}`}>
-          {/* Sidebar - Vertical Mode */}
+        <div className="flex gap-6">
+          {/* Sidebar - Apenas em modo vertical */}
           {menuMode === 'vertical' && (
             <aside className="hidden md:block w-56 flex-shrink-0">
-              <nav className="bg-[#141414] rounded border border-[#2A2A2A] p-3 sticky top-24">
+              <nav className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-3 sticky top-24">
                 <div className="space-y-1">
                   {navigation.map((item) => (
-                    <NavItem key={item.name} item={item} />
+                    <NavItemVertical key={item.name} item={item} />
                   ))}
                 </div>
               </nav>
