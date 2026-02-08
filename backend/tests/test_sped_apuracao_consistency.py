@@ -96,11 +96,11 @@ class TestSpedApuracaoConsistency:
         assert response.status_code == 200, f"SPED validar endpoint should return 200: {response.status_code}"
         
         data = response.json()
-        # Response structure: {totais: {entradas: {...}, saidas: {...}}, detalhamento_cfop: {...}}
-        assert 'totais' in data, "Response should contain 'totais'"
+        # Response structure: {resumo: {entradas: {...}, saidas: {...}}, detalhamento_cfop: {...}}
+        assert 'resumo' in data, "Response should contain 'resumo'"
         assert 'detalhamento_cfop' in data, "Response should contain 'detalhamento_cfop'"
-        assert 'entradas' in data.get('totais', {}), "totais should contain 'entradas'"
-        assert 'saidas' in data.get('totais', {}), "totais should contain 'saidas'"
+        assert 'entradas' in data.get('resumo', {}), "resumo should contain 'entradas'"
+        assert 'saidas' in data.get('resumo', {}), "resumo should contain 'saidas'"
         
         print(f"PASSED: SPED validar endpoint working")
         return data
@@ -123,14 +123,11 @@ class TestSpedApuracaoConsistency:
         apuracao_data = apuracao_response.json()
         sped_data = sped_response.json()
         
-        # Calculate total entradas from apuração (sum of all CFOP entrada values)
-        apuracao_total_entradas = sum(
-            cfop.get('valor_total', 0) 
-            for cfop in apuracao_data.get('cfops_entrada', [])
-        )
+        # Get total entradas from apuração subtotal
+        apuracao_total_entradas = apuracao_data.get('entradas', {}).get('subtotal', {}).get('valor', 0)
         
-        # Get total entradas from SPED validar
-        sped_total_entradas = sped_data.get('totais_sistema', {}).get('entradas', {}).get('valor', 0)
+        # Get total entradas from SPED validar resumo
+        sped_total_entradas = sped_data.get('resumo', {}).get('entradas', {}).get('total_valor', 0)
         
         print(f"Apuração total entradas: R$ {apuracao_total_entradas:,.2f}")
         print(f"SPED validar total entradas: R$ {sped_total_entradas:,.2f}")
@@ -159,14 +156,11 @@ class TestSpedApuracaoConsistency:
         apuracao_data = apuracao_response.json()
         sped_data = sped_response.json()
         
-        # Calculate total saidas from apuração (sum of all CFOP saida values)
-        apuracao_total_saidas = sum(
-            cfop.get('valor_total', 0) 
-            for cfop in apuracao_data.get('cfops_saida', [])
-        )
+        # Get total saidas from apuração subtotal
+        apuracao_total_saidas = apuracao_data.get('saidas', {}).get('subtotal', {}).get('valor', 0)
         
-        # Get total saidas from SPED validar
-        sped_total_saidas = sped_data.get('totais_sistema', {}).get('saidas', {}).get('valor', 0)
+        # Get total saidas from SPED validar resumo
+        sped_total_saidas = sped_data.get('resumo', {}).get('saidas', {}).get('total_valor', 0)
         
         print(f"Apuração total saídas: R$ {apuracao_total_saidas:,.2f}")
         print(f"SPED validar total saídas: R$ {sped_total_saidas:,.2f}")
@@ -177,8 +171,8 @@ class TestSpedApuracaoConsistency:
         
         print(f"PASSED: Total saídas consistent between endpoints (difference: R$ {difference:,.2f})")
     
-    def test_07_icms_entradas_consistency(self):
-        """Verify ICMS entradas is consistent between endpoints"""
+    def test_07_pis_cofins_consistency(self):
+        """Verify PIS/COFINS values are consistent between endpoints"""
         apuracao_response = self.session.get(
             f"{BASE_URL}/api/apuracao-periodo/{TEST_COMPANY_ID}",
             params={"competencia": TEST_COMPETENCIA}
@@ -194,18 +188,26 @@ class TestSpedApuracaoConsistency:
         apuracao_data = apuracao_response.json()
         sped_data = sped_response.json()
         
-        # Get ICMS from apuração resumo
-        apuracao_icms_credito = apuracao_data.get('resumo', {}).get('icms_credito', 0)
+        # Get PIS/COFINS from apuração
+        apuracao_pis_entrada = apuracao_data.get('entradas', {}).get('subtotal', {}).get('v_pis', 0)
+        apuracao_cofins_entrada = apuracao_data.get('entradas', {}).get('subtotal', {}).get('v_cofins', 0)
         
-        # Get ICMS from SPED validar
-        sped_icms_entradas = sped_data.get('totais_sistema', {}).get('entradas', {}).get('icms', 0)
+        # Get PIS/COFINS from SPED validar
+        sped_pis_entrada = sped_data.get('resumo', {}).get('entradas', {}).get('total_pis', 0)
+        sped_cofins_entrada = sped_data.get('resumo', {}).get('entradas', {}).get('total_cofins', 0)
         
-        print(f"Apuração ICMS crédito: R$ {apuracao_icms_credito:,.2f}")
-        print(f"SPED validar ICMS entradas: R$ {sped_icms_entradas:,.2f}")
+        print(f"Apuração PIS entrada: R$ {apuracao_pis_entrada:,.2f}")
+        print(f"SPED PIS entrada: R$ {sped_pis_entrada:,.2f}")
+        print(f"Apuração COFINS entrada: R$ {apuracao_cofins_entrada:,.2f}")
+        print(f"SPED COFINS entrada: R$ {sped_cofins_entrada:,.2f}")
         
-        # Note: These may differ due to exclusion logic, but should be close
-        # The important thing is that both exclude cancelled notes
-        print(f"PASSED: ICMS values retrieved from both endpoints")
+        pis_diff = abs(apuracao_pis_entrada - sped_pis_entrada)
+        cofins_diff = abs(apuracao_cofins_entrada - sped_cofins_entrada)
+        
+        assert pis_diff < 0.01, f"PIS should match. Difference: R$ {pis_diff:,.2f}"
+        assert cofins_diff < 0.01, f"COFINS should match. Difference: R$ {cofins_diff:,.2f}"
+        
+        print(f"PASSED: PIS/COFINS consistent between endpoints")
     
     def test_08_cfop_count_consistency(self):
         """Verify CFOP counts are consistent between endpoints"""
@@ -225,12 +227,12 @@ class TestSpedApuracaoConsistency:
         sped_data = sped_response.json()
         
         # Get CFOPs from apuração
-        apuracao_cfops_entrada = set(cfop.get('cfop') for cfop in apuracao_data.get('cfops_entrada', []))
-        apuracao_cfops_saida = set(cfop.get('cfop') for cfop in apuracao_data.get('cfops_saida', []))
+        apuracao_cfops_entrada = set(cfop.get('cfop') for cfop in apuracao_data.get('entradas', {}).get('lista', []))
+        apuracao_cfops_saida = set(cfop.get('cfop') for cfop in apuracao_data.get('saidas', {}).get('lista', []))
         
         # Get CFOPs from SPED validar
-        sped_cfops_entrada = set(sped_data.get('totais_sistema', {}).get('entradas', {}).get('por_cfop', {}).keys())
-        sped_cfops_saida = set(sped_data.get('totais_sistema', {}).get('saidas', {}).get('por_cfop', {}).keys())
+        sped_cfops_entrada = set(cfop.get('cfop') for cfop in sped_data.get('detalhamento_cfop', {}).get('entradas', []))
+        sped_cfops_saida = set(cfop.get('cfop') for cfop in sped_data.get('detalhamento_cfop', {}).get('saidas', []))
         
         print(f"Apuração CFOPs entrada: {sorted(apuracao_cfops_entrada)}")
         print(f"SPED CFOPs entrada: {sorted(sped_cfops_entrada)}")
@@ -246,7 +248,6 @@ class TestSpedApuracaoConsistency:
     def test_09_cancelled_notes_excluded(self):
         """Verify cancelled notes are excluded from both endpoints"""
         # First, check if there are any cancelled notes in the database
-        # We'll do this by checking the documents endpoint
         response = self.session.get(
             f"{BASE_URL}/api/xml-documents/{TEST_COMPANY_ID}",
             params={"competencia": TEST_COMPETENCIA}
@@ -268,7 +269,6 @@ class TestSpedApuracaoConsistency:
         print(f"Active notes: {active_count}")
         
         # Both endpoints should only process active notes
-        # This is verified by the consistency tests above
         print(f"PASSED: Document counts retrieved - both endpoints should exclude {cancelled_count + desconsiderada_count} inactive notes")
     
     def test_10_different_competencia(self):
@@ -293,17 +293,14 @@ class TestSpedApuracaoConsistency:
         sped_data = sped_response.json()
         
         # Calculate totals
-        apuracao_total = sum(
-            cfop.get('valor_total', 0) 
-            for cfop in apuracao_data.get('cfops_entrada', [])
-        ) + sum(
-            cfop.get('valor_total', 0) 
-            for cfop in apuracao_data.get('cfops_saida', [])
+        apuracao_total = (
+            apuracao_data.get('entradas', {}).get('subtotal', {}).get('valor', 0) +
+            apuracao_data.get('saidas', {}).get('subtotal', {}).get('valor', 0)
         )
         
         sped_total = (
-            sped_data.get('totais_sistema', {}).get('entradas', {}).get('valor', 0) +
-            sped_data.get('totais_sistema', {}).get('saidas', {}).get('valor', 0)
+            sped_data.get('resumo', {}).get('entradas', {}).get('total_valor', 0) +
+            sped_data.get('resumo', {}).get('saidas', {}).get('total_valor', 0)
         )
         
         print(f"Competência {alt_competencia}:")
@@ -334,18 +331,20 @@ class TestSpedApuracaoConsistency:
         
         # Build CFOP value maps from apuração
         apuracao_cfop_values = {}
-        for cfop_data in apuracao_data.get('cfops_entrada', []):
+        for cfop_data in apuracao_data.get('entradas', {}).get('lista', []):
             cfop = cfop_data.get('cfop')
-            apuracao_cfop_values[cfop] = cfop_data.get('valor_total', 0)
-        for cfop_data in apuracao_data.get('cfops_saida', []):
+            apuracao_cfop_values[cfop] = cfop_data.get('valor', 0)
+        for cfop_data in apuracao_data.get('saidas', {}).get('lista', []):
             cfop = cfop_data.get('cfop')
-            apuracao_cfop_values[cfop] = cfop_data.get('valor_total', 0)
+            apuracao_cfop_values[cfop] = cfop_data.get('valor', 0)
         
         # Build CFOP value maps from SPED
         sped_cfop_values = {}
-        for cfop, cfop_data in sped_data.get('totais_sistema', {}).get('entradas', {}).get('por_cfop', {}).items():
+        for cfop_data in sped_data.get('detalhamento_cfop', {}).get('entradas', []):
+            cfop = cfop_data.get('cfop')
             sped_cfop_values[cfop] = cfop_data.get('valor', 0)
-        for cfop, cfop_data in sped_data.get('totais_sistema', {}).get('saidas', {}).get('por_cfop', {}).items():
+        for cfop_data in sped_data.get('detalhamento_cfop', {}).get('saidas', []):
+            cfop = cfop_data.get('cfop')
             sped_cfop_values[cfop] = cfop_data.get('valor', 0)
         
         # Compare values for each CFOP
