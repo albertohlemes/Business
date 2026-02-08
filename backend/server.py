@@ -1703,17 +1703,14 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             # VL_ITEM = valor BRUTO do item (ANTES do desconto)
             # O desconto vai separado no campo VL_DESC
             # Layout SPED: VL_ITEM - VL_DESC + IPI + ST = valor total do documento
-            # IMPORTANTE: Para notas de SAÍDA, o IPI de devolução deve ser incluído no VL_ITEM
             vl_item = v_prod_bruto + v_frete_prod + v_seguro_prod + v_outras_prod
             
-            # Adicionar IPI ao VL_ITEM (IPI vai separado no campo VL_IPI, mas compõe o valor do item)
-            v_ipi_item = float(prod.get('v_ipi', 0) or 0)
-            v_ipi_devol_item = float(prod.get('v_ipi_devol', 0) or 0)
-            # Se tem IPI de devolução e é maior que IPI normal, usar IPI de devolução
-            if v_ipi_devol_item > v_ipi_item:
-                vl_item += v_ipi_devol_item
-            elif v_ipi_item > 0:
-                vl_item += v_ipi_item
+            # IMPORTANTE: Para notas de SAÍDA com IPI de devolução, incluir no VL_ITEM
+            # Para notas de ENTRADA, o IPI vai APENAS no campo VL_IPI (separado)
+            if doc.tipo == 'saida':
+                v_ipi_devol_item = float(prod.get('v_ipi_devol', 0) or 0)
+                if v_ipi_devol_item > 0:
+                    vl_item += v_ipi_devol_item
             
             unid = (prod.get('unidade', 'UN') or 'UN')[:6].upper()
             
