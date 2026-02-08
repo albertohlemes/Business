@@ -503,7 +503,7 @@ const Documents = ({ user, onLogout }) => {
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileSelect}
-                accept=".xml"
+                accept={tipoConfig?.accept || '.xml'}
                 multiple
                 className="hidden"
               />
@@ -519,12 +519,14 @@ const Documents = ({ user, onLogout }) => {
                 {uploading ? (
                   <>
                     <RefreshCw className="w-5 h-5 animate-spin" />
-                    {uploadProgress.current}/{uploadProgress.total}
+                    Processando...
                   </>
                 ) : (
                   <>
                     <Upload className="w-5 h-5" />
-                    Importar XML
+                    {tipoConfig?.importType === 'ai' ? 'Importar PDF/Imagem' : 
+                     tipoConfig?.importType === 'both' ? 'Importar XML ou PDF' : 
+                     'Importar XML'}
                   </>
                 )}
               </button>
