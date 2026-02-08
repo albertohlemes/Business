@@ -231,7 +231,7 @@ const AnaliseTributaria = ({ user, onLogout }) => {
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="analise-tributaria-page" className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#141414] to-purple-600 text-white rounded-xl p-6 shadow-lg">
+        <div className="bg-[#141414] border border-[#2A2A2A] text-white rounded-xl p-6 shadow-lg">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <Brain className="w-10 h-10" />
@@ -494,17 +494,17 @@ const AnaliseTributaria = ({ user, onLogout }) => {
         {/* Apuração */}
         {dados?.apuracao && (
           <div className="bg-[#141414] rounded-xl shadow-md border border-[#2A2A2A]100 overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-50 to-violet-50 px-6 py-4 border-b border-indigo-200">
-              <h3 className="font-bold text-indigo-900 flex items-center gap-2">
-                <Scale className="w-5 h-5 text-indigo-600" />
+            <div className="bg-[#C8A951]/10 px-6 py-4 border-b border-[#C8A951]/30">
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <Scale className="w-5 h-5 text-[#C8A951]" />
                 Apuração do Período
               </h3>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-indigo-50 p-4 rounded-xl text-center">
-                  <p className="text-sm text-indigo-700">ICMS a Pagar</p>
-                  <p className="text-xl font-bold text-indigo-900">
+                <div className="bg-[#C8A951]/10 p-4 rounded-xl text-center">
+                  <p className="text-sm text-[#A1A1AA]">ICMS a Pagar</p>
+                  <p className="text-xl font-bold text-white">
                     R$ {dados.apuracao.icms_a_pagar.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
                   </p>
                 </div>

@@ -976,11 +976,11 @@ const ApuracaoMensal = ({ user, onLogout }) => {
               <div>
                 <h1 className="text-2xl font-bold">Apuração Mensal</h1>
                 {selectedCompany ? (
-                  <p className="text-indigo-100">
+                  <p className="text-[#A1A1AA]">
                     {selectedCompany.razao_social} • {selectedCompetencia}
                   </p>
                 ) : (
-                  <p className="text-indigo-100">Selecione uma empresa no header</p>
+                  <p className="text-[#A1A1AA]">Selecione uma empresa no header</p>
                 )}
               </div>
             </div>

@@ -726,7 +726,7 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                 {activeTab === 'insights' && (
                   <div className="prose max-w-none">
                     {data.insights_ia ? (
-                      <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg p-6 border border-purple-200">
+                      <div className="bg-[#141414] rounded-lg p-6 border border-[#2A2A2A]">
                         <div className="flex items-center gap-3 mb-4">
                           <Brain className="w-8 h-8 text-purple-600" />
                           <h3 className="text-xl font-bold text-purple-900 m-0">Análise Inteligente</h3>
@@ -748,7 +748,7 @@ const AnaliseTributariaIA = ({ user, onLogout }) => {
                             
                             if (isTitulo) {
                               return (
-                                <h4 key={idx} className="text-lg font-bold text-purple-900 mt-4 mb-2 border-b border-purple-200 pb-1">
+                                <h4 key={idx} className="text-lg font-bold text-purple-900 mt-4 mb-2 border-b border-[#2A2A2A] pb-1">
                                   {cleanLine}
                                 </h4>
                               );

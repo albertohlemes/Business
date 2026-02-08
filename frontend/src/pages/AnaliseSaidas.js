@@ -356,7 +356,7 @@ const AnaliseSaidas = ({ user, onLogout }) => {
 
             {/* Card de Impacto Fiscal */}
             {divergencias?.impacto_fiscal?.total_indevido > 0 && (
-              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl p-6">
+              <div className="bg-[#141414] border border-[#2A2A2A] text-white rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <DollarSign className="w-8 h-8" />
                   <div>
