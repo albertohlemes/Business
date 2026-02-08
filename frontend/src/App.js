@@ -120,6 +120,10 @@ function App() {
               element={user ? <ApuracaoISS user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
+              path="/apuracao-ipi"
+              element={user ? <ApuracaoIPI user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            <Route
               path="/alertas-cfop"
               element={user ? <AlertasCfop user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
