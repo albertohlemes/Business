@@ -5,7 +5,7 @@ import {
   FileText, Eye, Trash2, CheckCircle2, XCircle, Shield, X, ArrowUpDown, 
   ArrowUp, ArrowDown, Search, Download, FileSpreadsheet, AlertTriangle, 
   FileDown, Upload, ArrowLeft, ArrowDownCircle, ArrowUpCircle, Zap, 
-  Truck, Building2, Wifi, RefreshCw, Plus, FolderOpen
+  Truck, Building2, Wifi, RefreshCw, Plus, FolderOpen, DollarSign
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
