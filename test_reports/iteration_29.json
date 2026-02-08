@@ -1,0 +1,107 @@
+{
+  "summary": "Frontend testing completed for Documents page upload validation by document type. All 7 test cases passed. Upload buttons correctly display different labels based on document type: 'Importar XML' for NF-e/NFC-e/CT-e, 'Importar XML ou PDF' for Serviços, and 'Importar PDF/Imagem' for Demais Documentos. Totalizador (document count and total R$) visible on all screens.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Login with credentials admin@test.com / 123456 - PASSED",
+    "Navigation to Documentos > ENTRADAS > NF-e - Button shows 'Importar XML' - PASSED",
+    "Navigation to Documentos > ENTRADAS > Serviços Tomados - Button shows 'Importar XML ou PDF' - PASSED",
+    "Navigation to Documentos > ENTRADAS > Demais Documentos - Button shows 'Importar PDF/Imagem' - PASSED",
+    "Navigation to Documentos > SAÍDAS > NF-e - Button shows 'Importar XML' - PASSED",
+    "Navigation to Documentos > SAÍDAS > Serviços Prestados - Button shows 'Importar XML ou PDF' - PASSED",
+    "Totalizador (Documentos count + Total R$) visible on all document list screens - PASSED"
+  ],
+
+  "test_report_links": [],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "CATEGORIAS configuration correctly defines importType for each document type",
+    "Upload button label dynamically changes based on tipoConfig.importType: 'xml' → 'Importar XML', 'both' → 'Importar XML ou PDF', 'ai' → 'Importar PDF/Imagem'",
+    "File input accept attribute correctly changes based on document type (.xml for XML-only, .xml,.pdf,.png,.jpg,.jpeg for both/ai)",
+    "Upload endpoint selection works correctly: /api/xml/upload-validated for XML, /api/documents/process-ai for PDF/images"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "100%"
+  },
+
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+
+  "seed_data_creation": "Used existing company COMERCIAL RS LTDA (#6026) with competência 02/2026",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Documents page upload validation by document type verified. CATEGORIAS config in Documents.js defines importType per document: NF-e/NFC-e/CT-e use 'xml' (Importar XML), Serviços use 'both' (Importar XML ou PDF), Demais Documentos uses 'ai' (Importar PDF/Imagem). All data-testid attributes working: btn-entradas, btn-saidas, btn-tipo-{id}, btn-upload.",
+
+  "ui_verification": {
+    "entradas": {
+      "nfe": {
+        "upload_button": "Importar XML",
+        "accept": ".xml",
+        "importType": "xml"
+      },
+      "servicos_tomados": {
+        "upload_button": "Importar XML ou PDF",
+        "accept": ".xml,.pdf,.png,.jpg,.jpeg",
+        "importType": "both"
+      },
+      "cte": {
+        "upload_button": "Importar XML",
+        "accept": ".xml",
+        "importType": "xml"
+      },
+      "outros": {
+        "upload_button": "Importar PDF/Imagem",
+        "accept": ".pdf,.png,.jpg,.jpeg",
+        "importType": "ai"
+      }
+    },
+    "saidas": {
+      "nfe": {
+        "upload_button": "Importar XML",
+        "accept": ".xml",
+        "importType": "xml"
+      },
+      "nfce": {
+        "upload_button": "Importar XML",
+        "accept": ".xml",
+        "importType": "xml"
+      },
+      "cte": {
+        "upload_button": "Importar XML",
+        "accept": ".xml",
+        "importType": "xml"
+      },
+      "servicos_prestados": {
+        "upload_button": "Importar XML ou PDF",
+        "accept": ".xml,.pdf,.png,.jpg,.jpeg",
+        "importType": "both"
+      }
+    },
+    "totalizador": {
+      "visible_on_all_screens": true,
+      "shows_document_count": true,
+      "shows_total_value_in_reais": true
+    }
+  }
+}
