@@ -134,6 +134,32 @@ A página de documentos foi redesenhada com navegação em 3 níveis:
 
 ## Changelog
 
+### v2.7.0 (08/02/2026) - RET, IPI e ICMS ST
+- **Nova Página RET - Rota de Eficiência Tributária** (`/ret`):
+  - Visão consolidada de todos os tributos (ICMS, ISS, PIS/COFINS, ICMS ST)
+  - Cards: Total a Pagar, Total a Recuperar, Saldo Líquido
+  - Detalhamento por tributo em cards separados
+  - Integração com Análise IA tributária
+  - Comparativo de Regimes (PIS/COFINS)
+  - Substitui o antigo menu "Apuração Mensal"
+
+- **Nova Página Apuração IPI** (`/apuracao-ipi`):
+  - Entradas/Saídas agrupadas por CFOP com Valor Total, BC IPI, Valor IPI
+  - Totalizadores de entradas (créditos) e saídas (débitos)
+  - Top 10 Rankings: Produtos e NCMs crédito/débito
+  - Demonstrativo: Crédito - Débito = Saldo (A_PAGAR ou A_RECUPERAR)
+  - Para empresas industriais ou equiparadas a indústria
+
+- **Nova Aba ICMS ST** (dentro de Apuração ICMS):
+  - ICMS ST Gerado nas saídas
+  - Deduções de ICMS ST (devoluções com CFOPs 1410, 5410, etc.)
+  - ICMS ST a Recolher
+  - Tabela de ICMS ST por CFOP
+
+- **Menu Atualizado**:
+  - PIS/COFINS, ICMS, ISS, IPI, RET, Relatórios, Exportação
+  - Removidos: Apuração Mensal e Análise IA (integrados ao RET)
+
 ### v2.6.0 (08/02/2026) - Reestruturação do Menu de Apuração
 - **Nova Página Apuração ICMS** (`/apuracao-icms`):
   - Tabela de **Entradas por CFOP** com Valor Total, BC ICMS, Valor ICMS
