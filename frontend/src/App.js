@@ -15,6 +15,7 @@ import ExportMenu from './pages/ExportMenu';
 import Reports from './pages/Reports';
 import AnaliseSaidas from './pages/AnaliseSaidas';
 import AnalisePisCofins from './pages/AnalisePisCofins';
+import PisCofins from './pages/PisCofins';
 import ApuracaoMensal from './pages/ApuracaoMensal';
 import AlertasCfop from './pages/AlertasCfop';
 import AnaliseTributariaIA from './pages/AnaliseTributariaIA';
