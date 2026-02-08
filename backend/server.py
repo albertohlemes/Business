@@ -4062,8 +4062,30 @@ async def upload_xml_with_progress(
                     continue
             
             if tipo == 'entrada':
-                cnpj_valido = cnpj_destinatario == cnpj_empresa
-                logger.info(f"VALIDAÇÃO ENTRADA: NF {parsed_data.get('numero_nfe')} - Destinatário: {cnpj_destinatario}, Empresa: {cnpj_empresa}, Válido: {cnpj_valido}")
+                # ==== VALIDAÇÃO SIMPLIFICADA PARA ENTRADA ====
+                # REGRA: Aceitar se:
+                # 1. Destinatário é a empresa (entrada normal) OU
+                # 2. Emitente é a empresa E CFOPs são de entrada (1xxx/2xxx/3xxx) - emissão própria entrada
+                
+                cfops_xml_check = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
+                cfops_sao_entrada = any(
+                    cfop and len(cfop) >= 1 and cfop[0] in ['1', '2', '3'] 
+                    for cfop in cfops_xml_check if cfop
+                )
+                
+                # Emissão própria com CFOP de entrada = aceitar como entrada
+                is_emissao_propria_entrada = (cnpj_emitente == cnpj_empresa and cfops_sao_entrada)
+                
+                # Entrada normal = destinatário é a empresa
+                is_entrada_normal = (cnpj_destinatario == cnpj_empresa)
+                
+                cnpj_valido = is_emissao_propria_entrada or is_entrada_normal
+                
+                if is_emissao_propria_entrada:
+                    logger.info(f"VALIDAÇÃO ENTRADA (EMISSÃO PRÓPRIA): NF {parsed_data.get('numero_nfe')} - CFOPs {cfops_xml_check[:3]} - ACEITO")
+                else:
+                    logger.info(f"VALIDAÇÃO ENTRADA: NF {parsed_data.get('numero_nfe')} - Dest: {cnpj_destinatario}, Empresa: {cnpj_empresa}, Válido: {cnpj_valido}")
+                
                 if not cnpj_valido:
                     rejeitadas_cnpj.append({
                         "filename": file.filename,
