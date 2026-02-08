@@ -450,6 +450,7 @@ const Companies = ({ user, onLogout }) => {
               <Plus className="w-5 h-5" />
               Nova Empresa
             </button>
+            </div>
           )}
         </div>
 
