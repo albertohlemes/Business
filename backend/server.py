@@ -5813,17 +5813,14 @@ async def apuracao_pis_cofins(
                     creditos["aliquota_zero"]["total"] += valor
                 elif cst_usado == '50' or ((cfop in CFOPS_COM_CREDITO_PIS_COFINS or not cfop) and regime == 'lucro_real'):
                     # Gera crédito - CST 50 (apenas Lucro Real)
-                    # ACUMULAR base - cálculo será feito no final sobre a base total
-                    base_credito_acumulada += valor
-                    
-                    # Para agrupamento por CFOP/NCM, ainda calcular valores individuais (para visualização)
-                    pis_calc = round(valor * 0.0165, 2)  # PIS Lucro Real: 1,65%
-                    cofins_calc = round(valor * 0.076, 2)  # COFINS Lucro Real: 7,6%
-                    
-                    add_to_dict(creditos["com_credito"]["por_cfop"], cfop_key, valor, pis_calc, cofins_calc, '50')
-                    add_to_dict(creditos["com_credito"]["por_ncm"], ncm or "SEM NCM", valor, pis_calc, cofins_calc, '50')
-                    add_to_dict(creditos["com_credito"]["por_cst"], '50', valor, pis_calc, cofins_calc, '50')
+                    # USAR VALORES DO XML para créditos (igual Dashboard)
+                    # O crédito é o valor que o fornecedor destacou na NF, não um cálculo
+                    add_to_dict(creditos["com_credito"]["por_cfop"], cfop_key, valor, v_pis, v_cofins, '50')
+                    add_to_dict(creditos["com_credito"]["por_ncm"], ncm or "SEM NCM", valor, v_pis, v_cofins, '50')
+                    add_to_dict(creditos["com_credito"]["por_cst"], '50', valor, v_pis, v_cofins, '50')
                     creditos["com_credito"]["total"] += valor
+                    creditos["com_credito"]["pis"] += v_pis
+                    creditos["com_credito"]["cofins"] += v_cofins
                 else:
                     # CFOP não gera crédito ou empresa é Lucro Presumido - CST 70
                     add_to_dict(creditos["aliquota_zero"]["por_cfop"], cfop_key, valor, 0, 0, '70')
