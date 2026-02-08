@@ -229,7 +229,7 @@ const Reports = ({ user, onLogout }) => {
               <button
                 data-testid="export-csv-button"
                 onClick={exportToCSV}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 flex items-center gap-2"
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 flex items-center gap-2"
               >
                 <Download className="w-4 h-4" />
                 Exportar CSV - {competencia || 'Todas'}
@@ -240,21 +240,21 @@ const Reports = ({ user, onLogout }) => {
 
         {reportData.length > 0 && (
           <>
-            <div className="bg-red-50 rounded-lg p-6 border border-red-200">
-              <h3 className="font-bold text-red-900 mb-4 flex items-center gap-2">
+            <div className="bg-[#C8A951]/10 rounded-lg p-6 border border-[#C8A951]/30">
+              <h3 className="font-bold text-[#C8A951] mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
                 Totalizadores - Conferência Fiscal {competencia && '(' + competencia + ')'}
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-sm text-red-700">Valor Total Operações</p>
-                  <p className="text-2xl font-bold text-red-900">
+                  <p className="text-sm text-[#A1A1AA]">Valor Total Operações</p>
+                  <p className="text-2xl font-bold text-white">
                     R$ {totals.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-red-700">Crédito ICMS</p>
-                  <p className="text-2xl font-bold text-green-700">
+                  <p className="text-sm text-[#A1A1AA]">Crédito ICMS</p>
+                  <p className="text-2xl font-bold text-emerald-400">
                     R$ {totals.credito_icms.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
