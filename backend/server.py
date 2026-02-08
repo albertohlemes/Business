@@ -1870,7 +1870,12 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             
             # ==== IPI ====
             # Obter valores de IPI do produto
+            # IMPORTANTE: Para notas de devolução, o IPI pode estar em v_ipi_devol
             v_ipi_prod = float(prod.get('v_ipi', 0) or 0)
+            v_ipi_devol = float(prod.get('v_ipi_devol', 0) or 0)
+            # Usar o maior valor entre IPI normal e IPI de devolução
+            if v_ipi_devol > v_ipi_prod:
+                v_ipi_prod = v_ipi_devol
             v_bc_ipi = float(prod.get('v_bc_ipi', 0) or 0)
             # Se não tiver v_bc_ipi mas tiver v_ipi, usar valor_produto como base
             if v_ipi_prod > 0 and v_bc_ipi == 0:
