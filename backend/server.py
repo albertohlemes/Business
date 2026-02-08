@@ -9493,8 +9493,9 @@ async def exportar_e_validar_sped(
             # Índices:      0    1        2        3           4   5    6       7       8       9        10   11      12         13        14
             if len(campos) > 14:
                 cfop = campos[11]
+                # VL_ITEM está no campo 7 (índice 6), NÃO no campo 8 (índice 7) que é VL_DESC
                 valor = float(campos[7].replace(',', '.')) if campos[7] else 0
-                # ICMS está no campo 15 (índice 14) - VL_ICMS
+                # ICMS está no campo 15 (índice 15) - VL_ICMS
                 v_icms = float(campos[15].replace(',', '.')) if len(campos) > 15 and campos[15] else 0
                 
                 tipo = documento_atual['tipo']
