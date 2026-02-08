@@ -12208,6 +12208,344 @@ async def relacao_notas_detalhada(
     }
 
 
+# ============================================================
+# UPLOAD VALIDADO POR TIPO DE DOCUMENTO
+# ============================================================
+
+@api_router.post("/xml/upload-validated")
+async def upload_xml_validated(
+    company_id: str = Form(...),
+    competencia: str = Form(...),
+    tipo_operacao: str = Form(...),  # 'entrada' ou 'saida'
+    tipo_documento: str = Form(...),  # '55', '65', '57', 'nfse'
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Upload de XMLs com validação rigorosa de tipo de documento e operação.
+    Rejeita documentos que não correspondem ao tipo esperado.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+    
+    results = {
+        "aceitos": [],
+        "rejeitados": [],
+        "total_processados": 0,
+        "total_aceitos": 0,
+        "total_rejeitados": 0
+    }
+    
+    tipo_documento_nome = {
+        '55': 'NF-e',
+        '65': 'NFC-e',
+        '57': 'CT-e',
+        'nfse': 'NFS-e',
+        'nfse_tomado': 'NFS-e (Serviços Tomados)',
+        'nfse_prestado': 'NFS-e (Serviços Prestados)'
+    }
+    
+    for file in files:
+        results["total_processados"] += 1
+        filename = file.filename
+        
+        try:
+            content = await file.read()
+            xml_str = content.decode('utf-8')
+            
+            # Validar tipo de documento
+            validation = validate_xml_type(xml_str, tipo_documento.replace('nfse_tomado', 'nfse').replace('nfse_prestado', 'nfse'), tipo_operacao)
+            
+            if not validation["valid"]:
+                results["rejeitados"].append({
+                    "arquivo": filename,
+                    "motivo": validation["error"],
+                    "tipo_detectado": tipo_documento_nome.get(validation["detected_type"], validation["detected_type"]),
+                    "operacao_detectada": validation["detected_operacao"]
+                })
+                results["total_rejeitados"] += 1
+                continue
+            
+            # Detectar tipo de XML
+            xml_type = detect_xml_type(xml_str)
+            
+            # Parser apropriado
+            if xml_type == 'nfse':
+                parsed_data = parse_xml_nfse(xml_str)
+            elif xml_type == 'nfce':
+                parsed_data = parse_xml_nfce(xml_str)
+            elif xml_type == 'cte':
+                # Parser de CT-e (simplificado - usar parser existente ou adaptar)
+                parsed_data = parse_xml_nfe(xml_str)  # Adaptar para CT-e se necessário
+                parsed_data['modelo'] = '57'
+            else:
+                parsed_data = parse_xml_nfe(xml_str)
+            
+            chave_nfe = parsed_data.get('chave_nfe', '')
+            
+            # Verificar duplicidade
+            existing = await db.xml_documents.find_one({"chave_acesso": chave_nfe, "company_id": company_id})
+            if existing:
+                results["rejeitados"].append({
+                    "arquivo": filename,
+                    "motivo": f"Documento já existe (Chave: {chave_nfe[:20]}...)",
+                    "tipo_detectado": tipo_documento_nome.get(validation["detected_type"], validation["detected_type"]),
+                    "operacao_detectada": validation["detected_operacao"]
+                })
+                results["total_rejeitados"] += 1
+                continue
+            
+            # Salvar documento
+            doc_id = str(uuid.uuid4())
+            new_doc = {
+                "id": doc_id,
+                "company_id": company_id,
+                "competencia": competencia,
+                "tipo_operacao": tipo_operacao,
+                "modelo": tipo_documento.replace('nfse_tomado', 'nfse').replace('nfse_prestado', 'nfse'),
+                "xml_content": xml_str,
+                "chave_acesso": chave_nfe,
+                "uploaded_at": datetime.now(timezone.utc),
+                "uploaded_by": current_user.id,
+                **{k: v for k, v in parsed_data.items() if k not in ['chave_nfe']}
+            }
+            
+            await db.xml_documents.insert_one(new_doc)
+            
+            results["aceitos"].append({
+                "arquivo": filename,
+                "numero": parsed_data.get('numero_nfe', ''),
+                "valor": parsed_data.get('valor_total', 0),
+                "emitente": parsed_data.get('emitente_nome', '')
+            })
+            results["total_aceitos"] += 1
+            
+        except Exception as e:
+            results["rejeitados"].append({
+                "arquivo": filename,
+                "motivo": f"Erro ao processar: {str(e)}",
+                "tipo_detectado": None,
+                "operacao_detectada": None
+            })
+            results["total_rejeitados"] += 1
+    
+    return results
+
+
+# ============================================================
+# PROCESSAMENTO DE DOCUMENTOS COM IA (IMAGEM/PDF)
+# ============================================================
+
+@api_router.post("/documents/process-ai")
+async def process_document_with_ai(
+    company_id: str = Form(...),
+    competencia: str = Form(...),
+    tipo_operacao: str = Form(...),  # 'entrada' ou 'saida'
+    tipo_documento: str = Form(...),  # 'nfse_tomado', 'nfse_prestado', 'outros'
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Processa documentos fiscais (imagem/PDF) usando IA para extrair dados.
+    Usado para NFS-e e documentos de consumo (energia, internet, etc.)
+    """
+    import tempfile
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    results = {
+        "processados": [],
+        "erros": [],
+        "total_processados": 0,
+        "total_sucesso": 0,
+        "total_erros": 0
+    }
+    
+    for file in files:
+        results["total_processados"] += 1
+        filename = file.filename
+        
+        try:
+            # Salvar arquivo temporário
+            content = await file.read()
+            mime_type = get_mime_type(filename)
+            
+            # Verificar extensão permitida
+            allowed_extensions = ['pdf', 'png', 'jpg', 'jpeg', 'webp']
+            ext = filename.lower().split('.')[-1]
+            if ext not in allowed_extensions:
+                results["erros"].append({
+                    "arquivo": filename,
+                    "motivo": f"Extensão não permitida: .{ext}. Use: {', '.join(allowed_extensions)}"
+                })
+                results["total_erros"] += 1
+                continue
+            
+            # Criar arquivo temporário
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f'.{ext}') as tmp_file:
+                tmp_file.write(content)
+                tmp_path = tmp_file.name
+            
+            try:
+                # Processar com IA baseado no tipo
+                if tipo_documento in ['nfse_tomado', 'nfse_prestado']:
+                    extraction_result = await extract_nfse_from_file(tmp_path, mime_type)
+                else:  # 'outros' - energia, internet, etc.
+                    extraction_result = await extract_outros_docs_from_file(tmp_path, mime_type)
+                
+                if not extraction_result["success"]:
+                    results["erros"].append({
+                        "arquivo": filename,
+                        "motivo": extraction_result.get("error", "Erro na extração"),
+                        "resposta_ia": extraction_result.get("raw_response", "")[:500]
+                    })
+                    results["total_erros"] += 1
+                    continue
+                
+                extracted_data = extraction_result["data"]
+                
+                # Salvar documento extraído
+                doc_id = str(uuid.uuid4())
+                
+                if tipo_documento in ['nfse_tomado', 'nfse_prestado']:
+                    # Estrutura para NFS-e
+                    new_doc = {
+                        "id": doc_id,
+                        "company_id": company_id,
+                        "competencia": competencia,
+                        "tipo_operacao": tipo_operacao,
+                        "modelo": "nfse",
+                        "origem": "ia_extraction",
+                        "arquivo_original": filename,
+                        "uploaded_at": datetime.now(timezone.utc),
+                        "uploaded_by": current_user.id,
+                        
+                        # Dados da NFS-e
+                        "numero_nfe": extracted_data.get("numero_nota", ""),
+                        "serie": extracted_data.get("serie", ""),
+                        "data_emissao": extracted_data.get("data_emissao", ""),
+                        "chave_acesso": extracted_data.get("codigo_verificacao", doc_id),
+                        
+                        # Prestador
+                        "emitente_cnpj": extracted_data.get("prestador", {}).get("cnpj", ""),
+                        "emitente_nome": extracted_data.get("prestador", {}).get("razao_social", ""),
+                        "emitente_inscricao_municipal": extracted_data.get("prestador", {}).get("inscricao_municipal", ""),
+                        "emitente_endereco": extracted_data.get("prestador", {}).get("endereco", {}),
+                        
+                        # Tomador
+                        "destinatario_cnpj": extracted_data.get("tomador", {}).get("cnpj", ""),
+                        "destinatario_nome": extracted_data.get("tomador", {}).get("razao_social", ""),
+                        "destinatario_endereco": extracted_data.get("tomador", {}).get("endereco", {}),
+                        
+                        # Serviço
+                        "servico": extracted_data.get("servico", {}),
+                        
+                        # Valores
+                        "valor_total": extracted_data.get("valores", {}).get("valor_servicos", 0),
+                        "base_calculo_iss": extracted_data.get("valores", {}).get("base_calculo", 0),
+                        "aliquota_iss": extracted_data.get("valores", {}).get("aliquota_iss", 0),
+                        "valor_iss": extracted_data.get("valores", {}).get("valor_iss", 0),
+                        "iss_retido": extracted_data.get("iss_retido", False),
+                        "valor_pis": extracted_data.get("valores", {}).get("valor_pis", 0),
+                        "valor_cofins": extracted_data.get("valores", {}).get("valor_cofins", 0),
+                        "valor_inss": extracted_data.get("valores", {}).get("valor_inss", 0),
+                        "valor_ir": extracted_data.get("valores", {}).get("valor_ir", 0),
+                        "valor_csll": extracted_data.get("valores", {}).get("valor_csll", 0),
+                        
+                        # Dados completos da extração
+                        "dados_extraidos": extracted_data
+                    }
+                else:
+                    # Estrutura para documentos de consumo (energia, internet, etc.)
+                    new_doc = {
+                        "id": doc_id,
+                        "company_id": company_id,
+                        "competencia": competencia,
+                        "tipo_operacao": "entrada",
+                        "modelo": "outros",
+                        "subtipo": extracted_data.get("subtipo", "outro"),
+                        "origem": "ia_extraction",
+                        "arquivo_original": filename,
+                        "uploaded_at": datetime.now(timezone.utc),
+                        "uploaded_by": current_user.id,
+                        
+                        # Dados do documento
+                        "numero_nfe": extracted_data.get("numero_documento", ""),
+                        "serie": extracted_data.get("serie", ""),
+                        "data_emissao": extracted_data.get("data_emissao", ""),
+                        "chave_acesso": doc_id,
+                        
+                        # Fornecedor
+                        "emitente_cnpj": extracted_data.get("fornecedor", {}).get("cnpj", ""),
+                        "emitente_nome": extracted_data.get("fornecedor", {}).get("razao_social", ""),
+                        "emitente_ie": extracted_data.get("fornecedor", {}).get("inscricao_estadual", ""),
+                        "emitente_endereco": extracted_data.get("fornecedor", {}).get("endereco", {}),
+                        
+                        # Consumidor
+                        "destinatario_cnpj": extracted_data.get("consumidor", {}).get("cnpj", ""),
+                        "destinatario_nome": extracted_data.get("consumidor", {}).get("razao_social", ""),
+                        "destinatario_endereco": extracted_data.get("consumidor", {}).get("endereco", {}),
+                        
+                        # Valores
+                        "valor_total": extracted_data.get("valores", {}).get("valor_total", 0),
+                        "base_calculo_icms": extracted_data.get("valores", {}).get("base_calculo_icms", 0),
+                        "aliquota_icms": extracted_data.get("valores", {}).get("aliquota_icms", 0),
+                        "valor_icms": extracted_data.get("valores", {}).get("valor_icms", 0),
+                        "valor_pis": extracted_data.get("valores", {}).get("valor_pis", 0),
+                        "valor_cofins": extracted_data.get("valores", {}).get("valor_cofins", 0),
+                        
+                        # CFOP
+                        "cfop_principal": extracted_data.get("cfop_principal", "1253"),
+                        
+                        # Itens
+                        "produtos": extracted_data.get("itens", []),
+                        
+                        # Dados completos da extração
+                        "dados_extraidos": extracted_data
+                    }
+                
+                await db.xml_documents.insert_one(new_doc)
+                
+                results["processados"].append({
+                    "arquivo": filename,
+                    "numero": new_doc.get("numero_nfe", ""),
+                    "valor": new_doc.get("valor_total", 0),
+                    "emitente": new_doc.get("emitente_nome", ""),
+                    "dados_extraidos": {
+                        "tipo": extracted_data.get("tipo_documento", extracted_data.get("subtipo", "")),
+                        "data": extracted_data.get("data_emissao", "")
+                    }
+                })
+                results["total_sucesso"] += 1
+                
+            finally:
+                # Limpar arquivo temporário
+                import os
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+                    
+        except Exception as e:
+            logger.error(f"Erro ao processar {filename}: {str(e)}")
+            results["erros"].append({
+                "arquivo": filename,
+                "motivo": f"Erro interno: {str(e)}"
+            })
+            results["total_erros"] += 1
+    
+    return results
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
