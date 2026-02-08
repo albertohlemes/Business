@@ -185,7 +185,7 @@ const Reports = ({ user, onLogout }) => {
                 data-testid="report-tipo-operacao-select"
                 value={tipoOperacao}
                 onChange={(e) => setTipoOperacao(e.target.value)}
-                className="w-full px-4 py-3 border border-[#333333] rounded-lg"
+                className="w-full px-4 py-3 border border-[#333333] rounded-lg bg-[#0C0C0C] text-white"
               >
                 <option value="entrada">Entrada (Compras)</option>
                 <option value="saida">Saída (Vendas)</option>
@@ -198,7 +198,7 @@ const Reports = ({ user, onLogout }) => {
                 data-testid="generate-report-button"
                 onClick={generateReport}
                 disabled={loading || !selectedCompany}
-                className="w-full bg-[#C8A951] text-white py-3 rounded-lg font-semibold hover:bg-[#B09240] disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-[#C8A951] text-black py-3 rounded-lg font-semibold hover:bg-[#B09240] disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <FileBarChart className="w-5 h-5" />
                 {loading ? 'Gerando...' : 'Gerar Relatório'}
@@ -211,12 +211,12 @@ const Reports = ({ user, onLogout }) => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 {tipoOperacao === 'entrada' ? (
-                  <span className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-lg font-medium">
+                  <span className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg font-medium">
                     <ArrowDownCircle className="w-4 h-4" />
                     Relatório de Entrada (Compras) - Créditos
                   </span>
                 ) : tipoOperacao === 'saida' ? (
-                  <span className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-lg font-medium">
+                  <span className="flex items-center gap-2 px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg font-medium">
                     <ArrowUpCircle className="w-4 h-4" />
                     Relatório de Saída (Vendas) - Débitos
                   </span>
