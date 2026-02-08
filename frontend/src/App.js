@@ -121,6 +121,10 @@ function App() {
               element={user ? <AnalisePisCofins user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
+              path="/pis-cofins"
+              element={user ? <PisCofins user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            <Route
               path="/analise-tributaria-ia"
               element={user ? <AnaliseTributariaIA user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
