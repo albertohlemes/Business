@@ -1087,22 +1087,30 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 - ✅ Verificado que filtro entrada/saída nos relatórios funciona corretamente
 - ✅ Todas as funcionalidades testadas e aprovadas (100% backend, 100% frontend)
 
-### 02/2026 - Correção de Bug Crítico (07/02/2026)
+### 02/2026 - Correção de Bug Crítico (07-08/02/2026)
+
+- ✅ **BUGFIX P0: Discrepância de ICMS entre Dashboard e Apuração**
+  - **Problema:** Dashboard mostrava ICMS Crédito R$ 1.764.617,72 enquanto Apuração mostrava R$ 1.670.832,54
+  - **Causa raiz:** Dashboard excluía apenas ICMS-ST do crédito, mas Apuração excluía ST + Despesa
+  - **Solução:** Adicionada lista de CFOPs de Despesa no Dashboard para excluir do crédito (igual Apuração)
+  - **Resultado:** Valores 100% consistentes
+  - **Arquivo:** `/app/backend/server.py` (função `get_dashboard_stats`)
+
+- ✅ **BUGFIX P0: Exportação SPED sem considerar desconto**
+  - **Problema:** Em notas com desconto (ex: NF 302733 com R$ 20.609,06 de desconto), o SPED estava usando `valor_total` (já com desconto subtraído) no campo VL_ITEM
+  - **Causa raiz:** O campo VL_ITEM do SPED deve conter o valor BRUTO do produto, com o desconto separado no campo VL_DESC
+  - **Solução:** Alterado para usar `valor_produto` (v_prod bruto) no VL_ITEM, e `v_desconto` no VL_DESC
+  - **Arquivo:** `/app/backend/server.py` (registro C170)
 
 - ✅ **BUGFIX P0: Discrepância de PIS/COFINS entre Dashboard e Apuração**
-  - **Problema:** Dashboard mostrava créditos de PIS/COFINS diferentes da tela de Apuração
-  - **Causa raiz:** O endpoint `/api/apuracao-pis-cofins` aplicava regras de NCM/CST para filtrar créditos, enquanto o Dashboard simplesmente somava os valores do XML
-  - **Solução:** Alinhado o endpoint de Apuração para usar a mesma lógica do Dashboard - somar valores de PIS/COFINS diretamente do XML para créditos
-  - **Resultado:** Valores 100% consistentes entre Dashboard e Apuração
+  - **Solução:** Alinhado endpoint de Apuração para usar valores do XML (igual Dashboard)
   - **Arquivo:** `/app/backend/server.py` (função `apuracao_pis_cofins`)
 
 - ✅ **BUGFIX P0: Notas com CFOP de entrada sendo importadas como saídas**
-  - **Problema:** Ao importar saídas, notas de devolução a fornecedor (emissão própria com CFOP 1202, 1411, etc.) estavam sendo classificadas como "saida" incorretamente
   - **Solução:** Adicionada validação de CFOP no upload de saídas + reclassificação de 9 notas
   - **Arquivo:** `/app/backend/server.py` (linhas 4074-4107)
 
 - ✅ **BUGFIX P0: Discrepância Dashboard vs Relatório de Documentos**
-  - **Problema:** Dashboard mostrava Total Entradas diferente do relatório exportado
   - **Solução:** Alterado cálculo para somar `valor_total` pelo campo `tipo` do documento
   - **Arquivo:** `/app/backend/server.py` (linhas 5130-5149)
 
