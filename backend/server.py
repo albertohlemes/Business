@@ -12892,6 +12892,218 @@ async def apurar_iss(
 
 
 # ============================================================
+# APURAÇÃO DE IPI
+# ============================================================
+
+@api_router.get("/apuracao-ipi/{company_id}")
+async def apurar_ipi(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Realiza a apuração de IPI para uma empresa/competência.
+    Apenas para indústrias ou equiparados a indústria.
+    """
+    # Buscar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar documentos da competência
+    documentos = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia
+    }, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    # Estruturas para acumular dados
+    entradas_por_cfop = {}
+    saidas_por_cfop = {}
+    produtos_credito = {}
+    produtos_debito = {}
+    ncms_credito = {}
+    ncms_debito = {}
+    
+    totais = {
+        "entradas": {"valor_total": 0, "bc_ipi": 0, "valor_ipi": 0, "qtd_docs": 0, "qtd_itens": 0},
+        "saidas": {"valor_total": 0, "bc_ipi": 0, "valor_ipi": 0, "qtd_docs": 0, "qtd_itens": 0}
+    }
+    
+    # Processar documentos
+    for doc in documentos:
+        produtos = doc.get('produtos', [])
+        if not produtos:
+            continue
+        
+        # Determinar tipo pela CFOP do primeiro produto
+        primeiro_cfop = str(produtos[0].get('cfop', ''))
+        if primeiro_cfop and primeiro_cfop[0] in ['1', '2', '3']:
+            tipo_op = 'entrada'
+            totais["entradas"]["qtd_docs"] += 1
+        elif primeiro_cfop and primeiro_cfop[0] in ['5', '6', '7']:
+            tipo_op = 'saida'
+            totais["saidas"]["qtd_docs"] += 1
+        else:
+            tipo_op = doc.get('tipo_operacao', 'entrada')
+            if tipo_op == 'entrada':
+                totais["entradas"]["qtd_docs"] += 1
+            else:
+                totais["saidas"]["qtd_docs"] += 1
+        
+        for prod in produtos:
+            cfop = str(prod.get('cfop', 'SEM CFOP'))
+            ncm = str(prod.get('ncm', 'SEM NCM')).replace('.', '')
+            codigo = str(prod.get('codigo', ''))
+            descricao = str(prod.get('descricao', 'Produto'))[:60]
+            
+            valor_total = float(prod.get('valor_total', 0) or prod.get('valor_produto', 0) or 0)
+            bc_ipi = float(prod.get('v_bc_ipi', 0) or 0)
+            valor_ipi = float(prod.get('v_ipi', 0) or 0)
+            
+            # Determinar tipo pela CFOP
+            cfop_primeiro = cfop[0] if cfop and cfop != 'SEM CFOP' else ''
+            if cfop_primeiro in ['1', '2', '3']:
+                tipo_item = 'entrada'
+            elif cfop_primeiro in ['5', '6', '7']:
+                tipo_item = 'saida'
+            else:
+                tipo_item = tipo_op
+            
+            if tipo_item == 'entrada':
+                # Agrupar por CFOP - Entradas
+                if cfop not in entradas_por_cfop:
+                    entradas_por_cfop[cfop] = {"cfop": cfop, "valor_total": 0, "bc_ipi": 0, "valor_ipi": 0, "qtd": 0}
+                entradas_por_cfop[cfop]["valor_total"] += valor_total
+                entradas_por_cfop[cfop]["bc_ipi"] += bc_ipi
+                entradas_por_cfop[cfop]["valor_ipi"] += valor_ipi
+                entradas_por_cfop[cfop]["qtd"] += 1
+                
+                # Totais
+                totais["entradas"]["valor_total"] += valor_total
+                totais["entradas"]["bc_ipi"] += bc_ipi
+                totais["entradas"]["valor_ipi"] += valor_ipi
+                totais["entradas"]["qtd_itens"] += 1
+                
+                # Top produtos crédito
+                if valor_ipi > 0:
+                    key = codigo or descricao[:30]
+                    if key not in produtos_credito:
+                        produtos_credito[key] = {"codigo": codigo, "descricao": descricao, "ncm": ncm, "valor_ipi": 0, "qtd": 0}
+                    produtos_credito[key]["valor_ipi"] += valor_ipi
+                    produtos_credito[key]["qtd"] += 1
+                    
+                    if ncm not in ncms_credito:
+                        ncms_credito[ncm] = {"ncm": ncm, "valor_ipi": 0, "qtd": 0, "produtos": set()}
+                    ncms_credito[ncm]["valor_ipi"] += valor_ipi
+                    ncms_credito[ncm]["qtd"] += 1
+                    ncms_credito[ncm]["produtos"].add(descricao[:30])
+            
+            else:  # saída
+                # Agrupar por CFOP - Saídas
+                if cfop not in saidas_por_cfop:
+                    saidas_por_cfop[cfop] = {"cfop": cfop, "valor_total": 0, "bc_ipi": 0, "valor_ipi": 0, "qtd": 0}
+                saidas_por_cfop[cfop]["valor_total"] += valor_total
+                saidas_por_cfop[cfop]["bc_ipi"] += bc_ipi
+                saidas_por_cfop[cfop]["valor_ipi"] += valor_ipi
+                saidas_por_cfop[cfop]["qtd"] += 1
+                
+                # Totais
+                totais["saidas"]["valor_total"] += valor_total
+                totais["saidas"]["bc_ipi"] += bc_ipi
+                totais["saidas"]["valor_ipi"] += valor_ipi
+                totais["saidas"]["qtd_itens"] += 1
+                
+                # Top produtos débito
+                if valor_ipi > 0:
+                    key = codigo or descricao[:30]
+                    if key not in produtos_debito:
+                        produtos_debito[key] = {"codigo": codigo, "descricao": descricao, "ncm": ncm, "valor_ipi": 0, "qtd": 0}
+                    produtos_debito[key]["valor_ipi"] += valor_ipi
+                    produtos_debito[key]["qtd"] += 1
+                    
+                    if ncm not in ncms_debito:
+                        ncms_debito[ncm] = {"ncm": ncm, "valor_ipi": 0, "qtd": 0, "produtos": set()}
+                    ncms_debito[ncm]["valor_ipi"] += valor_ipi
+                    ncms_debito[ncm]["qtd"] += 1
+                    ncms_debito[ncm]["produtos"].add(descricao[:30])
+    
+    # Converter sets para listas
+    for ncm in ncms_credito.values():
+        ncm["produtos"] = list(ncm["produtos"])[:3]
+    for ncm in ncms_debito.values():
+        ncm["produtos"] = list(ncm["produtos"])[:3]
+    
+    # Ordenar e pegar Top 10
+    top_produtos_credito = sorted(produtos_credito.values(), key=lambda x: -x["valor_ipi"])[:10]
+    top_produtos_debito = sorted(produtos_debito.values(), key=lambda x: -x["valor_ipi"])[:10]
+    top_ncms_credito = sorted(ncms_credito.values(), key=lambda x: -x["valor_ipi"])[:10]
+    top_ncms_debito = sorted(ncms_debito.values(), key=lambda x: -x["valor_ipi"])[:10]
+    
+    # Ordenar CFOPs
+    lista_entradas = sorted(entradas_por_cfop.values(), key=lambda x: -x["valor_ipi"])
+    lista_saidas = sorted(saidas_por_cfop.values(), key=lambda x: -x["valor_ipi"])
+    
+    # Calcular saldo
+    credito_ipi = totais["entradas"]["valor_ipi"]
+    debito_ipi = totais["saidas"]["valor_ipi"]
+    saldo = debito_ipi - credito_ipi
+    
+    # Arredondar valores
+    def arredondar_dict(d):
+        for k, v in d.items():
+            if isinstance(v, float):
+                d[k] = round(v, 2)
+        return d
+    
+    for item in lista_entradas + lista_saidas + top_produtos_credito + top_produtos_debito + top_ncms_credito + top_ncms_debito:
+        arredondar_dict(item)
+    
+    return {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', ''),
+            "uf": company.get('uf', ''),
+            "tipo_atividade": company.get('tipo_atividade', ''),
+            "equiparado_industria": company.get('equiparado_industria', False)
+        },
+        "competencia": competencia,
+        "entradas": {
+            "por_cfop": lista_entradas,
+            "totais": {
+                "valor_total": round(totais["entradas"]["valor_total"], 2),
+                "bc_ipi": round(totais["entradas"]["bc_ipi"], 2),
+                "valor_ipi": round(totais["entradas"]["valor_ipi"], 2),
+                "qtd_documentos": totais["entradas"]["qtd_docs"],
+                "qtd_itens": totais["entradas"]["qtd_itens"]
+            }
+        },
+        "saidas": {
+            "por_cfop": lista_saidas,
+            "totais": {
+                "valor_total": round(totais["saidas"]["valor_total"], 2),
+                "bc_ipi": round(totais["saidas"]["bc_ipi"], 2),
+                "valor_ipi": round(totais["saidas"]["valor_ipi"], 2),
+                "qtd_documentos": totais["saidas"]["qtd_docs"],
+                "qtd_itens": totais["saidas"]["qtd_itens"]
+            }
+        },
+        "top_10": {
+            "produtos_credito": top_produtos_credito,
+            "produtos_debito": top_produtos_debito,
+            "ncms_credito": top_ncms_credito,
+            "ncms_debito": top_ncms_debito
+        },
+        "apuracao": {
+            "credito_ipi": round(credito_ipi, 2),
+            "debito_ipi": round(debito_ipi, 2),
+            "saldo": round(saldo, 2),
+            "situacao": "A_PAGAR" if saldo > 0 else "A_RECUPERAR" if saldo < 0 else "ZERADO"
+        }
+    }
+
+
+# ============================================================
 # APURAÇÃO DE PIS/COFINS
 # ============================================================
 
