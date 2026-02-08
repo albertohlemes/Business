@@ -19,6 +19,7 @@ import PisCofins from './pages/PisCofins';
 import ApuracaoMensal from './pages/ApuracaoMensal';
 import ApuracaoICMS from './pages/ApuracaoICMS';
 import ApuracaoISS from './pages/ApuracaoISS';
+import ApuracaoIPI from './pages/ApuracaoIPI';
 import AlertasCfop from './pages/AlertasCfop';
 import AnaliseTributariaIA from './pages/AnaliseTributariaIA';
 import './App.css';
