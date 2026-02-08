@@ -1220,9 +1220,42 @@ const Documents = ({ user, onLogout }) => {
               
               {/* Filtros */}
               <div className="p-4 border-b border-[#2A2A2A] space-y-4 max-h-[40vh] overflow-y-auto">
-                <p className="text-sm text-[#A1A1AA]">
-                  Configure os filtros para selecionar os documentos a excluir. Deixe em branco para não filtrar.
-                </p>
+                {/* Opção Apagar Tudo */}
+                <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-medium text-red-400">Apagar Todos</h3>
+                      <p className="text-xs text-[#A1A1AA] mt-1">
+                        Exclui todos os documentos de {getTipoConfig()?.label} desta competência
+                      </p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        // Limpar filtros e gerar preview de todos
+                        setDeleteFilters({
+                          dataInicio: '',
+                          dataFim: '',
+                          emitenteCnpj: '',
+                          emitenteNome: '',
+                          numeroInicio: '',
+                          numeroFim: '',
+                          cfops: []
+                        });
+                        await previewDelete();
+                      }}
+                      className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/30 transition-all"
+                    >
+                      Selecionar Todos
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Divisor */}
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 h-px bg-[#2A2A2A]"></div>
+                  <span className="text-xs text-[#A1A1AA]">ou use filtros</span>
+                  <div className="flex-1 h-px bg-[#2A2A2A]"></div>
+                </div>
                 
                 {/* Intervalo de Datas */}
                 <div className="grid grid-cols-2 gap-4">
