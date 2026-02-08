@@ -9496,12 +9496,21 @@ async def exportar_e_validar_sped(
         
         # C170 - Itens do documento
         elif reg == 'C170' and documento_atual['tipo']:
-            # Layout C170: |C170|NUM_ITEM|COD_ITEM|DESCR_COMPL|QTD|UNID|VL_ITEM|VL_DESC|IND_MOV|CST_ICMS|CFOP|COD_NAT|VL_BC_ICMS|ALIQ_ICMS|VL_ICMS|...
-            # Índices:      0    1        2        3           4   5    6       7       8       9        10   11      12         13        14
+            # Layout C170: |C170|NUM_ITEM|COD_ITEM|DESCR_COMPL|QTD|UNID|VL_ITEM|VL_DESC|IND_MOV|CST_ICMS|CFOP|COD_NAT|VL_BC_ICMS|ALIQ_ICMS|VL_ICMS|VL_BC_ST|ALIQ_ST|VL_ICMS_ST|...|VL_IPI|...
+            # Índices:      0    1        2        3           4   5    6       7       8       9        10   11      12         13        14      15       16      17         ...  24
             if len(campos) > 14:
                 cfop = campos[11]
-                # VL_ITEM está no campo 7 (índice 6), NÃO no campo 8 (índice 7) que é VL_DESC
-                valor = float(campos[7].replace(',', '.')) if campos[7] else 0
+                
+                # Calcular valor_total = VL_ITEM + VL_IPI + VL_ICMS_ST - VL_DESC
+                # Para comparar com o valor_total do sistema (Apuração Mensal)
+                vl_item = float(campos[7].replace(',', '.')) if campos[7] else 0
+                vl_desc = float(campos[8].replace(',', '.')) if len(campos) > 8 and campos[8] else 0
+                vl_icms_st = float(campos[18].replace(',', '.')) if len(campos) > 18 and campos[18] else 0
+                vl_ipi = float(campos[25].replace(',', '.')) if len(campos) > 25 and campos[25] else 0
+                
+                # valor_total = vl_item - vl_desc + vl_ipi + vl_icms_st
+                valor = vl_item - vl_desc + vl_ipi + vl_icms_st
+                
                 # ICMS está no campo 15 (índice 15) - VL_ICMS
                 v_icms = float(campos[15].replace(',', '.')) if len(campos) > 15 and campos[15] else 0
                 
