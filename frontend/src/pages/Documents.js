@@ -14,17 +14,17 @@ import * as XLSX from 'xlsx';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Categorias de documentos
+// Categorias de documentos com configurações de importação
 const CATEGORIAS = {
   entrada: {
     label: 'Entradas',
     icon: ArrowDownCircle,
     color: 'emerald',
     tipos: [
-      { id: 'nfe', label: 'NF-e', icon: FileText, modelo: '55' },
-      { id: 'servicos_tomados', label: 'Serviços Tomados', icon: Building2, modelo: 'nfse_tomado' },
-      { id: 'cte', label: 'CT-e', icon: Truck, modelo: '57' },
-      { id: 'outros', label: 'Demais Documentos', icon: Zap, modelo: 'outros', hint: 'Energia, Internet, etc.' }
+      { id: 'nfe', label: 'NF-e', icon: FileText, modelo: '55', importType: 'xml', accept: '.xml' },
+      { id: 'servicos_tomados', label: 'Serviços Tomados', icon: Building2, modelo: 'nfse_tomado', importType: 'both', accept: '.xml,.pdf,.png,.jpg,.jpeg' },
+      { id: 'cte', label: 'CT-e', icon: Truck, modelo: '57', importType: 'xml', accept: '.xml' },
+      { id: 'outros', label: 'Demais Documentos', icon: Zap, modelo: 'outros', hint: 'Energia, Internet, etc.', importType: 'ai', accept: '.pdf,.png,.jpg,.jpeg' }
     ]
   },
   saida: {
@@ -32,10 +32,10 @@ const CATEGORIAS = {
     icon: ArrowUpCircle,
     color: 'blue',
     tipos: [
-      { id: 'nfe', label: 'NF-e', icon: FileText, modelo: '55' },
-      { id: 'nfce', label: 'NFC-e', icon: FileText, modelo: '65' },
-      { id: 'cte', label: 'CT-e', icon: Truck, modelo: '57' },
-      { id: 'servicos_prestados', label: 'Serviços Prestados', icon: Building2, modelo: 'nfse_prestado' }
+      { id: 'nfe', label: 'NF-e', icon: FileText, modelo: '55', importType: 'xml', accept: '.xml' },
+      { id: 'nfce', label: 'NFC-e', icon: FileText, modelo: '65', importType: 'xml', accept: '.xml' },
+      { id: 'cte', label: 'CT-e', icon: Truck, modelo: '57', importType: 'xml', accept: '.xml' },
+      { id: 'servicos_prestados', label: 'Serviços Prestados', icon: Building2, modelo: 'nfse_prestado', importType: 'both', accept: '.xml,.pdf,.png,.jpg,.jpeg' }
     ]
   }
 };
