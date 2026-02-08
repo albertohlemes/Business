@@ -2455,7 +2455,8 @@ async def update_company(
     current_user: User = Depends(get_current_user)
 ):
     """Atualizar empresa existente"""
-    if current_user.role != UserRole.ADMIN:
+    allowed_roles = ["super_admin", "master", "admin"]
+    if current_user.role not in allowed_roles:
         raise HTTPException(status_code=403, detail="Apenas administradores podem editar empresas")
     
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
