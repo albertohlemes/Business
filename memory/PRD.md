@@ -1089,6 +1089,12 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ### 02/2026 - Correção de Bug Crítico (07-08/02/2026)
 
+- ✅ **BUGFIX P0: SPED sem campos de ICMS ST preenchidos**
+  - **Problema:** Em NFs com ICMS ST (ex: NF 302733 com R$ 14.687,93 de ST), os campos VL_BC_ICMS_ST, ALIQ_ST e VL_ICMS_ST estavam vazios no registro C170
+  - **Solução:** Adicionada lógica para extrair e preencher os campos de ICMS ST no C170
+  - **Resultado:** Campos preenchidos corretamente: VL_BC_ICMS_ST, ALIQ_ST e VL_ICMS_ST
+  - **Arquivo:** `/app/backend/server.py` (registro C170)
+
 - ✅ **BUGFIX P0: SPED sem campos de IPI preenchidos**
   - **Problema:** Em NFs com IPI (ex: NF 8003 com IPI R$ 6.014,35), os campos CST_IPI, VL_BC_IPI, ALIQ_IPI e VL_IPI estavam vazios no registro C170
   - **Solução:** Adicionada lógica para extrair e preencher os campos de IPI no C170 quando houver IPI no produto
@@ -1096,14 +1102,10 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
   - **Arquivo:** `/app/backend/server.py` (registro C170)
 
 - ✅ **BUGFIX P0: Discrepância de ICMS entre Dashboard e Apuração**
-  - **Problema:** Dashboard mostrava ICMS Crédito R$ 1.764.617,72 enquanto Apuração mostrava R$ 1.670.832,54
-  - **Causa raiz:** Dashboard excluía apenas ICMS-ST do crédito, mas Apuração excluía ST + Despesa
   - **Solução:** Adicionada lista de CFOPs de Despesa no Dashboard para excluir do crédito (igual Apuração)
-  - **Resultado:** Valores 100% consistentes
   - **Arquivo:** `/app/backend/server.py` (função `get_dashboard_stats`)
 
 - ✅ **BUGFIX P0: Exportação SPED sem considerar desconto**
-  - **Problema:** Em notas com desconto (ex: NF 302733 com R$ 20.609,06 de desconto), o SPED estava usando `valor_total` (já com desconto subtraído) no campo VL_ITEM
   - **Solução:** Alterado para usar `valor_produto` (v_prod bruto) no VL_ITEM, e `v_desconto` no VL_DESC
   - **Arquivo:** `/app/backend/server.py` (registro C170)
 
