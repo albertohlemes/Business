@@ -173,11 +173,22 @@ const Layout = ({ user, onLogout, children }) => {
 
               {/* Menu Mode Toggle */}
               <button
+                data-testid="toggle-menu-mode"
                 onClick={toggleMenuMode}
-                className="hidden md:flex p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
+                className="hidden md:flex items-center gap-2 px-3 py-2 bg-[#2A2A2A] hover:bg-[#333333] text-[#A1A1AA] hover:text-white rounded border border-[#333333] transition-colors"
                 title={menuMode === 'vertical' ? 'Mudar para menu horizontal' : 'Mudar para menu vertical'}
               >
-                {menuMode === 'vertical' ? <PanelTop className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}
+                {menuMode === 'vertical' ? (
+                  <>
+                    <PanelTop className="w-4 h-4" />
+                    <span className="text-xs font-medium">Horizontal</span>
+                  </>
+                ) : (
+                  <>
+                    <PanelLeft className="w-4 h-4" />
+                    <span className="text-xs font-medium">Vertical</span>
+                  </>
+                )}
               </button>
 
               {/* User Info */}
