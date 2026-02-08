@@ -134,6 +134,17 @@ A página de documentos foi redesenhada com navegação em 3 níveis:
 
 ## Changelog
 
+### v2.3.0 (09/02/2026)
+- **Validação de Upload por Tipo**: Cada tipo de documento só aceita seu formato específico
+  - NF-e, NFC-e, CT-e: Apenas XML do modelo correspondente (55, 65, 57)
+  - Serviços Tomados/Prestados: XML de NFS-e OU PDF/Imagem via IA
+  - Demais Documentos: Apenas PDF/Imagem via IA (energia, internet, etc.)
+- **Processamento com IA (Gemini)**: Extração automática de dados de documentos fiscais
+  - NFS-e: Extrai todos os campos obrigatórios para SPED
+  - Contas de Consumo: Extrai dados de energia, internet, água, gás
+- **Modal de Resultado de Upload**: Feedback detalhado mostrando documentos aceitos e rejeitados
+- **Botões Dinâmicos**: Label do botão muda conforme tipo ("Importar XML", "Importar XML ou PDF", "Importar PDF/Imagem")
+
 ### v2.2.0 (09/02/2026)
 - **Nova Navegação de Documentos**: Página redesenhada com estrutura de 3 níveis
   - Nível 1: Botões ENTRADAS (verde) e SAÍDAS (azul)
