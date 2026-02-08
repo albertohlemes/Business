@@ -143,50 +143,100 @@ const Documents = ({ user, onLogout }) => {
     }
   };
 
+  // Estado para modal de resultado de upload
+  const [uploadResult, setUploadResult] = useState(null);
+  const [showUploadResult, setShowUploadResult] = useState(false);
+
   // ========== UPLOAD ==========
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
     
+    const tipoConfig = getTipoConfig();
+    if (!tipoConfig) return;
+    
     setUploading(true);
     setUploadProgress({ current: 0, total: files.length });
     
     const token = localStorage.getItem('token');
-    let successCount = 0;
-    let errorCount = 0;
     
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      setUploadProgress({ current: i + 1, total: files.length });
+    try {
+      const formData = new FormData();
+      formData.append('company_id', ctxCompany.id);
+      formData.append('competencia', selectedCompetencia);
+      formData.append('tipo_operacao', operacao);
+      formData.append('tipo_documento', tipoConfig.modelo);
       
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('company_id', ctxCompany.id);
-        
-        await axios.post(`${API}/xml/upload`, formData, {
+      files.forEach(file => {
+        formData.append('files', file);
+      });
+      
+      setUploadProgress({ current: files.length, total: files.length });
+      
+      let response;
+      
+      // Escolher endpoint baseado no tipo de importação
+      if (tipoConfig.importType === 'ai' || 
+          (tipoConfig.importType === 'both' && !files[0].name.toLowerCase().endsWith('.xml'))) {
+        // Usar endpoint de IA para imagens/PDFs
+        response = await axios.post(`${API}/documents/process-ai`, formData, {
           headers: { 
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data'
           }
         });
-        successCount++;
-      } catch (err) {
-        console.error(`Erro ao enviar ${file.name}:`, err);
-        errorCount++;
+        
+        setUploadResult({
+          tipo: 'ia',
+          total: response.data.total_processados,
+          sucesso: response.data.total_sucesso,
+          erros: response.data.total_erros,
+          processados: response.data.processados || [],
+          rejeitados: response.data.erros || []
+        });
+      } else {
+        // Usar endpoint validado para XMLs
+        response = await axios.post(`${API}/xml/upload-validated`, formData, {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        
+        setUploadResult({
+          tipo: 'xml',
+          total: response.data.total_processados,
+          sucesso: response.data.total_aceitos,
+          erros: response.data.total_rejeitados,
+          processados: response.data.aceitos || [],
+          rejeitados: response.data.rejeitados || []
+        });
       }
+      
+      setShowUploadResult(true);
+      
+      if (response.data.total_aceitos > 0 || response.data.total_sucesso > 0) {
+        fetchDocuments();
+      }
+      
+    } catch (err) {
+      console.error('Erro no upload:', err);
+      setUploadResult({
+        tipo: 'erro',
+        total: files.length,
+        sucesso: 0,
+        erros: files.length,
+        processados: [],
+        rejeitados: [{
+          arquivo: 'Todos os arquivos',
+          motivo: err.response?.data?.detail || err.message || 'Erro de conexão'
+        }]
+      });
+      setShowUploadResult(true);
     }
     
     setUploading(false);
     e.target.value = '';
-    
-    if (successCount > 0) {
-      fetchDocuments();
-    }
-    
-    if (errorCount > 0) {
-      alert(`Upload concluído: ${successCount} sucesso(s), ${errorCount} erro(s)`);
-    }
   };
 
   // Ordenação
