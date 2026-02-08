@@ -502,7 +502,10 @@ const Documents = ({ user, onLogout }) => {
             </p>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className={`inline-flex items-center gap-2 px-6 py-3 bg-${colorClass}-500 text-white rounded-lg font-medium hover:bg-${colorClass}-600 transition-all`}
+              className={isEntrada 
+                ? "inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-all"
+                : "inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-all"
+              }
             >
               <Upload className="w-5 h-5" />
               Importar XML
