@@ -3465,7 +3465,14 @@ async def upload_xml_batch(
                 })
 
                 if tipo == 'entrada':
-                    if cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
+                    # IMPORTANTE: NÃO converter CFOP de notas de emissão própria
+                    # Notas de emissão própria com CFOP de entrada devem preservar o CFOP original
+                    if is_emissao_propria_entrada:
+                        # Emissão própria: preservar CFOP original, não classificar
+                        product['cfop_original_emissor'] = cfop_original
+                        product['emissao_propria'] = True
+                        logger.info(f"EMISSÃO PRÓPRIA: Preservando CFOP {cfop_original} do produto {product.get('descricao', '')[:30]}")
+                    elif cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
                         produtos_operacao_distinta.append((product, cfop_original))
                     else:
                         produtos_para_classificar.append(product)
@@ -4273,7 +4280,14 @@ async def upload_xml_with_progress(
                 })
 
                 if tipo == 'entrada':
-                    if cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
+                    # IMPORTANTE: NÃO converter CFOP de notas de emissão própria
+                    # Notas de emissão própria com CFOP de entrada devem preservar o CFOP original
+                    if is_emissao_propria_entrada:
+                        # Emissão própria: preservar CFOP original, não classificar
+                        product['cfop_original_emissor'] = cfop_original
+                        product['emissao_propria'] = True
+                        logger.info(f"EMISSÃO PRÓPRIA: Preservando CFOP {cfop_original} do produto {product.get('descricao', '')[:30]}")
+                    elif cfop_original in CFOPS_OPERACOES_DISTINTAS_UPLOAD:
                         produtos_operacao_distinta.append((product, cfop_original))
                     else:
                         produtos_para_classificar.append(product)
