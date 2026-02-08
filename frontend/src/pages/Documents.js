@@ -343,7 +343,7 @@ const Documents = ({ user, onLogout }) => {
   // Tela de seleção de tipo de documento
   if (!tipoDoc) {
     const categoria = CATEGORIAS[operacao];
-    const colorClass = operacao === 'entrada' ? 'emerald' : 'blue';
+    const isEntrada = operacao === 'entrada';
     
     return (
       <Layout user={user} onLogout={onLogout}>
@@ -358,7 +358,7 @@ const Documents = ({ user, onLogout }) => {
             </button>
             <div>
               <h1 className="text-2xl font-semibold text-white flex items-center gap-3" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                <categoria.icon className={`w-6 h-6 text-${colorClass}-400`} />
+                <categoria.icon className={isEntrada ? "w-6 h-6 text-emerald-400" : "w-6 h-6 text-blue-400"} />
                 {categoria.label}
               </h1>
               <p className="text-[#A1A1AA] text-sm">
@@ -376,10 +376,18 @@ const Documents = ({ user, onLogout }) => {
                   key={tipo.id}
                   data-testid={`btn-tipo-${tipo.id}`}
                   onClick={() => setTipoDoc(tipo.id)}
-                  className={`group p-6 bg-[#141414] border border-[#2A2A2A] rounded-xl hover:border-${colorClass}-500/50 hover:bg-${colorClass}-500/5 transition-all text-center`}
+                  className={`group p-6 bg-[#141414] border border-[#2A2A2A] rounded-xl transition-all text-center ${
+                    isEntrada 
+                      ? 'hover:border-emerald-500/50 hover:bg-emerald-500/5' 
+                      : 'hover:border-blue-500/50 hover:bg-blue-500/5'
+                  }`}
                 >
-                  <div className={`w-14 h-14 rounded-xl bg-${colorClass}-500/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-${colorClass}-500/20 transition-all`}>
-                    <TipoIcon className={`w-7 h-7 text-${colorClass}-400`} />
+                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4 transition-all ${
+                    isEntrada 
+                      ? 'bg-emerald-500/10 group-hover:bg-emerald-500/20' 
+                      : 'bg-blue-500/10 group-hover:bg-blue-500/20'
+                  }`}>
+                    <TipoIcon className={isEntrada ? "w-7 h-7 text-emerald-400" : "w-7 h-7 text-blue-400"} />
                   </div>
                   <h3 className="text-lg font-medium text-white mb-1">{tipo.label}</h3>
                   {tipo.hint && (
