@@ -255,6 +255,193 @@ const PisCofins = ({ user, onLogout }) => {
             </div>
           </div>
         </SecaoColapsavel>
+
+        {/* Agrupamento por CFOP + CST */}
+        {apuracao.por_cfop_cst && apuracao.por_cfop_cst.length > 0 && (
+          <SecaoColapsavel
+            titulo="Detalhamento por CFOP + CST"
+            subtitulo={`${apuracao.por_cfop_cst.length} combinação(ões)`}
+            sectionKey="cfop_cst"
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#2A2A2A]">
+                    <th className="text-left py-2 px-3 text-[#A1A1AA]">CFOP</th>
+                    <th className="text-left py-2 px-3 text-[#A1A1AA]">CST</th>
+                    <th className="text-center py-2 px-3 text-[#A1A1AA]">Tipo</th>
+                    <th className="text-right py-2 px-3 text-[#A1A1AA]">Qtd</th>
+                    <th className="text-right py-2 px-3 text-[#A1A1AA]">Valor Base</th>
+                    <th className="text-right py-2 px-3 text-[#A1A1AA]">PIS</th>
+                    <th className="text-right py-2 px-3 text-[#A1A1AA]">COFINS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {apuracao.por_cfop_cst.map((item, idx) => (
+                    <tr key={idx} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
+                      <td className="py-2 px-3">
+                        <span className="font-mono text-white">{item.cfop}</span>
+                      </td>
+                      <td className="py-2 px-3">
+                        <span className="font-mono text-[#C8A951]">{item.cst}</span>
+                      </td>
+                      <td className="py-2 px-3 text-center">
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          item.tipo === 'ENTRADA' ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
+                        }`}>
+                          {item.tipo}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-right text-[#A1A1AA]">{item.qtd}</td>
+                      <td className="py-2 px-3 text-right text-white">{formatCurrency(item.valor_base)}</td>
+                      <td className={`py-2 px-3 text-right ${item.tipo === 'ENTRADA' ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatCurrency(item.valor_pis)}
+                      </td>
+                      <td className={`py-2 px-3 text-right ${item.tipo === 'ENTRADA' ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatCurrency(item.valor_cofins)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </SecaoColapsavel>
+        )}
+
+        {/* Top 10 Rankings */}
+        {apuracao.top_10 && (
+          <>
+            <h3 className="text-white font-bold mt-6 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-[#C8A951]" />
+              Rankings - Maiores Geradores de PIS/COFINS
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Top 10 Produtos Crédito */}
+              <SecaoColapsavel
+                titulo="Top 10 Produtos - Crédito"
+                subtitulo={`${apuracao.top_10.produtos_credito?.length || 0} produto(s)`}
+                sectionKey="top_prod_cred"
+                badgeValue={apuracao.top_10.produtos_credito?.length}
+              >
+                {apuracao.top_10.produtos_credito?.length > 0 ? (
+                  <div className="space-y-2">
+                    {apuracao.top_10.produtos_credito.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between py-2 px-3 bg-[#0C0C0C] rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#C8A951] font-bold text-sm">#{idx + 1}</span>
+                            <span className="text-white text-sm truncate">{item.descricao}</span>
+                          </div>
+                          <span className="text-xs text-[#666] font-mono">NCM: {item.ncm}</span>
+                        </div>
+                        <div className="text-right ml-4">
+                          <p className="text-green-400 font-bold">{formatCurrency(item.valor_total)}</p>
+                          <p className="text-xs text-[#666]">{item.qtd} ocorrência(s)</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-[#666] py-4">Nenhum registro</p>
+                )}
+              </SecaoColapsavel>
+
+              {/* Top 10 Produtos Débito */}
+              <SecaoColapsavel
+                titulo="Top 10 Produtos - Débito"
+                subtitulo={`${apuracao.top_10.produtos_debito?.length || 0} produto(s)`}
+                sectionKey="top_prod_deb"
+                badgeValue={apuracao.top_10.produtos_debito?.length}
+              >
+                {apuracao.top_10.produtos_debito?.length > 0 ? (
+                  <div className="space-y-2">
+                    {apuracao.top_10.produtos_debito.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between py-2 px-3 bg-[#0C0C0C] rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#C8A951] font-bold text-sm">#{idx + 1}</span>
+                            <span className="text-white text-sm truncate">{item.descricao}</span>
+                          </div>
+                          <span className="text-xs text-[#666] font-mono">NCM: {item.ncm}</span>
+                        </div>
+                        <div className="text-right ml-4">
+                          <p className="text-red-400 font-bold">{formatCurrency(item.valor_total)}</p>
+                          <p className="text-xs text-[#666]">{item.qtd} ocorrência(s)</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-[#666] py-4">Nenhum registro</p>
+                )}
+              </SecaoColapsavel>
+
+              {/* Top 10 NCMs Crédito */}
+              <SecaoColapsavel
+                titulo="Top 10 NCMs - Crédito"
+                subtitulo={`${apuracao.top_10.ncms_credito?.length || 0} NCM(s)`}
+                sectionKey="top_ncm_cred"
+                badgeValue={apuracao.top_10.ncms_credito?.length}
+              >
+                {apuracao.top_10.ncms_credito?.length > 0 ? (
+                  <div className="space-y-2">
+                    {apuracao.top_10.ncms_credito.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between py-2 px-3 bg-[#0C0C0C] rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#C8A951] font-bold text-sm">#{idx + 1}</span>
+                            <span className="text-white text-sm font-mono">{item.ncm}</span>
+                          </div>
+                          {item.produtos && (
+                            <span className="text-xs text-[#666]">Ex: {item.produtos.slice(0, 2).join(', ')}</span>
+                          )}
+                        </div>
+                        <div className="text-right ml-4">
+                          <p className="text-green-400 font-bold">{formatCurrency(item.valor_total)}</p>
+                          <p className="text-xs text-[#666]">{item.qtd} ocorrência(s)</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-[#666] py-4">Nenhum registro</p>
+                )}
+              </SecaoColapsavel>
+
+              {/* Top 10 NCMs Débito */}
+              <SecaoColapsavel
+                titulo="Top 10 NCMs - Débito"
+                subtitulo={`${apuracao.top_10.ncms_debito?.length || 0} NCM(s)`}
+                sectionKey="top_ncm_deb"
+                badgeValue={apuracao.top_10.ncms_debito?.length}
+              >
+                {apuracao.top_10.ncms_debito?.length > 0 ? (
+                  <div className="space-y-2">
+                    {apuracao.top_10.ncms_debito.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between py-2 px-3 bg-[#0C0C0C] rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#C8A951] font-bold text-sm">#{idx + 1}</span>
+                            <span className="text-white text-sm font-mono">{item.ncm}</span>
+                          </div>
+                          {item.produtos && (
+                            <span className="text-xs text-[#666]">Ex: {item.produtos.slice(0, 2).join(', ')}</span>
+                          )}
+                        </div>
+                        <div className="text-right ml-4">
+                          <p className="text-red-400 font-bold">{formatCurrency(item.valor_total)}</p>
+                          <p className="text-xs text-[#666]">{item.qtd} ocorrência(s)</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-[#666] py-4">Nenhum registro</p>
+                )}
+              </SecaoColapsavel>
+            </div>
+          </>
+        )}
       </div>
     );
   };
