@@ -1873,6 +1873,15 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             # CST IPI - se tiver IPI é tributado (00), senão é isento/não tributado
             cst_ipi = '00' if v_ipi_prod > 0 else ''
             
+            # ==== ICMS ST ====
+            # Obter valores de ICMS ST do produto
+            v_icms_st_prod = float(prod.get('v_icms_st', 0) or 0)
+            v_bc_icms_st = float(prod.get('v_bc_icms_st', 0) or 0)
+            # Calcular alíquota de ST se tiver base e valor
+            p_icms_st = 0
+            if v_bc_icms_st > 0 and v_icms_st_prod > 0:
+                p_icms_st = round((v_icms_st_prod / v_bc_icms_st) * 100, 2)
+            
             # Descrição complementar e outros campos
             descr_compl = ''
             ind_mov = '0'
