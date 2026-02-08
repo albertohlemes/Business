@@ -190,7 +190,7 @@ const Dashboard = ({ user, onLogout }) => {
           <>
             {/* Quantidade de Documentos */}
             <div>
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Documentos por Tipo</h2>
+              <h2 className="text-lg font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>Documentos por Tipo</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 <StatCard
                   icon={ArrowDownCircle}
