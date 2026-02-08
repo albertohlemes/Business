@@ -2379,11 +2379,32 @@ async def create_company(company_data: CompanyCreate, current_user: User = Depen
     return company
 
 @api_router.get("/companies", response_model=List[Company])
-async def list_companies(current_user: User = Depends(get_current_user)):
-    if current_user.role == UserRole.ADMIN:
-        companies = await db.companies.find({}, {"_id": 0}).to_list(1000)
+async def list_companies(
+    current_user: User = Depends(get_current_user),
+    responsavel_id: Optional[str] = Query(None, description="Filtrar por ID do usuário responsável")
+):
+    """
+    List companies based on user role:
+    - Admin/Master: all companies (can filter by responsavel_id)
+    - Operacional: only companies where user is responsible
+    """
+    allowed_roles = ["super_admin", "master", "admin"]
+    
+    if current_user.role in allowed_roles:
+        # Admin pode ver todas, mas pode filtrar por responsável
+        query = {}
+        if responsavel_id:
+            query["responsavel_ids"] = responsavel_id
+        companies = await db.companies.find(query, {"_id": 0}).to_list(1000)
     else:
-        companies = await db.companies.find({"cnpj": {"$in": current_user.company_ids}}, {"_id": 0}).to_list(1000)
+        # Operacional só vê empresas onde é responsável
+        companies = await db.companies.find(
+            {"$or": [
+                {"responsavel_ids": current_user.id},
+                {"cnpj": {"$in": current_user.company_ids}}  # Fallback para compatibilidade
+            ]}, 
+            {"_id": 0}
+        ).to_list(1000)
     
     for c in companies:
         if 'created_at' in c:
@@ -2393,6 +2414,23 @@ async def list_companies(current_user: User = Depends(get_current_user)):
             c['created_at'] = datetime.now(timezone.utc) # Fallback for old records
     
     return companies
+
+@api_router.get("/companies/responsaveis")
+async def list_responsaveis(current_user: User = Depends(get_current_user)):
+    """
+    List all users who can be responsible for companies (for filtering dropdown).
+    Only Master/Admin can access.
+    """
+    allowed_roles = ["super_admin", "master", "admin"]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    users = await db.users.find(
+        {"is_active": {"$ne": False}},
+        {"_id": 0, "id": 1, "name": 1, "email": 1, "role": 1}
+    ).to_list(None)
+    
+    return users
 
 @api_router.get("/companies/{company_id}", response_model=Company)
 async def get_company(company_id: str, current_user: User = Depends(get_current_user)):
