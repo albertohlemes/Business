@@ -134,6 +134,32 @@ A página de documentos foi redesenhada com navegação em 3 níveis:
 
 ## Changelog
 
+### v2.6.0 (08/02/2026) - Reestruturação do Menu de Apuração
+- **Nova Página Apuração ICMS** (`/apuracao-icms`):
+  - Tabela de **Entradas por CFOP** com Valor Total, BC ICMS, Valor ICMS
+  - Tabela de **Saídas por CFOP** com Valor Total, BC ICMS, Valor ICMS
+  - **Totalizadores** para entradas (créditos) e saídas (débitos)
+  - **Top 10 Rankings**: Produtos e NCMs que mais geraram crédito/débito
+  - **Demonstrativo de Apuração**: Crédito - Débito = Saldo (a pagar ou recuperar)
+  - Endpoint: `GET /api/apuracao-icms/{company_id}?competencia=XX/XXXX`
+
+- **Nova Página Apuração ISS** (`/apuracao-iss`):
+  - Cards de resumo: Serviços Prestados, Base de Cálculo, ISS Devido, ISS Retido, ISS a Pagar
+  - **Demonstrativo**: Valor Serviços → ISS Devido → (-) ISS Retido → (=) ISS a Pagar
+  - **Serviços por Código**: Tabela agrupada por código de serviço
+  - **Serviços por Tomador**: Tabela agrupada por tomador
+  - Endpoint: `GET /api/apuracao-iss/{company_id}?competencia=XX/XXXX`
+
+- **Melhorias em PIS/COFINS** (`/pis-cofins`):
+  - Nova seção **Detalhamento por CFOP + CST** (ex: "1102 50", "5102 01")
+  - **Top 10 Rankings**: Produtos e NCMs que mais geraram crédito/débito
+  - 52 combinações CFOP+CST identificadas na competência de teste
+
+- **Menu Atualizado**:
+  - Novo item: **ICMS** (aponta para /apuracao-icms)
+  - Novo item: **ISS** (aponta para /apuracao-iss)
+  - PIS/COFINS mantido com melhorias
+
 ### v2.5.0 (08/02/2026)
 - **Novo Módulo PIS/COFINS Completo**: Nova página dedicada à apuração de PIS/COFINS
   - **Aba Apuração**: Cards de resumo (Créditos, Débitos, Saldo, Imposto a Pagar) com detalhamento expansível
