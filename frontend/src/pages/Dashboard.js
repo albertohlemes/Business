@@ -266,11 +266,11 @@ const Dashboard = ({ user, onLogout }) => {
                   color="bg-orange-600"
                   description="NFS-e"
                 />
-                <div className="bg-gradient-to-br from-red-600 to-red-700 rounded-xl p-4 text-white">
+                <div className="bg-[#C8A951] rounded-lg p-4 text-black">
                   <div className="flex items-center gap-3 mb-2">
-                    <DollarSign className="w-9 h-9 bg-white/20 rounded-lg p-2" />
+                    <DollarSign className="w-9 h-9 bg-black/20 rounded-lg p-2" />
                     <div>
-                      <h4 className="text-sm text-red-100">Faturamento Total</h4>
+                      <h4 className="text-sm text-black/70">Faturamento Total</h4>
                       <p className="text-xl font-bold">{formatCurrency(stats.valores.faturamento_total)}</p>
                     </div>
                   </div>
