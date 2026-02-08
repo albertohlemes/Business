@@ -405,7 +405,7 @@ const Documents = ({ user, onLogout }) => {
   // Tela de listagem de documentos
   const tipoConfig = getTipoConfig();
   const TipoIcon = tipoConfig?.icon || FileText;
-  const colorClass = operacao === 'entrada' ? 'emerald' : 'blue';
+  const isEntrada = operacao === 'entrada';
 
   return (
     <Layout user={user} onLogout={onLogout}>
@@ -421,9 +421,12 @@ const Documents = ({ user, onLogout }) => {
             </button>
             <div>
               <h1 className="text-2xl font-semibold text-white flex items-center gap-3" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                <TipoIcon className={`w-6 h-6 text-${colorClass}-400`} />
+                <TipoIcon className={isEntrada ? "w-6 h-6 text-emerald-400" : "w-6 h-6 text-blue-400"} />
                 {tipoConfig?.label}
-                <span className={`px-2 py-0.5 text-xs rounded bg-${colorClass}-500/10 text-${colorClass}-400 border border-${colorClass}-500/20`}>
+                <span className={isEntrada 
+                  ? "px-2 py-0.5 text-xs rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
+                  : "px-2 py-0.5 text-xs rounded bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                }>
                   {CATEGORIAS[operacao].label}
                 </span>
               </h1>
@@ -447,7 +450,10 @@ const Documents = ({ user, onLogout }) => {
               data-testid="btn-upload"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 bg-${colorClass}-500 text-white rounded-lg font-medium hover:bg-${colorClass}-600 disabled:opacity-50 transition-all`}
+              className={isEntrada 
+                ? "inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 disabled:opacity-50 transition-all"
+                : "inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50 transition-all"
+              }
             >
               {uploading ? (
                 <>
