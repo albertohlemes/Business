@@ -380,6 +380,23 @@ const ClassificacaoPage = ({ user, onLogout }) => {
       'PENDENTE': { produtos: [], cor: 'bg-red-500', corFundo: 'bg-red-50', icon: '⚠️' },
     };
     
+    // Função auxiliar para classificar por categoria padrão
+    const classificarPorCat = (prod, cat) => {
+      if (cat.includes('REVENDA')) {
+        grupos['REVENDA'].produtos.push(prod);
+      } else if (cat.includes('INSUMO')) {
+        grupos['INSUMO'].produtos.push(prod);
+      } else if (cat.includes('DESPESA')) {
+        grupos['DESPESA'].produtos.push(prod);
+      } else if (cat.includes('ATIVO') || cat.includes('IMOBILIZADO')) {
+        grupos['ATIVO_IMOBILIZADO'].produtos.push(prod);
+      } else if (cat.includes('COMBUSTIVEL') || cat.includes('COMBUSTÍVEL')) {
+        grupos['COMBUSTIVEL'].produtos.push(prod);
+      } else {
+        grupos['PENDENTE'].produtos.push(prod);
+      }
+    };
+    
     sortedProducts.forEach(prod => {
       const cat = (prod.categoria || '').toUpperCase();
       const natureza = (prod.natureza_operacao || '').toUpperCase();
@@ -404,11 +421,11 @@ const ClassificacaoPage = ({ user, onLogout }) => {
           grupos['REMESSA'].produtos.push(prod);
         } else {
           // Natureza não reconhecida, usar categoria padrão
-          classificarPorCategoria(prod, cat, grupos);
+          classificarPorCat(prod, cat);
         }
       } else {
         // Sem natureza especial, usar categoria padrão
-        classificarPorCategoria(prod, cat, grupos);
+        classificarPorCat(prod, cat);
       }
     });
     
@@ -417,23 +434,6 @@ const ClassificacaoPage = ({ user, onLogout }) => {
       Object.entries(grupos).filter(([_, g]) => g.produtos.length > 0)
     );
   }, [sortedProducts]);
-  
-  // Função auxiliar para classificar por categoria padrão
-  const classificarPorCategoria = (prod, cat, grupos) => {
-    if (cat.includes('REVENDA')) {
-      grupos['REVENDA'].produtos.push(prod);
-    } else if (cat.includes('INSUMO')) {
-      grupos['INSUMO'].produtos.push(prod);
-    } else if (cat.includes('DESPESA')) {
-      grupos['DESPESA'].produtos.push(prod);
-    } else if (cat.includes('ATIVO') || cat.includes('IMOBILIZADO')) {
-      grupos['ATIVO_IMOBILIZADO'].produtos.push(prod);
-    } else if (cat.includes('COMBUSTIVEL') || cat.includes('COMBUSTÍVEL')) {
-      grupos['COMBUSTIVEL'].produtos.push(prod);
-    } else {
-      grupos['PENDENTE'].produtos.push(prod);
-    }
-  };
 
   // Funções de aprovação
   const isProductApproved = (docId, productCode) => {
