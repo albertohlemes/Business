@@ -13133,6 +13133,45 @@ async def apurar_pis_cofins(
                 resultado['lucro_real']['debitos_comercio']['pis'] += calc_real['valor_pis']
                 resultado['lucro_real']['debitos_comercio']['cofins'] += calc_real['valor_cofins']
                 
+                # Acumular para Top 10 débitos
+                valor_total_debito = calc_real['valor_pis'] + calc_real['valor_cofins']
+                if valor_total_debito > 0:
+                    descricao = prod.get('descricao', prod.get('xProd', 'Produto'))[:60]
+                    codigo = prod.get('codigo', '')
+                    key_prod = codigo or descricao[:30]
+                    
+                    if key_prod not in produtos_debito:
+                        produtos_debito[key_prod] = {"codigo": codigo, "descricao": descricao, "ncm": ncm, "valor_pis": 0, "valor_cofins": 0, "valor_total": 0, "qtd": 0}
+                    produtos_debito[key_prod]["valor_pis"] += calc_real['valor_pis']
+                    produtos_debito[key_prod]["valor_cofins"] += calc_real['valor_cofins']
+                    produtos_debito[key_prod]["valor_total"] += valor_total_debito
+                    produtos_debito[key_prod]["qtd"] += 1
+                    
+                    if ncm not in ncms_debito:
+                        ncms_debito[ncm] = {"ncm": ncm, "valor_pis": 0, "valor_cofins": 0, "valor_total": 0, "qtd": 0, "produtos": set()}
+                    ncms_debito[ncm]["valor_pis"] += calc_real['valor_pis']
+                    ncms_debito[ncm]["valor_cofins"] += calc_real['valor_cofins']
+                    ncms_debito[ncm]["valor_total"] += valor_total_debito
+                    ncms_debito[ncm]["qtd"] += 1
+                    ncms_debito[ncm]["produtos"].add(descricao[:30])
+                
+                # Agrupar por CFOP + CST (saídas)
+                cfop_cst_key = f"{cfop} {cst_pis_xml or '01'}"
+                if cfop_cst_key not in cfop_cst_agrupado:
+                    cfop_cst_agrupado[cfop_cst_key] = {
+                        "cfop": cfop,
+                        "cst": cst_pis_xml or '01',
+                        "tipo": "SAIDA",
+                        "valor_base": 0,
+                        "valor_pis": 0,
+                        "valor_cofins": 0,
+                        "qtd": 0
+                    }
+                cfop_cst_agrupado[cfop_cst_key]["valor_base"] += valor_base
+                cfop_cst_agrupado[cfop_cst_key]["valor_pis"] += calc_real['valor_pis']
+                cfop_cst_agrupado[cfop_cst_key]["valor_cofins"] += calc_real['valor_cofins']
+                cfop_cst_agrupado[cfop_cst_key]["qtd"] += 1
+                
                 # Lucro Presumido
                 calc_presumido = calcular_pis_cofins_produto(
                     valor_base, ncm, cfop, 'saida', perfil_empresa, 'LUCRO_PRESUMIDO'
