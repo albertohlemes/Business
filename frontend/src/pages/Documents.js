@@ -389,6 +389,83 @@ const Documents = ({ user, onLogout }) => {
     }));
   };
 
+  // Apagar todos os documentos de uma operação (entrada ou saída)
+  const [deletingAll, setDeletingAll] = useState(null); // 'entrada' ou 'saida'
+  
+  const handleDeleteAllByOperacao = async (tipoOperacao) => {
+    const tipoLabel = tipoOperacao === 'entrada' ? 'ENTRADAS' : 'SAÍDAS';
+    
+    // Primeiro, buscar preview para saber quantos documentos serão excluídos
+    const token = localStorage.getItem('token');
+    
+    try {
+      setDeletingAll(tipoOperacao);
+      
+      // Buscar contagem de documentos
+      const previewResponse = await axios.post(`${API}/xml/documents/preview-delete`, {
+        company_id: ctxCompany.id,
+        competencia: selectedCompetencia,
+        tipo_operacao: tipoOperacao,
+        tipo_documento: 'all' // Todos os modelos
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const totalDocs = previewResponse.data.total_documentos;
+      const totalValor = previewResponse.data.total_valor;
+      
+      if (totalDocs === 0) {
+        alert(`Não há documentos de ${tipoLabel} para excluir nesta competência.`);
+        setDeletingAll(null);
+        return;
+      }
+      
+      const valorFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValor);
+      
+      if (!window.confirm(
+        `⚠️ ATENÇÃO!\n\n` +
+        `Você está prestes a excluir TODOS os documentos de ${tipoLabel}:\n\n` +
+        `📄 ${totalDocs} documento(s)\n` +
+        `💰 ${valorFormatado}\n\n` +
+        `Empresa: ${ctxCompany.razao_social}\n` +
+        `Competência: ${selectedCompetencia}\n\n` +
+        `Esta ação NÃO pode ser desfeita!\n\n` +
+        `Deseja continuar?`
+      )) {
+        setDeletingAll(null);
+        return;
+      }
+      
+      // Segunda confirmação para segurança
+      if (!window.confirm(
+        `ÚLTIMA CONFIRMAÇÃO\n\n` +
+        `Digite "CONFIRMAR" mentalmente e clique OK para excluir ${totalDocs} documentos de ${tipoLabel}.`
+      )) {
+        setDeletingAll(null);
+        return;
+      }
+      
+      // Executar exclusão
+      const deleteResponse = await axios.post(`${API}/xml/documents/delete-bulk`, {
+        company_id: ctxCompany.id,
+        competencia: selectedCompetencia,
+        tipo_operacao: tipoOperacao,
+        tipo_documento: 'all',
+        document_ids: previewResponse.data.ids_para_excluir
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      alert(`✅ ${deleteResponse.data.deleted_count} documento(s) de ${tipoLabel} excluído(s) com sucesso!`);
+      
+    } catch (err) {
+      console.error('Erro ao excluir:', err);
+      alert('Erro ao excluir documentos: ' + (err.response?.data?.detail || err.message));
+    }
+    
+    setDeletingAll(null);
+  };
+
   // Filtrar e ordenar documentos
   const filteredDocuments = useMemo(() => {
     let filtered = [...documents];
