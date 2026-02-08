@@ -5878,14 +5878,14 @@ async def apuracao_pis_cofins(
         aliq_cofins = 0.03  # 3%
     
     # Calcular PIS/COFINS sobre a base total (não por produto)
-    pis_credito = round(base_credito_acumulada * aliq_pis, 2) if regime == 'lucro_real' else 0
-    cofins_credito = round(base_credito_acumulada * aliq_cofins, 2) if regime == 'lucro_real' else 0
+    # Para CRÉDITOS: usar valores acumulados do XML (o que o fornecedor destacou)
+    # Para DÉBITOS: calcular sobre a base (o que a empresa deve)
+    pis_credito = round(creditos["com_credito"]["pis"], 2) if regime == 'lucro_real' else 0
+    cofins_credito = round(creditos["com_credito"]["cofins"], 2) if regime == 'lucro_real' else 0
     pis_debito = round(base_debito_acumulada * aliq_pis, 2)
     cofins_debito = round(base_debito_acumulada * aliq_cofins, 2)
     
-    # Atualizar totais nos dicionários
-    creditos["com_credito"]["pis"] = pis_credito
-    creditos["com_credito"]["cofins"] = cofins_credito
+    # Atualizar totais de débito nos dicionários
     debitos["com_debito"]["pis"] = pis_debito
     debitos["com_debito"]["cofins"] = cofins_debito
     
