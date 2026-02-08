@@ -98,6 +98,7 @@ const Documents = ({ user, onLogout }) => {
       const token = localStorage.getItem('token');
       const params = new URLSearchParams();
       params.append('company_id', ctxCompany.id);
+      params.append('competencia', selectedCompetencia);
       
       // Filtrar por tipo de operação
       if (operacao === 'entrada') {
