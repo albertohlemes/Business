@@ -4,7 +4,7 @@ import {
   Home, FileText, Download, LogOut, Menu, X, BarChart3, 
   Brain, ChevronDown, Calculator, AlertTriangle, Calendar, 
   DollarSign, Sparkles, Building2, Users, LayoutGrid, LayoutList,
-  Briefcase
+  Briefcase, Factory, Zap
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import axios from 'axios';
