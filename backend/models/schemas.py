@@ -127,6 +127,7 @@ class CompanyCreate(BaseModel):
     percentual_presuncao_csll: float = 12.0
     estoque_inicial: float = 0.0
     estoque_final: float = 0.0
+    responsavel_ids: List[str] = []
 
 
 class CompanyUpdate(BaseModel):
