@@ -7,6 +7,7 @@ import GlobalUploadProgress from './components/GlobalUploadProgress';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
+import UsersPage from './pages/UsersPage';
 import UploadXML from './pages/UploadXML';
 import Documents from './pages/Documents';
 import ClassificacaoPage from './pages/ClassificacaoPage';
