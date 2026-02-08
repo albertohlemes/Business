@@ -55,6 +55,7 @@ const Layout = ({ user, onLogout, children }) => {
     { name: 'Validação IA', href: '/classificacao', icon: Brain, testId: 'nav-classificacao' },
     { name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
     { name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' },
+    { name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' },
     { name: 'Apuração', href: '/apuracao-mensal', icon: BarChart3, testId: 'nav-apuracao-mensal' },
     { name: 'Análise IA', href: '/analise-tributaria-ia', icon: Sparkles, testId: 'nav-analise-tributaria-ia' },
     { name: 'Relatórios', href: '/reports', icon: FileText, testId: 'nav-reports' },
