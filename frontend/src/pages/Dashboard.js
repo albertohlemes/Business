@@ -280,22 +280,22 @@ const Dashboard = ({ user, onLogout }) => {
 
             {/* Impostos */}
             <div>
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Impostos</h2>
+              <h2 className="text-lg font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>Impostos</h2>
               
               {/* Alerta de divergências para Lucro Real */}
               {stats.debitos.divergencias && stats.debitos.divergencias.length > 0 && (
-                <div className="mb-4 bg-orange-50 border border-orange-300 rounded-xl p-4">
+                <div className="mb-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="font-semibold text-orange-800">Divergência de Alíquotas Detectada</h4>
-                      <p className="text-sm text-orange-700 mt-1">
-                        Para empresa do <strong>Lucro Real</strong>, as alíquotas de PIS (1.65%) e COFINS (7.6%) devem seguir o regime não-cumulativo. 
+                      <h4 className="font-semibold text-amber-400">Divergência de Alíquotas Detectada</h4>
+                      <p className="text-sm text-[#A1A1AA] mt-1">
+                        Para empresa do <strong className="text-white">Lucro Real</strong>, as alíquotas de PIS (1.65%) e COFINS (7.6%) devem seguir o regime não-cumulativo. 
                         Foram encontradas divergências nos XMLs:
                       </p>
                       <ul className="mt-2 space-y-1">
                         {stats.debitos.divergencias.map((div, idx) => (
-                          <li key={idx} className="text-sm text-orange-700">
+                          <li key={idx} className="text-sm text-amber-400">
                             • <strong>{div.imposto}</strong>: XML com {div.aliquota_xml} (esperado {div.aliquota_esperada}) - 
                             Diferença: {formatCurrency(Math.abs(div.diferenca))}
                           </li>
