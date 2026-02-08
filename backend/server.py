@@ -12709,6 +12709,189 @@ async def apurar_icms(
 
 
 # ============================================================
+# APURAÇÃO DE ISS
+# ============================================================
+
+@api_router.get("/apuracao-iss/{company_id}")
+async def apurar_iss(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Realiza a apuração de ISS para uma empresa/competência.
+    Calcula serviços prestados, ISS devido e ISS retido.
+    """
+    # Buscar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar documentos de serviço (NFSe)
+    documentos = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "modelo": {"$in": ["NFSe", "nfse", "NFSE", None]}
+    }, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    # Também buscar documentos de saída que possam conter serviços
+    docs_saida = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo_operacao": {"$in": ["saida", "saída"]}
+    }, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    # Estruturas para acumular dados
+    servicos_por_codigo = {}
+    servicos_por_tomador = {}
+    
+    totais = {
+        "valor_servicos": 0,
+        "bc_iss": 0,
+        "iss_devido": 0,
+        "iss_retido": 0,
+        "qtd_notas": 0
+    }
+    
+    # Processar NFSe
+    for doc in documentos:
+        # Verificar se é NFSe pelo modelo ou tipo
+        modelo = str(doc.get('modelo', '')).upper()
+        if modelo not in ['NFSE', '']:
+            continue
+            
+        # Para NFSe, os dados podem estar na raiz ou em 'servicos'
+        valor_servico = float(doc.get('valor_total', 0) or doc.get('valor_servicos', 0) or 0)
+        bc_iss = float(doc.get('base_calculo_iss', 0) or doc.get('bc_iss', 0) or valor_servico)
+        iss_valor = float(doc.get('valor_iss', 0) or doc.get('iss', 0) or 0)
+        iss_retido = float(doc.get('iss_retido', 0) or 0)
+        
+        # Se houver indicador de retenção, verificar
+        if doc.get('iss_retido_fonte', False) or doc.get('iss_retido_substituicao', False):
+            if iss_retido == 0:
+                iss_retido = iss_valor
+        
+        codigo_servico = str(doc.get('codigo_servico', '') or doc.get('item_lista_servico', '') or 'SEM_CODIGO')
+        descricao_servico = str(doc.get('discriminacao', '') or doc.get('descricao_servico', '') or 'Serviço')[:100]
+        tomador = str(doc.get('tomador_razao', '') or doc.get('destinatario_nome', '') or 'Tomador não identificado')[:60]
+        
+        if valor_servico > 0:
+            totais["valor_servicos"] += valor_servico
+            totais["bc_iss"] += bc_iss
+            totais["iss_devido"] += iss_valor
+            totais["iss_retido"] += iss_retido
+            totais["qtd_notas"] += 1
+            
+            # Agrupar por código de serviço
+            if codigo_servico not in servicos_por_codigo:
+                servicos_por_codigo[codigo_servico] = {
+                    "codigo": codigo_servico,
+                    "descricao": descricao_servico,
+                    "valor_servicos": 0,
+                    "bc_iss": 0,
+                    "iss_devido": 0,
+                    "iss_retido": 0,
+                    "qtd": 0
+                }
+            servicos_por_codigo[codigo_servico]["valor_servicos"] += valor_servico
+            servicos_por_codigo[codigo_servico]["bc_iss"] += bc_iss
+            servicos_por_codigo[codigo_servico]["iss_devido"] += iss_valor
+            servicos_por_codigo[codigo_servico]["iss_retido"] += iss_retido
+            servicos_por_codigo[codigo_servico]["qtd"] += 1
+            
+            # Agrupar por tomador
+            if tomador not in servicos_por_tomador:
+                servicos_por_tomador[tomador] = {
+                    "tomador": tomador,
+                    "valor_servicos": 0,
+                    "iss_devido": 0,
+                    "iss_retido": 0,
+                    "qtd": 0
+                }
+            servicos_por_tomador[tomador]["valor_servicos"] += valor_servico
+            servicos_por_tomador[tomador]["iss_devido"] += iss_valor
+            servicos_por_tomador[tomador]["iss_retido"] += iss_retido
+            servicos_por_tomador[tomador]["qtd"] += 1
+    
+    # Processar documentos de saída que podem ter serviços
+    for doc in docs_saida:
+        # Verificar se tem ISS nos produtos
+        produtos = doc.get('produtos', [])
+        for prod in produtos:
+            iss_valor = float(prod.get('v_iss', 0) or 0)
+            if iss_valor > 0:
+                valor_servico = float(prod.get('valor_total', 0) or 0)
+                bc_iss = float(prod.get('bc_iss', 0) or valor_servico)
+                iss_retido = float(prod.get('iss_retido', 0) or 0)
+                codigo_servico = str(prod.get('codigo_servico', '') or 'NOTA_FISCAL')
+                descricao = str(prod.get('descricao', ''))[:100]
+                
+                totais["valor_servicos"] += valor_servico
+                totais["bc_iss"] += bc_iss
+                totais["iss_devido"] += iss_valor
+                totais["iss_retido"] += iss_retido
+                
+                if codigo_servico not in servicos_por_codigo:
+                    servicos_por_codigo[codigo_servico] = {
+                        "codigo": codigo_servico,
+                        "descricao": descricao or "Serviço em NF",
+                        "valor_servicos": 0,
+                        "bc_iss": 0,
+                        "iss_devido": 0,
+                        "iss_retido": 0,
+                        "qtd": 0
+                    }
+                servicos_por_codigo[codigo_servico]["valor_servicos"] += valor_servico
+                servicos_por_codigo[codigo_servico]["bc_iss"] += bc_iss
+                servicos_por_codigo[codigo_servico]["iss_devido"] += iss_valor
+                servicos_por_codigo[codigo_servico]["iss_retido"] += iss_retido
+                servicos_por_codigo[codigo_servico]["qtd"] += 1
+    
+    # Calcular saldo a pagar
+    iss_a_pagar = max(0, totais["iss_devido"] - totais["iss_retido"])
+    
+    # Ordenar e preparar listas
+    lista_por_codigo = sorted(servicos_por_codigo.values(), key=lambda x: -x["valor_servicos"])
+    lista_por_tomador = sorted(servicos_por_tomador.values(), key=lambda x: -x["valor_servicos"])[:20]
+    
+    # Arredondar valores
+    for item in lista_por_codigo:
+        for k, v in item.items():
+            if isinstance(v, float):
+                item[k] = round(v, 2)
+    for item in lista_por_tomador:
+        for k, v in item.items():
+            if isinstance(v, float):
+                item[k] = round(v, 2)
+    
+    # Calcular alíquota média
+    aliquota_media = (totais["iss_devido"] / totais["bc_iss"] * 100) if totais["bc_iss"] > 0 else 0
+    
+    return {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', ''),
+            "municipio": company.get('municipio', ''),
+            "uf": company.get('uf', '')
+        },
+        "competencia": competencia,
+        "resumo": {
+            "valor_servicos": round(totais["valor_servicos"], 2),
+            "base_calculo": round(totais["bc_iss"], 2),
+            "iss_devido": round(totais["iss_devido"], 2),
+            "iss_retido": round(totais["iss_retido"], 2),
+            "iss_a_pagar": round(iss_a_pagar, 2),
+            "qtd_notas": totais["qtd_notas"],
+            "aliquota_media": round(aliquota_media, 2)
+        },
+        "por_codigo_servico": lista_por_codigo,
+        "por_tomador": lista_por_tomador,
+        "situacao": "A_PAGAR" if iss_a_pagar > 0 else "ZERADO" if totais["iss_devido"] == 0 else "COMPENSADO"
+    }
+
+
+# ============================================================
 # APURAÇÃO DE PIS/COFINS
 # ============================================================
 
