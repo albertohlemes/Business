@@ -1678,18 +1678,27 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
         for idx, prod in enumerate(doc.produtos):
             # Quantidade e valor do item
             qtd = float(prod.get('quantidade', 0) or 0)
-            # VL_ITEM deve ser o valor BRUTO do produto (sem desconto)
-            # Se tiver valor_produto (v_prod), usar ele; senão usar valor_total + desconto
+            
+            # VL_ITEM no SPED = valor_produto + frete + seguro + outras despesas
+            # (NÃO inclui IPI e ICMS-ST que vão em campos separados)
+            # O desconto vai no campo VL_DESC separado
             v_prod_bruto = float(prod.get('valor_produto', 0) or 0)
             v_desc_prod = float(prod.get('v_desconto', 0) or prod.get('v_desc', 0) or 0)
+            v_frete_prod = float(prod.get('v_frete', 0) or 0)
+            v_seguro_prod = float(prod.get('v_seguro', 0) or 0)
+            v_outras_prod = float(prod.get('v_outras_despesas', 0) or 0)
             
             # Se valor_produto não estiver disponível, tentar reconstruir
             if v_prod_bruto == 0:
                 valor_total_item = float(prod.get('valor_total', 0) or 0)
-                # valor_total pode já ter desconto subtraído, então adicionar de volta
-                v_prod_bruto = valor_total_item + v_desc_prod
+                v_ipi_item = float(prod.get('v_ipi', 0) or 0)
+                v_st_item = float(prod.get('v_icms_st', 0) or 0)
+                # valor_total = v_prod - desc + ipi + st + frete + seg + outras
+                # Então: v_prod = valor_total + desc - ipi - st - frete - seg - outras
+                v_prod_bruto = valor_total_item + v_desc_prod - v_ipi_item - v_st_item - v_frete_prod - v_seguro_prod - v_outras_prod
             
-            vl_item = v_prod_bruto  # Valor bruto para o SPED
+            # VL_ITEM = valor produto + despesas acessórias (frete, seguro, outras)
+            vl_item = v_prod_bruto + v_frete_prod + v_seguro_prod + v_outras_prod
             unid = (prod.get('unidade', 'UN') or 'UN')[:6].upper()
             
             # CST ICMS (3 dígitos, ex: 000, 020, 060, 090)
