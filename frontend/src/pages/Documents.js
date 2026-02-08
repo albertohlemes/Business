@@ -661,17 +661,7 @@ const Documents = ({ user, onLogout }) => {
               </div>
             </div>
           )}
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        </div>
 
         {/* Modal de detalhes */}
         {selectedDocument && (
