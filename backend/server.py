@@ -4802,6 +4802,8 @@ async def upload_xml_with_progress(
 async def list_documents(
     company_id: Optional[str] = None,
     competencia: Optional[str] = None,
+    tipo_operacao: Optional[str] = None,
+    modelo: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
     query = {}
@@ -4815,6 +4817,25 @@ async def list_documents(
     
     if competencia:
         query['competencia'] = competencia
+    
+    # Filtro por tipo de operação (entrada/saida)
+    if tipo_operacao:
+        query['tipo_operacao'] = tipo_operacao
+    
+    # Filtro por modelo do documento
+    if modelo:
+        # Mapear modelos para valores do banco
+        modelo_map = {
+            '55': ['55', 'nfe'],
+            '65': ['65', 'nfce'],
+            '57': ['57', 'cte'],
+            'nfse_tomado': ['nfse', 'nfse_tomado'],
+            'nfse_prestado': ['nfse', 'nfse_prestado']
+        }
+        if modelo in modelo_map:
+            query['modelo'] = {"$in": modelo_map[modelo]}
+        else:
+            query['modelo'] = modelo
     
     # EXCLUIR notas canceladas e desconsideradas da listagem
     query.update(get_filtro_notas_ativas())
