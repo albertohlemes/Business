@@ -52,10 +52,19 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserPreferencesUpdate(BaseModel):
+    menu_mode: Optional[str] = None  # "vertical" ou "horizontal"
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
     user: User
+
+
+class UserListResponse(BaseModel):
+    users: List[User]
+    total: int
 
 
 class Company(BaseModel):
