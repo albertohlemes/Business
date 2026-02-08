@@ -669,6 +669,17 @@ const Documents = ({ user, onLogout }) => {
                   </>
                 )}
               </button>
+              
+              {/* Botão Apagar */}
+              <button
+                data-testid="btn-delete"
+                onClick={openDeleteModal}
+                disabled={filteredDocuments.length === 0}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg font-medium hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <Trash2 className="w-5 h-5" />
+                Apagar
+              </button>
             </div>
           </div>
 
