@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Calendar, ChevronRight, X, Cloud, CloudDownload, CheckCircle, Loader2, AlertCircle, Sparkles } from 'lucide-react';
+import { Building2, Calendar, ChevronRight, X, Cloud, CloudDownload, CheckCircle, Loader2, AlertCircle, Sparkles, Search } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const CompanySelector = () => {
@@ -11,14 +11,12 @@ const CompanySelector = () => {
     selectCompany, 
     selectCompetencia, 
     closeSelector,
-    // SIEG
     siegStatus,
     siegSyncing,
     checkSiegCount,
     syncFromSieg
   } = useAppContext();
 
-  // Inicializar com data atual se competência estiver vazia
   const getInitialCompetencia = () => {
     if (selectedCompetencia) return selectedCompetencia;
     const now = new Date();
@@ -31,35 +29,28 @@ const CompanySelector = () => {
   const [tempCompetencia, setTempCompetencia] = useState(getInitialCompetencia());
   const [syncResult, setSyncResult] = useState(null);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   
-  // Progress state para SSE
   const [syncProgress, setSyncProgress] = useState({
     active: false,
     step: '',
     percent: 0
   });
 
-  // Verificar SIEG quando empresa e competência mudarem
   useEffect(() => {
     if (tempCompany && tempCompetencia && tempCompetencia.length === 7) {
       checkSiegCount(tempCompany.id, tempCompetencia);
     }
   }, [tempCompany, tempCompetencia]);
 
-  // Formatar competência automaticamente (só números → MM/AAAA)
   const handleCompetenciaChange = (e) => {
-    let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
-    
-    // Limitar a 6 dígitos (MMAAAA)
+    let value = e.target.value.replace(/\D/g, '');
     if (value.length > 6) {
       value = value.slice(0, 6);
     }
-    
-    // Formatar como MM/AAAA
     if (value.length > 2) {
       value = value.slice(0, 2) + '/' + value.slice(2);
     }
-    
     setTempCompetencia(value);
   };
 
@@ -87,7 +78,6 @@ const CompanySelector = () => {
 
   const handleConfirm = async () => {
     if (tempCompany) {
-      // Se auto-sync está habilitado e há XMLs disponíveis, sincroniza
       if (autoSyncEnabled && siegStatus.count) {
         const totalEntrada = siegStatus.count.entrada?.total || 0;
         const totalSaida = siegStatus.count.saida?.total || 0;
@@ -106,29 +96,37 @@ const CompanySelector = () => {
     return (siegStatus.count.entrada?.total || 0) + (siegStatus.count.saida?.total || 0);
   };
 
+  const filteredCompanies = companies.filter(company =>
+    company.razao_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    company.cnpj?.includes(searchTerm) ||
+    company.codigo_empresa?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (!showSelector) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className="bg-[#141414] rounded border border-[#2A2A2A] w-full max-w-lg mx-4 overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="bg-gradient-to-r from-red-600 to-red-700 p-6 text-white">
+        <div className="bg-[#0C0C0C] p-5 border-b border-[#2A2A2A]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img 
-                src="/logo-business.png" 
-                alt="Business Contabilidade" 
-                className="h-12 w-auto"
+                src="/aurion-logo.png" 
+                alt="AURION" 
+                className="h-10 w-auto"
               />
               <div>
-                <h2 className="text-xl font-bold">Selecione a Empresa</h2>
-                <p className="text-red-100 text-sm">Escolha a empresa e competência para trabalhar</p>
+                <h2 className="text-lg font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                  Selecione a Empresa
+                </h2>
+                <p className="text-[#A1A1AA] text-xs">Escolha a empresa e competência</p>
               </div>
             </div>
             {selectedCompany && (
               <button 
                 onClick={closeSelector}
-                className="p-2 hover:bg-red-500 rounded-lg transition-colors"
+                className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -137,62 +135,76 @@ const CompanySelector = () => {
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-5 space-y-5">
           {/* Empresa */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-red-600" />
+            <label className="block text-xs font-medium text-[#A1A1AA] uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-[#C8A951]" />
               Empresa
             </label>
+            
             {companies.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-xl">
-                <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-600 mb-2">Nenhuma empresa cadastrada</p>
-                <a href="/companies" className="text-red-600 font-semibold hover:underline">
+              <div className="text-center py-8 bg-[#0C0C0C] rounded border border-[#2A2A2A]">
+                <Building2 className="w-10 h-10 text-[#A1A1AA] mx-auto mb-3" />
+                <p className="text-[#A1A1AA] mb-2 text-sm">Nenhuma empresa cadastrada</p>
+                <a href="/companies" className="text-[#C8A951] font-medium hover:underline text-sm">
                   Cadastrar primeira empresa →
                 </a>
               </div>
             ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {companies.map((company) => (
-                  <button
-                    key={company.id}
-                    onClick={() => setTempCompany(company)}
-                    className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between ${
-                      tempCompany?.id === company.id
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-gray-200 hover:border-red-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      {company.codigo_empresa && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded font-bold text-sm">
-                          #{company.codigo_empresa}
-                        </span>
-                      )}
-                      <div>
-                        <p className="font-semibold text-gray-900">{company.razao_social}</p>
-                        <p className="text-sm text-gray-500">{company.cnpj}</p>
-                        {company.cidade && (
-                          <p className="text-xs text-gray-400">{company.cidade}/{company.uf}</p>
+              <>
+                {/* Search */}
+                {companies.length > 5 && (
+                  <div className="relative mb-2">
+                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#A1A1AA]" />
+                    <input
+                      type="text"
+                      placeholder="Buscar empresa..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white text-sm placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                    />
+                  </div>
+                )}
+                
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {filteredCompanies.map((company) => (
+                    <button
+                      key={company.id}
+                      onClick={() => setTempCompany(company)}
+                      className={`w-full p-3 rounded text-left transition-all flex items-center justify-between ${
+                        tempCompany?.id === company.id
+                          ? 'bg-[#C8A951]/10 border border-[#C8A951]/30'
+                          : 'bg-[#0C0C0C] border border-[#2A2A2A] hover:border-[#C8A951]/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {company.codigo_empresa && (
+                          <span className="px-1.5 py-0.5 bg-[#C8A951]/10 text-[#C8A951] rounded text-xs font-semibold shrink-0">
+                            #{company.codigo_empresa}
+                          </span>
                         )}
+                        <div className="min-w-0">
+                          <p className="font-medium text-white text-sm truncate">{company.razao_social}</p>
+                          <p className="text-xs text-[#A1A1AA] font-mono">{company.cnpj}</p>
+                        </div>
                       </div>
-                    </div>
-                    {tempCompany?.id === company.id && (
-                      <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
-                        <ChevronRight className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
+                      {tempCompany?.id === company.id && (
+                        <div className="w-5 h-5 bg-[#C8A951] rounded flex items-center justify-center shrink-0">
+                          <CheckCircle className="w-3 h-3 text-black" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           </div>
 
           {/* Competência */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-red-600" />
+            <label className="block text-xs font-medium text-[#A1A1AA] uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-[#C8A951]" />
               Competência (Mês/Ano)
             </label>
             <input
@@ -201,157 +213,114 @@ const CompanySelector = () => {
               onChange={handleCompetenciaChange}
               placeholder="122025"
               maxLength="7"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:ring-0 text-lg font-mono text-center"
+              className="w-full px-4 py-2.5 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white text-lg font-mono text-center focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
             />
-            <p className="text-xs text-gray-500 mt-2 text-center">Digite apenas números (ex: 122025 → 12/2025)</p>
+            <p className="text-xs text-[#A1A1AA] mt-1 text-center">Digite apenas números (ex: 122025 → 12/2025)</p>
           </div>
 
           {/* SIEG Integration */}
           {tempCompany && tempCompetencia.length === 7 && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+            <div className="bg-[#0C0C0C] rounded border border-[#2A2A2A] p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Cloud className="w-5 h-5 text-blue-600" />
-                <span className="font-semibold text-blue-900">SIEG - Cofre de XMLs</span>
+                <Cloud className="w-4 h-4 text-blue-400" />
+                <span className="text-sm font-medium text-white">SIEG - Cofre de XMLs</span>
               </div>
               
               {siegStatus.loading ? (
-                <div className="flex items-center gap-2 text-blue-600">
+                <div className="flex items-center gap-2 text-blue-400">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span className="text-sm">Consultando SIEG...</span>
                 </div>
               ) : siegStatus.error ? (
-                <div className="flex items-center gap-2 text-red-600">
+                <div className="flex items-center gap-2 text-red-400">
                   <AlertCircle className="w-4 h-4" />
                   <span className="text-sm">{siegStatus.error}</span>
                 </div>
               ) : siegStatus.count ? (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white rounded-lg p-3 border border-green-200">
-                      <p className="text-xs text-gray-500">Entradas</p>
-                      <p className="text-2xl font-bold text-green-600">{siegStatus.count.entrada?.total || 0}</p>
-                      {siegStatus.count.entrada?.nfe > 0 && (
-                        <p className="text-xs text-gray-400">{siegStatus.count.entrada.nfe} NF-e</p>
-                      )}
+                    <div className="bg-[#141414] rounded p-2 border border-emerald-500/20">
+                      <p className="text-xs text-[#A1A1AA]">Entradas</p>
+                      <p className="text-xl font-bold text-emerald-400">{siegStatus.count.entrada?.total || 0}</p>
                     </div>
-                    <div className="bg-white rounded-lg p-3 border border-orange-200">
-                      <p className="text-xs text-gray-500">Saídas</p>
-                      <p className="text-2xl font-bold text-orange-600">{siegStatus.count.saida?.total || 0}</p>
-                      {siegStatus.count.saida?.nfe > 0 && (
-                        <p className="text-xs text-gray-400">{siegStatus.count.saida.nfe} NF-e</p>
-                      )}
+                    <div className="bg-[#141414] rounded p-2 border border-amber-500/20">
+                      <p className="text-xs text-[#A1A1AA]">Saídas</p>
+                      <p className="text-xl font-bold text-amber-400">{siegStatus.count.saida?.total || 0}</p>
                     </div>
                   </div>
                   
                   {getTotalSieg() > 0 && (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={autoSyncEnabled}
-                            onChange={(e) => setAutoSyncEnabled(e.target.checked)}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            disabled={siegSyncing || syncProgress.active}
-                          />
-                          Importar automaticamente ao confirmar
-                        </label>
-                        
-                        <button
-                          onClick={handleSyncNow}
-                          disabled={siegSyncing || syncProgress.active}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
-                        >
-                          {(siegSyncing || syncProgress.active) ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <CloudDownload className="w-4 h-4" />
-                          )}
-                          {(siegSyncing || syncProgress.active) ? 'Importando...' : 'Importar Agora'}
-                        </button>
-                      </div>
+                      <label className="flex items-center gap-2 text-sm text-[#A1A1AA] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={autoSyncEnabled}
+                          onChange={(e) => setAutoSyncEnabled(e.target.checked)}
+                          className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951] focus:ring-[#C8A951]"
+                        />
+                        <Sparkles className="w-4 h-4 text-[#C8A951]" />
+                        <span>Importar automaticamente ao confirmar</span>
+                      </label>
                       
-                      {/* Barra de progresso */}
                       {syncProgress.active && (
-                        <div className="bg-white rounded-lg p-3 border border-blue-200">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
-                            <span className="text-sm font-medium text-gray-700">{syncProgress.step}</span>
-                            <span className="text-sm font-bold text-blue-600 ml-auto">{syncProgress.percent}%</span>
-                          </div>
-                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="space-y-2">
+                          <div className="h-1.5 bg-[#2A2A2A] rounded overflow-hidden">
                             <div 
-                              className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300"
+                              className="h-full bg-[#C8A951] transition-all duration-300"
                               style={{ width: `${syncProgress.percent}%` }}
                             />
                           </div>
+                          <p className="text-xs text-[#A1A1AA]">{syncProgress.step}</p>
                         </div>
                       )}
-                    </div>
-                  )}
-                  
-                  {syncResult && (
-                    <div className={`mt-2 p-3 rounded-lg text-sm ${syncResult.error ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                      {syncResult.error ? (
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4" />
-                          {syncResult.error}
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4" />
-                            <span className="font-semibold">Importação concluída!</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div className="bg-white/50 p-2 rounded">
-                              <span className="text-green-800">Entradas: </span>
-                              <span className="font-bold">{syncResult.processados?.entrada || 0}</span>
-                            </div>
-                            <div className="bg-white/50 p-2 rounded">
-                              <span className="text-green-800">Saídas: </span>
-                              <span className="font-bold">{syncResult.processados?.saida || 0}</span>
-                            </div>
-                          </div>
-                          {syncResult.classificados && (syncResult.classificados.cache > 0 || syncResult.classificados.ia > 0) && (
-                            <div className="flex items-center gap-2 text-xs bg-purple-50 text-purple-700 p-2 rounded border border-purple-200">
-                              <Sparkles className="w-3 h-3" />
+                      
+                      {syncResult && (
+                        <div className={`p-3 rounded text-sm ${syncResult.error ? 'bg-red-500/10 border border-red-500/20 text-red-400' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'}`}>
+                          {syncResult.error ? (
+                            <span>{syncResult.error}</span>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4" />
                               <span>
-                                Classificação IA: 
-                                {syncResult.classificados.cache > 0 && ` ${syncResult.classificados.cache} do cache`}
-                                {syncResult.classificados.ia > 0 && ` ${syncResult.classificados.ia} pela IA`}
+                                {syncResult.entrada?.novos || 0} entradas e {syncResult.saida?.novos || 0} saídas importadas
                               </span>
                             </div>
                           )}
-                          {syncResult.duplicados?.length > 0 && (
-                            <div className="text-xs text-yellow-700 bg-yellow-50 p-2 rounded">
-                              {syncResult.duplicados.length} nota(s) já importada(s)
-                            </div>
-                          )}
                         </div>
+                      )}
+                      
+                      {!autoSyncEnabled && (
+                        <button
+                          onClick={handleSyncNow}
+                          disabled={siegSyncing}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded text-sm font-medium hover:bg-blue-500/20 disabled:opacity-50 transition-colors"
+                        >
+                          <CloudDownload className="w-4 h-4" />
+                          Importar Agora
+                        </button>
                       )}
                     </div>
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">Selecione empresa e competência para verificar</p>
+                <p className="text-sm text-[#A1A1AA]">Nenhum XML disponível</p>
               )}
             </div>
           )}
 
-          {/* Botão Confirmar */}
+          {/* Confirm Button */}
           <button
             onClick={handleConfirm}
-            disabled={!tempCompany || siegSyncing || syncProgress.active}
-            className="w-full py-4 bg-red-600 text-white rounded-xl font-bold text-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg flex items-center justify-center gap-2"
+            disabled={!tempCompany || !tempCompetencia || siegSyncing}
+            className="w-full py-3 bg-[#C8A951] text-black rounded font-semibold hover:bg-[#B09240] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
           >
-            {(siegSyncing || syncProgress.active) ? (
-              <>
+            {siegSyncing ? (
+              <span className="flex items-center justify-center gap-2">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Sincronizando SIEG... {syncProgress.percent}%
-              </>
+                Sincronizando...
+              </span>
             ) : (
-              'Confirmar e Continuar'
+              'Confirmar'
             )}
           </button>
         </div>
