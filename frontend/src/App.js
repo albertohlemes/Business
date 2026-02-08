@@ -125,6 +125,10 @@ function App() {
               element={user ? <ApuracaoIPI user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
+              path="/ret"
+              element={user ? <RET user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            <Route
               path="/alertas-cfop"
               element={user ? <AlertasCfop user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
