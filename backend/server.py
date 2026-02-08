@@ -29,6 +29,9 @@ import json
 # SIEG Integration
 from sieg_service import count_xmls_sieg, download_xmls_sieg, sync_from_sieg
 
+# Document AI Service
+from services.document_ai import validate_xml_type, extract_nfse_from_file, extract_outros_docs_from_file, get_mime_type
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
