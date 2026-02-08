@@ -12486,6 +12486,355 @@ async def get_emitentes_for_company(
 
 
 # ============================================================
+# APURAÇÃO DE PIS/COFINS
+# ============================================================
+
+@api_router.get("/pis-cofins/apuracao/{company_id}")
+async def apurar_pis_cofins(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Realiza a apuração completa de PIS e COFINS para uma empresa/competência.
+    Calcula em ambos os regimes (Real e Presumido) para comparação.
+    """
+    from decimal import Decimal
+    
+    # Buscar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    regime_tributario = company.get('regime_tributario', 'LUCRO_REAL')
+    perfil_empresa = company.get('perfil_comercial', 'VAREJO')  # INDUSTRIA, DISTRIBUIDOR, VAREJO
+    cnaes_empresa = company.get('cnaes', [])
+    
+    # Buscar documentos da competência
+    documentos = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia
+    }, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    # Inferir tipo_operacao para documentos que não têm
+    for doc in documentos:
+        if not doc.get('tipo_operacao'):
+            produtos = doc.get('produtos', [])
+            if produtos:
+                cfop = str(produtos[0].get('cfop', ''))
+                if cfop and cfop[0] in ['1', '2', '3']:
+                    doc['tipo_operacao'] = 'entrada'
+                elif cfop and cfop[0] in ['5', '6', '7']:
+                    doc['tipo_operacao'] = 'saida'
+    
+    # Separar por tipo
+    entradas = [d for d in documentos if d.get('tipo_operacao') == 'entrada']
+    saidas = [d for d in documentos if d.get('tipo_operacao') == 'saida']
+    
+    # Inicializar resultados
+    resultado = {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', ''),
+            "regime_tributario": regime_tributario,
+            "perfil_comercial": perfil_empresa,
+            "cnaes": cnaes_empresa
+        },
+        "competencia": competencia,
+        "lucro_real": {
+            "creditos": {"pis": 0, "cofins": 0, "total": 0},
+            "debitos_comercio": {"pis": 0, "cofins": 0, "total": 0},
+            "debitos_servicos": {"pis": 0, "cofins": 0, "total": 0},
+            "debitos_total": {"pis": 0, "cofins": 0, "total": 0},
+            "saldo": {"pis": 0, "cofins": 0, "total": 0},
+            "imposto_a_pagar": {"pis": 0, "cofins": 0, "total": 0}
+        },
+        "lucro_presumido": {
+            "creditos": {"pis": 0, "cofins": 0, "total": 0},
+            "debitos_comercio": {"pis": 0, "cofins": 0, "total": 0},
+            "debitos_servicos": {"pis": 0, "cofins": 0, "total": 0},
+            "debitos_total": {"pis": 0, "cofins": 0, "total": 0},
+            "saldo": {"pis": 0, "cofins": 0, "total": 0},
+            "imposto_a_pagar": {"pis": 0, "cofins": 0, "total": 0}
+        },
+        "comparativo": {
+            "regime_mais_economico": None,
+            "economia": 0
+        },
+        "divergencias": [],
+        "alertas": [],
+        "detalhamento": {
+            "entradas": [],
+            "saidas": []
+        }
+    }
+    
+    # Processar ENTRADAS (Créditos)
+    for doc in entradas:
+        produtos = doc.get('produtos', [])
+        
+        for prod in produtos:
+            ncm = str(prod.get('ncm', '')).replace('.', '')
+            cfop = str(prod.get('cfop', ''))
+            valor_base = float(prod.get('valor_total', 0) or 0)
+            
+            # Valores do XML
+            cst_pis_xml = str(prod.get('cst_pis', ''))
+            cst_cofins_xml = str(prod.get('cst_cofins', ''))
+            aliq_pis_xml = float(prod.get('aliquota_pis', 0) or 0)
+            aliq_cofins_xml = float(prod.get('aliquota_cofins', 0) or 0)
+            valor_pis_xml = float(prod.get('valor_pis', 0) or 0)
+            valor_cofins_xml = float(prod.get('valor_cofins', 0) or 0)
+            
+            # Calcular Lucro Real
+            calc_real = calcular_pis_cofins_produto(
+                valor_base, ncm, cfop, 'entrada', perfil_empresa, 'LUCRO_REAL'
+            )
+            
+            if calc_real['gera_credito']:
+                resultado['lucro_real']['creditos']['pis'] += calc_real['valor_pis']
+                resultado['lucro_real']['creditos']['cofins'] += calc_real['valor_cofins']
+            
+            # Calcular Lucro Presumido
+            calc_presumido = calcular_pis_cofins_produto(
+                valor_base, ncm, cfop, 'entrada', perfil_empresa, 'LUCRO_PRESUMIDO'
+            )
+            
+            if calc_presumido['gera_credito']:
+                resultado['lucro_presumido']['creditos']['pis'] += calc_presumido['valor_pis']
+                resultado['lucro_presumido']['creditos']['cofins'] += calc_presumido['valor_cofins']
+            
+            # Comparar com XML
+            if valor_pis_xml > 0 or valor_cofins_xml > 0 or cst_pis_xml:
+                comparacao = comparar_xml_vs_calculado(
+                    valor_base, ncm, cfop, 'entrada', perfil_empresa,
+                    cst_pis_xml, aliq_pis_xml, aliq_cofins_xml, valor_pis_xml, valor_cofins_xml
+                )
+                
+                if comparacao['tem_divergencia']:
+                    resultado['divergencias'].append({
+                        "documento": doc.get('numero_nfe', ''),
+                        "emitente": doc.get('emitente_nome', ''),
+                        "produto": prod.get('descricao', prod.get('xProd', 'Produto'))[:50],
+                        "ncm": ncm,
+                        "cfop": cfop,
+                        "valor_base": valor_base,
+                        "divergencias": comparacao['divergencias'],
+                        "impacto": comparacao['impacto']
+                    })
+    
+    # Processar SAÍDAS (Débitos)
+    for doc in saidas:
+        modelo = doc.get('modelo', 'nfe')
+        
+        # Verificar se é serviço
+        is_servico = modelo in ['nfse', 'nfse_prestado']
+        
+        produtos = doc.get('produtos', [])
+        
+        for prod in produtos:
+            valor_base = float(prod.get('valor_total', 0) or 0)
+            
+            if is_servico:
+                # Calcular para serviços
+                cnae_principal = cnaes_empresa[0] if cnaes_empresa else ''
+                codigo_servico = prod.get('codigo_servico', '')
+                
+                # Lucro Real
+                calc_real = calcular_pis_cofins_servico(
+                    valor_base, cnae_principal, codigo_servico, 'saida', 'LUCRO_REAL'
+                )
+                resultado['lucro_real']['debitos_servicos']['pis'] += calc_real['valor_pis']
+                resultado['lucro_real']['debitos_servicos']['cofins'] += calc_real['valor_cofins']
+                
+                # Lucro Presumido
+                calc_presumido = calcular_pis_cofins_servico(
+                    valor_base, cnae_principal, codigo_servico, 'saida', 'LUCRO_PRESUMIDO'
+                )
+                resultado['lucro_presumido']['debitos_servicos']['pis'] += calc_presumido['valor_pis']
+                resultado['lucro_presumido']['debitos_servicos']['cofins'] += calc_presumido['valor_cofins']
+                
+            else:
+                # Calcular para comércio
+                ncm = str(prod.get('ncm', '')).replace('.', '')
+                cfop = str(prod.get('cfop', ''))
+                
+                # Valores do XML
+                cst_pis_xml = str(prod.get('cst_pis', ''))
+                aliq_pis_xml = float(prod.get('aliquota_pis', 0) or 0)
+                aliq_cofins_xml = float(prod.get('aliquota_cofins', 0) or 0)
+                valor_pis_xml = float(prod.get('valor_pis', 0) or 0)
+                valor_cofins_xml = float(prod.get('valor_cofins', 0) or 0)
+                
+                # Lucro Real
+                calc_real = calcular_pis_cofins_produto(
+                    valor_base, ncm, cfop, 'saida', perfil_empresa, 'LUCRO_REAL'
+                )
+                resultado['lucro_real']['debitos_comercio']['pis'] += calc_real['valor_pis']
+                resultado['lucro_real']['debitos_comercio']['cofins'] += calc_real['valor_cofins']
+                
+                # Lucro Presumido
+                calc_presumido = calcular_pis_cofins_produto(
+                    valor_base, ncm, cfop, 'saida', perfil_empresa, 'LUCRO_PRESUMIDO'
+                )
+                resultado['lucro_presumido']['debitos_comercio']['pis'] += calc_presumido['valor_pis']
+                resultado['lucro_presumido']['debitos_comercio']['cofins'] += calc_presumido['valor_cofins']
+                
+                # Comparar com XML
+                if valor_pis_xml > 0 or valor_cofins_xml > 0 or cst_pis_xml:
+                    comparacao = comparar_xml_vs_calculado(
+                        valor_base, ncm, cfop, 'saida', perfil_empresa,
+                        cst_pis_xml, aliq_pis_xml, aliq_cofins_xml, valor_pis_xml, valor_cofins_xml
+                    )
+                    
+                    if comparacao['tem_divergencia']:
+                        resultado['divergencias'].append({
+                            "documento": doc.get('numero_nfe', ''),
+                            "destinatario": doc.get('destinatario_nome', ''),
+                            "produto": prod.get('descricao', prod.get('xProd', 'Produto'))[:50],
+                            "ncm": ncm,
+                            "cfop": cfop,
+                            "valor_base": valor_base,
+                            "divergencias": comparacao['divergencias'],
+                            "impacto": comparacao['impacto']
+                        })
+    
+    # Calcular totais - Lucro Real
+    resultado['lucro_real']['creditos']['total'] = resultado['lucro_real']['creditos']['pis'] + resultado['lucro_real']['creditos']['cofins']
+    resultado['lucro_real']['debitos_total']['pis'] = resultado['lucro_real']['debitos_comercio']['pis'] + resultado['lucro_real']['debitos_servicos']['pis']
+    resultado['lucro_real']['debitos_total']['cofins'] = resultado['lucro_real']['debitos_comercio']['cofins'] + resultado['lucro_real']['debitos_servicos']['cofins']
+    resultado['lucro_real']['debitos_total']['total'] = resultado['lucro_real']['debitos_total']['pis'] + resultado['lucro_real']['debitos_total']['cofins']
+    
+    resultado['lucro_real']['saldo']['pis'] = resultado['lucro_real']['debitos_total']['pis'] - resultado['lucro_real']['creditos']['pis']
+    resultado['lucro_real']['saldo']['cofins'] = resultado['lucro_real']['debitos_total']['cofins'] - resultado['lucro_real']['creditos']['cofins']
+    resultado['lucro_real']['saldo']['total'] = resultado['lucro_real']['saldo']['pis'] + resultado['lucro_real']['saldo']['cofins']
+    
+    resultado['lucro_real']['imposto_a_pagar']['pis'] = max(0, resultado['lucro_real']['saldo']['pis'])
+    resultado['lucro_real']['imposto_a_pagar']['cofins'] = max(0, resultado['lucro_real']['saldo']['cofins'])
+    resultado['lucro_real']['imposto_a_pagar']['total'] = resultado['lucro_real']['imposto_a_pagar']['pis'] + resultado['lucro_real']['imposto_a_pagar']['cofins']
+    
+    # Calcular totais - Lucro Presumido
+    resultado['lucro_presumido']['creditos']['total'] = resultado['lucro_presumido']['creditos']['pis'] + resultado['lucro_presumido']['creditos']['cofins']
+    resultado['lucro_presumido']['debitos_total']['pis'] = resultado['lucro_presumido']['debitos_comercio']['pis'] + resultado['lucro_presumido']['debitos_servicos']['pis']
+    resultado['lucro_presumido']['debitos_total']['cofins'] = resultado['lucro_presumido']['debitos_comercio']['cofins'] + resultado['lucro_presumido']['debitos_servicos']['cofins']
+    resultado['lucro_presumido']['debitos_total']['total'] = resultado['lucro_presumido']['debitos_total']['pis'] + resultado['lucro_presumido']['debitos_total']['cofins']
+    
+    resultado['lucro_presumido']['saldo']['pis'] = resultado['lucro_presumido']['debitos_total']['pis'] - resultado['lucro_presumido']['creditos']['pis']
+    resultado['lucro_presumido']['saldo']['cofins'] = resultado['lucro_presumido']['debitos_total']['cofins'] - resultado['lucro_presumido']['creditos']['cofins']
+    resultado['lucro_presumido']['saldo']['total'] = resultado['lucro_presumido']['saldo']['pis'] + resultado['lucro_presumido']['saldo']['cofins']
+    
+    resultado['lucro_presumido']['imposto_a_pagar']['pis'] = max(0, resultado['lucro_presumido']['saldo']['pis'])
+    resultado['lucro_presumido']['imposto_a_pagar']['cofins'] = max(0, resultado['lucro_presumido']['saldo']['cofins'])
+    resultado['lucro_presumido']['imposto_a_pagar']['total'] = resultado['lucro_presumido']['imposto_a_pagar']['pis'] + resultado['lucro_presumido']['imposto_a_pagar']['cofins']
+    
+    # Comparativo - qual regime é mais econômico
+    imposto_real = resultado['lucro_real']['imposto_a_pagar']['total']
+    imposto_presumido = resultado['lucro_presumido']['imposto_a_pagar']['total']
+    
+    if imposto_real < imposto_presumido:
+        resultado['comparativo']['regime_mais_economico'] = 'LUCRO_REAL'
+        resultado['comparativo']['economia'] = imposto_presumido - imposto_real
+    elif imposto_presumido < imposto_real:
+        resultado['comparativo']['regime_mais_economico'] = 'LUCRO_PRESUMIDO'
+        resultado['comparativo']['economia'] = imposto_real - imposto_presumido
+    else:
+        resultado['comparativo']['regime_mais_economico'] = 'IGUAL'
+        resultado['comparativo']['economia'] = 0
+    
+    # Calcular impacto das divergências
+    total_recolhido_maior = sum(
+        d['impacto']['total_diferenca'] for d in resultado['divergencias'] 
+        if d['impacto']['recolhido_a_maior']
+    )
+    total_recolhido_menor = sum(
+        abs(d['impacto']['total_diferenca']) for d in resultado['divergencias'] 
+        if d['impacto']['recolhido_a_menor']
+    )
+    
+    resultado['resumo_divergencias'] = {
+        'total_divergencias': len(resultado['divergencias']),
+        'recolhido_a_maior': round(total_recolhido_maior, 2),
+        'recolhido_a_menor': round(total_recolhido_menor, 2),
+        'saldo_reclassificacao': round(total_recolhido_maior - total_recolhido_menor, 2)
+    }
+    
+    # Arredondar todos os valores
+    for regime in ['lucro_real', 'lucro_presumido']:
+        for categoria in ['creditos', 'debitos_comercio', 'debitos_servicos', 'debitos_total', 'saldo', 'imposto_a_pagar']:
+            for campo in ['pis', 'cofins', 'total']:
+                resultado[regime][categoria][campo] = round(resultado[regime][categoria][campo], 2)
+    
+    resultado['comparativo']['economia'] = round(resultado['comparativo']['economia'], 2)
+    
+    return resultado
+
+
+@api_router.get("/pis-cofins/divergencias/{company_id}")
+async def listar_divergencias_pis_cofins(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Lista todas as divergências de PIS/COFINS entre XML e cálculo do sistema,
+    agrupadas por produto.
+    """
+    # Buscar apuração completa
+    apuracao = await apurar_pis_cofins(company_id, competencia, current_user)
+    
+    divergencias = apuracao.get('divergencias', [])
+    
+    # Agrupar por NCM/Produto
+    agrupado = {}
+    for div in divergencias:
+        ncm = div.get('ncm', 'SEM_NCM')
+        produto = div.get('produto', 'Produto')
+        key = f"{ncm}_{produto}"
+        
+        if key not in agrupado:
+            agrupado[key] = {
+                'ncm': ncm,
+                'produto': produto,
+                'ocorrencias': 0,
+                'valor_base_total': 0,
+                'diferenca_pis_total': 0,
+                'diferenca_cofins_total': 0,
+                'diferenca_total': 0,
+                'documentos': []
+            }
+        
+        agrupado[key]['ocorrencias'] += 1
+        agrupado[key]['valor_base_total'] += div.get('valor_base', 0)
+        agrupado[key]['diferenca_pis_total'] += div['impacto'].get('diferenca_pis', 0)
+        agrupado[key]['diferenca_cofins_total'] += div['impacto'].get('diferenca_cofins', 0)
+        agrupado[key]['diferenca_total'] += div['impacto'].get('total_diferenca', 0)
+        agrupado[key]['documentos'].append({
+            'numero': div.get('documento', ''),
+            'emitente': div.get('emitente', div.get('destinatario', '')),
+            'valor_base': div.get('valor_base', 0),
+            'divergencias': div.get('divergencias', [])
+        })
+    
+    # Converter para lista e ordenar por impacto
+    lista = list(agrupado.values())
+    lista.sort(key=lambda x: abs(x['diferenca_total']), reverse=True)
+    
+    # Arredondar valores
+    for item in lista:
+        item['valor_base_total'] = round(item['valor_base_total'], 2)
+        item['diferenca_pis_total'] = round(item['diferenca_pis_total'], 2)
+        item['diferenca_cofins_total'] = round(item['diferenca_cofins_total'], 2)
+        item['diferenca_total'] = round(item['diferenca_total'], 2)
+    
+    return {
+        'total_produtos_divergentes': len(lista),
+        'resumo': apuracao.get('resumo_divergencias', {}),
+        'produtos': lista
+    }
+
+
+# ============================================================
 # UPLOAD VALIDADO POR TIPO DE DOCUMENTO
 # ============================================================
 
