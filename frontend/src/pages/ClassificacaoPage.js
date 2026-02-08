@@ -869,7 +869,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
         
         {/* Classificação */}
         <div className="col-span-2 flex items-center gap-2">
-          {getCategoryBadge(product.categoria)}
+          {getCategoryBadge(product.categoria, product.natureza_operacao)}
           {!allApproved && (
             <button
               onClick={() => {
