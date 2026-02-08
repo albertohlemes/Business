@@ -12209,6 +12209,270 @@ async def relacao_notas_detalhada(
 
 
 # ============================================================
+# EXCLUSÃO EM MASSA DE DOCUMENTOS COM FILTROS
+# ============================================================
+
+class DeleteFilters(BaseModel):
+    company_id: str
+    competencia: str
+    tipo_operacao: str  # 'entrada' ou 'saida'
+    tipo_documento: str  # '55', '65', '57', 'nfse', 'outros'
+    data_inicio: Optional[str] = None  # YYYY-MM-DD
+    data_fim: Optional[str] = None  # YYYY-MM-DD
+    emitente_cnpj: Optional[str] = None
+    emitente_nome: Optional[str] = None
+    numero_inicio: Optional[int] = None
+    numero_fim: Optional[int] = None
+    cfops: Optional[List[str]] = None
+    document_ids: Optional[List[str]] = None  # IDs específicos para excluir
+
+@api_router.post("/xml/documents/preview-delete")
+async def preview_delete_documents(
+    filters: DeleteFilters,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Preview dos documentos que serão excluídos com base nos filtros.
+    Retorna lista de documentos e contagem para confirmação.
+    """
+    company = await db.companies.find_one({"id": filters.company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Construir query base
+    query = {
+        "company_id": filters.company_id,
+        "competencia": filters.competencia
+    }
+    
+    # Buscar todos os documentos primeiro para filtrar por tipo_operacao inferido
+    all_docs = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    # Inferir tipo_operacao para documentos que não têm
+    for doc in all_docs:
+        if not doc.get('tipo_operacao'):
+            produtos = doc.get('produtos', [])
+            if produtos:
+                cfop = str(produtos[0].get('cfop', ''))
+                if cfop and cfop[0] in ['1', '2', '3']:
+                    doc['tipo_operacao'] = 'entrada'
+                elif cfop and cfop[0] in ['5', '6', '7']:
+                    doc['tipo_operacao'] = 'saida'
+    
+    # Filtrar por tipo_operacao
+    filtered_docs = [d for d in all_docs if d.get('tipo_operacao') == filters.tipo_operacao]
+    
+    # Filtrar por modelo
+    modelo_map = {
+        '55': ['55', 'nfe'],
+        '65': ['65', 'nfce'],
+        '57': ['57', 'cte'],
+        'nfse': ['nfse', 'nfse_tomado', 'nfse_prestado'],
+        'nfse_tomado': ['nfse', 'nfse_tomado'],
+        'nfse_prestado': ['nfse', 'nfse_prestado'],
+        'outros': ['outros']
+    }
+    if filters.tipo_documento in modelo_map:
+        filtered_docs = [d for d in filtered_docs if d.get('modelo') in modelo_map[filters.tipo_documento]]
+    
+    # Aplicar filtros adicionais
+    if filters.document_ids:
+        filtered_docs = [d for d in filtered_docs if d.get('id') in filters.document_ids]
+    
+    if filters.data_inicio:
+        filtered_docs = [d for d in filtered_docs if d.get('data_emissao', '') >= filters.data_inicio]
+    
+    if filters.data_fim:
+        filtered_docs = [d for d in filtered_docs if d.get('data_emissao', '') <= filters.data_fim]
+    
+    if filters.emitente_cnpj:
+        cnpj_limpo = filters.emitente_cnpj.replace('.', '').replace('/', '').replace('-', '')
+        filtered_docs = [d for d in filtered_docs if cnpj_limpo in (d.get('emitente_cnpj', '') or '').replace('.', '').replace('/', '').replace('-', '')]
+    
+    if filters.emitente_nome:
+        nome_lower = filters.emitente_nome.lower()
+        filtered_docs = [d for d in filtered_docs if nome_lower in (d.get('emitente_nome', '') or '').lower()]
+    
+    if filters.numero_inicio is not None:
+        filtered_docs = [d for d in filtered_docs if int(d.get('numero_nfe', 0) or 0) >= filters.numero_inicio]
+    
+    if filters.numero_fim is not None:
+        filtered_docs = [d for d in filtered_docs if int(d.get('numero_nfe', 0) or 0) <= filters.numero_fim]
+    
+    if filters.cfops:
+        def doc_has_cfop(doc, cfops):
+            produtos = doc.get('produtos', [])
+            for prod in produtos:
+                if str(prod.get('cfop', '')) in cfops:
+                    return True
+            return False
+        filtered_docs = [d for d in filtered_docs if doc_has_cfop(d, filters.cfops)]
+    
+    # Calcular totais
+    total_valor = sum(float(d.get('valor_total', 0) or 0) for d in filtered_docs)
+    
+    # Retornar preview limitado a 100 documentos para visualização
+    preview_docs = [{
+        "id": d.get("id"),
+        "numero_nfe": d.get("numero_nfe"),
+        "emitente_nome": d.get("emitente_nome"),
+        "emitente_cnpj": d.get("emitente_cnpj"),
+        "data_emissao": d.get("data_emissao"),
+        "valor_total": d.get("valor_total")
+    } for d in filtered_docs[:100]]
+    
+    return {
+        "total_documentos": len(filtered_docs),
+        "total_valor": total_valor,
+        "preview": preview_docs,
+        "tem_mais": len(filtered_docs) > 100,
+        "ids_para_excluir": [d.get("id") for d in filtered_docs]
+    }
+
+
+@api_router.post("/xml/documents/delete-bulk")
+async def delete_documents_bulk(
+    filters: DeleteFilters,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Exclui documentos em massa com base nos filtros.
+    Requer confirmação prévia via preview-delete.
+    """
+    company = await db.companies.find_one({"id": filters.company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Se IDs específicos foram fornecidos, usar eles diretamente
+    if filters.document_ids and len(filters.document_ids) > 0:
+        result = await db.xml_documents.delete_many({
+            "id": {"$in": filters.document_ids},
+            "company_id": filters.company_id
+        })
+        return {
+            "success": True,
+            "deleted_count": result.deleted_count,
+            "message": f"{result.deleted_count} documento(s) excluído(s) com sucesso"
+        }
+    
+    # Caso contrário, buscar preview e excluir
+    preview = await preview_delete_documents(filters, current_user)
+    
+    if preview["total_documentos"] == 0:
+        return {
+            "success": True,
+            "deleted_count": 0,
+            "message": "Nenhum documento encontrado com os filtros especificados"
+        }
+    
+    # Excluir pelos IDs
+    result = await db.xml_documents.delete_many({
+        "id": {"$in": preview["ids_para_excluir"]},
+        "company_id": filters.company_id
+    })
+    
+    return {
+        "success": True,
+        "deleted_count": result.deleted_count,
+        "message": f"{result.deleted_count} documento(s) excluído(s) com sucesso"
+    }
+
+
+@api_router.get("/xml/documents/cfops/{company_id}")
+async def get_cfops_for_company(
+    company_id: str,
+    competencia: Optional[str] = None,
+    tipo_operacao: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna lista de CFOPs únicos usados nos documentos da empresa.
+    Útil para o filtro de exclusão.
+    """
+    query = {"company_id": company_id}
+    if competencia:
+        query["competencia"] = competencia
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "produtos": 1, "tipo_operacao": 1}).to_list(10000)
+    
+    cfops = set()
+    for doc in documents:
+        # Filtrar por tipo_operacao se especificado
+        if tipo_operacao:
+            doc_operacao = doc.get('tipo_operacao')
+            if not doc_operacao:
+                produtos = doc.get('produtos', [])
+                if produtos:
+                    cfop = str(produtos[0].get('cfop', ''))
+                    if cfop and cfop[0] in ['1', '2', '3']:
+                        doc_operacao = 'entrada'
+                    elif cfop and cfop[0] in ['5', '6', '7']:
+                        doc_operacao = 'saida'
+            if doc_operacao != tipo_operacao:
+                continue
+        
+        for prod in doc.get('produtos', []):
+            cfop = prod.get('cfop')
+            if cfop:
+                cfops.add(str(cfop))
+    
+    return sorted(list(cfops))
+
+
+@api_router.get("/xml/documents/emitentes/{company_id}")
+async def get_emitentes_for_company(
+    company_id: str,
+    competencia: Optional[str] = None,
+    tipo_operacao: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna lista de emitentes únicos para autocomplete.
+    """
+    query = {"company_id": company_id}
+    if competencia:
+        query["competencia"] = competencia
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "emitente_nome": 1, "emitente_cnpj": 1, "tipo_operacao": 1, "produtos": 1}).to_list(10000)
+    
+    emitentes = {}
+    for doc in documents:
+        # Filtrar por tipo_operacao se especificado
+        if tipo_operacao:
+            doc_operacao = doc.get('tipo_operacao')
+            if not doc_operacao:
+                produtos = doc.get('produtos', [])
+                if produtos:
+                    cfop = str(produtos[0].get('cfop', ''))
+                    if cfop and cfop[0] in ['1', '2', '3']:
+                        doc_operacao = 'entrada'
+                    elif cfop and cfop[0] in ['5', '6', '7']:
+                        doc_operacao = 'saida'
+            if doc_operacao != tipo_operacao:
+                continue
+        
+        cnpj = doc.get('emitente_cnpj', '')
+        nome = doc.get('emitente_nome', '')
+        if cnpj and nome:
+            # Filtrar por busca se especificado
+            if search:
+                search_lower = search.lower()
+                if search_lower not in nome.lower() and search_lower not in cnpj:
+                    continue
+            emitentes[cnpj] = nome
+    
+    result = [{"cnpj": k, "nome": v} for k, v in emitentes.items()]
+    return sorted(result, key=lambda x: x['nome'])[:50]  # Limitar a 50 resultados
+
+
+# ============================================================
 # UPLOAD VALIDADO POR TIPO DE DOCUMENTO
 # ============================================================
 
