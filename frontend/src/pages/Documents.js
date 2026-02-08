@@ -1231,21 +1231,74 @@ const Documents = ({ user, onLogout }) => {
                     </div>
                     <button
                       onClick={async () => {
-                        // Limpar filtros e gerar preview de todos
-                        setDeleteFilters({
-                          dataInicio: '',
-                          dataFim: '',
-                          emitenteCnpj: '',
-                          emitenteNome: '',
-                          numeroInicio: '',
-                          numeroFim: '',
-                          cfops: []
-                        });
-                        await previewDelete();
+                        const tipoConfig = getTipoConfig();
+                        const token = localStorage.getItem('token');
+                        
+                        try {
+                          // Buscar contagem
+                          const previewResponse = await axios.post(`${API}/xml/documents/preview-delete`, {
+                            company_id: ctxCompany.id,
+                            competencia: selectedCompetencia,
+                            tipo_operacao: operacao,
+                            tipo_documento: tipoConfig.modelo
+                          }, {
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                          
+                          const totalDocs = previewResponse.data.total_documentos;
+                          const totalValor = previewResponse.data.total_valor;
+                          
+                          if (totalDocs === 0) {
+                            alert(`Não há documentos de ${tipoConfig.label} para excluir.`);
+                            return;
+                          }
+                          
+                          const valorFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValor);
+                          
+                          if (!window.confirm(
+                            `⚠️ ATENÇÃO!\n\n` +
+                            `Você está prestes a excluir TODOS os documentos de ${tipoConfig.label}:\n\n` +
+                            `📄 ${totalDocs} documento(s)\n` +
+                            `💰 ${valorFormatado}\n\n` +
+                            `Empresa: ${ctxCompany.razao_social}\n` +
+                            `Competência: ${selectedCompetencia}\n\n` +
+                            `Esta ação NÃO pode ser desfeita!\n\n` +
+                            `Deseja continuar?`
+                          )) {
+                            return;
+                          }
+                          
+                          if (!window.confirm(
+                            `ÚLTIMA CONFIRMAÇÃO\n\n` +
+                            `Clique OK para excluir ${totalDocs} documentos de ${tipoConfig.label}.`
+                          )) {
+                            return;
+                          }
+                          
+                          // Executar exclusão
+                          const deleteResponse = await axios.post(`${API}/xml/documents/delete-bulk`, {
+                            company_id: ctxCompany.id,
+                            competencia: selectedCompetencia,
+                            tipo_operacao: operacao,
+                            tipo_documento: tipoConfig.modelo,
+                            document_ids: previewResponse.data.ids_para_excluir
+                          }, {
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                          
+                          alert(`✅ ${deleteResponse.data.deleted_count} documento(s) excluído(s) com sucesso!`);
+                          setShowDeleteModal(false);
+                          fetchDocuments();
+                          
+                        } catch (err) {
+                          console.error('Erro ao excluir:', err);
+                          alert('Erro ao excluir documentos: ' + (err.response?.data?.detail || err.message));
+                        }
                       }}
-                      className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/30 transition-all"
+                      className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-all flex items-center gap-2"
                     >
-                      Selecionar Todos
+                      <Trash2 className="w-4 h-4" />
+                      Apagar Todos
                     </button>
                   </div>
                 </div>
