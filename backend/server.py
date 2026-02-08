@@ -5180,8 +5180,24 @@ async def get_dashboard_stats(
     # CFOPs de Substituição Tributária (mesma lista usada na apuração)
     CFOPS_ST = ['1403', '1409', '2403', '2409', '5403', '5405', '5409', '6403', '6404', '6409']
     
+    # CFOPs de Despesa/Uso e Consumo (não dão direito a crédito de ICMS) - igual Apuração
+    CFOPS_DESPESA = [
+        '1407', '2407',  # Compra para uso/consumo com ST
+        '1556', '2556',  # Compra para uso/consumo
+        '1557', '2557',  # Transferência para uso/consumo
+        '1128', '2128',  # Compra para ativo imobilizado
+        '1551', '2551',  # Compra ativo imobilizado
+        '1553', '2553',  # Devolução de venda ativo imobilizado
+        '1554', '2554',  # Retorno de remessa ativo imobilizado
+        '1406', '2406',  # Compra energia elétrica para uso/consumo
+        '1408', '2408',  # Transferência energia elétrica
+        '1501', '2501',  # Entrada de mercadoria recebida com fim específico de exportação
+        '1503', '2503',  # Entrada decorrente de devolução de produto remetido com fim específico de exportação
+    ]
+    
     credito_icms = 0
-    credito_icms_st_desconsiderado = 0  # Para mostrar quanto foi desconsiderado
+    credito_icms_st_desconsiderado = 0  # Para mostrar quanto foi desconsiderado (ST)
+    credito_icms_despesa_desconsiderado = 0  # Para mostrar quanto foi desconsiderado (Despesa)
     credito_pis = 0
     credito_cofins = 0
     
@@ -5190,10 +5206,14 @@ async def get_dashboard_stats(
             cfop = str(prod.get('cfop', ''))
             v_icms = float(prod.get('v_icms', 0) or 0)
             
-            # ICMS-ST não gera crédito - usar CFOP para determinar ST (igual apuração)
+            # ICMS-ST e Despesa não geram crédito - usar CFOP para determinar (igual Apuração)
             is_st = cfop in CFOPS_ST
+            is_despesa = cfop in CFOPS_DESPESA
+            
             if is_st:
                 credito_icms_st_desconsiderado += v_icms
+            elif is_despesa:
+                credito_icms_despesa_desconsiderado += v_icms
             else:
                 credito_icms += v_icms
             
