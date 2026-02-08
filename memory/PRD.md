@@ -43,25 +43,38 @@ Sistema de contabilidade fiscal para escritórios de contabilidade brasileiros, 
 - `POST /api/auth/users/{id}/reactivate` - Reativar usuário
 - `PUT /api/auth/me/preferences` - Atualizar preferências (menu mode)
 
-### Gestão de Empresas
+### Gestão de Empresas ✅
 - `GET /api/companies` - Listar empresas (com filtro por responsável)
 - `GET /api/companies/responsaveis` - Listar responsáveis disponíveis
 - Vinculação de usuários responsáveis às empresas
 - Filtro por responsável na listagem
+- **Importação em lote via Excel/CSV** (NOVA)
+- Download de modelo de importação
 
-### Preferências de Usuário
+### Preferências de Usuário ✅
 - Menu vertical ou horizontal (salvo por usuário)
 - Persistência via localStorage + backend
 
 ## UI/UX Premium AURION
 
-### Componentes Atualizados
+### Todas as Páginas Atualizadas ✅
 - [x] Login.js - Tela de login premium
 - [x] Layout.js - Menu vertical/horizontal configurável
 - [x] Dashboard.js - Dashboard dark premium
-- [x] Companies.js - Listagem otimizada em tabela
-- [x] UsersPage.js (NOVA) - Gestão de usuários
+- [x] Companies.js - Listagem + importação em lote
+- [x] UsersPage.js - Gestão de usuários
 - [x] CompanySelector.js - Modal de seleção premium
+- [x] Documents.js - Listagem de documentos
+- [x] UploadXML.js - Upload de arquivos
+- [x] ClassificacaoPage.js - Validação & IA
+- [x] ExportMenu.js - Exportação SPED
+- [x] Reports.js - Relatórios
+- [x] ApuracaoMensal.js - Apuração mensal
+- [x] AlertasCfop.js - Alertas CFOP
+- [x] AnalisePisCofins.js - Auditoria PIS/COFINS
+- [x] AnaliseTributariaIA.js - Análise tributária IA
+- [x] AnaliseSaidas.js - Análise de saídas
+- [x] AnaliseTributaria.js - Análise tributária
 
 ### Paleta de Cores (CSS)
 ```css
@@ -78,9 +91,6 @@ Sistema de contabilidade fiscal para escritórios de contabilidade brasileiros, 
 - **Senha**: 123456
 
 ## Próximas Tarefas (Backlog)
-
-### P0 - Urgente
-- [ ] Atualizar demais páginas com o tema AURION
 
 ### P1 - Alta Prioridade
 - [ ] Corrigir bug de usabilidade no CompanySelector (estado)
@@ -101,8 +111,16 @@ Sistema de contabilidade fiscal para escritórios de contabilidade brasileiros, 
 - **LiteLLM (GPT-4o)**: Classificação de produtos
 - **SIEG**: Cofre de XMLs
 - **Receita Federal**: Consulta CNPJ
+- **XLSX**: Importação em lote de empresas
 
 ## Changelog
+
+### v2.1.0 (08/02/2026)
+- Todas as páginas atualizadas com tema AURION premium
+- Importação em lote de empresas via Excel/CSV
+- Correção de cores ilegíveis (fundo escuro + fonte escura)
+- Remoção de todos os elementos com cores vermelhas antigas
+- Padronização visual completa do sistema
 
 ### v2.0.0 (08/02/2026)
 - Rebranding completo para AURION
