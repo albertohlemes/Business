@@ -67,6 +67,24 @@ const Documents = ({ user, onLogout }) => {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
+  // Modal de exclusão em massa
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteFilters, setDeleteFilters] = useState({
+    dataInicio: '',
+    dataFim: '',
+    emitenteCnpj: '',
+    emitenteNome: '',
+    numeroInicio: '',
+    numeroFim: '',
+    cfops: []
+  });
+  const [deletePreview, setDeletePreview] = useState(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [availableCfops, setAvailableCfops] = useState([]);
+  const [availableEmitentes, setAvailableEmitentes] = useState([]);
+  const [emitenteSearch, setEmitenteSearch] = useState('');
+
   // Carregar documentos quando selecionar tipo
   useEffect(() => {
     if (ctxCompany && operacao && tipoDoc) {
