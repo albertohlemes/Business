@@ -368,7 +368,7 @@ const ClassificacaoPage = ({ user, onLogout }) => {
       'DESPESA': { produtos: [], cor: 'bg-orange-500', corFundo: 'bg-orange-50', icon: '📋' },
       'ATIVO_IMOBILIZADO': { produtos: [], cor: 'bg-purple-500', corFundo: 'bg-purple-50', icon: '🏭' },
       'COMBUSTIVEL': { produtos: [], cor: 'bg-gray-700', corFundo: 'bg-gray-50', icon: '⛽' },
-      // Novas categorias de operações distintas (classificadas em Alertas CFOP)
+      // Categorias de operações distintas (classificadas em Alertas CFOP)
       'BONIFICAÇÃO': { produtos: [], cor: 'bg-pink-500', corFundo: 'bg-pink-50', icon: '🎁' },
       'DEVOLUÇÃO': { produtos: [], cor: 'bg-amber-500', corFundo: 'bg-amber-50', icon: '↩️' },
       'REMESSA': { produtos: [], cor: 'bg-cyan-500', corFundo: 'bg-cyan-50', icon: '📦' },
@@ -377,56 +377,102 @@ const ClassificacaoPage = ({ user, onLogout }) => {
       'AMOSTRA': { produtos: [], cor: 'bg-lime-500', corFundo: 'bg-lime-50', icon: '🧪' },
       'DEMONSTRAÇÃO': { produtos: [], cor: 'bg-emerald-500', corFundo: 'bg-emerald-50', icon: '👁️' },
       'TRANSFERÊNCIA': { produtos: [], cor: 'bg-violet-500', corFundo: 'bg-violet-50', icon: '🔀' },
+      'VASILHAME': { produtos: [], cor: 'bg-slate-500', corFundo: 'bg-slate-50', icon: '🫙' },
       'PENDENTE': { produtos: [], cor: 'bg-red-500', corFundo: 'bg-red-50', icon: '⚠️' },
     };
     
-    // Função auxiliar para classificar por categoria padrão
-    const classificarPorCat = (prod, cat) => {
-      if (cat.includes('REVENDA')) {
-        grupos['REVENDA'].produtos.push(prod);
-      } else if (cat.includes('INSUMO')) {
-        grupos['INSUMO'].produtos.push(prod);
-      } else if (cat.includes('DESPESA')) {
-        grupos['DESPESA'].produtos.push(prod);
-      } else if (cat.includes('ATIVO') || cat.includes('IMOBILIZADO')) {
-        grupos['ATIVO_IMOBILIZADO'].produtos.push(prod);
-      } else if (cat.includes('COMBUSTIVEL') || cat.includes('COMBUSTÍVEL')) {
-        grupos['COMBUSTIVEL'].produtos.push(prod);
-      } else {
-        grupos['PENDENTE'].produtos.push(prod);
-      }
+    // CFOPs de operações distintas para classificação automática
+    const CFOPS_BONIFICACAO = ['1910', '2910', '5910', '6910'];
+    const CFOPS_DEVOLUCAO = ['1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209', '1210', '1411', '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209', '2210', '2411'];
+    const CFOPS_REMESSA = ['1949', '2949', '5949', '6949', '1923', '2923', '1924', '2924'];
+    const CFOPS_RETORNO = ['1913', '2913', '1916', '2916', '1925', '2925'];
+    const CFOPS_CONSIGNACAO = ['1914', '1915', '1917', '1918', '1919', '2914', '2915', '2917', '2918', '2919'];
+    const CFOPS_AMOSTRA = ['1911', '2911', '5911', '6911'];
+    const CFOPS_DEMONSTRACAO = ['1912', '2912', '5912', '6912'];
+    const CFOPS_TRANSFERENCIA = ['1151', '1152', '1153', '1154', '1408', '1409', '2151', '2152', '2153', '2154', '2408', '2409'];
+    const CFOPS_VASILHAME = ['1920', '1921', '2920', '2921', '5920', '5921', '6920', '6921'];
+    const CFOPS_DESPESA = ['1556', '2556', '1557', '2557'];
+    const CFOPS_ATIVO = ['1551', '1552', '1553', '1554', '2551', '2552', '2553', '2554', '1406', '1407', '2406', '2407'];
+    
+    // Função para classificar por CFOP
+    const classificarPorCfop = (prod, cfop) => {
+      if (CFOPS_BONIFICACAO.includes(cfop)) return 'BONIFICAÇÃO';
+      if (CFOPS_DEVOLUCAO.includes(cfop)) return 'DEVOLUÇÃO';
+      if (CFOPS_RETORNO.includes(cfop)) return 'RETORNO';
+      if (CFOPS_CONSIGNACAO.includes(cfop)) return 'CONSIGNAÇÃO';
+      if (CFOPS_AMOSTRA.includes(cfop)) return 'AMOSTRA';
+      if (CFOPS_DEMONSTRACAO.includes(cfop)) return 'DEMONSTRAÇÃO';
+      if (CFOPS_TRANSFERENCIA.includes(cfop)) return 'TRANSFERÊNCIA';
+      if (CFOPS_VASILHAME.includes(cfop)) return 'VASILHAME';
+      if (CFOPS_REMESSA.includes(cfop)) return 'REMESSA';
+      if (CFOPS_DESPESA.includes(cfop)) return 'DESPESA';
+      if (CFOPS_ATIVO.includes(cfop)) return 'ATIVO_IMOBILIZADO';
+      return null;
+    };
+    
+    // Função para classificar por natureza da operação
+    const classificarPorNatureza = (natureza) => {
+      if (!natureza) return null;
+      const nat = natureza.toUpperCase();
+      if (nat.includes('BONIFICA')) return 'BONIFICAÇÃO';
+      if (nat.includes('DEVOLUC') || nat.includes('DEVOL')) return 'DEVOLUÇÃO';
+      if (nat.includes('RETORNO')) return 'RETORNO';
+      if (nat.includes('CONSIGNA')) return 'CONSIGNAÇÃO';
+      if (nat.includes('AMOSTRA')) return 'AMOSTRA';
+      if (nat.includes('DEMONSTRA')) return 'DEMONSTRAÇÃO';
+      if (nat.includes('TRANSFER')) return 'TRANSFERÊNCIA';
+      if (nat.includes('VASILHAME') || nat.includes('SACARIA')) return 'VASILHAME';
+      if (nat.includes('REMESSA')) return 'REMESSA';
+      return null;
+    };
+    
+    // Função auxiliar para classificar por categoria padrão (IA)
+    const classificarPorCategoriaIA = (cat) => {
+      if (!cat) return null;
+      const catUpper = cat.toUpperCase();
+      if (catUpper.includes('REVENDA')) return 'REVENDA';
+      if (catUpper.includes('INSUMO')) return 'INSUMO';
+      if (catUpper.includes('DESPESA')) return 'DESPESA';
+      if (catUpper.includes('ATIVO') || catUpper.includes('IMOBILIZADO')) return 'ATIVO_IMOBILIZADO';
+      if (catUpper.includes('COMBUSTIVEL') || catUpper.includes('COMBUSTÍVEL')) return 'COMBUSTIVEL';
+      return null;
     };
     
     sortedProducts.forEach(prod => {
-      const cat = (prod.categoria || '').toUpperCase();
-      const natureza = (prod.natureza_operacao || '').toUpperCase();
+      const cat = prod.categoria || '';
+      const natureza = prod.natureza_operacao || '';
+      const cfop = prod.cfop || '';
       
-      // Primeiro verificar se tem natureza de operação especial (classificado em Alertas CFOP)
-      if (natureza) {
-        if (natureza.includes('BONIFICA')) {
-          grupos['BONIFICAÇÃO'].produtos.push(prod);
-        } else if (natureza.includes('DEVOLUC') || natureza.includes('DEVOL')) {
-          grupos['DEVOLUÇÃO'].produtos.push(prod);
-        } else if (natureza.includes('RETORNO')) {
-          grupos['RETORNO'].produtos.push(prod);
-        } else if (natureza.includes('CONSIGNA')) {
-          grupos['CONSIGNAÇÃO'].produtos.push(prod);
-        } else if (natureza.includes('AMOSTRA')) {
-          grupos['AMOSTRA'].produtos.push(prod);
-        } else if (natureza.includes('DEMONSTRA')) {
-          grupos['DEMONSTRAÇÃO'].produtos.push(prod);
-        } else if (natureza.includes('TRANSFER')) {
-          grupos['TRANSFERÊNCIA'].produtos.push(prod);
-        } else if (natureza.includes('REMESSA')) {
-          grupos['REMESSA'].produtos.push(prod);
-        } else {
-          // Natureza não reconhecida, usar categoria padrão
-          classificarPorCat(prod, cat);
-        }
-      } else {
-        // Sem natureza especial, usar categoria padrão
-        classificarPorCat(prod, cat);
+      // Ordem de prioridade:
+      // 1. Natureza da operação (classificado em Alertas CFOP)
+      // 2. CFOP específico
+      // 3. Categoria IA
+      // 4. CFOPs de compra normal → REVENDA
+      
+      let grupo = classificarPorNatureza(natureza);
+      
+      if (!grupo) {
+        grupo = classificarPorCfop(prod, cfop);
       }
+      
+      if (!grupo) {
+        grupo = classificarPorCategoriaIA(cat);
+      }
+      
+      // Se ainda não tem grupo e é CFOP de compra normal, considerar REVENDA
+      if (!grupo) {
+        const cfopCompra = ['1101', '1102', '1111', '1113', '1116', '1117', '1118', '1120', '1121', '1122', '1124', '1125', '1126', '1401', '1403', '2101', '2102', '2111', '2113', '2116', '2117', '2118', '2120', '2121', '2122', '2124', '2125', '2126', '2401', '2403'];
+        if (cfopCompra.includes(cfop)) {
+          grupo = 'REVENDA';
+        }
+      }
+      
+      // Último recurso: PENDENTE
+      if (!grupo) {
+        grupo = 'PENDENTE';
+      }
+      
+      grupos[grupo].produtos.push(prod);
     });
     
     // Remover grupos vazios
