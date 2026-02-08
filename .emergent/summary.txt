@@ -1,50 +1,51 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou inicialmente a melhoria na importação de notas fiscais (XMLs) para identificar e desconsiderar notas de devolução emitidas por fornecedores. A tarefa evoluiu para incluir a correção de uma série de bugs e discrepâncias de dados em toda a aplicação, incluindo:
-1.  Falhas na lógica de importação de notas (entradas vs. saídas, devoluções).
-2.  Discrepâncias de valores entre o Dashboard e relatórios de exportação.
-3.  Discrepâncias de valores de PIS/COFINS e ICMS entre o Dashboard e a tela de Apuração Mensal.
-4.  Geração incorreta de arquivos SPED para notas com desconto, IPI, ICMS-ST e outras despesas.
-5.  Relatórios de comparação pós-geração de SPED que mostravam divergências falsas, causando grande confusão. O objetivo principal do usuário agora é garantir a consistência dos dados em todas as telas.
+O usuário solicitou inicialmente a melhoria na importação de notas fiscais (XMLs) para identificar e desconsiderar notas de devolução. A tarefa evoluiu para uma série de correções de bugs e discrepâncias de dados em toda a aplicação, com foco principal na geração correta de arquivos SPED Fiscal. Os problemas incluem:
+1.  Falhas na lógica de importação de notas de devolução de emissão própria.
+2.  Discrepâncias de valores entre o Dashboard, Apuração Mensal e relatórios de exportação.
+3.  Geração incorreta de arquivos SPED (registros C100, C170, C190) para notas com desconto, IPI, IPI de devolução e ICMS-ST, resultando em valores que não batem com os sistemas fiscais do usuário.
+O objetivo principal do usuário é garantir a consistência e a exatidão dos dados em toda a aplicação, especialmente no arquivo SPED Fiscal gerado.
 
 **User's preferred language**:
 Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-É uma aplicação full-stack de contabilidade fiscal (Business Contabilidade) com frontend em React, backend em FastAPI e banco de dados MongoDB. As funcionalidades existentes incluem autenticação, gestão de empresas, upload de XML (com processamento em segundo plano), dashboards de análise, apuração de impostos (mensal e por tributo), e exportação de arquivos SPED Fiscal.
+É uma aplicação full-stack de contabilidade fiscal (Business Contabilidade) com frontend em React, backend em FastAPI e banco de dados MongoDB. As funcionalidades existentes incluem autenticação, gestão de empresas, upload de XML (com processamento em segundo plano), dashboards de análise, apuração de impostos e exportação de arquivos SPED Fiscal.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava corrigindo uma divergência de valores entre a tela de Apuração Mensal e o relatório de Comparativo SPED. O usuário decidiu que todos os valores na aplicação deveriam ser baseados no  contábil da nota. O agente modificou a lógica do comparativo SPED para usar  como base para o Valor Sistema e para reconstruir o  a partir dos campos do arquivo SPED para o Valor SPED ().
+-   **Last item agent was working**: O agente estava corrigindo a lógica de geração do SPED Fiscal, especificamente o cálculo do campo  no registro C170. O usuário reportou que, para notas de **entrada** com IPI, o valor do IPI estava sendo somado ao , quando deveria ir apenas no campo . O agente ajustou o código para garantir que, em notas de entrada, o  use  (valor bruto, sem IPI), e para notas de **saída** (com devolução de IPI), o  inclua o IPI para que o total da nota bata. A última ação foi uma verificação bem-sucedida de que o SPED gerado para a NF 619567 (entrada) agora estava com o  correto (valor sem IPI).
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: N
--   **Which testing method agent to use?**: both. É necessário testar o endpoint do backend que gera o comparativo () e verificar no frontend se a tela de Apuração Mensal e o relatório de comparativo SPED agora exibem valores consistentes.
+-   **Agent Testing Done**: Y (Apenas para o último caso específico reportado, NF 619567).
+-   **Which testing method agent to use?**: backend. É crucial gerar um novo arquivo SPED e fazer uma verificação completa de todas as notas problemáticas reportadas pelo usuário (entradas com IPI, entradas com desconto, saídas com IPI de devolução) para garantir que a última correção não quebrou outros cenários.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0)**: Discrepância de valores entre a tela Apuração Mensal, o Valor Sistema e o Valor SPED no relatório de comparação.
+-   **Issue 1 (P0)**: Geração incorreta de valores no arquivo SPED Fiscal.
 -   **Issue 2 (P1)**: O seletor de competência (mês/ano) no frontend é instável e dificulta os testes.
 
 **Issues Detail**:
 -   **Issue 1**:
-    -   **Description**: O usuário está confuso porque a tela de Apuração Mensal, a coluna Valor Sistema e a coluna Valor SPED no relatório de comparação exibem totais diferentes para os mesmos CFOPs. O usuário solicitou que o  da nota (o valor contábil completo) seja o padrão em toda a aplicação.
-    -   **Attempted fixes**: O agente alterou a função  em  para que tanto o Valor Sistema quanto o Valor SPED sejam calculados com base no .
+    -   **Description**: O valor dos itens ( no C170) e os totais da nota ( no C100) no SPED gerado estão inconsistentes, dependendo do tipo de nota (entrada/saída) e da presença de IPI, IPI de devolução ou descontos. Isso causa divergências quando o usuário compara o arquivo com seu sistema de escrituração fiscal. É um problema recorrente que já passou por várias tentativas de correção.
+    -   **Attempted fixes**: A lógica foi alterada múltiplas vezes. A última alteração, em  na função , foi para usar  como base para  e condicionalmente adicionar  apenas para notas de .
     -   **Next debug checklist**:
-        1.  Executar novamente a geração do SPED para a empresa  na competência .
-        2.  Verificar os valores por CFOP retornados pelo endpoint de Apuração Mensal ().
-        3.  Verificar os valores por CFOP retornados pelo endpoint de Comparativo SPED ().
-        4.  Confirmar que os totais por CFOP e os totais gerais agora são idênticos nas duas fontes. Se não forem, depurar a lógica de cálculo no , prestando atenção especial aos índices dos campos (, , etc.) lidos do arquivo SPED.
-    -   **Why fix this issue and what will be achieved with the fix?**: Restaurar a confiança do usuário no sistema, garantindo que os dados sejam consistentes em todas as telas de análise.
+        1.  Reiniciar o backend para garantir que o último código foi carregado: backend: stopped
+backend: started.
+        2.  Gerar um novo arquivo SPED para a empresa  na competência .
+        3.  Analisar o arquivo SPED gerado e verificar especificamente:
+            -   **NF 619567 (entrada com IPI):** Confirmar que o  no C170 é o valor SEM IPI (ex: ) e o  está preenchido.
+            -   **NF 302733 (entrada com desconto):** Confirmar que o  é o valor bruto (antes do desconto) e o  está preenchido corretamente.
+            -   **NF 371645 (saída com IPI de devolução):** Confirmar que a soma dos  dos C170 bate com o  do C100 (ambos incluindo o IPI de devolução).
+        4.  Após a validação, apresentar o resultado ao usuário e pedir que ele valide com o sistema dele.
+    -   **Why fix this issue and what will be achieved with the fix?**: É a funcionalidade mais crítica da aplicação. A correção vai restaurar a confiança do usuário e tornar o sistema utilizável para suas obrigações fiscais.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Should Test frontend/backend/both after fix?**: backend
     -   **Blocked on other issue**: None
 
 -   **Issue 2**:
-    -   **Description**: O seletor de empresa/competência () é problemático. Frequentemente, ele reverte para o mês atual, que não possui dados, forçando o agente a manipular o banco de dados para poder testar. Isso dificulta a validação de funcionalidades no frontend.
-    -   **Attempted fixes**: Nenhum. O agente tem contornado o problema movendo dados no banco de dados.
-    -   **Next debug checklist**:
-        1.  Analisar o gerenciamento de estado em  e a lógica do componente .
-        2.  Investigar a função  e como os estados  e  são sincronizados.
-    -   **Why fix this issue and what will be achieved with the fix?**: Melhorar drasticamente a usabilidade da aplicação e a eficiência dos testes.
+    -   **Description**: O seletor de empresa/competência no frontend é instável, frequentemente revertendo para o mês atual, o que dificulta e atrasa os testes.
+    -   **Attempted fixes**: Nenhum. O agente tem contornado o problema com manipulação do BD.
+    -   **Next debug checklist**: Analisar  e  para corrigir o gerenciamento de estado.
+    -   **Why fix this issue and what will be achieved with the fix?**: Melhorar drasticamente a usabilidade e a eficiência dos testes.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend
@@ -55,24 +56,23 @@ Nenhum.
 
 **Upcoming and Future Tasks**
 -   **Próximas Tarefas:**
+    -   (P1) Corrigir o bug do seletor de competência ().
     -   (P1) Criar uma tela de configuração para permitir que o usuário gerencie a lista de CFOPs de devolução.
     -   (P2) Adicionar um indicador visual na página de documentos para notas de mesma empresa.
 -   **Tarefas Futuras:**
     -   Refatorar o monolito  em uma arquitetura baseada em módulos.
 
 **Completed work in this session**
--   **Correção - Discrepância Dashboard vs. Relatório**: Corrigido bug onde o Dashboard somava valores de notas de saída como entrada.
--   **Correção - Classificação de Importação**: Corrigido bug que classificava notas de devolução de emissão própria como saída.
--   **Correção - Discrepância PIS/COFINS**: Unificada a lógica de cálculo de PIS/COFINS entre o Dashboard e a tela de Apuração para usar os valores do XML.
--   **Correção - Discrepância ICMS**: Unificada a lógica de cálculo de ICMS entre o Dashboard e a Apuração para excluir CFOPs de despesa.
--   **Correção - Geração SPED (Desconto, IPI, ST, Outras Despesas)**: Corrigida a geração do registro C170 do SPED para usar os campos corretos para valor bruto (), desconto (), IPI e ICMS-ST, e para incluir despesas acessórias no valor do item.
--   **Correção (Parcial) - Comparativo SPED**: Ajustada a lógica do relatório de comparação SPED para alinhar os cálculos do Valor Sistema e Valor SPED, reduzindo divergências falsas.
+-   **Correção - Discrepância de Dados**: Alinhados os valores entre a Apuração Mensal e o Comparativo SPED.
+-   **Correção - Importação de Devoluções Próprias**: Corrigida a lógica nos endpoints  e  para importar corretamente notas de devolução de venda emitidas pela própria empresa.
+-   **Correção - Preservação de CFOP**: Garantido que o CFOP original de notas de emissão própria seja preservado durante a importação.
+-   **Correção (Iterativa) - Geração SPED**: Múltiplos ajustes na lógica de geração dos registros C170 e C100 para tentar alinhar os valores de notas com IPI, desconto e IPI de devolução.
 
 **Earlier issues found/mentioned but not fixed**
-Nenhum.
+-   O bug de usabilidade no  foi identificado no início, mas nunca priorizado.
 
 **Known issue recurrence from previous fork**
-Nenhum.
+-   A inconsistência de valores no SPED é o problema central que persiste desde o fork anterior e ao longo de toda esta sessão.
 
 **Code Architecture**
 
@@ -83,63 +83,68 @@ Nenhum.
 -   **Data Exchange**: Geração e validação de arquivos SPED Fiscal.
 
 **key DB schema**
--   ****: Armazena dados dos XMLs. Campos chave: , , ,  (array), , , , , , , .
+-   ****: Armazena dados dos XMLs. Campos chave: , , ,  (array), , , , , , .
 
 **changes in tech stack**
 Nenhuma.
 
 **All files of reference**
--   : Modificado extensivamente para corrigir lógicas no dashboard, apuração, exportação SPED e no relatório de validação do SPED.
+-   : Arquivo central para todas as correções. As funções mais relevantes são  (e suas sub-rotinas para C100/C170), ,  e .
 -   : Identificado como a fonte de bugs de usabilidade.
--   : Tela onde o usuário visualiza uma das fontes de dados divergentes.
+-   : Contém o histórico e requisitos do produto.
 
 **Areas that need refactoring**:
--   O arquivo  é um monolito de quase 10.000 linhas e precisa urgentemente ser refatorado para garantir a manutenibilidade do projeto.
+-   O arquivo  é um monolito com mais de 9.000 linhas e precisa urgentemente ser refatorado para garantir a manutenibilidade e evitar que uma correção quebre outra funcionalidade.
 
 **key api endpoints**
--   : Retorna dados para a tela de Apuração Mensal.
--   : Gera o arquivo SPED Fiscal.
--   : Gera o relatório de validação pós-SPED, fonte de muitas das divergências relatadas.
+-   : Endpoint principal para upload de XML usado pelo frontend.
+-   : Endpoint usado para gerar e validar o SPED.
+-   : Endpoint que compara os dados do sistema com o último SPED gerado.
 
 **Critical Info for New Agent**
--   **A prioridade máxima é resolver a inconsistência de dados.** O usuário está frustrado por ver valores diferentes em telas diferentes.
--   **A fonte da verdade foi definida:** Todos os valores exibidos na aplicação devem ser baseados no  contábil das notas.
--   A última ação do agente foi uma tentativa de corrigir o relatório de comparação do SPED. Esta correção precisa ser **testada e verificada** para garantir que os valores agora batem com a tela de Apuração Mensal.
--   Esteja ciente do bug no seletor de competência do frontend, pois ele pode atrapalhar seus testes. Considere corrigi-lo ou usar workarounds (manipulação do BD).
+-   **A prioridade máxima é resolver a geração do SPED (Issue 1).** O usuário está frustrado e este é o bloqueador principal.
+-   **A lógica do SPED é frágil e complexa:**
+    -   **Entradas**:  no C170 deve ser o valor bruto (), sem IPI e sem desconto. O IPI e o desconto vão em campos separados (, ).
+    -   **Saídas**: Para notas de devolução de venda,  deve incluir o IPI de devolução () para que a soma dos itens bata com o total da nota.
+-   **Sempre reinicie o backend** com backend: stopped
+backend: started após alterar o código. O hot-reload se mostrou não confiável e causou muita confusão.
+-   Valide qualquer correção contra **todos** os cenários reportados pelo usuário para evitar regressões. O usuário é técnico e fornecerá feedback preciso baseado nos arquivos SPED.
 
 **documents and test reports created in this job**
 -   
+-   O usuário forneceu múltiplos artefatos cruciais para depuração, incluindo arquivos XML, CSVs com divergências e os próprios arquivos SPED gerados.
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **Usuário**: Aponta que o comparativo SPED alega divergências que não parecem existir.
-11. **Usuário**: Questiona por que os valores da Apuração Mensal são diferentes dos valores no comparativo SPED.
-12. **Usuário**: Responde 1, escolhendo usar  como padrão em toda a aplicação.
-13. **Usuário**: Reporta nova divergência no SPED para notas com outras despesas.
-14. **Usuário**: Pede a chave de acesso de uma nota específica para investigação.
-15. **Usuário**: Reporta erro na geração do SPED para notas que contêm IPI.
-16. **Usuário**: Envia imagem mostrando que ainda existem divergências entre os valores do sistema e os valores gerados no SPED.
-17. **Usuário**: Reporta duas novas retificações: divergência de ICMS e desconto não considerado na exportação SPED.
-18. **Usuário**: Reporta um bug crítico na importação de notas de saída (devoluções sendo classificadas incorretamente).
-19. **Usuário**: Reporta discrepância de PIS/COFINS entre o dashboard e a tela de apuração.
--   **Mensagem Pendente**: O usuário aguarda a solução definitiva para as inconsistências de valores entre as diferentes telas do sistema.
+-   10. O usuário fornece um trecho do SPED errado e certo da NF 619567, mostrando que o  está incluindo IPI indevidamente. Esta foi a pista final para a última correção.
+-   9. O usuário relata que o IPI ficou duplicado no SPED gerado.
+-   8. O usuário relata que o IPI nas entradas ficou duplicado.
+-   7. O usuário confirma que todas as notas estão corretas após uma correção.
+-   6. O usuário fornece um trecho do SPED errado e certo da NF 302733, mostrando a diferença no  (valor líquido vs valor bruto).
+-   5. O usuário responde 1 (confirmando que o valor da nota deve ser o total com impostos).
+-   4. O usuário envia uma imagem do seu sistema mostrando a divergência para a NF 302733.
+-   3. O usuário fornece o arquivo SPED gerado pelo sistema e aponta que existem diferenças.
+-   2. O usuário envia um CSV com uma lista de NFs de entrada e saída que apresentam divergências no SPED.
+-   1. O usuário relata que o valor no relatório de produtos está maior que o valor da nota (IPI somado em duplicidade).
+-   **Mensagem Pendente**: O usuário aguarda uma versão final e correta do arquivo SPED que resolva todas as inconsistências de valores para entradas e saídas.
 
 **Project Health Check:**
 -   **Broken**:
-    -   A consistência dos dados entre os módulos de Apuração, Dashboard e Comparativo SPED está quebrada.
-    -   O seletor de competência do frontend é instável e prejudica a experiência do usuário.
+    -   A geração do SPED Fiscal é o principal ponto quebrado, com valores inconsistentes sob diferentes cenários de impostos e tipos de nota.
+    -   O seletor de empresa/competência no frontend é instável.
 
 **3rd Party Integrations**
--   **LiteLLM (GPT-4o)**: Usado para classificação de produtos com IA.
+-   LiteLLM (GPT-4o): Usado para classificação de produtos.
 
 **Testing status**
 -   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: Nenhuma, mas a confiança do usuário nos dados do sistema está baixa devido às inconsistências.
+-   **Known regressions**: A correção da lógica de cálculo do SPED tem sido um ciclo de conserta um, quebra outro. A última correção para saídas quebrou as entradas, e a correção para entradas precisa ser validada para não quebrar as saídas.
 
 **Credentials to test flow:**
 -   **Email**: 
 -   **Senha**: 
 
 **What agent forgot to execute**
--   O agente implementou a correção para alinhar os valores no comparativo SPED, mas não executou um teste de ponta a ponta para verificar se essa correção de fato alinhou os valores com a tela de Apuração Mensal, deixando a tarefa principal inacabada e não validada.</analysis>
+-   O agente não realizou um teste de regressão completo após cada alteração na frágil lógica de geração do SPED, levando a um ciclo de correções que introduziam novos bugs.
+-   O bug de usabilidade do seletor de competência no frontend () foi consistentemente adiado.</analysis>
