@@ -50,7 +50,6 @@ const Layout = ({ user, onLogout, children }) => {
   // Navigation items
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
-    { name: 'Upload', href: '/upload', icon: Upload, testId: 'nav-upload' },
     { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
     { name: 'Alertas', href: '/alertas-cfop', icon: AlertTriangle, testId: 'nav-alertas-cfop' },
     { name: 'Validação IA', href: '/classificacao', icon: Brain, testId: 'nav-classificacao' },
