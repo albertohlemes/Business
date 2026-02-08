@@ -9677,7 +9677,18 @@ async def exportar_e_validar_sped(
             diff_valor = abs(round(sistema_cfop['valor'], 2) - round(sped_cfop['valor'], 2))
             diff_icms = abs(round(sistema_cfop['icms'], 2) - round(sped_cfop['icms'], 2))
             
-            status_cfop = 'OK' if diff_valor < 0.01 and diff_icms < 0.01 else 'DIVERGENTE'
+            # Para CFOPs de despesa/uso-consumo, ignorar diferença de ICMS
+            # pois o sistema zera o ICMS (não gera crédito) mas o SPED mostra o valor original
+            is_cfop_sem_credito = cfop in CFOPS_SEM_CREDITO
+            
+            # Status OK se os VALORES batem (divergência de ICMS em CFOPs sem crédito é esperada)
+            if diff_valor < 0.01:
+                if diff_icms < 0.01 or is_cfop_sem_credito:
+                    status_cfop = 'OK'
+                else:
+                    status_cfop = 'ICMS_DIVERGENTE'
+            else:
+                status_cfop = 'DIVERGENTE'
             
             if status_cfop == 'DIVERGENTE':
                 validacao['status'] = 'DIVERGENTE'
