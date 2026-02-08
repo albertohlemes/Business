@@ -52,7 +52,10 @@ Sistema de contabilidade fiscal para escritórios de contabilidade brasileiros, 
 - Download de modelo de importação
 
 ### Preferências de Usuário ✅
-- Menu vertical ou horizontal (salvo por usuário)
+- **Menu flexível**: Botão visível "Horizontal/Vertical" no header
+  - Clique único para alternar entre modos
+  - Preferência salva no localStorage + backend
+  - Persiste após logout/login
 - Persistência via localStorage + backend
 
 ## UI/UX Premium AURION
