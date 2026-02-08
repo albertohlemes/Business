@@ -1071,6 +1071,250 @@ const Documents = ({ user, onLogout }) => {
             </div>
           </div>
         )}
+
+        {/* Modal de Exclusão em Massa */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] w-full max-w-3xl max-h-[90vh] overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                    <Trash2 className="w-5 h-5 text-red-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-medium text-white">Excluir Documentos</h2>
+                    <p className="text-sm text-[#A1A1AA]">
+                      {getTipoConfig()?.label} • {CATEGORIAS[operacao].label} • {selectedCompetencia}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowDeleteModal(false)}
+                  className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              {/* Filtros */}
+              <div className="p-4 border-b border-[#2A2A2A] space-y-4 max-h-[40vh] overflow-y-auto">
+                <p className="text-sm text-[#A1A1AA]">
+                  Configure os filtros para selecionar os documentos a excluir. Deixe em branco para não filtrar.
+                </p>
+                
+                {/* Intervalo de Datas */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-[#A1A1AA] mb-1">Data Inicial</label>
+                    <input
+                      type="date"
+                      value={deleteFilters.dataInicio}
+                      onChange={(e) => setDeleteFilters(prev => ({ ...prev, dataInicio: e.target.value }))}
+                      className="w-full px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white text-sm focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#A1A1AA] mb-1">Data Final</label>
+                    <input
+                      type="date"
+                      value={deleteFilters.dataFim}
+                      onChange={(e) => setDeleteFilters(prev => ({ ...prev, dataFim: e.target.value }))}
+                      className="w-full px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white text-sm focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    />
+                  </div>
+                </div>
+                
+                {/* Intervalo de Notas */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-[#A1A1AA] mb-1">Número Inicial</label>
+                    <input
+                      type="number"
+                      value={deleteFilters.numeroInicio}
+                      onChange={(e) => setDeleteFilters(prev => ({ ...prev, numeroInicio: e.target.value }))}
+                      placeholder="Ex: 1"
+                      className="w-full px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white text-sm placeholder:text-white/20 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[#A1A1AA] mb-1">Número Final</label>
+                    <input
+                      type="number"
+                      value={deleteFilters.numeroFim}
+                      onChange={(e) => setDeleteFilters(prev => ({ ...prev, numeroFim: e.target.value }))}
+                      placeholder="Ex: 1000"
+                      className="w-full px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white text-sm placeholder:text-white/20 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    />
+                  </div>
+                </div>
+                
+                {/* Emitente/Fornecedor */}
+                <div>
+                  <label className="block text-xs text-[#A1A1AA] mb-1">Emitente/Fornecedor</label>
+                  <input
+                    type="text"
+                    value={deleteFilters.emitenteNome}
+                    onChange={(e) => {
+                      setDeleteFilters(prev => ({ ...prev, emitenteNome: e.target.value }));
+                      searchEmitentes(e.target.value);
+                    }}
+                    placeholder="Buscar por nome ou CNPJ..."
+                    className="w-full px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white text-sm placeholder:text-white/20 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                  />
+                  {availableEmitentes.length > 0 && (
+                    <div className="mt-1 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg max-h-32 overflow-y-auto">
+                      {availableEmitentes.map((emit, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setDeleteFilters(prev => ({ ...prev, emitenteNome: emit.nome, emitenteCnpj: emit.cnpj }));
+                            setAvailableEmitentes([]);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm text-white hover:bg-white/5 border-b border-[#2A2A2A] last:border-0"
+                        >
+                          <span className="font-medium">{emit.nome}</span>
+                          <span className="text-[#A1A1AA] ml-2">({emit.cnpj})</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {/* CFOPs */}
+                {availableCfops.length > 0 && (
+                  <div>
+                    <label className="block text-xs text-[#A1A1AA] mb-2">CFOPs</label>
+                    <div className="flex flex-wrap gap-2">
+                      {availableCfops.map(cfop => (
+                        <button
+                          key={cfop}
+                          onClick={() => toggleCfop(cfop)}
+                          className={`px-3 py-1.5 text-sm rounded-lg border transition-all ${
+                            deleteFilters.cfops.includes(cfop)
+                              ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                              : 'bg-[#0C0C0C] border-[#2A2A2A] text-[#A1A1AA] hover:border-[#3A3A3A]'
+                          }`}
+                        >
+                          {cfop}
+                        </button>
+                      ))}
+                    </div>
+                    {deleteFilters.cfops.length > 0 && (
+                      <button
+                        onClick={() => setDeleteFilters(prev => ({ ...prev, cfops: [] }))}
+                        className="mt-2 text-xs text-red-400 hover:underline"
+                      >
+                        Limpar seleção
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {/* Botão Preview */}
+                <button
+                  onClick={previewDelete}
+                  disabled={loadingPreview}
+                  className="w-full py-2.5 bg-[#2A2A2A] text-white rounded-lg font-medium hover:bg-[#3A3A3A] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                >
+                  {loadingPreview ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Buscando...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" />
+                      Visualizar Documentos
+                    </>
+                  )}
+                </button>
+              </div>
+              
+              {/* Preview dos documentos */}
+              {deletePreview && (
+                <div className="p-4 border-b border-[#2A2A2A]">
+                  {/* Resumo */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-red-500/10 rounded-lg px-4 py-2">
+                        <p className="text-2xl font-bold text-red-400">{deletePreview.total_documentos}</p>
+                        <p className="text-xs text-red-400">Documentos</p>
+                      </div>
+                      <div className="bg-[#0C0C0C] rounded-lg px-4 py-2">
+                        <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(deletePreview.total_valor)}</p>
+                        <p className="text-xs text-[#A1A1AA]">Valor Total</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Lista de preview */}
+                  {deletePreview.preview.length > 0 && (
+                    <div className="bg-[#0C0C0C] rounded-lg border border-[#2A2A2A] max-h-48 overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-[#141414] sticky top-0">
+                          <tr>
+                            <th className="text-left px-3 py-2 text-xs text-[#A1A1AA]">Número</th>
+                            <th className="text-left px-3 py-2 text-xs text-[#A1A1AA]">Emitente</th>
+                            <th className="text-left px-3 py-2 text-xs text-[#A1A1AA]">Data</th>
+                            <th className="text-right px-3 py-2 text-xs text-[#A1A1AA]">Valor</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#2A2A2A]">
+                          {deletePreview.preview.map((doc, idx) => (
+                            <tr key={idx} className="hover:bg-white/5">
+                              <td className="px-3 py-2 text-white">{doc.numero_nfe}</td>
+                              <td className="px-3 py-2 text-[#A1A1AA] truncate max-w-[200px]">{doc.emitente_nome}</td>
+                              <td className="px-3 py-2 text-[#A1A1AA]">{formatDate(doc.data_emissao)}</td>
+                              <td className="px-3 py-2 text-right text-[#C8A951]">{formatCurrency(doc.valor_total)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {deletePreview.tem_mais && (
+                        <p className="text-center py-2 text-xs text-[#A1A1AA] border-t border-[#2A2A2A]">
+                          +{deletePreview.total_documentos - 100} documentos não exibidos
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {deletePreview.total_documentos === 0 && (
+                    <p className="text-center py-4 text-[#A1A1AA]">
+                      Nenhum documento encontrado com os filtros selecionados.
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {/* Ações */}
+              <div className="p-4 flex gap-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 py-2.5 bg-[#2A2A2A] text-white rounded-lg font-medium hover:bg-[#3A3A3A] transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={executeDelete}
+                  disabled={!deletePreview || deletePreview.total_documentos === 0 || deleting}
+                  className="flex-1 py-2.5 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                >
+                  {deleting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Excluindo...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      Excluir {deletePreview?.total_documentos || 0} Documento(s)
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
