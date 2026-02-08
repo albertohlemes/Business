@@ -1,0 +1,165 @@
+{
+  "summary": "Testing completed for new Apuração menu restructure: ICMS, ISS, and PIS/COFINS pages. Backend: 27/27 tests passed. All three endpoints working correctly. Frontend: All pages accessible with correct structure and navigation.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "Backend: GET /api/apuracao-icms/{company_id} returns 200 OK",
+    "Backend: ICMS endpoint returns empresa info (razao_social, cnpj, uf)",
+    "Backend: ICMS endpoint returns entradas grouped by CFOP with totais",
+    "Backend: ICMS endpoint returns saidas grouped by CFOP with totais",
+    "Backend: ICMS endpoint returns top_10 (produtos_credito, produtos_debito, ncms_credito, ncms_debito)",
+    "Backend: ICMS endpoint returns apuracao with saldo and situacao (A_PAGAR/A_RECUPERAR/ZERADO)",
+    "Backend: ICMS endpoint CFOP items have correct structure (cfop, valor_total, bc_icms, valor_icms, qtd)",
+    "Backend: ICMS endpoint returns 404 for invalid company",
+    "Backend: ICMS endpoint returns 401 without auth",
+    "Backend: GET /api/apuracao-iss/{company_id} returns 200 OK",
+    "Backend: ISS endpoint returns empresa info",
+    "Backend: ISS endpoint returns resumo (valor_servicos, base_calculo, iss_devido, iss_retido, iss_a_pagar, qtd_notas, aliquota_media)",
+    "Backend: ISS endpoint returns por_codigo_servico list",
+    "Backend: ISS endpoint returns por_tomador list",
+    "Backend: ISS endpoint returns situacao (A_PAGAR/ZERADO/COMPENSADO)",
+    "Backend: ISS endpoint correctly calculates iss_a_pagar = max(0, devido - retido)",
+    "Backend: ISS endpoint returns 404 for invalid company",
+    "Backend: ISS endpoint returns 401 without auth",
+    "Backend: GET /api/pis-cofins/apuracao/{company_id} returns 200 OK",
+    "Backend: PIS/COFINS endpoint returns top_10 field",
+    "Backend: PIS/COFINS endpoint returns por_cfop_cst field",
+    "Backend: PIS/COFINS por_cfop_cst items have correct structure (cfop, cst, tipo, valor_base, valor_pis, valor_cofins, qtd)",
+    "Backend: PIS/COFINS top_10 produto items have correct structure (descricao, ncm, valor_total, qtd)",
+    "Backend: PIS/COFINS top_10 NCM items have correct structure (ncm, valor_total, qtd, produtos)",
+    "Backend: PIS/COFINS endpoint returns both lucro_real and lucro_presumido regimes",
+    "Backend: PIS/COFINS endpoint returns 404 for invalid company",
+    "Backend: Auth login works with test credentials",
+    "Frontend: Navigation menu has ICMS link (data-testid='nav-apuracao-icms')",
+    "Frontend: Navigation menu has ISS link (data-testid='nav-apuracao-iss')",
+    "Frontend: Navigation menu has PIS/COFINS link (data-testid='nav-pis-cofins')",
+    "Frontend: ICMS page accessible at /apuracao-icms",
+    "Frontend: ICMS page shows title 'Apuração ICMS'",
+    "Frontend: ICMS page has ENTRADAS section (data-testid='toggle-entradas')",
+    "Frontend: ICMS page has SAÍDAS section (data-testid='toggle-saidas')",
+    "Frontend: ICMS page has Crédito ICMS card",
+    "Frontend: ICMS page has Débito ICMS card",
+    "Frontend: ICMS page has Demonstrativo de Apuração section",
+    "Frontend: ISS page accessible at /apuracao-iss",
+    "Frontend: ISS page shows title 'Apuração ISS'",
+    "Frontend: ISS page has summary cards (Serviços Prestados, Base de Cálculo, ISS Devido, ISS Retido, ISS a Pagar)",
+    "Frontend: ISS page has Demonstrativo de Apuração section",
+    "Frontend: ISS page has Serviços por Código section",
+    "Frontend: PIS/COFINS page accessible at /pis-cofins",
+    "Frontend: PIS/COFINS page shows title 'PIS e COFINS'",
+    "Frontend: PIS/COFINS page has Tab Apuração (data-testid='tab-apuracao')",
+    "Frontend: PIS/COFINS page has Tab Comparativo (data-testid='tab-comparativo')",
+    "Frontend: PIS/COFINS page has Tab Divergências (data-testid='tab-divergencias')",
+    "Frontend: PIS/COFINS page has Top 10 rankings section"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_apuracao_icms_iss.py",
+    "/app/test_reports/pytest/pytest_apuracao_icms_iss.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "All three endpoints correctly implemented with proper structure",
+    "ICMS endpoint correctly groups by CFOP and calculates Top 10 rankings",
+    "ISS endpoint correctly handles NFSe documents and calculates ISS a pagar",
+    "PIS/COFINS endpoint now includes top_10 and por_cfop_cst as requested",
+    "Navigation menu correctly updated with separate ICMS and ISS links",
+    "All pages have proper data-testid attributes for testing"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_apuracao_icms_iss.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (27/27 tests passed)",
+    "frontend": "100% (all pages accessible and structured correctly)"
+  },
+  
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+  
+  "seed_data_creation": "Used existing company COMERCIAL RS LTDA (d7f30ea1-9df3-4124-a561-12984ffff64b) with competência 01/2026",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Three new features tested: 1) Apuração ICMS at /apuracao-icms with entradas/saídas por CFOP, Top 10 rankings, saldo calculation. 2) Apuração ISS at /apuracao-iss with serviços prestados, ISS devido/retido/a pagar. 3) PIS/COFINS at /pis-cofins now includes top_10 and por_cfop_cst fields. Company COMERCIAL RS LTDA with competência 01/2026 has ICMS data (440 entradas, 4064 saídas). ISS shows zeros because it's a commercial company (no NFSe). Navigation menu updated with separate ICMS and ISS links.",
+  
+  "features_verified": {
+    "apuracao_icms_endpoint": {
+      "status": "WORKING",
+      "returns_entradas_por_cfop": true,
+      "returns_saidas_por_cfop": true,
+      "returns_top_10": true,
+      "returns_saldo": true,
+      "sample_data": {
+        "credito_icms": 2072412.90,
+        "debito_icms": 1939685.03,
+        "saldo": -132727.87,
+        "situacao": "A_RECUPERAR"
+      }
+    },
+    "apuracao_iss_endpoint": {
+      "status": "WORKING",
+      "returns_resumo": true,
+      "returns_por_codigo_servico": true,
+      "returns_por_tomador": true,
+      "returns_situacao": true,
+      "note": "Returns zeros for commercial company (no NFSe documents)"
+    },
+    "pis_cofins_endpoint": {
+      "status": "WORKING",
+      "returns_top_10": true,
+      "returns_por_cfop_cst": true,
+      "sample_data": {
+        "top_10_produtos_credito": 10,
+        "top_10_produtos_debito": 10,
+        "por_cfop_cst_count": 52
+      }
+    },
+    "frontend_pages": {
+      "apuracao_icms": {
+        "route": "/apuracao-icms",
+        "status": "WORKING",
+        "has_cfop_tables": true,
+        "has_totalizadores": true,
+        "has_top_10_rankings": true
+      },
+      "apuracao_iss": {
+        "route": "/apuracao-iss",
+        "status": "WORKING",
+        "has_resumo_cards": true,
+        "has_demonstrativo": true,
+        "has_servicos_por_codigo": true
+      },
+      "pis_cofins": {
+        "route": "/pis-cofins",
+        "status": "WORKING",
+        "has_cfop_cst_section": true,
+        "has_top_10_rankings": true
+      }
+    },
+    "navigation_menu": {
+      "status": "WORKING",
+      "icms_link": "data-testid='nav-apuracao-icms'",
+      "iss_link": "data-testid='nav-apuracao-iss'",
+      "pis_cofins_link": "data-testid='nav-pis-cofins'"
+    }
+  }
+}
