@@ -259,14 +259,14 @@ const Reports = ({ user, onLogout }) => {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-red-700">Crédito PIS</p>
-                  <p className="text-2xl font-bold text-green-700">
+                  <p className="text-sm text-[#A1A1AA]">Crédito PIS</p>
+                  <p className="text-2xl font-bold text-emerald-400">
                     R$ {totals.credito_pis.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-red-700">Crédito COFINS</p>
-                  <p className="text-2xl font-bold text-green-700">
+                  <p className="text-sm text-[#A1A1AA]">Crédito COFINS</p>
+                  <p className="text-2xl font-bold text-emerald-400">
                     R$ {totals.credito_cofins.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
