@@ -1949,9 +1949,9 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
                 '',                                                         # 19 IND_APUR (vazio)
                 cst_ipi,                                                    # 20 CST_IPI
                 '',                                                         # 21 COD_ENQ (vazio)
-                f"{v_bc_ipi:.2f}".replace('.',',') if v_ipi_prod > 0 else '',  # 22 VL_BC_IPI
-                f"{p_ipi:.2f}".replace('.',',') if v_ipi_prod > 0 else '',     # 23 ALIQ_IPI
-                f"{v_ipi_prod:.2f}".replace('.',',') if v_ipi_prod > 0 else '', # 24 VL_IPI
+                f"{v_bc_ipi:.2f}".replace('.',',') if v_ipi_final > 0 else '',  # 22 VL_BC_IPI
+                f"{p_ipi:.2f}".replace('.',',') if v_ipi_final > 0 else '',     # 23 ALIQ_IPI
+                f"{v_ipi_final:.2f}".replace('.',',') if v_ipi_final > 0 else '', # 24 VL_IPI
                 cst_pis,                                                    # 25 CST_PIS
                 f"{bc_pis:.2f}".replace('.',','),                          # 26 VL_BC_PIS
                 f"{aliq_pis:.4f}".replace('.',','),                        # 27 ALIQ_PIS (4 decimais)
