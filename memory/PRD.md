@@ -118,6 +118,16 @@ Sistema de contabilidade fiscal para escritórios de contabilidade brasileiros, 
 
 ## Changelog
 
+### v2.2.0 (09/02/2026)
+- **Nova Navegação de Documentos**: Página redesenhada com estrutura de 3 níveis
+  - Nível 1: Botões ENTRADAS (verde) e SAÍDAS (azul)
+  - Nível 2: Sub-tipos de documentos (NF-e, NFC-e, CT-e, Serviços, Demais)
+  - Nível 3: Lista de documentos com upload integrado
+- Remoção do item de menu "Upload XML" (funcionalidade integrada nas listas)
+- Correção de classes CSS dinâmicas do Tailwind (template literals não funcionavam)
+- Todos os data-testid implementados para automação de testes
+- Persistência correta do estado da empresa durante navegação
+
 ### v2.1.0 (08/02/2026)
 - Todas as páginas atualizadas com tema AURION premium
 - Importação em lote de empresas via Excel/CSV
