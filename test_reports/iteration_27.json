@@ -1,0 +1,102 @@
+{
+  "summary": "Frontend testing completed for Documents page navigation redesign. All 10 test cases passed. The new 3-level navigation (Operação → Tipo → Lista) works correctly with ENTRADAS/SAÍDAS buttons, sub-type selection, document lists with integrated upload, and back navigation.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Login with credentials admin@test.com / 123456 - PASSED",
+    "Navigation to /documents page - PASSED",
+    "Company selection in CompanySelector modal - PASSED",
+    "ENTRADAS and SAÍDAS buttons visible on main screen - PASSED",
+    "ENTRADAS click shows sub-types (NF-e, Serviços Tomados, CT-e, Demais Documentos) - PASSED",
+    "NF-e entrada list with integrated upload button (green) - PASSED",
+    "Back button navigation between levels - PASSED",
+    "SAÍDAS click shows sub-types (NF-e, NFC-e, CT-e, Serviços Prestados) - PASSED",
+    "NF-e saída list with integrated upload button (blue) - PASSED",
+    "Company state persistence during navigation - PASSED"
+  ],
+
+  "test_report_links": [],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "All data-testid attributes correctly implemented: btn-entradas, btn-saidas, btn-tipo-nfe, btn-tipo-nfce, btn-tipo-cte, btn-tipo-servicos_tomados, btn-tipo-servicos_prestados, btn-tipo-outros, btn-upload, documents-page, documents-tipos, documents-list",
+    "Dynamic Tailwind CSS classes issue was fixed by using static conditional classes instead of template literals",
+    "Company state correctly persisted via localStorage (selectedCompanyId, selectedCompetencia)",
+    "React Context (AppContext) properly manages global state for company selection"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "100%"
+  },
+
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+
+  "seed_data_creation": "Used existing company COMERCIAL RS LTDA (#6026) with competência 02/2026",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Documents page navigation redesign verified. The page now has 3-level navigation: 1) Main page with ENTRADAS/SAÍDAS buttons, 2) Sub-types selection (NF-e, NFC-e, CT-e, Serviços), 3) Document list with integrated upload. All data-testid attributes are in place for automated testing.",
+
+  "ui_verification": {
+    "main_page": {
+      "title": "Documentos Fiscais",
+      "company_display": "COMERCIAL RS LTDA • Competência: 02/2026",
+      "entradas_button": {
+        "icon": "ArrowDownCircle (green)",
+        "label": "ENTRADAS",
+        "subtitle": "Compras e Aquisições",
+        "data_testid": "btn-entradas"
+      },
+      "saidas_button": {
+        "icon": "ArrowUpCircle (blue)",
+        "label": "SAÍDAS",
+        "subtitle": "Vendas e Prestações",
+        "data_testid": "btn-saidas"
+      }
+    },
+    "entradas_tipos": {
+      "nfe": {"label": "NF-e", "data_testid": "btn-tipo-nfe"},
+      "servicos_tomados": {"label": "Serviços Tomados", "data_testid": "btn-tipo-servicos_tomados"},
+      "cte": {"label": "CT-e", "data_testid": "btn-tipo-cte"},
+      "outros": {"label": "Demais Documentos", "hint": "Energia, Internet, etc.", "data_testid": "btn-tipo-outros"}
+    },
+    "saidas_tipos": {
+      "nfe": {"label": "NF-e", "data_testid": "btn-tipo-nfe"},
+      "nfce": {"label": "NFC-e", "data_testid": "btn-tipo-nfce"},
+      "cte": {"label": "CT-e", "data_testid": "btn-tipo-cte"},
+      "servicos_prestados": {"label": "Serviços Prestados", "data_testid": "btn-tipo-servicos_prestados"}
+    },
+    "document_list": {
+      "upload_button": {"label": "Importar XML", "data_testid": "btn-upload"},
+      "search_bar": "Buscar por número, emitente, CNPJ...",
+      "back_button": "ArrowLeft icon",
+      "badge": "Shows 'Entradas' (green) or 'Saídas' (blue)"
+    },
+    "company_selector_modal": {
+      "opens_from_header": true,
+      "shows_company_list": true,
+      "shows_competencia_input": true,
+      "shows_sieg_integration": true,
+      "confirm_button": true
+    }
+  }
+}
