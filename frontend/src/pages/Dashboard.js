@@ -386,33 +386,33 @@ const Dashboard = ({ user, onLogout }) => {
 
             {/* Indicadores */}
             <div>
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Indicadores</h2>
+              <h2 className="text-lg font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>Indicadores</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <div className="bg-[#141414] rounded-lg p-5 border border-[#2A2A2A]">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
-                      <Percent className="w-6 h-6 text-teal-600" />
+                    <div className="w-12 h-12 bg-teal-500/10 rounded-lg flex items-center justify-center">
+                      <Percent className="w-6 h-6 text-teal-400" />
                     </div>
                     <div>
-                      <h4 className="text-sm text-gray-600">Markup Médio</h4>
-                      <p className="text-2xl font-bold text-gray-900">{formatPercent(stats.indicadores.markup_percentual)}</p>
+                      <h4 className="text-sm text-[#A1A1AA]">Markup Médio</h4>
+                      <p className="text-2xl font-bold text-white">{formatPercent(stats.indicadores.markup_percentual)}</p>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-3">
+                  <p className="text-xs text-[#A1A1AA] mt-3">
                     Calculado com base nas entradas x faturamento
                   </p>
                 </div>
                 
                 <Link to="/reports" className="block">
-                  <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:border-gray-300 transition-colors">
+                  <div className="bg-[#141414] rounded-lg p-5 border border-[#2A2A2A] hover:border-[#C8A951]/30 transition-colors">
                     <div className="flex items-center gap-3">
-                      <TrendingUp className="w-12 h-12 bg-blue-100 rounded-lg p-2 text-blue-600" />
+                      <TrendingUp className="w-12 h-12 bg-blue-500/10 rounded-lg p-2 text-blue-400" />
                       <div>
-                        <h4 className="text-sm text-gray-600">Relatórios</h4>
-                        <p className="text-lg font-bold text-gray-900">Ver Relatórios</p>
+                        <h4 className="text-sm text-[#A1A1AA]">Relatórios</h4>
+                        <p className="text-lg font-bold text-white">Ver Relatórios</p>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-3">
+                    <p className="text-xs text-[#A1A1AA] mt-3">
                       Relatórios por produto e NCM
                     </p>
                   </div>
