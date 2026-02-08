@@ -304,6 +304,10 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
   - Valores de débito de PIS/COFINS agora são idênticos em todas as telas
   - Cálculo feito sobre a base total acumulada (não por produto)
   - Endpoints alinhados: `/api/dashboard/stats`, `/api/apuracao-periodo`, `/api/apuracao-pis-cofins`
+- [x] **Consistência Apuração Mensal vs Validação SPED** - ✅ CONCLUÍDO (08/02/2026)
+  - Valores agora são 100% idênticos entre as duas telas
+  - Notas canceladas e desconsideradas excluídas corretamente
+- [ ] Corrigir bug do seletor de competência (reverte para mês atual)
 - [ ] Finalizar e testar a funcionalidade de exportação do **SPED Fiscal**
 - [ ] Barras de pesquisa nas páginas Documentos e Validação (UI adicionada, lint corrigido)
 - [ ] Hiperlink da NF deve abrir documento específico
