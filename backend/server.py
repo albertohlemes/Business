@@ -2179,6 +2179,169 @@ async def login(credentials: UserLogin):
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 
+@api_router.put("/auth/me/preferences")
+async def update_preferences(prefs: dict, current_user: User = Depends(get_current_user)):
+    """Update user preferences (menu mode, etc.)"""
+    update_data = {}
+    if prefs.get("menu_mode"):
+        update_data["preferences.menu_mode"] = prefs["menu_mode"]
+    
+    if update_data:
+        await db.users.update_one(
+            {"id": current_user.id},
+            {"$set": update_data}
+        )
+    
+    return {"status": "ok", "preferences": {"menu_mode": prefs.get("menu_mode") or "vertical"}}
+
+# ========== GESTÃO DE USUÁRIOS (APENAS MASTER/ADMIN) ==========
+
+def check_master_or_admin(user: User):
+    """Verifica se o usuário tem permissão de Master ou Admin"""
+    allowed_roles = ["super_admin", "master", "admin"]
+    if user.role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Acesso negado. Apenas Master ou Admin podem realizar esta ação.")
+
+@api_router.get("/auth/users")
+async def list_users(
+    current_user: User = Depends(get_current_user),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500)
+):
+    """List all users (only for Master/Admin)"""
+    check_master_or_admin(current_user)
+    
+    users = await db.users.find(
+        {},
+        {"_id": 0, "password_hash": 0}
+    ).skip(skip).limit(limit).to_list(limit)
+    
+    total = await db.users.count_documents({})
+    
+    return {"users": users, "total": total}
+
+@api_router.post("/auth/users")
+async def create_user(
+    user_data: UserCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new user (only for Master/Admin)"""
+    check_master_or_admin(current_user)
+    
+    existing = await db.users.find_one({"email": user_data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email já cadastrado")
+    
+    user = User(
+        email=user_data.email,
+        name=user_data.name,
+        role=user_data.role,
+        company_ids=user_data.company_ids
+    )
+    user_dict = user.model_dump()
+    user_dict["password_hash"] = get_password_hash(user_data.password)
+    user_dict["created_by"] = current_user.id
+    user_dict["is_active"] = True
+    user_dict["preferences"] = {"menu_mode": "vertical"}
+    user_dict["created_at"] = user_dict["created_at"].isoformat()
+    
+    await db.users.insert_one(user_dict)
+    
+    # Return without password_hash
+    del user_dict["password_hash"]
+    return user_dict
+
+@api_router.get("/auth/users/{user_id}")
+async def get_user(
+    user_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific user (only for Master/Admin)"""
+    check_master_or_admin(current_user)
+    
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    return user
+
+@api_router.put("/auth/users/{user_id}")
+async def update_user(
+    user_id: str,
+    user_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Update a user (only for Master/Admin)"""
+    check_master_or_admin(current_user)
+    
+    existing = await db.users.find_one({"id": user_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    # Prevent changing Super Admin role by non-Super Admin
+    if existing.get("role") == "super_admin" and current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Apenas Super Admin pode modificar outro Super Admin")
+    
+    update_data = {}
+    for key in ["name", "role", "company_ids", "is_active", "preferences"]:
+        if key in user_data and user_data[key] is not None:
+            update_data[key] = user_data[key]
+    
+    if update_data:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": update_data}
+        )
+    
+    updated = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+    return updated
+
+@api_router.delete("/auth/users/{user_id}")
+async def delete_user(
+    user_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Deactivate a user (only for Master/Admin)"""
+    check_master_or_admin(current_user)
+    
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Você não pode desativar a si mesmo")
+    
+    existing = await db.users.find_one({"id": user_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    # Prevent deactivating Super Admin by non-Super Admin
+    if existing.get("role") == "super_admin" and current_user.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Apenas Super Admin pode desativar outro Super Admin")
+    
+    # Soft delete - just deactivate
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"is_active": False}}
+    )
+    
+    return {"status": "ok", "message": "Usuário desativado com sucesso"}
+
+@api_router.post("/auth/users/{user_id}/reactivate")
+async def reactivate_user(
+    user_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Reactivate a deactivated user (only for Master/Admin)"""
+    check_master_or_admin(current_user)
+    
+    existing = await db.users.find_one({"id": user_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"is_active": True}}
+    )
+    
+    return {"status": "ok", "message": "Usuário reativado com sucesso"}
+
 @api_router.delete("/companies/{company_id}")
 async def delete_company(company_id: str, current_user: User = Depends(get_current_user)):
     if current_user.role != UserRole.ADMIN:
