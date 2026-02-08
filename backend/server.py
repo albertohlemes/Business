@@ -9474,17 +9474,19 @@ async def exportar_e_validar_sped(
             
             sistema_totais[tipo]['total_valor'] += valor
             
-            # Aplicar lógica de exclusão de créditos de despesa/ST
-            if tipo == 'entradas' and excluir_creditos_despesa_st and cfop in CFOPS_SEM_CREDITO:
-                pass  # Não conta o ICMS de despesa/ST
-            else:
-                sistema_totais[tipo]['total_icms'] += v_icms
+            # Aplicar lógica de exclusão de créditos de despesa/ST - IGUAL ao SPED
+            # CFOPs de ST e Despesa não geram crédito de ICMS
+            icms_para_comparacao = v_icms
+            if tipo == 'entradas' and cfop in CFOPS_SEM_CREDITO:
+                icms_para_comparacao = 0  # Zerar ICMS igual ao SPED
+            
+            sistema_totais[tipo]['total_icms'] += icms_para_comparacao
             
             if cfop not in sistema_totais[tipo]['por_cfop']:
                 sistema_totais[tipo]['por_cfop'][cfop] = {'valor': 0, 'icms': 0, 'qtd': 0}
             
             sistema_totais[tipo]['por_cfop'][cfop]['valor'] += valor
-            sistema_totais[tipo]['por_cfop'][cfop]['icms'] += v_icms
+            sistema_totais[tipo]['por_cfop'][cfop]['icms'] += icms_para_comparacao
             sistema_totais[tipo]['por_cfop'][cfop]['qtd'] += 1
     
     # Parse das linhas do SPED para extrair C100 e E110
