@@ -1,147 +1,175 @@
 <analysis>**original_problem_statement:**
-O usuário iniciou com a necessidade de corrigir a geração de arquivos SPED Fiscal, que apresentava valores incorretos para notas com IPI, descontos e devolução de IPI. Após a correção bem-sucedida desse problema crítico, o usuário solicitou uma série de melhorias de usabilidade e funcionalidade no frontend, incluindo:
-1.  Agrupar produtos na tela de Validação IA por categorias de operação (Bonificação, Devolução, etc.), em vez de mostrá-los como Pendente.
-2.  Corrigir a exibição de falsas divergências na tela de exportação.
-3.  Implementar uma funcionalidade de correção em lote para itens com inconsistências de CST na tela de exportação.
+O usuário iniciou com a necessidade de corrigir a geração de arquivos SPED Fiscal, que apresentava valores incorretos. Após a correção, o usuário solicitou uma grande refatoração e rebranding da aplicação, transformando-a em um produto comercial chamado AURION. As principais solicitações incluem:
+1.  **Rebranding Completo**: Mudar o nome para AURION, criar uma nova identidade visual premium (tema escuro com detalhes em dourado) e aplicá-la em toda a aplicação.
+2.  **Sistema de Perfis de Usuário**: Implementar dois níveis de acesso: Master (vê todas as empresas) e Operacional (vê apenas as empresas às quais está atribuído).
+3.  **Melhorias de UI/UX**:
+    *   Otimizar a listagem de empresas para um formato de tabela mais prático.
+    *   Criar uma funcionalidade de importação de empresas em lote.
+    *   Tornar o menu de navegação flexível, permitindo que o usuário alterne entre os modos vertical e horizontal.
+    *   Redesenhar completamente a página Documentos com uma nova navegação baseada em Entradas e Saídas, integrando a funcionalidade de upload em cada subcategoria.
 
 **User's preferred language**:
 Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-É uma aplicação full-stack de contabilidade fiscal (Business Contabilidade) com frontend em React e backend em FastAPI. O núcleo da aplicação, a geração de SPED Fiscal, foi estabilizado. O foco recente foi em melhorias de UI/UX, resultando em:
--   Uma tela de Validação IA () que agrupa produtos dinamicamente por natureza de operação fiscal (ex: Revenda, Despesa, Bonificação).
--   Uma tela de Exportação () que compara corretamente os totais do sistema com o SPED gerado e agora inclui uma funcionalidade para correção em lote de itens pendentes.
+É uma aplicação full-stack de contabilidade fiscal chamada AURION, com frontend em React e backend em FastAPI. A aplicação passou por um rebranding completo, adotando um tema escuro premium com detalhes em dourado. As funcionalidades implementadas incluem:
+-   **Sistema de Perfis**: Backend e frontend para gerenciamento de usuários com perfis Master e Operacional.
+-   **Gerenciamento de Empresas**: Uma página de empresas redesenhada em formato de tabela, com filtros e uma funcionalidade para importação em lote via arquivos XLSX.
+-   **Layout Flexível**: O menu principal pode ser alternado entre vertical (sidebar) e horizontal (top-bar), e a preferência do usuário é salva.
+-   **Navegação de Documentos (Em Andamento)**: A página Documentos foi redesenhada para apresentar dois botões principais (ENTRADAS e SAÍDAS), removendo o antigo item de menu Upload XML. A implementação da navegação secundária está em andamento.
 
 **Last working item**:
--   **Last item agent was working**: Implementação da funcionalidade de **correção em lote** na tela de Exportação (). O agente adicionou checkboxes para seleção de itens, um checkbox mestre para selecionar todos e botões para aplicar a ação Manter em todos os itens ou apenas nos selecionados.
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: Y (Verificação visual via screenshots que confirmam a presença e a interatividade dos novos elementos de UI, como checkboxes e botões condicionais).
--   **Which testing method agent to use?**: frontend testing agent. O agente de teste deve ser instruído a:
-    1.  Navegar para a tela de Exportação e verificar a presença da tabela Itens com ICMS Zerado.
-    2.  Clicar no checkbox do cabeçalho para selecionar todos os itens e verificar se o botão Manter Selecionados é atualizado com a contagem correta.
-    3.  Desmarcar todos, selecionar 2-3 itens individualmente e verificar se as linhas são destacadas e se o botão de ação em lote é atualizado.
-    4.  Clicar no botão Manter Selecionados e verificar se uma chamada de API () é disparada e se os itens selecionados são removidos da lista na UI após a ação.
+-   **Last item agent was working**: Implementação da nova navegação na página . O agente implementou os botões principais ENTRADAS e SAÍDAS. O trabalho foi interrompido ao tentar testar a funcionalidade de clique nesses botões para exibir os sub-botões (NF-e, CT-e, etc.). O teste falhou porque o estado de empresa selecionada foi perdido entre as interações.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N (O teste falhou.)
+-   **Which testing method agent to use?**: frontend testing agent. O agente de teste deve ser instruído a validar o fluxo completo na página Documentos:
+    1.  Fazer login e navegar para Documentos.
+    2.  Selecionar uma empresa.
+    3.  Verificar se os botões ENTRADAS e SAÍDAS estão visíveis.
+    4.  Clicar em ENTRADAS e verificar se os sub-botões (NF-e, Serviços Tomados, etc.) aparecem.
+    5.  Clicar em um sub-botão e verificar se a lista de documentos e a funcionalidade de upload integrada são exibidas.
+    6.  Repetir os passos 4 e 5 para SAÍDAS.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0)**: Validação da funcionalidade de correção em lote.
--   **Issue 2 (P1)**: Bug de usabilidade no seletor de competência/empresa.
+-   **Issue 1 (P0)**: Funcionalidade de navegação na página  está incompleta e com bugs.
+-   **Issue 2 (P1)**: Instabilidade potencial no seletor de competência/empresa ().
 
 **Issues Detail**:
 -   **Issue 1**:
-    -   **Description**: A funcionalidade de correção em lote na tela de exportação foi implementada, mas precisa ser validada pelo usuário para garantir que atende às suas expectativas e que a lógica de negócio está correta.
-    -   **Attempted fixes**: N/A (recurso novo).
+    -   **Description**: A nova navegação na página  não funciona como esperado. Ao tentar testar o clique no botão ENTRADAS, a ação falhou porque o contexto da empresa selecionada foi perdido. A lógica para exibir os sub-botões, a lista de documentos e o upload integrado ainda precisa ser totalmente implementada e corrigida.
+    -   **Attempted fixes**: A página foi redesenhada e o teste inicial falhou.
     -   **Next debug checklist**:
-        1.  Aguardar o feedback do usuário.
-        2.  Se o usuário reportar problemas, usar o  com o cenário descrito em Last working item para depurar o fluxo de seleção e a chamada à API.
-        3.  Verificar os logs do backend após a ação para garantir que os dados corretos estão sendo recebidos e processados pelo endpoint .
-    -   **Why fix this issue and what will be achieved with the fix?**: Finalizar a implementação de uma melhoria de QoL (Qualidade de Vida) muito solicitada pelo usuário.
-    -   **Status**: USER VERIFICATION PENDING
+        1.  Analisar o gerenciamento de estado em  e  para garantir que a  persista.
+        2.  Corrigir o script de teste para lidar com a seleção da empresa de forma robusta.
+        3.  Implementar a lógica de estado (, ) para renderizar condicionalmente os sub-botões e as visualizações de lista/upload.
+        4.  Finalizar a interface para cada subcategoria de documento, incluindo a funcionalidade de upload.
+    -   **Why fix this issue and what will be achieved with the fix?**: É a implementação de uma melhoria de fluxo de trabalho solicitada diretamente pelo usuário.
+    -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on other issue**: None
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on other issue**: Potencialmente no Issue 2.
 
 -   **Issue 2**:
-    -   **Description**: O seletor de empresa e competência () é instável. Frequentemente, ele reverte a seleção para o mês/ano atual, forçando o agente (e o usuário) a re-selecionar a competência correta a cada teste, o que é ineficiente e frustrante.
-    -   **Attempted fixes**: Nenhum. Este problema foi identificado no início, mas nunca priorizado. O agente contornou o problema repetidamente.
+    -   **Description**: O componente  tem um histórico de instabilidade, revertendo a seleção do usuário e dificultando os testes. Embora tenha sido redesenhado, a lógica de estado subjacente não foi explicitamente validada. A falha no teste do Issue 1 pode ser um sintoma deste problema.
+    -   **Attempted fixes**: Nenhuma. O componente foi apenas reestilizado.
     -   **Next debug checklist**:
-        1.  Analisar o gerenciamento de estado em  e a interação com o componente .
-        2.  Verificar como a  e  são persistidas e atualizadas.
-        3.  Garantir que, após a confirmação no modal, o estado global seja atualizado e mantido durante a navegação entre as páginas.
-    -   **Why fix this issue and what will be achieved with the fix?**: Melhorar drasticamente a usabilidade da aplicação e a eficiência dos testes para o usuário e para futuros agentes.
+        1.  Revisar a lógica em  e .
+        2.  Verificar como o estado da empresa e competência é persistido (ex: ) e se ele se mantém de forma consistente durante a navegação.
+        3.  Reforçar o gerenciamento de estado para evitar perdas inesperadas.
+    -   **Why fix this issue and what will be achieved with the fix?**: Aumenta a usabilidade geral da aplicação e a eficiência do desenvolvimento e dos testes.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on other issue**: None
 
 **In progress Task List**:
-Nenhum.
+-   **Task 1 (P0)**: Concluir a nova navegação de documentos em .
+    -   **Where to resume**: Corrigir o problema de perda de estado que fez o último teste falhar e, em seguida, implementar a renderização dos sub-botões e das visualizações de lista/upload.
+    -   **What will be achieved with this?**: Finalizará a experiência de usuário solicitada para o gerenciamento de documentos.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on something**: Potencialmente no Issue 2 (instabilidade do ).
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P1) Corrigir o bug de usabilidade no  (Issue 2).
-    -   (P2) Criar uma tela de configuração para permitir que o usuário gerencie a lista de CFOPs de devolução.
+    -   (P1) Criar uma tela de configuração para permitir que o usuário gerencie a lista de CFOPs de devolução.
     -   (P2) Adicionar um indicador visual na página de documentos para notas de mesma empresa.
 -   **Future Tasks:**
-    -   (P2) Refatorar o monolito  em uma arquitetura baseada em módulos para melhorar a manutenibilidade.
+    -   Refatorar o monolito  em uma arquitetura baseada em módulos (routers).
+    -   Implementar um sistema de licenças comerciais.
+    -   Criar um dashboard de estatísticas do escritório para o perfil Master.
 
 **Completed work in this session**
--   **Correção Crítica - Geração do SPED Fiscal**: Resolvido o problema recorrente de valores incorretos no SPED. A lógica em  foi ajustada para calcular corretamente o  e  em todos os cenários reportados: entradas com IPI, entradas com desconto e saídas com devolução de IPI (evitando duplicação).
--   **Melhoria - Agrupamento na Validação IA**: A tela  foi modificada para agrupar produtos por categorias de operação fiscal (Bonificação, Devolução, Remessa, etc.) com base no CFOP e no campo , eliminando a categoria Pendente.
--   **Correção - Falsas Divergências na Exportação**: Ajustado o endpoint de validação em  para parsear corretamente os campos do SPED (índice do VL_IPI corrigido) e para não marcar como divergência as diferenças de ICMS que são intencionais (devido a regras de crédito fiscal), resolvendo o problema na tela .
--   **Recurso - Correção em Lote**: Implementada a funcionalidade de seleção e correção em lote para itens com ICMS zerado na tela .
+-   **Rebranding para AURION**: Implementação de nova identidade visual (logo, tema escuro com dourado) em toda a aplicação.
+-   **Sistema de Perfis de Usuário**: Criação dos perfis Master e Operacional no backend (, ) e frontend ().
+-   **Otimização da Lista de Empresas e Importação**: Página  redesenhada para uma lista otimizada e adição de funcionalidade de importação em lote de empresas via XLSX.
+-   **Menu de Navegação Flexível**: Implementação de um menu que alterna entre vertical e horizontal (), com a preferência salva por usuário.
+-   **Início da Refatoração da Página de Documentos**: Remoção do item de menu Upload XML e criação da estrutura inicial da nova navegação em .
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1**: O bug de usabilidade no seletor de empresa/competência () foi mencionado no handoff inicial e persistiu durante toda a sessão, mas nunca foi abordado.
+-   **Issue 1**: A instabilidade do , um problema recorrente que causa perda de estado e nunca foi fundamentalmente corrigido, apenas reestilizado.
 
 **Known issue recurrence from previous fork**
--   A inconsistência de valores no SPED foi o problema recorrente que foi **finalmente resolvido** nesta sessão.
+-   O bug de usabilidade do  é um problema recorrente que persiste desde o fork anterior e ainda não foi resolvido.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend**: React, React Context API, TailwindCSS
--   **Backend**: FastAPI, Motor (MongoDB assíncrono)
--   **Data Exchange**: Geração, parsing e validação de arquivos SPED Fiscal.
+-   **Frontend**: React, React Context API, TailwindCSS,  para parsing de arquivos.
+-   **Backend**: FastAPI, Motor (MongoDB assíncrono), Pydantic.
+-   **Arquitetura**: Full-stack com backend monolítico e frontend baseado em componentes.
 
 **key DB schema**
--   ****: Armazena dados dos XMLs. Campos chave para as últimas funcionalidades: , , .
+-   ****: Adicionados campos , , .
+-   ****: Adicionado campo  para vincular usuários.
 
 **changes in tech stack**
-Nenhuma.
+-   **Dependência de Frontend Adicionada**: , para a funcionalidade de importação em lote.
 
 **All files of reference**
--   : Arquivo central onde a lógica do SPED e da validação foi corrigida. Funções relevantes: , .
--   : Onde o agrupamento dinâmico foi implementado.
--   : Onde a correção da exibição de divergências e a funcionalidade de correção em lote foram implementadas.
--   : Arquivo que contém o bug de usabilidade pendente.
+-   : Principal arquivo de backend, modificado para incluir toda a lógica de perfis e gerenciamento de empresas.
+-   : Schemas Pydantic atualizados para  e .
+-   : Completamente redesenhado para a nova identidade visual e menu flexível.
+-   : Redesenhado e com nova funcionalidade de importação.
+-   : Nova página criada para gerenciamento de usuários.
+-   : Arquivo sobrescrito com a nova estrutura de navegação, atualmente em desenvolvimento.
+-   : Diretrizes de design geradas para o rebranding.
+-   : Documento de requisitos do produto, atualizado ao longo da sessão.
 
 **Areas that need refactoring**:
--    continua sendo um monolito de mais de 9000 linhas, necessitando de uma refatoração para uma arquitetura modular.
+-   O arquivo  é um monolito. A lógica de autenticação e de empresas deveria ser movida para os arquivos  e  para melhorar a manutenibilidade.
+-   A estilização do frontend foi feita com muitas substituições de classes CSS. Seria mais eficiente e limpo abstrair estilos em  ou em componentes reutilizáveis.
 
 **key api endpoints**
--   : Endpoint central para a tela de exportação. Sua lógica de validação () foi significativamente alterada.
--   : Endpoint (implícito) criado para suportar a nova funcionalidade de correção em lote.
+-   : Criar um novo usuário.
+-   : Listar todos os usuários.
+-   : Atualizar um usuário.
+-   : Listar empresas (com filtro baseado no perfil do usuário).
+-   : Criar uma empresa (agora aceita ).
+-   : Salvar preferências do usuário (ex: layout do menu).
 
 **Critical Info for New Agent**
--   O problema mais crítico (geração do SPED) foi resolvido e confirmado pelo usuário. A confiança do usuário foi restaurada.
--   O foco agora é em Qualidade de Vida (QoL) e usabilidade. Priorize o feedback do usuário.
--   O bug no  é um problema de baixa prioridade funcional, mas de alta prioridade para eficiência de desenvolvimento e testes. Corrigi-lo irá acelerar futuros trabalhos.
--   Ao trabalhar no frontend, lembre-se que o hot-reload pode não ser 100% confiável. Se uma alteração não refletir, considere forçar um rebuild (yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.) e reiniciar o serviço (frontend: ERROR (not running)
-frontend: started).
+-   O foco principal do usuário mudou de correções de bugs para a construção de um produto comercial completo (AURION), com forte ênfase na identidade visual e na experiência do usuário.
+-   A prioridade máxima é finalizar a nova navegação na página .
+-   Esteja ciente da possível instabilidade do . Se ocorrerem problemas de perda de estado, a correção deste componente pode ser necessária para avançar.
+-   O trabalho no backend foi feito de forma rápida, adicionando lógica diretamente ao . Considere refatorar isso para os arquivos de roteador apropriados para melhorar a organização do código.
 
 **documents and test reports created in this job**
-Nenhum documento ou relatório permanente foi criado, mas múltiplos arquivos SPED temporários foram gerados em  para fins de depuração.
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **(Usuário)** Solicita a funcionalidade de correção em lote para divergências de CST na tela de exportação. (EM ANDAMENTO)
-9.  **(Usuário)** Confirma que a tela de exportação está correta, mas que as divergências de CST são um ponto de melhoria.
-8.  **(Usuário)** Aponta que a tela de exportação está mostrando divergências de valor que não existem na realidade. (RESOLVIDO)
-7.  **(Usuário)** Confirma que o agrupamento na tela de Validação IA está perfeito e sem a categoria Pendente.
-6.  **(Usuário)** Fornece feedback sobre a primeira versão do agrupamento: quer categorias mais distintas e questiona a permanência da categoria Pendente. (RESOLVIDO)
-5.  **(Usuário)** Confirma que o bug de IPI duplicado no SPED foi resolvido e está PERFEITO!, e então solicita a melhoria de agrupamento na tela de Validação IA. (RESOLVIDO)
-4.  **(Usuário)** Reporta um novo bug: IPI duplicando em notas de saída no SPED gerado. (RESOLVIDO)
-3.  **(Usuário)** Pendente: Aguardando a verificação da nova funcionalidade de correção em lote.
+10. **(Usuário)** Perfeito! O menu horizontal/vertical está excelente. **(Concluído)**
+9.  **(Usuário)** Agora, vamos melhorar a navegação em Documentos. Quero botões para ENTRADAS e SAÍDAS, que abrem sub-botões para cada tipo de documento (NF-e, etc.). O upload deve ser integrado, e o menu Upload principal removido. **(Em andamento)**
+8.  **(Usuário)** O layout horizontal está desalinhado. Coloque a logo em cima e o menu abaixo. **(Concluído)**
+7.  **(Usuário)** Não encontro o botão para voltar o menu para vertical. **(Concluído)**
+6.  **(Usuário)** Você ainda não implementou o menu flexível (vertical/horizontal). **(Concluído)**
+5.  **(Usuário)** Gostei, mas algumas páginas ainda estão com cores antigas. Também precisamos de um cadastro/importação de empresas em lote. **(Concluído)**
+4.  **(Usuário)** Confirma a estrutura de usuários e define como prioridade. **(Concluído)**
+3.  **(Agente)** Pergunta para confirmar a estrutura de perfis e permissões.
+2.  **(Usuário)** Solicita o rebranding completo para AURION e uma série de novas funcionalidades (perfis, lista de empresas, menu flexível). **(Concluído/Em andamento)**
+1.  **(Agente)** Sugere pensar em melhorias antes da publicação.
 
 **Project Health Check:**
 -   **Broken**:
-    -   O seletor de empresa/competência () é instável e prejudica a usabilidade.
+    -   A nova navegação na página  está incompleta e quebra durante o teste.
 
 **3rd Party Integrations**
 -   LiteLLM (GPT-4o): Usado para classificação de produtos.
+-   : Biblioteca de frontend para parsing de arquivos Excel.
 
 **Testing status**
 -   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: Nenhuma regressão conhecida no final da sessão. O agente foi cuidadoso em re-testar cenários após cada correção.
+-   **Known regressions**: A instabilidade do  é uma preocupação e pode estar causando problemas de perda de estado.
 
 **Credentials to test flow:**
 -   **Email**: 
 -   **Senha**: 
 
 **What agent forgot to execute**
--   O agente não corrigiu o bug de usabilidade do , que foi identificado no handoff inicial e persistiu, causando lentidão nos testes.
--   As outras tarefas da lista Upcoming Tasks do handoff anterior (tela de config de CFOP, indicador de mesma empresa) não foram iniciadas.</analysis>
+-   O agente não corrigiu a causa raiz do problema de instabilidade do .
+-   O agente criou arquivos de roteador no backend, mas não os utilizou, mantendo toda a lógica no monolito .</analysis>
