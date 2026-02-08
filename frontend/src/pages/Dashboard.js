@@ -423,24 +423,24 @@ const Dashboard = ({ user, onLogout }) => {
             {/* Análise Comparativa Lucro Presumido vs. Lucro Real */}
             {stats.analise_comparativa && (
               <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Scale className="w-5 h-5 text-indigo-600" />
+                <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                  <Scale className="w-5 h-5 text-purple-400" />
                   Análise Comparativa: {stats.empresa.regime_tributario === 'lucro_presumido' ? 'Presumido vs. Real' : 'Real vs. Presumido'}
                 </h2>
                 
-                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 overflow-hidden">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-0 md:divide-x divide-indigo-200">
+                <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-0 md:divide-x divide-[#2A2A2A]">
                     {/* Regime Atual */}
                     <div className="p-5">
                       <div className="flex items-center gap-2 mb-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                           stats.analise_comparativa.regime_atual === 'lucro_presumido' 
-                            ? 'bg-blue-600 text-white' 
-                            : 'bg-green-600 text-white'
+                            ? 'bg-blue-500 text-white' 
+                            : 'bg-emerald-500 text-white'
                         }`}>
                           REGIME ATUAL
                         </span>
-                        <span className="text-sm font-medium text-gray-700">
+                        <span className="text-sm font-medium text-[#A1A1AA]">
                           {stats.analise_comparativa.regime_atual === 'lucro_presumido' ? 'Lucro Presumido' : 'Lucro Real'}
                         </span>
                       </div>
@@ -448,36 +448,36 @@ const Dashboard = ({ user, onLogout }) => {
                       {stats.analise_comparativa.regime_atual === 'lucro_presumido' ? (
                         <div className="space-y-3">
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">PIS (0.65%):</span>
-                            <span className="font-medium">{formatCurrency(stats.analise_comparativa.lucro_presumido.pis)}</span>
+                            <span className="text-[#A1A1AA]">PIS (0.65%):</span>
+                            <span className="font-medium text-white">{formatCurrency(stats.analise_comparativa.lucro_presumido.pis)}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">COFINS (3%):</span>
-                            <span className="font-medium">{formatCurrency(stats.analise_comparativa.lucro_presumido.cofins)}</span>
+                            <span className="text-[#A1A1AA]">COFINS (3%):</span>
+                            <span className="font-medium text-white">{formatCurrency(stats.analise_comparativa.lucro_presumido.cofins)}</span>
                           </div>
-                          <div className="flex justify-between text-sm font-bold border-t border-indigo-200 pt-2">
-                            <span className="text-gray-700">Total PIS/COFINS:</span>
-                            <span className="text-blue-700">{formatCurrency(stats.analise_comparativa.lucro_presumido.total)}</span>
+                          <div className="flex justify-between text-sm font-bold border-t border-[#2A2A2A] pt-2">
+                            <span className="text-[#A1A1AA]">Total PIS/COFINS:</span>
+                            <span className="text-blue-400">{formatCurrency(stats.analise_comparativa.lucro_presumido.total)}</span>
                           </div>
-                          <p className="text-xs text-gray-500 mt-2">
+                          <p className="text-xs text-[#A1A1AA] mt-2">
                             * Sistema cumulativo - sem direito a créditos
                           </p>
                         </div>
                       ) : (
                         <div className="space-y-3">
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">PIS a pagar:</span>
-                            <span className="font-medium">{formatCurrency(stats.analise_comparativa.lucro_real.pis_pagar)}</span>
+                            <span className="text-[#A1A1AA]">PIS a pagar:</span>
+                            <span className="font-medium text-white">{formatCurrency(stats.analise_comparativa.lucro_real.pis_pagar)}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">COFINS a pagar:</span>
-                            <span className="font-medium">{formatCurrency(stats.analise_comparativa.lucro_real.cofins_pagar)}</span>
+                            <span className="text-[#A1A1AA]">COFINS a pagar:</span>
+                            <span className="font-medium text-white">{formatCurrency(stats.analise_comparativa.lucro_real.cofins_pagar)}</span>
                           </div>
-                          <div className="flex justify-between text-sm font-bold border-t border-indigo-200 pt-2">
-                            <span className="text-gray-700">Total PIS/COFINS:</span>
-                            <span className="text-green-700">{formatCurrency(stats.analise_comparativa.lucro_real.total)}</span>
+                          <div className="flex justify-between text-sm font-bold border-t border-[#2A2A2A] pt-2">
+                            <span className="text-[#A1A1AA]">Total PIS/COFINS:</span>
+                            <span className="text-emerald-400">{formatCurrency(stats.analise_comparativa.lucro_real.total)}</span>
                           </div>
-                          <p className="text-xs text-gray-500 mt-2">
+                          <p className="text-xs text-[#A1A1AA] mt-2">
                             * Sistema não cumulativo - com direito a créditos
                           </p>
                         </div>
