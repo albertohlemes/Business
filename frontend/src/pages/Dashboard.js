@@ -154,37 +154,37 @@ const Dashboard = ({ user, onLogout }) => {
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="dashboard-page" className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl p-6 shadow-lg">
-          <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
+        <div className="bg-[#141414] border border-[#2A2A2A] text-white rounded-lg p-6">
+          <h1 className="text-2xl font-semibold mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>Dashboard</h1>
           {selectedCompany ? (
             <div>
-              <p className="text-red-100">{selectedCompany.razao_social}</p>
-              <p className="text-sm text-red-200">Competência: {selectedCompetencia}</p>
+              <p className="text-[#A1A1AA]">{selectedCompany.razao_social}</p>
+              <p className="text-sm text-[#C8A951]">Competência: {selectedCompetencia}</p>
             </div>
           ) : (
-            <p className="text-red-100">Selecione uma empresa no header para ver as estatísticas</p>
+            <p className="text-[#A1A1AA]">Selecione uma empresa no header para ver as estatísticas</p>
           )}
         </div>
 
         {!selectedCompany ? (
-          <div className="bg-yellow-50 rounded-xl p-8 text-center border border-yellow-200">
-            <Building2 className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-yellow-900 mb-2">Selecione uma Empresa</h3>
-            <p className="text-yellow-700 mb-4">
+          <div className="bg-[#141414] rounded-lg p-8 text-center border border-[#2A2A2A]">
+            <Building2 className="w-16 h-16 text-[#C8A951] mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-white mb-2">Selecione uma Empresa</h3>
+            <p className="text-[#A1A1AA] mb-4">
               Clique no botão abaixo ou no header para selecionar a empresa e competência
             </p>
             <button
               onClick={openSelector}
               data-testid="open-selector-from-dashboard"
-              className="px-6 py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700"
+              className="px-6 py-3 bg-[#C8A951] text-black rounded font-bold hover:bg-[#B09240]"
             >
               Selecionar Empresa
             </button>
           </div>
         ) : loading ? (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-            <p className="mt-4 text-gray-600">Carregando estatísticas...</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#C8A951]"></div>
+            <p className="mt-4 text-[#A1A1AA]">Carregando estatísticas...</p>
           </div>
         ) : stats ? (
           <>
