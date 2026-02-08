@@ -3226,39 +3226,29 @@ async def upload_xml_batch(
                     continue
             
             if tipo == 'entrada':
-                # ==== VALIDAÇÃO DE CNPJ PARA ENTRADA ====
-                # Caso 1: Entrada normal - destinatário é a empresa (nós recebemos a mercadoria)
-                # Caso 2: Devolução de venda própria - emitente é a empresa com CFOP de entrada
-                #         (empresa emite nota de devolução para regularizar entrada de mercadoria devolvida)
+                # ==== VALIDAÇÃO SIMPLIFICADA PARA ENTRADA ====
+                # REGRA: Aceitar se:
+                # 1. Destinatário é a empresa (entrada normal) OU
+                # 2. Emitente é a empresa E CFOPs são de entrada (1xxx/2xxx/3xxx) - emissão própria entrada
                 
-                # Verificar se é uma nota de devolução emitida pela própria empresa
                 cfops_xml_check = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
-                cfops_sao_entrada = all(
+                cfops_sao_entrada = any(
                     cfop and len(cfop) >= 1 and cfop[0] in ['1', '2', '3'] 
                     for cfop in cfops_xml_check if cfop
                 )
                 
-                # CFOPs típicos de devolução de venda (entrada)
-                cfops_devolucao_venda = ['1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209', '1210',
-                                         '1411', '1410', '1503', '1504', '1553', '1660', '1661', '1662',
-                                         '1920', '1921', '2201', '2202', '2203', '2204', '2205', '2206', 
-                                         '2207', '2208', '2209', '2210', '2411', '2410', '2503', '2504', 
-                                         '2553', '2660', '2661', '2662', '2920', '2921', '3201', '3202', '3211']
+                # Emissão própria com CFOP de entrada = aceitar como entrada
+                is_emissao_propria_entrada = (cnpj_emitente == cnpj_empresa and cfops_sao_entrada)
                 
-                is_devolucao_venda_propria = (
-                    cnpj_emitente == cnpj_empresa and  # Empresa emitiu a nota
-                    cfops_sao_entrada and  # CFOPs são de entrada
-                    any(cfop in cfops_devolucao_venda for cfop in cfops_xml_check)  # São CFOPs de devolução
-                )
+                # Entrada normal = destinatário é a empresa
+                is_entrada_normal = (cnpj_destinatario == cnpj_empresa)
                 
-                if is_devolucao_venda_propria:
-                    # Devolução de venda emitida pela própria empresa - ACEITAR
-                    cnpj_valido = True
-                    logger.info(f"VALIDAÇÃO ENTRADA (DEV. PRÓPRIA): NF {parsed_data.get('numero_nfe')} - Emitente é a empresa, CFOP entrada {cfops_xml_check[:3]} - ACEITO")
+                cnpj_valido = is_emissao_propria_entrada or is_entrada_normal
+                
+                if is_emissao_propria_entrada:
+                    logger.info(f"VALIDAÇÃO ENTRADA (EMISSÃO PRÓPRIA): NF {parsed_data.get('numero_nfe')} - CFOPs {cfops_xml_check[:3]} - ACEITO")
                 else:
-                    # Entrada normal - destinatário deve ser a empresa
-                    cnpj_valido = cnpj_destinatario == cnpj_empresa
-                    logger.info(f"VALIDAÇÃO ENTRADA: NF {parsed_data.get('numero_nfe')} - Destinatário: {cnpj_destinatario}, Empresa: {cnpj_empresa}, Válido: {cnpj_valido}")
+                    logger.info(f"VALIDAÇÃO ENTRADA: NF {parsed_data.get('numero_nfe')} - Dest: {cnpj_destinatario}, Empresa: {cnpj_empresa}, Válido: {cnpj_valido}")
                 
                 if not cnpj_valido:
                     rejeitadas_cnpj.append({
