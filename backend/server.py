@@ -1700,12 +1700,10 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
                 # Então: v_prod = valor_total + desc - ipi - st - frete - seg - outras
                 v_prod_bruto = valor_total_item + v_desc_prod - v_ipi_total - v_st_item - v_frete_prod - v_seguro_prod - v_outras_prod
             
-            # VL_ITEM = valor_total do item (inclui produto + IPI + outras despesas - desconto)
-            # IMPORTANTE: Usar valor_total diretamente para garantir que a soma dos itens = valor da nota
-            vl_item = float(prod.get('valor_total', 0) or 0)
-            # Se não tiver valor_total, calcular
-            if vl_item == 0:
-                vl_item = v_prod_bruto + v_frete_prod + v_seguro_prod + v_outras_prod
+            # VL_ITEM = valor BRUTO do item (ANTES do desconto)
+            # O desconto vai separado no campo VL_DESC
+            # Layout SPED: VL_ITEM - VL_DESC = valor líquido
+            vl_item = v_prod_bruto + v_frete_prod + v_seguro_prod + v_outras_prod
             unid = (prod.get('unidade', 'UN') or 'UN')[:6].upper()
             
             # CST ICMS (3 dígitos, ex: 000, 020, 060, 090)
