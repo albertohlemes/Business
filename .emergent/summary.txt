@@ -1,68 +1,72 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou a continuação de um trabalho para melhorar a importação de notas fiscais (XMLs). O requisito principal é identificar e desconsiderar notas fiscais que são devoluções emitidas pelo próprio fornecedor. Essas notas chegam como entrada (CFOP 1xxx/2xxx), com a empresa do usuário como destinatária, mas são emitidas por um terceiro (o fornecedor). Tanto a nota de devolução quanto a nota de venda original referenciada no XML () devem ser desconsideradas nos cálculos fiscais.
-
-Além disso, o usuário solicitou:
-1.  A criação de um relatório chamado Notas desconsideradas por devolução do próprio fornecedor, que agrupe a nota de devolução e a nota de venda original, e que possa ser exportado para Excel/Word.
-2.  A criação de um relatório similar para Notas Fiscais Canceladas.
-3.  A implementação de um recurso de upload em segundo plano, onde uma barra de progresso flutuante permaneça visível em toda a aplicação, permitindo que o usuário navegue para outras páginas enquanto a importação ocorre.
-
-Durante o desenvolvimento, o usuário relatou diversos bugs, incluindo erros de upload, falha no login, renderização incorreta no frontend, processamento parcial de arquivos em lote e classificação incorreta de notas fiscais específicas.
+O usuário solicitou inicialmente a melhoria na importação de notas fiscais (XMLs) para identificar e desconsiderar notas de devolução emitidas por fornecedores. A tarefa evoluiu para incluir a correção de uma série de bugs e discrepâncias de dados em toda a aplicação, incluindo:
+1.  Falhas na lógica de importação de notas (entradas vs. saídas, devoluções).
+2.  Discrepâncias de valores entre o Dashboard e relatórios de exportação.
+3.  Discrepâncias de valores de PIS/COFINS e ICMS entre o Dashboard e a tela de Apuração Mensal.
+4.  Geração incorreta de arquivos SPED para notas com desconto, IPI, ICMS-ST e outras despesas.
+5.  Relatórios de comparação pós-geração de SPED que mostravam divergências falsas, causando grande confusão. O objetivo principal do usuário agora é garantir a consistência dos dados em todas as telas.
 
 **User's preferred language**:
 Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-É uma aplicação full-stack de contabilidade fiscal (Business Contabilidade) com frontend em React, backend em FastAPI e banco de dados MongoDB. As funcionalidades existentes incluem autenticação, gestão de empresas, upload de XML, dashboards de análise, apuração de impostos (PIS/COFINS/ICMS), classificação de produtos com IA, exportação de arquivos SPED e relatórios de devolução e notas canceladas.
+É uma aplicação full-stack de contabilidade fiscal (Business Contabilidade) com frontend em React, backend em FastAPI e banco de dados MongoDB. As funcionalidades existentes incluem autenticação, gestão de empresas, upload de XML (com processamento em segundo plano), dashboards de análise, apuração de impostos (mensal e por tributo), e exportação de arquivos SPED Fiscal.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava depurando por que uma nota fiscal de devolução do fornecedor, fornecida como exemplo pelo usuário, estava sendo importada incorretamente como uma compra para revenda em vez de ser marcada como desconsiderada.
+-   **Last item agent was working**: O agente estava corrigindo uma divergência de valores entre a tela de Apuração Mensal e o relatório de Comparativo SPED. O usuário decidiu que todos os valores na aplicação deveriam ser baseados no  contábil da nota. O agente modificou a lógica do comparativo SPED para usar  como base para o Valor Sistema e para reconstruir o  a partir dos campos do arquivo SPED para o Valor SPED ().
 -   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: backend testing agent
+-   **Which testing method agent to use?**: both. É necessário testar o endpoint do backend que gera o comparativo () e verificar no frontend se a tela de Apuração Mensal e o relatório de comparativo SPED agora exibem valores consistentes.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0)**: Lógica de detecção de devolução do fornecedor está falha.
+-   **Issue 1 (P0)**: Discrepância de valores entre a tela Apuração Mensal, o Valor Sistema e o Valor SPED no relatório de comparação.
+-   **Issue 2 (P1)**: O seletor de competência (mês/ano) no frontend é instável e dificulta os testes.
 
 **Issues Detail**:
 -   **Issue 1**:
-    -   **Description**: O sistema não está identificando corretamente as notas de devolução emitidas pelo fornecedor. Um XML de exemplo fornecido pelo usuário, que é uma devolução de venda (CFOP 1411), está sendo classificado como uma compra normal. O problema está na lógica de validação dentro da função  no arquivo .
-    -   **Attempted fixes**: O agente adicionou  statements de depuração no  para analisar os valores das variáveis (, , ) durante o processamento do XML problemático. A correção ainda não foi implementada.
+    -   **Description**: O usuário está confuso porque a tela de Apuração Mensal, a coluna Valor Sistema e a coluna Valor SPED no relatório de comparação exibem totais diferentes para os mesmos CFOPs. O usuário solicitou que o  da nota (o valor contábil completo) seja o padrão em toda a aplicação.
+    -   **Attempted fixes**: O agente alterou a função  em  para que tanto o Valor Sistema quanto o Valor SPED sejam calculados com base no .
     -   **Next debug checklist**:
-        1.  Revisar a lógica de detecção de devolução no , especificamente em torno da linha 3125, onde a condição  é verificada.
-        2.  Analisar por que essa condição falha para o XML fornecido pelo usuário. A hipótese é que a verificação de  ou a validação dos CFOPs não está se comportando como esperado para este cenário.
-        3.  Ajustar a condição para identificar corretamente este tipo de devolução (emitente terceiro, destinatário empresa, CFOP de entrada de devolução) e definir a flag  como .
-    -   **Why fix this issue and what will be achieved with the fix?**: Corrigir este bug é crucial para a integridade dos dados fiscais. A correção garantirá que as devoluções de fornecedores não sejam contabilizadas como compras, evitando o cálculo incorreto de impostos.
+        1.  Executar novamente a geração do SPED para a empresa  na competência .
+        2.  Verificar os valores por CFOP retornados pelo endpoint de Apuração Mensal ().
+        3.  Verificar os valores por CFOP retornados pelo endpoint de Comparativo SPED ().
+        4.  Confirmar que os totais por CFOP e os totais gerais agora são idênticos nas duas fontes. Se não forem, depurar a lógica de cálculo no , prestando atenção especial aos índices dos campos (, , etc.) lidos do arquivo SPED.
+    -   **Why fix this issue and what will be achieved with the fix?**: Restaurar a confiança do usuário no sistema, garantindo que os dados sejam consistentes em todas as telas de análise.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on other issue**: None
+
+-   **Issue 2**:
+    -   **Description**: O seletor de empresa/competência () é problemático. Frequentemente, ele reverte para o mês atual, que não possui dados, forçando o agente a manipular o banco de dados para poder testar. Isso dificulta a validação de funcionalidades no frontend.
+    -   **Attempted fixes**: Nenhum. O agente tem contornado o problema movendo dados no banco de dados.
+    -   **Next debug checklist**:
+        1.  Analisar o gerenciamento de estado em  e a lógica do componente .
+        2.  Investigar a função  e como os estados  e  são sincronizados.
+    -   **Why fix this issue and what will be achieved with the fix?**: Melhorar drasticamente a usabilidade da aplicação e a eficiência dos testes.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: frontend
     -   **Blocked on other issue**: None
 
 **In progress Task List**:
 Nenhum.
 
 **Upcoming and Future Tasks**
--   Nenhuma tarefa futura foi discutida. O foco atual é a correção do bug de importação.
+-   **Próximas Tarefas:**
+    -   (P1) Criar uma tela de configuração para permitir que o usuário gerencie a lista de CFOPs de devolução.
+    -   (P2) Adicionar um indicador visual na página de documentos para notas de mesma empresa.
+-   **Tarefas Futuras:**
+    -   Refatorar o monolito  em uma arquitetura baseada em módulos.
 
 **Completed work in this session**
--   **Backend (Supplier Return & Canceled Notes Logic):**
-    -   Modificado  para adicionar campos  e  ao modelo .
-    -   Criada a função  para excluir notas canceladas e desconsideradas de todas as apurações e relatórios, garantindo consistência.
-    -   Implementados endpoints de API para gerar e exportar relatórios de Notas Desconsideradas por Devolução e Notas Canceladas (, , etc.).
-    -   Instaladas as bibliotecas  e  para a funcionalidade de exportação.
-
--   **Frontend (UI for Reports & Background Upload):**
-    -   Criado o contexto React  para gerenciar o estado global de upload.
-    -   Criado o componente  para exibir uma barra de progresso flutuante durante o upload em segundo plano.
-    -   Atualizada a página  para exibir uma seção de Relatórios Especiais com cards para os novos relatórios, incluindo modais para visualização e botões de exportação.
-    -   Atualizada a página  para usar o contexto global, permitindo que o upload continue mesmo se o usuário navegar para outra página.
-
--   **Bug Fixes:**
-    -   Corrigido um erro de login causado pela criação do usuário de teste no banco de dados errado.
-    -   Resolvido um erro de renderização no React () ajustando o frontend para a nova estrutura de resposta da API de upload.
-    -   Corrigido um erro de validação Pydantic ao definir um valor padrão () para o campo .
-    -   Corrigida a lógica de upload em lote para que o status Concluído só apareça após o processamento de TODOS os lotes, e não ao final de cada lote individual.
-    -   Ajustado o botão Ver Detalhes na barra de progresso flutuante para abrir um modal com o relatório de importação, em vez de navegar para uma página vazia.
+-   **Correção - Discrepância Dashboard vs. Relatório**: Corrigido bug onde o Dashboard somava valores de notas de saída como entrada.
+-   **Correção - Classificação de Importação**: Corrigido bug que classificava notas de devolução de emissão própria como saída.
+-   **Correção - Discrepância PIS/COFINS**: Unificada a lógica de cálculo de PIS/COFINS entre o Dashboard e a tela de Apuração para usar os valores do XML.
+-   **Correção - Discrepância ICMS**: Unificada a lógica de cálculo de ICMS entre o Dashboard e a Apuração para excluir CFOPs de despesa.
+-   **Correção - Geração SPED (Desconto, IPI, ST, Outras Despesas)**: Corrigida a geração do registro C170 do SPED para usar os campos corretos para valor bruto (), desconto (), IPI e ICMS-ST, e para incluir despesas acessórias no valor do item.
+-   **Correção (Parcial) - Comparativo SPED**: Ajustada a lógica do relatório de comparação SPED para alinhar os cálculos do Valor Sistema e Valor SPED, reduzindo divergências falsas.
 
 **Earlier issues found/mentioned but not fixed**
 Nenhum.
@@ -74,72 +78,68 @@ Nenhum.
 
 
 **Key Technical Concepts**
--   **Frontend**: React, TailwindCSS, React Context API.
--   **Backend**: FastAPI, Pydantic, Motor (MongoDB assíncrono).
--   **Comunicação em tempo real**: Server-Sent Events (SSE) para a barra de progresso do upload.
--   **Exportação de arquivos**: Uso de  para Excel e  para Word.
+-   **Frontend**: React, React Context API, TailwindCSS
+-   **Backend**: FastAPI, Motor (MongoDB assíncrono)
+-   **Data Exchange**: Geração e validação de arquivos SPED Fiscal.
 
 **key DB schema**
--   **xml_documents**: Contém todos os dados extraídos dos XMLs, além de campos de controle como , , , e .
+-   ****: Armazena dados dos XMLs. Campos chave: , , ,  (array), , , , , , , .
 
 **changes in tech stack**
--   Adição das dependências  e  no backend.
+Nenhuma.
 
 **All files of reference**
--   : Arquivo principal do backend, modificado para toda a lógica de devolução, relatórios, exportação e correções de bugs no upload.
--   : Modificado para incluir a nova seção de relatórios especiais e seus respectivos modais.
--   : Modificado para se integrar ao contexto global de upload e corrigir erros de renderização.
--   : Novo arquivo que gerencia o estado do upload em toda a aplicação.
--   : Novo componente que implementa a barra de progresso flutuante e o modal de resultados.
--   : Modificado para prover o  e renderizar o .
+-   : Modificado extensivamente para corrigir lógicas no dashboard, apuração, exportação SPED e no relatório de validação do SPED.
+-   : Identificado como a fonte de bugs de usabilidade.
+-   : Tela onde o usuário visualiza uma das fontes de dados divergentes.
 
 **Areas that need refactoring**:
--    é um arquivo monolítico com mais de 10.000 linhas. A refatoração em múltiplos arquivos/módulos, conforme sugerido no PRD, melhoraria drasticamente a manutenção.
+-   O arquivo  é um monolito de quase 10.000 linhas e precisa urgentemente ser refatorado para garantir a manutenibilidade do projeto.
 
 **key api endpoints**
--   : Inicia uma sessão de upload e retorna um .
--   : Processa um lote de arquivos XML para uma sessão de upload existente.
--   : Endpoint SSE que transmite o progresso do upload.
--   : Retorna os dados para o relatório de devoluções.
--   : Exporta o relatório de devoluções (Excel/Word).
--   : Retorna os dados para o relatório de notas canceladas.
--   : Exporta o relatório de notas canceladas.
+-   : Retorna dados para a tela de Apuração Mensal.
+-   : Gera o arquivo SPED Fiscal.
+-   : Gera o relatório de validação pós-SPED, fonte de muitas das divergências relatadas.
 
 **Critical Info for New Agent**
--   A funcionalidade de upload em segundo plano é controlada pelo  e  no frontend. Qualquer alteração no fluxo de upload deve ser compatível com essa arquitetura.
--   Toda a lógica de apuração fiscal agora depende da função  no  para excluir corretamente as notas irrelevantes. É um ponto crítico para a integridade dos dados.
--   O arquivo  é extremamente grande. Use a busca () para navegar e entender o código antes de fazer modificações.
+-   **A prioridade máxima é resolver a inconsistência de dados.** O usuário está frustrado por ver valores diferentes em telas diferentes.
+-   **A fonte da verdade foi definida:** Todos os valores exibidos na aplicação devem ser baseados no  contábil das notas.
+-   A última ação do agente foi uma tentativa de corrigir o relatório de comparação do SPED. Esta correção precisa ser **testada e verificada** para garantir que os valores agora batem com a tela de Apuração Mensal.
+-   Esteja ciente do bug no seletor de competência do frontend, pois ele pode atrapalhar seus testes. Considere corrigi-lo ou usar workarounds (manipulação do BD).
 
 **documents and test reports created in this job**
--    foi atualizado com os resultados dos testes de backend.
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Informa que o upload está falhando com um erro de renderização no React ().
-2.  **Agent**: Corrige o erro de renderização ajustando o frontend para a nova estrutura de resposta da API.
-3.  **User**: Relata que o upload é concluído prematuramente e que, na barra flutuante, o botão Ver Detalhes não funciona bem.
-4.  **Agent**: Corrige o problema da conclusão prematura no backend e melhora o botão Ver Detalhes na barra flutuante.
-5.  **User**: Informa que o problema da conclusão prematura persiste e o botão Ver Detalhes ainda não funciona como esperado.
-6.  **Agent**: Reimplementa a lógica de progresso no backend para agregar os lotes e transforma o Ver Detalhes em um modal.
-7.  **User**: Relata que de 455 notas, apenas 95 são importadas e o problema de Ver Detalhes persiste.
-8.  **Agent**: Melhora o modal de Ver Detalhes e investiga o processamento de lotes.
-9.  **User**: Fornece um log de erro de validação do Pydantic, onde  está recebendo  e causando falha.
-10. **User**: Fornece um XML de exemplo de uma devolução de fornecedor que foi importada incorretamente como uma compra, detalhando o bug principal atual.
+10. **Usuário**: Aponta que o comparativo SPED alega divergências que não parecem existir.
+11. **Usuário**: Questiona por que os valores da Apuração Mensal são diferentes dos valores no comparativo SPED.
+12. **Usuário**: Responde 1, escolhendo usar  como padrão em toda a aplicação.
+13. **Usuário**: Reporta nova divergência no SPED para notas com outras despesas.
+14. **Usuário**: Pede a chave de acesso de uma nota específica para investigação.
+15. **Usuário**: Reporta erro na geração do SPED para notas que contêm IPI.
+16. **Usuário**: Envia imagem mostrando que ainda existem divergências entre os valores do sistema e os valores gerados no SPED.
+17. **Usuário**: Reporta duas novas retificações: divergência de ICMS e desconto não considerado na exportação SPED.
+18. **Usuário**: Reporta um bug crítico na importação de notas de saída (devoluções sendo classificadas incorretamente).
+19. **Usuário**: Reporta discrepância de PIS/COFINS entre o dashboard e a tela de apuração.
+-   **Mensagem Pendente**: O usuário aguarda a solução definitiva para as inconsistências de valores entre as diferentes telas do sistema.
 
 **Project Health Check:**
--   **Broken**: A lógica principal para identificar e classificar notas de devolução de fornecedor durante a importação de XML está com defeito.
+-   **Broken**:
+    -   A consistência dos dados entre os módulos de Apuração, Dashboard e Comparativo SPED está quebrada.
+    -   O seletor de competência do frontend é instável e prejudica a experiência do usuário.
 
 **3rd Party Integrations**
--   **LiteLLM (GPT-4o)**: Utilizado para classificação de produtos com IA. A integração parece usar uma chave Emergent LLM.
+-   **LiteLLM (GPT-4o)**: Usado para classificação de produtos com IA.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES
--   **Troubleshoot agent used after agent stuck in loop**: YES
+-   **Testing agent used after significant changes**: NO
+-   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: A lógica de detecção de devolução de fornecedor, que foi modificada várias vezes, regrediu e não está funcionando para um caso de uso específico fornecido pelo usuário.
+-   **Known regressions**: Nenhuma, mas a confiança do usuário nos dados do sistema está baixa devido às inconsistências.
 
 **Credentials to test flow:**
 -   **Email**: 
 -   **Senha**: 
 
 **What agent forgot to execute**
--   O agente identificou o bug na classificação de devolução do fornecedor e adicionou logs de depuração, mas ainda não implementou a correção final da lógica no .</analysis>
+-   O agente implementou a correção para alinhar os valores no comparativo SPED, mas não executou um teste de ponta a ponta para verificar se essa correção de fato alinhou os valores com a tela de Apuração Mensal, deixando a tarefa principal inacabada e não validada.</analysis>
