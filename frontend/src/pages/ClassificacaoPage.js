@@ -273,6 +273,8 @@ const ClassificacaoPage = ({ user, onLogout }) => {
             ncm: prod.ncm,
             categoria: prod.categoria_classificada || 'não classificado',
             cfop: prod.cfop,
+            natureza_operacao: prod.natureza_operacao_original || '',
+            pendente_revisao_cfop: prod.pendente_revisao_cfop || false,
             ocorrencias: [],
             quantidade_total: 0,
             valor_total: 0
