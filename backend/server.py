@@ -12518,10 +12518,18 @@ async def apurar_icms(
     ncms_credito = {}  # ncm -> {descricao, valor_icms, quantidade}
     ncms_debito = {}
     
+    # ICMS ST
+    icms_st_saidas = {}  # Por CFOP
+    icms_st_devolucoes = {}  # Deduções de devoluções
+    
     totais = {
-        "entradas": {"valor_total": 0, "bc_icms": 0, "valor_icms": 0, "qtd_docs": 0, "qtd_itens": 0},
-        "saidas": {"valor_total": 0, "bc_icms": 0, "valor_icms": 0, "qtd_docs": 0, "qtd_itens": 0}
+        "entradas": {"valor_total": 0, "bc_icms": 0, "valor_icms": 0, "valor_icms_st": 0, "qtd_docs": 0, "qtd_itens": 0},
+        "saidas": {"valor_total": 0, "bc_icms": 0, "valor_icms": 0, "valor_icms_st": 0, "qtd_docs": 0, "qtd_itens": 0}
     }
+    
+    # CFOPs de devolução que geram dedução de ICMS ST
+    cfops_devolucao = ['1410', '1411', '1414', '1415', '2410', '2411', '2414', '2415',
+                       '5410', '5411', '5414', '5415', '6410', '6411', '6414', '6415']
     
     # Processar documentos
     for doc in documentos:
