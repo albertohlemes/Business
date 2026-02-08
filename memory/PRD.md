@@ -1160,3 +1160,18 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
     - Total Saídas: R$ 11.871.817,60 (idêntico em ambos endpoints)
     - 20 CFOPs de entrada e 15 CFOPs de saída - todos com valores idênticos
   - **Arquivo:** `/app/backend/server.py` (linhas 8594-8600)
+
+- ✅ **BUGFIX P0: Notas de Devolução de Venda Própria Sendo Rejeitadas na Importação**
+  - **Problema:** Notas de devolução de venda emitidas pela própria empresa (com CFOP de entrada como 1202, 1411) estavam sendo rejeitadas ao importar como "Entrada"
+  - **Causa raiz:** A validação de CNPJ exigia que o destinatário fosse a empresa, mas em devoluções de venda emitidas pela empresa:
+    - O **emitente** é a empresa (quem emite a nota)
+    - O **destinatário** é o cliente (quem recebe a mercadoria devolvida)
+  - **Solução:** Adicionada lógica especial para detectar "devolução de venda própria":
+    1. Verifica se o emitente é a empresa
+    2. Verifica se os CFOPs são de entrada (1xxx/2xxx)
+    3. Verifica se são CFOPs típicos de devolução (1201, 1202, 1411, etc.)
+    4. Se sim, aceita a importação mesmo que o destinatário não seja a empresa
+  - **Resultado:** 
+    - NF 370806 (CONSUMIDOR FINAL, R$ 1.254,24) - IMPORTADA
+    - NF 370856 (BERGONSO & CICHETTO, R$ 419,94) - IMPORTADA
+  - **Arquivo:** `/app/backend/server.py` (linhas 3228-3270)
