@@ -804,6 +804,123 @@ const Documents = ({ user, onLogout }) => {
             </div>
           </div>
         )}
+
+        {/* Modal de Resultado do Upload */}
+        {showUploadResult && uploadResult && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] w-full max-w-2xl max-h-[90vh] overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
+                <div className="flex items-center gap-3">
+                  {uploadResult.erros === 0 ? (
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    </div>
+                  ) : uploadResult.sucesso === 0 ? (
+                    <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                      <XCircle className="w-5 h-5 text-red-400" />
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                      <AlertTriangle className="w-5 h-5 text-amber-400" />
+                    </div>
+                  )}
+                  <div>
+                    <h2 className="text-lg font-medium text-white">
+                      Resultado da Importação
+                    </h2>
+                    <p className="text-sm text-[#A1A1AA]">
+                      {uploadResult.tipo === 'ia' ? 'Processamento com IA' : 'Importação de XML'}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowUploadResult(false)}
+                  className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              {/* Resumo */}
+              <div className="p-4 border-b border-[#2A2A2A]">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-white">{uploadResult.total}</p>
+                    <p className="text-xs text-[#A1A1AA]">Total</p>
+                  </div>
+                  <div className="bg-emerald-500/10 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-emerald-400">{uploadResult.sucesso}</p>
+                    <p className="text-xs text-emerald-400">Aceitos</p>
+                  </div>
+                  <div className="bg-red-500/10 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-red-400">{uploadResult.erros}</p>
+                    <p className="text-xs text-red-400">Rejeitados</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 max-h-[50vh] overflow-y-auto space-y-4">
+                {/* Arquivos aceitos */}
+                {uploadResult.processados.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-emerald-400 mb-2 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Documentos Importados
+                    </h3>
+                    <div className="space-y-1">
+                      {uploadResult.processados.map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between py-2 px-3 bg-emerald-500/5 rounded border border-emerald-500/20">
+                          <div>
+                            <p className="text-sm text-white">{item.arquivo}</p>
+                            <p className="text-xs text-[#A1A1AA]">
+                              {item.emitente && `${item.emitente} • `}Nº {item.numero}
+                            </p>
+                          </div>
+                          <span className="text-sm font-medium text-[#C8A951]">
+                            {formatCurrency(item.valor)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Arquivos rejeitados */}
+                {uploadResult.rejeitados.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-red-400 mb-2 flex items-center gap-2">
+                      <XCircle className="w-4 h-4" />
+                      Documentos Rejeitados
+                    </h3>
+                    <div className="space-y-1">
+                      {uploadResult.rejeitados.map((item, idx) => (
+                        <div key={idx} className="py-2 px-3 bg-red-500/5 rounded border border-red-500/20">
+                          <p className="text-sm text-white">{item.arquivo}</p>
+                          <p className="text-xs text-red-400 mt-1">{item.motivo}</p>
+                          {item.tipo_detectado && (
+                            <p className="text-xs text-[#A1A1AA] mt-1">
+                              Tipo detectado: {item.tipo_detectado}
+                              {item.operacao_detectada && ` (${item.operacao_detectada})`}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-4 border-t border-[#2A2A2A]">
+                <button
+                  onClick={() => setShowUploadResult(false)}
+                  className="w-full py-2.5 bg-[#C8A951] text-black rounded-lg font-medium hover:bg-[#D4B85C] transition-all"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
