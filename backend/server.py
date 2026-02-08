@@ -12265,18 +12265,19 @@ async def preview_delete_documents(
     # Filtrar por tipo_operacao
     filtered_docs = [d for d in all_docs if d.get('tipo_operacao') == filters.tipo_operacao]
     
-    # Filtrar por modelo
-    modelo_map = {
-        '55': ['55', 'nfe'],
-        '65': ['65', 'nfce'],
-        '57': ['57', 'cte'],
-        'nfse': ['nfse', 'nfse_tomado', 'nfse_prestado'],
-        'nfse_tomado': ['nfse', 'nfse_tomado'],
-        'nfse_prestado': ['nfse', 'nfse_prestado'],
-        'outros': ['outros']
-    }
-    if filters.tipo_documento in modelo_map:
-        filtered_docs = [d for d in filtered_docs if d.get('modelo') in modelo_map[filters.tipo_documento]]
+    # Filtrar por modelo (se não for 'all')
+    if filters.tipo_documento and filters.tipo_documento != 'all':
+        modelo_map = {
+            '55': ['55', 'nfe'],
+            '65': ['65', 'nfce'],
+            '57': ['57', 'cte'],
+            'nfse': ['nfse', 'nfse_tomado', 'nfse_prestado'],
+            'nfse_tomado': ['nfse', 'nfse_tomado'],
+            'nfse_prestado': ['nfse', 'nfse_prestado'],
+            'outros': ['outros']
+        }
+        if filters.tipo_documento in modelo_map:
+            filtered_docs = [d for d in filtered_docs if d.get('modelo') in modelo_map[filters.tipo_documento]]
     
     # Aplicar filtros adicionais
     if filters.document_ids:
