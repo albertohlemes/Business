@@ -517,6 +517,195 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                 />
               </div>
             </div>
+          </>
+        )}
+
+        {/* Aba ICMS ST */}
+        {activeTab === 'icms_st' && (
+          <>
+            {/* Cards de Resumo ICMS ST */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <ResumoCard
+                titulo="ICMS ST Gerado"
+                valor={dados.icms_st?.apuracao?.icms_st_gerado}
+                subtitulo="Saídas com ST"
+                icon={TrendingDown}
+                corIcone="bg-amber-600"
+                corValor="text-amber-400"
+              />
+              <ResumoCard
+                titulo="(-) Devoluções ST"
+                valor={dados.icms_st?.apuracao?.icms_st_devolucoes}
+                subtitulo="Dedução por devoluções"
+                icon={TrendingUp}
+                corIcone="bg-green-600"
+                corValor="text-green-400"
+              />
+              <ResumoCard
+                titulo="(=) ICMS ST a Recolher"
+                valor={dados.icms_st?.apuracao?.icms_st_a_recolher}
+                subtitulo={dados.icms_st?.apuracao?.situacao === 'A_RECOLHER' ? 'Imposto devido' : 'Sem ICMS ST'}
+                icon={DollarSign}
+                corIcone="bg-[#C8A951]"
+                corValor={dados.icms_st?.apuracao?.icms_st_a_recolher > 0 ? 'text-amber-400' : 'text-white'}
+              />
+              <div className={`rounded-xl p-4 border-2 ${
+                dados.icms_st?.apuracao?.situacao === 'A_RECOLHER' 
+                  ? 'bg-amber-500/10 border-amber-500/50' 
+                  : 'bg-[#141414] border-[#2A2A2A]'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${
+                    dados.icms_st?.apuracao?.situacao === 'A_RECOLHER' 
+                      ? 'bg-amber-600' 
+                      : 'bg-[#C8A951]'
+                  }`}>
+                    <Truck className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-[#A1A1AA] text-sm">ICMS ST a Recolher</p>
+                    <p className={`text-xl font-bold ${
+                      dados.icms_st?.apuracao?.situacao === 'A_RECOLHER' 
+                        ? 'text-amber-400' 
+                        : 'text-white'
+                    }`}>
+                      {formatCurrency(dados.icms_st?.apuracao?.icms_st_a_recolher || 0)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Demonstrativo ICMS ST */}
+            <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
+              <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-[#C8A951]" />
+                Demonstrativo de Apuração ICMS ST
+              </h3>
+              <div className="flex items-center justify-center gap-4 flex-wrap">
+                <div className="text-center p-4 bg-amber-500/10 rounded-lg border border-amber-500/30 min-w-[180px]">
+                  <p className="text-amber-400 text-2xl font-bold">{formatCurrency(dados.icms_st?.apuracao?.icms_st_gerado)}</p>
+                  <p className="text-[#A1A1AA] text-sm">ICMS ST Gerado</p>
+                </div>
+                <Minus className="w-6 h-6 text-[#666]" />
+                <div className="text-center p-4 bg-green-500/10 rounded-lg border border-green-500/30 min-w-[180px]">
+                  <p className="text-green-400 text-2xl font-bold">{formatCurrency(dados.icms_st?.apuracao?.icms_st_devolucoes)}</p>
+                  <p className="text-[#A1A1AA] text-sm">Devoluções ST</p>
+                </div>
+                <ArrowRight className="w-6 h-6 text-[#C8A951]" />
+                <div className={`text-center p-4 rounded-lg border min-w-[180px] ${
+                  dados.icms_st?.apuracao?.situacao === 'A_RECOLHER' 
+                    ? 'bg-amber-500/10 border-amber-500/30' 
+                    : 'bg-[#2A2A2A] border-[#333]'
+                }`}>
+                  <p className={`text-2xl font-bold ${
+                    dados.icms_st?.apuracao?.situacao === 'A_RECOLHER' 
+                      ? 'text-amber-400' 
+                      : 'text-white'
+                  }`}>
+                    {formatCurrency(dados.icms_st?.apuracao?.icms_st_a_recolher || 0)}
+                  </p>
+                  <p className="text-[#A1A1AA] text-sm">
+                    {dados.icms_st?.apuracao?.situacao === 'A_RECOLHER' ? 'A Recolher' : 'Zerado'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ICMS ST por CFOP - Saídas */}
+            {dados.icms_st?.saidas?.por_cfop?.length > 0 && (
+              <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
+                <div className="p-4 border-b border-[#2A2A2A] flex items-center gap-3">
+                  <div className="bg-amber-600 p-2 rounded-lg">
+                    <TrendingDown className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <span className="text-white font-semibold">ICMS ST nas Saídas</span>
+                    <p className="text-[#A1A1AA] text-sm">
+                      Total: {formatCurrency(dados.icms_st?.saidas?.total_icms_st)}
+                    </p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#2A2A2A]">
+                        <th className="text-left py-3 px-4 text-[#A1A1AA] font-medium">CFOP</th>
+                        <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Qtd</th>
+                        <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">BC ICMS ST</th>
+                        <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">ICMS ST</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dados.icms_st?.saidas?.por_cfop?.map((item, idx) => (
+                        <tr key={idx} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
+                          <td className="py-3 px-4">
+                            <span className="font-mono text-white bg-[#2A2A2A] px-2 py-1 rounded">{item.cfop}</span>
+                          </td>
+                          <td className="py-3 px-4 text-right text-[#A1A1AA]">{item.qtd}</td>
+                          <td className="py-3 px-4 text-right text-white">{formatCurrency(item.bc_icms_st)}</td>
+                          <td className="py-3 px-4 text-right text-amber-400 font-semibold">{formatCurrency(item.valor_icms_st)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* ICMS ST Devoluções */}
+            {dados.icms_st?.devolucoes?.por_cfop?.length > 0 && (
+              <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
+                <div className="p-4 border-b border-[#2A2A2A] flex items-center gap-3">
+                  <div className="bg-green-600 p-2 rounded-lg">
+                    <TrendingUp className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <span className="text-white font-semibold">Deduções - Devoluções com ICMS ST</span>
+                    <p className="text-[#A1A1AA] text-sm">
+                      Total: {formatCurrency(dados.icms_st?.devolucoes?.total_icms_st)}
+                    </p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#2A2A2A]">
+                        <th className="text-left py-3 px-4 text-[#A1A1AA] font-medium">CFOP</th>
+                        <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Qtd</th>
+                        <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">BC ICMS ST</th>
+                        <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">ICMS ST</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dados.icms_st?.devolucoes?.por_cfop?.map((item, idx) => (
+                        <tr key={idx} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
+                          <td className="py-3 px-4">
+                            <span className="font-mono text-white bg-[#2A2A2A] px-2 py-1 rounded">{item.cfop}</span>
+                          </td>
+                          <td className="py-3 px-4 text-right text-[#A1A1AA]">{item.qtd}</td>
+                          <td className="py-3 px-4 text-right text-white">{formatCurrency(item.bc_icms_st)}</td>
+                          <td className="py-3 px-4 text-right text-green-400 font-semibold">{formatCurrency(item.valor_icms_st)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Mensagem quando não há ICMS ST */}
+            {(!dados.icms_st?.saidas?.por_cfop?.length && !dados.icms_st?.devolucoes?.por_cfop?.length) && (
+              <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-8 text-center">
+                <Truck className="w-12 h-12 text-[#666] mx-auto mb-3" />
+                <h3 className="text-white font-bold text-lg">Nenhum ICMS ST encontrado</h3>
+                <p className="text-[#A1A1AA]">
+                  Não foram encontradas operações com ICMS ST nesta competência.
+                </p>
+              </div>
+            )}
+          </>
+        )}
           </div>
         ) : null}
       </div>
