@@ -368,28 +368,72 @@ const ClassificacaoPage = ({ user, onLogout }) => {
       'DESPESA': { produtos: [], cor: 'bg-orange-500', corFundo: 'bg-orange-50', icon: '📋' },
       'ATIVO_IMOBILIZADO': { produtos: [], cor: 'bg-purple-500', corFundo: 'bg-purple-50', icon: '🏭' },
       'COMBUSTIVEL': { produtos: [], cor: 'bg-gray-700', corFundo: 'bg-gray-50', icon: '⛽' },
+      // Novas categorias de operações distintas (classificadas em Alertas CFOP)
+      'BONIFICAÇÃO': { produtos: [], cor: 'bg-pink-500', corFundo: 'bg-pink-50', icon: '🎁' },
+      'DEVOLUÇÃO': { produtos: [], cor: 'bg-amber-500', corFundo: 'bg-amber-50', icon: '↩️' },
+      'REMESSA': { produtos: [], cor: 'bg-cyan-500', corFundo: 'bg-cyan-50', icon: '📦' },
+      'RETORNO': { produtos: [], cor: 'bg-teal-500', corFundo: 'bg-teal-50', icon: '🔄' },
+      'CONSIGNAÇÃO': { produtos: [], cor: 'bg-indigo-500', corFundo: 'bg-indigo-50', icon: '🤝' },
+      'AMOSTRA': { produtos: [], cor: 'bg-lime-500', corFundo: 'bg-lime-50', icon: '🧪' },
+      'DEMONSTRAÇÃO': { produtos: [], cor: 'bg-emerald-500', corFundo: 'bg-emerald-50', icon: '👁️' },
+      'TRANSFERÊNCIA': { produtos: [], cor: 'bg-violet-500', corFundo: 'bg-violet-50', icon: '🔀' },
       'PENDENTE': { produtos: [], cor: 'bg-red-500', corFundo: 'bg-red-50', icon: '⚠️' },
     };
     
     sortedProducts.forEach(prod => {
       const cat = (prod.categoria || '').toUpperCase();
-      if (cat.includes('REVENDA')) {
-        grupos['REVENDA'].produtos.push(prod);
-      } else if (cat.includes('INSUMO')) {
-        grupos['INSUMO'].produtos.push(prod);
-      } else if (cat.includes('DESPESA')) {
-        grupos['DESPESA'].produtos.push(prod);
-      } else if (cat.includes('ATIVO') || cat.includes('IMOBILIZADO')) {
-        grupos['ATIVO_IMOBILIZADO'].produtos.push(prod);
-      } else if (cat.includes('COMBUSTIVEL') || cat.includes('COMBUSTÍVEL')) {
-        grupos['COMBUSTIVEL'].produtos.push(prod);
+      const natureza = (prod.natureza_operacao || '').toUpperCase();
+      
+      // Primeiro verificar se tem natureza de operação especial (classificado em Alertas CFOP)
+      if (natureza) {
+        if (natureza.includes('BONIFICA')) {
+          grupos['BONIFICAÇÃO'].produtos.push(prod);
+        } else if (natureza.includes('DEVOLUC') || natureza.includes('DEVOL')) {
+          grupos['DEVOLUÇÃO'].produtos.push(prod);
+        } else if (natureza.includes('RETORNO')) {
+          grupos['RETORNO'].produtos.push(prod);
+        } else if (natureza.includes('CONSIGNA')) {
+          grupos['CONSIGNAÇÃO'].produtos.push(prod);
+        } else if (natureza.includes('AMOSTRA')) {
+          grupos['AMOSTRA'].produtos.push(prod);
+        } else if (natureza.includes('DEMONSTRA')) {
+          grupos['DEMONSTRAÇÃO'].produtos.push(prod);
+        } else if (natureza.includes('TRANSFER')) {
+          grupos['TRANSFERÊNCIA'].produtos.push(prod);
+        } else if (natureza.includes('REMESSA')) {
+          grupos['REMESSA'].produtos.push(prod);
+        } else {
+          // Natureza não reconhecida, usar categoria padrão
+          classificarPorCategoria(prod, cat, grupos);
+        }
       } else {
-        grupos['PENDENTE'].produtos.push(prod);
+        // Sem natureza especial, usar categoria padrão
+        classificarPorCategoria(prod, cat, grupos);
       }
     });
     
-    return grupos;
+    // Remover grupos vazios
+    return Object.fromEntries(
+      Object.entries(grupos).filter(([_, g]) => g.produtos.length > 0)
+    );
   }, [sortedProducts]);
+  
+  // Função auxiliar para classificar por categoria padrão
+  const classificarPorCategoria = (prod, cat, grupos) => {
+    if (cat.includes('REVENDA')) {
+      grupos['REVENDA'].produtos.push(prod);
+    } else if (cat.includes('INSUMO')) {
+      grupos['INSUMO'].produtos.push(prod);
+    } else if (cat.includes('DESPESA')) {
+      grupos['DESPESA'].produtos.push(prod);
+    } else if (cat.includes('ATIVO') || cat.includes('IMOBILIZADO')) {
+      grupos['ATIVO_IMOBILIZADO'].produtos.push(prod);
+    } else if (cat.includes('COMBUSTIVEL') || cat.includes('COMBUSTÍVEL')) {
+      grupos['COMBUSTIVEL'].produtos.push(prod);
+    } else {
+      grupos['PENDENTE'].produtos.push(prod);
+    }
+  };
 
   // Funções de aprovação
   const isProductApproved = (docId, productCode) => {
