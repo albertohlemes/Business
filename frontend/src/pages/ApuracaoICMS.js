@@ -229,6 +229,41 @@ const ApuracaoICMS = ({ user, onLogout }) => {
           </div>
         )}
 
+        {/* Tabs ICMS / ICMS ST */}
+        {selectedCompany && dados && (
+          <div className="flex gap-2 mb-6 border-b border-[#2A2A2A] pb-3">
+            <button
+              onClick={() => setActiveTab('icms')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                activeTab === 'icms'
+                  ? 'bg-[#C8A951] text-black'
+                  : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
+              }`}
+              data-testid="tab-icms"
+            >
+              <BarChart3 className="w-4 h-4" />
+              ICMS Próprio
+            </button>
+            <button
+              onClick={() => setActiveTab('icms_st')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                activeTab === 'icms_st'
+                  ? 'bg-[#C8A951] text-black'
+                  : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
+              }`}
+              data-testid="tab-icms-st"
+            >
+              <Truck className="w-4 h-4" />
+              ICMS ST
+              {dados.icms_st?.apuracao?.icms_st_a_recolher > 0 && (
+                <span className="bg-amber-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(dados.icms_st.apuracao.icms_st_a_recolher)}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
+
         {/* Conteúdo */}
         {!selectedCompany ? (
           <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-12 text-center">
