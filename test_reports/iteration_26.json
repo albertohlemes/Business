@@ -1,0 +1,81 @@
+{
+  "summary": "Bug fix verified: /api/sped/validar endpoint now correctly excludes cancelled and desconsiderada notes, matching /api/apuracao-periodo behavior. All 11 consistency tests passed.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Authentication working correctly",
+    "Test company COMERCIAL RS LTDA exists (ID: d7f30ea1-9df3-4124-a561-12984ffff64b)",
+    "/api/apuracao-periodo endpoint returns correct structure with entradas/saidas",
+    "/api/sped/validar endpoint returns correct structure with resumo/detalhamento_cfop",
+    "Total entradas value consistent between endpoints (R$ 11,970,912.78)",
+    "Total saídas value consistent between endpoints (R$ 9,706,123.63)",
+    "PIS/COFINS values consistent between endpoints",
+    "CFOP lists match between endpoints (20 CFOPs entrada, 8 CFOPs saída)",
+    "Cancelled/desconsiderada notes excluded from both endpoints (30 cancelled + 7 desconsiderada = 37 excluded)",
+    "Consistency verified for alternative competência (12/2025)",
+    "All individual CFOP values match between endpoints"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_sped_apuracao_consistency.py",
+    "/app/test_reports/pytest/pytest_sped_consistency.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "Bug fix verified at line 8598: query.update(get_filtro_notas_ativas()) correctly added to /api/sped/validar endpoint",
+    "Both endpoints now use identical filtering logic via get_filtro_notas_ativas() function (lines 418-428)",
+    "Database contains 4495 total documents, 30 cancelled, 7 desconsiderada, 4458 active for competência 01/2026",
+    "All values (totais, ICMS, PIS, COFINS, CFOPs) are now consistent between Apuração Mensal and Validação SPED screens"
+  ],
+
+  "updated_files": [
+    "/app/backend/tests/test_sped_apuracao_consistency.py (new test file)"
+  ],
+
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "N/A (backend only testing)"
+  },
+
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+
+  "seed_data_creation": "Used existing data for COMERCIAL RS LTDA (ID: d7f30ea1-9df3-4124-a561-12984ffff64b) with competência 01/2026",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Bug fix for data inconsistency between Apuração Mensal and Validação SPED has been verified. The fix was adding get_filtro_notas_ativas() filter to /api/sped/validar endpoint. Test file test_sped_apuracao_consistency.py contains 11 tests verifying consistency between endpoints.",
+
+  "bug_fix_verification": {
+    "original_issue": "Valores divergentes entre tela de Apuração Mensal (/api/apuracao-periodo) e Validação SPED (/api/sped/validar) - SPED incluía notas canceladas e desconsideradas",
+    "fix_applied": "Adicionado query.update(get_filtro_notas_ativas()) no endpoint /api/sped/validar (linha 8598) para excluir notas canceladas e desconsideradas",
+    "verification_result": "PASSED - Todos os valores agora são idênticos entre os dois endpoints",
+    "test_data": {
+      "company_id": "d7f30ea1-9df3-4124-a561-12984ffff64b",
+      "company_name": "COMERCIAL RS LTDA",
+      "competencia": "01/2026",
+      "total_documents": 4495,
+      "cancelled_notes": 30,
+      "desconsiderada_notes": 7,
+      "active_notes": 4458,
+      "total_entradas": "R$ 11,970,912.78",
+      "total_saidas": "R$ 9,706,123.63"
+    }
+  }
+}
