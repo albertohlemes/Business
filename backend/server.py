@@ -1607,8 +1607,8 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
         total_v_ipi = sum(float(p.get('v_ipi', 0) or 0) for p in doc.produtos)
         total_v_desc = sum(float(p.get('v_desc', 0) or 0) for p in doc.produtos)
         
-        # VL_MERC = soma dos valores dos itens
-        total_merc = sum(float(p.get('valor_total', 0) or 0) for p in doc.produtos)
+        # VL_MERC = soma dos valores dos produtos (sem IPI, ST, etc.)
+        total_merc = sum(float(p.get('valor_produto', 0) or p.get('valor_total', 0) or 0) for p in doc.produtos)
         
         # VL_ABAT_NT = 0 (abatimento não tributado e não comercial - só preencher se existir)
         vl_abat_nt = 0
