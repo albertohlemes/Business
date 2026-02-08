@@ -581,35 +581,79 @@ const Documents = ({ user, onLogout }) => {
 
           {/* Botões de Operação */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 py-12">
-            {/* Botão ENTRADAS */}
-            <button
-              data-testid="btn-entradas"
-              onClick={() => setOperacao('entrada')}
-              className="group w-64 h-48 bg-[#141414] border-2 border-emerald-500/30 rounded-xl hover:border-emerald-500 hover:bg-emerald-500/5 transition-all flex flex-col items-center justify-center gap-4"
-            >
-              <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-all">
-                <ArrowDownCircle className="w-10 h-10 text-emerald-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-white">ENTRADAS</h3>
-                <p className="text-sm text-[#A1A1AA]">Compras e Aquisições</p>
-              </div>
-            </button>
+            {/* Card ENTRADAS */}
+            <div className="flex flex-col items-center gap-3">
+              <button
+                data-testid="btn-entradas"
+                onClick={() => setOperacao('entrada')}
+                className="group w-64 h-48 bg-[#141414] border-2 border-emerald-500/30 rounded-xl hover:border-emerald-500 hover:bg-emerald-500/5 transition-all flex flex-col items-center justify-center gap-4"
+              >
+                <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-all">
+                  <ArrowDownCircle className="w-10 h-10 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white">ENTRADAS</h3>
+                  <p className="text-sm text-[#A1A1AA]">Compras e Aquisições</p>
+                </div>
+              </button>
+              
+              {/* Botão Apagar Tudo Entradas */}
+              <button
+                data-testid="btn-delete-all-entradas"
+                onClick={() => handleDeleteAllByOperacao('entrada')}
+                disabled={deletingAll === 'entrada'}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 disabled:opacity-50 transition-all"
+              >
+                {deletingAll === 'entrada' ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Apagar Todas Entradas
+                  </>
+                )}
+              </button>
+            </div>
 
-            {/* Botão SAÍDAS */}
-            <button
-              data-testid="btn-saidas"
-              onClick={() => setOperacao('saida')}
-              className="group w-64 h-48 bg-[#141414] border-2 border-blue-500/30 rounded-xl hover:border-blue-500 hover:bg-blue-500/5 transition-all flex flex-col items-center justify-center gap-4"
-            >
-              <div className="w-20 h-20 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-all">
-                <ArrowUpCircle className="w-10 h-10 text-blue-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-white">SAÍDAS</h3>
-                <p className="text-sm text-[#A1A1AA]">Vendas e Prestações</p>
-              </div>
-            </button>
+            {/* Card SAÍDAS */}
+            <div className="flex flex-col items-center gap-3">
+              <button
+                data-testid="btn-saidas"
+                onClick={() => setOperacao('saida')}
+                className="group w-64 h-48 bg-[#141414] border-2 border-blue-500/30 rounded-xl hover:border-blue-500 hover:bg-blue-500/5 transition-all flex flex-col items-center justify-center gap-4"
+              >
+                <div className="w-20 h-20 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-all">
+                  <ArrowUpCircle className="w-10 h-10 text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white">SAÍDAS</h3>
+                  <p className="text-sm text-[#A1A1AA]">Vendas e Prestações</p>
+                </div>
+              </button>
+              
+              {/* Botão Apagar Tudo Saídas */}
+              <button
+                data-testid="btn-delete-all-saidas"
+                onClick={() => handleDeleteAllByOperacao('saida')}
+                disabled={deletingAll === 'saida'}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 disabled:opacity-50 transition-all"
+              >
+                {deletingAll === 'saida' ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Apagar Todas Saídas
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </Layout>
