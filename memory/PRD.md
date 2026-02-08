@@ -1089,36 +1089,39 @@ O proprietário do escritório "Business Contabilidade" precisa de um site para 
 
 ### 02/2026 - Correção de Bug Crítico (07-08/02/2026)
 
+- ✅ **BUGFIX P0: SPED sem considerar "outras despesas", frete e seguro**
+  - **Problema:** Em NFs com "outras despesas" (ex: NF 10397 com R$ 62,40), o VL_ITEM não incluía esses valores
+  - **Causa raiz:** VL_ITEM usava apenas `valor_produto`, sem somar frete, seguro e outras despesas
+  - **Solução:** Alterado cálculo do VL_ITEM para: `valor_produto + frete + seguro + outras_despesas`
+  - **Resultado:** VL_ITEM + VL_IPI + VL_ICMS_ST - VL_DESC = valor_total do Sistema
+  - **Arquivo:** `/app/backend/server.py` (registro C170)
+
 - ✅ **BUGFIX P0: SPED sem campos de ICMS ST preenchidos**
-  - **Problema:** Em NFs com ICMS ST (ex: NF 302733 com R$ 14.687,93 de ST), os campos VL_BC_ICMS_ST, ALIQ_ST e VL_ICMS_ST estavam vazios no registro C170
-  - **Solução:** Adicionada lógica para extrair e preencher os campos de ICMS ST no C170
-  - **Resultado:** Campos preenchidos corretamente: VL_BC_ICMS_ST, ALIQ_ST e VL_ICMS_ST
+  - **Solução:** Adicionada lógica para preencher VL_BC_ICMS_ST, ALIQ_ST e VL_ICMS_ST
   - **Arquivo:** `/app/backend/server.py` (registro C170)
 
 - ✅ **BUGFIX P0: SPED sem campos de IPI preenchidos**
-  - **Problema:** Em NFs com IPI (ex: NF 8003 com IPI R$ 6.014,35), os campos CST_IPI, VL_BC_IPI, ALIQ_IPI e VL_IPI estavam vazios no registro C170
-  - **Solução:** Adicionada lógica para extrair e preencher os campos de IPI no C170 quando houver IPI no produto
-  - **Resultado:** Campos preenchidos corretamente: CST_IPI=00, VL_BC_IPI, ALIQ_IPI e VL_IPI
+  - **Solução:** Adicionada lógica para preencher CST_IPI, VL_BC_IPI, ALIQ_IPI e VL_IPI
   - **Arquivo:** `/app/backend/server.py` (registro C170)
 
 - ✅ **BUGFIX P0: Discrepância de ICMS entre Dashboard e Apuração**
-  - **Solução:** Adicionada lista de CFOPs de Despesa no Dashboard para excluir do crédito (igual Apuração)
+  - **Solução:** Adicionada lista de CFOPs de Despesa no Dashboard para excluir do crédito
   - **Arquivo:** `/app/backend/server.py` (função `get_dashboard_stats`)
 
 - ✅ **BUGFIX P0: Exportação SPED sem considerar desconto**
-  - **Solução:** Alterado para usar `valor_produto` (v_prod bruto) no VL_ITEM, e `v_desconto` no VL_DESC
+  - **Solução:** Alterado para usar VL_DESC separado para desconto
   - **Arquivo:** `/app/backend/server.py` (registro C170)
 
 - ✅ **BUGFIX P0: Discrepância de PIS/COFINS entre Dashboard e Apuração**
-  - **Solução:** Alinhado endpoint de Apuração para usar valores do XML (igual Dashboard)
+  - **Solução:** Alinhado endpoint de Apuração para usar valores do XML
   - **Arquivo:** `/app/backend/server.py` (função `apuracao_pis_cofins`)
 
 - ✅ **BUGFIX P0: Notas com CFOP de entrada sendo importadas como saídas**
-  - **Solução:** Adicionada validação de CFOP no upload de saídas + reclassificação de 9 notas
+  - **Solução:** Adicionada validação de CFOP no upload de saídas
   - **Arquivo:** `/app/backend/server.py` (linhas 4074-4107)
 
 - ✅ **BUGFIX P0: Discrepância Dashboard vs Relatório de Documentos**
-  - **Solução:** Alterado cálculo para somar `valor_total` pelo campo `tipo` do documento
+  - **Solução:** Alterado cálculo para somar `valor_total` pelo campo `tipo`
   - **Arquivo:** `/app/backend/server.py` (linhas 5130-5149)
 
 ### 02/2026 - Verificação de Bugs (07/02/2026)
