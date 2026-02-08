@@ -139,8 +139,11 @@ A página de documentos foi redesenhada com navegação em 3 níveis:
   - Nível 1: Botões ENTRADAS (verde) e SAÍDAS (azul)
   - Nível 2: Sub-tipos de documentos (NF-e, NFC-e, CT-e, Serviços, Demais)
   - Nível 3: Lista de documentos com upload integrado
+- **Filtros por Tipo e Modelo**: Backend atualizado para filtrar por tipo_operacao e modelo
+- **Totalizador**: Exibe quantidade de documentos e soma total em R$ no topo da lista
 - Remoção do item de menu "Upload XML" (funcionalidade integrada nas listas)
 - Correção de classes CSS dinâmicas do Tailwind (template literals não funcionavam)
+- Inferência automática de tipo_operacao pelo CFOP quando não definido no documento
 - Todos os data-testid implementados para automação de testes
 - Persistência correta do estado da empresa durante navegação
 
