@@ -1,78 +1,63 @@
 <analysis>**original_problem_statement:**
-O usuário iniciou com a necessidade de corrigir a geração de arquivos SPED Fiscal, que apresentava valores incorretos. Após a correção, o usuário solicitou uma grande refatoração e rebranding da aplicação, transformando-a em um produto comercial chamado AURION. As principais solicitações incluem:
-1.  **Rebranding Completo**: Mudar o nome para AURION, criar uma nova identidade visual premium (tema escuro com detalhes em dourado) e aplicá-la em toda a aplicação.
-2.  **Sistema de Perfis de Usuário**: Implementar dois níveis de acesso: Master (vê todas as empresas) e Operacional (vê apenas as empresas às quais está atribuído).
-3.  **Melhorias de UI/UX**:
-    *   Otimizar a listagem de empresas para um formato de tabela mais prático.
-    *   Criar uma funcionalidade de importação de empresas em lote.
-    *   Tornar o menu de navegação flexível, permitindo que o usuário alterne entre os modos vertical e horizontal.
-    *   Redesenhar completamente a página Documentos com uma nova navegação baseada em Entradas e Saídas, integrando a funcionalidade de upload em cada subcategoria.
+O usuário solicitou uma reestruturação completa do cálculo de PIS/COFINS, fornecendo manuais detalhados () com as regras de negócio. A tarefa principal é implementar este novo módulo, que deve substituir completamente a funcionalidade existente.
+
+**Requisitos do Módulo PIS/COFINS:**
+1.  **Regimes e Atividades:**
+    *   Lógica separada para Comércio e Serviço, incluindo empresas híbridas.
+    *   Cálculos distintos para regimes Lucro Real e Lucro Presumido.
+2.  **Regras de Cálculo (Comércio):**
+    *   **Lucro Real**: Classificar CST de entrada/saída, calcular débitos e créditos conforme tabelas fornecidas.
+    *   **Lucro Presumido**: Sem apropriação de crédito, exceto para produtos com alíquota diferenciada.
+    *   **CFOPs sem crédito**: Devem ser classificados com CST 98 (não CST 70).
+3.  **Regras de Cálculo (Serviços):**
+    *   Aplicar alíquotas com base no CNAE da empresa e no código de serviço da nota.
+    *   Empresas de serviço no Lucro Real podem aproveitar créditos de despesas relacionadas à atividade fim.
+4.  **Funcionalidades Adicionais:**
+    *   **Dashboard Comparativo**: Exibir o cálculo para ambos os regimes (Real vs. Presumido) para indicar o mais econômico, mesmo que a empresa esteja em apenas um deles.
+    *   **Análise de Divergência**: Criar um relatório que compara os dados do XML (CST, alíquota, valor) com a classificação do sistema, agrupado por produto. O relatório deve destacar valores recolhidos a maior/menor e o saldo economizado.
+    *   **Alerta de Inconsistência**: Gerar um alerta se uma nota for emitida para uma atividade não prevista no CNAE da empresa.
+5.  **Interface:**
+    *   O menu PIS e COFINS atual deve ser completamente substituído pela nova interface.
 
 **User's preferred language**:
 Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-É uma aplicação full-stack de contabilidade fiscal chamada AURION, com frontend em React e backend em FastAPI. A aplicação passou por um rebranding completo, adotando um tema escuro premium com detalhes em dourado. As funcionalidades implementadas incluem:
--   **Sistema de Perfis**: Backend e frontend para gerenciamento de usuários com perfis Master e Operacional.
--   **Gerenciamento de Empresas**: Uma página de empresas redesenhada em formato de tabela, com filtros e uma funcionalidade para importação em lote via arquivos XLSX.
--   **Layout Flexível**: O menu principal pode ser alternado entre vertical (sidebar) e horizontal (top-bar), e a preferência do usuário é salva.
--   **Navegação de Documentos (Em Andamento)**: A página Documentos foi redesenhada para apresentar dois botões principais (ENTRADAS e SAÍDAS), removendo o antigo item de menu Upload XML. A implementação da navegação secundária está em andamento.
+Uma aplicação de contabilidade fiscal (AURION) com frontend em React e backend em FastAPI. A aplicação foi recentemente aprimorada com um sistema robusto de gerenciamento de documentos na página , que inclui:
+-   Navegação em três níveis (Operação > Tipo de Documento > Lista).
+-   Filtros dinâmicos por tipo de operação e modelo de documento.
+-   Contadores de documentos e totalizadores de valor (R$).
+-   Layout com cabeçalho fixo e tabela rolável para melhor usabilidade.
+-   Sistema de importação validada por tipo de documento (XML, PDF/Imagem com IA).
+-   Funcionalidade de exclusão em massa com filtros detalhados (data, número, fornecedor, CFOP) e opções para apagar tudo.
+-   Foram criados os arquivos e endpoints de base para o novo módulo de PIS/COFINS, mas a lógica de cálculo ainda não foi implementada.
 
 **Last working item**:
--   **Last item agent was working**: Implementação da nova navegação na página . O agente implementou os botões principais ENTRADAS e SAÍDAS. O trabalho foi interrompido ao tentar testar a funcionalidade de clique nesses botões para exibir os sub-botões (NF-e, CT-e, etc.). O teste falhou porque o estado de empresa selecionada foi perdido entre as interações.
--   **Status**: IN PROGRESS
--   **Agent Testing Done**: N (O teste falhou.)
--   **Which testing method agent to use?**: frontend testing agent. O agente de teste deve ser instruído a validar o fluxo completo na página Documentos:
-    1.  Fazer login e navegar para Documentos.
-    2.  Selecionar uma empresa.
-    3.  Verificar se os botões ENTRADAS e SAÍDAS estão visíveis.
-    4.  Clicar em ENTRADAS e verificar se os sub-botões (NF-e, Serviços Tomados, etc.) aparecem.
-    5.  Clicar em um sub-botão e verificar se a lista de documentos e a funcionalidade de upload integrada são exibidas.
-    6.  Repetir os passos 4 e 5 para SAÍDAS.
+-   **Last item agent was working**: Início da implementação do novo módulo de PIS/COFINS. O agente analisou os requisitos, leu os manuais fornecidos pelo usuário e criou a estrutura inicial no backend.
+    -   Criou o arquivo de serviço  (vazio).
+    -   Adicionou os endpoints placeholder em :  e .
+-   **Status**: NOT STARTED (Apenas a estrutura foi criada; a lógica de negócio ainda precisa ser implementada).
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: backend testing agent. Após implementar a lógica, o agente de teste deve ser usado para validar os cenários de cálculo (Lucro Real vs. Presumido, Comércio vs. Serviço, diferentes CSTs, etc.).
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0)**: Funcionalidade de navegação na página  está incompleta e com bugs.
--   **Issue 2 (P1)**: Instabilidade potencial no seletor de competência/empresa ().
+Não há issues pendentes. O foco total está na implementação de uma nova feature.
 
 **Issues Detail**:
--   **Issue 1**:
-    -   **Description**: A nova navegação na página  não funciona como esperado. Ao tentar testar o clique no botão ENTRADAS, a ação falhou porque o contexto da empresa selecionada foi perdido. A lógica para exibir os sub-botões, a lista de documentos e o upload integrado ainda precisa ser totalmente implementada e corrigida.
-    -   **Attempted fixes**: A página foi redesenhada e o teste inicial falhou.
-    -   **Next debug checklist**:
-        1.  Analisar o gerenciamento de estado em  e  para garantir que a  persista.
-        2.  Corrigir o script de teste para lidar com a seleção da empresa de forma robusta.
-        3.  Implementar a lógica de estado (, ) para renderizar condicionalmente os sub-botões e as visualizações de lista/upload.
-        4.  Finalizar a interface para cada subcategoria de documento, incluindo a funcionalidade de upload.
-    -   **Why fix this issue and what will be achieved with the fix?**: É a implementação de uma melhoria de fluxo de trabalho solicitada diretamente pelo usuário.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on other issue**: Potencialmente no Issue 2.
-
--   **Issue 2**:
-    -   **Description**: O componente  tem um histórico de instabilidade, revertendo a seleção do usuário e dificultando os testes. Embora tenha sido redesenhado, a lógica de estado subjacente não foi explicitamente validada. A falha no teste do Issue 1 pode ser um sintoma deste problema.
-    -   **Attempted fixes**: Nenhuma. O componente foi apenas reestilizado.
-    -   **Next debug checklist**:
-        1.  Revisar a lógica em  e .
-        2.  Verificar como o estado da empresa e competência é persistido (ex: ) e se ele se mantém de forma consistente durante a navegação.
-        3.  Reforçar o gerenciamento de estado para evitar perdas inesperadas.
-    -   **Why fix this issue and what will be achieved with the fix?**: Aumenta a usabilidade geral da aplicação e a eficiência do desenvolvimento e dos testes.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on other issue**: None
+N/A
 
 **In progress Task List**:
--   **Task 1 (P0)**: Concluir a nova navegação de documentos em .
-    -   **Where to resume**: Corrigir o problema de perda de estado que fez o último teste falhar e, em seguida, implementar a renderização dos sub-botões e das visualizações de lista/upload.
-    -   **What will be achieved with this?**: Finalizará a experiência de usuário solicitada para o gerenciamento de documentos.
+-   **Task 1 (P0)**: Implementar a lógica de cálculo do PIS/COFINS no backend.
+    -   **Where to resume**: Dentro do arquivo . A implementação deve seguir as regras detalhadas fornecidas pelo usuário nas mensagens de chat e nos manuais  extraídos.
+    -   **What will be achieved with this?**: Entregar o núcleo da nova funcionalidade de apuração fiscal, que é um requisito de alto valor para o usuário.
     -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on something**: Potencialmente no Issue 2 (instabilidade do ).
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on something**: Não.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
+    -   (P0) Desenvolver a nova interface do frontend para o módulo PIS/COFINS, que substituirá a página existente e exibirá a apuração, a análise comparativa e o relatório de divergências.
     -   (P1) Criar uma tela de configuração para permitir que o usuário gerencie a lista de CFOPs de devolução.
     -   (P2) Adicionar um indicador visual na página de documentos para notas de mesma empresa.
 -   **Future Tasks:**
@@ -81,95 +66,92 @@ Português (pt-BR). O próximo agente DEVE responder em português.
     -   Criar um dashboard de estatísticas do escritório para o perfil Master.
 
 **Completed work in this session**
--   **Rebranding para AURION**: Implementação de nova identidade visual (logo, tema escuro com dourado) em toda a aplicação.
--   **Sistema de Perfis de Usuário**: Criação dos perfis Master e Operacional no backend (, ) e frontend ().
--   **Otimização da Lista de Empresas e Importação**: Página  redesenhada para uma lista otimizada e adição de funcionalidade de importação em lote de empresas via XLSX.
--   **Menu de Navegação Flexível**: Implementação de um menu que alterna entre vertical e horizontal (), com a preferência salva por usuário.
--   **Início da Refatoração da Página de Documentos**: Remoção do item de menu Upload XML e criação da estrutura inicial da nova navegação em .
+-   **Sistema de Exclusão em Massa**: Implementada funcionalidade completa para exclusão de documentos, com botões na tela principal (Entradas/Saídas) e um modal avançado na listagem, com filtros por data, número, fornecedor, CFOP e uma opção Apagar Tudo. A funcionalidade foi validada com testes.
+-   **Sistema de Importação Validada**: Implementado um sistema que adapta o tipo de upload (XML, PDF/Imagem) com base no tipo de documento selecionado, com validação no backend.
+-   **Melhorias de UI/UX em Documentos**: Implementado um layout com cabeçalho fixo e corpo da tabela rolável, melhorando a navegação.
+-   **Consistência de Dados**: Corrigido um bug que impedia a filtragem de documentos pela competência selecionada, garantindo que a lista e as ações (como exclusão) atuem sobre o mesmo conjunto de dados.
+-   **Totalizadores**: Adicionados contadores de documentos e a soma total de seus valores (R$) na tela de listagem.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1**: A instabilidade do , um problema recorrente que causa perda de estado e nunca foi fundamentalmente corrigido, apenas reestilizado.
+-   **Issue 1**: O arquivo  é um monolito. Esta é uma dívida técnica conhecida e está planejada para refatoração futura.
 
 **Known issue recurrence from previous fork**
--   O bug de usabilidade do  é um problema recorrente que persiste desde o fork anterior e ainda não foi resolvido.
+-   **Issue**: Instabilidade do  que causava perda de estado.
+-   **Status**: RESOLVED. O agente corrigiu um bug relacionado à não aplicação do filtro de competência, o que estabilizou o comportamento do componente.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend**: React, React Context API, TailwindCSS,  para parsing de arquivos.
--   **Backend**: FastAPI, Motor (MongoDB assíncrono), Pydantic.
--   **Arquitetura**: Full-stack com backend monolítico e frontend baseado em componentes.
+-   **Frontend**: React, React Context API, TailwindCSS
+-   **Backend**: FastAPI, Motor (MongoDB assíncrono), Pydantic
+-   **AI Integration**:  para processamento de documentos PDF/Imagem (planejado).
 
 **key DB schema**
--   ****: Adicionados campos , , .
--   ****: Adicionado campo  para vincular usuários.
+-   Nenhuma alteração de esquema nesta sessão.
 
 **changes in tech stack**
--   **Dependência de Frontend Adicionada**: , para a funcionalidade de importação em lote.
+-   Adicionadas as dependências  e  no backend.
 
 **All files of reference**
--   : Principal arquivo de backend, modificado para incluir toda a lógica de perfis e gerenciamento de empresas.
--   : Schemas Pydantic atualizados para  e .
--   : Completamente redesenhado para a nova identidade visual e menu flexível.
--   : Redesenhado e com nova funcionalidade de importação.
--   : Nova página criada para gerenciamento de usuários.
--   : Arquivo sobrescrito com a nova estrutura de navegação, atualmente em desenvolvimento.
--   : Diretrizes de design geradas para o rebranding.
--   : Documento de requisitos do produto, atualizado ao longo da sessão.
+-   : Novo arquivo para a lógica de cálculo.
+-   : Modificado para adicionar múltiplos endpoints (exclusão, upload validado) e placeholders para PIS/COFINS.
+-   : Modificado extensivamente para adicionar as funcionalidades de exclusão, upload dinâmico e melhorias de UI.
+-   Os dois manuais  fornecidos pelo usuário, cujo conteúdo foi extraído e está no histórico do chat, são a principal fonte de verdade para a próxima tarefa.
 
 **Areas that need refactoring**:
--   O arquivo  é um monolito. A lógica de autenticação e de empresas deveria ser movida para os arquivos  e  para melhorar a manutenibilidade.
--   A estilização do frontend foi feita com muitas substituições de classes CSS. Seria mais eficiente e limpo abstrair estilos em  ou em componentes reutilizáveis.
+-   : Precisa urgentemente ser dividido em múltiplos arquivos de roteador para melhorar a manutenibilidade.
+-   : O componente está muito grande e complexo; os modais e outras subseções poderiam ser extraídos para componentes filhos.
 
 **key api endpoints**
--   : Criar um novo usuário.
--   : Listar todos os usuários.
--   : Atualizar um usuário.
--   : Listar empresas (com filtro baseado no perfil do usuário).
--   : Criar uma empresa (agora aceita ).
--   : Salvar preferências do usuário (ex: layout do menu).
+-   : Endpoint para exclusão em massa de documentos.
+-   : Endpoint para upload de arquivos com validação de tipo.
+-   : Endpoint para processamento de documentos via IA.
+-   : Novo endpoint (placeholder).
+-   : Novo endpoint (placeholder).
 
 **Critical Info for New Agent**
--   O foco principal do usuário mudou de correções de bugs para a construção de um produto comercial completo (AURION), com forte ênfase na identidade visual e na experiência do usuário.
--   A prioridade máxima é finalizar a nova navegação na página .
--   Esteja ciente da possível instabilidade do . Se ocorrerem problemas de perda de estado, a correção deste componente pode ser necessária para avançar.
--   O trabalho no backend foi feito de forma rápida, adicionando lógica diretamente ao . Considere refatorar isso para os arquivos de roteador apropriados para melhorar a organização do código.
+-   A prioridade máxima é implementar a lógica de cálculo de PIS/COFINS em .
+-   As regras de negócio completas estão nas mensagens de chat do usuário (315, 322) e nos dois manuais  que foram analisados. É crucial usar essas fontes.
+-   Recomenda-se uma abordagem incremental: implementar e testar a lógica para Comércio Lucro Real, depois Presumido, depois Serviços, e por último a análise comparativa.
+-   Após a conclusão do backend, será necessário criar uma nova página no frontend para exibir os resultados.
 
 **documents and test reports created in this job**
+-    (e outros anteriores)
+-    (atualizado)
 -   
 -   
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **(Usuário)** Perfeito! O menu horizontal/vertical está excelente. **(Concluído)**
-9.  **(Usuário)** Agora, vamos melhorar a navegação em Documentos. Quero botões para ENTRADAS e SAÍDAS, que abrem sub-botões para cada tipo de documento (NF-e, etc.). O upload deve ser integrado, e o menu Upload principal removido. **(Em andamento)**
-8.  **(Usuário)** O layout horizontal está desalinhado. Coloque a logo em cima e o menu abaixo. **(Concluído)**
-7.  **(Usuário)** Não encontro o botão para voltar o menu para vertical. **(Concluído)**
-6.  **(Usuário)** Você ainda não implementou o menu flexível (vertical/horizontal). **(Concluído)**
-5.  **(Usuário)** Gostei, mas algumas páginas ainda estão com cores antigas. Também precisamos de um cadastro/importação de empresas em lote. **(Concluído)**
-4.  **(Usuário)** Confirma a estrutura de usuários e define como prioridade. **(Concluído)**
-3.  **(Agente)** Pergunta para confirmar a estrutura de perfis e permissões.
-2.  **(Usuário)** Solicita o rebranding completo para AURION e uma série de novas funcionalidades (perfis, lista de empresas, menu flexível). **(Concluído/Em andamento)**
-1.  **(Agente)** Sugere pensar em melhorias antes da publicação.
+10. **(Usuário)** Solicitação detalhada para a nova funcionalidade de PIS/COFINS, anexando dois manuais. (Em andamento)
+9. **(Usuário)** Confirmação de requisitos adicionais para o módulo PIS/COFINS, incluindo análise de divergências e tratamento de CFOPs. (Em andamento)
+8. **(Agente)** Pedido de confirmação para o escopo do projeto PIS/COFINS.
+7. **(Usuário)** Solicita simplificação do modal de exclusão Apagar Tudo, removendo a etapa de visualização. (Concluído)
+6. **(Agente)** Demonstra a funcionalidade do modal de exclusão Apagar Todos com preview.
+5. **(Usuário)** Solicita a inclusão de uma opção Apagar Tudo dentro do modal de exclusão detalhado. (Concluído)
+4. **(Usuário)** Solicita a adição de botões Apagar Todas Entradas/Saídas na tela principal de documentos. (Concluído)
+3. **(Usuário)** Aprova a implementação da funcionalidade de exclusão em massa com filtros. (Concluído)
+2. **(Agente)** Pede confirmação sobre os filtros para a funcionalidade de exclusão.
+1. **(Usuário)** Solicita a criação de uma funcionalidade para apagar documentos em massa, com filtros. (Concluído)
 
 **Project Health Check:**
--   **Broken**:
-    -   A nova navegação na página  está incompleta e quebra durante o teste.
+-   **Broken**: Nenhuma funcionalidade está quebrada.
+-   **Mocked**: Os endpoints para o novo módulo de PIS/COFINS e para o processamento de documentos com IA estão implementados como placeholders.
 
 **3rd Party Integrations**
--   LiteLLM (GPT-4o): Usado para classificação de produtos.
--   : Biblioteca de frontend para parsing de arquivos Excel.
+-   : Para parsing de arquivos Excel no frontend.
+-    / : Instalados para futura integração de IA (Gemini) via Emergent LLM Key.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
+-   **Testing agent used after significant changes**: YES
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: A instabilidade do  é uma preocupação e pode estar causando problemas de perda de estado.
+-   **Known regressions**: None
 
 **Credentials to test flow:**
 -   **Email**: 
 -   **Senha**: 
 
 **What agent forgot to execute**
--   O agente não corrigiu a causa raiz do problema de instabilidade do .
--   O agente criou arquivos de roteador no backend, mas não os utilizou, mantendo toda a lógica no monolito .</analysis>
+-   A implementação da lógica do PIS/COFINS não foi esquecida, mas sim iniciada. A tarefa agora é continuar e concluir essa implementação.
+-   A refatoração do  continua sendo uma tarefa futura adiada em favor do desenvolvimento de novas funcionalidades.</analysis>
