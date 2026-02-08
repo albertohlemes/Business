@@ -236,7 +236,7 @@ const Dashboard = ({ user, onLogout }) => {
 
             {/* Valores Financeiros */}
             <div>
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Valores do Período</h2>
+              <h2 className="text-lg font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>Valores do Período</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <ValueCard
                   title="Total Entradas"
