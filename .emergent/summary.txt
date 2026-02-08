@@ -1,51 +1,54 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou inicialmente a melhoria na importação de notas fiscais (XMLs) para identificar e desconsiderar notas de devolução. A tarefa evoluiu para uma série de correções de bugs e discrepâncias de dados em toda a aplicação, com foco principal na geração correta de arquivos SPED Fiscal. Os problemas incluem:
-1.  Falhas na lógica de importação de notas de devolução de emissão própria.
-2.  Discrepâncias de valores entre o Dashboard, Apuração Mensal e relatórios de exportação.
-3.  Geração incorreta de arquivos SPED (registros C100, C170, C190) para notas com desconto, IPI, IPI de devolução e ICMS-ST, resultando em valores que não batem com os sistemas fiscais do usuário.
-O objetivo principal do usuário é garantir a consistência e a exatidão dos dados em toda a aplicação, especialmente no arquivo SPED Fiscal gerado.
+O usuário iniciou com a necessidade de corrigir a geração de arquivos SPED Fiscal, que apresentava valores incorretos para notas com IPI, descontos e devolução de IPI. Após a correção bem-sucedida desse problema crítico, o usuário solicitou uma série de melhorias de usabilidade e funcionalidade no frontend, incluindo:
+1.  Agrupar produtos na tela de Validação IA por categorias de operação (Bonificação, Devolução, etc.), em vez de mostrá-los como Pendente.
+2.  Corrigir a exibição de falsas divergências na tela de exportação.
+3.  Implementar uma funcionalidade de correção em lote para itens com inconsistências de CST na tela de exportação.
 
 **User's preferred language**:
 Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-É uma aplicação full-stack de contabilidade fiscal (Business Contabilidade) com frontend em React, backend em FastAPI e banco de dados MongoDB. As funcionalidades existentes incluem autenticação, gestão de empresas, upload de XML (com processamento em segundo plano), dashboards de análise, apuração de impostos e exportação de arquivos SPED Fiscal.
+É uma aplicação full-stack de contabilidade fiscal (Business Contabilidade) com frontend em React e backend em FastAPI. O núcleo da aplicação, a geração de SPED Fiscal, foi estabilizado. O foco recente foi em melhorias de UI/UX, resultando em:
+-   Uma tela de Validação IA () que agrupa produtos dinamicamente por natureza de operação fiscal (ex: Revenda, Despesa, Bonificação).
+-   Uma tela de Exportação () que compara corretamente os totais do sistema com o SPED gerado e agora inclui uma funcionalidade para correção em lote de itens pendentes.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava corrigindo a lógica de geração do SPED Fiscal, especificamente o cálculo do campo  no registro C170. O usuário reportou que, para notas de **entrada** com IPI, o valor do IPI estava sendo somado ao , quando deveria ir apenas no campo . O agente ajustou o código para garantir que, em notas de entrada, o  use  (valor bruto, sem IPI), e para notas de **saída** (com devolução de IPI), o  inclua o IPI para que o total da nota bata. A última ação foi uma verificação bem-sucedida de que o SPED gerado para a NF 619567 (entrada) agora estava com o  correto (valor sem IPI).
--   **Status**: IN PROGRESS
--   **Agent Testing Done**: Y (Apenas para o último caso específico reportado, NF 619567).
--   **Which testing method agent to use?**: backend. É crucial gerar um novo arquivo SPED e fazer uma verificação completa de todas as notas problemáticas reportadas pelo usuário (entradas com IPI, entradas com desconto, saídas com IPI de devolução) para garantir que a última correção não quebrou outros cenários.
+-   **Last item agent was working**: Implementação da funcionalidade de **correção em lote** na tela de Exportação (). O agente adicionou checkboxes para seleção de itens, um checkbox mestre para selecionar todos e botões para aplicar a ação Manter em todos os itens ou apenas nos selecionados.
+-   **Status**: USER VERIFICATION PENDING
+-   **Agent Testing Done**: Y (Verificação visual via screenshots que confirmam a presença e a interatividade dos novos elementos de UI, como checkboxes e botões condicionais).
+-   **Which testing method agent to use?**: frontend testing agent. O agente de teste deve ser instruído a:
+    1.  Navegar para a tela de Exportação e verificar a presença da tabela Itens com ICMS Zerado.
+    2.  Clicar no checkbox do cabeçalho para selecionar todos os itens e verificar se o botão Manter Selecionados é atualizado com a contagem correta.
+    3.  Desmarcar todos, selecionar 2-3 itens individualmente e verificar se as linhas são destacadas e se o botão de ação em lote é atualizado.
+    4.  Clicar no botão Manter Selecionados e verificar se uma chamada de API () é disparada e se os itens selecionados são removidos da lista na UI após a ação.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0)**: Geração incorreta de valores no arquivo SPED Fiscal.
--   **Issue 2 (P1)**: O seletor de competência (mês/ano) no frontend é instável e dificulta os testes.
+-   **Issue 1 (P0)**: Validação da funcionalidade de correção em lote.
+-   **Issue 2 (P1)**: Bug de usabilidade no seletor de competência/empresa.
 
 **Issues Detail**:
 -   **Issue 1**:
-    -   **Description**: O valor dos itens ( no C170) e os totais da nota ( no C100) no SPED gerado estão inconsistentes, dependendo do tipo de nota (entrada/saída) e da presença de IPI, IPI de devolução ou descontos. Isso causa divergências quando o usuário compara o arquivo com seu sistema de escrituração fiscal. É um problema recorrente que já passou por várias tentativas de correção.
-    -   **Attempted fixes**: A lógica foi alterada múltiplas vezes. A última alteração, em  na função , foi para usar  como base para  e condicionalmente adicionar  apenas para notas de .
+    -   **Description**: A funcionalidade de correção em lote na tela de exportação foi implementada, mas precisa ser validada pelo usuário para garantir que atende às suas expectativas e que a lógica de negócio está correta.
+    -   **Attempted fixes**: N/A (recurso novo).
     -   **Next debug checklist**:
-        1.  Reiniciar o backend para garantir que o último código foi carregado: backend: stopped
-backend: started.
-        2.  Gerar um novo arquivo SPED para a empresa  na competência .
-        3.  Analisar o arquivo SPED gerado e verificar especificamente:
-            -   **NF 619567 (entrada com IPI):** Confirmar que o  no C170 é o valor SEM IPI (ex: ) e o  está preenchido.
-            -   **NF 302733 (entrada com desconto):** Confirmar que o  é o valor bruto (antes do desconto) e o  está preenchido corretamente.
-            -   **NF 371645 (saída com IPI de devolução):** Confirmar que a soma dos  dos C170 bate com o  do C100 (ambos incluindo o IPI de devolução).
-        4.  Após a validação, apresentar o resultado ao usuário e pedir que ele valide com o sistema dele.
-    -   **Why fix this issue and what will be achieved with the fix?**: É a funcionalidade mais crítica da aplicação. A correção vai restaurar a confiança do usuário e tornar o sistema utilizável para suas obrigações fiscais.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: backend
+        1.  Aguardar o feedback do usuário.
+        2.  Se o usuário reportar problemas, usar o  com o cenário descrito em Last working item para depurar o fluxo de seleção e a chamada à API.
+        3.  Verificar os logs do backend após a ação para garantir que os dados corretos estão sendo recebidos e processados pelo endpoint .
+    -   **Why fix this issue and what will be achieved with the fix?**: Finalizar a implementação de uma melhoria de QoL (Qualidade de Vida) muito solicitada pelo usuário.
+    -   **Status**: USER VERIFICATION PENDING
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: both
     -   **Blocked on other issue**: None
 
 -   **Issue 2**:
-    -   **Description**: O seletor de empresa/competência no frontend é instável, frequentemente revertendo para o mês atual, o que dificulta e atrasa os testes.
-    -   **Attempted fixes**: Nenhum. O agente tem contornado o problema com manipulação do BD.
-    -   **Next debug checklist**: Analisar  e  para corrigir o gerenciamento de estado.
-    -   **Why fix this issue and what will be achieved with the fix?**: Melhorar drasticamente a usabilidade e a eficiência dos testes.
+    -   **Description**: O seletor de empresa e competência () é instável. Frequentemente, ele reverte a seleção para o mês/ano atual, forçando o agente (e o usuário) a re-selecionar a competência correta a cada teste, o que é ineficiente e frustrante.
+    -   **Attempted fixes**: Nenhum. Este problema foi identificado no início, mas nunca priorizado. O agente contornou o problema repetidamente.
+    -   **Next debug checklist**:
+        1.  Analisar o gerenciamento de estado em  e a interação com o componente .
+        2.  Verificar como a  e  são persistidas e atualizadas.
+        3.  Garantir que, após a confirmação no modal, o estado global seja atualizado e mantido durante a navegação entre as páginas.
+    -   **Why fix this issue and what will be achieved with the fix?**: Melhorar drasticamente a usabilidade da aplicação e a eficiência dos testes para o usuário e para futuros agentes.
     -   **Status**: NOT STARTED
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend
@@ -55,24 +58,24 @@ backend: started.
 Nenhum.
 
 **Upcoming and Future Tasks**
--   **Próximas Tarefas:**
-    -   (P1) Corrigir o bug do seletor de competência ().
-    -   (P1) Criar uma tela de configuração para permitir que o usuário gerencie a lista de CFOPs de devolução.
+-   **Upcoming Tasks:**
+    -   (P1) Corrigir o bug de usabilidade no  (Issue 2).
+    -   (P2) Criar uma tela de configuração para permitir que o usuário gerencie a lista de CFOPs de devolução.
     -   (P2) Adicionar um indicador visual na página de documentos para notas de mesma empresa.
--   **Tarefas Futuras:**
-    -   Refatorar o monolito  em uma arquitetura baseada em módulos.
+-   **Future Tasks:**
+    -   (P2) Refatorar o monolito  em uma arquitetura baseada em módulos para melhorar a manutenibilidade.
 
 **Completed work in this session**
--   **Correção - Discrepância de Dados**: Alinhados os valores entre a Apuração Mensal e o Comparativo SPED.
--   **Correção - Importação de Devoluções Próprias**: Corrigida a lógica nos endpoints  e  para importar corretamente notas de devolução de venda emitidas pela própria empresa.
--   **Correção - Preservação de CFOP**: Garantido que o CFOP original de notas de emissão própria seja preservado durante a importação.
--   **Correção (Iterativa) - Geração SPED**: Múltiplos ajustes na lógica de geração dos registros C170 e C100 para tentar alinhar os valores de notas com IPI, desconto e IPI de devolução.
+-   **Correção Crítica - Geração do SPED Fiscal**: Resolvido o problema recorrente de valores incorretos no SPED. A lógica em  foi ajustada para calcular corretamente o  e  em todos os cenários reportados: entradas com IPI, entradas com desconto e saídas com devolução de IPI (evitando duplicação).
+-   **Melhoria - Agrupamento na Validação IA**: A tela  foi modificada para agrupar produtos por categorias de operação fiscal (Bonificação, Devolução, Remessa, etc.) com base no CFOP e no campo , eliminando a categoria Pendente.
+-   **Correção - Falsas Divergências na Exportação**: Ajustado o endpoint de validação em  para parsear corretamente os campos do SPED (índice do VL_IPI corrigido) e para não marcar como divergência as diferenças de ICMS que são intencionais (devido a regras de crédito fiscal), resolvendo o problema na tela .
+-   **Recurso - Correção em Lote**: Implementada a funcionalidade de seleção e correção em lote para itens com ICMS zerado na tela .
 
 **Earlier issues found/mentioned but not fixed**
--   O bug de usabilidade no  foi identificado no início, mas nunca priorizado.
+-   **Issue 1**: O bug de usabilidade no seletor de empresa/competência () foi mencionado no handoff inicial e persistiu durante toda a sessão, mas nunca foi abordado.
 
 **Known issue recurrence from previous fork**
--   A inconsistência de valores no SPED é o problema central que persiste desde o fork anterior e ao longo de toda esta sessão.
+-   A inconsistência de valores no SPED foi o problema recorrente que foi **finalmente resolvido** nesta sessão.
 
 **Code Architecture**
 
@@ -80,57 +83,51 @@ Nenhum.
 **Key Technical Concepts**
 -   **Frontend**: React, React Context API, TailwindCSS
 -   **Backend**: FastAPI, Motor (MongoDB assíncrono)
--   **Data Exchange**: Geração e validação de arquivos SPED Fiscal.
+-   **Data Exchange**: Geração, parsing e validação de arquivos SPED Fiscal.
 
 **key DB schema**
--   ****: Armazena dados dos XMLs. Campos chave: , , ,  (array), , , , , , .
+-   ****: Armazena dados dos XMLs. Campos chave para as últimas funcionalidades: , , .
 
 **changes in tech stack**
 Nenhuma.
 
 **All files of reference**
--   : Arquivo central para todas as correções. As funções mais relevantes são  (e suas sub-rotinas para C100/C170), ,  e .
--   : Identificado como a fonte de bugs de usabilidade.
--   : Contém o histórico e requisitos do produto.
+-   : Arquivo central onde a lógica do SPED e da validação foi corrigida. Funções relevantes: , .
+-   : Onde o agrupamento dinâmico foi implementado.
+-   : Onde a correção da exibição de divergências e a funcionalidade de correção em lote foram implementadas.
+-   : Arquivo que contém o bug de usabilidade pendente.
 
 **Areas that need refactoring**:
--   O arquivo  é um monolito com mais de 9.000 linhas e precisa urgentemente ser refatorado para garantir a manutenibilidade e evitar que uma correção quebre outra funcionalidade.
+-    continua sendo um monolito de mais de 9000 linhas, necessitando de uma refatoração para uma arquitetura modular.
 
 **key api endpoints**
--   : Endpoint principal para upload de XML usado pelo frontend.
--   : Endpoint usado para gerar e validar o SPED.
--   : Endpoint que compara os dados do sistema com o último SPED gerado.
+-   : Endpoint central para a tela de exportação. Sua lógica de validação () foi significativamente alterada.
+-   : Endpoint (implícito) criado para suportar a nova funcionalidade de correção em lote.
 
 **Critical Info for New Agent**
--   **A prioridade máxima é resolver a geração do SPED (Issue 1).** O usuário está frustrado e este é o bloqueador principal.
--   **A lógica do SPED é frágil e complexa:**
-    -   **Entradas**:  no C170 deve ser o valor bruto (), sem IPI e sem desconto. O IPI e o desconto vão em campos separados (, ).
-    -   **Saídas**: Para notas de devolução de venda,  deve incluir o IPI de devolução () para que a soma dos itens bata com o total da nota.
--   **Sempre reinicie o backend** com backend: stopped
-backend: started após alterar o código. O hot-reload se mostrou não confiável e causou muita confusão.
--   Valide qualquer correção contra **todos** os cenários reportados pelo usuário para evitar regressões. O usuário é técnico e fornecerá feedback preciso baseado nos arquivos SPED.
+-   O problema mais crítico (geração do SPED) foi resolvido e confirmado pelo usuário. A confiança do usuário foi restaurada.
+-   O foco agora é em Qualidade de Vida (QoL) e usabilidade. Priorize o feedback do usuário.
+-   O bug no  é um problema de baixa prioridade funcional, mas de alta prioridade para eficiência de desenvolvimento e testes. Corrigi-lo irá acelerar futuros trabalhos.
+-   Ao trabalhar no frontend, lembre-se que o hot-reload pode não ser 100% confiável. Se uma alteração não refletir, considere forçar um rebuild (yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.) e reiniciar o serviço (frontend: ERROR (not running)
+frontend: started).
 
 **documents and test reports created in this job**
--   
--   O usuário forneceu múltiplos artefatos cruciais para depuração, incluindo arquivos XML, CSVs com divergências e os próprios arquivos SPED gerados.
+Nenhum documento ou relatório permanente foi criado, mas múltiplos arquivos SPED temporários foram gerados em  para fins de depuração.
 
 **Last 10 User Messages and any pending HUMAN messages**
--   10. O usuário fornece um trecho do SPED errado e certo da NF 619567, mostrando que o  está incluindo IPI indevidamente. Esta foi a pista final para a última correção.
--   9. O usuário relata que o IPI ficou duplicado no SPED gerado.
--   8. O usuário relata que o IPI nas entradas ficou duplicado.
--   7. O usuário confirma que todas as notas estão corretas após uma correção.
--   6. O usuário fornece um trecho do SPED errado e certo da NF 302733, mostrando a diferença no  (valor líquido vs valor bruto).
--   5. O usuário responde 1 (confirmando que o valor da nota deve ser o total com impostos).
--   4. O usuário envia uma imagem do seu sistema mostrando a divergência para a NF 302733.
--   3. O usuário fornece o arquivo SPED gerado pelo sistema e aponta que existem diferenças.
--   2. O usuário envia um CSV com uma lista de NFs de entrada e saída que apresentam divergências no SPED.
--   1. O usuário relata que o valor no relatório de produtos está maior que o valor da nota (IPI somado em duplicidade).
--   **Mensagem Pendente**: O usuário aguarda uma versão final e correta do arquivo SPED que resolva todas as inconsistências de valores para entradas e saídas.
+10. **(Usuário)** Solicita a funcionalidade de correção em lote para divergências de CST na tela de exportação. (EM ANDAMENTO)
+9.  **(Usuário)** Confirma que a tela de exportação está correta, mas que as divergências de CST são um ponto de melhoria.
+8.  **(Usuário)** Aponta que a tela de exportação está mostrando divergências de valor que não existem na realidade. (RESOLVIDO)
+7.  **(Usuário)** Confirma que o agrupamento na tela de Validação IA está perfeito e sem a categoria Pendente.
+6.  **(Usuário)** Fornece feedback sobre a primeira versão do agrupamento: quer categorias mais distintas e questiona a permanência da categoria Pendente. (RESOLVIDO)
+5.  **(Usuário)** Confirma que o bug de IPI duplicado no SPED foi resolvido e está PERFEITO!, e então solicita a melhoria de agrupamento na tela de Validação IA. (RESOLVIDO)
+4.  **(Usuário)** Reporta um novo bug: IPI duplicando em notas de saída no SPED gerado. (RESOLVIDO)
+3.  **(Usuário)** Pendente: Aguardando a verificação da nova funcionalidade de correção em lote.
 
 **Project Health Check:**
 -   **Broken**:
-    -   A geração do SPED Fiscal é o principal ponto quebrado, com valores inconsistentes sob diferentes cenários de impostos e tipos de nota.
-    -   O seletor de empresa/competência no frontend é instável.
+    -   O seletor de empresa/competência () é instável e prejudica a usabilidade.
 
 **3rd Party Integrations**
 -   LiteLLM (GPT-4o): Usado para classificação de produtos.
@@ -139,12 +136,12 @@ backend: started após alterar o código. O hot-reload se mostrou não confiáve
 -   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: A correção da lógica de cálculo do SPED tem sido um ciclo de conserta um, quebra outro. A última correção para saídas quebrou as entradas, e a correção para entradas precisa ser validada para não quebrar as saídas.
+-   **Known regressions**: Nenhuma regressão conhecida no final da sessão. O agente foi cuidadoso em re-testar cenários após cada correção.
 
 **Credentials to test flow:**
 -   **Email**: 
 -   **Senha**: 
 
 **What agent forgot to execute**
--   O agente não realizou um teste de regressão completo após cada alteração na frágil lógica de geração do SPED, levando a um ciclo de correções que introduziam novos bugs.
--   O bug de usabilidade do seletor de competência no frontend () foi consistentemente adiado.</analysis>
+-   O agente não corrigiu o bug de usabilidade do , que foi identificado no handoff inicial e persistiu, causando lentidão nos testes.
+-   As outras tarefas da lista Upcoming Tasks do handoff anterior (tela de config de CFOP, indicador de mesma empresa) não foram iniciadas.</analysis>
