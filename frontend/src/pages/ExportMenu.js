@@ -246,6 +246,60 @@ const ExportMenu = ({ user, onLogout }) => {
     setModalCorrecao(null);
   };
 
+  // Funções para seleção em lote
+  const toggleSelecionarItem = (item, idx) => {
+    const key = `${item.document_id}_${item.product_index}`;
+    const novoSet = new Set(itensSelecionados);
+    if (novoSet.has(key)) {
+      novoSet.delete(key);
+    } else {
+      novoSet.add(key);
+    }
+    setItensSelecionados(novoSet);
+  };
+
+  const selecionarTodos = () => {
+    if (!validacao?.itens_pendentes) return;
+    const novoSet = new Set();
+    validacao.itens_pendentes.forEach(item => {
+      novoSet.add(`${item.document_id}_${item.product_index}`);
+    });
+    setItensSelecionados(novoSet);
+  };
+
+  const deselecionarTodos = () => {
+    setItensSelecionados(new Set());
+  };
+
+  const manterSelecionadosEmLote = () => {
+    if (!validacao?.itens_pendentes || itensSelecionados.size === 0) return;
+    
+    // Filtrar itens que não estão selecionados
+    const novosItensPendentes = validacao.itens_pendentes.filter(item => {
+      const key = `${item.document_id}_${item.product_index}`;
+      return !itensSelecionados.has(key);
+    });
+    
+    setValidacao({
+      ...validacao,
+      itens_pendentes: novosItensPendentes,
+      total_itens_pendentes: novosItensPendentes.length
+    });
+    
+    // Limpar seleção
+    setItensSelecionados(new Set());
+  };
+
+  const manterTodosEmLote = () => {
+    // Manter todos os itens como estão (remover todos da lista)
+    setValidacao({
+      ...validacao,
+      itens_pendentes: [],
+      total_itens_pendentes: 0
+    });
+    setItensSelecionados(new Set());
+  };
+
   const selectedCompanyData = companies.find(c => c.id === selectedCompany);
 
   return (
