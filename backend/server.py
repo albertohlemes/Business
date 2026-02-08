@@ -12973,8 +12973,22 @@ async def apurar_pis_cofins(
         "detalhamento": {
             "entradas": [],
             "saidas": []
+        },
+        "por_cfop_cst": [],
+        "top_10": {
+            "produtos_credito": [],
+            "produtos_debito": [],
+            "ncms_credito": [],
+            "ncms_debito": []
         }
     }
+    
+    # Estruturas para Top 10 e agrupamento
+    produtos_credito = {}
+    produtos_debito = {}
+    ncms_credito = {}
+    ncms_debito = {}
+    cfop_cst_agrupado = {}
     
     # Processar ENTRADAS (Créditos)
     for doc in entradas:
