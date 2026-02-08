@@ -352,16 +352,16 @@ const Dashboard = ({ user, onLogout }) => {
                 />
                 
                 {/* ISS */}
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                  <h4 className="font-semibold text-gray-900 mb-3">ISS (Serviços)</h4>
+                <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                  <h4 className="font-semibold text-white mb-3">ISS (Serviços)</h4>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Retido:</span>
-                      <span className="font-medium">{formatCurrency(stats.debitos.iss)}</span>
+                      <span className="text-[#A1A1AA]">Retido:</span>
+                      <span className="font-medium text-white">{formatCurrency(stats.debitos.iss)}</span>
                     </div>
-                    <div className="border-t pt-2 flex justify-between text-sm font-bold">
-                      <span className="text-gray-700">A Pagar:</span>
-                      <span className={stats.impostos_pagar.iss > 0 ? 'text-red-700' : 'text-green-700'}>
+                    <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
+                      <span className="text-[#A1A1AA]">A Pagar:</span>
+                      <span className={stats.impostos_pagar.iss > 0 ? 'text-red-400' : 'text-emerald-400'}>
                         {formatCurrency(stats.impostos_pagar.iss)}
                       </span>
                     </div>
@@ -370,15 +370,15 @@ const Dashboard = ({ user, onLogout }) => {
               </div>
 
               {/* Total de Impostos */}
-              <div className="mt-4 bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl p-6 text-white">
+              <div className="mt-4 bg-[#0C0C0C] border border-[#C8A951]/30 rounded-lg p-6">
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <div>
-                    <h3 className="text-lg font-bold">Total de Impostos a Pagar</h3>
-                    <p className="text-gray-400 text-sm">ICMS + PIS + COFINS + ISS</p>
+                    <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>Total de Impostos a Pagar</h3>
+                    <p className="text-[#A1A1AA] text-sm">ICMS + PIS + COFINS + ISS</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-3xl font-bold">{formatCurrency(stats.impostos_pagar.total)}</p>
-                    <p className="text-sm text-gray-400">Competência {selectedCompetencia}</p>
+                    <p className="text-3xl font-bold text-[#C8A951]">{formatCurrency(stats.impostos_pagar.total)}</p>
+                    <p className="text-sm text-[#A1A1AA]">Competência {selectedCompetencia}</p>
                   </div>
                 </div>
               </div>
