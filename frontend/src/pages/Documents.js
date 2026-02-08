@@ -233,6 +233,15 @@ const Documents = ({ user, onLogout }) => {
     return filtered;
   }, [documents, searchTerm, sortField, sortDirection]);
 
+  // Calcular totais dos documentos filtrados
+  const totais = useMemo(() => {
+    const total = filteredDocuments.reduce((sum, doc) => sum + (parseFloat(doc.valor_total) || 0), 0);
+    return {
+      quantidade: filteredDocuments.length,
+      valorTotal: total
+    };
+  }, [filteredDocuments]);
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   };
