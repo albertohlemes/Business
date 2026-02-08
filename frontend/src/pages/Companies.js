@@ -424,10 +424,28 @@ const Companies = ({ user, onLogout }) => {
             </p>
           </div>
           {isMasterOrAdmin && (
-            <button
-              data-testid="add-company-button"
-              onClick={handleNewCompany}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#C8A951] text-black rounded font-medium hover:bg-[#B09240] transition-all active:scale-95"
+            <div className="flex items-center gap-2">
+              {/* Botão Importar em Lote */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+              />
+              <button
+                data-testid="import-companies-button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2A2A2A] text-white rounded font-medium hover:bg-[#333333] border border-[#333333] transition-all"
+              >
+                <Upload className="w-5 h-5" />
+                Importar
+              </button>
+              {/* Botão Nova Empresa */}
+              <button
+                data-testid="add-company-button"
+                onClick={handleNewCompany}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#C8A951] text-black rounded font-medium hover:bg-[#B09240] transition-all active:scale-95"
             >
               <Plus className="w-5 h-5" />
               Nova Empresa
