@@ -3,7 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, FileText, Download, LogOut, Menu, X, BarChart3, 
   Brain, ChevronDown, Calculator, AlertTriangle, Calendar, 
-  DollarSign, Sparkles, Building2, Users, LayoutGrid, LayoutList
+  DollarSign, Sparkles, Building2, Users, LayoutGrid, LayoutList,
+  Briefcase
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import axios from 'axios';
