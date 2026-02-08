@@ -12707,6 +12707,7 @@ async def apurar_icms(
                 "valor_total": round(totais["entradas"]["valor_total"], 2),
                 "bc_icms": round(totais["entradas"]["bc_icms"], 2),
                 "valor_icms": round(totais["entradas"]["valor_icms"], 2),
+                "valor_icms_st": round(totais["entradas"]["valor_icms_st"], 2),
                 "qtd_documentos": totais["entradas"]["qtd_docs"],
                 "qtd_itens": totais["entradas"]["qtd_itens"]
             }
@@ -12717,6 +12718,7 @@ async def apurar_icms(
                 "valor_total": round(totais["saidas"]["valor_total"], 2),
                 "bc_icms": round(totais["saidas"]["bc_icms"], 2),
                 "valor_icms": round(totais["saidas"]["valor_icms"], 2),
+                "valor_icms_st": round(totais["saidas"]["valor_icms_st"], 2),
                 "qtd_documentos": totais["saidas"]["qtd_docs"],
                 "qtd_itens": totais["saidas"]["qtd_itens"]
             }
@@ -12732,6 +12734,26 @@ async def apurar_icms(
             "debito_icms": round(debito_icms, 2),
             "saldo": round(saldo, 2),
             "situacao": "A_PAGAR" if saldo > 0 else "A_RECUPERAR" if saldo < 0 else "ZERADO"
+        },
+        "icms_st": {
+            "saidas": {
+                "por_cfop": sorted([arredondar_dict(x) for x in icms_st_saidas.values()], key=lambda x: -x["valor_icms_st"]),
+                "total_bc": round(sum(x["bc_icms_st"] for x in icms_st_saidas.values()), 2),
+                "total_icms_st": round(totais["saidas"]["valor_icms_st"], 2)
+            },
+            "devolucoes": {
+                "por_cfop": sorted([arredondar_dict(x) for x in icms_st_devolucoes.values()], key=lambda x: -x["valor_icms_st"]),
+                "total_bc": round(sum(x["bc_icms_st"] for x in icms_st_devolucoes.values()), 2),
+                "total_icms_st": round(sum(x["valor_icms_st"] for x in icms_st_devolucoes.values()), 2)
+            },
+            "apuracao": {
+                "icms_st_gerado": round(totais["saidas"]["valor_icms_st"], 2),
+                "icms_st_devolucoes": round(sum(x["valor_icms_st"] for x in icms_st_devolucoes.values()), 2),
+                "icms_st_a_recolher": round(
+                    totais["saidas"]["valor_icms_st"] - sum(x["valor_icms_st"] for x in icms_st_devolucoes.values()), 2
+                ),
+                "situacao": "A_RECOLHER" if (totais["saidas"]["valor_icms_st"] - sum(x["valor_icms_st"] for x in icms_st_devolucoes.values())) > 0 else "ZERADO"
+            }
         }
     }
 
