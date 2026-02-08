@@ -172,7 +172,7 @@ const Reports = ({ user, onLogout }) => {
                 data-testid="report-type-select"
                 value={reportType}
                 onChange={(e) => setReportType(e.target.value)}
-                className="w-full px-4 py-3 border border-[#333333] rounded-lg"
+                className="w-full px-4 py-3 border border-[#333333] rounded-lg bg-[#0C0C0C] text-white"
               >
                 <option value="product">Por Produto</option>
                 <option value="ncm">Por NCM</option>
