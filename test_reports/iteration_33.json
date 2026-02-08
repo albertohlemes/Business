@@ -1,0 +1,166 @@
+{
+  "summary": "Testing completed for menu restructure: New IPI page, ICMS ST tab, RET page, and updated navigation. Backend: 20/20 tests passed. Frontend: All pages accessible with correct structure.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "Backend: GET /api/apuracao-ipi/{company_id} returns 200 OK",
+    "Backend: IPI endpoint returns empresa info (razao_social, cnpj, uf, tipo_atividade)",
+    "Backend: IPI endpoint returns entradas grouped by CFOP with totais",
+    "Backend: IPI endpoint returns saidas grouped by CFOP with totais",
+    "Backend: IPI endpoint returns top_10 (produtos_credito, produtos_debito, ncms_credito, ncms_debito)",
+    "Backend: IPI endpoint returns apuracao with credito_ipi, debito_ipi, saldo, situacao",
+    "Backend: IPI endpoint CFOP items have correct structure (cfop, valor_total, bc_ipi, valor_ipi, qtd)",
+    "Backend: IPI endpoint returns 404 for invalid company",
+    "Backend: IPI endpoint returns 401 without auth",
+    "Backend: ICMS endpoint returns icms_st section",
+    "Backend: ICMS icms_st has saidas (por_cfop, total_bc, total_icms_st)",
+    "Backend: ICMS icms_st has devolucoes (por_cfop, total_bc, total_icms_st)",
+    "Backend: ICMS icms_st has apuracao (icms_st_gerado, icms_st_devolucoes, icms_st_a_recolher, situacao)",
+    "Backend: ICMS icms_st CFOP items have correct structure (cfop, bc_icms_st, valor_icms_st, qtd)",
+    "Backend: analise-tributaria-ia endpoint exists (used by RET page)",
+    "Backend: All RET dependencies accessible (ICMS, ISS, PIS/COFINS endpoints)",
+    "Backend: IPI crédito value matches expected R$ 155.583,26 for competência 01/2026",
+    "Frontend: Navigation menu has IPI link",
+    "Frontend: Navigation menu has RET link",
+    "Frontend: Navigation menu has ICMS, ISS, PIS/COFINS links",
+    "Frontend: IPI page accessible at /apuracao-ipi",
+    "Frontend: IPI page shows title 'Apuração IPI - Imposto sobre Produtos Industrializados'",
+    "Frontend: IPI page has Crédito IPI, Débito IPI, Saldo, Situação cards",
+    "Frontend: IPI page has Demonstrativo de Apuração section",
+    "Frontend: IPI page has ENTRADAS (Créditos) section",
+    "Frontend: IPI page has SAÍDAS (Débitos) section",
+    "Frontend: ICMS page accessible at /apuracao-icms",
+    "Frontend: ICMS page has 'ICMS Próprio' tab",
+    "Frontend: ICMS page has 'ICMS ST' tab",
+    "Frontend: ICMS ST tab shows ICMS ST Gerado, Devoluções ST, ICMS ST a Recolher cards",
+    "Frontend: ICMS ST tab shows Demonstrativo de Apuração ICMS ST",
+    "Frontend: RET page accessible at /ret",
+    "Frontend: RET page shows title 'RET - Rota de Eficiência Tributária'",
+    "Frontend: RET page has Total a Pagar, Total a Recuperar, Saldo Líquido cards",
+    "Frontend: RET page has Detalhamento por Tributo (ICMS Próprio, ICMS ST, PIS/COFINS, ISS)",
+    "Frontend: RET page has Análise Inteligente section",
+    "Frontend: RET page has Comparativo de Regimes (PIS/COFINS)"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_apuracao_ipi_ret.py",
+    "/app/test_reports/pytest/pytest_ipi_ret.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "All new endpoints correctly implemented with proper structure",
+    "IPI endpoint correctly calculates crédito/débito from entradas/saídas",
+    "ICMS endpoint now includes icms_st section with saídas, devoluções and apuração",
+    "RET page consolidates all tax data (ICMS, ISS, PIS/COFINS) in one view",
+    "Navigation menu correctly updated with ICMS, ISS, IPI, RET as separate items",
+    "All pages have proper data-testid attributes for testing",
+    "ICMS ST shows 'Nenhum ICMS ST encontrado' correctly when company has no ST operations"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_apuracao_ipi_ret.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (20/20 tests passed)",
+    "frontend": "100% (all pages accessible and structured correctly)"
+  },
+  
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+  
+  "seed_data_creation": "Used existing company COMERCIAL RS LTDA (d7f30ea1-9df3-4124-a561-12984ffff64b)",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "New features tested: 1) Apuração IPI at /apuracao-ipi with entradas/saídas por CFOP, Top 10 rankings, saldo calculation. Competência 01/2026 has IPI crédito R$ 155.583,26. 2) ICMS page now has two tabs: 'ICMS Próprio' and 'ICMS ST'. ICMS ST shows zeros because company has no ST operations. 3) RET page at /ret consolidates ICMS, ISS, PIS/COFINS with Análise Inteligente and Comparativo de Regimes. 4) Navigation menu updated with separate ICMS, ISS, IPI, RET links.",
+  
+  "features_verified": {
+    "apuracao_ipi_endpoint": {
+      "status": "WORKING",
+      "returns_entradas_por_cfop": true,
+      "returns_saidas_por_cfop": true,
+      "returns_top_10": true,
+      "returns_apuracao": true,
+      "sample_data_01_2026": {
+        "credito_ipi": 155583.26,
+        "debito_ipi": 0,
+        "saldo": -155583.26,
+        "situacao": "A_RECUPERAR",
+        "entradas_docs": 440,
+        "entradas_itens": 1645,
+        "saidas_docs": 4064,
+        "saidas_itens": 23782
+      }
+    },
+    "apuracao_icms_icms_st": {
+      "status": "WORKING",
+      "returns_icms_st_section": true,
+      "returns_saidas": true,
+      "returns_devolucoes": true,
+      "returns_apuracao": true,
+      "note": "Returns zeros for company without ST operations (correct behavior)"
+    },
+    "ret_page": {
+      "status": "WORKING",
+      "consolidates_icms": true,
+      "consolidates_iss": true,
+      "consolidates_pis_cofins": true,
+      "has_analise_inteligente": true,
+      "has_comparativo_regimes": true
+    },
+    "navigation_menu": {
+      "status": "WORKING",
+      "has_icms_link": true,
+      "has_iss_link": true,
+      "has_ipi_link": true,
+      "has_ret_link": true,
+      "has_pis_cofins_link": true,
+      "has_relatorios_link": true,
+      "has_exportacao_link": true
+    },
+    "frontend_pages": {
+      "apuracao_ipi": {
+        "route": "/apuracao-ipi",
+        "status": "WORKING",
+        "has_cards": true,
+        "has_demonstrativo": true,
+        "has_entradas_section": true,
+        "has_saidas_section": true,
+        "has_top_10_rankings": true
+      },
+      "apuracao_icms": {
+        "route": "/apuracao-icms",
+        "status": "WORKING",
+        "has_icms_proprio_tab": true,
+        "has_icms_st_tab": true,
+        "icms_st_has_cards": true,
+        "icms_st_has_demonstrativo": true
+      },
+      "ret": {
+        "route": "/ret",
+        "status": "WORKING",
+        "has_summary_cards": true,
+        "has_detalhamento_tributos": true,
+        "has_analise_inteligente": true,
+        "has_comparativo_regimes": true
+      }
+    }
+  }
+}
