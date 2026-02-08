@@ -820,6 +820,134 @@ const Companies = ({ user, onLogout }) => {
             </div>
           </div>
         )}
+
+        {/* Modal de Importação em Lote */}
+        {showImportModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#141414] rounded border border-[#2A2A2A] w-full max-w-4xl max-h-[90vh] overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
+                <div className="flex items-center gap-3">
+                  <FileSpreadsheet className="w-6 h-6 text-[#C8A951]" />
+                  <div>
+                    <h2 className="text-lg font-medium text-white">Importação em Lote</h2>
+                    <p className="text-xs text-[#A1A1AA]">{importData.length} empresa(s) encontrada(s)</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={downloadTemplate}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-[#2A2A2A] text-white rounded text-sm hover:bg-[#333333] transition-all"
+                  >
+                    <Download className="w-4 h-4" />
+                    Baixar Modelo
+                  </button>
+                  <button onClick={() => { setShowImportModal(false); setImportData([]); }} className="p-1 text-[#A1A1AA] hover:text-white">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Preview da Tabela */}
+              <div className="max-h-[50vh] overflow-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#0C0C0C] sticky top-0">
+                    <tr>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase">Status</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase">Código</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase">CNPJ</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase">Razão Social</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase">Regime</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase">UF</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#2A2A2A]">
+                    {importData.map((row, idx) => (
+                      <tr key={idx} className={row._valid ? 'hover:bg-white/5' : 'bg-red-500/10'}>
+                        <td className="px-4 py-2">
+                          {row._valid ? (
+                            <CheckCircle className="w-4 h-4 text-emerald-400" />
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <AlertCircle className="w-4 h-4 text-red-400" />
+                              <span className="text-xs text-red-400">{row._error}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-white">{row.codigo_empresa || '-'}</td>
+                        <td className="px-4 py-2 text-white font-mono text-xs">{row.cnpj}</td>
+                        <td className="px-4 py-2 text-white">{row.razao_social}</td>
+                        <td className="px-4 py-2">
+                          <span className={`px-2 py-0.5 text-xs rounded border ${getRegimeBadgeClass(row.regime_tributario)}`}>
+                            {getRegimeLabel(row.regime_tributario)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-[#A1A1AA]">{row.uf}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Progress */}
+              {importing && (
+                <div className="p-4 border-t border-[#2A2A2A] bg-[#0C0C0C]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-white">Importando...</span>
+                    <span className="text-sm text-[#C8A951]">{importProgress.current} / {importProgress.total}</span>
+                  </div>
+                  <div className="h-2 bg-[#2A2A2A] rounded overflow-hidden">
+                    <div 
+                      className="h-full bg-[#C8A951] transition-all duration-300"
+                      style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                    />
+                  </div>
+                  {importProgress.errors.length > 0 && (
+                    <div className="mt-2 text-xs text-red-400">
+                      {importProgress.errors.length} erro(s) encontrado(s)
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Erros */}
+              {!importing && importProgress.errors.length > 0 && (
+                <div className="p-4 border-t border-[#2A2A2A] bg-red-500/5">
+                  <h4 className="text-sm font-medium text-red-400 mb-2">Erros na importação:</h4>
+                  <div className="max-h-32 overflow-auto space-y-1">
+                    {importProgress.errors.map((err, idx) => (
+                      <div key={idx} className="text-xs text-red-400">
+                        Linha {err.row} ({err.empresa}): {err.error}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Actions */}
+              <div className="flex items-center justify-between p-4 border-t border-[#2A2A2A]">
+                <div className="text-sm text-[#A1A1AA]">
+                  <span className="text-emerald-400 font-medium">{importData.filter(r => r._valid).length}</span> válida(s), 
+                  <span className="text-red-400 font-medium ml-1">{importData.filter(r => !r._valid).length}</span> inválida(s)
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowImportModal(false); setImportData([]); }}
+                    className="px-4 py-2 bg-[#2A2A2A] text-white rounded font-medium hover:bg-[#333333] transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={executeImport}
+                    disabled={importing || importData.filter(r => r._valid).length === 0}
+                    className="px-6 py-2 bg-[#C8A951] text-black rounded font-medium hover:bg-[#B09240] disabled:opacity-50 transition-all"
+                  >
+                    {importing ? 'Importando...' : `Importar ${importData.filter(r => r._valid).length} Empresa(s)`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
