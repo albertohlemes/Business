@@ -1,0 +1,77 @@
+{
+  "summary": "Frontend testing completed for Documents page totalizador feature. All 8 test cases passed. The totalizador correctly shows document count and total value in R$ for both ENTRADAS and SAÍDAS. Column headers correctly change between 'Emitente' (entradas) and 'Destinatário' (saídas).",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Login with credentials admin@test.com / 123456 - PASSED",
+    "Navigation to Documentos > ENTRADAS > NF-e - PASSED",
+    "Totalizador shows quantity (427) and total value (R$ 11.980.397,41) for ENTRADAS - PASSED",
+    "Column header shows 'Emitente' for ENTRADAS - PASSED",
+    "Only NF-e de entrada are displayed (427 docs) - PASSED",
+    "Navigation to SAÍDAS > NF-e - PASSED",
+    "Totalizador shows different values (4040 docs, R$ 11.871.817,60) for SAÍDAS - PASSED",
+    "Column header changed to 'Destinatário' for SAÍDAS - PASSED"
+  ],
+
+  "test_report_links": [],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "Totalizador implemented correctly using useMemo for performance optimization",
+    "Column header dynamically changes based on operacao (entrada/saida)",
+    "Document filtering by tipo_operacao and modelo working correctly",
+    "Expected document counts match: ~427 entradas, ~4040 saídas for COMERCIAL RS LTDA"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "100%"
+  },
+
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+
+  "seed_data_creation": "Used existing company COMERCIAL RS LTDA (#6026) with competência 02/2026",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Documents page totalizador feature verified. ENTRADAS shows 427 NF-e docs with R$ 11.980.397,41 total and 'Emitente' column. SAÍDAS shows 4040 NF-e docs with R$ 11.871.817,60 total and 'Destinatário' column. All data-testid attributes working: btn-entradas, btn-saidas, btn-tipo-nfe, documents-list.",
+
+  "ui_verification": {
+    "entradas_nfe": {
+      "totalizador": {
+        "documentos": 427,
+        "valor_total": "R$ 11.980.397,41"
+      },
+      "column_header": "Emitente",
+      "badge": "Entradas (green)",
+      "upload_button": "Importar XML (green)"
+    },
+    "saidas_nfe": {
+      "totalizador": {
+        "documentos": 4040,
+        "valor_total": "R$ 11.871.817,60"
+      },
+      "column_header": "Destinatário",
+      "badge": "Saídas (blue)",
+      "upload_button": "Importar XML (blue)"
+    }
+  }
+}
