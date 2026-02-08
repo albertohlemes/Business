@@ -9583,27 +9583,29 @@ async def exportar_e_validar_sped(
         
         # C170 - Itens do documento
         elif reg == 'C170' and documento_atual['tipo']:
-            # Layout C170: |C170|NUM_ITEM|COD_ITEM|DESCR_COMPL|QTD|UNID|VL_ITEM|VL_DESC|IND_MOV|CST_ICMS|CFOP|COD_NAT|VL_BC_ICMS|ALIQ_ICMS|VL_ICMS|VL_BC_ST|ALIQ_ST|VL_ICMS_ST|...|VL_IPI|...
-            # Índices:      0    1        2        3           4   5    6       7       8       9        10   11      12         13        14      15       16      17         18   ...  24
-            # Após split por '|': 1=C170, 2=NUM, 3=COD, 4=DESC, 5=QTD, 6=UNID, 7=VL_ITEM, 8=VL_DESC, 9=IND_MOV, 10=CST, 11=CFOP, 12=NAT, 13=BC_ICMS, 14=ALIQ, 15=VL_ICMS, 16=BC_ST, 17=ALIQ_ST, 18=VL_ST, ..., 24=VL_IPI
-            if len(campos) > 14:
-                cfop = campos[11]
+            # Layout C170 após split por '|':
+            # [0]=vazio, [1]=C170, [2]=NUM_ITEM, [3]=COD_ITEM, [4]=DESCR_COMPL, [5]=QTD, [6]=UNID
+            # [7]=VL_ITEM, [8]=VL_DESC, [9]=IND_MOV, [10]=CST_ICMS, [11]=CFOP, [12]=COD_NAT
+            # [13]=VL_BC_ICMS, [14]=ALIQ_ICMS, [15]=VL_ICMS, [16]=VL_BC_ICMS_ST, [17]=ALIQ_ICMS_ST, [18]=VL_ICMS_ST
+            # [19]=IND_APUR, [20]=CST_IPI, [21]=COD_ENQ, [22]=VL_BC_IPI, [23]=ALIQ_IPI, [24]=VL_IPI
+            # [25-30]=PIS, [31-36]=COFINS
+            if len(campos) > 15:
+                cfop = campos[11] if len(campos) > 11 else ''
                 
                 # VL_ITEM = valor BRUTO (antes do desconto)
                 # VL_DESC = desconto
-                # Valor líquido para comparação = VL_ITEM - VL_DESC
-                vl_item = float(campos[7].replace(',', '.')) if campos[7] else 0
+                vl_item = float(campos[7].replace(',', '.')) if len(campos) > 7 and campos[7] else 0
                 vl_desc = float(campos[8].replace(',', '.')) if len(campos) > 8 and campos[8] else 0
                 
-                # Para comparar com o sistema, usar valor líquido (VL_ITEM - VL_DESC)
-                # Mas também adicionar IPI e ST que não estão no VL_ITEM
+                # VL_ICMS_ST está no índice 18
                 vl_icms_st = float(campos[18].replace(',', '.')) if len(campos) > 18 and campos[18] else 0
-                vl_ipi = float(campos[25].replace(',', '.')) if len(campos) > 25 and campos[25] else 0
+                # VL_IPI está no índice 24
+                vl_ipi = float(campos[24].replace(',', '.')) if len(campos) > 24 and campos[24] else 0
                 
                 # valor_total no sistema = vl_item - vl_desc + vl_ipi + vl_icms_st
                 valor = vl_item - vl_desc + vl_ipi + vl_icms_st
                 
-                # ICMS está no campo 15 (índice 15) - VL_ICMS
+                # ICMS está no campo 15 - VL_ICMS
                 v_icms = float(campos[15].replace(',', '.')) if len(campos) > 15 and campos[15] else 0
                 
                 tipo = documento_atual['tipo']
