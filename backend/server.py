@@ -9430,22 +9430,9 @@ async def exportar_e_validar_sped(
             # Usar CFOP da classificação do sistema
             cfop = str(prod.get('cfop', ''))
             
-            # Calcular valor IGUAL ao VL_ITEM do SPED
-            v_prod = float(prod.get('valor_produto', 0) or 0)
-            v_frete = float(prod.get('v_frete', 0) or 0)
-            v_seg = float(prod.get('v_seguro', 0) or 0)
-            v_outras = float(prod.get('v_outras_despesas', 0) or 0)
-            
-            # Se valor_produto não disponível, reconstruir
-            if v_prod == 0:
-                v_total = float(prod.get('valor_total', 0) or 0)
-                v_desc = float(prod.get('v_desconto', 0) or 0)
-                v_ipi = float(prod.get('v_ipi', 0) or 0)
-                v_st = float(prod.get('v_icms_st', 0) or 0)
-                v_prod = v_total + v_desc - v_ipi - v_st - v_frete - v_seg - v_outras
-            
-            # Valor para comparação = VL_ITEM do SPED
-            valor = v_prod + v_frete + v_seg + v_outras
+            # USAR valor_total para comparação (igual à Apuração Mensal)
+            # valor_total = valor_produto + IPI + ST + frete + seg + outras - desconto
+            valor = float(prod.get('valor_total', 0) or 0)
             
             # Usar ICMS do XML
             v_icms = float(prod.get('v_icms', 0) or 0)
