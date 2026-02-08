@@ -277,6 +277,9 @@ const ApuracaoICMS = ({ user, onLogout }) => {
           </div>
         ) : dados ? (
           <div className="space-y-6">
+          {/* Aba ICMS Próprio */}
+          {activeTab === 'icms' && (
+          <>
             {/* Cards de Resumo - Apuração */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <ResumoCard
