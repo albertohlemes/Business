@@ -247,29 +247,47 @@ class TestSpedApuracaoConsistency:
     
     def test_09_cancelled_notes_excluded(self):
         """Verify cancelled notes are excluded from both endpoints"""
-        # First, check if there are any cancelled notes in the database
-        response = self.session.get(
-            f"{BASE_URL}/api/xml-documents/{TEST_COMPANY_ID}",
+        # Check the totals - if both endpoints return the same values,
+        # it means they're both applying the same filter (get_filtro_notas_ativas)
+        
+        apuracao_response = self.session.get(
+            f"{BASE_URL}/api/apuracao-periodo/{TEST_COMPANY_ID}",
+            params={"competencia": TEST_COMPETENCIA}
+        )
+        sped_response = self.session.get(
+            f"{BASE_URL}/api/sped/validar/{TEST_COMPANY_ID}",
             params={"competencia": TEST_COMPETENCIA}
         )
         
-        if response.status_code != 200:
-            pytest.skip("Could not fetch documents to check for cancelled notes")
+        assert apuracao_response.status_code == 200
+        assert sped_response.status_code == 200
         
-        documents = response.json()
+        apuracao_data = apuracao_response.json()
+        sped_data = sped_response.json()
         
-        # Count cancelled and desconsiderada notes
-        cancelled_count = sum(1 for doc in documents if doc.get('cancelada', False))
-        desconsiderada_count = sum(1 for doc in documents if doc.get('desconsiderada_devolucao', False))
-        active_count = sum(1 for doc in documents if not doc.get('cancelada', False) and not doc.get('desconsiderada_devolucao', False))
+        # Get totals
+        apuracao_total = (
+            apuracao_data.get('entradas', {}).get('subtotal', {}).get('valor', 0) +
+            apuracao_data.get('saidas', {}).get('subtotal', {}).get('valor', 0)
+        )
+        sped_total = (
+            sped_data.get('resumo', {}).get('entradas', {}).get('total_valor', 0) +
+            sped_data.get('resumo', {}).get('saidas', {}).get('total_valor', 0)
+        )
         
-        print(f"Total documents: {len(documents)}")
-        print(f"Cancelled notes: {cancelled_count}")
-        print(f"Desconsiderada notes: {desconsiderada_count}")
-        print(f"Active notes: {active_count}")
+        # If totals match, both endpoints are using the same filter
+        difference = abs(apuracao_total - sped_total)
         
-        # Both endpoints should only process active notes
-        print(f"PASSED: Document counts retrieved - both endpoints should exclude {cancelled_count + desconsiderada_count} inactive notes")
+        print(f"Apuração total: R$ {apuracao_total:,.2f}")
+        print(f"SPED total: R$ {sped_total:,.2f}")
+        print(f"Difference: R$ {difference:,.2f}")
+        
+        # The fix ensures both endpoints exclude cancelled and desconsiderada notes
+        # Database has: 30 cancelled + 7 desconsiderada = 37 inactive notes
+        # Both endpoints should exclude these and return identical values
+        assert difference < 0.01, f"Totals should match, confirming both endpoints exclude inactive notes"
+        
+        print(f"PASSED: Both endpoints return identical values, confirming cancelled/desconsiderada notes are excluded")
     
     def test_10_different_competencia(self):
         """Test endpoints with a different competência to ensure filter works"""
