@@ -267,6 +267,127 @@ const Documents = ({ user, onLogout }) => {
     }
   };
 
+  // ========== EXCLUSÃO EM MASSA ==========
+  const openDeleteModal = async () => {
+    setShowDeleteModal(true);
+    setDeletePreview(null);
+    setDeleteFilters({
+      dataInicio: '',
+      dataFim: '',
+      emitenteCnpj: '',
+      emitenteNome: '',
+      numeroInicio: '',
+      numeroFim: '',
+      cfops: []
+    });
+    
+    // Carregar CFOPs disponíveis
+    const token = localStorage.getItem('token');
+    const tipoConfig = getTipoConfig();
+    try {
+      const response = await axios.get(
+        `${API}/xml/documents/cfops/${ctxCompany.id}?competencia=${selectedCompetencia}&tipo_operacao=${operacao}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setAvailableCfops(response.data);
+    } catch (err) {
+      console.error('Erro ao carregar CFOPs:', err);
+    }
+  };
+
+  const searchEmitentes = async (search) => {
+    if (!search || search.length < 2) {
+      setAvailableEmitentes([]);
+      return;
+    }
+    
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.get(
+        `${API}/xml/documents/emitentes/${ctxCompany.id}?competencia=${selectedCompetencia}&tipo_operacao=${operacao}&search=${search}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setAvailableEmitentes(response.data);
+    } catch (err) {
+      console.error('Erro ao buscar emitentes:', err);
+    }
+  };
+
+  const previewDelete = async () => {
+    setLoadingPreview(true);
+    const token = localStorage.getItem('token');
+    const tipoConfig = getTipoConfig();
+    
+    try {
+      const payload = {
+        company_id: ctxCompany.id,
+        competencia: selectedCompetencia,
+        tipo_operacao: operacao,
+        tipo_documento: tipoConfig.modelo,
+        data_inicio: deleteFilters.dataInicio || null,
+        data_fim: deleteFilters.dataFim || null,
+        emitente_cnpj: deleteFilters.emitenteCnpj || null,
+        emitente_nome: deleteFilters.emitenteNome || null,
+        numero_inicio: deleteFilters.numeroInicio ? parseInt(deleteFilters.numeroInicio) : null,
+        numero_fim: deleteFilters.numeroFim ? parseInt(deleteFilters.numeroFim) : null,
+        cfops: deleteFilters.cfops.length > 0 ? deleteFilters.cfops : null
+      };
+      
+      const response = await axios.post(`${API}/xml/documents/preview-delete`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setDeletePreview(response.data);
+    } catch (err) {
+      console.error('Erro ao gerar preview:', err);
+      alert('Erro ao gerar preview de exclusão');
+    }
+    setLoadingPreview(false);
+  };
+
+  const executeDelete = async () => {
+    if (!deletePreview || deletePreview.total_documentos === 0) return;
+    
+    if (!window.confirm(`Tem certeza que deseja excluir ${deletePreview.total_documentos} documento(s)?\n\nEsta ação não pode ser desfeita.`)) {
+      return;
+    }
+    
+    setDeleting(true);
+    const token = localStorage.getItem('token');
+    const tipoConfig = getTipoConfig();
+    
+    try {
+      const payload = {
+        company_id: ctxCompany.id,
+        competencia: selectedCompetencia,
+        tipo_operacao: operacao,
+        tipo_documento: tipoConfig.modelo,
+        document_ids: deletePreview.ids_para_excluir
+      };
+      
+      const response = await axios.post(`${API}/xml/documents/delete-bulk`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      alert(response.data.message);
+      setShowDeleteModal(false);
+      fetchDocuments();
+    } catch (err) {
+      console.error('Erro ao excluir:', err);
+      alert('Erro ao excluir documentos: ' + (err.response?.data?.detail || err.message));
+    }
+    setDeleting(false);
+  };
+
+  const toggleCfop = (cfop) => {
+    setDeleteFilters(prev => ({
+      ...prev,
+      cfops: prev.cfops.includes(cfop) 
+        ? prev.cfops.filter(c => c !== cfop)
+        : [...prev.cfops, cfop]
+    }));
+  };
+
   // Filtrar e ordenar documentos
   const filteredDocuments = useMemo(() => {
     let filtered = [...documents];
