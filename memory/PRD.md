@@ -134,6 +134,27 @@ A página de documentos foi redesenhada com navegação em 3 níveis:
 
 ## Changelog
 
+### v2.5.0 (08/02/2026)
+- **Novo Módulo PIS/COFINS Completo**: Nova página dedicada à apuração de PIS/COFINS
+  - **Aba Apuração**: Cards de resumo (Créditos, Débitos, Saldo, Imposto a Pagar) com detalhamento expansível
+  - **Aba Comparativo**: Dashboard lado a lado comparando Lucro Real vs Lucro Presumido
+    - Indica automaticamente o regime mais econômico
+    - Mostra a economia potencial entre os regimes
+    - Gráfico de barras visual para comparação
+  - **Aba Divergências**: Análise de divergências entre XML e cálculo do sistema
+    - Produtos agrupados por NCM com contagem de ocorrências
+    - Resumo de valores recolhidos a maior/menor
+    - Saldo de reclassificação (economia potencial)
+    - Busca por produto ou NCM
+- **Endpoints Backend**:
+  - GET /api/pis-cofins/apuracao/{company_id} - Apuração completa com ambos os regimes
+  - GET /api/pis-cofins/divergencias/{company_id} - Lista de divergências agrupadas
+- **Serviço de Cálculo**: /app/backend/services/pis_cofins_calculator.py com:
+  - Tabelas de NCMs (alíquota zero, monofásicos)
+  - Tabelas de CNAEs (cumulativo, financeiro)
+  - Tabelas de CFOPs sem crédito
+  - Funções de classificação e cálculo
+
 ### v2.4.0 (09/02/2026)
 - **Exclusão em Massa de Documentos**: Botão "Apagar" ao lado de "Importar" com filtros avançados
   - Filtro por intervalo de datas (Data Inicial/Final)
