@@ -418,226 +418,249 @@ const Documents = ({ user, onLogout }) => {
 
   return (
     <Layout user={user} onLogout={onLogout}>
-      <div data-testid="documents-list" className="space-y-6">
-        {/* Header com navegação */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleBackToTipos}
-              className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg transition-all"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-2xl font-semibold text-white flex items-center gap-3" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                <TipoIcon className={isEntrada ? "w-6 h-6 text-emerald-400" : "w-6 h-6 text-blue-400"} />
-                {tipoConfig?.label}
-                <span className={isEntrada 
-                  ? "px-2 py-0.5 text-xs rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
-                  : "px-2 py-0.5 text-xs rounded bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                }>
-                  {CATEGORIAS[operacao].label}
-                </span>
-              </h1>
-              <p className="text-[#A1A1AA] text-sm">
-                {ctxCompany.razao_social} • {selectedCompetencia}
-              </p>
+      <div data-testid="documents-list" className="flex flex-col h-[calc(100vh-140px)]">
+        {/* Header fixo */}
+        <div className="flex-shrink-0 space-y-4 pb-4">
+          {/* Navegação e título */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleBackToTipos}
+                className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg transition-all"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-semibold text-white flex items-center gap-3" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                  <TipoIcon className={isEntrada ? "w-6 h-6 text-emerald-400" : "w-6 h-6 text-blue-400"} />
+                  {tipoConfig?.label}
+                  <span className={isEntrada 
+                    ? "px-2 py-0.5 text-xs rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
+                    : "px-2 py-0.5 text-xs rounded bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                  }>
+                    {CATEGORIAS[operacao].label}
+                  </span>
+                </h1>
+                <p className="text-[#A1A1AA] text-sm">
+                  {ctxCompany.razao_social} • {selectedCompetencia}
+                </p>
+              </div>
+            </div>
+
+            {/* Botão de Upload */}
+            <div className="flex items-center gap-3">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept=".xml"
+                multiple
+                className="hidden"
+              />
+              <button
+                data-testid="btn-upload"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className={isEntrada 
+                  ? "inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 disabled:opacity-50 transition-all"
+                  : "inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50 transition-all"
+                }
+              >
+                {uploading ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    {uploadProgress.current}/{uploadProgress.total}
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-5 h-5" />
+                    Importar XML
+                  </>
+                )}
+              </button>
             </div>
           </div>
 
-          {/* Botão de Upload */}
-          <div className="flex items-center gap-3">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              accept=".xml"
-              multiple
-              className="hidden"
-            />
-            <button
-              data-testid="btn-upload"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className={isEntrada 
-                ? "inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 disabled:opacity-50 transition-all"
-                : "inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50 transition-all"
-              }
-            >
-              {uploading ? (
-                <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  {uploadProgress.current}/{uploadProgress.total}
-                </>
-              ) : (
-                <>
+          {/* Totalizador e Busca em linha */}
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="flex items-center gap-6 py-2 px-4 bg-[#141414] rounded-lg border border-[#2A2A2A]">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#A1A1AA]" />
+                <span className="text-sm text-[#A1A1AA]">Documentos:</span>
+                <span className="text-sm font-semibold text-white">{totais.quantidade}</span>
+              </div>
+              <div className="w-px h-4 bg-[#2A2A2A]" />
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-[#A1A1AA]" />
+                <span className="text-sm text-[#A1A1AA]">Total:</span>
+                <span className="text-sm font-semibold text-[#C8A951]">{formatCurrency(totais.valorTotal)}</span>
+              </div>
+            </div>
+            
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#A1A1AA]" />
+              <input
+                type="text"
+                placeholder="Buscar por número, emitente, CNPJ..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white text-sm placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Área de conteúdo com scroll */}
+        <div className="flex-1 min-h-0">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <RefreshCw className="w-8 h-8 text-[#C8A951] animate-spin mx-auto" />
+                <p className="mt-4 text-[#A1A1AA]">Carregando documentos...</p>
+              </div>
+            </div>
+          ) : filteredDocuments.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <FileText className="w-16 h-16 text-[#A1A1AA] mx-auto mb-4" />
+                <h3 className="text-xl font-medium text-white mb-2">Nenhum documento encontrado</h3>
+                <p className="text-[#A1A1AA] mb-6">Importe seus arquivos XML para começar</p>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className={isEntrada 
+                    ? "inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-all"
+                    : "inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-all"
+                  }
+                >
                   <Upload className="w-5 h-5" />
                   Importar XML
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Totalizador */}
-        <div className="flex items-center gap-6 py-3 px-4 bg-[#141414] rounded-lg border border-[#2A2A2A]">
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-[#A1A1AA]" />
-            <span className="text-sm text-[#A1A1AA]">Documentos:</span>
-            <span className="text-sm font-semibold text-white">{totais.quantidade}</span>
-          </div>
-          <div className="w-px h-4 bg-[#2A2A2A]" />
-          <div className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-[#A1A1AA]" />
-            <span className="text-sm text-[#A1A1AA]">Total:</span>
-            <span className="text-sm font-semibold text-[#C8A951]">{formatCurrency(totais.valorTotal)}</span>
-          </div>
-        </div>
-
-        {/* Barra de busca */}
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-3 w-5 h-5 text-[#A1A1AA]" />
-            <input
-              type="text"
-              placeholder="Buscar por número, emitente, CNPJ..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
-            />
-          </div>
-        </div>
-
-        {/* Lista de documentos */}
-        {loading ? (
-          <div className="text-center py-12">
-            <RefreshCw className="w-8 h-8 text-[#C8A951] animate-spin mx-auto" />
-            <p className="mt-4 text-[#A1A1AA]">Carregando documentos...</p>
-          </div>
-        ) : filteredDocuments.length === 0 ? (
-          <div className="text-center py-16 bg-[#141414] rounded-xl border border-[#2A2A2A]">
-            <FileText className="w-16 h-16 text-[#A1A1AA] mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-white mb-2">Nenhum documento encontrado</h3>
-            <p className="text-[#A1A1AA] mb-6">
-              Importe seus arquivos XML para começar
-            </p>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className={isEntrada 
-                ? "inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-all"
-                : "inline-flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-all"
-              }
-            >
-              <Upload className="w-5 h-5" />
-              Importar XML
-            </button>
-          </div>
-        ) : (
-          <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-[#0C0C0C]">
-                  <tr>
-                    <th 
-                      className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white"
-                      onClick={() => handleSort('numero_nfe')}
-                    >
-                      <div className="flex items-center gap-1">
-                        Número
-                        {sortField === 'numero_nfe' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                      </div>
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider">
-                      {operacao === 'entrada' ? 'Emitente' : 'Destinatário'}
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider hidden md:table-cell">
-                      CNPJ
-                    </th>
-                    <th 
-                      className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white"
-                      onClick={() => handleSort('data_emissao')}
-                    >
-                      <div className="flex items-center gap-1">
-                        Data
-                        {sortField === 'data_emissao' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                      </div>
-                    </th>
-                    <th 
-                      className="text-right px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white"
-                      onClick={() => handleSort('valor_total')}
-                    >
-                      <div className="flex items-center justify-end gap-1">
-                        Valor
-                        {sortField === 'valor_total' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                      </div>
-                    </th>
-                    <th className="text-center px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider">
-                      Ações
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#2A2A2A]">
-                  {filteredDocuments.map((doc) => (
-                    <tr 
-                      key={doc.id}
-                      className="hover:bg-white/5 transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <span className="font-medium text-white">{doc.numero_nfe}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-white truncate max-w-[200px]">
-                          {operacao === 'entrada' ? doc.emitente_nome : doc.destinatario_nome}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 hidden md:table-cell">
-                        <span className="text-[#A1A1AA] font-mono text-sm">
-                          {operacao === 'entrada' ? doc.emitente_cnpj : doc.destinatario_cnpj}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-[#A1A1AA]">
-                        {formatDate(doc.data_emissao)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="text-[#C8A951] font-medium">
-                          {formatCurrency(doc.valor_total)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {doc.status === 'autorizada' ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded text-xs">
-                            <CheckCircle2 className="w-3 h-3" />
-                            OK
-                          </span>
-                        ) : doc.status === 'cancelada' ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/10 text-red-400 rounded text-xs">
-                            <XCircle className="w-3 h-3" />
-                            Cancelada
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded text-xs">
-                            <AlertTriangle className="w-3 h-3" />
-                            Pendente
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] h-full flex flex-col overflow-hidden">
+              {/* Cabeçalho da tabela fixo */}
+              <div className="flex-shrink-0 bg-[#0C0C0C] border-b border-[#2A2A2A]">
+                <table className="w-full">
+                  <thead>
+                    <tr>
+                      <th 
+                        className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white w-24"
+                        onClick={() => handleSort('numero_nfe')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Número
+                          {sortField === 'numero_nfe' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                        </div>
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider">
+                        {operacao === 'entrada' ? 'Emitente' : 'Destinatário'}
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider hidden md:table-cell w-40">
+                        CNPJ
+                      </th>
+                      <th 
+                        className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white w-28"
+                        onClick={() => handleSort('data_emissao')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Data
+                          {sortField === 'data_emissao' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                        </div>
+                      </th>
+                      <th 
+                        className="text-right px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white w-32"
+                        onClick={() => handleSort('valor_total')}
+                      >
                         <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => fetchDocumentDetail(doc.id)}
-                            className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
-                            title="Ver detalhes"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteDocument(doc.id, doc.numero_nfe)}
-                            className="p-2 text-[#A1A1AA] hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
-                            title="Excluir"
-                          >
+                          Valor
+                          {sortField === 'valor_total' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                        </div>
+                      </th>
+                      <th className="text-center px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider w-24">
+                        Status
+                      </th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider w-24">
+                        Ações
+                      </th>
+                    </tr>
+                  </thead>
+                </table>
+              </div>
+              
+              {/* Corpo da tabela com scroll */}
+              <div className="flex-1 overflow-y-auto">
+                <table className="w-full">
+                  <tbody className="divide-y divide-[#2A2A2A]">
+                    {filteredDocuments.map((doc) => (
+                      <tr 
+                        key={doc.id}
+                        className="hover:bg-white/5 transition-colors"
+                      >
+                        <td className="px-4 py-3 w-24">
+                          <span className="font-medium text-white">{doc.numero_nfe}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-white truncate max-w-[200px]">
+                            {operacao === 'entrada' ? doc.emitente_nome : doc.destinatario_nome}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell w-40">
+                          <span className="text-[#A1A1AA] font-mono text-sm">
+                            {operacao === 'entrada' ? doc.emitente_cnpj : doc.destinatario_cnpj}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-[#A1A1AA] w-28">
+                          {formatDate(doc.data_emissao)}
+                        </td>
+                        <td className="px-4 py-3 text-right w-32">
+                          <span className="text-[#C8A951] font-medium">
+                            {formatCurrency(doc.valor_total)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center w-24">
+                          {doc.status === 'autorizada' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded text-xs">
+                              <CheckCircle2 className="w-3 h-3" />
+                              OK
+                            </span>
+                          ) : doc.status === 'cancelada' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/10 text-red-400 rounded text-xs">
+                              <XCircle className="w-3 h-3" />
+                              Cancelada
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded text-xs">
+                              <AlertTriangle className="w-3 h-3" />
+                              Pendente
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right w-24">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => fetchDocumentDetail(doc.id)}
+                              className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
+                              title="Ver detalhes"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteDocument(doc.id, doc.numero_nfe)}
+                              className="p-2 text-[#A1A1AA] hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
