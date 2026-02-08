@@ -710,15 +710,42 @@ const ClassificacaoPage = ({ user, onLogout }) => {
   const totalPending = Math.max(0, totalProducts - totalApproved);
 
   // Helpers
-  const getCategoryBadge = (categoria) => {
+  const getCategoryBadge = (categoria, natureza) => {
     const badges = {
       'revenda': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'REVENDA' },
       'insumo': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'INSUMO' },
       'despesa': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'DESPESA' },
       'ativo_imobilizado': { bg: 'bg-green-100', text: 'text-green-800', label: 'ATIVO IMOB.' },
       'combustivel': { bg: 'bg-amber-100', text: 'text-amber-800', label: 'COMBUSTÍVEL' },
+      // Novas categorias de operações distintas
+      'bonificação': { bg: 'bg-pink-100', text: 'text-pink-800', label: 'BONIFICAÇÃO' },
+      'devolução': { bg: 'bg-amber-100', text: 'text-amber-800', label: 'DEVOLUÇÃO' },
+      'remessa': { bg: 'bg-cyan-100', text: 'text-cyan-800', label: 'REMESSA' },
+      'retorno': { bg: 'bg-teal-100', text: 'text-teal-800', label: 'RETORNO' },
+      'consignação': { bg: 'bg-indigo-100', text: 'text-indigo-800', label: 'CONSIGNAÇÃO' },
+      'amostra': { bg: 'bg-lime-100', text: 'text-lime-800', label: 'AMOSTRA' },
+      'demonstração': { bg: 'bg-emerald-100', text: 'text-emerald-800', label: 'DEMONSTRAÇÃO' },
+      'transferência': { bg: 'bg-violet-100', text: 'text-violet-800', label: 'TRANSFERÊNCIA' },
     };
-    const badge = badges[categoria?.toLowerCase()] || { bg: 'bg-gray-100', text: 'text-gray-800', label: categoria?.toUpperCase() || 'N/A' };
+    
+    // Priorizar natureza da operação se disponível
+    const nat = (natureza || '').toLowerCase();
+    let badge = null;
+    
+    if (nat.includes('bonifica')) badge = badges['bonificação'];
+    else if (nat.includes('devoluc') || nat.includes('devol')) badge = badges['devolução'];
+    else if (nat.includes('retorno')) badge = badges['retorno'];
+    else if (nat.includes('consigna')) badge = badges['consignação'];
+    else if (nat.includes('amostra')) badge = badges['amostra'];
+    else if (nat.includes('demonstra')) badge = badges['demonstração'];
+    else if (nat.includes('transfer')) badge = badges['transferência'];
+    else if (nat.includes('remessa')) badge = badges['remessa'];
+    else badge = badges[categoria?.toLowerCase()];
+    
+    if (!badge) {
+      badge = { bg: 'bg-gray-100', text: 'text-gray-800', label: categoria?.toUpperCase() || 'N/A' };
+    }
+    
     return (
       <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${badge.bg} ${badge.text}`}>
         {badge.label}
