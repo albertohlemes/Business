@@ -9572,13 +9572,19 @@ async def exportar_e_validar_sped(
             if len(campos) > 14:
                 cfop = campos[11]
                 
-                # VL_ITEM já inclui tudo (valor_total do item)
-                # Não precisa somar IPI e ST pois já estão incluídos no VL_ITEM
+                # VL_ITEM = valor BRUTO (antes do desconto)
+                # VL_DESC = desconto
+                # Valor líquido para comparação = VL_ITEM - VL_DESC
                 vl_item = float(campos[7].replace(',', '.')) if campos[7] else 0
                 vl_desc = float(campos[8].replace(',', '.')) if len(campos) > 8 and campos[8] else 0
                 
-                # O valor para comparação é simplesmente VL_ITEM (já inclui tudo)
-                valor = vl_item
+                # Para comparar com o sistema, usar valor líquido (VL_ITEM - VL_DESC)
+                # Mas também adicionar IPI e ST que não estão no VL_ITEM
+                vl_icms_st = float(campos[18].replace(',', '.')) if len(campos) > 18 and campos[18] else 0
+                vl_ipi = float(campos[25].replace(',', '.')) if len(campos) > 25 and campos[25] else 0
+                
+                # valor_total no sistema = vl_item - vl_desc + vl_ipi + vl_icms_st
+                valor = vl_item - vl_desc + vl_ipi + vl_icms_st
                 
                 # ICMS está no campo 15 (índice 15) - VL_ICMS
                 v_icms = float(campos[15].replace(',', '.')) if len(campos) > 15 and campos[15] else 0
