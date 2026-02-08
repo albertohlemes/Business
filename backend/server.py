@@ -4818,13 +4818,32 @@ async def list_documents(
     if competencia:
         query['competencia'] = competencia
     
-    # Filtro por tipo de operação (entrada/saida)
-    if tipo_operacao:
-        query['tipo_operacao'] = tipo_operacao
+    # EXCLUIR notas canceladas e desconsideradas da listagem
+    query.update(get_filtro_notas_ativas())
     
-    # Filtro por modelo do documento
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    for doc in documents:
+        if isinstance(doc.get('uploaded_at'), str):
+            doc['uploaded_at'] = datetime.fromisoformat(doc['uploaded_at'])
+        
+        # Inferir tipo_operacao se não estiver definido
+        if not doc.get('tipo_operacao'):
+            # Tentar inferir pelo CFOP do primeiro produto
+            produtos = doc.get('produtos', [])
+            if produtos:
+                cfop = str(produtos[0].get('cfop', ''))
+                if cfop and cfop[0] in ['1', '2', '3']:
+                    doc['tipo_operacao'] = 'entrada'
+                elif cfop and cfop[0] in ['5', '6', '7']:
+                    doc['tipo_operacao'] = 'saida'
+    
+    # Filtrar por tipo de operação após inferência
+    if tipo_operacao:
+        documents = [d for d in documents if d.get('tipo_operacao') == tipo_operacao]
+    
+    # Filtrar por modelo do documento
     if modelo:
-        # Mapear modelos para valores do banco
         modelo_map = {
             '55': ['55', 'nfe'],
             '65': ['65', 'nfce'],
@@ -4833,18 +4852,9 @@ async def list_documents(
             'nfse_prestado': ['nfse', 'nfse_prestado']
         }
         if modelo in modelo_map:
-            query['modelo'] = {"$in": modelo_map[modelo]}
+            documents = [d for d in documents if d.get('modelo') in modelo_map[modelo]]
         else:
-            query['modelo'] = modelo
-    
-    # EXCLUIR notas canceladas e desconsideradas da listagem
-    query.update(get_filtro_notas_ativas())
-    
-    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
-    
-    for doc in documents:
-        if isinstance(doc['uploaded_at'], str):
-            doc['uploaded_at'] = datetime.fromisoformat(doc['uploaded_at'])
+            documents = [d for d in documents if d.get('modelo') == modelo]
     
     return documents
 
