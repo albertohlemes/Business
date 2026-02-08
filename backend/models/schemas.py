@@ -156,6 +156,7 @@ class CompanyUpdate(BaseModel):
     percentual_presuncao_csll: Optional[float] = None
     estoque_inicial: Optional[float] = None
     estoque_final: Optional[float] = None
+    responsavel_ids: Optional[List[str]] = None
 
 
 class XMLDocument(BaseModel):
