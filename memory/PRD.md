@@ -134,6 +134,21 @@ A página de documentos foi redesenhada com navegação em 3 níveis:
 
 ## Changelog
 
+### v2.4.0 (09/02/2026)
+- **Exclusão em Massa de Documentos**: Botão "Apagar" ao lado de "Importar" com filtros avançados
+  - Filtro por intervalo de datas (Data Inicial/Final)
+  - Filtro por intervalo de notas (Número Inicial/Final)
+  - Filtro por Emitente/Fornecedor (com autocomplete)
+  - Filtro por CFOPs (seleção múltipla com toggle)
+  - Preview dos documentos antes de excluir (mostra quantidade e valor total)
+  - Exclusão restrita à tela atual (tipo_operacao + modelo + competencia)
+- **Correção do Filtro de Competência**: fetchDocuments agora passa competencia como parâmetro
+- **Novos Endpoints Backend**:
+  - POST /api/xml/documents/preview-delete (preview com contagem e valor)
+  - POST /api/xml/documents/delete-bulk (exclusão em massa)
+  - GET /api/xml/documents/cfops/{company_id} (lista de CFOPs únicos)
+  - GET /api/xml/documents/emitentes/{company_id} (autocomplete de emitentes)
+
 ### v2.3.0 (09/02/2026)
 - **Validação de Upload por Tipo**: Cada tipo de documento só aceita seu formato específico
   - NF-e, NFC-e, CT-e: Apenas XML do modelo correspondente (55, 65, 57)
