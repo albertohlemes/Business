@@ -1883,22 +1883,31 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             
             # ==== IPI ====
             # Obter valores de IPI do produto
-            # IMPORTANTE: Para notas de devolução, o IPI pode estar em v_ipi_devol
             v_ipi_prod = float(prod.get('v_ipi', 0) or 0)
-            v_ipi_devol = float(prod.get('v_ipi_devol', 0) or 0)
-            # Usar o maior valor entre IPI normal e IPI de devolução
-            if v_ipi_devol > v_ipi_prod:
-                v_ipi_prod = v_ipi_devol
+            v_ipi_devol_prod = float(prod.get('v_ipi_devol', 0) or 0)
             v_bc_ipi = float(prod.get('v_bc_ipi', 0) or 0)
+            
+            # IMPORTANTE: Para notas de SAÍDA (devolução de venda), o IPI de devolução
+            # já foi incluído no VL_ITEM (linhas acima), então NÃO deve ir no campo VL_IPI
+            # para evitar duplicação. O campo VL_IPI fica zerado para saídas com IPI devol.
+            # Para notas de ENTRADA, o IPI vai normalmente no campo VL_IPI separado.
+            if doc.tipo == 'saida' and v_ipi_devol_prod > 0:
+                # Saída com IPI de devolução: IPI já está no VL_ITEM, não duplicar
+                v_ipi_final = 0
+                v_bc_ipi = 0
+            else:
+                # Entrada ou saída sem IPI devol: usar IPI normal
+                v_ipi_final = v_ipi_prod
+            
             # Se não tiver v_bc_ipi mas tiver v_ipi, usar valor_produto como base
-            if v_ipi_prod > 0 and v_bc_ipi == 0:
+            if v_ipi_final > 0 and v_bc_ipi == 0:
                 v_bc_ipi = v_prod_bruto
             # Calcular alíquota se tiver base e valor
             p_ipi = 0
-            if v_bc_ipi > 0 and v_ipi_prod > 0:
-                p_ipi = round((v_ipi_prod / v_bc_ipi) * 100, 2)
+            if v_bc_ipi > 0 and v_ipi_final > 0:
+                p_ipi = round((v_ipi_final / v_bc_ipi) * 100, 2)
             # CST IPI - se tiver IPI é tributado (00), senão é isento/não tributado
-            cst_ipi = '00' if v_ipi_prod > 0 else ''
+            cst_ipi = '00' if v_ipi_final > 0 else ''
             
             # ==== ICMS ST ====
             # Obter valores de ICMS ST do produto
