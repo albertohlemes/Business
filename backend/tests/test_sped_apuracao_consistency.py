@@ -75,11 +75,15 @@ class TestSpedApuracaoConsistency:
         assert response.status_code == 200, f"Apuração endpoint should return 200: {response.status_code}"
         
         data = response.json()
-        assert 'resumo' in data, "Response should contain 'resumo'"
-        assert 'cfops_entrada' in data, "Response should contain 'cfops_entrada'"
-        assert 'cfops_saida' in data, "Response should contain 'cfops_saida'"
+        # Response structure: {entradas: {lista: [...], subtotal: {...}}, saidas: {lista: [...], subtotal: {...}}}
+        assert 'entradas' in data, "Response should contain 'entradas'"
+        assert 'saidas' in data, "Response should contain 'saidas'"
+        assert 'lista' in data.get('entradas', {}), "entradas should contain 'lista'"
+        assert 'lista' in data.get('saidas', {}), "saidas should contain 'lista'"
         
-        print(f"PASSED: Apuração endpoint working - {len(data.get('cfops_entrada', []))} CFOPs entrada, {len(data.get('cfops_saida', []))} CFOPs saída")
+        entradas_count = len(data.get('entradas', {}).get('lista', []))
+        saidas_count = len(data.get('saidas', {}).get('lista', []))
+        print(f"PASSED: Apuração endpoint working - {entradas_count} CFOPs entrada, {saidas_count} CFOPs saída")
         return data
     
     def test_04_sped_validar_endpoint_works(self):
@@ -92,9 +96,11 @@ class TestSpedApuracaoConsistency:
         assert response.status_code == 200, f"SPED validar endpoint should return 200: {response.status_code}"
         
         data = response.json()
-        assert 'totais_sistema' in data, "Response should contain 'totais_sistema'"
-        assert 'entradas' in data.get('totais_sistema', {}), "totais_sistema should contain 'entradas'"
-        assert 'saidas' in data.get('totais_sistema', {}), "totais_sistema should contain 'saidas'"
+        # Response structure: {totais: {entradas: {...}, saidas: {...}}, detalhamento_cfop: {...}}
+        assert 'totais' in data, "Response should contain 'totais'"
+        assert 'detalhamento_cfop' in data, "Response should contain 'detalhamento_cfop'"
+        assert 'entradas' in data.get('totais', {}), "totais should contain 'entradas'"
+        assert 'saidas' in data.get('totais', {}), "totais should contain 'saidas'"
         
         print(f"PASSED: SPED validar endpoint working")
         return data
