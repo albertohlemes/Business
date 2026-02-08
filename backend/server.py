@@ -1692,10 +1692,13 @@ def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo
             if v_prod_bruto == 0:
                 valor_total_item = float(prod.get('valor_total', 0) or 0)
                 v_ipi_item = float(prod.get('v_ipi', 0) or 0)
+                v_ipi_devol_item = float(prod.get('v_ipi_devol', 0) or 0)
+                # Usar o maior valor entre IPI normal e IPI de devolução
+                v_ipi_total = max(v_ipi_item, v_ipi_devol_item)
                 v_st_item = float(prod.get('v_icms_st', 0) or 0)
                 # valor_total = v_prod - desc + ipi + st + frete + seg + outras
                 # Então: v_prod = valor_total + desc - ipi - st - frete - seg - outras
-                v_prod_bruto = valor_total_item + v_desc_prod - v_ipi_item - v_st_item - v_frete_prod - v_seguro_prod - v_outras_prod
+                v_prod_bruto = valor_total_item + v_desc_prod - v_ipi_total - v_st_item - v_frete_prod - v_seguro_prod - v_outras_prod
             
             # VL_ITEM = valor produto + despesas acessórias (frete, seguro, outras)
             vl_item = v_prod_bruto + v_frete_prod + v_seguro_prod + v_outras_prod
