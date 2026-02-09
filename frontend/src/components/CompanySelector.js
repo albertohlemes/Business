@@ -36,46 +36,11 @@ const CompanySelector = () => {
     setTempCompetencia(value);
   };
 
-  const handleSyncNow = async () => {
-    if (!tempCompany || !tempCompetencia) return;
-    
-    setSyncProgress({ active: true, step: 'Iniciando...', percent: 0 });
-    setSyncResult(null);
-    
-    try {
-      const result = await syncFromSieg(tempCompany.id, tempCompetencia, (progressData) => {
-        setSyncProgress({
-          active: !progressData.completed,
-          step: progressData.step || '',
-          percent: progressData.progress_percent || 0
-        });
-      });
-      setSyncResult(result);
-    } catch (err) {
-      setSyncResult({ error: err.response?.data?.detail || err.message || 'Erro na sincronização' });
-    } finally {
-      setSyncProgress({ active: false, step: '', percent: 0 });
-    }
-  };
-
   const handleConfirm = async () => {
     if (tempCompany) {
-      if (autoSyncEnabled && siegStatus.count) {
-        const totalEntrada = siegStatus.count.entrada?.total || 0;
-        const totalSaida = siegStatus.count.saida?.total || 0;
-        if (totalEntrada > 0 || totalSaida > 0) {
-          await handleSyncNow();
-        }
-      }
-      
       selectCompany(tempCompany);
       selectCompetencia(tempCompetencia);
     }
-  };
-
-  const getTotalSieg = () => {
-    if (!siegStatus.count) return 0;
-    return (siegStatus.count.entrada?.total || 0) + (siegStatus.count.saida?.total || 0);
   };
 
   // Filtrar e ordenar empresas por codigo_empresa
