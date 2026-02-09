@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
+import CoffeeProgress from '../components/CoffeeProgress';
 import { 
   Building2, Plus, Search, RefreshCw, Trash2, Edit, X, Settings, 
   Users, ChevronDown, ChevronRight, Filter, Upload, FileSpreadsheet, Download, CheckCircle, AlertCircle, Shield, Eye, EyeOff
