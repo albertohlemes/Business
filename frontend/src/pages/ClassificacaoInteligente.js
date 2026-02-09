@@ -145,6 +145,28 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     }));
   };
 
+  // Resolver alerta de CFOP individualmente
+  const resolverAlertaIndividual = async (documentoId, produtoIdx, novoCfop) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${API}/alertas-cfop/resolver-individual?documento_id=${documentoId}&produto_idx=${produtoIdx}&novo_cfop=${novoCfop}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        toast.success('CFOP atualizado com sucesso!');
+        fetchAlertas(); // Recarregar alertas
+      } else {
+        toast.error(response.data.message || 'Erro ao atualizar CFOP');
+      }
+    } catch (err) {
+      console.error('Erro ao resolver alerta:', err);
+      toast.error('Erro ao resolver alerta de CFOP');
+    }
+  };
+
   // Função para enviar comando de IA
   const enviarComandoIA = async () => {
     if (!comandoIA.trim() || processandoIA) return;
