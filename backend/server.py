@@ -5671,19 +5671,29 @@ async def get_dashboard_stats(
     credito_pis = 0
     credito_cofins = 0
     
+    # Flags de desconsiderar ICMS
+    desconsiderar_icms_despesas = company.get('desconsiderar_icms_despesas', False)
+    desconsiderar_icms_st = company.get('desconsiderar_icms_st', False)
+    
     for doc in nfe_entrada:
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
             v_icms = float(prod.get('v_icms', 0) or 0)
             
-            # ICMS-ST e Despesa não geram crédito - usar CFOP para determinar (igual Apuração)
+            # ICMS-ST e Despesa - verificar flags da empresa
             is_st = cfop in CFOPS_ST
             is_despesa = cfop in CFOPS_DESPESA
             
             if is_st:
-                credito_icms_st_desconsiderado += v_icms
+                if desconsiderar_icms_st:
+                    credito_icms_st_desconsiderado += v_icms
+                else:
+                    credito_icms += v_icms  # Inclui no crédito se flag desativada
             elif is_despesa:
-                credito_icms_despesa_desconsiderado += v_icms
+                if desconsiderar_icms_despesas:
+                    credito_icms_despesa_desconsiderado += v_icms
+                else:
+                    credito_icms += v_icms  # Inclui no crédito se flag desativada
             else:
                 credito_icms += v_icms
             
