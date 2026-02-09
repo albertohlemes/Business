@@ -25,6 +25,7 @@ import RET from './pages/RET';
 import Indicadores from './pages/Indicadores';
 import AlertasCfop from './pages/AlertasCfop';
 import AnaliseTributariaIA from './pages/AnaliseTributariaIA';
+import SimplesNacionalDashboard from './pages/SimplesNacionalDashboard';
 import './App.css';
 
 function App() {
@@ -154,6 +155,10 @@ function App() {
             <Route
               path="/analise-tributaria-ia"
               element={user ? <AnaliseTributariaIA user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/simples-nacional"
+              element={user ? <SimplesNacionalDashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             {/* Rotas antigas redirecionam */}
             <Route path="/analise-aliquotas-saida" element={<Navigate to="/analise-saidas" />} />
