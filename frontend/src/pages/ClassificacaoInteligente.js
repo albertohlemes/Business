@@ -1100,7 +1100,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                   <BookOpen className="w-5 h-5 text-purple-400" />
                   <h2 className="text-lg font-semibold text-white">Memória IA - Regras Aprendidas</h2>
                   <span className="bg-purple-500/20 text-purple-300 text-xs px-2 py-0.5 rounded-full">
-                    {memoriaData.length} regra(s)
+                    {memoriaFiltrada.length} de {memoriaData.length} regra(s)
                   </span>
                 </div>
                 <button
@@ -1111,23 +1111,39 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                 </button>
               </div>
               
+              {/* Barra de Pesquisa */}
+              <div className="p-4 border-b border-[#2A2A2A]">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666]" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por produto, NCM, categoria ou CFOP..."
+                    value={memoriaSearch}
+                    onChange={(e) => setMemoriaSearch(e.target.value)}
+                    className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg pl-10 pr-4 py-2 text-white text-sm placeholder-[#666] focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+              
               {/* Conteúdo */}
-              <div className="p-4 overflow-y-auto max-h-[60vh]">
+              <div className="p-4 overflow-y-auto max-h-[55vh]">
                 {memoriaLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
                   </div>
-                ) : memoriaData.length === 0 ? (
+                ) : memoriaFiltrada.length === 0 ? (
                   <div className="text-center py-12">
                     <BookOpen className="w-12 h-12 text-[#2A2A2A] mx-auto mb-3" />
-                    <p className="text-[#A1A1AA]">Nenhuma regra aprendida ainda</p>
+                    <p className="text-[#A1A1AA]">
+                      {memoriaSearch ? 'Nenhuma regra encontrada para a busca' : 'Nenhuma regra aprendida ainda'}
+                    </p>
                     <p className="text-sm text-[#666] mt-1">
-                      Use comandos de IA ou reclassifique produtos para criar regras
+                      {memoriaSearch ? 'Tente outro termo' : 'Use comandos de IA ou reclassifique produtos para criar regras'}
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {memoriaData.map((rule) => (
+                    {memoriaFiltrada.map((rule) => (
                       <div 
                         key={rule.id} 
                         className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg p-4 hover:border-purple-500/30 transition-colors"
