@@ -15103,7 +15103,7 @@ async def inteligencia_tributaria(
     except Exception as e:
         print(f"Erro ao calcular ICMS: {e}")
     
-    # Buscar apuração PIS/COFINS do regime atual
+    # Buscar apuração PIS/COFINS do regime atual - usando a lógica do endpoint existente
     pis_real = 0
     cofins_real = 0
     try:
@@ -15119,10 +15119,11 @@ async def inteligencia_tributaria(
         
         docs_pis = await db.xml_documents.find(query_pis, {"produtos": 1, "tipo": 1}).to_list(10000)
         
-        pis_debito = 0
-        pis_credito = 0
-        cofins_debito = 0
-        cofins_credito = 0
+        # Totais PIS/COFINS Real (não cumulativo)
+        totais_real = {
+            'debitos': {'pis': 0, 'cofins': 0},
+            'creditos': {'pis': 0, 'cofins': 0}
+        }
         
         for doc in docs_pis:
             for prod in doc.get('produtos', []):
@@ -15133,7 +15134,7 @@ async def inteligencia_tributaria(
                 cfop_primeiro = cfop[0] if cfop else ''
                 tipo_op = 'saida' if cfop_primeiro in ['5', '6', '7'] else 'entrada'
                 
-                # Calcular PIS/COFINS
+                # Calcular PIS/COFINS usando função existente
                 resultado = calcular_pis_cofins_produto(
                     valor_base=valor_base,
                     ncm=ncm,
@@ -15146,17 +15147,28 @@ async def inteligencia_tributaria(
                 pis_val = float(resultado.get('pis_valor', 0) or 0)
                 cofins_val = float(resultado.get('cofins_valor', 0) or 0)
                 
-                if tipo_op == 'saida' and verificar_cfop_gera_debito(cfop):
-                    pis_debito += pis_val
-                    cofins_debito += cofins_val
-                elif tipo_op == 'entrada' and verificar_cfop_gera_credito(cfop):
-                    pis_credito += pis_val
-                    cofins_credito += cofins_val
+                if tipo_op == 'saida':
+                    # Verificar se gera débito - usar lógica de classificação
+                    classificacao = resultado.get('classificacao', {})
+                    tipo_class = classificacao.get('tipo', 'TRIBUTADO')
+                    if tipo_class not in ['MONOFASICO', 'ALIQUOTA_ZERO', 'SUBSTITUICAO_TRIBUTARIA']:
+                        totais_real['debitos']['pis'] += pis_val
+                        totais_real['debitos']['cofins'] += cofins_val
+                    # Monofásicos: o imposto já foi retido na fonte, não debita nem credita na saída
+                else:
+                    # Entrada: sempre gera crédito (no regime não cumulativo)
+                    if verificar_cfop_gera_credito(cfop):
+                        totais_real['creditos']['pis'] += pis_val
+                        totais_real['creditos']['cofins'] += cofins_val
         
-        pis_real = max(0, pis_debito - pis_credito)
-        cofins_real = max(0, cofins_debito - cofins_credito)
+        # Saldo final
+        pis_real = max(0, totais_real['debitos']['pis'] - totais_real['creditos']['pis'])
+        cofins_real = max(0, totais_real['debitos']['cofins'] - totais_real['creditos']['cofins'])
+        
     except Exception as e:
         print(f"Erro ao calcular PIS/COFINS: {e}")
+        import traceback
+        traceback.print_exc()
     
     # IRPJ e CSLL do Lucro Real (baseado no lucro contábil)
     estoque_inicial = float(company.get('estoque_inicial', 0) or 0)
