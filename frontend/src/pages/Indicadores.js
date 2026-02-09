@@ -8,7 +8,7 @@ import {
   AlertTriangle, CheckCircle, Sparkles, Calculator,
   Scale, ArrowRight, Lightbulb, Target, Zap,
   Package, Brain, ChevronDown, ChevronUp, AlertCircle,
-  Percent, PiggyBank, Minus, Plus, Save
+  Percent, PiggyBank, Minus, Plus, Save, Edit3
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -19,13 +19,15 @@ const Indicadores = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [dados, setDados] = useState(null);
   const [analiseIA, setAnaliseIA] = useState(null);
-  const [activeTab, setActiveTab] = useState('resumo');
-  const [expandedSections, setExpandedSections] = useState({});
+  const [activeTab, setActiveTab] = useState('impostos');
   
   // Estoque para CMV/CPV
   const [estoqueInicial, setEstoqueInicial] = useState(0);
   const [estoqueFinal, setEstoqueFinal] = useState(0);
   const [savingEstoque, setSavingEstoque] = useState(false);
+  
+  // DRE Flutuante - Despesa Real
+  const [despesaReal, setDespesaReal] = useState(0);
 
   const fetchData = useCallback(async () => {
     if (!selectedCompany?.id || !selectedCompetencia) return;
@@ -34,9 +36,10 @@ const Indicadores = ({ user, onLogout }) => {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
       
-      // Carregar estoque da empresa
+      // Carregar estoque e despesa da empresa
       setEstoqueInicial(selectedCompany.estoque_inicial || 0);
       setEstoqueFinal(selectedCompany.estoque_final || 0);
+      setDespesaReal(selectedCompany.despesa_real || 0);
       
       // Buscar dados de apuração consolidados
       const [icmsRes, issRes, pisRes, ipiRes] = await Promise.all([
@@ -72,23 +75,24 @@ const Indicadores = ({ user, onLogout }) => {
     }
   }, [selectedCompany, selectedCompetencia, fetchData]);
 
-  // Salvar estoque na empresa
-  const salvarEstoque = async () => {
+  // Salvar estoque e despesa na empresa
+  const salvarDados = async () => {
     if (!selectedCompany?.id) return;
     setSavingEstoque(true);
     try {
       const token = localStorage.getItem('token');
       await axios.put(`${API}/companies/${selectedCompany.id}`, {
         estoque_inicial: estoqueInicial,
-        estoque_final: estoqueFinal
+        estoque_final: estoqueFinal,
+        despesa_real: despesaReal
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       refreshCompanies && refreshCompanies();
-      alert('Estoque salvo com sucesso!');
+      alert('Dados salvos com sucesso!');
     } catch (err) {
-      console.error('Erro ao salvar estoque:', err);
-      alert('Erro ao salvar estoque');
+      console.error('Erro ao salvar dados:', err);
+      alert('Erro ao salvar dados');
     } finally {
       setSavingEstoque(false);
     }
@@ -98,12 +102,8 @@ const Indicadores = ({ user, onLogout }) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   };
 
-  const formatPercent = (value) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'percent', minimumFractionDigits: 2 }).format(value || 0);
-  };
-
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  const formatPercentual = (value) => {
+    return `${(value || 0).toFixed(2)}%`;
   };
 
   // Verificar se empresa é contribuinte de cada imposto
@@ -126,24 +126,10 @@ const Indicadores = ({ user, onLogout }) => {
     return selectedCompany?.apura_icms_st;
   };
 
-  // Calcular CMV/CPV (Custo da Mercadoria/Produto Vendido)
-  const calcularCMV = () => {
-    // CMV = Estoque Inicial + Compras - Estoque Final
-    // Usar totais.valor_total das entradas (formato correto do backend)
-    const compras = dados?.icms?.entradas?.totais?.valor_total || 
-                    dados?.icms?.entradas?.total_produtos ||
-                    dados?.pis_cofins?.compras?.total || 0;
-    return estoqueInicial + compras - estoqueFinal;
-  };
-
-  // Calcular receitas
+  // Calcular receitas (vendas de mercadorias + serviços)
   const calcularReceitas = () => {
-    // Receita de vendas de mercadorias (usar totais.valor_total)
-    const receitaComercio = dados?.icms?.saidas?.totais?.valor_total || 
-                           dados?.icms?.saidas?.total_produtos || 0;
-    // Receita de serviços
-    const receitaServicos = dados?.iss?.resumo?.receita_servicos || 
-                           dados?.iss?.resumo?.total_servicos || 0;
+    const receitaComercio = dados?.icms?.saidas?.totais?.valor_total || 0;
+    const receitaServicos = dados?.iss?.resumo?.receita_servicos || dados?.iss?.resumo?.total_servicos || 0;
     
     return {
       comercio: receitaComercio,
@@ -152,84 +138,10 @@ const Indicadores = ({ user, onLogout }) => {
     };
   };
 
-  // Calcular Entradas por tipo (Insumo, Revenda, Despesa)
-  const calcularEntradasPorTipo = () => {
-    const entradas = dados?.icms?.entradas || dados?.pis_cofins?.compras || {};
-    const cfops = entradas.por_cfop || [];
-    
-    let insumo = 0;
-    let revenda = 0;
-    let despesa = 0;
-    let ativo = 0;
-    
-    // CFOPs de Revenda: 1102, 2102, 1403, 2403
-    const cfopsRevenda = ['1102', '2102', '1403', '2403', '1101', '2101'];
-    // CFOPs de Insumo/Matéria-prima: 1101, 2101, 1201, 2201
-    const cfopsInsumo = ['1101', '2101', '1201', '2201'];
-    // CFOPs de Despesa: 1556, 2556, 1407, 2407, 1653, 2653
-    const cfopsDespesa = ['1556', '2556', '1407', '2407', '1653', '2653', '1128', '2128', '1126', '2126'];
-    // CFOPs de Ativo: 1551, 2551
-    const cfopsAtivo = ['1551', '2551'];
-    
-    cfops.forEach(c => {
-      const cfop = String(c.cfop || '');
-      // Usar valor_total (formato do backend atual)
-      const valor = c.valor_total || c.total_produtos || c.valor || 0;
-      
-      if (cfopsAtivo.some(x => cfop.startsWith(x))) ativo += valor;
-      else if (cfopsDespesa.some(x => cfop.startsWith(x))) despesa += valor;
-      else if (cfopsInsumo.some(x => cfop.startsWith(x))) insumo += valor;
-      else if (cfopsRevenda.some(x => cfop.startsWith(x))) revenda += valor;
-      else revenda += valor; // Default para revenda
-    });
-    
-    return { insumo, revenda, despesa, ativo, total: insumo + revenda + despesa + ativo };
-  };
-
-  // Calcular Margem de Contribuição
-  const calcularMargemContribuicao = () => {
-    const receitas = calcularReceitas();
-    const cmv = calcularCMV();
-    const margemAbsoluta = receitas.total - cmv;
-    const margemPercentual = receitas.total > 0 ? (margemAbsoluta / receitas.total) * 100 : 0;
-    
-    return {
-      absoluta: margemAbsoluta,
-      percentual: margemPercentual
-    };
-  };
-
-  // Calcular Markup
-  const calcularMarkup = () => {
-    const receitas = calcularReceitas();
-    const cmv = calcularCMV();
-    // Markup = (Preço de Venda - Custo) / Custo * 100
-    const markup = cmv > 0 ? ((receitas.total - cmv) / cmv) * 100 : 0;
-    return markup;
-  };
-
-  // Calcular percentuais de impostos
-  const calcularPercentuaisImpostos = () => {
-    const receitas = calcularReceitas();
-    const vendas = receitas.comercio; // Só vendas de mercadorias
-    const total = receitas.total; // Total com serviços
-    
-    const impostos = calcularTotais();
-    
-    return {
-      // Sobre total de saídas (vendas + serviços)
-      icms_sobre_total: total > 0 ? (impostos.detalhes.icms?.pagar || 0) / total * 100 : 0,
-      pis_sobre_total: total > 0 ? (impostos.detalhes.pis_cofins?.pagar || 0) * 0.35 / total * 100 : 0, // PIS ~35% do PIS+COFINS
-      cofins_sobre_total: total > 0 ? (impostos.detalhes.pis_cofins?.pagar || 0) * 0.65 / total * 100 : 0, // COFINS ~65%
-      iss_sobre_total: total > 0 ? (impostos.detalhes.iss?.pagar || 0) / total * 100 : 0,
-      total_impostos_sobre_total: total > 0 ? impostos.total_pagar / total * 100 : 0,
-      
-      // Sobre só vendas (sem serviços)
-      icms_sobre_vendas: vendas > 0 ? (impostos.detalhes.icms?.pagar || 0) / vendas * 100 : 0,
-      pis_sobre_vendas: vendas > 0 ? (impostos.detalhes.pis_cofins?.pagar || 0) * 0.35 / vendas * 100 : 0,
-      cofins_sobre_vendas: vendas > 0 ? (impostos.detalhes.pis_cofins?.pagar || 0) * 0.65 / vendas * 100 : 0,
-      total_impostos_sobre_vendas: vendas > 0 ? (impostos.detalhes.icms?.pagar || 0 + impostos.detalhes.pis_cofins?.pagar || 0) / vendas * 100 : 0
-    };
+  // Calcular CMV/CPV
+  const calcularCMV = () => {
+    const compras = dados?.icms?.entradas?.totais?.valor_total || 0;
+    return estoqueInicial + compras - estoqueFinal;
   };
 
   // Calcular Lucro Bruto
@@ -239,87 +151,10 @@ const Indicadores = ({ user, onLogout }) => {
     return receitas.total - cmv;
   };
 
-  // Calcular Ponto de Equilíbrio para Lucro Real
-  const calcularPontoEquilibrio = () => {
-    // Para Lucro Real, o objetivo é minimizar o lucro tributável
-    // Lucro = Receita - CMV - Despesas
-    // Para lucro zero: Despesas = Receita - CMV
-    const receitas = calcularReceitas();
-    const cmv = calcularCMV();
-    const lucroBruto = receitas.total - cmv;
-    
-    // Despesas necessárias para zerar o lucro tributável
-    const despesasParaEquilibrio = lucroBruto > 0 ? lucroBruto : 0;
-    
-    return {
-      receita_total: receitas.total,
-      cmv: cmv,
-      lucro_bruto: lucroBruto,
-      despesas_para_equilibrio: despesasParaEquilibrio,
-      economia_potencial: despesasParaEquilibrio * 0.34 // IRPJ 25% + CSLL 9%
-    };
-  };
-
-  // Calcular Lucro Presumido por atividade
-  const calcularLucroPresumido = () => {
-    const receitas = calcularReceitas();
-    const isMista = selectedCompany?.tipo_atividade === 'mista';
-    
-    // Percentuais de presunção
-    const presuncaoIRPJComercio = selectedCompany?.percentual_presuncao_irpj_comercio || selectedCompany?.percentual_presuncao_irpj || 8;
-    const presuncaoCSLLComercio = selectedCompany?.percentual_presuncao_csll_comercio || selectedCompany?.percentual_presuncao_csll || 12;
-    const presuncaoIRPJServico = selectedCompany?.percentual_presuncao_irpj_servico || 32;
-    const presuncaoCSLLServico = selectedCompany?.percentual_presuncao_csll_servico || 32;
-    
-    // Base de cálculo
-    const baseIRPJComercio = receitas.comercio * (presuncaoIRPJComercio / 100);
-    const baseCSLLComercio = receitas.comercio * (presuncaoCSLLComercio / 100);
-    const baseIRPJServico = receitas.servicos * (presuncaoIRPJServico / 100);
-    const baseCSLLServico = receitas.servicos * (presuncaoCSLLServico / 100);
-    
-    // IRPJ 15% + Adicional 10% sobre excedente de R$ 20.000/mês
-    const calcularIRPJ = (base) => {
-      const irpjBase = base * 0.15;
-      const adicional = base > 20000 ? (base - 20000) * 0.10 : 0;
-      return irpjBase + adicional;
-    };
-    
-    // CSLL 9%
-    const calcularCSLL = (base) => base * 0.09;
-    
-    const irpjComercio = calcularIRPJ(baseIRPJComercio);
-    const csllComercio = calcularCSLL(baseCSLLComercio);
-    const irpjServico = calcularIRPJ(baseIRPJServico);
-    const csllServico = calcularCSLL(baseCSLLServico);
-    
-    return {
-      comercio: {
-        receita: receitas.comercio,
-        presuncao_irpj: presuncaoIRPJComercio,
-        presuncao_csll: presuncaoCSLLComercio,
-        base_irpj: baseIRPJComercio,
-        base_csll: baseCSLLComercio,
-        irpj: irpjComercio,
-        csll: csllComercio,
-        total: irpjComercio + csllComercio
-      },
-      servicos: {
-        receita: receitas.servicos,
-        presuncao_irpj: presuncaoIRPJServico,
-        presuncao_csll: presuncaoCSLLServico,
-        base_irpj: baseIRPJServico,
-        base_csll: baseCSLLServico,
-        irpj: irpjServico,
-        csll: csllServico,
-        total: irpjServico + csllServico
-      },
-      total: {
-        irpj: irpjComercio + irpjServico,
-        csll: csllComercio + csllServico,
-        total: irpjComercio + csllComercio + irpjServico + csllServico
-      },
-      is_mista: isMista
-    };
+  // Calcular Lucro Contábil (com despesa real informada)
+  const calcularLucroContabil = () => {
+    const lucroBruto = calcularLucroBruto();
+    return lucroBruto - despesaReal;
   };
 
   // Calcular totais de impostos
@@ -331,16 +166,19 @@ const Indicadores = ({ user, onLogout }) => {
     
     const iss_pagar = isContribuinteISS() ? dados.iss?.resumo?.iss_a_pagar || 0 : 0;
     
-    const pis_pagar = dados.pis_cofins?.lucro_real?.imposto_a_pagar?.total > 0 ? dados.pis_cofins?.lucro_real?.imposto_a_pagar?.total : 0;
-    const pis_recuperar = dados.pis_cofins?.lucro_real?.saldo?.total < 0 ? Math.abs(dados.pis_cofins?.lucro_real?.saldo?.total) : 0;
+    // PIS e COFINS separados
+    const pis_pagar = dados.pis_cofins?.lucro_real?.imposto_a_pagar?.pis > 0 ? dados.pis_cofins?.lucro_real?.imposto_a_pagar?.pis : 0;
+    const cofins_pagar = dados.pis_cofins?.lucro_real?.imposto_a_pagar?.cofins > 0 ? dados.pis_cofins?.lucro_real?.imposto_a_pagar?.cofins : 0;
+    const pis_recuperar = dados.pis_cofins?.lucro_real?.saldo?.pis < 0 ? Math.abs(dados.pis_cofins?.lucro_real?.saldo?.pis) : 0;
+    const cofins_recuperar = dados.pis_cofins?.lucro_real?.saldo?.cofins < 0 ? Math.abs(dados.pis_cofins?.lucro_real?.saldo?.cofins) : 0;
     
     const icms_st_pagar = isContribuinteICMSST() ? dados.icms?.icms_st?.apuracao?.icms_st_a_recolher || 0 : 0;
     
     const ipi_pagar = isContribuinteIPI() && dados.ipi?.apuracao?.situacao === 'A_PAGAR' ? dados.ipi?.apuracao?.saldo || 0 : 0;
     const ipi_recuperar = isContribuinteIPI() && dados.ipi?.apuracao?.situacao === 'A_RECUPERAR' ? Math.abs(dados.ipi?.apuracao?.saldo || 0) : 0;
     
-    const total_pagar = icms_pagar + iss_pagar + pis_pagar + icms_st_pagar + ipi_pagar;
-    const total_recuperar = icms_recuperar + pis_recuperar + ipi_recuperar;
+    const total_pagar = icms_pagar + iss_pagar + pis_pagar + cofins_pagar + icms_st_pagar + ipi_pagar;
+    const total_recuperar = icms_recuperar + pis_recuperar + cofins_recuperar + ipi_recuperar;
     
     return {
       total_pagar,
@@ -349,73 +187,165 @@ const Indicadores = ({ user, onLogout }) => {
       detalhes: {
         icms: { pagar: icms_pagar, recuperar: icms_recuperar },
         iss: { pagar: iss_pagar, recuperar: 0 },
-        pis_cofins: { pagar: pis_pagar, recuperar: pis_recuperar },
+        pis: { pagar: pis_pagar, recuperar: pis_recuperar },
+        cofins: { pagar: cofins_pagar, recuperar: cofins_recuperar },
         icms_st: { pagar: icms_st_pagar, recuperar: 0 },
         ipi: { pagar: ipi_pagar, recuperar: ipi_recuperar }
       }
     };
   };
 
-  const totais = calcularTotais();
-  const pontoEquilibrio = calcularPontoEquilibrio();
-  const lucroPresumido = calcularLucroPresumido();
+  // Calcular percentuais de impostos
+  const calcularPercentuais = () => {
+    const receitas = calcularReceitas();
+    const saidas = receitas.total; // Total de saídas (vendas + serviços)
+    const vendas = receitas.comercio; // Só vendas de mercadorias
+    const totais = calcularTotais();
+    
+    const calcPercent = (valor, base) => base > 0 ? (valor / base) * 100 : 0;
+    
+    return {
+      icms: {
+        valor: totais.detalhes.icms?.pagar || 0,
+        sobre_saidas: calcPercent(totais.detalhes.icms?.pagar || 0, saidas),
+        sobre_vendas: calcPercent(totais.detalhes.icms?.pagar || 0, vendas)
+      },
+      pis: {
+        valor: totais.detalhes.pis?.pagar || 0,
+        sobre_saidas: calcPercent(totais.detalhes.pis?.pagar || 0, saidas),
+        sobre_vendas: calcPercent(totais.detalhes.pis?.pagar || 0, vendas)
+      },
+      cofins: {
+        valor: totais.detalhes.cofins?.pagar || 0,
+        sobre_saidas: calcPercent(totais.detalhes.cofins?.pagar || 0, saidas),
+        sobre_vendas: calcPercent(totais.detalhes.cofins?.pagar || 0, vendas)
+      },
+      iss: {
+        valor: totais.detalhes.iss?.pagar || 0,
+        sobre_saidas: calcPercent(totais.detalhes.iss?.pagar || 0, saidas),
+        sobre_vendas: calcPercent(totais.detalhes.iss?.pagar || 0, vendas)
+      },
+      ipi: {
+        valor: totais.detalhes.ipi?.pagar || 0,
+        sobre_saidas: calcPercent(totais.detalhes.ipi?.pagar || 0, saidas),
+        sobre_vendas: calcPercent(totais.detalhes.ipi?.pagar || 0, vendas)
+      },
+      icms_st: {
+        valor: totais.detalhes.icms_st?.pagar || 0,
+        sobre_saidas: calcPercent(totais.detalhes.icms_st?.pagar || 0, saidas),
+        sobre_vendas: calcPercent(totais.detalhes.icms_st?.pagar || 0, vendas)
+      },
+      total: {
+        valor: totais.total_pagar,
+        sobre_saidas: calcPercent(totais.total_pagar, saidas),
+        sobre_vendas: calcPercent(totais.total_pagar, vendas)
+      }
+    };
+  };
 
-  // Card de Imposto (só renderiza se empresa for contribuinte)
-  const ImpostoCard = ({ titulo, icone: Icon, corIcone, apagar, arecuperar, visible = true }) => {
-    if (!visible) return null;
+  // Calcular Ponto de Equilíbrio
+  const calcularPontoEquilibrio = () => {
+    const lucroBruto = calcularLucroBruto();
+    // Despesas para zerar o lucro tributável
+    const despesasParaEquilibrio = lucroBruto > 0 ? lucroBruto : 0;
+    
+    return {
+      lucro_bruto: lucroBruto,
+      despesas_para_equilibrio: despesasParaEquilibrio,
+      economia_potencial: despesasParaEquilibrio * 0.34 // IRPJ 25% + CSLL 9%
+    };
+  };
+
+  // Calcular Indicadores
+  const calcularIndicadores = () => {
+    const receitas = calcularReceitas();
+    const cmv = calcularCMV();
+    const lucroBruto = calcularLucroBruto();
+    
+    // Margem de Contribuição
+    const margemAbsoluta = lucroBruto;
+    const margemPercentual = receitas.total > 0 ? (margemAbsoluta / receitas.total) * 100 : 0;
+    
+    // Markup
+    const markup = cmv > 0 ? ((receitas.total - cmv) / cmv) * 100 : 0;
+    
+    // Entradas por tipo
+    const entradas = dados?.icms?.entradas || {};
+    const cfops = entradas.por_cfop || [];
+    
+    let insumo = 0, revenda = 0, despesa = 0, ativo = 0;
+    const cfopsRevenda = ['1102', '2102', '1403', '2403', '1101', '2101'];
+    const cfopsInsumo = ['1101', '2101', '1201', '2201'];
+    const cfopsDespesa = ['1556', '2556', '1407', '2407', '1653', '2653', '1128', '2128', '1126', '2126'];
+    const cfopsAtivo = ['1551', '2551'];
+    
+    cfops.forEach(c => {
+      const cfop = String(c.cfop || '');
+      const valor = c.valor_total || c.total_produtos || c.valor || 0;
+      
+      if (cfopsAtivo.some(x => cfop.startsWith(x))) ativo += valor;
+      else if (cfopsDespesa.some(x => cfop.startsWith(x))) despesa += valor;
+      else if (cfopsInsumo.some(x => cfop.startsWith(x))) insumo += valor;
+      else if (cfopsRevenda.some(x => cfop.startsWith(x))) revenda += valor;
+      else revenda += valor;
+    });
+    
+    return {
+      margem: { absoluta: margemAbsoluta, percentual: margemPercentual },
+      markup,
+      entradas: { insumo, revenda, despesa, ativo, total: insumo + revenda + despesa + ativo }
+    };
+  };
+
+  const totais = calcularTotais();
+  const percentuais = calcularPercentuais();
+  const pontoEquilibrio = calcularPontoEquilibrio();
+  const indicadores = calcularIndicadores();
+  const receitas = calcularReceitas();
+  const lucroContabil = calcularLucroContabil();
+
+  // Card de Imposto Individualizado
+  const ImpostoCard = ({ titulo, icone: Icon, cor, valor, percentSaidas, percentVendas, visible = true }) => {
+    if (!visible || valor <= 0) return null;
     
     return (
       <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
         <div className="flex items-center gap-3 mb-3">
-          <div className={`${corIcone} p-2 rounded-lg`}>
+          <div className={`${cor} p-2 rounded-lg`}>
             <Icon className="w-5 h-5 text-white" />
           </div>
           <span className="text-white font-semibold">{titulo}</span>
         </div>
         <div className="space-y-2">
-          {apagar > 0 && (
-            <div className="flex justify-between items-center">
-              <span className="text-[#A1A1AA] text-sm">A Pagar</span>
-              <span className="text-red-400 font-bold">{formatCurrency(apagar)}</span>
-            </div>
-          )}
-          {arecuperar > 0 && (
-            <div className="flex justify-between items-center">
-              <span className="text-[#A1A1AA] text-sm">A Recuperar</span>
-              <span className="text-green-400 font-bold">{formatCurrency(arecuperar)}</span>
-            </div>
-          )}
-          {!apagar && !arecuperar && (
-            <div className="text-center py-2">
-              <span className="text-[#666] text-sm">Sem movimentação</span>
-            </div>
-          )}
+          <div className="flex justify-between items-center">
+            <span className="text-[#A1A1AA] text-sm">Valor</span>
+            <span className="text-white font-bold">{formatCurrency(valor)}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[#A1A1AA] text-sm">% s/ Saídas</span>
+            <span className="text-[#C8A951] font-medium">{formatPercentual(percentSaidas)}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[#A1A1AA] text-sm">% s/ Vendas</span>
+            <span className="text-blue-400 font-medium">{formatPercentual(percentVendas)}</span>
+          </div>
         </div>
       </div>
     );
   };
 
-  // Renderizar insights IA formatados
+  // Renderizar insights IA
   const renderInsightsIA = (texto) => {
     if (!texto) return null;
     return texto.split('\n').map((line, idx) => {
-      const cleanLine = line
-        .replace(/\*\*([^*]+)\*\*/g, '$1')
-        .replace(/\*([^*]+)\*/g, '$1')
-        .replace(/^#+\s*/, '')
-        .trim();
-      
+      const cleanLine = line.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1').replace(/^#+\s*/, '').trim();
       if (!cleanLine) return null;
       
       const isTitulo = /^(\d+\.|[A-ZÁÉÍÓÚÀÃÕÇ\s]{5,}:)/.test(cleanLine);
       const isListItem = /^[-•*]\s/.test(cleanLine) || /^\d+\)\s/.test(cleanLine);
       
       if (isTitulo) {
-        return (
-          <h4 key={idx} className="text-lg font-bold text-[#C8A951] mt-4 mb-2 border-b border-[#2A2A2A] pb-1">
-            {cleanLine}
-          </h4>
-        );
+        return <h4 key={idx} className="text-lg font-bold text-[#C8A951] mt-4 mb-2 border-b border-[#2A2A2A] pb-1">{cleanLine}</h4>;
       } else if (isListItem) {
         return (
           <div key={idx} className="flex items-start gap-2 ml-4 my-1">
@@ -423,9 +353,8 @@ const Indicadores = ({ user, onLogout }) => {
             <span className="text-[#E0E0E0]">{cleanLine.replace(/^[-•*]\s*/, '').replace(/^\d+\)\s*/, '')}</span>
           </div>
         );
-      } else {
-        return <p key={idx} className="text-[#E0E0E0] my-2">{cleanLine}</p>;
       }
+      return <p key={idx} className="text-[#E0E0E0] my-2">{cleanLine}</p>;
     });
   };
 
@@ -436,11 +365,11 @@ const Indicadores = ({ user, onLogout }) => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Zap className="w-7 h-7 text-[#C8A951]" />
+              <BarChart3 className="w-7 h-7 text-[#C8A951]" />
               Indicadores
             </h1>
             <p className="text-[#A1A1AA] text-sm mt-1">
-              CMV/CPV, Margens, Ponto de Equilíbrio e Análise de Indicadores Financeiros
+              Impostos, CMV/CPV, Ponto de Equilíbrio e DRE Flutuante
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -484,22 +413,22 @@ const Indicadores = ({ user, onLogout }) => {
         {selectedCompany && !loading && (
           <div className="flex gap-2 mb-6 border-b border-[#2A2A2A] pb-3 overflow-x-auto">
             <button
-              onClick={() => setActiveTab('resumo')}
+              onClick={() => setActiveTab('impostos')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'resumo' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
+                activeTab === 'impostos' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
               }`}
             >
-              <BarChart3 className="w-4 h-4" />
-              Resumo
+              <DollarSign className="w-4 h-4" />
+              Impostos
             </button>
             <button
-              onClick={() => setActiveTab('cmv')}
+              onClick={() => setActiveTab('cmv_equilibrio')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'cmv' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
+                activeTab === 'cmv_equilibrio' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
               }`}
             >
-              <Package className="w-4 h-4" />
-              CMV/CPV
+              <Scale className="w-4 h-4" />
+              CMV/CPV e Ponto de Equilíbrio
             </button>
             <button
               onClick={() => setActiveTab('indicadores')}
@@ -508,25 +437,7 @@ const Indicadores = ({ user, onLogout }) => {
               }`}
             >
               <Percent className="w-4 h-4" />
-              Indicadores
-            </button>
-            <button
-              onClick={() => setActiveTab('equilibrio')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'equilibrio' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
-              }`}
-            >
-              <Scale className="w-4 h-4" />
-              Ponto de Equilíbrio
-            </button>
-            <button
-              onClick={() => setActiveTab('comparativo')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'comparativo' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
-              }`}
-            >
-              <Calculator className="w-4 h-4" />
-              Comparativo Regimes
+              Margens e Markup
             </button>
             <button
               onClick={() => setActiveTab('viloes')}
@@ -568,11 +479,11 @@ const Indicadores = ({ user, onLogout }) => {
           </div>
         )}
 
-        {/* Conteúdo das Tabs */}
+        {/* Conteúdo */}
         {!selectedCompany ? (
           <div className="text-center py-12 text-[#A1A1AA]">
             <Building2 className="w-16 h-16 mx-auto mb-4 opacity-50" />
-            <p>Selecione uma empresa para visualizar a rota de eficiência tributária</p>
+            <p>Selecione uma empresa para visualizar os indicadores</p>
           </div>
         ) : loading ? (
           <div className="text-center py-12">
@@ -581,86 +492,126 @@ const Indicadores = ({ user, onLogout }) => {
           </div>
         ) : (
           <>
-            {/* Tab Resumo */}
-            {activeTab === 'resumo' && (
+            {/* Tab Impostos */}
+            {activeTab === 'impostos' && (
               <div className="space-y-6">
                 {/* Cards de Resumo */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-gradient-to-br from-red-900/30 to-red-950/30 border border-red-500/30 rounded-xl p-5">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-gradient-to-br from-blue-900/30 to-blue-950/30 border border-blue-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-2">
-                      <TrendingDown className="w-6 h-6 text-red-400" />
-                      <span className="text-[#A1A1AA]">Total a Pagar</span>
+                      <TrendingUp className="w-6 h-6 text-blue-400" />
+                      <span className="text-[#A1A1AA]">Total Saídas</span>
                     </div>
-                    <p className="text-2xl font-bold text-red-400">{formatCurrency(totais.total_pagar)}</p>
+                    <p className="text-2xl font-bold text-blue-400">{formatCurrency(receitas.total)}</p>
                   </div>
                   
                   <div className="bg-gradient-to-br from-green-900/30 to-green-950/30 border border-green-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-2">
-                      <TrendingUp className="w-6 h-6 text-green-400" />
-                      <span className="text-[#A1A1AA]">Total a Recuperar</span>
+                      <DollarSign className="w-6 h-6 text-green-400" />
+                      <span className="text-[#A1A1AA]">Vendas Merc.</span>
                     </div>
-                    <p className="text-2xl font-bold text-green-400">{formatCurrency(totais.total_recuperar)}</p>
+                    <p className="text-2xl font-bold text-green-400">{formatCurrency(receitas.comercio)}</p>
                   </div>
                   
-                  <div className={`bg-gradient-to-br ${totais.saldo_liquido > 0 ? 'from-red-900/30 to-red-950/30 border-red-500/30' : 'from-green-900/30 to-green-950/30 border-green-500/30'} border rounded-xl p-5`}>
+                  <div className="bg-gradient-to-br from-red-900/30 to-red-950/30 border border-red-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-2">
-                      <DollarSign className={`w-6 h-6 ${totais.saldo_liquido > 0 ? 'text-red-400' : 'text-green-400'}`} />
-                      <span className="text-[#A1A1AA]">Saldo Líquido</span>
+                      <TrendingDown className="w-6 h-6 text-red-400" />
+                      <span className="text-[#A1A1AA]">Total Impostos</span>
                     </div>
-                    <p className={`text-2xl font-bold ${totais.saldo_liquido > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                      {formatCurrency(Math.abs(totais.saldo_liquido))}
-                    </p>
+                    <p className="text-2xl font-bold text-red-400">{formatCurrency(totais.total_pagar)}</p>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-[#C8A951]/20 to-[#C8A951]/10 border border-[#C8A951]/30 rounded-xl p-5">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Percent className="w-6 h-6 text-[#C8A951]" />
+                      <span className="text-[#A1A1AA]">% s/ Saídas</span>
+                    </div>
+                    <p className="text-2xl font-bold text-[#C8A951]">{formatPercentual(percentuais.total.sobre_saidas)}</p>
                   </div>
                 </div>
 
-                {/* Grid de Impostos - Dinâmico baseado nos contribuintes */}
+                {/* Grid de Impostos Individualizados */}
+                <h3 className="text-lg font-semibold text-white mt-6 mb-4 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-[#C8A951]" />
+                  Impostos Individualizados
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <ImpostoCard
                     titulo="ICMS"
                     icone={FileText}
-                    corIcone="bg-blue-600"
-                    apagar={totais.detalhes.icms?.pagar}
-                    arecuperar={totais.detalhes.icms?.recuperar}
+                    cor="bg-blue-600"
+                    valor={percentuais.icms.valor}
+                    percentSaidas={percentuais.icms.sobre_saidas}
+                    percentVendas={percentuais.icms.sobre_vendas}
                     visible={isContribuinteICMS()}
                   />
                   <ImpostoCard
                     titulo="ICMS ST"
                     icone={FileText}
-                    corIcone="bg-indigo-600"
-                    apagar={totais.detalhes.icms_st?.pagar}
-                    arecuperar={0}
+                    cor="bg-indigo-600"
+                    valor={percentuais.icms_st.valor}
+                    percentSaidas={percentuais.icms_st.sobre_saidas}
+                    percentVendas={percentuais.icms_st.sobre_vendas}
                     visible={isContribuinteICMSST()}
+                  />
+                  <ImpostoCard
+                    titulo="PIS"
+                    icone={FileText}
+                    cor="bg-emerald-600"
+                    valor={percentuais.pis.valor}
+                    percentSaidas={percentuais.pis.sobre_saidas}
+                    percentVendas={percentuais.pis.sobre_vendas}
+                    visible={true}
+                  />
+                  <ImpostoCard
+                    titulo="COFINS"
+                    icone={FileText}
+                    cor="bg-teal-600"
+                    valor={percentuais.cofins.valor}
+                    percentSaidas={percentuais.cofins.sobre_saidas}
+                    percentVendas={percentuais.cofins.sobre_vendas}
+                    visible={true}
                   />
                   <ImpostoCard
                     titulo="ISS"
                     icone={FileText}
-                    corIcone="bg-purple-600"
-                    apagar={totais.detalhes.iss?.pagar}
-                    arecuperar={0}
+                    cor="bg-purple-600"
+                    valor={percentuais.iss.valor}
+                    percentSaidas={percentuais.iss.sobre_saidas}
+                    percentVendas={percentuais.iss.sobre_vendas}
                     visible={isContribuinteISS()}
                   />
                   <ImpostoCard
                     titulo="IPI"
                     icone={FileText}
-                    corIcone="bg-orange-600"
-                    apagar={totais.detalhes.ipi?.pagar}
-                    arecuperar={totais.detalhes.ipi?.recuperar}
+                    cor="bg-orange-600"
+                    valor={percentuais.ipi.valor}
+                    percentSaidas={percentuais.ipi.sobre_saidas}
+                    percentVendas={percentuais.ipi.sobre_vendas}
                     visible={isContribuinteIPI()}
                   />
-                  <ImpostoCard
-                    titulo="PIS/COFINS"
-                    icone={FileText}
-                    corIcone="bg-emerald-600"
-                    apagar={totais.detalhes.pis_cofins?.pagar}
-                    arecuperar={totais.detalhes.pis_cofins?.recuperar}
-                    visible={true}
-                  />
+                </div>
+
+                {/* Card Total */}
+                <div className="bg-gradient-to-r from-[#C8A951]/20 to-[#C8A951]/10 border border-[#C8A951]/30 rounded-xl p-5 mt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Calculator className="w-6 h-6 text-[#C8A951]" />
+                      <span className="text-white font-semibold text-lg">TOTAL DE IMPOSTOS</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(totais.total_pagar)}</p>
+                      <p className="text-sm text-[#A1A1AA]">
+                        {formatPercentual(percentuais.total.sobre_saidas)} s/ Saídas | {formatPercentual(percentuais.total.sobre_vendas)} s/ Vendas
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Tab CMV/CPV */}
-            {activeTab === 'cmv' && (
+            {/* Tab CMV/CPV e Ponto de Equilíbrio */}
+            {activeTab === 'cmv_equilibrio' && (
               <div className="space-y-6">
                 {/* Campos de Estoque */}
                 <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
@@ -668,9 +619,6 @@ const Indicadores = ({ user, onLogout }) => {
                     <Package className="w-6 h-6 text-[#C8A951]" />
                     <h3 className="text-lg font-semibold text-white">Estoque para CMV/CPV</h3>
                   </div>
-                  <p className="text-[#A1A1AA] text-sm mb-4">
-                    Informe o estoque inicial e final do período para calcular o Custo da Mercadoria Vendida (CMV) ou Custo do Produto Vendido (CPV).
-                  </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
@@ -695,129 +643,226 @@ const Indicadores = ({ user, onLogout }) => {
                     </div>
                     <div className="flex items-end">
                       <button
-                        onClick={salvarEstoque}
+                        onClick={salvarDados}
                         disabled={savingEstoque}
                         className="flex items-center gap-2 bg-[#C8A951] hover:bg-[#B8993D] text-black px-4 py-3 rounded-lg transition-colors font-medium disabled:opacity-50"
                       >
                         <Save className="w-4 h-4" />
-                        {savingEstoque ? 'Salvando...' : 'Salvar Estoque'}
+                        {savingEstoque ? 'Salvando...' : 'Salvar'}
                       </button>
                     </div>
                   </div>
-                </div>
 
-                {/* Cálculo do CMV */}
-                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Calculator className="w-6 h-6 text-blue-400" />
-                    <h3 className="text-lg font-semibold text-white">Cálculo do CMV/CPV</h3>
-                  </div>
-                  
-                  <div className="bg-[#0C0C0C] rounded-lg p-4 mb-4 font-mono text-sm">
-                    <p className="text-[#A1A1AA]">CMV = Estoque Inicial + Compras - Estoque Final</p>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
-                      <span className="text-[#A1A1AA]">Estoque Inicial</span>
-                      <span className="text-white font-medium">{formatCurrency(estoqueInicial)}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
-                      <span className="text-[#A1A1AA] flex items-center gap-2">
-                        <Plus className="w-4 h-4 text-green-400" />
-                        Compras do Período
-                      </span>
-                      <span className="text-green-400 font-medium">
-                        {formatCurrency(dados?.icms?.entradas?.total_produtos || dados?.pis_cofins?.compras?.total || 0)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
-                      <span className="text-[#A1A1AA] flex items-center gap-2">
-                        <Minus className="w-4 h-4 text-red-400" />
-                        Estoque Final
-                      </span>
-                      <span className="text-red-400 font-medium">{formatCurrency(estoqueFinal)}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-3 bg-[#C8A951]/10 rounded-lg px-3">
-                      <span className="text-[#C8A951] font-semibold">= CMV/CPV</span>
-                      <span className="text-[#C8A951] font-bold text-xl">{formatCurrency(calcularCMV())}</span>
+                  {/* Cálculo do CMV */}
+                  <div className="bg-[#0C0C0C] rounded-lg p-4">
+                    <p className="text-[#A1A1AA] text-sm mb-3 font-mono">CMV = Estoque Inicial + Compras - Estoque Final</p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                        <span className="text-[#A1A1AA]">Estoque Inicial</span>
+                        <span className="text-white font-medium">{formatCurrency(estoqueInicial)}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                        <span className="text-[#A1A1AA] flex items-center gap-2">
+                          <Plus className="w-4 h-4 text-green-400" /> Compras do Período
+                        </span>
+                        <span className="text-green-400 font-medium">{formatCurrency(dados?.icms?.entradas?.totais?.valor_total || 0)}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                        <span className="text-[#A1A1AA] flex items-center gap-2">
+                          <Minus className="w-4 h-4 text-red-400" /> Estoque Final
+                        </span>
+                        <span className="text-red-400 font-medium">{formatCurrency(estoqueFinal)}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-3 bg-[#C8A951]/10 rounded-lg px-3 mt-2">
+                        <span className="text-[#C8A951] font-semibold">= CMV/CPV</span>
+                        <span className="text-[#C8A951] font-bold text-xl">{formatCurrency(calcularCMV())}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Lucro Bruto */}
-                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
+                {/* Ponto de Equilíbrio */}
+                <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-xl p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <TrendingUp className="w-6 h-6 text-green-400" />
-                    <h3 className="text-lg font-semibold text-white">Lucro Bruto</h3>
+                    <Scale className="w-6 h-6 text-blue-400" />
+                    <h3 className="text-lg font-semibold text-white">Ponto de Equilíbrio</h3>
                   </div>
+                  <p className="text-[#A1A1AA] text-sm mb-4">
+                    Valor de despesa necessário para zerar o lucro tributável.
+                  </p>
                   
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
-                      <span className="text-[#A1A1AA]">Receita Total</span>
-                      <span className="text-green-400 font-medium">{formatCurrency(calcularReceitas().total)}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <h4 className="text-white font-medium mb-3">Demonstrativo</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">Receita Total</span>
+                          <span className="text-white font-medium">{formatCurrency(receitas.total)}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">(-) CMV/CPV</span>
+                          <span className="text-red-400 font-medium">{formatCurrency(calcularCMV())}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 bg-[#C8A951]/10 rounded-lg px-3">
+                          <span className="text-[#C8A951] font-medium">= Lucro Bruto</span>
+                          <span className="text-[#C8A951] font-bold">{formatCurrency(pontoEquilibrio.lucro_bruto)}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
-                      <span className="text-[#A1A1AA] flex items-center gap-2">
-                        <Minus className="w-4 h-4 text-red-400" />
-                        CMV/CPV
-                      </span>
-                      <span className="text-red-400 font-medium">{formatCurrency(calcularCMV())}</span>
+
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Target className="w-5 h-5 text-amber-400" />
+                          <span className="text-amber-400 font-medium">Despesas para Equilibrar</span>
+                        </div>
+                        <p className="text-2xl font-bold text-amber-400">{formatCurrency(pontoEquilibrio.despesas_para_equilibrio)}</p>
+                        <p className="text-xs text-[#A1A1AA] mt-1">Valor para zerar o lucro tributável</p>
+                      </div>
+                      
+                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <PiggyBank className="w-5 h-5 text-green-400" />
+                          <span className="text-green-400 font-medium">Economia em IRPJ+CSLL</span>
+                        </div>
+                        <p className="text-2xl font-bold text-green-400">{formatCurrency(pontoEquilibrio.economia_potencial)}</p>
+                        <p className="text-xs text-[#A1A1AA] mt-1">(IRPJ 25% + CSLL 9% = 34%)</p>
+                      </div>
                     </div>
-                    <div className={`flex justify-between items-center py-3 rounded-lg px-3 ${calcularLucroBruto() >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                      <span className={`font-semibold ${calcularLucroBruto() >= 0 ? 'text-green-400' : 'text-red-400'}`}>= Lucro Bruto</span>
-                      <span className={`font-bold text-xl ${calcularLucroBruto() >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {formatCurrency(calcularLucroBruto())}
-                      </span>
+                  </div>
+                </div>
+
+                {/* DRE Flutuante */}
+                <div className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 border border-purple-500/30 rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Edit3 className="w-6 h-6 text-purple-400" />
+                    <h3 className="text-lg font-semibold text-white">DRE Flutuante</h3>
+                    <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded">Interativo</span>
+                  </div>
+                  <p className="text-[#A1A1AA] text-sm mb-4">
+                    Informe o valor da sua despesa real para calcular o lucro contábil. Este valor será usado no comparativo de regimes (RET).
+                  </p>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Lado Esquerdo - Input */}
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <h4 className="text-white font-medium mb-4 flex items-center gap-2">
+                        <Calculator className="w-4 h-4 text-purple-400" />
+                        Informe sua Despesa Real
+                      </h4>
+                      <div className="mb-4">
+                        <label className="block text-xs text-[#A1A1AA] mb-2">Despesa Operacional Real (R$)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={despesaReal}
+                          onChange={(e) => setDespesaReal(parseFloat(e.target.value) || 0)}
+                          className="w-full px-4 py-3 bg-[#141414] border border-purple-500/30 rounded-lg text-white text-lg font-bold focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                          placeholder="0,00"
+                        />
+                      </div>
+                      <button
+                        onClick={salvarDados}
+                        disabled={savingEstoque}
+                        className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg transition-colors font-medium disabled:opacity-50"
+                      >
+                        <Save className="w-4 h-4" />
+                        {savingEstoque ? 'Salvando...' : 'Salvar Despesa'}
+                      </button>
+                      
+                      <div className="mt-4 p-3 bg-[#141414] rounded-lg">
+                        <p className="text-xs text-[#A1A1AA] mb-2">Sugestão (Ponto de Equilíbrio):</p>
+                        <p className="text-lg font-bold text-amber-400">{formatCurrency(pontoEquilibrio.despesas_para_equilibrio)}</p>
+                      </div>
+                    </div>
+
+                    {/* Lado Direito - DRE Calculado */}
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <h4 className="text-white font-medium mb-4">DRE Simplificado</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">Receita Bruta</span>
+                          <span className="text-green-400 font-medium">{formatCurrency(receitas.total)}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A] pl-4">
+                          <span className="text-[#666] text-sm">└ Vendas</span>
+                          <span className="text-[#A1A1AA]">{formatCurrency(receitas.comercio)}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A] pl-4">
+                          <span className="text-[#666] text-sm">└ Serviços</span>
+                          <span className="text-[#A1A1AA]">{formatCurrency(receitas.servicos)}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">(-) CMV/CPV</span>
+                          <span className="text-red-400 font-medium">{formatCurrency(calcularCMV())}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                          <span className="text-[#C8A951]">= Lucro Bruto</span>
+                          <span className="text-[#C8A951] font-bold">{formatCurrency(calcularLucroBruto())}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">(-) Despesa Real</span>
+                          <span className="text-purple-400 font-bold">{formatCurrency(despesaReal)}</span>
+                        </div>
+                        <div className={`flex justify-between items-center py-3 rounded-lg px-3 mt-2 ${lucroContabil >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                          <span className={`font-semibold ${lucroContabil >= 0 ? 'text-green-400' : 'text-red-400'}`}>= LUCRO CONTÁBIL</span>
+                          <span className={`font-bold text-xl ${lucroContabil >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {formatCurrency(lucroContabil)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                        <p className="text-xs text-[#A1A1AA]">
+                          <strong className="text-purple-400">Este lucro contábil</strong> será usado para calcular o IRPJ e CSLL 
+                          no comparativo de regimes tributários (RET).
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Tab Indicadores */}
+            {/* Tab Indicadores (Margens e Markup) */}
             {activeTab === 'indicadores' && (
               <div className="space-y-6">
-                {/* Cards de Indicadores Principais */}
+                {/* Cards de Indicadores */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Margem de Contribuição */}
                   <div className="bg-gradient-to-br from-green-900/30 to-green-950/30 border border-green-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-2 mb-2">
                       <TrendingUp className="w-5 h-5 text-green-400" />
                       <span className="text-[#A1A1AA] text-sm">Margem de Contribuição</span>
                     </div>
-                    <p className="text-2xl font-bold text-green-400">{formatCurrency(calcularMargemContribuicao().absoluta)}</p>
-                    <p className="text-sm text-green-300/70 mt-1">{calcularMargemContribuicao().percentual.toFixed(2)}% sobre receita</p>
+                    <p className="text-2xl font-bold text-green-400">{formatCurrency(indicadores.margem.absoluta)}</p>
+                    <p className="text-sm text-green-300/70 mt-1">{formatPercentual(indicadores.margem.percentual)} sobre receita</p>
                   </div>
                   
-                  {/* Markup */}
                   <div className="bg-gradient-to-br from-purple-900/30 to-purple-950/30 border border-purple-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-2 mb-2">
                       <Percent className="w-5 h-5 text-purple-400" />
                       <span className="text-[#A1A1AA] text-sm">Markup</span>
                     </div>
-                    <p className="text-2xl font-bold text-purple-400">{calcularMarkup().toFixed(2)}%</p>
+                    <p className="text-2xl font-bold text-purple-400">{formatPercentual(indicadores.markup)}</p>
                     <p className="text-sm text-purple-300/70 mt-1">Sobre o custo</p>
                   </div>
 
-                  {/* Total de Vendas */}
                   <div className="bg-gradient-to-br from-blue-900/30 to-blue-950/30 border border-blue-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-2 mb-2">
                       <DollarSign className="w-5 h-5 text-blue-400" />
-                      <span className="text-[#A1A1AA] text-sm">Total de Vendas</span>
+                      <span className="text-[#A1A1AA] text-sm">Total Saídas</span>
                     </div>
-                    <p className="text-2xl font-bold text-blue-400">{formatCurrency(calcularReceitas().total)}</p>
-                    <p className="text-sm text-blue-300/70 mt-1">Receita bruta do período</p>
+                    <p className="text-2xl font-bold text-blue-400">{formatCurrency(receitas.total)}</p>
+                    <p className="text-sm text-blue-300/70 mt-1">Receita bruta</p>
                   </div>
 
-                  {/* Total de Entradas */}
                   <div className="bg-gradient-to-br from-amber-900/30 to-amber-950/30 border border-amber-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-2 mb-2">
                       <Package className="w-5 h-5 text-amber-400" />
-                      <span className="text-[#A1A1AA] text-sm">Total de Entradas</span>
+                      <span className="text-[#A1A1AA] text-sm">Total Entradas</span>
                     </div>
-                    <p className="text-2xl font-bold text-amber-400">{formatCurrency(calcularEntradasPorTipo().total)}</p>
-                    <p className="text-sm text-amber-300/70 mt-1">Insumo + Revenda + Despesa</p>
+                    <p className="text-2xl font-bold text-amber-400">{formatCurrency(indicadores.entradas.total)}</p>
+                    <p className="text-sm text-amber-300/70 mt-1">Compras do período</p>
                   </div>
                 </div>
 
@@ -830,281 +875,19 @@ const Indicadores = ({ user, onLogout }) => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-[#0C0C0C] rounded-lg p-4">
                       <span className="text-xs text-[#A1A1AA]">Revenda</span>
-                      <p className="text-xl font-bold text-blue-400 mt-1">{formatCurrency(calcularEntradasPorTipo().revenda)}</p>
+                      <p className="text-xl font-bold text-blue-400 mt-1">{formatCurrency(indicadores.entradas.revenda)}</p>
                     </div>
                     <div className="bg-[#0C0C0C] rounded-lg p-4">
                       <span className="text-xs text-[#A1A1AA]">Insumo</span>
-                      <p className="text-xl font-bold text-green-400 mt-1">{formatCurrency(calcularEntradasPorTipo().insumo)}</p>
+                      <p className="text-xl font-bold text-green-400 mt-1">{formatCurrency(indicadores.entradas.insumo)}</p>
                     </div>
                     <div className="bg-[#0C0C0C] rounded-lg p-4">
                       <span className="text-xs text-[#A1A1AA]">Despesa</span>
-                      <p className="text-xl font-bold text-red-400 mt-1">{formatCurrency(calcularEntradasPorTipo().despesa)}</p>
+                      <p className="text-xl font-bold text-red-400 mt-1">{formatCurrency(indicadores.entradas.despesa)}</p>
                     </div>
                     <div className="bg-[#0C0C0C] rounded-lg p-4">
                       <span className="text-xs text-[#A1A1AA]">Ativo Imob.</span>
-                      <p className="text-xl font-bold text-purple-400 mt-1">{formatCurrency(calcularEntradasPorTipo().ativo)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Percentuais de Impostos */}
-                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Percent className="w-6 h-6 text-red-400" />
-                    <h3 className="text-lg font-semibold text-white">Percentual de Impostos sobre Faturamento</h3>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
-                      <span className="text-xs text-[#A1A1AA]">ICMS</span>
-                      <p className="text-xl font-bold text-blue-400 mt-1">{calcularPercentuaisImpostos().icms_sobre_total.toFixed(2)}%</p>
-                    </div>
-                    <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
-                      <span className="text-xs text-[#A1A1AA]">PIS</span>
-                      <p className="text-xl font-bold text-green-400 mt-1">{calcularPercentuaisImpostos().pis_sobre_total.toFixed(2)}%</p>
-                    </div>
-                    <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
-                      <span className="text-xs text-[#A1A1AA]">COFINS</span>
-                      <p className="text-xl font-bold text-emerald-400 mt-1">{calcularPercentuaisImpostos().cofins_sobre_total.toFixed(2)}%</p>
-                    </div>
-                    <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
-                      <span className="text-xs text-[#A1A1AA]">ISS</span>
-                      <p className="text-xl font-bold text-purple-400 mt-1">{calcularPercentuaisImpostos().iss_sobre_total.toFixed(2)}%</p>
-                    </div>
-                    <div className="bg-gradient-to-r from-[#C8A951]/20 to-[#C8A951]/10 rounded-lg p-4 text-center border border-[#C8A951]/30">
-                      <span className="text-xs text-[#A1A1AA]">Total Impostos</span>
-                      <p className="text-xl font-bold text-[#C8A951] mt-1">{calcularPercentuaisImpostos().total_impostos_sobre_total.toFixed(2)}%</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* DRE Simplificado */}
-                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <BarChart3 className="w-6 h-6 text-[#C8A951]" />
-                    <h3 className="text-lg font-semibold text-white">DRE Simplificado</h3>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-3 border-b border-[#2A2A2A]">
-                      <span className="text-white font-medium">Receita Bruta (Vendas + Serviços)</span>
-                      <span className="text-green-400 font-bold text-lg">{formatCurrency(calcularReceitas().total)}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-3 border-b border-[#2A2A2A] pl-4">
-                      <span className="text-[#A1A1AA]">└ Vendas de Mercadorias</span>
-                      <span className="text-white">{formatCurrency(calcularReceitas().comercio)}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-3 border-b border-[#2A2A2A] pl-4">
-                      <span className="text-[#A1A1AA]">└ Prestação de Serviços</span>
-                      <span className="text-white">{formatCurrency(calcularReceitas().servicos)}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-3 border-b border-[#2A2A2A]">
-                      <span className="text-white font-medium flex items-center gap-2">
-                        <Minus className="w-4 h-4 text-red-400" />
-                        CMV/CPV
-                      </span>
-                      <span className="text-red-400 font-bold text-lg">{formatCurrency(calcularCMV())}</span>
-                    </div>
-                    <div className={`flex justify-between items-center py-4 rounded-lg px-3 ${calcularLucroBruto() >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                      <span className={`font-semibold ${calcularLucroBruto() >= 0 ? 'text-green-400' : 'text-red-400'}`}>= Lucro Bruto</span>
-                      <span className={`font-bold text-xl ${calcularLucroBruto() >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {formatCurrency(calcularLucroBruto())}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab Ponto de Equilíbrio */}
-            {activeTab === 'equilibrio' && (
-              <div className="space-y-6">
-                <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-xl p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Scale className="w-6 h-6 text-blue-400" />
-                    <h3 className="text-lg font-semibold text-white">Ponto de Equilíbrio - Lucro Real</h3>
-                  </div>
-                  <p className="text-[#A1A1AA] text-sm mb-4">
-                    Para empresas do <span className="text-blue-400 font-medium">Lucro Real</span>, quanto menor o lucro tributável, menor o imposto. 
-                    Esta análise mostra quanto de despesa você precisaria ter para zerar o lucro e a economia potencial.
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Demonstrativo */}
-                    <div className="bg-[#0C0C0C] rounded-lg p-4">
-                      <h4 className="text-white font-medium mb-3">Demonstrativo</h4>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
-                          <span className="text-[#A1A1AA]">Receita Total</span>
-                          <span className="text-white font-medium">{formatCurrency(pontoEquilibrio.receita_total)}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
-                          <span className="text-[#A1A1AA]">(-) CMV/CPV</span>
-                          <span className="text-red-400 font-medium">{formatCurrency(pontoEquilibrio.cmv)}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
-                          <span className="text-[#A1A1AA]">= Lucro Bruto</span>
-                          <span className="text-[#C8A951] font-medium">{formatCurrency(pontoEquilibrio.lucro_bruto)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Análise */}
-                    <div className="bg-[#0C0C0C] rounded-lg p-4">
-                      <h4 className="text-white font-medium mb-3">Análise de Ponto de Equilíbrio</h4>
-                      <div className="space-y-4">
-                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Target className="w-5 h-5 text-amber-400" />
-                            <span className="text-amber-400 font-medium">Despesas para Equilibrar</span>
-                          </div>
-                          <p className="text-2xl font-bold text-amber-400">
-                            {formatCurrency(pontoEquilibrio.despesas_para_equilibrio)}
-                          </p>
-                          <p className="text-xs text-[#A1A1AA] mt-1">
-                            Valor de despesas operacionais necessário para zerar o lucro tributável
-                          </p>
-                        </div>
-                        
-                        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <PiggyBank className="w-5 h-5 text-green-400" />
-                            <span className="text-green-400 font-medium">Economia Potencial em IRPJ+CSLL</span>
-                          </div>
-                          <p className="text-2xl font-bold text-green-400">
-                            {formatCurrency(pontoEquilibrio.economia_potencial)}
-                          </p>
-                          <p className="text-xs text-[#A1A1AA] mt-1">
-                            Economia se conseguir despesas até o ponto de equilíbrio (IRPJ 25% + CSLL 9%)
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 p-4 bg-[#2A2A2A] rounded-lg">
-                    <div className="flex items-start gap-2">
-                      <Lightbulb className="w-5 h-5 text-[#C8A951] mt-0.5" />
-                      <div>
-                        <p className="text-white font-medium">Dica para o empresário</p>
-                        <p className="text-[#A1A1AA] text-sm mt-1">
-                          Considere investimentos, manutenções, treinamentos ou outras despesas operacionais dedutíveis
-                          para aproveitar o lucro bruto sem pagar imposto desnecessário. Consulte seu contador para 
-                          avaliar as melhores opções de despesas dedutíveis.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab Comparativo de Regimes */}
-            {activeTab === 'comparativo' && (
-              <div className="space-y-6">
-                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Calculator className="w-6 h-6 text-[#C8A951]" />
-                    <h3 className="text-lg font-semibold text-white">Simulação Lucro Presumido</h3>
-                  </div>
-                  <p className="text-[#A1A1AA] text-sm mb-4">
-                    Simulação do IRPJ e CSLL caso a empresa fosse do Lucro Presumido, com base nas receitas escrituradas.
-                  </p>
-
-                  {/* Atividade de Comércio */}
-                  {(calcularReceitas().comercio > 0 || selectedCompany?.tipo_atividade === 'comercio' || selectedCompany?.tipo_atividade === 'mista') && (
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                        <h4 className="text-blue-400 font-medium">Atividade de Comércio/Indústria</h4>
-                      </div>
-                      <div className="bg-[#0C0C0C] rounded-lg p-4">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                          <div>
-                            <span className="text-xs text-[#A1A1AA]">Receita</span>
-                            <p className="text-white font-medium">{formatCurrency(lucroPresumido.comercio.receita)}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs text-[#A1A1AA]">Presunção IRPJ</span>
-                            <p className="text-white font-medium">{lucroPresumido.comercio.presuncao_irpj}%</p>
-                          </div>
-                          <div>
-                            <span className="text-xs text-[#A1A1AA]">Presunção CSLL</span>
-                            <p className="text-white font-medium">{lucroPresumido.comercio.presuncao_csll}%</p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-[#2A2A2A]">
-                          <div>
-                            <span className="text-xs text-[#A1A1AA]">IRPJ (15% + adicional)</span>
-                            <p className="text-red-400 font-bold">{formatCurrency(lucroPresumido.comercio.irpj)}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs text-[#A1A1AA]">CSLL (9%)</span>
-                            <p className="text-red-400 font-bold">{formatCurrency(lucroPresumido.comercio.csll)}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs text-[#A1A1AA]">Total Comércio</span>
-                            <p className="text-[#C8A951] font-bold">{formatCurrency(lucroPresumido.comercio.total)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Atividade de Serviços */}
-                  {(calcularReceitas().servicos > 0 || selectedCompany?.tipo_atividade === 'servicos' || selectedCompany?.tipo_atividade === 'mista') && (
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                        <h4 className="text-purple-400 font-medium">Atividade de Serviços</h4>
-                      </div>
-                      <div className="bg-[#0C0C0C] rounded-lg p-4">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                          <div>
-                            <span className="text-xs text-[#A1A1AA]">Receita</span>
-                            <p className="text-white font-medium">{formatCurrency(lucroPresumido.servicos.receita)}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs text-[#A1A1AA]">Presunção IRPJ</span>
-                            <p className="text-white font-medium">{lucroPresumido.servicos.presuncao_irpj}%</p>
-                          </div>
-                          <div>
-                            <span className="text-xs text-[#A1A1AA]">Presunção CSLL</span>
-                            <p className="text-white font-medium">{lucroPresumido.servicos.presuncao_csll}%</p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-[#2A2A2A]">
-                          <div>
-                            <span className="text-xs text-[#A1A1AA]">IRPJ (15% + adicional)</span>
-                            <p className="text-red-400 font-bold">{formatCurrency(lucroPresumido.servicos.irpj)}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs text-[#A1A1AA]">CSLL (9%)</span>
-                            <p className="text-red-400 font-bold">{formatCurrency(lucroPresumido.servicos.csll)}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs text-[#A1A1AA]">Total Serviços</span>
-                            <p className="text-[#C8A951] font-bold">{formatCurrency(lucroPresumido.servicos.total)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Total Consolidado */}
-                  <div className="bg-gradient-to-r from-[#C8A951]/20 to-[#C8A951]/10 border border-[#C8A951]/30 rounded-lg p-4">
-                    <h4 className="text-[#C8A951] font-semibold mb-3">Total Lucro Presumido (IRPJ + CSLL)</h4>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <span className="text-xs text-[#A1A1AA]">IRPJ Total</span>
-                        <p className="text-xl font-bold text-white">{formatCurrency(lucroPresumido.total.irpj)}</p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-[#A1A1AA]">CSLL Total</span>
-                        <p className="text-xl font-bold text-white">{formatCurrency(lucroPresumido.total.csll)}</p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-[#A1A1AA]">Total a Pagar</span>
-                        <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(lucroPresumido.total.total)}</p>
-                      </div>
+                      <p className="text-xl font-bold text-purple-400 mt-1">{formatCurrency(indicadores.entradas.ativo)}</p>
                     </div>
                   </div>
                 </div>
@@ -1150,9 +933,7 @@ const Indicadores = ({ user, onLogout }) => {
                           <h4 className="text-white font-semibold">{oportunidade.titulo || `Oportunidade ${idx + 1}`}</h4>
                           <p className="text-[#A1A1AA] text-sm mt-1">{oportunidade.descricao}</p>
                           {oportunidade.economia_potencial && (
-                            <p className="text-green-400 font-bold mt-2">
-                              Economia potencial: {formatCurrency(oportunidade.economia_potencial)}
-                            </p>
+                            <p className="text-green-400 font-bold mt-2">Economia potencial: {formatCurrency(oportunidade.economia_potencial)}</p>
                           )}
                         </div>
                       </div>
