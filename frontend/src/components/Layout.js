@@ -53,8 +53,7 @@ const Layout = ({ user, onLogout, children }) => {
     const baseNav = [
       { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
       { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
-      { name: 'Alertas', href: '/alertas-cfop', icon: AlertTriangle, testId: 'nav-alertas-cfop' },
-      { name: 'Validação IA', href: '/classificacao', icon: Brain, testId: 'nav-classificacao' },
+      { name: 'Classificação Inteligente', href: '/classificacao-inteligente', icon: Brain, testId: 'nav-classificacao-inteligente' },
     ];
     
     // Se não tem empresa selecionada, mostra todos os menus
