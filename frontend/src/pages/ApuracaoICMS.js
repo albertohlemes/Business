@@ -398,6 +398,49 @@ const ApuracaoICMS = ({ user, onLogout }) => {
           </div>
         )}
 
+        {/* Card de Resumo - Valores Desconsiderados */}
+        {selectedCompany && dados && (dados.desconsiderados?.despesas?.valor_icms > 0 || dados.desconsiderados?.st?.valor_icms > 0) && (
+          <div className="bg-gradient-to-r from-red-900/20 to-orange-900/20 border border-red-500/30 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-lg">⚠️</span>
+              <span className="text-white font-medium">Valores Desconsiderados na Apuração</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {dados.desconsiderados?.despesas?.valor_icms > 0 && (
+                <div className="bg-red-500/10 rounded-lg p-3 border border-red-500/20">
+                  <span className="text-xs text-red-400 block mb-1">ICMS Despesas (Zerado)</span>
+                  <span className="text-lg font-bold text-red-400 line-through">
+                    {formatCurrency(dados.desconsiderados.despesas.valor_icms)}
+                  </span>
+                  <span className="text-xs text-[#A1A1AA] block mt-1">
+                    {dados.desconsiderados.despesas.qtd_itens} itens afetados
+                  </span>
+                </div>
+              )}
+              {dados.desconsiderados?.st?.valor_icms > 0 && (
+                <div className="bg-orange-500/10 rounded-lg p-3 border border-orange-500/20">
+                  <span className="text-xs text-orange-400 block mb-1">ICMS ST (Zerado)</span>
+                  <span className="text-lg font-bold text-orange-400 line-through">
+                    {formatCurrency(dados.desconsiderados.st.valor_icms)}
+                  </span>
+                  <span className="text-xs text-[#A1A1AA] block mt-1">
+                    {dados.desconsiderados.st.qtd_itens} itens afetados
+                  </span>
+                </div>
+              )}
+              <div className="bg-[#141414] rounded-lg p-3 border border-[#2A2A2A]">
+                <span className="text-xs text-[#A1A1AA] block mb-1">Total ICMS Desconsiderado</span>
+                <span className="text-lg font-bold text-white">
+                  {formatCurrency(dados.desconsiderados?.total_icms_desconsiderado || 0)}
+                </span>
+                <span className="text-xs text-green-400 block mt-1">
+                  ↓ Reduzindo seu crédito
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tabs ICMS / ICMS ST */}
         {selectedCompany && dados && (
           <div className="flex gap-2 mb-6 border-b border-[#2A2A2A] pb-3">
