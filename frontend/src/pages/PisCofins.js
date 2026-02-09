@@ -680,28 +680,37 @@ const PisCofins = ({ user, onLogout }) => {
             <div className="p-4 space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-[#A1A1AA]">(-) Créditos</span>
-                <span className="text-green-400 font-semibold">{formatCurrency(lucro_real.creditos.total)}</span>
+                <span className="text-green-400 font-semibold">{formatCurrency(lucro_real?.creditos?.total)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-[#A1A1AA]">(+) Débitos Comércio</span>
-                <span className="text-red-400 font-semibold">{formatCurrency(lucro_real.debitos_comercio.total)}</span>
+                <span className="text-red-400 font-semibold">{formatCurrency(lucro_real?.debitos_comercio?.total || (lucro_real?.debitos_comercio?.pis + lucro_real?.debitos_comercio?.cofins))}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-[#A1A1AA]">(+) Débitos Serviços</span>
-                <span className="text-red-400 font-semibold">{formatCurrency(lucro_real.debitos_servicos.total)}</span>
+                <span className="text-red-400 font-semibold">{formatCurrency(lucro_real?.debitos_servicos?.total)}</span>
+              </div>
+              <div className="flex justify-between items-center bg-[#1A1A1A] rounded p-2">
+                <span className="text-[#666]">(=) Débitos Total</span>
+                <span className="text-white font-medium">{formatCurrency(lucro_real?.debitos_total?.total)}</span>
               </div>
               <div className="border-t border-[#2A2A2A] pt-4">
                 <div className="flex justify-between items-center">
                   <span className="text-white font-bold">(=) Imposto a Pagar</span>
-                  <span className="text-[#C8A951] font-bold text-xl">{formatCurrency(lucro_real.imposto_a_pagar.total)}</span>
+                  <span className="text-[#C8A951] font-bold text-xl">{formatCurrency(lucro_real?.imposto_a_pagar?.total)}</span>
                 </div>
+                {lucro_real?.imposto_a_pagar?.total === 0 && lucro_real?.creditos?.total > 0 && (
+                  <p className="text-xs text-green-400 mt-1">
+                    * Crédito acumulado: empresa possui mais créditos que débitos
+                  </p>
+                )}
                 <div className="flex justify-between text-sm mt-2">
                   <span className="text-[#666]">PIS</span>
-                  <span className="text-[#A1A1AA]">{formatCurrency(lucro_real.imposto_a_pagar.pis)}</span>
+                  <span className="text-[#A1A1AA]">{formatCurrency(lucro_real?.imposto_a_pagar?.pis)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-[#666]">COFINS</span>
-                  <span className="text-[#A1A1AA]">{formatCurrency(lucro_real.imposto_a_pagar.cofins)}</span>
+                  <span className="text-[#A1A1AA]">{formatCurrency(lucro_real?.imposto_a_pagar?.cofins)}</span>
                 </div>
               </div>
             </div>
