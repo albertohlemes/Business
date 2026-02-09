@@ -123,7 +123,7 @@ def converter_valor_br(valor_str: str) -> float:
         # Remove pontos de milhar e troca vírgula por ponto
         valor_str = valor_str.replace('.', '').replace(',', '.')
         return float(valor_str)
-    except:
+    except (ValueError, AttributeError):
         return 0.0
 
 
