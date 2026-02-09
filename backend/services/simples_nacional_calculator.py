@@ -473,7 +473,7 @@ def gerar_alerta_projecao(projecao_anual: float, meses_decorridos: int) -> str:
     """
     Gera mensagem de alerta baseada na projeção.
     """
-    meses_restantes = 12 - meses_decorridos
+    _ = meses_decorridos  # Pode ser usado futuramente para alertas mais detalhados
     
     if projecao_anual > LIMITE_SIMPLES:
         return f"⚠️ ATENÇÃO: Projeção anual de R$ {projecao_anual:,.2f} excede o limite do Simples (R$ 4,8M). Se continuar nesse ritmo, será excluído do regime."
@@ -486,3 +486,4 @@ def gerar_alerta_projecao(projecao_anual: float, meses_decorridos: int) -> str:
         return f"✅ Situação tranquila! Margem de R$ {margem:,.2f} até o sublimite. Há espaço para crescer."
     else:
         return f"👍 Projeção anual de R$ {projecao_anual:,.2f} está dentro dos limites. Continue monitorando."
+
