@@ -25,10 +25,10 @@ const CATEGORIAS = {
     icon: ArrowDownCircle,
     color: 'emerald',
     tipos: [
-      { id: 'nfe', label: 'NF-e', icon: FileText, modelo: '55', importType: 'xml', accept: '.xml' },
-      { id: 'servicos_tomados', label: 'Serviços Tomados', icon: Building2, modelo: 'nfse_tomado', importType: 'both', accept: '.xml,.pdf,.png,.jpg,.jpeg' },
-      { id: 'cte', label: 'CT-e', icon: Truck, modelo: '57', importType: 'xml', accept: '.xml' },
-      { id: 'outros', label: 'Demais Documentos', icon: Zap, modelo: 'outros', hint: 'Energia, Internet, etc.', importType: 'ai', accept: '.pdf,.png,.jpg,.jpeg' }
+      { id: 'nfe', label: 'NF-e', icon: FileText, modelo: '55', importType: 'xml', accept: '.xml', atividades: ['comercio', 'industria', 'mista'] },
+      { id: 'servicos_tomados', label: 'Serviços Tomados', icon: Building2, modelo: 'nfse_tomado', importType: 'both', accept: '.xml,.pdf,.png,.jpg,.jpeg', atividades: ['comercio', 'industria', 'servicos', 'mista'] },
+      { id: 'cte', label: 'CT-e', icon: Truck, modelo: '57', importType: 'xml', accept: '.xml', atividades: ['comercio', 'industria', 'mista', 'transporte'] },
+      { id: 'outros', label: 'Demais Documentos', icon: Zap, modelo: 'outros', hint: 'Energia, Internet, etc.', importType: 'ai', accept: '.pdf,.png,.jpg,.jpeg', atividades: ['comercio', 'industria', 'servicos', 'mista', 'transporte'] }
     ]
   },
   saida: {
@@ -36,10 +36,10 @@ const CATEGORIAS = {
     icon: ArrowUpCircle,
     color: 'blue',
     tipos: [
-      { id: 'nfe', label: 'NF-e', icon: FileText, modelo: '55', importType: 'xml', accept: '.xml' },
-      { id: 'nfce', label: 'NFC-e', icon: FileText, modelo: '65', importType: 'xml', accept: '.xml' },
-      { id: 'cte', label: 'CT-e', icon: Truck, modelo: '57', importType: 'xml', accept: '.xml' },
-      { id: 'servicos_prestados', label: 'Serviços Prestados', icon: Building2, modelo: 'nfse_prestado', importType: 'both', accept: '.xml,.pdf,.png,.jpg,.jpeg' }
+      { id: 'nfe', label: 'NF-e', icon: FileText, modelo: '55', importType: 'xml', accept: '.xml', atividades: ['comercio', 'industria', 'mista'] },
+      { id: 'nfce', label: 'NFC-e', icon: FileText, modelo: '65', importType: 'xml', accept: '.xml', atividades: ['comercio', 'mista'] },
+      { id: 'cte', label: 'CT-e', icon: Truck, modelo: '57', importType: 'xml', accept: '.xml', atividades: ['transporte'] },
+      { id: 'servicos_prestados', label: 'Serviços Prestados', icon: Building2, modelo: 'nfse_prestado', importType: 'both', accept: '.xml,.pdf,.png,.jpg,.jpeg', atividades: ['servicos', 'mista'] }
     ]
   }
 };
