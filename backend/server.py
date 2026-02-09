@@ -15240,8 +15240,7 @@ async def inteligencia_tributaria(
     # ICMS - valor real apurado
     icms_real_a_pagar = 0
     try:
-        # Buscar apuração ICMS existente
-        icms_apuracao = await calcular_apuracao_icms_interno(company_id, competencia if tipo == "periodo" else None, ano if tipo != "periodo" else None)
+        icms_apuracao = await get_icms_apuracao_rapida(company_id, competencia if tipo == "periodo" else None)
         if icms_apuracao and icms_apuracao.get('apuracao'):
             ap = icms_apuracao['apuracao']
             if ap.get('situacao') == 'A_PAGAR':
@@ -15253,8 +15252,7 @@ async def inteligencia_tributaria(
     pis_real_a_pagar = 0
     cofins_real_a_pagar = 0
     try:
-        # Buscar apuração PIS/COFINS existente
-        pis_cofins_apuracao = await get_pis_cofins_apuracao_data(company_id, competencia if tipo == "periodo" else f"01/{ano}", company)
+        pis_cofins_apuracao = await get_pis_cofins_apuracao_rapida(company_id, competencia if tipo == "periodo" else f"01/{ano}", company)
         if pis_cofins_apuracao:
             lr = pis_cofins_apuracao.get('lucro_real', {})
             pis_real_a_pagar = float(lr.get('imposto_a_pagar', {}).get('pis', 0) or 0)
