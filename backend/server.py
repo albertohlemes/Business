@@ -13699,10 +13699,14 @@ async def apuracao_movimento(
                 totais = totais_saidas
             
             if cfop not in agrupamento:
+                # Obter descrição do CFOP a partir da constante existente ou descrição genérica
+                cfop_info = CFOPS_SEM_DEBITO_SAIDA.get(cfop, {})
+                descricao_cfop = cfop_info.get('motivo', obter_descricao_cfop_generica(cfop))
+                
                 agrupamento[cfop] = {
                     "cfop": cfop,
-                    "descricao": CFOPS.get(cfop, {}).get("descricao", "Sem descrição"),
-                    "natureza": CFOPS.get(cfop, {}).get("natureza", "N/D"),
+                    "descricao": descricao_cfop,
+                    "natureza": obter_natureza_cfop(cfop),
                     "qtd_docs": set(),
                     "qtd_produtos": 0,
                     "valor_total": 0,
