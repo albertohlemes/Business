@@ -486,6 +486,39 @@ def is_ncm_aliquota_zero(ncm: str) -> bool:
         
     return False
 
+
+def is_ncm_monofasico(ncm: str) -> bool:
+    """
+    Verifica se NCM é de produto monofásico (tributação concentrada).
+    Monofásicos são produtos onde PIS/COFINS é recolhido na fonte (fabricante/importador).
+    Inclui: Combustíveis, medicamentos, cosméticos, bebidas frias, veículos, etc.
+    """
+    if not ncm:
+        return False
+    ncm_str = str(ncm).replace('.', '').strip()
+    
+    # Verificar prefixo de 4 dígitos nos monofásicos
+    if len(ncm_str) >= 4 and ncm_str[:4] in NCMS_MONOFASICOS:
+        return True
+    
+    return False
+
+
+def is_ncm_cesta_basica(ncm: str) -> bool:
+    """
+    Verifica se NCM é de produto da cesta básica (alíquota zero por lei específica).
+    """
+    if not ncm:
+        return False
+    ncm_str = str(ncm).replace('.', '').strip()
+    
+    # Verificar prefixo de 4 dígitos nos produtos de alíquota zero específica
+    if len(ncm_str) >= 4 and ncm_str[:4] in NCMS_ALIQUOTA_ZERO_ESPECIFICOS:
+        return True
+    
+    return False
+
+
 # CFOPs de ENTRADA que NÃO têm incidência de PIS/COFINS (CST 98)
 CFOPS_ENTRADA_SEM_INCIDENCIA = [
     # Devoluções de venda (não geram crédito pois são anulação de receita)
