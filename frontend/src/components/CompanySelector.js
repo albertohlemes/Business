@@ -161,22 +161,27 @@ const CompanySelector = () => {
               </div>
             ) : (
               <>
-                {/* Search */}
-                {companies.length > 5 && (
-                  <div className="relative mb-2">
-                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#A1A1AA]" />
-                    <input
-                      type="text"
-                      placeholder="Buscar empresa..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white text-sm placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
-                    />
-                  </div>
-                )}
+                {/* Search - Sempre visível */}
+                <div className="relative mb-3">
+                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#A1A1AA]" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por nome, CNPJ ou código..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white text-sm placeholder:text-[#666] focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951] focus:outline-none"
+                    autoFocus
+                  />
+                </div>
                 
-                <div className="space-y-1 max-h-48 overflow-y-auto">
-                  {filteredCompanies.map((company) => (
+                {/* Lista de Empresas - Linha única, ordenada por código */}
+                <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                  {filteredCompanies.length === 0 ? (
+                    <div className="text-center py-6 text-[#A1A1AA] text-sm">
+                      Nenhuma empresa encontrada para "{searchTerm}"
+                    </div>
+                  ) : (
+                    filteredCompanies.map((company) => (
                     <button
                       key={company.id}
                       onClick={() => setTempCompany(company)}
