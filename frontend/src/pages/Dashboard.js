@@ -303,89 +303,135 @@ const Dashboard = ({ user, onLogout }) => {
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Card de Entradas */}
-                <div className="bg-[#141414] rounded-lg p-5 border border-blue-500/30">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
-                      <ArrowDownCircle className="w-5 h-5 text-white" />
+                <div className="space-y-4">
+                  <div className="bg-[#141414] rounded-lg p-5 border border-blue-500/30">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
+                        <ArrowDownCircle className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold">Total Entradas</h3>
+                        <p className="text-blue-400 text-xl font-bold">{formatCurrency(stats.valores.entradas?.total || stats.valores.total_entradas)}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-white font-semibold">Total Entradas</h3>
-                      <p className="text-blue-400 text-xl font-bold">{formatCurrency(stats.valores.entradas?.total || stats.valores.total_entradas)}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
-                      <span className="text-[#A1A1AA]">NF-e (Mercadorias)</span>
-                      <span className="text-white font-medium">{formatCurrency(stats.valores.entradas?.nfe || stats.valores.total_entradas)}</span>
-                    </div>
-                    {(stats.valores.entradas?.cte > 0 || stats.empresa.tipo_atividade === 'transporte') && (
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
+                        <span className="text-[#A1A1AA]">NF-e (Mercadorias)</span>
+                        <span className="text-white font-medium">{formatCurrency(stats.valores.entradas?.nfe || stats.valores.total_entradas)}</span>
+                      </div>
                       <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
                         <span className="text-[#A1A1AA]">CT-e (Frete Tomado)</span>
                         <span className="text-white font-medium">{formatCurrency(stats.valores.entradas?.cte || 0)}</span>
                       </div>
-                    )}
-                    {(stats.valores.entradas?.servicos_tomados > 0 || ['servicos', 'mista'].includes(stats.empresa.tipo_atividade)) && (
                       <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
                         <span className="text-[#A1A1AA]">NFS-e (Serviços Tomados)</span>
                         <span className="text-white font-medium">{formatCurrency(stats.valores.entradas?.servicos_tomados || 0)}</span>
                       </div>
-                    )}
+                    </div>
+                  </div>
+                  
+                  {/* Indicador COMPRAS */}
+                  <div className="bg-gradient-to-r from-blue-900/30 to-blue-950/30 rounded-lg p-4 border border-blue-500/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-[#A1A1AA] text-sm flex items-center gap-2">
+                          <Calculator className="w-4 h-4" />
+                          COMPRAS (Líquidas)
+                        </h3>
+                        <p className="text-blue-400 text-2xl font-bold">{formatCurrency(stats.valores.compras?.liquidas || 0)}</p>
+                        <p className="text-xs text-[#666] mt-1">Revenda + Insumos − Devoluções</p>
+                      </div>
+                      {stats.valores.compras?.devolucoes > 0 && (
+                        <div className="text-right">
+                          <span className="text-xs text-red-400">Devoluções</span>
+                          <p className="text-sm text-red-400 line-through">{formatCurrency(stats.valores.compras.devolucoes)}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Card de Saídas */}
-                <div className="bg-[#141414] rounded-lg p-5 border border-green-500/30">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-lg bg-green-600 flex items-center justify-center">
-                      <ArrowUpCircle className="w-5 h-5 text-white" />
+                <div className="space-y-4">
+                  <div className="bg-[#141414] rounded-lg p-5 border border-green-500/30">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-lg bg-green-600 flex items-center justify-center">
+                        <ArrowUpCircle className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold">Total Saídas</h3>
+                        <p className="text-green-400 text-xl font-bold">{formatCurrency(stats.valores.saidas?.total || (stats.valores.total_vendas + stats.valores.total_cupons + stats.valores.total_servicos))}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-white font-semibold">Total Saídas</h3>
-                      <p className="text-green-400 text-xl font-bold">{formatCurrency(stats.valores.saidas?.total || (stats.valores.total_vendas + stats.valores.total_cupons + stats.valores.total_servicos))}</p>
+                    <div className="space-y-2 text-sm">
+                      {['comercio', 'industria', 'mista'].includes(stats.empresa.tipo_atividade) && (
+                        <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">NF-e (Vendas)</span>
+                          <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.nfe || stats.valores.total_vendas)}</span>
+                        </div>
+                      )}
+                      {['comercio', 'mista'].includes(stats.empresa.tipo_atividade) && (
+                        <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">NFC-e (Cupons)</span>
+                          <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.nfce || stats.valores.total_cupons)}</span>
+                        </div>
+                      )}
+                      {(stats.valores.saidas?.cte > 0 || stats.empresa.tipo_atividade === 'transporte') && (
+                        <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">CT-e (Frete Prestado)</span>
+                          <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.cte || 0)}</span>
+                        </div>
+                      )}
+                      {['servicos', 'mista'].includes(stats.empresa.tipo_atividade) && (
+                        <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">NFS-e (Serviços Prestados)</span>
+                          <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.servicos_prestados || stats.valores.total_servicos)}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="space-y-2 text-sm">
-                    {['comercio', 'industria', 'mista'].includes(stats.empresa.tipo_atividade) && (
-                      <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
-                        <span className="text-[#A1A1AA]">NF-e (Vendas)</span>
-                        <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.nfe || stats.valores.total_vendas)}</span>
+                  
+                  {/* Indicador VENDAS */}
+                  <div className="bg-gradient-to-r from-green-900/30 to-green-950/30 rounded-lg p-4 border border-green-500/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-[#A1A1AA] text-sm flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4" />
+                          VENDAS (Líquidas)
+                        </h3>
+                        <p className="text-green-400 text-2xl font-bold">{formatCurrency(stats.valores.vendas_liquidas?.liquidas || 0)}</p>
+                        <p className="text-xs text-[#666] mt-1">Vendas − Devoluções de Clientes</p>
                       </div>
-                    )}
-                    {['comercio', 'mista'].includes(stats.empresa.tipo_atividade) && (
-                      <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
-                        <span className="text-[#A1A1AA]">NFC-e (Cupons)</span>
-                        <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.nfce || stats.valores.total_cupons)}</span>
-                      </div>
-                    )}
-                    {(stats.valores.saidas?.cte > 0 || stats.empresa.tipo_atividade === 'transporte') && (
-                      <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
-                        <span className="text-[#A1A1AA]">CT-e (Frete Prestado)</span>
-                        <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.cte || 0)}</span>
-                      </div>
-                    )}
-                    {['servicos', 'mista'].includes(stats.empresa.tipo_atividade) && (
-                      <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
-                        <span className="text-[#A1A1AA]">NFS-e (Serviços Prestados)</span>
-                        <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.servicos_prestados || stats.valores.total_servicos)}</span>
-                      </div>
-                    )}
+                      {stats.valores.vendas_liquidas?.devolucoes > 0 && (
+                        <div className="text-right">
+                          <span className="text-xs text-red-400">Devoluções</span>
+                          <p className="text-sm text-red-400 line-through">{formatCurrency(stats.valores.vendas_liquidas.devolucoes)}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Faturamento Total */}
+              {/* Markup */}
               <div className="mt-4 bg-gradient-to-r from-[#C8A951]/20 to-[#C8A951]/10 rounded-lg p-5 border border-[#C8A951]/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <DollarSign className="w-8 h-8 text-[#C8A951]" />
+                    <Percent className="w-8 h-8 text-[#C8A951]" />
                     <div>
-                      <h3 className="text-[#A1A1AA] text-sm">Faturamento Total</h3>
-                      <p className="text-[#C8A951] text-2xl font-bold">{formatCurrency(stats.valores.faturamento_total)}</p>
+                      <h3 className="text-[#A1A1AA] text-sm">Markup (Vendas / Compras)</h3>
+                      <p className={`text-2xl font-bold ${(stats.valores.markup || 0) >= 0 ? 'text-[#C8A951]' : 'text-red-400'}`}>
+                        {formatPercent(stats.valores.markup || 0)}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-xs text-[#A1A1AA]">Atividade: </span>
-                    <span className="text-sm text-white font-medium capitalize">{stats.empresa.tipo_atividade}</span>
+                  <div className="text-right text-sm">
+                    <div className="text-[#A1A1AA]">
+                      Atividade: <span className="text-white font-medium capitalize">{stats.empresa.tipo_atividade}</span>
+                    </div>
+                    <div className="text-xs text-[#666] mt-1">
+                      ({formatCurrency(stats.valores.vendas_liquidas?.liquidas || 0)} - {formatCurrency(stats.valores.compras?.liquidas || 0)}) / {formatCurrency(stats.valores.compras?.liquidas || 0)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -394,10 +440,6 @@ const Dashboard = ({ user, onLogout }) => {
             {/* Impostos */}
             <div>
               <h2 className="text-lg font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>Impostos</h2>
-              
-              {/* Alerta de divergências para Lucro Real */}
-              {stats.debitos.divergencias && stats.debitos.divergencias.length > 0 && (
-                <div className="mb-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
                     <div>
