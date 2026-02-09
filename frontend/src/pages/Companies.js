@@ -171,6 +171,9 @@ const Companies = ({ user, onLogout }) => {
       ativo_imobilizado: company.ativo_imobilizado || [],
       combustivel: company.combustivel || [],
       anexos_simples: company.anexos_simples || [],
+      anexos_confirmados: company.anexos_confirmados || false,
+      controla_fator_r: company.controla_fator_r || false,
+      folha_pagamento_12m: company.folha_pagamento_12m || 0,
       tipos_servico: company.tipos_servico || [],
       // Flags de contribuinte
       equiparado_industria: company.equiparado_industria || false,
