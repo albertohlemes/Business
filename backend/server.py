@@ -12717,6 +12717,12 @@ async def apurar_icms(
         "saidas": {"valor_total": 0, "bc_icms": 0, "valor_icms": 0, "valor_icms_st": 0, "qtd_docs": 0, "qtd_itens": 0}
     }
     
+    # Totais por DOCUMENTO (critério do Dashboard - para consistência)
+    totais_por_documento = {
+        "entradas": 0,
+        "saidas": 0
+    }
+    
     # Totais desconsiderados (para mostrar no frontend)
     totais_desconsiderados = {
         "despesas": {"bc_icms": 0, "valor_icms": 0, "qtd_itens": 0},
