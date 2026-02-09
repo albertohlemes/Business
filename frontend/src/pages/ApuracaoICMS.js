@@ -273,30 +273,84 @@ const ApuracaoICMS = ({ user, onLogout }) => {
           </div>
         )}
 
-        {/* Flags de Desconsiderar ICMS */}
+        {/* Flags de Desconsiderar ICMS - EDITÁVEL */}
         {selectedCompany && (
-          <div className="bg-[#0C0C0C] border border-amber-500/30 rounded-xl p-4 mb-6">
-            <div className="flex items-center gap-3 mb-3">
-              <ArrowLeftRight className="w-5 h-5 text-amber-400" />
-              <span className="text-white font-medium">Configurações de ICMS</span>
-            </div>
-            <div className="flex flex-wrap gap-4">
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${selectedCompany.desconsiderar_icms_despesas ? 'bg-red-500/20 border border-red-500/50' : 'bg-[#2A2A2A]'}`}>
-                <span className={`w-3 h-3 rounded-full ${selectedCompany.desconsiderar_icms_despesas ? 'bg-red-500' : 'bg-[#666]'}`}></span>
-                <span className={`text-sm ${selectedCompany.desconsiderar_icms_despesas ? 'text-red-400' : 'text-[#A1A1AA]'}`}>
-                  {selectedCompany.desconsiderar_icms_despesas ? '✓ Desconsiderando' : '○'} ICMS CFOPs Despesas
-                </span>
+          <div className={`bg-[#0C0C0C] border rounded-xl p-4 mb-6 ${hasUnsavedChanges() ? 'border-amber-500' : 'border-[#2A2A2A]'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <Settings className="w-5 h-5 text-amber-400" />
+                <span className="text-white font-medium">Configurações de ICMS</span>
+                {hasUnsavedChanges() && (
+                  <span className="text-xs bg-amber-500 text-black px-2 py-0.5 rounded-full font-medium">
+                    Não salvo
+                  </span>
+                )}
               </div>
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${selectedCompany.desconsiderar_icms_st ? 'bg-orange-500/20 border border-orange-500/50' : 'bg-[#2A2A2A]'}`}>
-                <span className={`w-3 h-3 rounded-full ${selectedCompany.desconsiderar_icms_st ? 'bg-orange-500' : 'bg-[#666]'}`}></span>
-                <span className={`text-sm ${selectedCompany.desconsiderar_icms_st ? 'text-orange-400' : 'text-[#A1A1AA]'}`}>
-                  {selectedCompany.desconsiderar_icms_st ? '✓ Desconsiderando' : '○'} ICMS Operações ST
-                </span>
-              </div>
-              <span className="text-xs text-[#666] ml-auto self-center">
-                Configure em Cadastro de Empresas
-              </span>
+              <button
+                onClick={salvarFlags}
+                disabled={savingFlags || !hasUnsavedChanges()}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  hasUnsavedChanges() 
+                    ? 'bg-[#C8A951] hover:bg-[#B8993D] text-black' 
+                    : 'bg-[#2A2A2A] text-[#666] cursor-not-allowed'
+                }`}
+              >
+                {savingFlags ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {savingFlags ? 'Salvando...' : 'Aplicar e Recalcular'}
+              </button>
             </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className={`flex items-start gap-3 p-4 rounded-lg cursor-pointer transition-all ${
+                desconsiderarDespesas 
+                  ? 'bg-red-500/20 border-2 border-red-500' 
+                  : 'bg-[#141414] border-2 border-[#2A2A2A] hover:border-red-500/50'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={desconsiderarDespesas}
+                  onChange={(e) => setDesconsiderarDespesas(e.target.checked)}
+                  className="w-5 h-5 mt-0.5 rounded border-2 border-[#666] bg-[#0C0C0C] text-red-500 focus:ring-red-500 accent-red-500 cursor-pointer"
+                />
+                <div>
+                  <span className={`text-sm font-medium block ${desconsiderarDespesas ? 'text-red-400' : 'text-white'}`}>
+                    Desconsiderar ICMS CFOPs Despesas
+                  </span>
+                  <span className="text-xs text-[#A1A1AA] block mt-1">
+                    Zera base de cálculo e ICMS de todos os CFOPs classificados como despesa (material de uso, consumo, etc.)
+                  </span>
+                </div>
+              </label>
+
+              <label className={`flex items-start gap-3 p-4 rounded-lg cursor-pointer transition-all ${
+                desconsiderarST 
+                  ? 'bg-orange-500/20 border-2 border-orange-500' 
+                  : 'bg-[#141414] border-2 border-[#2A2A2A] hover:border-orange-500/50'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={desconsiderarST}
+                  onChange={(e) => setDesconsiderarST(e.target.checked)}
+                  className="w-5 h-5 mt-0.5 rounded border-2 border-[#666] bg-[#0C0C0C] text-orange-500 focus:ring-orange-500 accent-orange-500 cursor-pointer"
+                />
+                <div>
+                  <span className={`text-sm font-medium block ${desconsiderarST ? 'text-orange-400' : 'text-white'}`}>
+                    Desconsiderar ICMS sobre Operações ST
+                  </span>
+                  <span className="text-xs text-[#A1A1AA] block mt-1">
+                    Zera base de cálculo e ICMS de todos os CFOPs com mercadorias sujeitas à Substituição Tributária
+                  </span>
+                </div>
+              </label>
+            </div>
+            
+            <p className="text-xs text-[#666] mt-3">
+              ⚡ Clique em "Aplicar e Recalcular" para atualizar a apuração, Dashboard e RET automaticamente.
+            </p>
           </div>
         )}
 
