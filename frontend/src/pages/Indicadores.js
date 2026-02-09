@@ -687,9 +687,11 @@ const Indicadores = ({ user, onLogout }) => {
                         icone={FileText}
                         cor="bg-blue-600"
                         valor={percentuais.icms.valor}
+                        saldoCredor={totais.detalhes.icms?.recuperar || 0}
                         percentSaidas={percentuais.icms.sobre_saidas}
                         percentVendas={percentuais.icms.sobre_vendas}
                         visible={isContribuinteICMS()}
+                        showSempre={isContribuinteICMS()}
                       />
                       <ImpostoCard
                         titulo="ICMS ST"
