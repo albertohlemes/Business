@@ -77,6 +77,13 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
   // Estado para edição de produto individual
   const [editingProduct, setEditingProduct] = useState(null);
   const [savingProduct, setSavingProduct] = useState(false);
+  
+  // Estados para Memória IA
+  const [showMemoriaIA, setShowMemoriaIA] = useState(false);
+  const [memoriaData, setMemoriaData] = useState([]);
+  const [memoriaLoading, setMemoriaLoading] = useState(false);
+  const [editingRule, setEditingRule] = useState(null);
+  const [deletingRule, setDeletingRule] = useState(null);
 
   // Carregar dados
   useEffect(() => {
@@ -85,6 +92,69 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
       fetchValidacao();
     }
   }, [selectedCompany, selectedCompetencia]);
+  
+  // Carregar regras de memória IA
+  const fetchMemoriaIA = async () => {
+    if (!selectedCompany) return;
+    
+    setMemoriaLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/learned-rules/${selectedCompany.id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMemoriaData(response.data || []);
+    } catch (err) {
+      console.error('Erro ao carregar memória IA:', err);
+      toast.error('Erro ao carregar regras aprendidas');
+    } finally {
+      setMemoriaLoading(false);
+    }
+  };
+  
+  // Abrir modal de memória IA
+  const openMemoriaIA = () => {
+    setShowMemoriaIA(true);
+    fetchMemoriaIA();
+  };
+  
+  // Excluir regra
+  const deleteRule = async (ruleId) => {
+    setDeletingRule(ruleId);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(
+        `${API}/ai/learned-rules/${ruleId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Regra excluída com sucesso');
+      fetchMemoriaIA();
+    } catch (err) {
+      console.error('Erro ao excluir regra:', err);
+      toast.error('Erro ao excluir regra');
+    } finally {
+      setDeletingRule(null);
+    }
+  };
+  
+  // Atualizar regra
+  const updateRule = async (ruleId, newCategoria, newCfop) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `${API}/ai/learned-rules/${ruleId}?categoria=${newCategoria}${newCfop ? `&cfop=${newCfop}` : ''}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Regra atualizada com sucesso');
+      setEditingRule(null);
+      fetchMemoriaIA();
+    } catch (err) {
+      console.error('Erro ao atualizar regra:', err);
+      toast.error('Erro ao atualizar regra');
+    }
+  };
 
   const fetchAlertas = async () => {
     if (!selectedCompany || !selectedCompetencia) return;
