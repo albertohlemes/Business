@@ -188,17 +188,17 @@ const GlobalUploadProgress = () => {
     );
   }
 
-  // Versão minimizada
+  // Versão minimizada - Mini xícara de café
   if (minimized && isUploading) {
     return (
       <div 
-        className="fixed bottom-4 right-4 z-50 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-full shadow-2xl cursor-pointer hover:scale-105 transition-transform"
+        className="fixed bottom-4 right-4 z-50 bg-[#141414] text-white rounded-full shadow-2xl cursor-pointer hover:scale-105 transition-transform border-2 border-[#C8A951]"
         onClick={toggleMinimize}
       >
         <div className="flex items-center gap-2 px-4 py-3">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          <span className="font-medium">{progress.percent}%</span>
-          <ChevronUp className="w-4 h-4" />
+          <MiniCoffee progress={progress.percent} />
+          <span className="font-bold text-[#C8A951]">{progress.percent}%</span>
+          <ChevronUp className="w-4 h-4 text-[#A1A1AA]" />
         </div>
       </div>
     );
