@@ -9201,9 +9201,30 @@ CFOP_PARA_CATEGORIA = {
     # COMPRAS PARA REVENDA/COMERCIALIZAÇÃO (produto)
     '1102': 'produto', '2102': 'produto',  # Compra para comercialização
     '1403': 'produto', '2403': 'produto',  # Compra em operação de substituição tributária
-    '1910': 'produto', '2910': 'produto',  # Entrada de bonificação
-    '1911': 'produto', '2911': 'produto',  # Entrada de amostra grátis
     '1949': 'produto', '2949': 'produto',  # Outras entradas (geralmente mercadoria)
+    
+    # BONIFICAÇÃO, DOAÇÃO, BRINDE
+    '1910': 'bonificacao', '2910': 'bonificacao',  # Entrada de bonificação, doação ou brinde
+    '1911': 'amostra_gratis', '2911': 'amostra_gratis',  # Entrada de amostra grátis
+    '5910': 'bonificacao', '6910': 'bonificacao',  # Saída de bonificação
+    '5911': 'amostra_gratis', '6911': 'amostra_gratis',  # Saída de amostra grátis
+    
+    # OUTRAS OPERAÇÕES (natureza distinta)
+    '1912': 'conserto_reparo', '2912': 'conserto_reparo',  # Entrada de conserto
+    '1913': 'retorno_demonstracao', '2913': 'retorno_demonstracao',  # Retorno de demonstração
+    '1914': 'retorno_exposicao', '2914': 'retorno_exposicao',  # Retorno de exposição
+    '1915': 'entrada_mercadoria_devolucao', '2915': 'entrada_mercadoria_devolucao',  # Entrada de mercadoria em devolução
+    '1916': 'retorno_industrializacao', '2916': 'retorno_industrializacao',  # Retorno de industrialização
+    '1917': 'compra_industrializacao_futura', '2917': 'compra_industrializacao_futura',  # Compra p/ industrialização futura
+    '1918': 'devol_mercadoria_remetida_industrializacao', '2918': 'devol_mercadoria_remetida_industrializacao',  # Devolução mercadoria remetida p/ industrialização
+    '1919': 'devolucao_simples_remessa', '2919': 'devolucao_simples_remessa',  # Devolução de simples remessa
+    '1920': 'entrada_embalagem', '2920': 'entrada_embalagem',  # Entrada de embalagem/vasilhame
+    '1921': 'entrada_armazem_deposito', '2921': 'entrada_armazem_deposito',  # Entrada de armazém/depósito
+    '1922': 'lancamento_credito_ativo_perm', '2922': 'lancamento_credito_ativo_perm',  # Lançamento de crédito ativo permanente
+    '1923': 'entrada_merc_receb_encomenda', '2923': 'entrada_merc_receb_encomenda',  # Entrada de mercadoria recebida por encomenda
+    '1924': 'entrada_ind_consig_merc', '2924': 'entrada_ind_consig_merc',  # Entrada para industrialização por conta e ordem
+    '1925': 'retorno_merc_remetida_consig', '2925': 'retorno_merc_remetida_consig',  # Retorno de mercadoria remetida para consignação
+    '1926': 'lanc_credito_ciap', '2926': 'lanc_credito_ciap',  # Lançamento de crédito do CIAP
     
     # COMPRAS PARA INDUSTRIALIZAÇÃO (insumo)
     '1101': 'insumo', '2101': 'insumo',    # Compra para industrialização
@@ -9214,24 +9235,24 @@ CFOP_PARA_CATEGORIA = {
     '1121': 'insumo', '2121': 'insumo',    # Compra para industrialização
     '1122': 'insumo', '2122': 'insumo',    # Compra para industrialização
     '1126': 'insumo', '2126': 'insumo',    # Compra para utilização na produção
-    '1201': 'insumo', '2201': 'insumo',    # Devolução de venda (indústria)
+    '1201': 'devolucao', '2201': 'devolucao',    # Devolução de venda
     
     # DESPESAS (uso e consumo)
     '1556': 'despesa', '2556': 'despesa',  # Compra de material para uso/consumo
     '1557': 'despesa', '2557': 'despesa',  # Transferência de uso/consumo
     '1407': 'despesa', '2407': 'despesa',  # Compra de mercadoria para uso/consumo - ST
-    '1253': 'despesa',                      # Energia elétrica
-    '1303': 'despesa',                      # Serviços de comunicação
-    '1352': 'despesa',                      # Serviços de transporte
-    '1353': 'despesa',                      # Serviços de transporte
-    '1933': 'despesa',                      # Aquisição de serviços (ISSQN)
+    '1253': 'energia_eletrica',            # Energia elétrica
+    '1303': 'servico_comunicacao',         # Serviços de comunicação
+    '1352': 'servico_transporte',          # Serviços de transporte
+    '1353': 'servico_transporte',          # Serviços de transporte
+    '1933': 'servico_issqn',               # Aquisição de serviços (ISSQN)
     '1209': 'despesa', '2209': 'despesa',  # Devolução de remessa para uso/consumo
     
     # ATIVO IMOBILIZADO
-    '1551': 'ativo', '2551': 'ativo',      # Compra de bem para ativo imobilizado
-    '1406': 'ativo', '2406': 'ativo',      # Compra de bem para ativo - ST
-    '1553': 'ativo', '2553': 'ativo',      # Devolução de venda de ativo
-    '1554': 'ativo', '2554': 'ativo',      # Retorno de remessa de ativo
+    '1551': 'ativo_imobilizado', '2551': 'ativo_imobilizado',      # Compra de bem para ativo imobilizado
+    '1406': 'ativo_imobilizado', '2406': 'ativo_imobilizado',      # Compra de bem para ativo - ST
+    '1553': 'ativo_imobilizado', '2553': 'ativo_imobilizado',      # Devolução de venda de ativo
+    '1554': 'ativo_imobilizado', '2554': 'ativo_imobilizado',      # Retorno de remessa de ativo
     
     # COMBUSTÍVEL
     '1651': 'combustivel', '2651': 'combustivel',  # Compra de combustível
@@ -9244,7 +9265,40 @@ CFOP_PARA_CATEGORIA = {
     '1664': 'combustivel', '2664': 'combustivel',  # Compra de combustível
     
     # SERVIÇOS TOMADOS
-    '1933': 'servico',                      # Serviços tributados pelo ISSQN
+    '1933': 'servico_tomado',              # Serviços tributados pelo ISSQN
+}
+
+# Nomes amigáveis para cada categoria
+CATEGORIA_NOMES = {
+    'produto': 'Compra para Revenda',
+    'insumo': 'Compra para Industrialização',
+    'despesa': 'Uso e Consumo',
+    'ativo_imobilizado': 'Ativo Imobilizado',
+    'combustivel': 'Combustível',
+    'servico_tomado': 'Serviço Tomado',
+    'bonificacao': 'Bonificação/Doação',
+    'amostra_gratis': 'Amostra Grátis',
+    'conserto_reparo': 'Conserto/Reparo',
+    'retorno_demonstracao': 'Retorno de Demonstração',
+    'retorno_exposicao': 'Retorno de Exposição',
+    'entrada_mercadoria_devolucao': 'Devolução de Mercadoria',
+    'retorno_industrializacao': 'Retorno de Industrialização',
+    'compra_industrializacao_futura': 'Compra p/ Industrialização Futura',
+    'devol_mercadoria_remetida_industrializacao': 'Devolução Merc. Industrialização',
+    'devolucao_simples_remessa': 'Devolução Simples Remessa',
+    'entrada_embalagem': 'Embalagem/Vasilhame',
+    'entrada_armazem_deposito': 'Armazém/Depósito',
+    'lancamento_credito_ativo_perm': 'Crédito Ativo Permanente',
+    'entrada_merc_receb_encomenda': 'Mercadoria por Encomenda',
+    'entrada_ind_consig_merc': 'Industrialização por Conta/Ordem',
+    'retorno_merc_remetida_consig': 'Retorno de Consignação',
+    'lanc_credito_ciap': 'Crédito CIAP',
+    'energia_eletrica': 'Energia Elétrica',
+    'servico_comunicacao': 'Serviço de Comunicação',
+    'servico_transporte': 'Serviço de Transporte',
+    'servico_issqn': 'Serviço (ISSQN)',
+    'devolucao': 'Devolução',
+    'outros': 'Outras Operações',
 }
 
 def obter_categoria_por_cfop(cfop: str) -> str:
