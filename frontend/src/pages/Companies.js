@@ -917,35 +917,232 @@ const Companies = ({ user, onLogout }) => {
                   </div>
                 )}
 
-                {/* Localização */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="col-span-2">
-                    <label className="block text-xs text-[#A1A1AA] mb-2">Cidade</label>
-                    <input
-                      type="text"
-                      value={formData.cidade}
-                      onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
-                      className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
-                    />
+                {/* Localização e Inscrições */}
+                <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Building2 className="w-4 h-4 text-[#C8A951]" />
+                    <span className="text-sm font-medium text-white">Localização e Inscrições</span>
                   </div>
-                  <div>
-                    <label className="block text-xs text-[#A1A1AA] mb-2">UF</label>
-                    <input
-                      type="text"
-                      value={formData.uf}
-                      onChange={(e) => setFormData({ ...formData, uf: e.target.value.toUpperCase() })}
-                      maxLength="2"
-                      className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
-                    />
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="col-span-2">
+                      <label className="block text-xs text-[#A1A1AA] mb-2">Cidade</label>
+                      <input
+                        type="text"
+                        value={formData.cidade}
+                        onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
+                        className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#A1A1AA] mb-2">UF</label>
+                      <input
+                        type="text"
+                        value={formData.uf}
+                        onChange={(e) => setFormData({ ...formData, uf: e.target.value.toUpperCase() })}
+                        maxLength="2"
+                        className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#A1A1AA] mb-2">CEP</label>
+                      <input
+                        type="text"
+                        value={formData.cep}
+                        onChange={(e) => setFormData({ ...formData, cep: e.target.value })}
+                        placeholder="00000-000"
+                        className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                      />
+                    </div>
                   </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-[#2A2A2A]">
+                    <div>
+                      <label className="block text-xs text-[#A1A1AA] mb-2">Inscrição Estadual (IE)</label>
+                      <input
+                        type="text"
+                        value={formData.inscricao_estadual}
+                        onChange={(e) => setFormData({ ...formData, inscricao_estadual: e.target.value })}
+                        placeholder="Ex: 123456789"
+                        className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#A1A1AA] mb-2">Inscrição Municipal (IM)</label>
+                      <input
+                        type="text"
+                        value={formData.inscricao_municipal}
+                        onChange={(e) => setFormData({ ...formData, inscricao_municipal: e.target.value })}
+                        placeholder="Ex: 12345678"
+                        className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Classificação de Produtos */}
+                <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Settings className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm font-medium text-white">Classificação de Produtos (para IA)</span>
+                  </div>
+                  
+                  {/* Produtos Comercializados */}
+                  <div className="mb-4">
+                    <label className="block text-xs text-[#A1A1AA] mb-2">Produtos Comercializados (para classificação REVENDA)</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={keywordInputs.produto}
+                        onChange={(e) => setKeywordInputs({ ...keywordInputs, produto: e.target.value })}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword('produtos_comercializados', 'produto'))}
+                        placeholder="Ex: Calçados, Roupas, Eletrônicos..."
+                        className="flex-1 px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addKeyword('produtos_comercializados', 'produto')}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+                    {formData.produtos_comercializados?.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.produtos_comercializados.map((item, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded flex items-center gap-1">
+                            {item}
+                            <button type="button" onClick={() => removeKeyword('produtos_comercializados', idx)} className="hover:text-red-400">×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Insumos de Produção */}
+                  <div className="mb-4">
+                    <label className="block text-xs text-[#A1A1AA] mb-2">Insumos de Produção (para classificação INSUMO)</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={keywordInputs.insumo}
+                        onChange={(e) => setKeywordInputs({ ...keywordInputs, insumo: e.target.value })}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword('insumos_producao', 'insumo'))}
+                        placeholder="Ex: Matéria-prima, Embalagens, Componentes..."
+                        className="flex-1 px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addKeyword('insumos_producao', 'insumo')}
+                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-medium"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+                    {formData.insumos_producao?.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.insumos_producao.map((item, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded flex items-center gap-1">
+                            {item}
+                            <button type="button" onClick={() => removeKeyword('insumos_producao', idx)} className="hover:text-red-400">×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Produtos de Despesa */}
+                  <div className="mb-4">
+                    <label className="block text-xs text-[#A1A1AA] mb-2">Produtos de Despesa (sempre classificados como DESPESA)</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={keywordInputs.despesa}
+                        onChange={(e) => setKeywordInputs({ ...keywordInputs, despesa: e.target.value })}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword('produtos_despesa', 'despesa'))}
+                        placeholder="Ex: Material de Limpeza, Escritório, Combustível..."
+                        className="flex-1 px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addKeyword('produtos_despesa', 'despesa')}
+                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-medium"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+                    {formData.produtos_despesa?.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.produtos_despesa.map((item, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded flex items-center gap-1">
+                            {item}
+                            <button type="button" onClick={() => removeKeyword('produtos_despesa', idx)} className="hover:text-red-400">×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Ativo Imobilizado */}
+                  <div className="mb-4">
+                    <label className="block text-xs text-[#C8A951] mb-2">Ativo Imobilizado (Palavras-chave: máquinas, equipamentos, veículos)</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={keywordInputs.ativo}
+                        onChange={(e) => setKeywordInputs({ ...keywordInputs, ativo: e.target.value })}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword('ativo_imobilizado', 'ativo'))}
+                        placeholder="Ex: empilhadeira, computador, ar condicionado"
+                        className="flex-1 px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addKeyword('ativo_imobilizado', 'ativo')}
+                        className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 font-medium"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+                    {formData.ativo_imobilizado?.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.ativo_imobilizado.map((item, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-amber-500/20 text-amber-400 text-xs rounded flex items-center gap-1">
+                            {item}
+                            <button type="button" onClick={() => removeKeyword('ativo_imobilizado', idx)} className="hover:text-red-400">×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Combustível */}
                   <div>
-                    <label className="block text-xs text-[#A1A1AA] mb-2">IE</label>
-                    <input
-                      type="text"
-                      value={formData.inscricao_estadual}
-                      onChange={(e) => setFormData({ ...formData, inscricao_estadual: e.target.value })}
-                      className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
-                    />
+                    <label className="block text-xs text-purple-400 mb-2">Combustível (Palavras-chave: gasolina, diesel, etanol)</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={keywordInputs.combustivel}
+                        onChange={(e) => setKeywordInputs({ ...keywordInputs, combustivel: e.target.value })}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword('combustivel', 'combustivel'))}
+                        placeholder="Ex: gasolina, diesel, etanol, GNV"
+                        className="flex-1 px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addKeyword('combustivel', 'combustivel')}
+                        className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 font-medium"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+                    {formData.combustivel?.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.combustivel.map((item, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded flex items-center gap-1">
+                            {item}
+                            <button type="button" onClick={() => removeKeyword('combustivel', idx)} className="hover:text-red-400">×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
