@@ -255,6 +255,23 @@ class CompanyCreate(BaseModel):
     certificado_digital_arquivo: Optional[str] = None
     certificado_digital_senha: Optional[str] = None
     certificado_digital_validade: Optional[str] = None
+    
+    # ===== NOVOS CAMPOS - FASE 3 =====
+    # Transportadora
+    is_transportadora: bool = False
+    tipo_transporte: str = "carga"
+    credito_presumido_icms_percent: float = 20.0
+    # Revenda de Combustível
+    is_revenda_combustivel: bool = False
+    # Saldo Credor Inicial
+    possui_saldo_credor: bool = False
+    saldo_credor_icms: float = 0.0
+    saldo_credor_pis: float = 0.0
+    saldo_credor_cofins: float = 0.0
+    competencia_saldo_inicial: Optional[str] = None
+    # Presunção para serviços
+    percentual_presuncao_servicos_irpj: float = 32.0
+    percentual_presuncao_servicos_csll: float = 32.0
 
 class CompanyUpdate(BaseModel):
     """Modelo para atualização de empresa"""
