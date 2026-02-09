@@ -1460,21 +1460,16 @@ const Companies = ({ user, onLogout }) => {
                 </table>
               </div>
               
-              {/* Progress */}
+              {/* Progress - Contador tomando café */}
               {importing && (
                 <div className="p-4 border-t border-[#2A2A2A] bg-[#0C0C0C]">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-white">Importando...</span>
-                    <span className="text-sm text-[#C8A951]">{importProgress.current} / {importProgress.total}</span>
-                  </div>
-                  <div className="h-2 bg-[#2A2A2A] rounded overflow-hidden">
-                    <div 
-                      className="h-full bg-[#C8A951] transition-all duration-300"
-                      style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
-                    />
-                  </div>
+                  <CoffeeProgress 
+                    progress={(importProgress.current / importProgress.total) * 100} 
+                    message={`Importando empresa ${importProgress.current} de ${importProgress.total}...`}
+                    showPercentage={true}
+                  />
                   {importProgress.errors.length > 0 && (
-                    <div className="mt-2 text-xs text-red-400">
+                    <div className="mt-2 text-xs text-red-400 text-center">
                       {importProgress.errors.length} erro(s) encontrado(s)
                     </div>
                   )}
