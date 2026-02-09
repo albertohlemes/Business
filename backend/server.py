@@ -15249,10 +15249,12 @@ async def listar_divergencias_pis_cofins(
     else:
         perfil = 'VAREJO'
     
-    # Buscar todos os documentos
+    # Buscar apenas documentos de SAÍDA (notas emitidas pela empresa)
+    # Divergências de PIS/COFINS são relevantes apenas nas saídas
     documents = await db.xml_documents.find({
         "company_id": company_id,
         "competencia": competencia,
+        "tipo": "saida",  # Apenas notas de saída
         **get_filtro_notas_ativas()
     }, {"_id": 0, "xml_content": 0}).to_list(10000)
     
