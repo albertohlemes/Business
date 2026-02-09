@@ -169,6 +169,13 @@ const Companies = ({ user, onLogout }) => {
       apura_icms_st: company.apura_icms_st || false,
       // Classificação inteligente
       classificacao_inteligente: company.classificacao_inteligente || '',
+      // Presunção por atividade
+      percentual_presuncao_irpj_comercio: company.percentual_presuncao_irpj_comercio ?? 8.0,
+      percentual_presuncao_csll_comercio: company.percentual_presuncao_csll_comercio ?? 12.0,
+      percentual_presuncao_irpj_servico: company.percentual_presuncao_irpj_servico ?? 32.0,
+      percentual_presuncao_csll_servico: company.percentual_presuncao_csll_servico ?? 32.0,
+      percentual_presuncao_irpj_industria: company.percentual_presuncao_irpj_industria ?? 8.0,
+      percentual_presuncao_csll_industria: company.percentual_presuncao_csll_industria ?? 12.0,
       responsavel_ids: company.responsavel_ids || [],
       // Certificado Digital
       certificado_digital_arquivo: company.certificado_digital_arquivo || '',
