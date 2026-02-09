@@ -15534,7 +15534,8 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     controla_fator_r = company.get('controla_fator_r', False)
     
     if 'V' in anexos_confirmados and rbt12 > 0 and controla_fator_r:
-        fator_r_info = calcular_fator_r(folha_12m, rbt12)
+        # Passar o faturamento da competência atual para calcular a sugestão de folha projetada
+        fator_r_info = calcular_fator_r(folha_12m, rbt12, faturamento_mes_atual)
     
     # Calcular limites disponíveis
     limite_disponivel = max(0, LIMITE_SIMPLES - rbt12)
