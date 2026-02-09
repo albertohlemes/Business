@@ -318,7 +318,68 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
               </div>
             )}
 
-            {/* Cards Principais */}
+            {/* Cards Principais - Linha 1: Impostos do Mês */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* DAS do Mês */}
+              <div className="bg-gradient-to-br from-[#C8A951]/20 to-[#C8A951]/5 rounded-lg border border-[#C8A951]/30 p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[#C8A951] text-sm font-medium">DAS {data.competencia_atual}</span>
+                  <Calculator className="w-5 h-5 text-[#C8A951]" />
+                </div>
+                <p className="text-2xl font-bold text-[#C8A951]">
+                  {formatCurrency(data.das_mes_atual?.valor_das_final)}
+                </p>
+                <p className="text-xs text-[#666] mt-1">
+                  Alíquota efetiva: <span className="text-[#C8A951] font-semibold">{formatPercent(data.enquadramento?.aliquota_efetiva)}</span>
+                </p>
+              </div>
+
+              {/* DIFAL do Mês */}
+              <div className="bg-gradient-to-br from-purple-500/20 to-purple-500/5 rounded-lg border border-purple-500/30 p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-purple-400 text-sm font-medium">DIFAL {data.competencia_atual}</span>
+                  <ArrowUpRight className="w-5 h-5 text-purple-400" />
+                </div>
+                <p className="text-2xl font-bold text-purple-400">
+                  {formatCurrency(data.difal_mes?.total_difal)}
+                </p>
+                <p className="text-xs text-[#666] mt-1">
+                  {formatPercent(data.difal_mes?.percentual_sobre_compras)} sobre compras interestaduais
+                </p>
+              </div>
+
+              {/* Total Impostos do Mês */}
+              <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 rounded-lg border border-emerald-500/30 p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-emerald-400 text-sm font-medium">Total Impostos</span>
+                  <DollarSign className="w-5 h-5 text-emerald-400" />
+                </div>
+                <p className="text-2xl font-bold text-emerald-400">
+                  {formatCurrency(data.impostos_mes?.total)}
+                </p>
+                <p className="text-xs text-[#666] mt-1">
+                  <span className="text-emerald-400 font-semibold">{formatPercent(data.impostos_mes?.percentual_sobre_vendas)}</span> sobre vendas
+                </p>
+              </div>
+
+              {/* Faixa / Alíquota */}
+              <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[#A1A1AA] text-sm">Enquadramento</span>
+                  <Percent className="w-5 h-5 text-blue-400" />
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-white">
+                    {data.enquadramento?.faixa?.descricao || '1ª Faixa'}
+                  </span>
+                </div>
+                <p className="text-xs text-[#666] mt-1">
+                  Anexo <span className="text-blue-400 font-semibold">{data.enquadramento?.anexo_principal}</span> • Nom: {formatPercent(data.enquadramento?.aliquota_nominal)}
+                </p>
+              </div>
+            </div>
+
+            {/* Cards Linha 2: Faturamento */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* RBT12 */}
               <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
@@ -334,11 +395,39 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                 </p>
               </div>
 
+              {/* Vendas do Mês */}
+              <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[#A1A1AA] text-sm">Vendas {data.competencia_atual}</span>
+                  <TrendingUp className="w-5 h-5 text-emerald-400" />
+                </div>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(data.faturamento?.mes_atual)}
+                </p>
+                <p className="text-xs text-[#666] mt-1">
+                  Faturamento do mês atual
+                </p>
+              </div>
+
+              {/* Compras Interestaduais */}
+              <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[#A1A1AA] text-sm">Compras Interestaduais</span>
+                  <ArrowDownRight className="w-5 h-5 text-purple-400" />
+                </div>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(data.difal_mes?.total_compras_interestaduais)}
+                </p>
+                <p className="text-xs text-[#666] mt-1">
+                  {data.difal_mes?.qtd_notas || 0} notas de outros estados
+                </p>
+              </div>
+
               {/* Faturamento Ano */}
               <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[#A1A1AA] text-sm">Faturamento {data.ano_referencia}</span>
-                  <TrendingUp className="w-5 h-5 text-emerald-400" />
+                  <BarChart3 className="w-5 h-5 text-blue-400" />
                 </div>
                 <p className="text-2xl font-bold text-white">
                   {formatCurrency(data.faturamento?.ano_corrente)}
@@ -347,37 +436,7 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                   {data.mes_referencia} mês(es) apurado(s)
                 </p>
               </div>
-
-              {/* Faixa Atual */}
-              <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[#A1A1AA] text-sm">Faixa / Alíquota</span>
-                  <Percent className="w-5 h-5 text-blue-400" />
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-white">
-                    {data.enquadramento?.faixa?.descricao || '1ª Faixa'}
-                  </span>
-                </div>
-                <p className="text-xs text-[#666] mt-1">
-                  Alíquota efetiva: <span className="text-[#C8A951] font-semibold">
-                    {formatPercent(data.enquadramento?.aliquota_efetiva)}
-                  </span>
-                </p>
-              </div>
-
-              {/* DAS Mês */}
-              <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[#A1A1AA] text-sm">DAS {data.competencia_atual}</span>
-                  <Calculator className="w-5 h-5 text-purple-400" />
-                </div>
-                <p className="text-2xl font-bold text-white">
-                  {formatCurrency(data.das_mes_atual?.valor_das_final)}
-                </p>
-                {data.das_mes_atual?.descontos?.total > 0 && (
-                  <p className="text-xs text-emerald-400 mt-1">
-                    Desconto de {formatCurrency(data.das_mes_atual.descontos.total)} (ST/Monof.)
+            </div>
                   </p>
                 )}
               </div>
