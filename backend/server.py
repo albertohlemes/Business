@@ -9080,6 +9080,162 @@ async def alertas_cfop_operacoes_distintas(
         "alertas": alertas
     }
 
+@api_router.get("/alertas-cfop/{company_id}/agrupado")
+async def alertas_cfop_agrupado_por_cfop(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna alertas de CFOP AGRUPADOS por CFOP, para facilitar ação em lote.
+    Cada grupo contém todos os produtos com o mesmo CFOP pendente de revisão.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar documentos de entrada que tenham produtos pendentes de revisão
+    documents = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "entrada"
+    }, {"_id": 0}).to_list(10000)
+    
+    # Agrupar por CFOP atual
+    grupos_cfop = {}
+    total_pendentes = 0
+    
+    for doc in documents:
+        for idx, prod in enumerate(doc.get('produtos', [])):
+            if prod.get('pendente_revisao_cfop'):
+                cfop_atual = str(prod.get('cfop', ''))
+                cfop_original = str(prod.get('cfop_original_emissor', ''))
+                natureza = prod.get('natureza_operacao_original', '')
+                
+                # Sugestões de conversão
+                cfop_compra = cfop_atual.replace('9', '0') if '9' in cfop_atual else cfop_atual[:2] + '02'
+                if cfop_atual.startswith('1'):
+                    cfop_compra = '1102'
+                elif cfop_atual.startswith('2'):
+                    cfop_compra = '2102'
+                
+                # Criar grupo se não existir
+                if cfop_atual not in grupos_cfop:
+                    # Buscar descrição do CFOP
+                    cfop_info = CFOPS_OPERACOES_DISTINTAS_GLOBAL.get(cfop_original, {})
+                    descricao_cfop = cfop_info.get('descricao', natureza or f'Operação {cfop_atual}')
+                    
+                    grupos_cfop[cfop_atual] = {
+                        'cfop': cfop_atual,
+                        'cfop_original': cfop_original,
+                        'descricao': descricao_cfop,
+                        'natureza_operacao': natureza,
+                        'quantidade': 0,
+                        'valor_total': 0,
+                        'produtos': [],
+                        'sugestao_manter': {
+                            'cfop': cfop_atual,
+                            'descricao': f'Manter {cfop_atual} - {descricao_cfop}'
+                        },
+                        'sugestao_compra': {
+                            'cfop': cfop_compra,
+                            'descricao': f'Converter para {cfop_compra} - Compra'
+                        }
+                    }
+                
+                # Adicionar produto ao grupo
+                grupos_cfop[cfop_atual]['quantidade'] += 1
+                grupos_cfop[cfop_atual]['valor_total'] += prod.get('valor_total', 0)
+                grupos_cfop[cfop_atual]['produtos'].append({
+                    'documento_id': doc.get('id', ''),
+                    'produto_idx': idx,
+                    'numero_nfe': doc.get('numero_nfe', ''),
+                    'emitente': doc.get('emitente_nome', ''),
+                    'data_emissao': doc.get('data_emissao', ''),
+                    'produto_codigo': prod.get('codigo', ''),
+                    'produto_descricao': prod.get('descricao', ''),
+                    'ncm': prod.get('ncm', ''),
+                    'valor': prod.get('valor_total', 0),
+                    'cfop_original_emissor': cfop_original
+                })
+                total_pendentes += 1
+    
+    # Converter para lista ordenada por quantidade (maior primeiro)
+    grupos_lista = sorted(grupos_cfop.values(), key=lambda x: -x['quantidade'])
+    
+    return {
+        "empresa": company['razao_social'],
+        "competencia": competencia,
+        "total_grupos": len(grupos_lista),
+        "total_produtos_pendentes": total_pendentes,
+        "grupos": grupos_lista
+    }
+
+@api_router.post("/alertas-cfop/resolver-grupo")
+async def resolver_alerta_cfop_por_grupo(
+    company_id: str,
+    competencia: str,
+    cfop_atual: str,
+    novo_cfop: str,
+    salvar_regra: bool = False,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Resolve todos os alertas de um CFOP específico em lote.
+    """
+    documents = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "entrada"
+    }).to_list(10000)
+    
+    total_resolvidos = 0
+    
+    for doc in documents:
+        produtos = doc.get('produtos', [])
+        atualizado = False
+        
+        for idx, prod in enumerate(produtos):
+            if prod.get('pendente_revisao_cfop') and str(prod.get('cfop', '')) == cfop_atual:
+                cfop_anterior = prod.get('cfop', '')
+                
+                produtos[idx]['cfop'] = novo_cfop
+                produtos[idx]['pendente_revisao_cfop'] = False
+                produtos[idx]['cfop_revisado_por'] = current_user.id
+                produtos[idx]['cfop_revisado_em'] = datetime.now(timezone.utc).isoformat()
+                
+                atualizado = True
+                total_resolvidos += 1
+                
+                # Salvar regra se solicitado
+                if salvar_regra and total_resolvidos == 1:  # Salvar apenas uma vez
+                    await db.learned_rules.insert_one({
+                        "id": str(uuid.uuid4()),
+                        "company_id": company_id,
+                        "cfop_original": cfop_anterior,
+                        "cfop_correto": novo_cfop,
+                        "categoria_correta": "conversao_cfop_grupo",
+                        "motivo": f"Conversão em lote de {cfop_anterior} para {novo_cfop}",
+                        "aprendido_de": "user_batch_correction",
+                        "created_by": current_user.id,
+                        "created_at": datetime.now(timezone.utc)
+                    })
+        
+        if atualizado:
+            await db.xml_documents.update_one(
+                {"id": doc['id']},
+                {"$set": {"produtos": produtos}}
+            )
+    
+    return {
+        "success": True, 
+        "message": f"{total_resolvidos} produto(s) atualizados de {cfop_atual} para {novo_cfop}",
+        "total_resolvidos": total_resolvidos
+    }
+
 @api_router.post("/alertas-cfop/resolver-individual")
 async def resolver_alerta_cfop_individual(
     documento_id: str,
