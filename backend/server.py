@@ -15097,7 +15097,9 @@ async def detalhamento_pis_cofins(
     else:
         perfil_empresa = 'VAREJO'
     
-    regime_tributario = company.get('regime_tributario', 'LUCRO_REAL')
+    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
+    # Converter para formato esperado pela função calcular_pis_cofins_produto
+    regime_para_calculo = 'LUCRO_REAL' if regime_tributario == 'lucro_real' else 'LUCRO_PRESUMIDO'
     
     # Buscar documentos
     documents = await db.xml_documents.find({
