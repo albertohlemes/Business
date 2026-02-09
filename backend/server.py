@@ -235,9 +235,16 @@ class CompanyUpdate(BaseModel):
     equiparado_industria: Optional[bool] = None
     apura_icms: Optional[bool] = None
     apura_icms_st: Optional[bool] = None
-    # Presunção
+    # Presunção geral
     percentual_presuncao_irpj: Optional[float] = None
     percentual_presuncao_csll: Optional[float] = None
+    # Presunção por atividade (mista)
+    percentual_presuncao_irpj_comercio: Optional[float] = None
+    percentual_presuncao_csll_comercio: Optional[float] = None
+    percentual_presuncao_irpj_servico: Optional[float] = None
+    percentual_presuncao_csll_servico: Optional[float] = None
+    percentual_presuncao_irpj_industria: Optional[float] = None
+    percentual_presuncao_csll_industria: Optional[float] = None
     estoque_inicial: Optional[float] = None
     estoque_final: Optional[float] = None
     # Classificação inteligente
