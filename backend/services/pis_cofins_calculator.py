@@ -352,7 +352,7 @@ def classificar_cst_entrada(cfop: str, ncm: str, perfil_empresa: str = 'VAREJO')
     """
     # Se CFOP não gera crédito, sempre CST 98
     if not verificar_cfop_gera_credito(cfop):
-        return CST_ENTRADA['SEM_CREDITO']
+        return CST_ENTRADA['SEM_CREDITO_CFOP']
     
     # Classificar pelo NCM
     classificacao = classificar_ncm_comercio(ncm, perfil_empresa)
