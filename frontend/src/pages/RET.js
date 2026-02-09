@@ -496,6 +496,15 @@ const RET = ({ user, onLogout }) => {
               CMV/CPV
             </button>
             <button
+              onClick={() => setActiveTab('indicadores')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'indicadores' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
+              }`}
+            >
+              <Percent className="w-4 h-4" />
+              Indicadores
+            </button>
+            <button
               onClick={() => setActiveTab('equilibrio')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
                 activeTab === 'equilibrio' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
