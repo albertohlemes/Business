@@ -77,7 +77,19 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-09 (Sessão 5 - Atual)
+### 2026-02-09 (Sessão 6 - FASE 1 Correções Críticas)
+- ✅ **Relatório de Importação corrigido** - Mapeamento de campos ajustado para exibir contagem e detalhes
+- ✅ **CFOP 5933 em NFS-e Prestadas** - Todas as notas de serviços prestados agora têm CFOP 5933
+- ✅ **CFOPs de natureza distinta** - Novo mapeamento com categorias automáticas:
+  - 1910/2910 → Bonificação/Doação
+  - 1911/2911 → Amostra Grátis
+  - 1949/2949 → Outras Operações
+  - + 30 outros CFOPs mapeados para categorias específicas
+- ✅ **Contador de café restaurado** - Animação flutuante no canto inferior durante upload
+- ✅ **Documentos NFS-e existentes atualizados** - 27 docs VETCO com CFOP 5933
+- ⏳ Filtro de divergência - Verificando funcionamento
+
+### 2026-02-09 (Sessão 5)
 - ✅ **Nova Página de Apuração - Resumo do Movimento**
   - Endpoint `/apuracao-movimento/{company_id}` criado
   - Agrupamento por CFOP com descrição automática
