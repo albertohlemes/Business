@@ -1718,6 +1718,75 @@ const Companies = ({ user, onLogout }) => {
             </div>
           </div>
         )}
+
+        {/* Modal de Confirmação de Alteração de Anexo */}
+        {showAnexoConfirmModal && anexoParaAlterar && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#141414] rounded border border-[#2A2A2A] w-full max-w-md">
+              <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
+                <h3 className="text-lg font-medium text-white">Confirmar Alteração</h3>
+                <button 
+                  onClick={() => {
+                    setShowAnexoConfirmModal(false);
+                    setAnexoParaAlterar(null);
+                  }} 
+                  className="p-1 text-[#A1A1AA] hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="p-4">
+                <div className="flex items-start gap-3 mb-4">
+                  <AlertCircle className="w-5 h-5 text-amber-400 mt-0.5" />
+                  <div>
+                    <p className="text-white mb-2">
+                      Você está tentando {anexoParaAlterar.acao === 'adicionar' ? 'adicionar' : 'remover'} o <strong>Anexo {anexoParaAlterar.anexo}</strong> de uma empresa com anexos já confirmados.
+                    </p>
+                    <p className="text-sm text-[#A1A1AA]">
+                      Esta alteração pode impactar cálculos já realizados. Deseja continuar?
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => {
+                      setShowAnexoConfirmModal(false);
+                      setAnexoParaAlterar(null);
+                    }}
+                    className="px-4 py-2 bg-[#2A2A2A] text-white rounded hover:bg-[#333333] transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => {
+                      const current = formData.anexos_simples || [];
+                      if (anexoParaAlterar.acao === 'adicionar') {
+                        setFormData({ 
+                          ...formData, 
+                          anexos_simples: [...current, anexoParaAlterar.anexo].sort(),
+                          anexos_confirmados: false // Marca como não confirmado após alteração
+                        });
+                      } else {
+                        setFormData({ 
+                          ...formData, 
+                          anexos_simples: current.filter(a => a !== anexoParaAlterar.anexo),
+                          anexos_confirmados: false // Marca como não confirmado após alteração
+                        });
+                      }
+                      setShowAnexoConfirmModal(false);
+                      setAnexoParaAlterar(null);
+                    }}
+                    className="px-4 py-2 bg-amber-500 text-black rounded hover:bg-amber-600 transition-colors font-medium"
+                  >
+                    Confirmar Alteração
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
