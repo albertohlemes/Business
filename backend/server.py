@@ -16127,6 +16127,13 @@ async def inteligencia_tributaria(
     # ============ SIMPLES NACIONAL ============
     # Para Simples Nacional, precisamos do faturamento dos últimos 12 meses para calcular a alíquota correta
     # RBT12 = Receita Bruta dos últimos 12 meses
+    # IMPORTANTE: Usar a mesma lógica do Dashboard do Simples Nacional para consistência
+    
+    from services.simples_nacional_calculator import (
+        calcular_aliquota_efetiva as calc_aliq_efetiva,
+        calcular_das_periodo as calc_das,
+        calcular_reparticao_tributos
+    )
     
     # Calcular RBT12 (faturamento dos últimos 12 meses)
     try:
@@ -16182,37 +16189,88 @@ async def inteligencia_tributaria(
         rbt12_proporcionalizado = rbt12
         qtd_meses_dados = 1
     
-    # Usar RBT12 proporcionalizado para calcular alíquota
-    fat_anual_estimado = rbt12_proporcionalizado
-    
-    if fat_anual_estimado <= 180000:
-        aliq_simples = 0.04
-    elif fat_anual_estimado <= 360000:
-        aliq_simples = 0.073
-    elif fat_anual_estimado <= 720000:
-        aliq_simples = 0.095
-    elif fat_anual_estimado <= 1800000:
-        aliq_simples = 0.107
-    elif fat_anual_estimado <= 3600000:
-        aliq_simples = 0.143
-    elif fat_anual_estimado <= 4800000:
-        aliq_simples = 0.19
+    # Obter anexo principal da empresa (padrão: I - Comércio)
+    anexo_principal = "I"
+    anexos_confirmados = company.get('anexos_simples', [])
+    if anexos_confirmados:
+        anexo_principal = anexos_confirmados[0]
     else:
-        aliq_simples = 0.19
+        # Inferir pelo CNAE se não tiver confirmado
+        cnaes = company.get('cnaes', [])
+        if cnaes:
+            anexos_sugeridos = obter_anexos_por_cnaes(cnaes)
+            anexo_principal = anexos_sugeridos[0] if anexos_sugeridos else "I"
     
-    simples_total = faturamento * aliq_simples
+    # Usar a MESMA função de cálculo do Dashboard do Simples Nacional
+    # Isso garante que os valores sejam idênticos em ambas as telas
+    aliquota_info = calc_aliq_efetiva(rbt12_proporcionalizado, anexo_principal)
+    aliq_simples = aliquota_info["aliquota_efetiva"] / 100  # Converter % para decimal
+    faixa_simples = aliquota_info["faixa"]
+    
+    # Calcular DAS usando a função oficial (igual ao Dashboard)
+    # Buscar valores de produtos ST, monofásicos e alíquota zero do período
+    produtos_st = 0
+    produtos_monofasicos = 0
+    produtos_aliquota_zero = 0
+    
+    try:
+        docs_periodo = await db.xml_documents.find({
+            "company_id": company_id,
+            "tipo": "saida",
+            **query_competencia,
+            **get_filtro_notas_ativas()
+        }, {"_id": 0, "produtos": 1}).to_list(10000)
+        
+        for doc in docs_periodo:
+            for prod in doc.get("produtos", []):
+                cst = prod.get("cst", "")
+                ncm = str(prod.get("ncm", "")).replace(".", "")
+                valor = float(prod.get("valor_total", 0) or prod.get("valor_produto", 0) or 0)
+                
+                # ICMS-ST (CST 10, 30, 60, 70, 201, 202, 203, 500)
+                if cst in ['10', '30', '60', '70', '201', '202', '203', '500']:
+                    produtos_st += valor
+                # Monofásicos
+                elif is_ncm_monofasico(ncm):
+                    produtos_monofasicos += valor
+                # Alíquota zero / cesta básica
+                elif is_ncm_aliquota_zero(ncm) or is_ncm_cesta_basica(ncm):
+                    produtos_aliquota_zero += valor
+    except Exception as e:
+        print(f"Erro ao calcular produtos ST/mono/zero: {e}")
+    
+    # Calcular DAS com descontos (igual ao Dashboard)
+    das_calculado = calc_das(
+        faturamento_periodo=faturamento,
+        rbt12=rbt12_proporcionalizado,
+        anexo=anexo_principal,
+        produtos_st=produtos_st,
+        produtos_monofasicos=produtos_monofasicos,
+        produtos_aliquota_zero=produtos_aliquota_zero
+    )
+    
+    simples_total = das_calculado.get("valor_das_final", faturamento * aliq_simples)
+    
+    # Obter repartição dos tributos para o DAS
+    reparticao = das_calculado.get("reparticao", {})
+    
     simples = {
-        'icms': round(simples_total * 0.34, 2),
-        'pis': round(simples_total * 0.025, 2),
-        'cofins': round(simples_total * 0.115, 2),
-        'irpj': round(simples_total * 0.055, 2),
-        'csll': round(simples_total * 0.035, 2),
-        'cpp': round(simples_total * 0.415, 2),
+        'icms': round(reparticao.get("icms", simples_total * 0.34), 2),
+        'pis': round(reparticao.get("pis", simples_total * 0.025), 2),
+        'cofins': round(reparticao.get("cofins", simples_total * 0.115), 2),
+        'irpj': round(reparticao.get("irpj", simples_total * 0.055), 2),
+        'csll': round(reparticao.get("csll", simples_total * 0.035), 2),
+        'cpp': round(reparticao.get("cpp", simples_total * 0.415), 2),
         'total': round(simples_total, 2),
         'aliquota_efetiva': round(aliq_simples * 100, 2),
+        'aliquota_nominal': aliquota_info["aliquota_nominal"],
+        'parcela_deducao': aliquota_info["parcela_deducao"],
+        'faixa': faixa_simples,
+        'anexo': anexo_principal,
         'rbt12': round(rbt12, 2),
         'rbt12_proporcionalizado': round(rbt12_proporcionalizado, 2),
-        'meses_com_dados': qtd_meses_dados
+        'meses_com_dados': qtd_meses_dados,
+        'descontos': das_calculado.get("descontos", {})
     }
     
     # ============ LUCRO PRESUMIDO ============
