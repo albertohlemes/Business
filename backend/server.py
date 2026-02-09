@@ -15626,7 +15626,8 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
             "id": company.get("id"),
             "razao_social": company.get("razao_social"),
             "cnpj": company.get("cnpj"),
-            "regime_tributario": "simples_nacional"
+            "regime_tributario": "simples_nacional",
+            "uf": uf_empresa
         },
         "ano_referencia": ano_ref,
         "mes_referencia": mes_ref,
@@ -15667,6 +15668,17 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
         
         # DAS do mês
         "das_mes_atual": das_mes,
+        
+        # DIFAL do mês
+        "difal_mes": difal_mes,
+        
+        # Totais de impostos
+        "impostos_mes": {
+            "das": round(das_valor, 2),
+            "difal": round(total_difal_mes, 2),
+            "total": round(total_impostos_mes, 2),
+            "percentual_sobre_vendas": percentual_impostos_sobre_vendas
+        },
         
         # Fator R (se aplicável e controla_fator_r ativo)
         "fator_r": fator_r_info,
