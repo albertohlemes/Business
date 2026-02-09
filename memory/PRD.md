@@ -97,7 +97,22 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - ✅ **RET** agora é a página de "Rota de Eficiência Tributária" (comparativo de regimes tributários)
 - ✅ **Indicadores** é a página de indicadores financeiros (antiga RET) - CMV/CPV, Margens, DRE
 - ✅ Rotas atualizadas: `/ret` (comparativo) e `/indicadores` (indicadores financeiros)
-- ✅ Menu lateral atualizado com ambas as opções
+- ✅ Menu lateral atualizado: **Indicadores** aparece ACIMA do **RET**
+
+### Página Indicadores - Refatoração Completa
+- ✅ **Aba Impostos**: Impostos individualizados (ICMS, PIS, COFINS, ISS, IPI, ICMS ST) com percentuais sobre Saídas e sobre Vendas
+- ✅ **Aba CMV/CPV e Ponto de Equilíbrio** (unificada): 
+  - Campos de Estoque Inicial e Final
+  - Cálculo do CMV automático
+  - Ponto de Equilíbrio (despesas para zerar lucro)
+  - **DRE Flutuante**: Campo para informar Despesa Real → calcula Lucro Contábil
+- ✅ **Aba Margens e Markup**: Indicadores de margem de contribuição, markup, entradas por tipo
+- ✅ **Abas Vilões, Oportunidades e Insights IA**: Mantidas
+
+### Backend - Integração Lucro Contábil com RET
+- ✅ Campo `despesa_real` adicionado ao modelo Company
+- ✅ Endpoint `/api/inteligencia-tributaria` atualizado para usar o lucro contábil calculado
+- ✅ IRPJ e CSLL no Lucro Real calculados com base no lucro contábil (Lucro Bruto - Despesa Real)
 
 ### Correções e Melhorias - Documentos e Classificação
 - ✅ Criado endpoint `/api/classification/suggestions/{company_id}` para carregar produtos na página Classificação Inteligente
