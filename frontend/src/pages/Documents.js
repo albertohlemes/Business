@@ -41,7 +41,7 @@ const CATEGORIAS = {
 };
 
 const Documents = ({ user, onLogout }) => {
-  const { selectedCompany: ctxCompany, selectedCompetencia, openSelector } = useAppContext();
+  const { selectedCompany: ctxCompany, selectedCompetencia, openSelector, siegStatus, siegSyncing, checkSiegCount, syncFromSieg } = useAppContext();
   const [searchParams] = useSearchParams();
   const highlightDocId = searchParams.get('highlight');
   
@@ -58,6 +58,10 @@ const Documents = ({ user, onLogout }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const fileInputRef = useRef(null);
+  
+  // SIEG
+  const [siegProgress, setSiegProgress] = useState({ step: '', percent: 0 });
+  const [siegResult, setSiegResult] = useState(null);
   
   // Ordenação
   const [sortField, setSortField] = useState('numero_nfe');
