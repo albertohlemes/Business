@@ -13,7 +13,7 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const InteligenciaTributaria = ({ user, onLogout }) => {
+const RET = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('periodo'); // periodo, acumulado, estimativa
@@ -252,10 +252,10 @@ const InteligenciaTributaria = ({ user, onLogout }) => {
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
               <Brain className="w-8 h-8 text-[#C8A951]" />
-              Inteligência Tributária
+              RET - Rota de Eficiência Tributária
             </h1>
             <p className="text-[#A1A1AA] mt-1">
-              Comparativo de regimes tributários: Simples, Presumido e Real
+              Comparativo de regimes tributários: Simples Nacional, Lucro Presumido e Lucro Real
             </p>
           </div>
           
@@ -472,4 +472,4 @@ const InteligenciaTributaria = ({ user, onLogout }) => {
   );
 };
 
-export default InteligenciaTributaria;
+export default RET;

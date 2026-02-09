@@ -14,7 +14,7 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const RET = ({ user, onLogout }) => {
+const Indicadores = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia, refreshCompanies } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [dados, setDados] = useState(null);
@@ -437,10 +437,10 @@ const RET = ({ user, onLogout }) => {
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
               <Zap className="w-7 h-7 text-[#C8A951]" />
-              RET - Rota de Eficiência Tributária
+              Indicadores
             </h1>
             <p className="text-[#A1A1AA] text-sm mt-1">
-              CMV/CPV, Ponto de Equilíbrio, Comparativo de Regimes e Análise Inteligente
+              CMV/CPV, Margens, Ponto de Equilíbrio e Análise de Indicadores Financeiros
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -1193,4 +1193,4 @@ const RET = ({ user, onLogout }) => {
   );
 };
 
-export default RET;
+export default Indicadores;
