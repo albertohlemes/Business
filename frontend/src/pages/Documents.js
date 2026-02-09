@@ -77,6 +77,9 @@ const Documents = ({ user, onLogout }) => {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
+  // Filtro de divergências
+  const [filterDivergencia, setFilterDivergencia] = useState('all'); // 'all', 'divergente', 'ok'
+
   // Modal de exclusão em massa
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteFilters, setDeleteFilters] = useState({
