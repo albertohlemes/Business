@@ -14991,6 +14991,229 @@ async def process_document_with_ai(
     return results
 
 
+# ===========================================
+# INTELIGÊNCIA TRIBUTÁRIA - COMPARAÇÃO DE REGIMES
+# ===========================================
+
+@api_router.get("/inteligencia-tributaria/{company_id}")
+async def inteligencia_tributaria(
+    company_id: str,
+    competencia: str,
+    tipo: str = "periodo",  # periodo, acumulado
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Calcula e compara impostos nos três regimes tributários: Simples, Presumido e Real.
+    - tipo=periodo: apenas a competência selecionada
+    - tipo=acumulado: soma todas competências do ano
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Extrair ano da competência
+    try:
+        mes, ano = competencia.split('/')
+        ano = int(ano)
+    except:
+        ano = 2026
+    
+    # Query base
+    if tipo == "periodo":
+        query_competencia = {"competencia": competencia}
+        meses_apurados = 1
+    else:
+        # Acumulado: pegar todas as competências do ano
+        query_competencia = {"competencia": {"$regex": f"/{ano}$"}}
+        # Contar meses com dados
+        competencias_unicas = await db.xml_documents.distinct("competencia", {
+            "company_id": company_id,
+            "competencia": {"$regex": f"/{ano}$"},
+            **get_filtro_notas_ativas()
+        })
+        meses_apurados = len(competencias_unicas) if competencias_unicas else 1
+    
+    # Buscar documentos
+    documents = await db.xml_documents.find({
+        "company_id": company_id,
+        **query_competencia,
+        **get_filtro_notas_ativas()
+    }, {"_id": 0}).to_list(50000)
+    
+    # Calcular totais
+    faturamento = 0  # Total de saídas (vendas)
+    compras = 0  # Total de entradas
+    icms_debito = 0
+    icms_credito = 0
+    pis_debito = 0
+    pis_credito = 0
+    cofins_debito = 0
+    cofins_credito = 0
+    
+    for doc in documents:
+        tipo_op = doc.get('tipo', 'entrada')
+        valor_doc = float(doc.get('valor_total', 0) or 0)
+        
+        if tipo_op == 'saida':
+            faturamento += valor_doc
+            icms_debito += float(doc.get('icms_total', 0) or 0)
+            pis_debito += float(doc.get('pis_total', 0) or 0)
+            cofins_debito += float(doc.get('cofins_total', 0) or 0)
+        else:
+            compras += valor_doc
+            icms_credito += float(doc.get('icms_total', 0) or 0)
+            pis_credito += float(doc.get('pis_total', 0) or 0)
+            cofins_credito += float(doc.get('cofins_total', 0) or 0)
+    
+    # Saldos de impostos
+    icms_saldo = max(0, icms_debito - icms_credito)
+    pis_saldo = max(0, pis_debito - pis_credito)
+    cofins_saldo = max(0, cofins_debito - cofins_credito)
+    
+    # Percentuais de presunção da empresa
+    pres_irpj = float(company.get('percentual_presuncao_irpj', 8))
+    pres_csll = float(company.get('percentual_presuncao_csll', 12))
+    
+    # ============ SIMPLES NACIONAL ============
+    # Alíquota efetiva média do Simples (Anexo I - Comércio)
+    # Faixa 1: até 180k = 4%, Faixa 2: até 360k = 7.3%, Faixa 3: até 720k = 9.5%, etc
+    fat_anual_estimado = faturamento * (12 / meses_apurados) if tipo == "periodo" else faturamento
+    
+    if fat_anual_estimado <= 180000:
+        aliq_simples = 0.04
+    elif fat_anual_estimado <= 360000:
+        aliq_simples = 0.073
+    elif fat_anual_estimado <= 720000:
+        aliq_simples = 0.095
+    elif fat_anual_estimado <= 1800000:
+        aliq_simples = 0.107
+    elif fat_anual_estimado <= 3600000:
+        aliq_simples = 0.143
+    elif fat_anual_estimado <= 4800000:
+        aliq_simples = 0.19
+    else:
+        aliq_simples = 0.19  # Excedeu limite
+    
+    simples_total = faturamento * aliq_simples
+    # Distribuição aproximada do Simples (Anexo I)
+    simples = {
+        'icms': simples_total * 0.34,  # ~34% do DAS é ICMS
+        'pis': simples_total * 0.025,   # ~2.5% PIS
+        'cofins': simples_total * 0.115, # ~11.5% COFINS
+        'irpj': simples_total * 0.055,   # ~5.5% IRPJ
+        'csll': simples_total * 0.035,   # ~3.5% CSLL
+        'cpp': simples_total * 0.415,    # ~41.5% CPP
+        'total': simples_total,
+        'aliquota_efetiva': aliq_simples * 100
+    }
+    
+    # ============ LUCRO PRESUMIDO ============
+    # ICMS: mesmo do regime atual
+    presumido_icms = icms_saldo
+    # PIS: 0.65% sobre faturamento (cumulativo)
+    presumido_pis = faturamento * 0.0065
+    # COFINS: 3% sobre faturamento (cumulativo)
+    presumido_cofins = faturamento * 0.03
+    # IRPJ: 15% sobre base presumida + adicional 10% sobre excedente de 20k/mês
+    base_irpj = faturamento * (pres_irpj / 100)
+    presumido_irpj = base_irpj * 0.15
+    if tipo == "periodo":
+        if base_irpj > 20000:
+            presumido_irpj += (base_irpj - 20000) * 0.10
+    else:
+        # Trimestral: adicional sobre 60k
+        if base_irpj > (60000 * (meses_apurados / 3)):
+            presumido_irpj += (base_irpj - 60000 * (meses_apurados / 3)) * 0.10
+    # CSLL: 9% sobre base presumida
+    base_csll = faturamento * (pres_csll / 100)
+    presumido_csll = base_csll * 0.09
+    
+    presumido = {
+        'icms': round(presumido_icms, 2),
+        'pis': round(presumido_pis, 2),
+        'cofins': round(presumido_cofins, 2),
+        'irpj': round(presumido_irpj, 2),
+        'csll': round(presumido_csll, 2),
+        'total': round(presumido_icms + presumido_pis + presumido_cofins + presumido_irpj + presumido_csll, 2),
+        'base_presuncao_irpj': round(base_irpj, 2),
+        'base_presuncao_csll': round(base_csll, 2)
+    }
+    
+    # ============ LUCRO REAL ============
+    # ICMS: débito - crédito
+    real_icms = icms_saldo
+    # PIS: 1.65% não cumulativo
+    real_pis = pis_saldo  # Já calculado com créditos
+    # COFINS: 7.6% não cumulativo
+    real_cofins = cofins_saldo  # Já calculado com créditos
+    
+    # Lucro contábil estimado (faturamento - compras - impostos)
+    custos_estimados = compras  # Simplificado
+    lucro_contabil = faturamento - custos_estimados - real_icms - real_pis - real_cofins
+    lucro_contabil = max(0, lucro_contabil)  # Não pode ser negativo para IR
+    
+    # IRPJ: 15% sobre lucro real + adicional
+    real_irpj = lucro_contabil * 0.15
+    if tipo == "periodo":
+        if lucro_contabil > 20000:
+            real_irpj += (lucro_contabil - 20000) * 0.10
+    else:
+        if lucro_contabil > (60000 * (meses_apurados / 3)):
+            real_irpj += (lucro_contabil - 60000 * (meses_apurados / 3)) * 0.10
+    # CSLL: 9% sobre lucro real
+    real_csll = lucro_contabil * 0.09
+    
+    real = {
+        'icms': round(real_icms, 2),
+        'pis': round(real_pis, 2),
+        'cofins': round(real_cofins, 2),
+        'irpj': round(real_irpj, 2),
+        'csll': round(real_csll, 2),
+        'total': round(real_icms + real_pis + real_cofins + real_irpj + real_csll, 2),
+        'lucro_contabil': round(lucro_contabil, 2)
+    }
+    
+    # Arredondar valores do Simples
+    for k in simples:
+        if isinstance(simples[k], float):
+            simples[k] = round(simples[k], 2)
+    
+    # Identificar melhor regime
+    regimes = [
+        ('simples', simples['total']),
+        ('presumido', presumido['total']),
+        ('real', real['total'])
+    ]
+    
+    # Verificar limite do Simples
+    limite_simples = 4800000 if tipo == "acumulado" else 400000
+    simples_disponivel = faturamento <= limite_simples
+    
+    if not simples_disponivel:
+        regimes = [r for r in regimes if r[0] != 'simples']
+    
+    regimes.sort(key=lambda x: x[1])
+    melhor_regime = regimes[0][0] if regimes else 'presumido'
+    
+    return {
+        'empresa': company.get('razao_social', ''),
+        'competencia': competencia,
+        'tipo': tipo,
+        'meses_apurados': meses_apurados,
+        'faturamento': round(faturamento, 2),
+        'compras': round(compras, 2),
+        'simples': simples,
+        'presumido': presumido,
+        'real': real,
+        'simples_disponivel': simples_disponivel,
+        'melhor_regime': melhor_regime,
+        'economia_potencial': round(max(
+            presumido['total'] - regimes[0][1],
+            real['total'] - regimes[0][1]
+        ), 2) if regimes else 0
+    }
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
