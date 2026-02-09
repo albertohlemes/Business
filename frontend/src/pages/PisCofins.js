@@ -24,6 +24,20 @@ const PisCofins = ({ user, onLogout }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [agrupamentoDivergencias, setAgrupamentoDivergencias] = useState('notas'); // notas, ncms, produtos
   const [loadingDivergencias, setLoadingDivergencias] = useState(false);
+  const [loadingDetalhamento, setLoadingDetalhamento] = useState(false);
+  
+  // Estados para ordenação
+  const [sortField, setSortField] = useState('valor_base');
+  const [sortDirection, setSortDirection] = useState('desc');
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
 
   const fetchData = useCallback(async () => {
     if (!selectedCompany?.id || !selectedCompetencia) return;
@@ -32,12 +46,14 @@ const PisCofins = ({ user, onLogout }) => {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
       
-      // Buscar apuração
-      const apuracaoRes = await axios.get(
-        `${API}/pis-cofins/apuracao/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
-        { headers }
-      );
+      // Buscar apuração e detalhamento em paralelo
+      const [apuracaoRes, detalhamentoRes] = await Promise.all([
+        axios.get(`${API}/pis-cofins/apuracao/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }),
+        axios.get(`${API}/pis-cofins/detalhamento/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers })
+      ]);
+      
       setApuracao(apuracaoRes.data);
+      setDetalhamento(detalhamentoRes.data);
       
       // Buscar divergências com agrupamento padrão
       fetchDivergencias('notas');
