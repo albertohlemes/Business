@@ -124,10 +124,24 @@ ALIQUOTAS_COMERCIO = {
 
 # CSTs de Entrada
 CST_ENTRADA = {
-    'CREDITO': '50',        # Gera crédito (regra geral)
-    'SEM_CREDITO': '98',    # Não gera crédito (CFOPs específicos)
-    'ALIQUOTA_ZERO': '73',  # Entrada com alíquota zero
-    'MONOFASICO_SEM_CREDITO': '70',  # Monofásico sem crédito
+    'CREDITO': '50',  # Operação com Direito a Crédito - Vinculada Exclusivamente a Receita Tributada
+    'ALIQUOTA_ZERO': '73',  # Alíquota Zero - Sem Crédito
+    'MONOFASICO_SEM_CREDITO': '70',  # Monofásico sem crédito (adquirente)
+    'MONOFASICO_COM_CREDITO': '50',  # Monofásico com crédito (indústria)
+    'ST_SEM_CREDITO': '70',  # Substituição Tributária sem crédito
+    'SEM_CREDITO_CFOP': '98',  # Outras Operações de Entrada - Sem Direito a Crédito
+    'ISENTO_NAO_TRIBUTADO': '08',  # Isento/Não Tributado
+}
+
+# CSTs de Saída
+CST_SAIDA = {
+    'TRIBUTADO': '01',  # Tributado com alíquota básica
+    'ALIQUOTA_ZERO': '06',  # Alíquota Zero
+    'MONOFASICO': '04',  # Monofásico (concentrado)
+    'ST': '05',  # Substituição Tributária
+    'SEM_DEBITO_CFOP': '49',  # Outras Operações de Saída - Sem Incidência de Contribuição
+    'ISENTO': '07',  # Isento
+    'NAO_TRIBUTADO': '08',  # Não Tributado
 }
 
 # CFOPs que NÃO geram crédito de PIS/COFINS (CST 98)
