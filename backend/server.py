@@ -15979,8 +15979,6 @@ async def inteligencia_tributaria(
         from decimal import Decimal
         
         regime_tributario = company.get('regime_tributario', 'lucro_presumido')
-        # Converter para formato esperado pela função calcular_pis_cofins_produto
-        regime_para_calculo = 'LUCRO_REAL' if regime_tributario == 'lucro_real' else 'LUCRO_PRESUMIDO'
         perfil_empresa = company.get('perfil_comercial', 'VAREJO')
         perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
         perfil = perfis[0] if perfis else 'VAREJO'
