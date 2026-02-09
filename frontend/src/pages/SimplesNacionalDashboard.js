@@ -391,6 +391,63 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                   {data.mes_referencia} mês(es) apurado(s)
                 </p>
               </div>
+              
+              {/* Composição das Vendas */}
+              <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[#A1A1AA] text-sm">Composição das Vendas</span>
+                  <Scale className="w-5 h-5 text-purple-400" />
+                </div>
+                {(() => {
+                  const descontos = data.das_mes_atual?.descontos || {};
+                  const st = descontos.produtos_st || 0;
+                  const mono = descontos.produtos_monofasicos || 0;
+                  const zero = descontos.produtos_aliquota_zero || 0;
+                  const total = data.faturamento?.mes_atual || 1;
+                  const tributado = Math.max(0, total - st - mono - zero);
+                  
+                  const pctST = (st / total * 100).toFixed(1);
+                  const pctMono = (mono / total * 100).toFixed(1);
+                  const pctZero = (zero / total * 100).toFixed(1);
+                  const pctTrib = (tributado / total * 100).toFixed(1);
+                  
+                  return (
+                    <>
+                      {/* Barra de proporção */}
+                      <div className="flex h-4 rounded-full overflow-hidden bg-[#2A2A2A]">
+                        <div style={{width: `${pctTrib}%`}} className="bg-emerald-500" title={`Tributado: ${pctTrib}%`} />
+                        <div style={{width: `${pctST}%`}} className="bg-amber-500" title={`ST: ${pctST}%`} />
+                        <div style={{width: `${pctMono}%`}} className="bg-blue-500" title={`Monofásico: ${pctMono}%`} />
+                        <div style={{width: `${pctZero}%`}} className="bg-purple-500" title={`Alíquota Zero: ${pctZero}%`} />
+                      </div>
+                      
+                      {/* Legenda */}
+                      <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                          <span className="text-[#A1A1AA]">Tributado</span>
+                          <span className="text-white font-medium ml-auto">{pctTrib}%</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-amber-500" />
+                          <span className="text-[#A1A1AA]">ICMS-ST</span>
+                          <span className="text-white font-medium ml-auto">{pctST}%</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-blue-500" />
+                          <span className="text-[#A1A1AA]">Monofásico</span>
+                          <span className="text-white font-medium ml-auto">{pctMono}%</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-purple-500" />
+                          <span className="text-[#A1A1AA]">Alíq. Zero</span>
+                          <span className="text-white font-medium ml-auto">{pctZero}%</span>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
             </div>
 
             {/* Barras de Progresso - Limites */}
