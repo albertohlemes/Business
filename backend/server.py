@@ -133,6 +133,7 @@ class Company(BaseModel):
     regime_tributario: str = "lucro_presumido"  # simples_nacional, lucro_presumido, lucro_real
     anexos_simples: List[str] = []  # I, II, III, IV, V
     anexos_confirmados: bool = False  # Se o usuário confirmou os anexos sugeridos
+    controla_fator_r: bool = False  # Se controla o Fator R (Folha/RBT12) para Anexo V
     # Simples Nacional - Fator R
     folha_pagamento_12m: float = 0.0  # Total de folha + pro-labore + CPP dos últimos 12 meses
     # Simples Nacional - Histórico de faturamento mensal
