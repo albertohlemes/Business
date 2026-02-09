@@ -16489,7 +16489,9 @@ async def inteligencia_tributaria(
     
     # Usar a MESMA função de cálculo do Dashboard do Simples Nacional
     # Isso garante que os valores sejam idênticos em ambas as telas
-    aliquota_info = calc_aliq_efetiva(rbt12_proporcionalizado, anexo_principal)
+    # IMPORTANTE: Usar rbt12 REAL (não proporcionalizado) para calcular a alíquota efetiva
+    # A LC 123/2006 define que o RBT12 é a receita bruta dos últimos 12 meses efetivos
+    aliquota_info = calc_aliq_efetiva(rbt12, anexo_principal)
     aliq_simples = aliquota_info["aliquota_efetiva"] / 100  # Converter % para decimal
     faixa_simples = aliquota_info["faixa"]
     
