@@ -153,12 +153,17 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [x] ~~Insights IA no menu Indicadores~~ ✅
 - [x] ~~Gráfico proporção vendas no Dashboard Simples~~ ✅
 - [x] ~~Relatório exportação por agrupamento de produtos~~ ✅
+- [x] ~~Botão Memória IA na Classificação~~ ✅
+- [x] ~~Classificação baseada no regime da empresa~~ ✅
 - [ ] Modal de seleção de empresa (bug de usabilidade - afeta apenas testes automatizados)
 
 ### P2 - Média Prioridade
+- [x] ~~Ordenação na página ICMS~~ ✅
 - [x] ~~Ordenação em Companies~~ ✅
-- [ ] Ordenação nas demais páginas (Documents já tem)
+- [ ] Ordenação nas demais páginas (Documents, PisCofins, etc.)
+- [ ] Classificação padrão "compra para revenda" quando IA não identificar
 - [ ] Logo nos relatórios exportados
+- [ ] Filtrar modelos fiscais por atividade da empresa (menu Importação > Saídas)
 - [ ] Upload de Certificado Digital (.pfx)
 
 ### P3 - Baixa Prioridade
