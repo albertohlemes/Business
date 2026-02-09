@@ -13618,6 +13618,104 @@ async def relacao_notas_detalhada(
 # APURAÇÃO - RESUMO DO MOVIMENTO POR CFOP
 # ============================================================
 
+# Função para obter descrição genérica do CFOP
+def obter_descricao_cfop_generica(cfop: str) -> str:
+    """Retorna uma descrição genérica baseada no padrão do CFOP"""
+    if not cfop or cfop == 'SEM CFOP':
+        return "Sem CFOP definido"
+    
+    # Dicionário de descrições por CFOP comum
+    descricoes = {
+        '1101': 'Compra p/ industrialização',
+        '1102': 'Compra p/ comercialização',
+        '1116': 'Compra p/ industrialização originada de encomenda p/ entrega futura',
+        '1117': 'Compra p/ comercialização originada de encomenda p/ entrega futura',
+        '1201': 'Devolução de venda',
+        '1202': 'Devolução de venda de merc. de terceiros',
+        '1403': 'Compra p/ comercialização em ST',
+        '1407': 'Compra de mercadoria p/ uso ou consumo',
+        '1411': 'Devolução de venda ST',
+        '1501': 'Entrada de energia elétrica',
+        '1551': 'Compra de bem p/ ativo imobilizado',
+        '1556': 'Compra de material p/ uso ou consumo',
+        '1653': 'Compra de combustível ou lubrificante',
+        '1910': 'Entrada de bonificação, doação',
+        '1911': 'Entrada de amostra grátis',
+        '1949': 'Outra entrada não especificada',
+        '2101': 'Compra p/ industrialização (interestadual)',
+        '2102': 'Compra p/ comercialização (interestadual)',
+        '2403': 'Compra p/ comercialização ST (interestadual)',
+        '2407': 'Compra de mercadoria p/ uso ou consumo (interestadual)',
+        '2551': 'Compra de bem p/ ativo imobilizado (interestadual)',
+        '2556': 'Compra de material p/ uso ou consumo (interestadual)',
+        '2949': 'Outra entrada não especificada (interestadual)',
+        '5101': 'Venda de produção própria',
+        '5102': 'Venda de merc. adquirida',
+        '5116': 'Venda produção estabelecimento',
+        '5117': 'Venda merc. adquirida ou recebida de terceiros',
+        '5118': 'Venda de produção por encomenda',
+        '5201': 'Devolução de compra p/ industrialização',
+        '5202': 'Devolução de compra p/ comercialização',
+        '5401': 'Venda de produção ST',
+        '5403': 'Venda de merc. adquirida ST',
+        '5405': 'Venda de merc. adquirida ST p/ contrib. substituído',
+        '5501': 'Remessa de energia elétrica',
+        '5901': 'Remessa p/ industrialização por encomenda',
+        '5902': 'Retorno de merc. industrialização',
+        '5910': 'Remessa em bonificação',
+        '5911': 'Remessa de amostra grátis',
+        '5949': 'Outra saída não especificada',
+        '6101': 'Venda produção própria (interestadual)',
+        '6102': 'Venda merc. adquirida (interestadual)',
+        '6108': 'Venda de merc. adquirida por conta e ordem de terceiros',
+        '6401': 'Venda produção ST (interestadual)',
+        '6403': 'Venda merc. adquirida ST (interestadual)',
+        '6949': 'Outra saída não especificada (interestadual)',
+    }
+    
+    if cfop in descricoes:
+        return descricoes[cfop]
+    
+    # Descrição genérica baseada no primeiro dígito
+    primeiro = cfop[0] if cfop else ''
+    segundo = cfop[1] if len(cfop) > 1 else ''
+    
+    tipo_operacao = {
+        '1': 'Entrada estadual',
+        '2': 'Entrada interestadual',
+        '3': 'Entrada importação',
+        '5': 'Saída estadual',
+        '6': 'Saída interestadual',
+        '7': 'Saída exportação'
+    }.get(primeiro, 'Operação')
+    
+    natureza = {
+        '1': 'compra/aquisição',
+        '2': 'devolução',
+        '3': 'transferência',
+        '4': 'devolução ST',
+        '5': 'energia/comunicação',
+        '9': 'outras'
+    }.get(segundo, '')
+    
+    return f"{tipo_operacao} - {natureza}" if natureza else tipo_operacao
+
+
+def obter_natureza_cfop(cfop: str) -> str:
+    """Retorna a natureza da operação baseada no CFOP"""
+    if not cfop:
+        return "N/D"
+    
+    primeiro = cfop[0] if cfop else ''
+    
+    if primeiro in ['1', '2', '3']:
+        return "Entrada"
+    elif primeiro in ['5', '6', '7']:
+        return "Saída"
+    
+    return "N/D"
+
+
 @api_router.get("/apuracao-movimento/{company_id}")
 async def apuracao_movimento(
     company_id: str,
