@@ -175,6 +175,27 @@ class Company(BaseModel):
     certificado_digital_arquivo: Optional[str] = None  # Nome/path do arquivo .pfx
     certificado_digital_senha: Optional[str] = None  # Senha do certificado
     certificado_digital_validade: Optional[str] = None  # Data de validade
+    
+    # ===== NOVOS CAMPOS - FASE 3 =====
+    # Transportadora
+    is_transportadora: bool = False
+    tipo_transporte: str = "carga"  # carga, passageiros
+    credito_presumido_icms_percent: float = 20.0  # Crédito presumido RICMS SP
+    
+    # Revenda de Combustível
+    is_revenda_combustivel: bool = False
+    
+    # Saldo Credor Inicial (para primeira apuração)
+    possui_saldo_credor: bool = False
+    saldo_credor_icms: float = 0.0
+    saldo_credor_pis: float = 0.0
+    saldo_credor_cofins: float = 0.0
+    competencia_saldo_inicial: Optional[str] = None  # Ex: "01/2026"
+    
+    # Presunção para serviços (se empresa é de serviços)
+    percentual_presuncao_servicos_irpj: float = 32.0
+    percentual_presuncao_servicos_csll: float = 32.0
+    
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CompanyCreate(BaseModel):
