@@ -115,6 +115,36 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 
 ## Changelog
 
+### v2.13.0 (09/02/2026) - Padronização de Critérios e Dashboard Dinâmico por Atividade
+
+**Critério Padronizado - Por Documento:**
+- Todas as páginas de apuração agora usam o mesmo critério do Dashboard: soma de `valor_total` por **documento**, não por item/produto
+- Adicionado filtro `get_filtro_notas_ativas()` na Apuração ICMS para excluir notas canceladas
+- Valores de entradas/saídas agora são consistentes entre Dashboard e Apuração ICMS
+
+**Dashboard Dinâmico por Tipo de Atividade:**
+- Seções ENTRADAS e SAÍDAS separadas com detalhamento por tipo de documento
+- **ENTRADAS**: NF-e, CT-e Entrada (Frete Tomado), NFS-e Tomados (Serviços Tomados)
+- **SAÍDAS**: NF-e, NFC-e (PDV), CT-e Saída (Frete Prestado), NFS-e Prestados
+- Documentos filtrados por `tipo_atividade` da empresa:
+  - Comércio: NF-e e NFC-e (sem NFS-e prestados)
+  - Serviços: NFS-e (sem NF-e de vendas de mercadorias)
+  - Indústria: NF-e
+  - Transporte: CT-e
+  - Mista: Todos os tipos
+- Card de Faturamento Total mostra o tipo de atividade da empresa
+
+**Novos Campos na API Dashboard:**
+- `quantidades.cte_entrada`, `quantidades.nfse_tomados`
+- `quantidades.cte_saida`, `quantidades.nfse_prestados`
+- `quantidades.total_entradas`, `quantidades.total_saidas`
+- `valores.entradas.nfe`, `valores.entradas.cte`, `valores.entradas.servicos_tomados`
+- `valores.saidas.nfe`, `valores.saidas.nfce`, `valores.saidas.cte`, `valores.saidas.servicos_prestados`
+
+**Novos Campos na API Apuração ICMS:**
+- `valores_por_documento.total_entradas` e `valores_por_documento.total_saidas`
+- `entradas.totais.valor_total_por_documento` e `saidas.totais.valor_total_por_documento`
+
 ### v2.12.0 (09/02/2026) - Correção da Página RET, Nova Aba Indicadores e Flags de ICMS Funcionais
 
 **Correção Crítica - Página RET não carregava dados:**
