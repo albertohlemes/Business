@@ -304,13 +304,21 @@ const Companies = ({ user, onLogout }) => {
     try {
       const token = localStorage.getItem('token');
       
+      // Preparar dados para envio
+      let dataToSend = { ...formData };
+      
+      // Se é Simples Nacional e tem anexos, marcar como confirmado
+      if (formData.regime_tributario === 'simples_nacional' && formData.anexos_simples?.length > 0) {
+        dataToSend.anexos_confirmados = true;
+      }
+      
       if (editingCompany) {
-        await axios.put(`${API}/companies/${editingCompany.id}`, formData, {
+        await axios.put(`${API}/companies/${editingCompany.id}`, dataToSend, {
           headers: { Authorization: `Bearer ${token}` }
         });
         alert('Empresa atualizada com sucesso!');
       } else {
-        await axios.post(`${API}/companies`, formData, {
+        await axios.post(`${API}/companies`, dataToSend, {
           headers: { Authorization: `Bearer ${token}` }
         });
         alert('Empresa cadastrada com sucesso!');
@@ -319,6 +327,7 @@ const Companies = ({ user, onLogout }) => {
       setShowForm(false);
       setEditingCompany(null);
       setFormData(emptyFormData);
+      setAnexosSugeridos([]);
       fetchCompanies();
       refreshCompanies();
     } catch (err) {
