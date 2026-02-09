@@ -48,7 +48,11 @@ const Indicadores = ({ user, onLogout }) => {
         axios.get(`${API}/pis-cofins/apuracao/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }).catch(() => null),
         axios.get(`${API}/apuracao-ipi/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }).catch(() => null),
         selectedCompany?.regime_tributario === 'simples_nacional' 
-          ? axios.get(`${API}/simples-nacional/dashboard/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }).catch(() => null)
+          ? axios.post(`${API}/dashboard/simples-nacional`, {
+              company_id: selectedCompany.id,
+              ano: parseInt(selectedCompetencia.split('/')[1]),
+              mes: parseInt(selectedCompetencia.split('/')[0])
+            }, { headers }).catch(() => null)
           : null
       ]);
       
