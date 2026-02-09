@@ -2205,12 +2205,23 @@ async def buscar_dados_cnpj(cnpj: str):
             
             endereco = f"{data.get('logradouro', '')} {data.get('numero', '')}".strip()
             
+            # Extrair CNAEs secundários
+            cnaes_secundarios = []
+            cnaes_secundarios_raw = data.get('cnaes_secundarios', [])
+            if cnaes_secundarios_raw:
+                for cnae in cnaes_secundarios_raw:
+                    codigo = str(cnae.get('codigo', ''))
+                    descricao = cnae.get('descricao', '')
+                    if codigo:
+                        cnaes_secundarios.append(f"{codigo} - {descricao}" if descricao else codigo)
+            
             return {
                 "cnpj": cnpj,
                 "razao_social": data.get('razao_social', ''),
                 "nome_fantasia": data.get('nome_fantasia', ''),
                 "cnae_principal": str(data.get('cnae_fiscal', '')),
                 "cnae_principal_descricao": data.get('cnae_fiscal_descricao', ''),
+                "cnaes_secundarios": cnaes_secundarios,
                 "cep": data.get('cep', '').replace('.', '').replace('-', ''),
                 "logradouro": endereco,
                 "numero": data.get('numero', ''),
