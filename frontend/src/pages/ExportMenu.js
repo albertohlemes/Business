@@ -479,6 +479,63 @@ const ExportMenu = ({ user, onLogout }) => {
                         </div>
                     </div>
                 )}
+                {activeTab === 'relatorios' && (
+                    <div className="space-y-4">
+                        <div className="flex items-start gap-3">
+                            <FileSpreadsheet className="w-6 h-6 text-purple-600 mt-1" />
+                            <div>
+                                <h3 className="font-semibold text-white">Relatório Agrupado por Alíquota</h3>
+                                <p className="text-sm text-[#A1A1AA] mt-1">
+                                    Agrupa produtos por alíquota (ordem decrescente) com valor de movimento, base e imposto.
+                                    Ideal para análise fiscal e conferência de apuração.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        {/* Seleção do Imposto */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                            <div>
+                                <label className="block text-sm font-medium text-[#E0E0E0] mb-2">Imposto</label>
+                                <select
+                                    value={relatorioImposto}
+                                    onChange={(e) => setRelatorioImposto(e.target.value)}
+                                    className="w-full px-4 py-3 border border-[#333333] rounded-lg bg-[#0C0C0C] text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                >
+                                    <option value="icms">ICMS</option>
+                                    <option value="pis">PIS</option>
+                                    <option value="cofins">COFINS</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-[#E0E0E0] mb-2">Tipo de Operação</label>
+                                <select
+                                    value={relatorioTipo}
+                                    onChange={(e) => setRelatorioTipo(e.target.value)}
+                                    className="w-full px-4 py-3 border border-[#333333] rounded-lg bg-[#0C0C0C] text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                >
+                                    <option value="saida">Saídas</option>
+                                    <option value="entrada">Entradas</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-[#E0E0E0] mb-2">Formato</label>
+                                <select
+                                    value={relatorioFormato}
+                                    onChange={(e) => setRelatorioFormato(e.target.value)}
+                                    className="w-full px-4 py-3 border border-[#333333] rounded-lg bg-[#0C0C0C] text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                >
+                                    <option value="xlsx">Excel (.xlsx)</option>
+                                    <option value="pdf">PDF</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        {/* Info */}
+                        <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 text-sm text-purple-300">
+                            <strong>Estrutura do Relatório:</strong> Cada grupo de alíquota lista os produtos com NF, descrição, NCM, CFOP, valor de movimento, base de cálculo e valor do imposto.
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Export Button */}
