@@ -16116,7 +16116,11 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     # Determinar ano e mês de referência
     now = datetime.now(timezone.utc)
     ano_ref = request.ano or now.year
-    mes_ref = now.month if ano_ref == now.year else 12
+    # Usar o mês da requisição se informado, senão usa mês atual (se mesmo ano) ou 12 (se ano diferente)
+    if request.mes:
+        mes_ref = request.mes
+    else:
+        mes_ref = now.month if ano_ref == now.year else 12
     
     # Obter CNAEs e anexos
     cnaes = company.get('cnaes', [])
