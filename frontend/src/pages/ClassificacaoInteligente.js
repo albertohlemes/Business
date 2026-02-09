@@ -445,8 +445,30 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     return grupos;
   }, [validacaoData, searchTerm, filterStatus, sortOrder]);
 
-  // Ordem de exibição das categorias
-  const ordemCategorias = ['revenda', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel', 'pendente'];
+  // Ordem de exibição das categorias (com as novas categorias)
+  const ordemCategorias = [
+    'revenda', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel',
+    'bonificacao', 'amostra_gratis', 'energia_eletrica', 'servico_tomado',
+    'servico_aplicacao', 'outros', 'pendente'
+  ];
+  
+  // Nomes amigáveis para exibição
+  const nomesCategoria = {
+    'revenda': 'Compra para Revenda',
+    'insumo': 'Compra para Industrialização',
+    'despesa': 'Uso e Consumo',
+    'ativo_imobilizado': 'Ativo Imobilizado',
+    'combustivel': 'Combustível',
+    'bonificacao': 'Bonificação/Doação',
+    'amostra_gratis': 'Amostra Grátis',
+    'energia_eletrica': 'Energia Elétrica',
+    'servico_tomado': 'Serviço Tomado',
+    'servico_aplicacao': 'Aplicação em Serviços',
+    'servico_comunicacao': 'Serviço de Comunicação',
+    'servico_transporte': 'Serviço de Transporte',
+    'outros': 'Outras Operações',
+    'pendente': 'Pendente de Classificação'
+  };
 
   if (!selectedCompany) {
     return (
