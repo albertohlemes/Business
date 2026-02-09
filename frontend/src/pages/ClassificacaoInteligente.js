@@ -384,56 +384,92 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
               <div className="text-center py-8 text-red-400">{alertasError}</div>
             ) : alertasData?.alertas?.length > 0 ? (
               <div className="space-y-3">
-                {alertasData.alertas.map((alerta, idx) => (
+                {alertasData.alertas.map((documento, docIdx) => (
                   <div 
-                    key={idx}
+                    key={documento.documento_id || docIdx}
                     className="bg-[#141414] border border-[#2A2A2A] rounded-lg overflow-hidden"
                   >
+                    {/* Header do documento */}
                     <button
-                      onClick={() => toggleAlert(idx)}
+                      onClick={() => toggleAlert(docIdx)}
                       className="w-full p-4 flex items-center justify-between hover:bg-[#1A1A1A] transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        {expandedAlerts[idx] ? (
+                        {expandedAlerts[docIdx] ? (
                           <ChevronDown className="w-5 h-5 text-[#A1A1AA]" />
                         ) : (
                           <ChevronRight className="w-5 h-5 text-[#A1A1AA]" />
                         )}
-                        <span className={`px-3 py-1 rounded text-sm font-mono ${
-                          alerta.tipo === 'erro' ? 'bg-red-500/20 text-red-400' :
-                          alerta.tipo === 'atencao' ? 'bg-amber-500/20 text-amber-400' :
-                          'bg-blue-500/20 text-blue-400'
-                        }`}>
-                          CFOP {alerta.cfop}
+                        <span className="px-3 py-1 rounded text-sm font-mono bg-amber-500/20 text-amber-400">
+                          NF-e {documento.numero_nfe}
                         </span>
-                        <span className="text-white font-medium">{alerta.descricao}</span>
+                        <span className="text-white font-medium truncate max-w-[250px]">{documento.emitente}</span>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className="text-[#A1A1AA] text-sm">{alerta.quantidade} ocorrências</span>
-                        <span className="text-white font-semibold">{formatCurrency(alerta.valor_total)}</span>
+                        <span className="text-amber-400 text-sm font-medium">{documento.qtd_pendentes} produto(s)</span>
+                        <span className="text-white font-semibold">{formatCurrency(documento.valor_total)}</span>
                       </div>
                     </button>
                     
-                    {expandedAlerts[idx] && (
+                    {/* Conteúdo expandido - produtos pendentes */}
+                    {expandedAlerts[docIdx] && documento.produtos && (
                       <div className="px-4 pb-4 border-t border-[#2A2A2A]">
-                        <div className="pt-4">
-                          <p className="text-sm text-[#A1A1AA] mb-2">{alerta.mensagem}</p>
-                          {alerta.ocorrencias && (
-                            <div className="text-xs text-[#666]">
-                              NFs: <NFsList ocorrencias={alerta.ocorrencias} maxVisible={10} />
-                            </div>
-                          )}
-                          {alerta.sugestao && (
-                            <div className="mt-3 p-3 bg-[#C8A951]/10 border border-[#C8A951]/30 rounded-lg">
-                              <div className="flex items-start gap-2">
-                                <Wand2 className="w-4 h-4 text-[#C8A951] mt-0.5" />
-                                <div>
-                                  <span className="text-[#C8A951] font-medium text-sm">Sugestão: </span>
-                                  <span className="text-white text-sm">{alerta.sugestao}</span>
+                        <div className="pt-4 space-y-3">
+                          {documento.produtos.map((prod, prodIdx) => (
+                            <div 
+                              key={prodIdx}
+                              className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg p-4"
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-white font-medium truncate">{prod.produto_descricao || 'Produto sem descrição'}</p>
+                                  <div className="flex flex-wrap gap-2 mt-2 text-xs text-[#A1A1AA]">
+                                    <span>Código: {prod.produto_codigo || '-'}</span>
+                                    <span>•</span>
+                                    <span>NCM: {prod.ncm || '-'}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded font-mono">
+                                      CFOP Original: {prod.cfop_original_emissor || '-'}
+                                    </span>
+                                    <span className="text-[#666]">→</span>
+                                    <span className="px-2 py-1 bg-amber-500/20 text-amber-400 text-xs rounded font-mono">
+                                      CFOP Atual: {prod.cfop_atual || '-'}
+                                    </span>
+                                  </div>
+                                  {prod.natureza_operacao && (
+                                    <p className="text-xs text-[#666] mt-2">
+                                      Natureza: {prod.natureza_operacao}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <p className="text-[#C8A951] font-semibold">{formatCurrency(prod.valor)}</p>
                                 </div>
                               </div>
+                              
+                              {/* Opções de resolução */}
+                              {prod.opcoes && (
+                                <div className="mt-4 pt-4 border-t border-[#2A2A2A]">
+                                  <p className="text-xs text-[#A1A1AA] mb-2">Escolha uma ação:</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    <button
+                                      onClick={() => resolverAlertaIndividual(documento.documento_id, prod.produto_idx, prod.opcoes.manter_natureza?.cfop)}
+                                      className="px-3 py-1.5 text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded hover:bg-blue-500/30 transition-colors"
+                                    >
+                                      {prod.opcoes.manter_natureza?.descricao || 'Manter CFOP atual'}
+                                    </button>
+                                    <button
+                                      onClick={() => resolverAlertaIndividual(documento.documento_id, prod.produto_idx, prod.opcoes.converter_compra?.cfop)}
+                                      className="px-3 py-1.5 text-xs bg-green-500/20 text-green-400 border border-green-500/30 rounded hover:bg-green-500/30 transition-colors"
+                                    >
+                                      {prod.opcoes.converter_compra?.descricao || 'Converter para compra'}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          )}
+                          ))}
                         </div>
                       </div>
                     )}
