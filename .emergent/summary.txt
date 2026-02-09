@@ -1,96 +1,101 @@
 <analysis>**original_problem_statement:**
-O usuário iniciou com uma solicitação para construir um módulo completo para empresas do Simples Nacional no aplicativo fiscal AURION. Durante a sessão, a solicitação foi expandida em várias etapas, incluindo:
+O usuário solicitou a construção de um módulo completo para empresas do Simples Nacional, que evoluiu para incluir: um dashboard customizado, melhorias no cadastro de empresas com sugestão de anexos e controle do Fator R, importação de histórico via PDF do PGDAS, um módulo de apuração de DIFAL e um comparativo de regimes tributários (RET).
 
-1.  **Dashboard Simples Nacional:** Criação de um dashboard com indicadores chave (RBT12, faturamento, faixa de alíquota, DAS).
-2.  **Cadastro de Empresas Aprimorado:** Modificação da página de cadastro para sugerir automaticamente os Anexos do Simples Nacional com base nos CNAEs da empresa, permitir que o usuário altere a sugestão (com confirmação) e adicionar uma flag para controlar o cálculo do Fator R.
-3.  **Importação de Histórico (PGDAS):** Implementação de uma funcionalidade para importar o histórico de faturamento de 12 meses a partir de um arquivo PDF do PGDAS-D. O sistema deve extrair os dados, armazená-los e usá-los como a fonte principal para os cálculos do dashboard, alertando sobre divergências com os dados calculados internamente.
-4.  **Módulo DIFAL:** Criação de um novo menu e página, exclusiva para empresas do Simples Nacional, para apurar o Diferencial de Alíquota (DIFAL) nas notas fiscais de entrada (compras interestaduais). A página deve ter abas de Apuração e Detalhamento por Produto e incluir o embasamento legal.
-5.  **Comparativo de Regimes (RET) para Simples:** Integração de um comparativo de regimes tributários (RET) no Dashboard do Simples Nacional, para que o usuário possa verificar se o Simples ainda é a opção mais econômica em comparação com o Lucro Presumido e o Lucro Real.
-6.  **Personalização do Dashboard:** Ajuste final nos cards do Dashboard do Simples Nacional para remover indicadores irrelevantes (ICMS, PIS, COFINS) e adicionar métricas mais pertinentes, como o valor do DAS do mês, DIFAL, e a carga tributária total sobre o faturamento.
+Durante esta sessão, as solicitações foram refinadas:
+1.  **Dashboards:** O dashboard principal foi customizado para exibir cards específicos do Simples Nacional (DAS, DIFAL, etc.). O dashboard dedicado ao Simples Nacional foi simplificado.
+2.  **Fator R:** A lógica foi aprimorada para sugerir um valor de folha de pagamento mensal mínimo para atingir a alíquota de 28%, com base no RBT12 mais o faturamento do mês corrente.
+3.  **RET (Comparativo de Regimes):** A funcionalidade foi completamente refeita para ser idêntica à dos outros regimes, usando um componente unificado () com abas (Período, Acumulado, Projeção) e lógica de cálculo do DRE para o Lucro Real.
+4.  **Seleção de Empresa:** O modal foi aprimorado para ter uma barra de pesquisa sempre visível e ordenação por código da empresa.
+5.  **Integração SIEG:** A funcionalidade foi movida da seleção de empresa para a página Documentos. A depuração revelou que a chave de API do usuário é inválida.
+6.  **Relatórios:** Foram criados novos relatórios exportáveis (XLSX) que agrupam produtos por alíquota de ICMS, PIS e COFINS.
+7.  **Importação IA:** O usuário solicitou regras para classificar automaticamente CFOPs de notas de energia (1253), telecomunicações (1303) e serviços (1933) durante a importação.
 
 **User's preferred language**:
 Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-A aplicação full-stack (React + FastAPI) está funcional. As principais funcionalidades implementadas nesta sessão são:
-*   **Módulo Simples Nacional:** A maior parte do módulo está concluída. O backend possui endpoints para o dashboard, importação de PGDAS, DIFAL e RET. A lógica de cálculo reside em serviços dedicados (, , ). O frontend possui as páginas  e , com menus condicionais que aparecem apenas para empresas do Simples Nacional.
-*   **Fonte de Dados Prioritária:** A lógica do backend foi atualizada para priorizar os dados de faturamento importados do PGDAS. Se um histórico importado existir para uma empresa, ele é usado para os cálculos; caso contrário, o sistema calcula a partir dos documentos fiscais no banco de dados.
-*   **Cadastro de Empresa:** A página  foi atualizada para exibir e gerenciar os Anexos do Simples Nacional e a flag Controla Fator R.
-*   **Personalização do Dashboard:** O backend foi atualizado para fornecer os dados necessários para os novos cards. O frontend foi editado, mas a verificação final da UI está pendente.
+A aplicação full-stack (React + FastAPI) está funcional. As principais funcionalidades estão implementadas, incluindo um módulo robusto para o Simples Nacional. O dashboard principal () agora renderiza cards específicos para empresas do Simples. O RET foi unificado em um único componente () com abas e cálculo de DRE para todos os regimes. A integração com o SIEG foi realocada para a página de Documentos, e novos relatórios por alíquota foram adicionados ao menu de Exportação. O modal de seleção de empresas foi aprimorado com busca e ordenação. A lógica de IA para classificação de documentos foi atualizada.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava finalizando a personalização do Dashboard do Simples Nacional. Ele atualizou o endpoint do backend () para incluir os dados do DIFAL e outras métricas solicitadas. Em seguida, editou o arquivo frontend  para remover os cards antigos e adicionar os novos que exibem informações como DAS do mês, valor do DIFAL, e percentuais sobre compras e vendas.
+-   **Last item agent was working**: O agente estava implementando regras de classificação automática de CFOP na funcionalidade de importação de documentos via IA. O objetivo é que o sistema atribua automaticamente os CFOPs 1253 (energia elétrica), 1303 (telecomunicação) e 1933 (serviços) com base no conteúdo do documento.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: N (Apenas para a última alteração na UI do dashboard).
--   **Which testing method agent to use?**: screenshot tool. A mudança é visual e contida no . Um screenshot após o login e seleção da empresa Simples será suficiente para verificar se os novos cards estão sendo renderizados corretamente com os dados do backend.
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: backend testing agent. É necessário criar um teste que simule o upload de um PDF (ex: uma conta de luz) para a função  e verifique se o CFOP extraído e salvo no banco de dados é o correto (1253).
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0)**: Finalizar e verificar a personalização dos cards no Dashboard do Simples Nacional.
--   **Issue 2 (P1)**: Implementar ordenação em **todas** as colunas de **todas** as tabelas da aplicação.
+-   **Issue 1 (P0)**: Finalizar e testar a classificação automática de CFOP na importação IA.
+-   **Issue 2 (P1)**: Integração com SIEG não funciona devido a uma chave de API inválida.
+-   **Issue 3 (P2)**: Adicionar uma mensagem de aviso no RET quando os dados para o cálculo do Lucro Real estiverem incompletos.
+-   **Issue 4 (P3)**: Implementar ordenação em **todas** as colunas de **todas** as tabelas da aplicação.
 
 **Issues Detail**:
--   **Issue 1: Finalizar e verificar a personalização dos cards no Dashboard do Simples Nacional**
-    -   **Attempted fixes**: O agente editou o backend () para adicionar os dados necessários ao endpoint e editou o frontend () para exibir os novos cards.
+-   **Issue 1: Finalizar e testar a classificação automática de CFOP na importação IA**
+    -   **Attempted fixes**: O agente atualizou o prompt da IA em  para incluir as novas regras de classificação.
     -   **Next debug checklist**:
-        1.  Usar a  para fazer login, selecionar a EMPRESA SIMPLES TESTE LTDA.
-        2.  Navegar até o Simples Nacional no menu.
-        3.  Verificar visualmente se os novos cards (DAS do Mês, Alíquota Efetiva, DIFAL do Mês, etc.) estão sendo exibidos corretamente e se os cards antigos (ICMS, PIS, COFINS) foram removidos.
-    -   **Why fix this issue and what will be achieved with the fix?**: Atender à última solicitação do usuário, tornando o dashboard mais relevante e útil para empresas do Simples Nacional.
+        1.  Revisar a lógica em  (em torno da linha 15281) que processa os dados retornados pela IA.
+        2.  Garantir que o CFOP extraído () seja corretamente persistido no objeto do documento no banco de dados.
+        3.  Testar o fluxo de ponta a ponta, fazendo o upload de um arquivo de teste (ex: conta de energia) e verificando se o CFOP 1253 foi atribuído.
+    -   **Why fix this issue and what will be achieved with the fix?**: Automatizar a classificação de documentos, reduzindo o trabalho manual e erros, conforme solicitado pelo usuário.
     -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: backend
+
+-   **Issue 2: Integração com SIEG não funciona**
+    -   **Attempted fixes**: O agente atualizou a chave de API no  várias vezes, confirmando que todas retornam erro 401 (Não Autenticado). O tratamento de erro foi melhorado para exibir uma mensagem clara no frontend.
+    -   **Next debug checklist**: O problema é externo, provavelmente na conta SIEG do usuário (chave expirada, inativa ou não vinculada aos CNPJs). A próxima ação é aguardar a confirmação do usuário de que ele verificou e corrigiu as configurações no portal SIEG.
+    -   **Why fix this issue and what will be achieved with the fix?**: Reativar uma funcionalidade central de importação de documentos para o usuário.
+    -   **Status**: BLOCKED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: Aguardando ação do usuário.
+
+-   **Issue 3: Adicionar aviso no RET para cálculo impreciso do Lucro Real**
+    -   **Attempted fixes**: Nenhuma. O agente implementou o cálculo do DRE, mas percebeu que a falta de dados (compras, despesas) para empresas do Simples leva a uma estimativa irreal.
+    -   **Next debug checklist**:
+        1.  No arquivo , na seção que renderiza o DRE para o Lucro Real.
+        2.  Adicionar uma lógica condicional para verificar se os valores de  ou  são zero.
+        3.  Se forem, exibir um ícone de aviso e uma mensagem como: Cálculo estimado. Para maior precisão, cadastre as compras, despesas e estoque da empresa.
+    -   **Why fix this issue and what will be achieved with the fix?**: Gerenciar as expectativas do usuário e orientá-lo a fornecer os dados necessários para um comparativo de regimes preciso.
+    -   **Status**: NOT STARTED
     -   **Should Test frontend/backend/both after fix?**: frontend
 
--   **Issue 2: Implementar ordenação em todas as colunas**
-    -   **Attempted fixes**: Nenhuma nesta sessão. É uma tarefa pendente da sessão anterior.
+-   **Issue 4: Implementar ordenação em todas as colunas**
+    -   **Attempted fixes**: Nenhuma nesta sessão.
     -   **Next debug checklist**:
-        1.  Revisar o código e identificar todas as páginas que renderizam tabelas de dados (, , , , etc.).
-        2.  Para cada tabela, aplicar o padrão já existente (provavelmente um componente ) a todos os cabeçalhos de coluna que ainda não são ordenáveis.
-    -   **Why fix this issue and what will be achieved with the fix?**: Melhorar a usabilidade geral da aplicação, fornecendo uma experiência de usuário consistente e atendendo a um requisito antigo.
+        1.  Listar todas as páginas com tabelas (, , , , , etc.).
+        2.  Aplicar um componente de cabeçalho ordenável a todas as colunas que ainda não possuem essa funcionalidade.
+    -   **Why fix this issue and what will be achieved with the fix?**: Melhorar a usabilidade geral da aplicação, um requisito antigo.
     -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y (é uma tarefa pendente de longa data).
+    -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend
 
 **In progress Task List**:
-N/A (As tarefas em progresso estão listadas como issues).
+N/A
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P1) **Implementar upload do Certificado Digital**: A UI existe em , mas o backend precisa ser implementado para processar e armazenar o arquivo  e a senha de forma segura.
+    -   (P1) **Implementar upload do Certificado Digital**: A UI existe em , mas o backend para armazenar o arquivo  e a senha de forma segura ainda precisa ser implementado.
 -   **Future Tasks:**
-    -   Refatorar o monolito  para uma arquitetura baseada em routers para melhor organização e escalabilidade.
-    -   Remover arquivos obsoletos (, ) para limpar a base de código.
+    -   Refatorar o monolito  para uma arquitetura baseada em routers.
+    -   Remover arquivos obsoletos (, ).
     -   Implementar um sistema de licenças comerciais.
     -   Criar um dashboard de estatísticas para o perfil Master.
 
 **Completed work in this session**
--   **Módulo Simples Nacional (Backend)**: Endpoints e lógica de serviço criados para o Dashboard, importação de PGDAS, apuração de DIFAL e comparativo de regimes (RET).
--   **Módulo Simples Nacional (Frontend)**: Páginas criadas para o Dashboard e DIFAL, com menus e rotas condicionais.
--   **Cadastro de Empresa Aprimorado**: UI e lógica adicionadas a  para sugestão de anexos e controle do Fator R.
--   **Importação de PGDAS**: Funcionalidade completa de upload de PDF, extração de dados com , armazenamento e integração com o Dashboard.
--   **Módulo DIFAL**: Estrutura inicial do módulo de apuração de Diferencial de Alíquota criada (backend e frontend).
--   **RET para Simples Nacional**: Funcionalidade de comparativo de regimes integrada ao dashboard, utilizando dados precisos do PGDAS.
--   **Personalização do Dashboard**: Backend atualizado e frontend editado para exibir cards mais relevantes (trabalho em andamento).
+-   **Unificação do Módulo RET**: A página RET foi unificada (), agora servindo todos os regimes com abas e cálculo de DRE para o Lucro Real. A página  foi removida.
+-   **Customização de Dashboards**: O dashboard principal agora exibe cards específicos para Simples Nacional, enquanto o dashboard dedicado foi simplificado.
+-   **Melhoria no Cálculo do Fator R**: Adicionada sugestão de folha de pagamento mensal para otimização tributária.
+-   **Melhoria na UI de Seleção de Empresa**: O modal  foi redesenhado com busca persistente e ordenação por código.
+-   **Realocação da Integração SIEG**: A funcionalidade foi movida do  para a página .
+-   **Criação de Relatórios por Alíquota**: Implementado backend e frontend () para exportar relatórios em Excel que agrupam itens por alíquota de ICMS, PIS e COFINS.
+-   **Atualização da IA de Documentos**: O prompt em  foi atualizado para melhorar a classificação de CFOPs (trabalho em andamento).
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1:** O arquivo  é um monolito e continua a crescer, aumentando a dívida técnica.
+-   **Issue 1:** O arquivo  é um monolito.
 -   **Issue 2:** Os arquivos  e  são obsoletos e ainda não foram removidos.
-
-**Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork**: Inconsistência nos cálculos de impostos.
--   **Recurrence count**: 0
--   **Status**: RESOLVED. O agente evitou com sucesso a recorrência deste problema ao reutilizar a lógica de cálculo existente (ex: chamar a função de apuração do DIFAL de dentro do endpoint do dashboard) em vez de recalcular os valores, mantendo uma fonte única da verdade para os dados.
 
 **Code Architecture**
 
-
-**Key Technical Concepts**
--   **Backend**: FastAPI, Pydantic, Motor (MongoDB).
--   **Frontend**: React, /, TailwindCSS.
--   **PDF Parsing**: Uso da biblioteca  () para extrair texto estruturado de arquivos PDF, uma nova capacidade crucial para a funcionalidade de importação.
--   **Lógica Condicional de Dados**: Implementação de um padrão de design onde o backend verifica a existência de dados pré-processados (do PGDAS) e os utiliza com prioridade, recorrendo ao cálculo em tempo real apenas como um fallback.
-
-**key DB schema**
--   **companies**: { : list[str], : bool, : bool, : list[dict], : datetime, ... }
 
 **All files of reference**
 *   
@@ -102,46 +107,41 @@ N/A (As tarefas em progresso estão listadas como issues).
 *   
 *   
 *   
+*   
 
 **Critical Info for New Agent**
--   A prioridade máxima é verificar a última alteração na UI do .
--   O usuário tem adicionado requisitos de forma iterativa. Esteja preparado para finalizar uma tarefa e receber um novo pedido de funcionalidade em seguida.
--   A ferramenta de  tem se mostrado instável devido a expiração rápida de sessão. Se falhar, use  para verificar o backend e descreva a verificação da UI que você *tentaria* fazer.
--   A lógica de priorizar dados do PGDAS sobre os cálculos em tempo real é um pilar do novo módulo. Mantenha este comportamento.
-
-**documents and test reports created in this job**
-- N/A
+-   A integração SIEG está **bloqueada** aguardando o usuário. Não tente depurar a conexão até que o usuário confirme que a chave de API está ativa e corretamente configurada em sua conta SIEG. O foco deve ser nas outras tarefas.
+-   O módulo RET foi **unificado**. A página  foi deletada. Todas as empresas agora usam a rota  que aponta para o componente .
+-   O usuário é muito iterativo. Espere por feedback e novos requisitos após a conclusão de cada tarefa. Teste bem as funcionalidades antes de finalizar.
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **Usuário**: vamos personalizar o dash do simples... - Solicitou a remoção de cards irrelevantes (PIS, COFINS) e a adição de cards mais pertinentes (DAS, DIFAL, etc.) no Dashboard do Simples Nacional. (Status: IN PROGRESS)
-9. **Agente**: Finalizou a implementação do DIFAL e RET para o Simples Nacional. (Status: COMPLETED)
-8. **Usuário**: Deu o aval para a implementação do DIFAL e RET. Forneceu regras de negócio cruciais: DIFAL não se aplica a produtos com ST e incide sobre revenda, despesas e ativo. (Status: COMPLETED)
-7. **Agente**: Solicitou esclarecimentos sobre os requisitos para o DIFAL e o RET no Simples Nacional. (Status: RESOLVED)
-6. **Usuário**: no simples nacional. tbm tem que ter o RET... e vamos criar o menu DIFAL... - Solicitou a criação de duas novas funcionalidades principais: um comparativo de regimes (RET) para o Simples e um módulo completo de apuração de DIFAL. (Status: COMPLETED)
-5. **Agente**: Finalizou a implementação da importação do PGDAS. (Status: COMPLETED)
-4. **Usuário**: Forneceu um PDF de exemplo do PGDAS e confirmou requisitos sobre como os dados importados devem interagir com os dados do sistema. (Status: COMPLETED)
-3. **Agente**: Solicitou esclarecimentos sobre a funcionalidade de importação do PGDAS. (Status: RESOLVED)
-2. **Usuário**: O HISTORICO DE 12 MESES PODE SER IMPORTADO VIA PGDAS... - Solicitou uma nova funcionalidade para importar o histórico de faturamento de um PDF do PGDAS. (Status: COMPLETED)
-1. **Usuário**: no cadastro da empresa, precisa estar claro quais anexos a empresa se enquadra... - Solicitou melhorias na página de cadastro de empresas para sugerir e gerenciar os Anexos do Simples Nacional e controlar o Fator R. (Status: COMPLETED)
+10. **Usuário**: Pediu para criar relatórios exportáveis de ICMS/PIS/COFINS agrupados por alíquota. (Status: CONCLUÍDO)
+9.  **Usuário**: Pediu para mover a integração SIEG da seleção de empresa para o menu Documentos. (Status: CONCLUÍDO)
+8.  **Usuário**: Pediu para melhorar o modal de seleção de empresas com busca e ordenação. (Status: CONCLUÍDO)
+7.  **Usuário**: Pediu para unificar o RET do Simples Nacional, tornando-o idêntico ao dos outros regimes (com abas). (Status: CONCLUÍDO)
+6.  **Usuário**: Reportou um erro na página RET e lógica incorreta na projeção anual. (Status: CONCLUÍDO)
+5.  **Usuário**: Reportou que a lógica dos cards no dashboard principal estava errada e fez novas solicitações. (Status: CONCLUÍDO)
+4.  **Usuário**: Forneceu uma nova chave SIEG, que também falhou. (Status: BLOQUEADO)
+3.  **Usuário**: Pediu para habilitar o menu Indicadores para empresas do Simples. (Status: CONCLUÍDO)
+2.  **Usuário**: Reportou que a integração SIEG não estava funcionando. (Status: BLOQUEADO)
+1.  **Usuário**: Pediu para adicionar regras de classificação automática (CFOP) na importação de documentos via IA. (Status: EM ANDAMENTO)
 
 **Project Health Check:**
--   **Broken**: A ferramenta de  é instável devido a sessões de login que expiram rapidamente, tornando a verificação da UI em múltiplos passos difícil.
--   **Mocked**: A funcionalidade de upload do Certificado Digital () ainda possui apenas a UI, sem a lógica de backend.
-
-**3rd Party Integrations**
--   : Para LLMs (não utilizado ativamente nesta sessão).
--   : Nova dependência adicionada ao backend para extrair texto de arquivos PDF.
+-   **Broken**: A integração com o SIEG está inoperante devido a uma chave de API inválida (problema externo).
+-   **Mocked**: A funcionalidade de upload do Certificado Digital () em  ainda é apenas UI.
 
 **Testing status**
 -   **Testing agent used after significant changes**: NO
--   **Test files created**: N/A
+-   **Test files created**: []
 -   **Known regressions**: Nenhuma.
 
 **Credentials to test flow:**
 -   **Email**: 
 -   **Senha**: 
--   **Empresa de Teste**: EMPRESA SIMPLES TESTE LTDA
+-   **Empresa Simples**: EMPRESA SIMPLES TESTE LTDA
+-   **Empresa Teste (SIEG)**: COMERCIAL RS LTDA
 
 **What agent forgot to execute**
--   Implementar a funcionalidade de ordenação em todas as colunas de todas as tabelas, uma tarefa pendente do início do fork.
--   Remover os arquivos de componentes obsoletos ( e ).</analysis>
+-   Adicionar a mensagem de aviso no RET sobre dados incompletos para o cálculo do Lucro Real. O agente pensou na ideia, mas não a implementou.
+-   Remover os arquivos obsoletos (, ).
+-   Implementar a ordenação em todas as colunas de todas as tabelas (tarefa pendente de longa data).</analysis>
