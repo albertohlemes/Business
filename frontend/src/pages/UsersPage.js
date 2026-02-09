@@ -176,17 +176,53 @@ const UsersPage = ({ user, onLogout }) => {
     return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
   };
 
-  const filteredUsers = users.filter(u => {
-    const matchesSearch = 
-      u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredUsers = useMemo(() => {
+    let result = users.filter(u => {
+      const matchesSearch = 
+        u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesRole = filterRole === 'all' || 
+        (filterRole === 'master' && (u.role === 'master' || u.role === 'admin' || u.role === 'super_admin')) ||
+        (filterRole === 'operacional' && (u.role === 'operacional' || u.role === 'client'));
+      
+      return matchesSearch && matchesRole;
+    });
     
-    const matchesRole = filterRole === 'all' || 
-      (filterRole === 'master' && (u.role === 'master' || u.role === 'admin' || u.role === 'super_admin')) ||
-      (filterRole === 'operacional' && (u.role === 'operacional' || u.role === 'client'));
+    // Ordenação
+    result.sort((a, b) => {
+      let aVal = a[sortField] || '';
+      let bVal = b[sortField] || '';
+      
+      if (typeof aVal === 'string') {
+        aVal = aVal.toLowerCase();
+        bVal = (bVal || '').toLowerCase();
+      }
+      
+      if (sortDirection === 'asc') {
+        return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+      }
+      return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+    });
     
-    return matchesSearch && matchesRole;
-  });
+    return result;
+  }, [users, searchTerm, filterRole, sortField, sortDirection]);
+  
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+  
+  const SortIndicator = ({ field }) => {
+    if (sortField !== field) return null;
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="w-3 h-3 inline ml-1" />
+      : <ArrowDown className="w-3 h-3 inline ml-1" />;
+  };
 
   return (
     <Layout user={user} onLogout={onLogout}>
