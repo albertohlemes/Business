@@ -237,17 +237,6 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Botão RET - Comparativo de Regimes */}
-            <button
-              onClick={() => {
-                setShowRetModal(true);
-                fetchComparativoRegimes();
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-purple-500/20 text-purple-300 rounded font-medium hover:bg-purple-500/30 transition-all border border-purple-500/30"
-            >
-              <Scale className="w-4 h-4" />
-              RET
-            </button>
             {/* Botão Importar PGDAS */}
             <button
               onClick={() => {
