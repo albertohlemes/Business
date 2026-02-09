@@ -21,6 +21,10 @@ export const AppProvider = ({ children }) => {
   const [showSelector, setShowSelector] = useState(false);
   const [loading, setLoading] = useState(true);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  // Flag para controlar se o usuário já fez a seleção inicial nesta sessão
+  const [hasCompanySelection, setHasCompanySelection] = useState(() => {
+    return !!localStorage.getItem('selectedCompanyId');
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -43,8 +47,9 @@ export const AppProvider = ({ children }) => {
       setSelectedCompetencia(`${month}/${year}`);
     }
     
+    // Marcar que temos uma seleção prévia
     if (savedCompany) {
-      // Será carregado quando companies estiver disponível
+      setHasCompanySelection(true);
     }
   }, []);
 
