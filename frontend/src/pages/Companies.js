@@ -62,8 +62,16 @@ const Companies = ({ user, onLogout }) => {
     apura_icms_st: false,
     // Classificação inteligente
     classificacao_inteligente: '',
+    // Presunção geral (para atividade única)
     percentual_presuncao_irpj: 8.0,
     percentual_presuncao_csll: 12.0,
+    // Presunção por atividade (para atividade mista)
+    percentual_presuncao_irpj_comercio: 8.0,
+    percentual_presuncao_csll_comercio: 12.0,
+    percentual_presuncao_irpj_servico: 32.0,
+    percentual_presuncao_csll_servico: 32.0,
+    percentual_presuncao_irpj_industria: 8.0,
+    percentual_presuncao_csll_industria: 12.0,
     responsavel_ids: [],
     // Certificado Digital
     certificado_digital_arquivo: '',
@@ -73,7 +81,7 @@ const Companies = ({ user, onLogout }) => {
   
   const [formData, setFormData] = useState(emptyFormData);
   const [keywordInputs, setKeywordInputs] = useState({
-    produto: '', insumo: '', despesa: '', ativo: '', combustivel: '', servico: ''
+    produto: '', insumo: '', despesa: '', ativo: '', combustivel: '', servico: '', cnae: ''
   });
   const [showCertificadoSenha, setShowCertificadoSenha] = useState(false);
 
