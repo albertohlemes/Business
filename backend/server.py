@@ -9261,7 +9261,18 @@ Se o comando não for claro, retorne {{"alteracoes": [], "erro": "mensagem expli
         }
         
     except Exception as e:
+        error_msg = str(e)
         logger.error(f"Erro ao classificar com IA: {e}")
+        
+        # Verificar se é erro de budget
+        if 'budget' in error_msg.lower() or 'exceeded' in error_msg.lower():
+            return {
+                "success": False, 
+                "message": "Budget da IA excedido. Adicione mais créditos em Perfil → Universal Key → Add Balance",
+                "alteracoes": [],
+                "budget_error": True
+            }
+        
         return {"success": False, "message": f"Erro ao processar com IA: {str(e)}", "alteracoes": []}
 
 @api_router.get("/reports/by-ncm/{company_id}")
