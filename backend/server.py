@@ -189,6 +189,9 @@ class CompanyCreate(BaseModel):
     equiparado_industria: bool = False
     apura_icms: bool = False
     apura_icms_st: bool = False
+    # Flags de desconsiderar ICMS
+    desconsiderar_icms_despesas: bool = False
+    desconsiderar_icms_st: bool = False
     # Presunção geral
     percentual_presuncao_irpj: float = 8.0
     percentual_presuncao_csll: float = 12.0
