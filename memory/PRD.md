@@ -114,6 +114,26 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 
 ## Changelog
 
+### v2.10.0 (09/02/2026) - Dashboard Dinâmico e Flags ICMS
+
+**Dashboard Dinâmico:**
+- Impostos mostrados baseado no perfil da empresa:
+  - ICMS: comercio, industria, mista ou flag apura_icms
+  - ISS: servicos ou mista
+  - PIS/COFINS: sempre visível
+- Total de impostos mostra apenas impostos relevantes
+- Percentuais sobre faturamento e sobre vendas adicionados
+
+**Flags de Desconsiderar ICMS (Cadastro de Empresas):**
+- **Desconsiderar ICMS CFOPs Despesas**: Zera base e ICMS de CFOPs de despesa
+- **Desconsiderar ICMS sobre Operações ST**: Zera base e ICMS de CFOPs de mercadorias ST
+- Flags afetam: Apuração ICMS, Dashboard e RET
+- Ao desmarcar, valores voltam automaticamente
+
+**Apuração ICMS:**
+- Indicador visual das flags ativas
+- Link para configurar em Cadastro de Empresas
+
 ### v2.9.0 (09/02/2026) - RET Completo e CNAEs Secundários Automáticos
 
 **CNAEs Secundários Automáticos:**
