@@ -15163,11 +15163,12 @@ async def inteligencia_tributaria(
     lucro_bruto = faturamento - cmv
     
     # Lucro Contábil = Lucro Bruto - Despesa Real (informada pelo usuário)
-    # Se despesa_real for 0, usa cálculo simplificado (faturamento - compras)
+    # Se despesa_real for 0, considera lucro bruto (sem deduzir despesas)
     if despesa_real > 0:
         lucro_contabil = lucro_bruto - despesa_real
     else:
-        lucro_contabil = faturamento - compras - real_icms - real_pis - real_cofins
+        # Sem despesa informada, usa lucro bruto
+        lucro_contabil = lucro_bruto
     
     lucro_contabil = max(0, lucro_contabil)  # Não pode ser negativo para IR
     
