@@ -77,51 +77,70 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-11 (Sessão Atual)
+### 2026-02-11 (Sessão 2 - Atual)
+- ✅ **Novo componente DocumentDetailModal** - visualização detalhada de NF
+  - Comparativo Capa NF × Produtos
+  - Indicadores verde (OK) / vermelho (divergência)
+  - Tabela completa: NCM, CFOP, CST, bases, impostos
+- ✅ **Barra de progresso flutuante** - não bloqueia navegação durante importação
+- ✅ **Filtro de divergências** na listagem de documentos (Todos/Divergente/OK)
+- ✅ **Modal de edição de produto** na tela de Classificação Inteligente
+- ✅ **Links para NFs** nos produtos agrupados
+- ✅ **Endpoint /products/classify-single** - reclassifica produto e atualiza CFOP
+- ✅ **Classificação IA atualiza CFOP** além da categoria
+- ✅ **Divergências PIS/COFINS apenas SAÍDA** - corrigido filtro
+- ✅ **Indicadores para Lucro Presumido** - corrigida busca de dados
+- ✅ **Componente SortableTable** - ordenação reutilizável criada
+- ✅ 15/15 testes backend passaram (iteration_38)
+
+### 2026-02-11 (Sessão 1)
 - ✅ **CORRIGIDO: Cálculo do DAS no Dashboard do Simples Nacional**
-  - O valor do DAS estava retornando R$ 0,00 mesmo com faturamento
-  - Causa: Descontos de ICMS-ST e PIS/COFINS calculados incorretamente
-  - Solução: Fórmula corrigida para `desconto = valor_produtos × alíquota_efetiva × (% tributo / 100)`
-  - Resultado: DAS da E.L.M. em 01/2026 = R$ 6.173,67 (verificado por testes automatizados)
-- ✅ Adicionadas funções `is_ncm_monofasico` e `is_ncm_cesta_basica` para melhor classificação
-- ✅ Separação de produtos em 3 categorias: ST, monofásicos, alíquota zero
-- ✅ Proteção: descontos não podem exceder o valor bruto do DAS
-- ✅ Criado teste automatizado: `/app/backend/tests/test_simples_nacional_das.py`
-- 🔄 Modal de seleção de empresa: melhorada lógica de fechamento (em validação)
+  - Fórmula corrigida: `desconto = valor_produtos × alíquota_efetiva × (% tributo / 100)`
+  - DAS E.L.M. 01/2026 = R$ 6.173,67 ✓
+- ✅ Funções `is_ncm_monofasico` e `is_ncm_cesta_basica`
+- ✅ Separação: ST, monofásicos, alíquota zero
+- ✅ Proteção: descontos ≤ DAS bruto
 
 ### 2026-02-09 (Sessão 2)
-- ✅ Alertas de CFOP agrupados por CFOP (não por documento)
-- ✅ Ação em lote para classificação de CFOPs
-- ✅ Edição manual de CFOP com campo de input
-- ✅ Novos endpoints: `/alertas-cfop/agrupado`, `/alertas-cfop/resolver-grupo`
+- ✅ Alertas de CFOP agrupados por CFOP
+- ✅ Ação em lote para classificação
+- ✅ Edição manual de CFOP
 
 ### 2026-02-09 (Sessão 1)
-- ✅ Adicionada barra de progresso com contador tomando café
-- ✅ Corrigido erro de exportação de relatórios (io not defined)
-- ✅ Refeito frontend dos Alertas de CFOP
-- ✅ Adicionado upload de logo da empresa
-- ✅ Adicionado aviso no RET para dados incompletos
-- ✅ Removidos arquivos obsoletos (AlertasCfop.js, ClassificacaoPage.js)
+- ✅ Barra de progresso com contador tomando café
+- ✅ Upload de logo da empresa
+- ✅ Aviso no RET para dados incompletos
 
 ## Backlog
 
-### P0 - Crítico
-- [x] ~~Corrigir cálculo do DAS no Simples Nacional~~ ✅ CONCLUÍDO
+### P0 - Crítico (CONCLUÍDO)
+- [x] ~~Cálculo do DAS~~ ✅
+- [x] ~~Visualização detalhada de NF~~ ✅
+- [x] ~~Classificação IA atualizando CFOP~~ ✅
+- [x] ~~Barra de progresso não bloqueante~~ ✅
 
-### P1 - Alta Prioridade
-- [ ] Upload de Certificado Digital (.pfx) - backend
-- [ ] Integração SIEG - aguardando chave válida
-- [ ] Corrigir modal de seleção de empresa (aparece em páginas inesperadas)
-- [ ] Corrigir exportação de relatórios (problema recorrente)
+### P1 - Alta Prioridade (Em Progresso)
+- [x] ~~Modal de edição de produtos clicável~~ ✅
+- [x] ~~Links de NFs nos produtos~~ ✅
+- [x] ~~Divergências PIS/COFINS só saídas~~ ✅
+- [x] ~~Indicadores Lucro Presumido~~ ✅
+- [ ] Vilões e Oportunidades ICMS com % entrada/saída
+- [ ] Insights IA no menu Indicadores
+- [ ] Modal de seleção de empresa (bug de usabilidade)
+- [ ] Exportação de relatórios (problema recorrente)
 
 ### P2 - Média Prioridade
-- [ ] Logo da empresa nos relatórios exportados
-- [ ] Ordenação em todas as colunas das tabelas
+- [ ] **Ordenação em TODAS as colunas** - componente criado, falta aplicar
+- [ ] Gráfico proporção vendas no Dashboard Simples (alíquota zero, ST, tributado)
+- [ ] Relatório exportação por agrupamento de produtos (NCM, valor, base legal)
+- [ ] Logo nos relatórios exportados
+- [ ] Upload de Certificado Digital (.pfx)
 
 ### P3 - Baixa Prioridade
 - [ ] Refatorar server.py em routers
 - [ ] Sistema de licenças comerciais
-- [ ] Dashboard de estatísticas para Master
+- [ ] Dashboard estatísticas Master
+- [ ] Integração SIEG (BLOQUEADO - chave inválida)
 
 ## Credenciais de Teste
 - Email: admin@test.com
