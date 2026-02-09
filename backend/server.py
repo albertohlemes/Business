@@ -9852,6 +9852,94 @@ async def get_classification_suggestions(
         "sugestoes": sugestoes
     }
 
+@api_router.post("/products/classify-single")
+async def classificar_produto_individual(
+    document_id: str = Body(...),
+    product_idx: int = Body(...),
+    nova_categoria: str = Body(...),
+    salvar_regra: bool = Body(False),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Reclassifica um produto individual em um documento específico.
+    """
+    doc = await db.xml_documents.find_one({"id": document_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    
+    produtos = doc.get('produtos', [])
+    if product_idx >= len(produtos):
+        raise HTTPException(status_code=404, detail="Produto não encontrado")
+    
+    produto = produtos[product_idx]
+    categoria_anterior = produto.get('categoria_classificada', 'pendente')
+    
+    # Atualizar categoria
+    produtos[product_idx]['categoria_classificada'] = nova_categoria
+    produtos[product_idx]['categoria_origem'] = 'manual_user'
+    produtos[product_idx]['categoria_classificada_em'] = datetime.now(timezone.utc).isoformat()
+    produtos[product_idx]['categoria_classificada_por'] = current_user.id
+    
+    # Atualizar CFOP baseado na categoria
+    cfop_novo = obter_cfop_por_categoria(nova_categoria, produto.get('cfop', ''))
+    if cfop_novo:
+        produtos[product_idx]['cfop'] = cfop_novo
+        produtos[product_idx]['cfop_anterior'] = produto.get('cfop', '')
+    
+    await db.xml_documents.update_one(
+        {"id": document_id},
+        {"$set": {"produtos": produtos}}
+    )
+    
+    # Salvar regra se solicitado
+    if salvar_regra:
+        descricao_produto = produto.get('descricao', '')[:100].lower()
+        regra_existente = await db.learned_rules.find_one({
+            "company_id": doc.get('company_id'),
+            "descricao_produto": descricao_produto
+        })
+        
+        if not regra_existente:
+            await db.learned_rules.insert_one({
+                "id": str(uuid.uuid4()),
+                "company_id": doc.get('company_id'),
+                "descricao_produto": descricao_produto,
+                "ncm": produto.get('ncm', ''),
+                "categoria": nova_categoria,
+                "cfop_sugerido": cfop_novo,
+                "aprendido_de": "user_manual_classification",
+                "created_by": current_user.id,
+                "created_at": datetime.now(timezone.utc)
+            })
+    
+    return {
+        "success": True,
+        "message": f"Produto reclassificado de {categoria_anterior} para {nova_categoria}",
+        "categoria_anterior": categoria_anterior,
+        "categoria_nova": nova_categoria,
+        "cfop_novo": cfop_novo
+    }
+
+
+def obter_cfop_por_categoria(categoria: str, cfop_atual: str) -> str:
+    """
+    Retorna o CFOP apropriado baseado na categoria do produto.
+    """
+    # Se o CFOP atual começa com 1 (entrada interestadual) ou 2 (entrada estadual)
+    prefixo = cfop_atual[0] if cfop_atual and len(cfop_atual) >= 1 else '1'
+    
+    mapeamento = {
+        'revenda': f'{prefixo}102',      # Compra para comercialização
+        'insumo': f'{prefixo}101',       # Compra para industrialização
+        'despesa': f'{prefixo}556',      # Uso e consumo
+        'ativo_imobilizado': f'{prefixo}551',  # Ativo imobilizado
+        'combustivel': f'{prefixo}653',  # Combustível
+        'servico': f'{prefixo}933',      # Serviço
+    }
+    
+    return mapeamento.get(categoria, '')
+
+
 @api_router.post("/classification/ia-command/{company_id}")
 async def classificar_produtos_ia(
     company_id: str,
