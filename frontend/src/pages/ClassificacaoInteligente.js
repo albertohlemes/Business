@@ -84,6 +84,19 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
   const [memoriaLoading, setMemoriaLoading] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
   const [deletingRule, setDeletingRule] = useState(null);
+  const [memoriaSearch, setMemoriaSearch] = useState('');
+  
+  // Filtrar regras pela busca
+  const memoriaFiltrada = memoriaData.filter(rule => {
+    if (!memoriaSearch) return true;
+    const termo = memoriaSearch.toLowerCase();
+    return (
+      (rule.descricao_produto || rule.padrao || '').toLowerCase().includes(termo) ||
+      (rule.ncm || '').includes(termo) ||
+      (rule.categoria || rule.categoria_correta || '').toLowerCase().includes(termo) ||
+      (rule.cfop || '').includes(termo)
+    );
+  });
 
   // Carregar dados
   useEffect(() => {
