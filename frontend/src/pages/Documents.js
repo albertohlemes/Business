@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import { useUpload } from '../context/UploadContext';
+import CoffeeProgress from '../components/CoffeeProgress';
 import * as XLSX from 'xlsx';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
