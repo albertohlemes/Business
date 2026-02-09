@@ -797,6 +797,66 @@ const Companies = ({ user, onLogout }) => {
               </div>
               
               <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                {/* Logo da Empresa */}
+                <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded p-4">
+                  <label className="block text-sm font-medium text-white mb-3">Logo da Empresa</label>
+                  <div className="flex items-center gap-4">
+                    {/* Preview do logo */}
+                    <div className="w-24 h-24 bg-[#0C0C0C] border-2 border-dashed border-[#2A2A2A] rounded-lg flex items-center justify-center overflow-hidden">
+                      {formData.logo_url ? (
+                        <img 
+                          src={formData.logo_url} 
+                          alt="Logo" 
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <Building2 className="w-10 h-10 text-[#666]" />
+                      )}
+                    </div>
+                    
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        ref={logoInputRef}
+                        onChange={handleLogoUpload}
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        className="hidden"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => logoInputRef.current?.click()}
+                          disabled={uploadingLogo}
+                          className="px-4 py-2 bg-[#C8A951]/20 text-[#C8A951] border border-[#C8A951]/30 rounded hover:bg-[#C8A951]/30 disabled:opacity-50 text-sm flex items-center gap-2"
+                        >
+                          {uploadingLogo ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                              Enviando...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4" />
+                              {formData.logo_url ? 'Trocar Logo' : 'Enviar Logo'}
+                            </>
+                          )}
+                        </button>
+                        {formData.logo_url && (
+                          <button
+                            type="button"
+                            onClick={removeLogo}
+                            className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded hover:bg-red-500/20 text-sm flex items-center gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Remover
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#A1A1AA] mt-2">PNG, JPG ou WEBP. Máximo 2MB.</p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Código da Empresa */}
                 <div className="bg-[#C8A951]/5 border border-[#C8A951]/20 rounded p-4">
                   <label className="block text-sm font-medium text-[#C8A951] mb-2">Código/ID da Empresa</label>
