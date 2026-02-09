@@ -1185,19 +1185,57 @@ const Documents = ({ user, onLogout }) => {
             </div>
           </div>
 
-          {/* Totalizador e Busca em linha */}
+          {/* Totalizador, Filtros e Busca em linha */}
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="flex items-center gap-6 py-2 px-4 bg-[#141414] rounded-lg border border-[#2A2A2A]">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#A1A1AA]" />
-                <span className="text-sm text-[#A1A1AA]">Documentos:</span>
-                <span className="text-sm font-semibold text-white">{totais.quantidade}</span>
+            <div className="flex items-center gap-4">
+              {/* Totalizador */}
+              <div className="flex items-center gap-4 py-2 px-3 bg-[#141414] rounded-lg border border-[#2A2A2A]">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-[#A1A1AA]" />
+                  <span className="text-sm text-[#A1A1AA]">Docs:</span>
+                  <span className="text-sm font-semibold text-white">{totais.quantidade}</span>
+                </div>
+                <div className="w-px h-4 bg-[#2A2A2A]" />
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-[#A1A1AA]" />
+                  <span className="text-sm font-semibold text-[#C8A951]">{formatCurrency(totais.valorTotal)}</span>
+                </div>
               </div>
-              <div className="w-px h-4 bg-[#2A2A2A]" />
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-[#A1A1AA]" />
-                <span className="text-sm text-[#A1A1AA]">Total:</span>
-                <span className="text-sm font-semibold text-[#C8A951]">{formatCurrency(totais.valorTotal)}</span>
+              
+              {/* Filtro de Divergências */}
+              <div className="flex items-center gap-1 p-1 bg-[#141414] rounded-lg border border-[#2A2A2A]">
+                <button
+                  onClick={() => setFilterDivergencia('all')}
+                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                    filterDivergencia === 'all' 
+                      ? 'bg-[#C8A951]/20 text-[#C8A951]' 
+                      : 'text-[#A1A1AA] hover:text-white'
+                  }`}
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => setFilterDivergencia('divergente')}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                    filterDivergencia === 'divergente' 
+                      ? 'bg-red-500/20 text-red-400' 
+                      : 'text-[#A1A1AA] hover:text-white'
+                  }`}
+                >
+                  <XCircle className="w-3 h-3" />
+                  Divergente
+                </button>
+                <button
+                  onClick={() => setFilterDivergencia('ok')}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                    filterDivergencia === 'ok' 
+                      ? 'bg-emerald-500/20 text-emerald-400' 
+                      : 'text-[#A1A1AA] hover:text-white'
+                  }`}
+                >
+                  <CheckCircle className="w-3 h-3" />
+                  OK
+                </button>
               </div>
             </div>
             
