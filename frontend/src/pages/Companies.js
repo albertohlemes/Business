@@ -55,6 +55,9 @@ const Companies = ({ user, onLogout }) => {
     combustivel: [],
     regime_tributario: 'lucro_presumido',
     anexos_simples: [],
+    anexos_confirmados: false,
+    controla_fator_r: false,
+    folha_pagamento_12m: 0,
     tipo_atividade: 'comercio',
     tipos_servico: [],
     // Perfis comerciais (múltipla escolha)
