@@ -410,33 +410,26 @@ const UploadXML = ({ user, onLogout }) => {
 
   return (
     <Layout user={user} onLogout={onLogout}>
-      {/* Barra de progresso fixa no topo - usa dados do contexto global */}
+      {/* Animação do Contador tomando café - progresso de upload */}
       {(uploading || globalUploading) && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#141414] to-orange-600 text-white shadow-lg">
-          <div className="max-w-5xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <Loader2 className="w-6 h-6 animate-spin" />
-                <div>
-                  <p className="font-bold">Importando XMLs...</p>
-                  <p className="text-sm text-red-200">
-                    {globalProgress.current} de {globalProgress.total} arquivos processados
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-3xl font-bold">{globalProgress.percent}%</p>
-              </div>
-            </div>
-            <div className="w-full h-3 bg-[#141414]/30 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-[#141414] rounded-full transition-all duration-300"
-                style={{ width: `${globalProgress.percent}%` }}
+        <div className="fixed top-0 left-0 right-0 z-50 bg-[#141414]/95 backdrop-blur-sm shadow-lg border-b-2 border-[#C8A951]">
+          <div className="max-w-5xl mx-auto px-6 py-2">
+            <div className="flex items-center gap-6">
+              <CoffeeProgress 
+                progress={globalProgress.percent} 
+                message={`Importando ${globalProgress.current} de ${globalProgress.total} arquivos...`}
+                showPercentage={true}
               />
+              <div className="flex-1 text-left">
+                <p className="text-white font-bold text-lg">Importando XMLs</p>
+                <p className="text-[#A1A1AA] text-sm">
+                  {globalProgress.current} de {globalProgress.total} arquivos processados
+                </p>
+                <p className="text-xs text-[#666] mt-1">
+                  💡 Você pode navegar para outras páginas. O progresso será exibido no canto inferior direito.
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-red-200 mt-2">
-              💡 Você pode navegar para outras páginas. O progresso será exibido no canto inferior direito.
-            </p>
           </div>
         </div>
       )}
