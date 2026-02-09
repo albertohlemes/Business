@@ -22,6 +22,7 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
   const [editingFolha, setEditingFolha] = useState(false);
   const [folhaValue, setFolhaValue] = useState('');
   const [savingFolha, setSavingFolha] = useState(false);
+  const [exportingProdutos, setExportingProdutos] = useState(false);
   
   // Estados para importação PGDAS
   const [showPgdasModal, setShowPgdasModal] = useState(false);
@@ -35,6 +36,40 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
   const [retData, setRetData] = useState(null);
   const [loadingRet, setLoadingRet] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Função para exportar produtos agrupados
+  const exportarProdutosAgrupados = async () => {
+    if (!selectedCompany?.id || !selectedCompetencia) return;
+    
+    setExportingProdutos(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/simples-nacional/${selectedCompany.id}/exportar-produtos?competencia=${encodeURIComponent(selectedCompetencia)}&formato=xlsx`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      );
+      
+      // Download do arquivo
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `produtos_simples_${selectedCompetencia.replace('/', '-')}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Relatório exportado com sucesso!');
+    } catch (err) {
+      console.error('Erro ao exportar:', err);
+      toast.error('Erro ao exportar relatório');
+    } finally {
+      setExportingProdutos(false);
+    }
+  };
   
   // Obter ano e mês da competência selecionada
   const getCompetenciaInfo = useCallback(() => {
