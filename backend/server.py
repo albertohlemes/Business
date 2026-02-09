@@ -5607,16 +5607,29 @@ async def get_dashboard_stats(
     
     logger.info(f"DASHBOARD: Documentos encontrados = {len(documents)}")
     
-    # Buscar aprovações do localStorage (persistidas no backend se houver)
-    # Por enquanto, vamos calcular baseado no status_validacao
+    # Tipo de atividade da empresa para filtrar documentos relevantes
+    tipo_atividade = company.get('tipo_atividade', 'comercio')
     
-    # Contadores por tipo
-    nfe_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', 'nfe') == 'nfe']
-    nfe_saida = [d for d in documents if d.get('tipo') == 'saida' and d.get('modelo', 'nfe') == 'nfe']
-    nfce = [d for d in documents if d.get('modelo') == 'nfce']
-    nfse = [d for d in documents if d.get('modelo') == 'nfse']
+    # Contadores por tipo e modelo de documento
+    # ENTRADAS
+    nfe_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', 'nfe') in ['nfe', 'NFe', 'NF-e']]
+    cte_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', '').lower() in ['cte', 'ct-e']]
+    nfse_tomados = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', '').lower() in ['nfse', 'nfs-e']]
     
-    logger.info(f"DASHBOARD: NFe Entrada={len(nfe_entrada)}, NFe Saída={len(nfe_saida)}, NFCe={len(nfce)}, NFSe={len(nfse)}")
+    # SAÍDAS - filtrar por atividade
+    nfe_saida = [d for d in documents if d.get('tipo') == 'saida' and d.get('modelo', 'nfe') in ['nfe', 'NFe', 'NF-e']]
+    nfce = [d for d in documents if d.get('modelo', '').lower() in ['nfce', 'nfc-e']]
+    cte_saida = [d for d in documents if d.get('tipo') == 'saida' and d.get('modelo', '').lower() in ['cte', 'ct-e']]
+    
+    # NFS-e prestados (serviços próprios) - só mostrar se empresa presta serviços
+    nfse_prestados = []
+    if tipo_atividade in ['servicos', 'mista']:
+        nfse_prestados = [d for d in documents if d.get('tipo') == 'saida' and d.get('modelo', '').lower() in ['nfse', 'nfs-e']]
+    
+    # Compatibilidade com código anterior
+    nfse = nfse_prestados
+    
+    logger.info(f"DASHBOARD: NFe Entrada={len(nfe_entrada)}, NFe Saída={len(nfe_saida)}, NFCe={len(nfce)}, NFSe Prestados={len(nfse_prestados)}, CTe={len(cte_entrada)}, NFSe Tomados={len(nfse_tomados)}")
     
     # Valores totais - SOMAR valor_total dos documentos pelo TIPO
     # Isso garante consistência com o relatório de documentos exportado
