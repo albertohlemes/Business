@@ -94,7 +94,10 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **Insights IA** - corrigida referência de campo (insights_ia)
 - ✅ **Gráfico composição vendas** no Dashboard Simples (tributado/ST/mono/zero)
 - ✅ **Componente SortableTable** - ordenação reutilizável criada
-- ✅ 29/29 testes backend passaram (iteration_38 + iteration_39)
+- ✅ **Ordenação na página Companies** - código, razão, CNPJ, regime
+- ✅ **Relatório de Produtos Agrupados** - exportação XLSX com NCM, valor, base legal
+- ✅ **Botão exportar** no card de Composição de Vendas
+- ✅ 45/45 testes backend passaram (iterations 38, 39, 40)
 
 ### 2026-02-11 (Sessão 1)
 - ✅ **CORRIGIDO: Cálculo do DAS no Dashboard do Simples Nacional**
@@ -130,12 +133,12 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [x] ~~Vilões e Oportunidades ICMS com % entrada/saída~~ ✅
 - [x] ~~Insights IA no menu Indicadores~~ ✅
 - [x] ~~Gráfico proporção vendas no Dashboard Simples~~ ✅
-- [ ] Modal de seleção de empresa (bug de usabilidade)
-- [ ] Exportação de relatórios (problema recorrente)
+- [x] ~~Relatório exportação por agrupamento de produtos~~ ✅
+- [ ] Modal de seleção de empresa (bug de usabilidade - afeta apenas testes automatizados)
 
 ### P2 - Média Prioridade
-- [ ] **Ordenação em TODAS as colunas** - componente criado, falta aplicar
-- [ ] Relatório exportação por agrupamento de produtos (NCM, valor, base legal)
+- [x] ~~Ordenação em Companies~~ ✅
+- [ ] Ordenação nas demais páginas (Documents já tem)
 - [ ] Logo nos relatórios exportados
 - [ ] Upload de Certificado Digital (.pfx)
 
