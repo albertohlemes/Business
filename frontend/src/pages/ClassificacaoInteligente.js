@@ -384,11 +384,19 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
 
   // Configuração das categorias de classificação
   const categoriasConfig = {
-    revenda: { label: 'Revenda', color: 'blue', icon: '🛒' },
-    insumo: { label: 'Insumo', color: 'green', icon: '⚙️' },
-    despesa: { label: 'Despesa', color: 'red', icon: '📋' },
+    revenda: { label: 'Compra para Revenda', color: 'blue', icon: '🛒' },
+    insumo: { label: 'Compra para Industrialização', color: 'green', icon: '⚙️' },
+    despesa: { label: 'Uso e Consumo', color: 'red', icon: '📋' },
     ativo_imobilizado: { label: 'Ativo Imobilizado', color: 'amber', icon: '🏭' },
     combustivel: { label: 'Combustível', color: 'purple', icon: '⛽' },
+    bonificacao: { label: 'Bonificação/Doação', color: 'green', icon: '🎁' },
+    amostra_gratis: { label: 'Amostra Grátis', color: 'green', icon: '🧪' },
+    energia_eletrica: { label: 'Energia Elétrica', color: 'amber', icon: '⚡' },
+    servico_tomado: { label: 'Serviço Tomado', color: 'purple', icon: '🔧' },
+    servico_aplicacao: { label: 'Aplicação em Serviços', color: 'purple', icon: '🛠️' },
+    servico_comunicacao: { label: 'Serviço de Comunicação', color: 'blue', icon: '📡' },
+    servico_transporte: { label: 'Serviço de Transporte', color: 'blue', icon: '🚚' },
+    outros: { label: 'Outras Operações', color: 'gray', icon: '📦' },
     pendente: { label: 'Pendente de Classificação', color: 'gray', icon: '❓' }
   };
 
