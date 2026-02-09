@@ -384,7 +384,8 @@ def calcular_reparticao_tributos(valor_das: float, anexo: str, faixa: int) -> di
 
 
 def calcular_das_periodo(faturamento_periodo: float, rbt12: float, anexo: str,
-                         produtos_st: float = 0, produtos_monofasicos: float = 0) -> dict:
+                         produtos_st: float = 0, produtos_monofasicos: float = 0,
+                         produtos_aliquota_zero: float = 0) -> dict:
     """
     Calcula o DAS de um período (mês).
     
@@ -394,15 +395,35 @@ def calcular_das_periodo(faturamento_periodo: float, rbt12: float, anexo: str,
         anexo: Anexo do Simples (I, II, III, IV, V)
         produtos_st: Valor de produtos com Substituição Tributária (desconta ICMS)
         produtos_monofasicos: Valor de produtos monofásicos (desconta PIS/COFINS)
+        produtos_aliquota_zero: Valor de produtos com alíquota zero de PIS/COFINS
+    
+    O cálculo do DAS no Simples Nacional para produtos com ST/monofásicos funciona assim:
+    1. A receita total é tributada normalmente pela alíquota efetiva
+    2. O desconto é a parcela do tributo específico (ICMS ou PIS/COFINS) que seria 
+       cobrada sobre os produtos isentos
+    
+    Fórmula do desconto:
+    - Desconto ICMS = produtos_st × alíquota_efetiva × (% ICMS na repartição / 100)
+    - Desconto PIS/COFINS = produtos_monofasicos × alíquota_efetiva × (% PIS + % COFINS na repartição / 100)
     """
     aliquota_info = calcular_aliquota_efetiva(rbt12, anexo)
     aliquota = aliquota_info["aliquota_efetiva"]
     faixa = aliquota_info["faixa"]
     
-    # Valor bruto do DAS
+    # Valor bruto do DAS (sobre toda a receita)
     valor_das_bruto = faturamento_periodo * (aliquota / 100)
     
-    # Repartição dos tributos
+    # Obter percentuais de repartição da tabela do anexo/faixa
+    reparticoes = {
+        "I": REPARTICAO_ANEXO_I,
+        "II": REPARTICAO_ANEXO_II,
+        "III": REPARTICAO_ANEXO_III,
+        "IV": REPARTICAO_ANEXO_IV,
+        "V": REPARTICAO_ANEXO_V,
+    }
+    reparticao_percentuais = reparticoes.get(anexo, REPARTICAO_ANEXO_I).get(faixa, {})
+    
+    # Calcular repartição em valores absolutos (para exibição)
     reparticao = calcular_reparticao_tributos(valor_das_bruto, anexo, faixa)
     
     # Descontos
@@ -410,15 +431,29 @@ def calcular_das_periodo(faturamento_periodo: float, rbt12: float, anexo: str,
     desconto_pis_cofins = 0
     
     # ICMS-ST: produtos com substituição não pagam ICMS no DAS
-    if produtos_st > 0 and "icms" in reparticao:
-        aliq_icms_no_das = reparticao.get("icms", 0) / valor_das_bruto * 100 if valor_das_bruto > 0 else 0
-        desconto_icms = produtos_st * (aliq_icms_no_das / 100)
+    # Desconto = valor dos produtos ST × (alíquota efetiva) × (% ICMS na repartição / 100)
+    if produtos_st > 0:
+        percentual_icms = reparticao_percentuais.get("icms", 0)  # % do ICMS na composição do DAS
+        # A alíquota de ICMS sobre os produtos ST seria: alíquota_efetiva × (% ICMS / 100)
+        aliquota_icms_efetiva = aliquota * (percentual_icms / 100)
+        desconto_icms = produtos_st * (aliquota_icms_efetiva / 100)
     
-    # Monofásicos: não pagam PIS/COFINS no DAS
-    if produtos_monofasicos > 0:
-        percentual_pis = reparticao.get("pis", 0) / valor_das_bruto * 100 if valor_das_bruto > 0 else 0
-        percentual_cofins = reparticao.get("cofins", 0) / valor_das_bruto * 100 if valor_das_bruto > 0 else 0
-        desconto_pis_cofins = produtos_monofasicos * ((percentual_pis + percentual_cofins) / 100)
+    # Monofásicos e Alíquota Zero: não pagam PIS/COFINS no DAS
+    # Desconto = valor dos produtos × (alíquota efetiva) × (% PIS + % COFINS na repartição / 100)
+    total_isento_pis_cofins = produtos_monofasicos + produtos_aliquota_zero
+    if total_isento_pis_cofins > 0:
+        percentual_pis = reparticao_percentuais.get("pis", 0)
+        percentual_cofins = reparticao_percentuais.get("cofins", 0)
+        aliquota_pis_cofins_efetiva = aliquota * ((percentual_pis + percentual_cofins) / 100)
+        desconto_pis_cofins = total_isento_pis_cofins * (aliquota_pis_cofins_efetiva / 100)
+    
+    # Garantir que os descontos não excedam o valor bruto do DAS
+    total_descontos = desconto_icms + desconto_pis_cofins
+    if total_descontos > valor_das_bruto:
+        # Proporcionalizar os descontos se excederem
+        fator = valor_das_bruto / total_descontos
+        desconto_icms = desconto_icms * fator
+        desconto_pis_cofins = desconto_pis_cofins * fator
     
     # Valor final do DAS
     valor_das_final = max(0, valor_das_bruto - desconto_icms - desconto_pis_cofins)
@@ -436,7 +471,10 @@ def calcular_das_periodo(faturamento_periodo: float, rbt12: float, anexo: str,
         "descontos": {
             "icms_st": round(desconto_icms, 2),
             "pis_cofins_monofasico": round(desconto_pis_cofins, 2),
-            "total": round(desconto_icms + desconto_pis_cofins, 2)
+            "total": round(desconto_icms + desconto_pis_cofins, 2),
+            "produtos_st": round(produtos_st, 2),
+            "produtos_monofasicos": round(produtos_monofasicos, 2),
+            "produtos_aliquota_zero": round(produtos_aliquota_zero, 2)
         },
         "valor_das_final": round(valor_das_final, 2)
     }
