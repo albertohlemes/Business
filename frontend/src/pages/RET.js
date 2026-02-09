@@ -147,6 +147,85 @@ const RET = ({ user, onLogout }) => {
     };
   };
 
+  // Calcular Entradas por tipo (Insumo, Revenda, Despesa)
+  const calcularEntradasPorTipo = () => {
+    const entradas = dados?.icms?.entradas || dados?.pis_cofins?.compras || {};
+    const cfops = entradas.por_cfop || [];
+    
+    let insumo = 0;
+    let revenda = 0;
+    let despesa = 0;
+    let ativo = 0;
+    
+    // CFOPs de Revenda: 1102, 2102, 1403, 2403
+    const cfopsRevenda = ['1102', '2102', '1403', '2403', '1101', '2101'];
+    // CFOPs de Insumo: 1101, 2101, 1551, 2551
+    const cfopsInsumo = ['1551', '2551', '1556', '2556'];
+    // CFOPs de Despesa: 1556, 2556, 1407, 2407
+    const cfopsDespesa = ['1407', '2407', '1556', '2556', '1128', '2128', '1126', '2126'];
+    // CFOPs de Ativo: 1551, 2551
+    const cfopsAtivo = ['1551', '2551'];
+    
+    cfops.forEach(c => {
+      const cfop = String(c.cfop || '');
+      const valor = c.total_produtos || c.valor || 0;
+      
+      if (cfopsRevenda.some(x => cfop.startsWith(x))) revenda += valor;
+      else if (cfopsInsumo.some(x => cfop.startsWith(x))) insumo += valor;
+      else if (cfopsDespesa.some(x => cfop.startsWith(x))) despesa += valor;
+      else if (cfopsAtivo.some(x => cfop.startsWith(x))) ativo += valor;
+      else revenda += valor; // Default para revenda
+    });
+    
+    return { insumo, revenda, despesa, ativo, total: insumo + revenda + despesa + ativo };
+  };
+
+  // Calcular Margem de Contribuição
+  const calcularMargemContribuicao = () => {
+    const receitas = calcularReceitas();
+    const cmv = calcularCMV();
+    const margemAbsoluta = receitas.total - cmv;
+    const margemPercentual = receitas.total > 0 ? (margemAbsoluta / receitas.total) * 100 : 0;
+    
+    return {
+      absoluta: margemAbsoluta,
+      percentual: margemPercentual
+    };
+  };
+
+  // Calcular Markup
+  const calcularMarkup = () => {
+    const receitas = calcularReceitas();
+    const cmv = calcularCMV();
+    // Markup = (Preço de Venda - Custo) / Custo * 100
+    const markup = cmv > 0 ? ((receitas.total - cmv) / cmv) * 100 : 0;
+    return markup;
+  };
+
+  // Calcular percentuais de impostos
+  const calcularPercentuaisImpostos = () => {
+    const receitas = calcularReceitas();
+    const vendas = receitas.comercio; // Só vendas de mercadorias
+    const total = receitas.total; // Total com serviços
+    
+    const impostos = calcularTotais();
+    
+    return {
+      // Sobre total de saídas (vendas + serviços)
+      icms_sobre_total: total > 0 ? (impostos.detalhes.icms?.pagar || 0) / total * 100 : 0,
+      pis_sobre_total: total > 0 ? (impostos.detalhes.pis_cofins?.pagar || 0) * 0.35 / total * 100 : 0, // PIS ~35% do PIS+COFINS
+      cofins_sobre_total: total > 0 ? (impostos.detalhes.pis_cofins?.pagar || 0) * 0.65 / total * 100 : 0, // COFINS ~65%
+      iss_sobre_total: total > 0 ? (impostos.detalhes.iss?.pagar || 0) / total * 100 : 0,
+      total_impostos_sobre_total: total > 0 ? impostos.total_pagar / total * 100 : 0,
+      
+      // Sobre só vendas (sem serviços)
+      icms_sobre_vendas: vendas > 0 ? (impostos.detalhes.icms?.pagar || 0) / vendas * 100 : 0,
+      pis_sobre_vendas: vendas > 0 ? (impostos.detalhes.pis_cofins?.pagar || 0) * 0.35 / vendas * 100 : 0,
+      cofins_sobre_vendas: vendas > 0 ? (impostos.detalhes.pis_cofins?.pagar || 0) * 0.65 / vendas * 100 : 0,
+      total_impostos_sobre_vendas: vendas > 0 ? (impostos.detalhes.icms?.pagar || 0 + impostos.detalhes.pis_cofins?.pagar || 0) / vendas * 100 : 0
+    };
+  };
+
   // Calcular Lucro Bruto
   const calcularLucroBruto = () => {
     const receitas = calcularReceitas();
