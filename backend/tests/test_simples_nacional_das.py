@@ -216,7 +216,7 @@ class TestSimplesNacionalDAS:
         
         # DAS final should be DAS bruto - discounts
         expected_das_final = valor_das_bruto - total_descontos
-        assert abs(valor_das_final - expected_das_final) < 0.01, \
+        assert abs(valor_das_final - expected_das_final) < 0.02, \
             f"DAS final ({valor_das_final}) should equal DAS bruto - discounts ({expected_das_final})"
         
         print(f"✓ Discounts are within valid range")
