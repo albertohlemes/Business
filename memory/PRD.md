@@ -94,6 +94,7 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 ### P1 - Alta Prioridade
 - [ ] Upload real de arquivo de certificado digital (.pfx)
 - [ ] Validação de certificado digital
+- [ ] Verificar budget do Emergent LLM Key para AI insights
 
 ### P2 - Média Prioridade
 - [ ] Refatorar server.py em módulos (routers)
