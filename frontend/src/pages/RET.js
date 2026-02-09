@@ -7,7 +7,7 @@ import {
   Scale, RefreshCw, Building2, BarChart3, 
   AlertTriangle, CheckCircle, Sparkles, Target, Brain,
   ChevronDown, ChevronUp, Percent, PiggyBank, Calendar,
-  Award, ArrowRight, Zap, Info
+  Award, ArrowRight, Zap, Info, FileText
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -16,12 +16,10 @@ const API = `${BACKEND_URL}/api`;
 const RET = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia } = useAppContext();
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('periodo'); // periodo, acumulado, estimativa
+  const [activeTab, setActiveTab] = useState('periodo');
   const [dados, setDados] = useState(null);
   const [dadosAcumulado, setDadosAcumulado] = useState(null);
-  const [expandedRegime, setExpandedRegime] = useState(null);
 
-  // Limites do Simples Nacional
   const LIMITE_SIMPLES_ANUAL = 4800000;
   const LIMITE_SIMPLES_MENSAL = LIMITE_SIMPLES_ANUAL / 12;
 
@@ -44,13 +42,11 @@ const RET = ({ user, onLogout }) => {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
       
-      // Buscar dados do período atual
       const periodoRes = await axios.get(
         `${API}/inteligencia-tributaria/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}&tipo=periodo`,
         { headers }
       ).catch(() => null);
       
-      // Buscar dados acumulados do ano
       const acumuladoRes = await axios.get(
         `${API}/inteligencia-tributaria/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}&tipo=acumulado`,
         { headers }
@@ -113,7 +109,6 @@ const RET = ({ user, onLogout }) => {
     };
   }, [dadosAcumulado]);
 
-  // Dados ativos conforme aba selecionada
   const dadosAtivos = useMemo(() => {
     if (activeTab === 'periodo') return dados;
     if (activeTab === 'acumulado') return dadosAcumulado;
@@ -129,13 +124,13 @@ const RET = ({ user, onLogout }) => {
     const simplesDisponivel = faturamento <= limiteSimples;
     
     const valores = [];
-    if (simplesDisponivel && dadosAtivos.simples?.total) {
+    if (simplesDisponivel && dadosAtivos.simples?.total !== undefined) {
       valores.push({ regime: 'simples', total: dadosAtivos.simples.total, nome: 'Simples Nacional' });
     }
-    if (dadosAtivos.presumido?.total) {
+    if (dadosAtivos.presumido?.total !== undefined) {
       valores.push({ regime: 'presumido', total: dadosAtivos.presumido.total, nome: 'Lucro Presumido' });
     }
-    if (dadosAtivos.real?.total) {
+    if (dadosAtivos.real?.total !== undefined) {
       valores.push({ regime: 'real', total: dadosAtivos.real.total, nome: 'Lucro Real' });
     }
     
@@ -143,82 +138,103 @@ const RET = ({ user, onLogout }) => {
     
     valores.sort((a, b) => a.total - b.total);
     return valores[0];
-  }, [dadosAtivos, activeTab]);
+  }, [dadosAtivos, activeTab, LIMITE_SIMPLES_MENSAL, LIMITE_SIMPLES_ANUAL]);
 
-  // Card de Regime
-  const RegimeCard = ({ regime, nome, dados, isMelhor, simplesIndisponivel }) => {
-    const isExpanded = expandedRegime === regime;
-    
+  // Card de Imposto Individual
+  const ImpostoItem = ({ label, valor, color = "text-white" }) => (
+    <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A] last:border-0">
+      <span className="text-[#A1A1AA] text-sm">{label}</span>
+      <span className={`font-semibold ${color}`}>{formatCurrency(valor)}</span>
+    </div>
+  );
+
+  // Card de Regime Completo
+  const RegimeCard = ({ regime, nome, dados, isMelhor, simplesIndisponivel, corBorda }) => {
+    if (simplesIndisponivel) {
+      return (
+        <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl p-4 opacity-50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`w-3 h-3 rounded-full ${corBorda}`}></div>
+            <h3 className="text-white font-semibold text-lg">{nome}</h3>
+          </div>
+          <div className="text-center py-8">
+            <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto mb-2" />
+            <p className="text-amber-400 text-sm">Faturamento excede limite</p>
+            <p className="text-[#666] text-xs mt-1">Máx. {formatCurrency(activeTab === 'periodo' ? LIMITE_SIMPLES_MENSAL : LIMITE_SIMPLES_ANUAL)}</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className={`bg-[#0C0C0C] border rounded-xl overflow-hidden transition-all ${
+      <div className={`bg-[#0C0C0C] border-2 rounded-xl overflow-hidden transition-all ${
         isMelhor ? 'border-green-500 ring-2 ring-green-500/20' : 'border-[#2A2A2A]'
-      } ${simplesIndisponivel ? 'opacity-50' : ''}`}>
+      }`}>
         {/* Header */}
-        <button
-          onClick={() => setExpandedRegime(isExpanded ? null : regime)}
-          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors"
-          disabled={simplesIndisponivel}
-        >
-          <div className="flex items-center gap-3">
-            {isMelhor && <Award className="w-6 h-6 text-green-400" />}
-            <div className="text-left">
+        <div className={`p-4 ${isMelhor ? 'bg-green-500/10' : 'bg-[#141414]'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full ${corBorda}`}></div>
               <h3 className="text-white font-semibold text-lg">{nome}</h3>
-              {simplesIndisponivel && (
-                <span className="text-xs text-amber-400">Faturamento excede limite</span>
+              {isMelhor && (
+                <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                  <Award className="w-3 h-3" /> MAIS ECONÔMICO
+                </span>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-[#666] text-xs">Total de Impostos</p>
-              <p className={`text-2xl font-bold ${isMelhor ? 'text-green-400' : 'text-white'}`}>
-                {formatCurrency(dados?.total || 0)}
-              </p>
-            </div>
-            {!simplesIndisponivel && (
-              isExpanded ? <ChevronUp className="w-5 h-5 text-[#666]" /> : <ChevronDown className="w-5 h-5 text-[#666]" />
-            )}
+        </div>
+
+        {/* Impostos Individualizados */}
+        <div className="p-4 space-y-1">
+          <ImpostoItem label="ICMS" valor={dados?.icms || 0} />
+          <ImpostoItem label="PIS" valor={dados?.pis || 0} />
+          <ImpostoItem label="COFINS" valor={dados?.cofins || 0} />
+          {regime === 'simples' && <ImpostoItem label="CPP" valor={dados?.cpp || 0} />}
+          <ImpostoItem label="IRPJ" valor={dados?.irpj || 0} />
+          <ImpostoItem label="CSLL" valor={dados?.csll || 0} />
+        </div>
+
+        {/* Total em Destaque */}
+        <div className={`p-4 ${isMelhor ? 'bg-green-500/20' : 'bg-[#1A1A1A]'}`}>
+          <div className="flex justify-between items-center">
+            <span className="text-white font-semibold">TOTAL DE IMPOSTOS</span>
+            <span className={`text-2xl font-bold ${isMelhor ? 'text-green-400' : 'text-[#C8A951]'}`}>
+              {formatCurrency(dados?.total || 0)}
+            </span>
           </div>
-        </button>
-        
-        {/* Detalhamento */}
-        {isExpanded && !simplesIndisponivel && (
-          <div className="border-t border-[#2A2A2A] p-4 bg-[#141414]">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <div className="bg-[#0C0C0C] rounded-lg p-3">
-                <p className="text-[#666] text-xs">ICMS</p>
-                <p className="text-white font-semibold">{formatCurrency(dados?.icms || 0)}</p>
+          <div className="flex justify-between items-center mt-2">
+            <span className="text-[#A1A1AA] text-sm">% sobre Faturamento</span>
+            <span className="text-[#C8A951] font-medium">
+              {formatPercent(((dados?.total || 0) / (dadosAtivos?.faturamento || 1)) * 100)}
+            </span>
+          </div>
+        </div>
+
+        {/* Detalhes adicionais para Lucro Real */}
+        {regime === 'real' && (
+          <div className="p-4 bg-[#0C0C0C] border-t border-[#2A2A2A]">
+            <p className="text-xs text-[#666] mb-2 flex items-center gap-1">
+              <Info className="w-3 h-3" /> Base de Cálculo IRPJ/CSLL
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="bg-[#141414] rounded p-2">
+                <span className="text-[#666]">Lucro Bruto</span>
+                <p className={`font-medium ${(dados?.lucro_bruto || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {formatCurrency(dados?.lucro_bruto || 0)}
+                </p>
               </div>
-              <div className="bg-[#0C0C0C] rounded-lg p-3">
-                <p className="text-[#666] text-xs">PIS</p>
-                <p className="text-white font-semibold">{formatCurrency(dados?.pis || 0)}</p>
+              <div className="bg-[#141414] rounded p-2">
+                <span className="text-[#666]">Despesa Informada</span>
+                <p className="font-medium text-purple-400">{formatCurrency(dados?.despesa_informada || 0)}</p>
               </div>
-              <div className="bg-[#0C0C0C] rounded-lg p-3">
-                <p className="text-[#666] text-xs">COFINS</p>
-                <p className="text-white font-semibold">{formatCurrency(dados?.cofins || 0)}</p>
+              <div className="bg-[#141414] rounded p-2 col-span-2">
+                <span className="text-[#666]">Lucro Contábil (Base IR)</span>
+                <p className={`font-medium ${(dados?.lucro_contabil || 0) > 0 ? 'text-[#C8A951]' : 'text-[#A1A1AA]'}`}>
+                  {formatCurrency(dados?.lucro_contabil || 0)}
+                  {(dados?.lucro_contabil || 0) === 0 && <span className="text-xs text-[#666] ml-2">(Prejuízo = IR zerado)</span>}
+                </p>
               </div>
-              <div className="bg-[#0C0C0C] rounded-lg p-3">
-                <p className="text-[#666] text-xs">IRPJ</p>
-                <p className="text-white font-semibold">{formatCurrency(dados?.irpj || 0)}</p>
-              </div>
-              <div className="bg-[#0C0C0C] rounded-lg p-3">
-                <p className="text-[#666] text-xs">CSLL</p>
-                <p className="text-white font-semibold">{formatCurrency(dados?.csll || 0)}</p>
-              </div>
-              {regime === 'simples' && (
-                <div className="bg-[#0C0C0C] rounded-lg p-3">
-                  <p className="text-[#666] text-xs">CPP</p>
-                  <p className="text-white font-semibold">{formatCurrency(dados?.cpp || 0)}</p>
-                </div>
-              )}
-            </div>
-            
-            {/* Percentual sobre faturamento */}
-            <div className="mt-4 flex items-center justify-between bg-[#0C0C0C] rounded-lg p-3">
-              <span className="text-[#A1A1AA]">Carga Tributária sobre Faturamento</span>
-              <span className="text-[#C8A951] font-bold text-lg">
-                {formatPercent(((dados?.total || 0) / (dadosAtivos?.faturamento || 1)) * 100)}
-              </span>
             </div>
           </div>
         )}
@@ -233,7 +249,7 @@ const RET = ({ user, onLogout }) => {
           <div className="text-center">
             <Building2 className="w-16 h-16 text-[#666] mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-white mb-2">Selecione uma Empresa</h2>
-            <p className="text-[#A1A1AA]">Escolha uma empresa no seletor acima para visualizar a inteligência tributária</p>
+            <p className="text-[#A1A1AA]">Escolha uma empresa para visualizar o comparativo de regimes</p>
           </div>
         </div>
       </Layout>
@@ -251,11 +267,11 @@ const RET = ({ user, onLogout }) => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <Brain className="w-8 h-8 text-[#C8A951]" />
+              <Zap className="w-8 h-8 text-[#C8A951]" />
               RET - Rota de Eficiência Tributária
             </h1>
             <p className="text-[#A1A1AA] mt-1">
-              Comparativo de regimes tributários: Simples Nacional, Lucro Presumido e Lucro Real
+              Comparativo de regimes: Simples Nacional, Lucro Presumido e Lucro Real
             </p>
           </div>
           
@@ -329,14 +345,6 @@ const RET = ({ user, onLogout }) => {
                   <p className="text-[#666] text-sm">Faturamento</p>
                   <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(faturamento)}</p>
                 </div>
-                {simplesIndisponivel && (
-                  <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-2">
-                    <AlertTriangle className="w-5 h-5 text-amber-400" />
-                    <span className="text-amber-400 text-sm">
-                      Faturamento excede limite do Simples (máx. {formatCurrency(limiteSimples)})
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -348,10 +356,11 @@ const RET = ({ user, onLogout }) => {
                     <Award className="w-8 h-8 text-green-400" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-green-400 font-bold text-xl">Regime Mais Vantajoso: {melhorRegime.nome}</h3>
+                    <h3 className="text-green-400 font-bold text-xl">Regime Mais Econômico: {melhorRegime.nome}</h3>
                     <p className="text-[#A1A1AA]">
                       Economia de até {formatCurrency(
                         Math.max(
+                          (dadosAtivos?.simples?.total || 0) - melhorRegime.total,
                           (dadosAtivos?.presumido?.total || 0) - melhorRegime.total,
                           (dadosAtivos?.real?.total || 0) - melhorRegime.total
                         )
@@ -366,19 +375,15 @@ const RET = ({ user, onLogout }) => {
               </div>
             )}
 
-            {/* Cards de Regimes */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Scale className="w-5 h-5 text-[#C8A951]" />
-                Comparativo por Regime
-              </h2>
-              
+            {/* Cards de Regimes - Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <RegimeCard 
                 regime="simples" 
                 nome="Simples Nacional" 
                 dados={dadosAtivos?.simples}
                 isMelhor={melhorRegime?.regime === 'simples'}
                 simplesIndisponivel={simplesIndisponivel}
+                corBorda="bg-blue-500"
               />
               
               <RegimeCard 
@@ -387,6 +392,7 @@ const RET = ({ user, onLogout }) => {
                 dados={dadosAtivos?.presumido}
                 isMelhor={melhorRegime?.regime === 'presumido'}
                 simplesIndisponivel={false}
+                corBorda="bg-amber-500"
               />
               
               <RegimeCard 
@@ -395,57 +401,96 @@ const RET = ({ user, onLogout }) => {
                 dados={dadosAtivos?.real}
                 isMelhor={melhorRegime?.regime === 'real'}
                 simplesIndisponivel={false}
+                corBorda="bg-purple-500"
               />
             </div>
 
-            {/* Gráfico de Comparação Visual */}
-            <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
-              <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-[#C8A951]" />
-                Visualização Comparativa
-              </h3>
-              
-              <div className="space-y-4">
-                {!simplesIndisponivel && (
-                  <div className="flex items-center gap-4">
-                    <span className="w-32 text-[#A1A1AA] text-sm">Simples</span>
-                    <div className="flex-1 h-8 bg-[#2A2A2A] rounded-lg overflow-hidden">
-                      <div 
-                        className={`h-full ${melhorRegime?.regime === 'simples' ? 'bg-green-500' : 'bg-blue-500'}`}
-                        style={{ 
-                          width: `${Math.min(100, ((dadosAtivos?.simples?.total || 0) / Math.max(dadosAtivos?.simples?.total || 1, dadosAtivos?.presumido?.total || 1, dadosAtivos?.real?.total || 1)) * 100)}%` 
-                        }}
-                      />
-                    </div>
-                    <span className="w-32 text-right text-white font-medium">{formatCurrency(dadosAtivos?.simples?.total)}</span>
-                  </div>
-                )}
-                
-                <div className="flex items-center gap-4">
-                  <span className="w-32 text-[#A1A1AA] text-sm">Presumido</span>
-                  <div className="flex-1 h-8 bg-[#2A2A2A] rounded-lg overflow-hidden">
-                    <div 
-                      className={`h-full ${melhorRegime?.regime === 'presumido' ? 'bg-green-500' : 'bg-amber-500'}`}
-                      style={{ 
-                        width: `${Math.min(100, ((dadosAtivos?.presumido?.total || 0) / Math.max(dadosAtivos?.simples?.total || 1, dadosAtivos?.presumido?.total || 1, dadosAtivos?.real?.total || 1)) * 100)}%` 
-                      }}
-                    />
-                  </div>
-                  <span className="w-32 text-right text-white font-medium">{formatCurrency(dadosAtivos?.presumido?.total)}</span>
-                </div>
-                
-                <div className="flex items-center gap-4">
-                  <span className="w-32 text-[#A1A1AA] text-sm">Real</span>
-                  <div className="flex-1 h-8 bg-[#2A2A2A] rounded-lg overflow-hidden">
-                    <div 
-                      className={`h-full ${melhorRegime?.regime === 'real' ? 'bg-green-500' : 'bg-purple-500'}`}
-                      style={{ 
-                        width: `${Math.min(100, ((dadosAtivos?.real?.total || 0) / Math.max(dadosAtivos?.simples?.total || 1, dadosAtivos?.presumido?.total || 1, dadosAtivos?.real?.total || 1)) * 100)}%` 
-                      }}
-                    />
-                  </div>
-                  <span className="w-32 text-right text-white font-medium">{formatCurrency(dadosAtivos?.real?.total)}</span>
-                </div>
+            {/* Tabela Comparativa */}
+            <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-[#2A2A2A]">
+                <h3 className="text-white font-semibold flex items-center gap-2">
+                  <Scale className="w-5 h-5 text-[#C8A951]" />
+                  Tabela Comparativa
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[#0C0C0C]">
+                      <th className="text-left p-3 text-[#A1A1AA] font-medium">Imposto</th>
+                      <th className="text-right p-3 text-blue-400 font-medium">Simples</th>
+                      <th className="text-right p-3 text-amber-400 font-medium">Presumido</th>
+                      <th className="text-right p-3 text-purple-400 font-medium">Lucro Real</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t border-[#2A2A2A]">
+                      <td className="p-3 text-[#A1A1AA]">ICMS</td>
+                      <td className="p-3 text-right text-white">{simplesIndisponivel ? '-' : formatCurrency(dadosAtivos?.simples?.icms)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.presumido?.icms)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.real?.icms)}</td>
+                    </tr>
+                    <tr className="border-t border-[#2A2A2A]">
+                      <td className="p-3 text-[#A1A1AA]">PIS</td>
+                      <td className="p-3 text-right text-white">{simplesIndisponivel ? '-' : formatCurrency(dadosAtivos?.simples?.pis)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.presumido?.pis)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.real?.pis)}</td>
+                    </tr>
+                    <tr className="border-t border-[#2A2A2A]">
+                      <td className="p-3 text-[#A1A1AA]">COFINS</td>
+                      <td className="p-3 text-right text-white">{simplesIndisponivel ? '-' : formatCurrency(dadosAtivos?.simples?.cofins)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.presumido?.cofins)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.real?.cofins)}</td>
+                    </tr>
+                    <tr className="border-t border-[#2A2A2A]">
+                      <td className="p-3 text-[#A1A1AA]">IRPJ</td>
+                      <td className="p-3 text-right text-white">{simplesIndisponivel ? '-' : formatCurrency(dadosAtivos?.simples?.irpj)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.presumido?.irpj)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.real?.irpj)}</td>
+                    </tr>
+                    <tr className="border-t border-[#2A2A2A]">
+                      <td className="p-3 text-[#A1A1AA]">CSLL</td>
+                      <td className="p-3 text-right text-white">{simplesIndisponivel ? '-' : formatCurrency(dadosAtivos?.simples?.csll)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.presumido?.csll)}</td>
+                      <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.real?.csll)}</td>
+                    </tr>
+                    {!simplesIndisponivel && (
+                      <tr className="border-t border-[#2A2A2A]">
+                        <td className="p-3 text-[#A1A1AA]">CPP (Simples)</td>
+                        <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.simples?.cpp)}</td>
+                        <td className="p-3 text-right text-[#666]">-</td>
+                        <td className="p-3 text-right text-[#666]">-</td>
+                      </tr>
+                    )}
+                    <tr className="border-t-2 border-[#C8A951] bg-[#0C0C0C]">
+                      <td className="p-3 text-[#C8A951] font-bold">TOTAL</td>
+                      <td className={`p-3 text-right font-bold ${melhorRegime?.regime === 'simples' ? 'text-green-400' : 'text-white'}`}>
+                        {simplesIndisponivel ? '-' : formatCurrency(dadosAtivos?.simples?.total)}
+                        {melhorRegime?.regime === 'simples' && <Award className="w-4 h-4 inline ml-1" />}
+                      </td>
+                      <td className={`p-3 text-right font-bold ${melhorRegime?.regime === 'presumido' ? 'text-green-400' : 'text-white'}`}>
+                        {formatCurrency(dadosAtivos?.presumido?.total)}
+                        {melhorRegime?.regime === 'presumido' && <Award className="w-4 h-4 inline ml-1" />}
+                      </td>
+                      <td className={`p-3 text-right font-bold ${melhorRegime?.regime === 'real' ? 'text-green-400' : 'text-white'}`}>
+                        {formatCurrency(dadosAtivos?.real?.total)}
+                        {melhorRegime?.regime === 'real' && <Award className="w-4 h-4 inline ml-1" />}
+                      </td>
+                    </tr>
+                    <tr className="border-t border-[#2A2A2A]">
+                      <td className="p-3 text-[#666] text-xs">% s/ Faturamento</td>
+                      <td className="p-3 text-right text-[#C8A951] text-xs">
+                        {simplesIndisponivel ? '-' : formatPercent(((dadosAtivos?.simples?.total || 0) / faturamento) * 100)}
+                      </td>
+                      <td className="p-3 text-right text-[#C8A951] text-xs">
+                        {formatPercent(((dadosAtivos?.presumido?.total || 0) / faturamento) * 100)}
+                      </td>
+                      <td className="p-3 text-right text-[#C8A951] text-xs">
+                        {formatPercent(((dadosAtivos?.real?.total || 0) / faturamento) * 100)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -454,9 +499,9 @@ const RET = ({ user, onLogout }) => {
               <Info className="w-5 h-5 text-[#C8A951] flex-shrink-0 mt-0.5" />
               <div className="text-sm text-[#A1A1AA]">
                 <p className="mb-1"><strong className="text-white">Nota:</strong> Esta análise considera os dados fiscais da empresa no período selecionado.</p>
-                <p>• <strong>Simples Nacional:</strong> Limitado a R$ 4.800.000/ano. Alíquotas conforme anexos e faixas de faturamento.</p>
-                <p>• <strong>Lucro Presumido:</strong> Presunção de {selectedCompany?.percentual_presuncao_irpj || 8}% para IRPJ e {selectedCompany?.percentual_presuncao_csll || 12}% para CSLL sobre o faturamento.</p>
-                <p>• <strong>Lucro Real:</strong> Base de cálculo é o lucro líquido contábil ajustado.</p>
+                <p>• <strong>Simples Nacional:</strong> Limitado a R$ 4.800.000/ano. Alíquotas conforme anexos e faixas.</p>
+                <p>• <strong>Lucro Presumido:</strong> Presunção de {selectedCompany?.percentual_presuncao_irpj || 8}% IRPJ e {selectedCompany?.percentual_presuncao_csll || 12}% CSLL. PIS 0,65% e COFINS 3% (cumulativo).</p>
+                <p>• <strong>Lucro Real:</strong> Base = Lucro Contábil (informe estoque e despesas na página Indicadores). PIS 1,65% e COFINS 7,6% (não cumulativo, com créditos).</p>
               </div>
             </div>
           </div>
