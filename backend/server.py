@@ -12694,11 +12694,14 @@ async def apurar_icms(
         '1652', '2652',  # Compra de combustível ST fora do estado
     ]
     
-    # Buscar documentos da competência
-    documentos = await db.xml_documents.find({
+    # Buscar documentos da competência (EXCLUIR notas canceladas - mesmo critério do Dashboard)
+    query = {
         "company_id": company_id,
         "competencia": competencia
-    }, {"_id": 0, "xml_content": 0}).to_list(10000)
+    }
+    query.update(get_filtro_notas_ativas())
+    
+    documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
     
     # Estruturas para acumular dados
     entradas_por_cfop = {}
@@ -13218,11 +13221,14 @@ async def apurar_ipi(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    # Buscar documentos da competência
-    documentos = await db.xml_documents.find({
+    # Buscar documentos da competência (EXCLUIR notas canceladas - mesmo critério do Dashboard)
+    query = {
         "company_id": company_id,
         "competencia": competencia
-    }, {"_id": 0, "xml_content": 0}).to_list(10000)
+    }
+    query.update(get_filtro_notas_ativas())
+    
+    documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
     
     # Estruturas para acumular dados
     entradas_por_cfop = {}
