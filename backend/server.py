@@ -16132,7 +16132,8 @@ async def inteligencia_tributaria(
     from services.simples_nacional_calculator import (
         calcular_aliquota_efetiva as calc_aliq_efetiva,
         calcular_das_periodo as calc_das,
-        calcular_reparticao_tributos
+        calcular_reparticao_tributos,
+        obter_anexos_por_cnaes
     )
     
     # Calcular RBT12 (faturamento dos últimos 12 meses)
