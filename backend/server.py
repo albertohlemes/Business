@@ -16205,7 +16205,10 @@ async def inteligencia_tributaria(
         'csll': round(simples_total * 0.035, 2),
         'cpp': round(simples_total * 0.415, 2),
         'total': round(simples_total, 2),
-        'aliquota_efetiva': round(aliq_simples * 100, 2)
+        'aliquota_efetiva': round(aliq_simples * 100, 2),
+        'rbt12': round(rbt12, 2),
+        'rbt12_proporcionalizado': round(rbt12_proporcionalizado, 2),
+        'meses_com_dados': qtd_meses_dados
     }
     
     # ============ LUCRO PRESUMIDO ============
