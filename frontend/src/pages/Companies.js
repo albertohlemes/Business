@@ -95,6 +95,8 @@ const Companies = ({ user, onLogout }) => {
     produto: '', insumo: '', despesa: '', ativo: '', combustivel: '', servico: '', cnae: ''
   });
   const [showCertificadoSenha, setShowCertificadoSenha] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef(null);
   
   // Estado para anexos do Simples Nacional
   const [anexosSugeridos, setAnexosSugeridos] = useState([]);
