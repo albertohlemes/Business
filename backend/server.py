@@ -15502,11 +15502,12 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     # Calcular projeção anual
     projecao = calcular_projecao_anual(faturamento_ano, mes_ref)
     
-    # Calcular Fator R (se Anexo V)
+    # Calcular Fator R (se Anexo V E flag controla_fator_r ativa)
     fator_r_info = None
     folha_12m = company.get('folha_pagamento_12m', 0)
+    controla_fator_r = company.get('controla_fator_r', False)
     
-    if 'V' in anexos_confirmados and rbt12 > 0:
+    if 'V' in anexos_confirmados and rbt12 > 0 and controla_fator_r:
         fator_r_info = calcular_fator_r(folha_12m, rbt12)
     
     # Calcular limites disponíveis
