@@ -111,6 +111,13 @@ async def count_xmls_sieg(
                     count_entrada = resp_data
                 elif "Message" in resp_data:
                     print(f"[SIEG] Aviso entrada: {resp_data['Message']}")
+            elif response_entrada.status_code == 401:
+                error_msg = response_entrada.json().get('Message', 'Não autenticado')
+                raise ValueError(f"Erro de autenticação SIEG: {error_msg}. Verifique se a API Key está válida.")
+            else:
+                print(f"[SIEG] Erro HTTP entrada: {response_entrada.status_code}")
+        except ValueError:
+            raise  # Re-lançar erro de autenticação
         except Exception as e:
             print(f"[SIEG] Erro ao contar entradas: {e}")
             count_entrada = {"NFe": 0, "NFCe": 0, "CTe": 0, "CFe": 0, "NFSe": 0}
