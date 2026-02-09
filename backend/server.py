@@ -15193,12 +15193,10 @@ async def inteligencia_tributaria(
     icms_real_a_pagar = 0
     try:
         icms_apuracao = await get_icms_apuracao_rapida(company_id, competencia if tipo == "periodo" else None)
-        print(f"DEBUG ICMS: {icms_apuracao}")
         if icms_apuracao and icms_apuracao.get('apuracao'):
             ap = icms_apuracao['apuracao']
             if ap.get('situacao') == 'A_PAGAR':
                 icms_real_a_pagar = float(ap.get('saldo', 0) or 0)
-        print(f"DEBUG ICMS A PAGAR: {icms_real_a_pagar}")
     except Exception as e:
         print(f"Erro ao buscar ICMS: {e}")
     
@@ -15207,12 +15205,10 @@ async def inteligencia_tributaria(
     cofins_real_a_pagar = 0
     try:
         pis_cofins_apuracao = await get_pis_cofins_apuracao_rapida(company_id, competencia if tipo == "periodo" else f"01/{ano}", company)
-        print(f"DEBUG PIS/COFINS: {pis_cofins_apuracao}")
         if pis_cofins_apuracao:
             lr = pis_cofins_apuracao.get('lucro_real', {})
             pis_real_a_pagar = float(lr.get('imposto_a_pagar', {}).get('pis', 0) or 0)
             cofins_real_a_pagar = float(lr.get('imposto_a_pagar', {}).get('cofins', 0) or 0)
-        print(f"DEBUG PIS A PAGAR: {pis_real_a_pagar}, COFINS: {cofins_real_a_pagar}")
     except Exception as e:
         print(f"Erro ao buscar PIS/COFINS: {e}")
     
