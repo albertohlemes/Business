@@ -331,6 +331,23 @@ class CompanyUpdate(BaseModel):
     certificado_digital_arquivo: Optional[str] = None
     certificado_digital_senha: Optional[str] = None
     certificado_digital_validade: Optional[str] = None
+    
+    # ===== NOVOS CAMPOS - FASE 3 =====
+    # Transportadora
+    is_transportadora: Optional[bool] = None
+    tipo_transporte: Optional[str] = None
+    credito_presumido_icms_percent: Optional[float] = None
+    # Revenda de Combustível
+    is_revenda_combustivel: Optional[bool] = None
+    # Saldo Credor Inicial
+    possui_saldo_credor: Optional[bool] = None
+    saldo_credor_icms: Optional[float] = None
+    saldo_credor_pis: Optional[float] = None
+    saldo_credor_cofins: Optional[float] = None
+    competencia_saldo_inicial: Optional[str] = None
+    # Presunção para serviços
+    percentual_presuncao_servicos_irpj: Optional[float] = None
+    percentual_presuncao_servicos_csll: Optional[float] = None
 
 class XMLDocument(BaseModel):
     model_config = ConfigDict(extra="ignore")
