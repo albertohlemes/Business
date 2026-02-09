@@ -1193,106 +1193,157 @@ def parse_xml_nfse(xml_content: str) -> Dict[str, Any]:
         if not nfse:
             raise ValueError("Estrutura de XML NFS-e inválida")
         
-        # Dados do prestador (quem emitiu)
-        prestador = nfse.get('PrestadorServico', {}) or nfse.get('Prestador', {})
-        id_prestador = prestador.get('IdentificacaoPrestador', {})
-        cnpj_prestador = id_prestador.get('Cnpj', '') or prestador.get('Cnpj', '')
-        nome_prestador = prestador.get('RazaoSocial', '') or prestador.get('NomeFantasia', '')
-        
-        # Endereço do prestador
-        endereco_prestador_data = prestador.get('Endereco', {})
-        prestador_endereco = {
-            'logradouro': endereco_prestador_data.get('Endereco', '') or endereco_prestador_data.get('Logradouro', ''),
-            'numero': endereco_prestador_data.get('Numero', ''),
-            'complemento': endereco_prestador_data.get('Complemento', ''),
-            'bairro': endereco_prestador_data.get('Bairro', ''),
-            'cidade': endereco_prestador_data.get('Cidade', '') or endereco_prestador_data.get('xMun', ''),
-            'cod_municipio': endereco_prestador_data.get('CodigoMunicipio', ''),
-            'uf': endereco_prestador_data.get('Uf', ''),
-            'cep': endereco_prestador_data.get('Cep', ''),
-            'pais': 'BRASIL',
-            'cod_pais': '1058',
-            'telefone': prestador.get('Contato', {}).get('Telefone', '') or ''
-        }
-        
-        # Dados do tomador (cliente)
-        tomador = nfse.get('TomadorServico', {}) or nfse.get('Tomador', {})
-        id_tomador = tomador.get('IdentificacaoTomador', {})
-        cpf_cnpj_tomador = id_tomador.get('CpfCnpj', {})
-        cnpj_tomador = cpf_cnpj_tomador.get('Cnpj', '') or cpf_cnpj_tomador.get('Cpf', '') or tomador.get('Cnpj', '') or tomador.get('Cpf', '')
-        nome_tomador = tomador.get('RazaoSocial', '') or tomador.get('NomeFantasia', '') or 'TOMADOR'
-        
-        # Endereço do tomador
-        endereco_tomador_data = tomador.get('Endereco', {})
-        tomador_endereco = {
-            'logradouro': endereco_tomador_data.get('Endereco', '') or endereco_tomador_data.get('Logradouro', ''),
-            'numero': endereco_tomador_data.get('Numero', ''),
-            'complemento': endereco_tomador_data.get('Complemento', ''),
-            'bairro': endereco_tomador_data.get('Bairro', ''),
-            'cidade': endereco_tomador_data.get('Cidade', '') or endereco_tomador_data.get('xMun', ''),
-            'cod_municipio': endereco_tomador_data.get('CodigoMunicipio', ''),
-            'uf': endereco_tomador_data.get('Uf', ''),
-            'cep': endereco_tomador_data.get('Cep', ''),
-            'pais': 'BRASIL',
-            'cod_pais': '1058',
-            'telefone': tomador.get('Contato', {}).get('Telefone', '') or ''
-        }
-        
-        # Dados do serviço
-        servico = nfse.get('Servico', {}) or nfse.get('DeclaracaoPrestacaoServico', {}).get('Servico', {})
-        valores = servico.get('Valores', {})
-        
-        valor_servicos = float(valores.get('ValorServicos', 0) or servico.get('ValorServicos', 0) or 0)
-        valor_iss = float(valores.get('ValorIss', 0) or 0)
-        aliq_iss = float(valores.get('Aliquota', 0) or 0)
-        
-        # Número e data
-        numero = nfse.get('Numero', '') or nfse.get('IdentificacaoNfse', {}).get('Numero', '')
-        data_emissao = nfse.get('DataEmissao', '') or nfse.get('DataEmissaoNfse', '')
-        codigo_verificacao = nfse.get('CodigoVerificacao', '')
-        
-        # Discriminação do serviço
-        discriminacao = servico.get('Discriminacao', '') or ''
-        codigo_servico = servico.get('ItemListaServico', '') or servico.get('CodigoTributacaoMunicipio', '')
-        
-        servicos = [{
-            'codigo': codigo_servico,
-            'descricao': discriminacao[:200] if discriminacao else 'Serviço',
-            'valor_total': valor_servicos,
-            'aliq_iss': aliq_iss,
-            'valor_iss': valor_iss,
-            'v_pis': float(valores.get('ValorPis', 0) or 0),
-            'v_cofins': float(valores.get('ValorCofins', 0) or 0),
-            'v_inss': float(valores.get('ValorInss', 0) or 0),
-            'v_ir': float(valores.get('ValorIr', 0) or 0),
-            'v_csll': float(valores.get('ValorCsll', 0) or 0)
-        }]
-        
-        return {
-            'modelo': 'nfse',
-            'chave_nfe': codigo_verificacao or str(uuid.uuid4())[:20],
-            'numero_nfe': str(numero),
-            'serie': '1',
-            'data_emissao': data_emissao,
-            # Dados do prestador (emitente)
-            'emitente_cnpj': cnpj_prestador,
-            'emitente_nome': nome_prestador,
-            'emitente_ie': id_prestador.get('InscricaoMunicipal', ''),
-            'emitente_uf': prestador_endereco.get('uf', ''),
-            'emitente_endereco': prestador_endereco,
-            # Dados do tomador (destinatário)
-            'destinatario_cnpj': cnpj_tomador,
-            'destinatario_nome': nome_tomador,
-            'destinatario_ie': id_tomador.get('InscricaoMunicipal', ''),
-            'destinatario_uf': tomador_endereco.get('uf', ''),
-            'destinatario_endereco': tomador_endereco,
-            'valor_total': valor_servicos,
-            'valor_servicos': valor_servicos,
-            'produtos': [],
-            'servicos': servicos
-        }
+        return _parse_single_nfse(nfse)
     except Exception as e:
         raise ValueError(f"Erro ao processar XML NFS-e: {str(e)}")
+
+
+def _parse_single_nfse(nfse: Dict[str, Any]) -> Dict[str, Any]:
+    """Parser interno para uma única NFS-e"""
+    # Dados do prestador (quem emitiu)
+    prestador = nfse.get('PrestadorServico', {}) or nfse.get('Prestador', {})
+    id_prestador = prestador.get('IdentificacaoPrestador', {})
+    cnpj_prestador = id_prestador.get('Cnpj', '') or prestador.get('Cnpj', '')
+    nome_prestador = prestador.get('RazaoSocial', '') or prestador.get('NomeFantasia', '')
+    
+    # Endereço do prestador
+    endereco_prestador_data = prestador.get('Endereco', {})
+    prestador_endereco = {
+        'logradouro': endereco_prestador_data.get('Endereco', '') or endereco_prestador_data.get('Logradouro', ''),
+        'numero': endereco_prestador_data.get('Numero', ''),
+        'complemento': endereco_prestador_data.get('Complemento', ''),
+        'bairro': endereco_prestador_data.get('Bairro', ''),
+        'cidade': endereco_prestador_data.get('Cidade', '') or endereco_prestador_data.get('xMun', ''),
+        'cod_municipio': endereco_prestador_data.get('CodigoMunicipio', ''),
+        'uf': endereco_prestador_data.get('Uf', ''),
+        'cep': endereco_prestador_data.get('Cep', ''),
+        'pais': 'BRASIL',
+        'cod_pais': '1058',
+        'telefone': prestador.get('Contato', {}).get('Telefone', '') or ''
+    }
+    
+    # Dados do tomador (cliente)
+    tomador = nfse.get('TomadorServico', {}) or nfse.get('Tomador', {})
+    id_tomador = tomador.get('IdentificacaoTomador', {})
+    cpf_cnpj_tomador = id_tomador.get('CpfCnpj', {})
+    cnpj_tomador = cpf_cnpj_tomador.get('Cnpj', '') or cpf_cnpj_tomador.get('Cpf', '') or tomador.get('Cnpj', '') or tomador.get('Cpf', '')
+    nome_tomador = tomador.get('RazaoSocial', '') or tomador.get('NomeFantasia', '') or 'TOMADOR'
+    
+    # Endereço do tomador
+    endereco_tomador_data = tomador.get('Endereco', {})
+    tomador_endereco = {
+        'logradouro': endereco_tomador_data.get('Endereco', '') or endereco_tomador_data.get('Logradouro', ''),
+        'numero': endereco_tomador_data.get('Numero', ''),
+        'complemento': endereco_tomador_data.get('Complemento', ''),
+        'bairro': endereco_tomador_data.get('Bairro', ''),
+        'cidade': endereco_tomador_data.get('Cidade', '') or endereco_tomador_data.get('xMun', ''),
+        'cod_municipio': endereco_tomador_data.get('CodigoMunicipio', ''),
+        'uf': endereco_tomador_data.get('Uf', ''),
+        'cep': endereco_tomador_data.get('Cep', ''),
+        'pais': 'BRASIL',
+        'cod_pais': '1058',
+        'telefone': tomador.get('Contato', {}).get('Telefone', '') or ''
+    }
+    
+    # Dados do serviço
+    servico = nfse.get('Servico', {}) or nfse.get('DeclaracaoPrestacaoServico', {}).get('Servico', {})
+    valores = servico.get('Valores', {})
+    
+    valor_servicos = float(valores.get('ValorServicos', 0) or servico.get('ValorServicos', 0) or 0)
+    valor_iss = float(valores.get('ValorIss', 0) or 0)
+    aliq_iss = float(valores.get('Aliquota', 0) or 0)
+    
+    # Número e data
+    numero = nfse.get('Numero', '') or nfse.get('IdentificacaoNfse', {}).get('Numero', '')
+    data_emissao = nfse.get('DataEmissao', '') or nfse.get('DataEmissaoNfse', '')
+    codigo_verificacao = nfse.get('CodigoVerificacao', '')
+    
+    # Competência (para determinar mês/ano)
+    competencia = nfse.get('Competencia', '')
+    
+    # Discriminação do serviço
+    discriminacao = servico.get('Discriminacao', '') or ''
+    codigo_servico = servico.get('ItemListaServico', '') or servico.get('CodigoTributacaoMunicipio', '')
+    cnae = servico.get('CodigoCnae', '')
+    
+    servicos = [{
+        'codigo': codigo_servico,
+        'cnae': cnae,
+        'descricao': discriminacao[:200] if discriminacao else 'Serviço',
+        'valor_total': valor_servicos,
+        'aliq_iss': aliq_iss,
+        'valor_iss': valor_iss,
+        'v_pis': float(valores.get('ValorPis', 0) or 0),
+        'v_cofins': float(valores.get('ValorCofins', 0) or 0),
+        'v_inss': float(valores.get('ValorInss', 0) or 0),
+        'v_ir': float(valores.get('ValorIr', 0) or 0),
+        'v_csll': float(valores.get('ValorCsll', 0) or 0),
+        'base_calculo': float(valores.get('BaseCalculo', 0) or 0),
+        'iss_retido': valores.get('IssRetido', '2') == '1'  # 1=Sim, 2=Não
+    }]
+    
+    return {
+        'modelo': 'nfse',
+        'chave_nfe': codigo_verificacao or str(uuid.uuid4())[:20],
+        'numero_nfe': str(numero),
+        'serie': '1',
+        'data_emissao': data_emissao,
+        'competencia_nfse': competencia,
+        # Dados do prestador (emitente)
+        'emitente_cnpj': cnpj_prestador,
+        'emitente_nome': nome_prestador,
+        'emitente_ie': id_prestador.get('InscricaoMunicipal', ''),
+        'emitente_uf': prestador_endereco.get('uf', ''),
+        'emitente_endereco': prestador_endereco,
+        # Dados do tomador (destinatário)
+        'destinatario_cnpj': cnpj_tomador,
+        'destinatario_nome': nome_tomador,
+        'destinatario_ie': id_tomador.get('InscricaoMunicipal', ''),
+        'destinatario_uf': tomador_endereco.get('uf', ''),
+        'destinatario_endereco': tomador_endereco,
+        'valor_total': valor_servicos,
+        'valor_servicos': valor_servicos,
+        'produtos': [],
+        'servicos': servicos
+    }
+
+
+def parse_xml_lista_nfse(xml_content: str) -> List[Dict[str, Any]]:
+    """
+    Parser para arquivo XML com múltiplas NFS-e (formato ListaNotaFiscal ABRASF)
+    Retorna uma lista de NFS-e parseadas
+    """
+    try:
+        data = xmltodict.parse(xml_content)
+        resultados = []
+        
+        # Formato <ListaNotaFiscal><Nfse>...</Nfse><Nfse>...</Nfse></ListaNotaFiscal>
+        lista = data.get('ListaNotaFiscal', {})
+        nfse_list = lista.get('Nfse', [])
+        
+        # Se for uma única NFS-e, converter para lista
+        if isinstance(nfse_list, dict):
+            nfse_list = [nfse_list]
+        
+        for nfse_item in nfse_list:
+            try:
+                inf_nfse = nfse_item.get('InfNfse', {})
+                if inf_nfse:
+                    parsed = _parse_single_nfse(inf_nfse)
+                    resultados.append(parsed)
+            except Exception as e:
+                print(f"Erro ao processar NFS-e individual: {e}")
+                continue
+        
+        return resultados
+    except Exception as e:
+        raise ValueError(f"Erro ao processar XML ListaNotaFiscal: {str(e)}")
+
+
+def is_lista_nfse(xml_content: str) -> bool:
+    """Verifica se o XML é uma lista de NFS-e (múltiplas notas)"""
+    xml_lower = xml_content.lower()
+    return '<listanotafiscal' in xml_lower or '<listanfse' in xml_lower
 
 def detect_xml_type(xml_content: str) -> str:
     """Detecta o tipo de XML: nfe, nfce, nfse"""
