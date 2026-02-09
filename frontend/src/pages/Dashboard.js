@@ -303,8 +303,8 @@ const Dashboard = ({ user, onLogout }) => {
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Card de Entradas */}
-                <div className="space-y-4">
-                  <div className="bg-[#141414] rounded-lg p-5 border border-blue-500/30">
+                <div className="flex flex-col gap-4">
+                  <div className="bg-[#141414] rounded-lg p-5 border border-blue-500/30 flex-1">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
                         <ArrowDownCircle className="w-5 h-5 text-white" />
@@ -331,8 +331,8 @@ const Dashboard = ({ user, onLogout }) => {
                   </div>
                   
                   {/* Indicador COMPRAS */}
-                  <div className="bg-gradient-to-r from-blue-900/30 to-blue-950/30 rounded-lg p-4 border border-blue-500/30">
-                    <div className="flex items-center justify-between">
+                  <div className="bg-gradient-to-r from-blue-900/30 to-blue-950/30 rounded-lg p-4 border border-blue-500/30 h-[120px] flex items-center">
+                    <div className="flex items-center justify-between w-full">
                       <div>
                         <h3 className="text-[#A1A1AA] text-sm flex items-center gap-2">
                           <Calculator className="w-4 h-4" />
@@ -352,8 +352,8 @@ const Dashboard = ({ user, onLogout }) => {
                 </div>
 
                 {/* Card de Saídas */}
-                <div className="space-y-4">
-                  <div className="bg-[#141414] rounded-lg p-5 border border-green-500/30">
+                <div className="flex flex-col gap-4">
+                  <div className="bg-[#141414] rounded-lg p-5 border border-green-500/30 flex-1">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-10 h-10 rounded-lg bg-green-600 flex items-center justify-center">
                         <ArrowUpCircle className="w-5 h-5 text-white" />
@@ -364,20 +364,42 @@ const Dashboard = ({ user, onLogout }) => {
                       </div>
                     </div>
                     <div className="space-y-2 text-sm">
-                      {['comercio', 'industria', 'mista'].includes(stats.empresa.tipo_atividade) && (
-                        <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
-                          <span className="text-[#A1A1AA]">NF-e (Vendas)</span>
-                          <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.nfe || stats.valores.total_vendas)}</span>
+                      <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
+                        <span className="text-[#A1A1AA]">NF-e (Vendas)</span>
+                        <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.nfe || stats.valores.total_vendas)}</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
+                        <span className="text-[#A1A1AA]">NFC-e (Cupons)</span>
+                        <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.nfce || stats.valores.total_cupons)}</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
+                        <span className="text-[#A1A1AA]">NFS-e (Serviços)</span>
+                        <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.servicos_prestados || 0)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Indicador VENDAS */}
+                  <div className="bg-gradient-to-r from-green-900/30 to-green-950/30 rounded-lg p-4 border border-green-500/30 h-[120px] flex items-center">
+                    <div className="flex items-center justify-between w-full">
+                      <div>
+                        <h3 className="text-[#A1A1AA] text-sm flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4" />
+                          VENDAS (Líquidas)
+                        </h3>
+                        <p className="text-green-400 text-2xl font-bold">{formatCurrency(stats.valores.vendas_liquidas?.liquidas || 0)}</p>
+                        <p className="text-xs text-[#666] mt-1">Vendas − Devoluções de Clientes</p>
+                      </div>
+                      {stats.valores.vendas_liquidas?.devolucoes > 0 && (
+                        <div className="text-right">
+                          <span className="text-xs text-red-400">Devoluções</span>
+                          <p className="text-sm text-red-400 line-through">{formatCurrency(stats.valores.vendas_liquidas.devolucoes)}</p>
                         </div>
                       )}
-                      {['comercio', 'mista'].includes(stats.empresa.tipo_atividade) && (
-                        <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
-                          <span className="text-[#A1A1AA]">NFC-e (Cupons)</span>
-                          <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.nfce || stats.valores.total_cupons)}</span>
-                        </div>
-                      )}
-                      {(stats.valores.saidas?.cte > 0 || stats.empresa.tipo_atividade === 'transporte') && (
-                        <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
+                    </div>
+                  </div>
+                </div>
+              </div>
                           <span className="text-[#A1A1AA]">CT-e (Frete Prestado)</span>
                           <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.cte || 0)}</span>
                         </div>
