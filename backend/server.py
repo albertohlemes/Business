@@ -14981,6 +14981,8 @@ async def apurar_pis_cofins(
     
     # Calcular totais - Lucro Presumido
     resultado['lucro_presumido']['creditos']['total'] = resultado['lucro_presumido']['creditos']['pis'] + resultado['lucro_presumido']['creditos']['cofins']
+    resultado['lucro_presumido']['debitos_comercio']['total'] = resultado['lucro_presumido']['debitos_comercio']['pis'] + resultado['lucro_presumido']['debitos_comercio']['cofins']
+    resultado['lucro_presumido']['debitos_servicos']['total'] = resultado['lucro_presumido']['debitos_servicos']['pis'] + resultado['lucro_presumido']['debitos_servicos']['cofins']
     resultado['lucro_presumido']['debitos_total']['pis'] = resultado['lucro_presumido']['debitos_comercio']['pis'] + resultado['lucro_presumido']['debitos_servicos']['pis']
     resultado['lucro_presumido']['debitos_total']['cofins'] = resultado['lucro_presumido']['debitos_comercio']['cofins'] + resultado['lucro_presumido']['debitos_servicos']['cofins']
     resultado['lucro_presumido']['debitos_total']['total'] = resultado['lucro_presumido']['debitos_total']['pis'] + resultado['lucro_presumido']['debitos_total']['cofins']
