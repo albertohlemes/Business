@@ -343,8 +343,8 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
               <div className="flex items-center gap-3">
                 <Sparkles className="w-6 h-6 text-purple-400" />
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Validação de Produtos</h2>
-                  <p className="text-sm text-[#A1A1AA]">Classificação e validação assistida por IA</p>
+                  <h2 className="text-lg font-semibold text-white">Classificação de Produtos</h2>
+                  <p className="text-sm text-[#A1A1AA]">Produtos agrupados por classificação</p>
                 </div>
               </div>
               
@@ -374,6 +374,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                 <button
                   onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
                   className="p-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-[#A1A1AA] hover:text-white hover:bg-[#1A1A1A] transition-colors"
+                  title={sortOrder === 'desc' ? 'Maior valor primeiro' : 'Menor valor primeiro'}
                 >
                   {sortOrder === 'desc' ? <ArrowDown className="w-4 h-4" /> : <ArrowUp className="w-4 h-4" />}
                 </button>
@@ -388,7 +389,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
               </div>
             ) : validacaoError ? (
               <div className="text-center py-8 text-red-400">{validacaoError}</div>
-            ) : filteredSuggestions.length > 0 ? (
+            ) : Object.keys(produtosAgrupados).length > 0 ? (
               <div className="space-y-3">
                 {/* Resumo */}
                 <div className="grid grid-cols-4 gap-4 mb-6">
@@ -398,7 +399,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                   </div>
                   <div className="bg-[#141414] rounded-lg p-4 border border-green-500/30">
                     <div className="text-2xl font-bold text-green-400">{validacaoData?.resumo?.validados || 0}</div>
-                    <div className="text-sm text-[#A1A1AA]">Validados</div>
+                    <div className="text-sm text-[#A1A1AA]">Classificados</div>
                   </div>
                   <div className="bg-[#141414] rounded-lg p-4 border border-amber-500/30">
                     <div className="text-2xl font-bold text-amber-400">{validacaoData?.resumo?.pendentes || 0}</div>
@@ -410,51 +411,113 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                   </div>
                 </div>
 
-                {/* Lista de Sugestões */}
-                <div className="space-y-2">
-                  {filteredSuggestions.slice(0, 20).map((sugestao, idx) => (
-                    <div 
-                      key={idx}
-                      className={`bg-[#141414] border rounded-lg p-4 ${
-                        sugestao.classificado ? 'border-green-500/30' : 'border-[#2A2A2A]'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Package className="w-5 h-5 text-[#A1A1AA]" />
-                          <div>
-                            <p className="text-white font-medium">{sugestao.descricao}</p>
-                            <div className="flex items-center gap-3 mt-1 text-xs text-[#666]">
-                              <span>NCM: {sugestao.ncm || 'N/A'}</span>
-                              <span>CFOP: {sugestao.cfop_atual}</span>
-                              <span>{sugestao.quantidade} unid.</span>
+                {/* Grupos por Classificação */}
+                <div className="space-y-3">
+                  {ordemCategorias.map(categoria => {
+                    const grupo = produtosAgrupados[categoria];
+                    if (!grupo || grupo.produtos.length === 0) return null;
+                    
+                    const config = categoriasConfig[categoria] || categoriasConfig.pendente;
+                    const isExpanded = expandedGroups[categoria];
+                    
+                    const colorClasses = {
+                      blue: 'bg-blue-500/10 border-blue-500/30 text-blue-400',
+                      green: 'bg-green-500/10 border-green-500/30 text-green-400',
+                      red: 'bg-red-500/10 border-red-500/30 text-red-400',
+                      amber: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
+                      purple: 'bg-purple-500/10 border-purple-500/30 text-purple-400',
+                      gray: 'bg-gray-500/10 border-gray-500/30 text-gray-400'
+                    };
+                    
+                    const headerColor = colorClasses[config.color] || colorClasses.gray;
+                    
+                    return (
+                      <div key={categoria} className="bg-[#141414] border border-[#2A2A2A] rounded-lg overflow-hidden">
+                        {/* Cabeçalho do Grupo - Clicável */}
+                        <button
+                          onClick={() => toggleGroup(categoria)}
+                          className={`w-full p-4 flex items-center justify-between hover:bg-[#1A1A1A] transition-colors ${headerColor.split(' ')[0]}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {isExpanded ? (
+                              <ChevronDown className="w-5 h-5 text-[#A1A1AA]" />
+                            ) : (
+                              <ChevronRight className="w-5 h-5 text-[#A1A1AA]" />
+                            )}
+                            <span className="text-xl">{config.icon}</span>
+                            <div className="text-left">
+                              <span className={`font-semibold ${headerColor.split(' ')[2]}`}>
+                                {config.label}
+                              </span>
+                              <span className="text-[#A1A1AA] text-sm ml-2">
+                                ({grupo.quantidade} {grupo.quantidade === 1 ? 'produto' : 'produtos'})
+                              </span>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-white font-semibold">{formatCurrency(sugestao.valor_total)}</span>
-                          {sugestao.classificado ? (
-                            <CheckCircle className="w-5 h-5 text-green-400" />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full border-2 border-amber-400" />
-                          )}
-                        </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-white font-bold text-lg">
+                              {formatCurrency(grupo.valor_total)}
+                            </span>
+                          </div>
+                        </button>
+                        
+                        {/* Lista de Produtos Expandida */}
+                        {isExpanded && (
+                          <div className="border-t border-[#2A2A2A]">
+                            <div className="max-h-96 overflow-y-auto">
+                              <table className="w-full">
+                                <thead className="bg-[#0C0C0C] sticky top-0">
+                                  <tr>
+                                    <th className="text-left px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase">Produto</th>
+                                    <th className="text-left px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-28">NCM</th>
+                                    <th className="text-left px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-20">CFOP</th>
+                                    <th className="text-right px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-20">Qtd</th>
+                                    <th className="text-right px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-28">Valor</th>
+                                    <th className="text-center px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-16">NFs</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[#2A2A2A]">
+                                  {grupo.produtos.map((prod, idx) => (
+                                    <tr key={idx} className="hover:bg-white/5">
+                                      <td className="px-4 py-3">
+                                        <p className="text-white text-sm truncate max-w-[300px]" title={prod.descricao}>
+                                          {prod.descricao}
+                                        </p>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <span className="text-[#A1A1AA] font-mono text-xs">{prod.ncm || '-'}</span>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <span className="px-2 py-0.5 bg-[#2A2A2A] text-[#A1A1AA] rounded text-xs font-mono">
+                                          {prod.cfop_atual || '-'}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-right">
+                                        <span className="text-[#A1A1AA] text-sm">{prod.quantidade?.toFixed(0) || 0}</span>
+                                      </td>
+                                      <td className="px-4 py-3 text-right">
+                                        <span className="text-[#C8A951] font-medium text-sm">{formatCurrency(prod.valor_total)}</span>
+                                      </td>
+                                      <td className="px-4 py-3 text-center">
+                                        <span className="text-[#666] text-xs">{prod.ocorrencias?.length || 0}</span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-                
-                {filteredSuggestions.length > 20 && (
-                  <p className="text-center text-[#666] text-sm pt-4">
-                    Mostrando 20 de {filteredSuggestions.length} produtos
-                  </p>
-                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-[#A1A1AA]">
                 <CheckCircle2 className="w-12 h-12 text-green-500 mb-3" />
-                <p className="font-medium">Nenhum produto pendente</p>
-                <p className="text-sm">Todos os produtos foram validados</p>
+                <p className="font-medium">Nenhum produto encontrado</p>
+                <p className="text-sm">Importe documentos para começar</p>
               </div>
             )}
           </div>
