@@ -545,6 +545,7 @@ const ExportMenu = ({ user, onLogout }) => {
               className={`w-full text-white py-4 rounded-lg font-semibold shadow-lg flex items-center justify-center gap-3 text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   activeTab === 'sped' ? 'bg-[#C8A951] hover:bg-[#B09240]' :
                   activeTab === 'entrada' ? 'bg-blue-600 hover:bg-blue-700' :
+                  activeTab === 'relatorios' ? 'bg-purple-600 hover:bg-purple-700' :
                   'bg-green-600 hover:bg-green-700'
               }`}
             >
@@ -556,7 +557,10 @@ const ExportMenu = ({ user, onLogout }) => {
               ) : (
                 <>
                   <Download className="w-6 h-6" />
-                  Exportar {activeTab === 'sped' ? 'SPED Fiscal' : activeTab === 'entrada' ? 'CSV Entradas' : 'CSV Saídas'}
+                  {activeTab === 'sped' ? 'Exportar SPED Fiscal' : 
+                   activeTab === 'entrada' ? 'Exportar CSV Entradas' : 
+                   activeTab === 'relatorios' ? `Exportar ${relatorioImposto.toUpperCase()} (${relatorioFormato.toUpperCase()})` :
+                   'Exportar CSV Saídas'}
                 </>
               )}
             </button>
