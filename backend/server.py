@@ -12939,10 +12939,16 @@ async def apurar_icms(
             "regime_tributario": company.get('regime_tributario', '')
         },
         "competencia": competencia,
+        # Totais por DOCUMENTO (mesmo critério do Dashboard)
+        "valores_por_documento": {
+            "total_entradas": round(totais_por_documento["entradas"], 2),
+            "total_saidas": round(totais_por_documento["saidas"], 2)
+        },
         "entradas": {
             "por_cfop": lista_entradas,
             "totais": {
                 "valor_total": round(totais["entradas"]["valor_total"], 2),
+                "valor_total_por_documento": round(totais_por_documento["entradas"], 2),
                 "bc_icms": round(totais["entradas"]["bc_icms"], 2),
                 "valor_icms": round(totais["entradas"]["valor_icms"], 2),
                 "valor_icms_st": round(totais["entradas"]["valor_icms_st"], 2),
@@ -12954,6 +12960,7 @@ async def apurar_icms(
             "por_cfop": lista_saidas,
             "totais": {
                 "valor_total": round(totais["saidas"]["valor_total"], 2),
+                "valor_total_por_documento": round(totais_por_documento["saidas"], 2),
                 "bc_icms": round(totais["saidas"]["bc_icms"], 2),
                 "valor_icms": round(totais["saidas"]["valor_icms"], 2),
                 "valor_icms_st": round(totais["saidas"]["valor_icms_st"], 2),
