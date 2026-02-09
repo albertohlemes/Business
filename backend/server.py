@@ -6000,6 +6000,22 @@ async def get_dashboard_stats(
             "produtos_validados": produtos_validados
         },
         "valores": {
+            # Detalhamento de Entradas (por documento)
+            "entradas": {
+                "nfe": round(total_nfe_entrada, 2),
+                "cte": round(total_cte_entrada, 2),
+                "servicos_tomados": round(total_nfse_tomados, 2),
+                "total": round(total_entradas, 2)
+            },
+            # Detalhamento de Saídas (por documento)
+            "saidas": {
+                "nfe": round(total_nfe_saida, 2),
+                "nfce": round(total_nfce, 2),
+                "cte": round(total_cte_saida, 2),
+                "servicos_prestados": round(total_nfse_prestados, 2),
+                "total": round(total_nfe_saida + total_nfce + total_cte_saida + total_nfse_prestados, 2)
+            },
+            # Compatibilidade com código anterior
             "total_entradas": round(total_entradas, 2),
             "total_vendas": round(total_vendas, 2),
             "total_cupons": round(total_cupons, 2),
