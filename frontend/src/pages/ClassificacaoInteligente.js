@@ -596,20 +596,6 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                   </div>
                 ))}
               </div>
-                                    >
-                                      {prod.opcoes.converter_compra?.descricao || 'Converter para compra'}
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-[#A1A1AA]">
                 <CheckCircle2 className="w-12 h-12 text-green-500 mb-3" />
