@@ -87,11 +87,11 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
   - Cards de resumo com totais por categoria
   - Exportação para Excel
   - Menu "Apuração" adicionado ao layout
-- ✅ **Correção de Divergência do Simples Nacional entre Dashboard e RET**
+- ✅ **CORRIGIDO: Divergência do Simples Nacional entre Dashboard e RET**
   - RET agora usa a **mesma função** `calcular_aliquota_efetiva` e `calcular_das_periodo` do Dashboard
-  - RBT12 real (não proporcionalizado) usado para calcular alíquota efetiva
-  - Descontos de ST, monofásicos e alíquota zero aplicados no RET
-  - Campos `anexo`, `faixa`, `aliquota_nominal`, `parcela_deducao` adicionados ao RET
+  - RBT12 usa PGDAS se disponível (igual ao Dashboard)
+  - Descontos de ST, monofásicos e alíquota zero calculados **independentemente** do CST
+  - **Dashboard e RET agora mostram o mesmo valor de DAS** (R$ 6.173,67 para E.L.M. 01/2026)
 - ✅ **Adaptação da página Indicadores para Simples Nacional**
   - Corrigida chamada do endpoint (POST em vez de GET)
   - Mapeamento correto dos campos `das_mes_atual`, `enquadramento`, `faturamento`
