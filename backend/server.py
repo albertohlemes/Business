@@ -16090,6 +16090,7 @@ from services.simples_nacional_calculator import (
 class SimplesNacionalDashboardRequest(BaseModel):
     company_id: str
     ano: int = None  # Se não informado, usa ano corrente
+    mes: int = None  # Se não informado, usa mês corrente ou 12 se ano diferente
 
 
 @api_router.post("/dashboard/simples-nacional")
