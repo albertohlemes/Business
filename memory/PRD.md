@@ -121,6 +121,12 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - ✅ Alíquotas por Perfil (Indústria, Distribuidor, Varejo)
 - ✅ CNAEs de Serviços (Cumulativo 3,65%, Financeiro 4,65%, Regra Geral 9,25%)
 
+### Layout e Ordenação
+- ✅ **Layout fixo com scroll apenas no conteúdo** - Menu e header fixos, rolagem só na área de conteúdo
+- ✅ **Colunas ordenáveis em Documents.js** - Número, Emitente/Destinatário, CNPJ, Data, Valor
+- ✅ **Colunas ordenáveis em Reports.js** - Todos os campos (Código, Descrição, NCM, Qtd, Valor, ICMS, PIS, COFINS)
+- ✅ **Colunas ordenáveis em PisCofins.js** (aba Detalhamento) - NCM, CFOP, CST, Classificação, Qtd, Valor, PIS, COFINS
+
 ### Observação sobre Budget de IA
 - ✅ IA agora funcionando com nova chave atualizada
 - Modelo: `gemini-2.5-flash` via Emergent LLM Key
