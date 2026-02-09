@@ -133,6 +133,7 @@ const ApuracaoICMS = ({ user, onLogout }) => {
           <thead>
             <tr className="border-b border-[#2A2A2A]">
               <th className="text-left py-3 px-4 text-[#A1A1AA] font-medium">CFOP</th>
+              <th className="text-left py-3 px-4 text-[#A1A1AA] font-medium">Status</th>
               <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Qtd</th>
               <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Valor Total</th>
               <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">BC ICMS</th>
@@ -140,21 +141,64 @@ const ApuracaoICMS = ({ user, onLogout }) => {
             </tr>
           </thead>
           <tbody>
-            {dados.map((item, idx) => (
-              <tr key={idx} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
-                <td className="py-3 px-4">
-                  <span className="font-mono text-white bg-[#2A2A2A] px-2 py-1 rounded">
-                    {item.cfop}
-                  </span>
-                </td>
-                <td className="py-3 px-4 text-right text-[#A1A1AA]">{formatNumber(item.qtd)}</td>
-                <td className="py-3 px-4 text-right text-white">{formatCurrency(item.valor_total)}</td>
-                <td className="py-3 px-4 text-right text-white">{formatCurrency(item.bc_icms)}</td>
-                <td className={`py-3 px-4 text-right font-semibold ${tipo === 'entrada' ? 'text-green-400' : 'text-red-400'}`}>
-                  {formatCurrency(item.valor_icms)}
-                </td>
-              </tr>
-            ))}
+            {dados.map((item, idx) => {
+              // Verificar se CFOP está desconsiderado
+              const isDesconsiderado = item.desconsiderado === true;
+              const isDespesa = item.is_despesa === true;
+              const isST = item.is_st === true;
+              
+              return (
+                <tr 
+                  key={idx} 
+                  className={`border-b border-[#1A1A1A] transition-colors ${
+                    isDesconsiderado 
+                      ? 'bg-red-900/20 hover:bg-red-900/30' 
+                      : 'hover:bg-[#1A1A1A]'
+                  }`}
+                >
+                  <td className="py-3 px-4">
+                    <span className={`font-mono px-2 py-1 rounded ${
+                      isDesconsiderado
+                        ? 'bg-red-500/30 text-red-400 line-through'
+                        : 'bg-[#2A2A2A] text-white'
+                    }`}>
+                      {item.cfop}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    {isDesconsiderado ? (
+                      <span className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded-full">
+                        {isDespesa ? '⛔ DESPESA' : isST ? '⛔ ST' : '⛔ DESCONSIDERADO'}
+                      </span>
+                    ) : isDespesa || isST ? (
+                      <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">
+                        {isDespesa ? '📦 Despesa' : '🏷️ ST'}
+                      </span>
+                    ) : (
+                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+                        ✓ Normal
+                      </span>
+                    )}
+                  </td>
+                  <td className={`py-3 px-4 text-right ${isDesconsiderado ? 'text-red-400/60' : 'text-[#A1A1AA]'}`}>
+                    {formatNumber(item.qtd)}
+                  </td>
+                  <td className={`py-3 px-4 text-right ${isDesconsiderado ? 'text-red-400/60 line-through' : 'text-white'}`}>
+                    {formatCurrency(item.valor_total)}
+                  </td>
+                  <td className={`py-3 px-4 text-right ${isDesconsiderado ? 'text-red-400/60 line-through' : 'text-white'}`}>
+                    {formatCurrency(item.bc_icms)}
+                  </td>
+                  <td className={`py-3 px-4 text-right font-semibold ${
+                    isDesconsiderado 
+                      ? 'text-red-400/60 line-through' 
+                      : tipo === 'entrada' ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {formatCurrency(item.valor_icms)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
