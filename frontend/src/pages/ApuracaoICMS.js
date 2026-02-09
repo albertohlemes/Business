@@ -215,7 +215,7 @@ const ApuracaoICMS = ({ user, onLogout }) => {
 
         {/* Info da Empresa */}
         {selectedCompany && (
-          <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4 mb-6">
+          <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4 mb-4">
             <div className="flex items-center gap-4">
               <Building2 className="w-8 h-8 text-[#C8A951]" />
               <div className="flex-1">
@@ -225,6 +225,33 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                   UF: <span className="text-[#C8A951]">{selectedCompany.uf || 'N/D'}</span>
                 </p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Flags de Desconsiderar ICMS */}
+        {selectedCompany && (
+          <div className="bg-[#0C0C0C] border border-amber-500/30 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-3 mb-3">
+              <ArrowLeftRight className="w-5 h-5 text-amber-400" />
+              <span className="text-white font-medium">Configurações de ICMS</span>
+            </div>
+            <div className="flex flex-wrap gap-4">
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${selectedCompany.desconsiderar_icms_despesas ? 'bg-red-500/20 border border-red-500/50' : 'bg-[#2A2A2A]'}`}>
+                <span className={`w-3 h-3 rounded-full ${selectedCompany.desconsiderar_icms_despesas ? 'bg-red-500' : 'bg-[#666]'}`}></span>
+                <span className={`text-sm ${selectedCompany.desconsiderar_icms_despesas ? 'text-red-400' : 'text-[#A1A1AA]'}`}>
+                  {selectedCompany.desconsiderar_icms_despesas ? '✓ Desconsiderando' : '○'} ICMS CFOPs Despesas
+                </span>
+              </div>
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${selectedCompany.desconsiderar_icms_st ? 'bg-orange-500/20 border border-orange-500/50' : 'bg-[#2A2A2A]'}`}>
+                <span className={`w-3 h-3 rounded-full ${selectedCompany.desconsiderar_icms_st ? 'bg-orange-500' : 'bg-[#666]'}`}></span>
+                <span className={`text-sm ${selectedCompany.desconsiderar_icms_st ? 'text-orange-400' : 'text-[#A1A1AA]'}`}>
+                  {selectedCompany.desconsiderar_icms_st ? '✓ Desconsiderando' : '○'} ICMS Operações ST
+                </span>
+              </div>
+              <span className="text-xs text-[#666] ml-auto self-center">
+                Configure em Cadastro de Empresas
+              </span>
             </div>
           </div>
         )}
