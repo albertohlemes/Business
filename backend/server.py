@@ -15730,6 +15730,227 @@ async def sugerir_anexos_por_cnpj(cnpj: str, current_user: User = Depends(get_cu
 
 
 # =============================================================================
+# DIFAL - DIFERENCIAL DE ALÍQUOTA (SIMPLES NACIONAL)
+# =============================================================================
+
+from services.difal_calculator import (
+    processar_documento_difal,
+    obter_aliquota_interna,
+    obter_aliquota_interestadual,
+    ALIQUOTAS_INTERNAS_UF
+)
+
+
+class DifaLApuracaoRequest(BaseModel):
+    company_id: str
+    competencia: str  # MM/YYYY
+
+
+@api_router.post("/simples-nacional/difal/apuracao")
+async def apuracao_difal(request: DifaLApuracaoRequest, current_user: User = Depends(get_current_user)):
+    """
+    Apuração do DIFAL para empresas do Simples Nacional.
+    Processa todas as notas de entrada interestaduais da competência.
+    
+    Fundamentação Legal: LC 123/2006, Art. 13, §1º, XIII
+    """
+    # Verificar empresa
+    company = await db.companies.find_one({"id": request.company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if company.get('regime_tributario') != 'simples_nacional':
+        raise HTTPException(status_code=400, detail="DIFAL é exclusivo para empresas do Simples Nacional")
+    
+    uf_empresa = company.get('uf', 'SP').upper()
+    
+    # Buscar documentos de entrada interestaduais da competência
+    filtro = {
+        "company_id": request.company_id,
+        "tipo": "entrada",
+        "competencia": request.competencia,
+        "uf_emitente": {"$ne": uf_empresa, "$exists": True, "$ne": ""},
+        **get_filtro_notas_ativas()
+    }
+    
+    documentos_cursor = db.xml_documents.find(filtro, {"_id": 0})
+    
+    documentos_processados = []
+    total_difal = 0.0
+    total_base_calculo = 0.0
+    total_notas = 0
+    total_produtos_com_difal = 0
+    total_produtos_sem_difal = 0
+    todos_alertas = []
+    resumo_por_uf = {}
+    
+    async for doc in documentos_cursor:
+        resultado = processar_documento_difal(doc, uf_empresa)
+        if resultado:
+            documentos_processados.append(resultado)
+            total_difal += resultado["total_difal"]
+            total_base_calculo += resultado["total_base_calculo_difal"]
+            total_notas += 1
+            total_produtos_com_difal += resultado["qtd_produtos_com_difal"]
+            total_produtos_sem_difal += resultado["qtd_produtos_sem_difal"]
+            
+            # Agrupar alertas
+            todos_alertas.extend(resultado.get("alertas", []))
+            
+            # Resumo por UF de origem
+            uf_origem = resultado["uf_origem"]
+            if uf_origem not in resumo_por_uf:
+                resumo_por_uf[uf_origem] = {
+                    "uf": uf_origem,
+                    "qtd_notas": 0,
+                    "total_base": 0.0,
+                    "total_difal": 0.0,
+                    "aliquota_interestadual": resultado["aliquota_interestadual_padrao"]
+                }
+            resumo_por_uf[uf_origem]["qtd_notas"] += 1
+            resumo_por_uf[uf_origem]["total_base"] += resultado["total_base_calculo_difal"]
+            resumo_por_uf[uf_origem]["total_difal"] += resultado["total_difal"]
+    
+    # Obter info da alíquota interna
+    info_aliq_interna = obter_aliquota_interna(uf_empresa)
+    
+    return {
+        "competencia": request.competencia,
+        "empresa": {
+            "id": company.get("id"),
+            "razao_social": company.get("razao_social"),
+            "uf": uf_empresa,
+            "regime": "simples_nacional"
+        },
+        "aliquota_interna": {
+            "percentual": info_aliq_interna["aliquota"],
+            "embasamento": info_aliq_interna["embasamento"]
+        },
+        "resumo": {
+            "total_notas_interestaduais": total_notas,
+            "total_base_calculo": round(total_base_calculo, 2),
+            "total_difal_a_recolher": round(total_difal, 2),
+            "total_produtos_com_difal": total_produtos_com_difal,
+            "total_produtos_sem_difal": total_produtos_sem_difal
+        },
+        "resumo_por_uf_origem": list(resumo_por_uf.values()),
+        "documentos": documentos_processados,
+        "alertas": todos_alertas,
+        "embasamento_legal": {
+            "principal": "LC 123/2006, Art. 13, §1º, XIII - As ME e EPP optantes pelo Simples Nacional ficam obrigadas ao recolhimento do diferencial de alíquotas nas aquisições em outros Estados",
+            "calculo": "DIFAL = Base de Cálculo × (Alíquota Interna - Alíquota Interestadual)",
+            "vencimento": "Geralmente até o dia 15 do mês subsequente (verificar legislação estadual)"
+        }
+    }
+
+
+@api_router.get("/simples-nacional/difal/detalhamento/{company_id}/{competencia}")
+async def detalhamento_difal(company_id: str, competencia: str, current_user: User = Depends(get_current_user)):
+    """
+    Retorna o detalhamento produto a produto do DIFAL.
+    Separado em produtos COM DIFAL e SEM DIFAL.
+    """
+    # Verificar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if company.get('regime_tributario') != 'simples_nacional':
+        raise HTTPException(status_code=400, detail="DIFAL é exclusivo para empresas do Simples Nacional")
+    
+    uf_empresa = company.get('uf', 'SP').upper()
+    
+    # Buscar documentos
+    filtro = {
+        "company_id": company_id,
+        "tipo": "entrada",
+        "competencia": competencia,
+        "uf_emitente": {"$ne": uf_empresa, "$exists": True, "$ne": ""},
+        **get_filtro_notas_ativas()
+    }
+    
+    documentos_cursor = db.xml_documents.find(filtro, {"_id": 0})
+    
+    produtos_com_difal = []
+    produtos_sem_difal = []
+    
+    async for doc in documentos_cursor:
+        resultado = processar_documento_difal(doc, uf_empresa)
+        if resultado:
+            # Adicionar número da NF a cada produto
+            for prod in resultado.get("produtos_com_difal", []):
+                prod["numero_nf"] = resultado["numero_nf"]
+                prod["serie"] = resultado["serie"]
+                prod["data_emissao"] = resultado["data_emissao"]
+                prod["emitente"] = resultado["emitente"]
+                prod["uf_origem"] = resultado["uf_origem"]
+                produtos_com_difal.append(prod)
+            
+            for prod in resultado.get("produtos_sem_difal", []):
+                prod["numero_nf"] = resultado["numero_nf"]
+                prod["serie"] = resultado["serie"]
+                prod["data_emissao"] = resultado["data_emissao"]
+                prod["emitente"] = resultado["emitente"]
+                prod["uf_origem"] = resultado["uf_origem"]
+                produtos_sem_difal.append(prod)
+    
+    # Ordenar por número da NF
+    produtos_com_difal.sort(key=lambda x: (x.get("numero_nf", ""), x.get("item", 0)))
+    produtos_sem_difal.sort(key=lambda x: (x.get("numero_nf", ""), x.get("item", 0)))
+    
+    # Calcular totais
+    total_com_difal = sum(p.get("valor_difal", 0) for p in produtos_com_difal)
+    total_base_com_difal = sum(p.get("valor_produto", 0) for p in produtos_com_difal)
+    total_base_sem_difal = sum(p.get("valor_produto", 0) for p in produtos_sem_difal)
+    
+    info_aliq_interna = obter_aliquota_interna(uf_empresa)
+    
+    return {
+        "competencia": competencia,
+        "uf_destino": uf_empresa,
+        "aliquota_interna": info_aliq_interna,
+        "produtos_com_difal": {
+            "titulo": "PRODUTOS SUJEITOS AO DIFAL",
+            "descricao": "Produtos de revenda, uso/consumo e ativo imobilizado sem ST",
+            "embasamento": "LC 123/2006, Art. 13, §1º, XIII",
+            "quantidade": len(produtos_com_difal),
+            "total_base_calculo": round(total_base_com_difal, 2),
+            "total_difal": round(total_com_difal, 2),
+            "itens": produtos_com_difal
+        },
+        "produtos_sem_difal": {
+            "titulo": "PRODUTOS NÃO SUJEITOS AO DIFAL",
+            "descricao": "Produtos com Substituição Tributária (ICMS já recolhido na origem)",
+            "embasamento": "LC 123/2006, Art. 13, §1º, XIII, 'h' - Exclusão das operações com ST",
+            "quantidade": len(produtos_sem_difal),
+            "total_base_calculo": round(total_base_sem_difal, 2),
+            "itens": produtos_sem_difal
+        }
+    }
+
+
+@api_router.get("/simples-nacional/difal/aliquotas")
+async def get_aliquotas_difal(current_user: User = Depends(get_current_user)):
+    """
+    Retorna a tabela de alíquotas internas por UF.
+    """
+    aliquotas = []
+    for uf, aliq in sorted(ALIQUOTAS_INTERNAS_UF.items()):
+        info = obter_aliquota_interna(uf)
+        aliquotas.append({
+            "uf": uf,
+            "aliquota": aliq,
+            "embasamento": info["embasamento"]
+        })
+    
+    return {
+        "aliquotas_internas": aliquotas,
+        "fonte": "RICMS de cada estado - Alíquotas gerais vigentes",
+        "observacao": "Alguns estados possuem alíquotas diferenciadas por NCM ou tipo de produto. Consulte a legislação específica."
+    }
+
+
+# =============================================================================
 # IMPORTAÇÃO PGDAS - HISTÓRICO DE FATURAMENTO
 # =============================================================================
 
