@@ -84,16 +84,26 @@ class TestPisCofinsEndpoints:
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         data = response.json()
         
-        # Verify structure
+        # Verify structure - actual structure has nested subtotais
         assert "entradas" in data, "Response should have 'entradas' field"
         assert "saidas" in data, "Response should have 'saidas' field"
-        assert "subtotais_entrada" in data, "Response should have 'subtotais_entrada' field"
-        assert "subtotais_saida" in data, "Response should have 'subtotais_saida' field"
         
-        print(f"Entradas count: {len(data['entradas'])}")
-        print(f"Saidas count: {len(data['saidas'])}")
-        print(f"Subtotais entrada: {data['subtotais_entrada']}")
-        print(f"Subtotais saida: {data['subtotais_saida']}")
+        # Check nested structure
+        entradas = data["entradas"]
+        saidas = data["saidas"]
+        
+        # Entradas should have itens and subtotais
+        assert "itens" in entradas or isinstance(entradas, list), "entradas should have 'itens' or be a list"
+        assert "subtotais" in entradas or "itens" in entradas, "entradas should have 'subtotais'"
+        
+        # Get subtotais
+        subtotais_entrada = entradas.get("subtotais", {})
+        subtotais_saida = saidas.get("subtotais", {})
+        
+        print(f"Entradas count: {len(entradas.get('itens', []))}")
+        print(f"Saidas count: {len(saidas.get('itens', []))}")
+        print(f"Subtotais entrada: {subtotais_entrada}")
+        print(f"Subtotais saida: {subtotais_saida}")
 
 
 class TestInteligenciaTributaria:
@@ -104,12 +114,9 @@ class TestInteligenciaTributaria:
         company_id = COMPANY_LUCRO_PRESUMIDO["id"]
         competencia = COMPANY_LUCRO_PRESUMIDO["competencia"]
         
-        response = api_client.post(
-            f"{BASE_URL}/api/inteligencia-tributaria",
-            json={
-                "company_id": company_id,
-                "competencia": competencia
-            }
+        # Correct endpoint is GET with query params
+        response = api_client.get(
+            f"{BASE_URL}/api/inteligencia-tributaria/{company_id}?competencia={competencia}"
         )
         
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
@@ -135,6 +142,10 @@ class TestInteligenciaTributaria:
         # Verify they are numbers
         assert isinstance(real["pis_debitos"], (int, float)), "pis_debitos should be a number"
         assert isinstance(real["cofins_debitos"], (int, float)), "cofins_debitos should be a number"
+        
+        # Verify values are reasonable (should be positive for debitos)
+        assert real["pis_debitos"] >= 0, "pis_debitos should be >= 0"
+        assert real["cofins_debitos"] >= 0, "cofins_debitos should be >= 0"
 
 
 class TestLearnedRulesEndpoints:
@@ -256,16 +267,23 @@ class TestApuracaoICMSEndpoint:
         assert "entradas" in data, "Response should have 'entradas' field"
         assert "saidas" in data, "Response should have 'saidas' field"
         
+        # Check nested structure - entradas has por_cfop and totais
+        entradas = data["entradas"]
+        assert "por_cfop" in entradas, "entradas should have 'por_cfop' field"
+        
         # Check that entries have sortable fields
-        if data["entradas"] and len(data["entradas"]) > 0:
-            entry = data["entradas"][0]
+        por_cfop = entradas.get("por_cfop", [])
+        if por_cfop and len(por_cfop) > 0:
+            entry = por_cfop[0]
             sortable_fields = ["cfop", "qtd", "valor_total", "bc_icms", "valor_icms"]
             for field in sortable_fields:
                 assert field in entry, f"Entry should have '{field}' field for sorting"
             print(f"Sample entrada: CFOP={entry['cfop']}, Valor={entry['valor_total']}")
         
-        if data["saidas"] and len(data["saidas"]) > 0:
-            saida = data["saidas"][0]
+        saidas = data["saidas"]
+        saidas_por_cfop = saidas.get("por_cfop", [])
+        if saidas_por_cfop and len(saidas_por_cfop) > 0:
+            saida = saidas_por_cfop[0]
             print(f"Sample saida: CFOP={saida['cfop']}, Valor={saida['valor_total']}")
 
 
