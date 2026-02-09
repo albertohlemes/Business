@@ -8791,7 +8791,7 @@ Se o comando não for claro ou não se aplicar a nenhum produto, retorne {{"alte
             api_key=os.environ.get('EMERGENT_LLM_KEY'),
             session_id=f"cfop-resolver-{company_id}-{competencia}",
             system_message="Você é um assistente fiscal especializado em classificação de CFOPs. Responda sempre em formato JSON válido."
-        )
+        ).with_model("gemini", "gemini-2.5-flash")
         response = await llm.send_message(UserMessage(text=prompt))
         
         # Extrair JSON da resposta
