@@ -166,11 +166,17 @@ const Indicadores = ({ user, onLogout }) => {
     
     const iss_pagar = isContribuinteISS() ? dados.iss?.resumo?.iss_a_pagar || 0 : 0;
     
-    // PIS e COFINS separados
-    const pis_pagar = dados.pis_cofins?.lucro_real?.imposto_a_pagar?.pis > 0 ? dados.pis_cofins?.lucro_real?.imposto_a_pagar?.pis : 0;
-    const cofins_pagar = dados.pis_cofins?.lucro_real?.imposto_a_pagar?.cofins > 0 ? dados.pis_cofins?.lucro_real?.imposto_a_pagar?.cofins : 0;
-    const pis_recuperar = dados.pis_cofins?.lucro_real?.saldo?.pis < 0 ? Math.abs(dados.pis_cofins?.lucro_real?.saldo?.pis) : 0;
-    const cofins_recuperar = dados.pis_cofins?.lucro_real?.saldo?.cofins < 0 ? Math.abs(dados.pis_cofins?.lucro_real?.saldo?.cofins) : 0;
+    // Determinar regime para PIS/COFINS
+    const isLucroPresumido = selectedCompany?.regime_tributario === 'lucro_presumido';
+    const pisCofinsData = isLucroPresumido 
+      ? dados.pis_cofins?.lucro_presumido 
+      : dados.pis_cofins?.lucro_real;
+    
+    // PIS e COFINS separados - usar dados do regime correto
+    const pis_pagar = pisCofinsData?.imposto_a_pagar?.pis > 0 ? pisCofinsData?.imposto_a_pagar?.pis : 0;
+    const cofins_pagar = pisCofinsData?.imposto_a_pagar?.cofins > 0 ? pisCofinsData?.imposto_a_pagar?.cofins : 0;
+    const pis_recuperar = pisCofinsData?.saldo?.pis < 0 ? Math.abs(pisCofinsData?.saldo?.pis) : 0;
+    const cofins_recuperar = pisCofinsData?.saldo?.cofins < 0 ? Math.abs(pisCofinsData?.saldo?.cofins) : 0;
     
     const icms_st_pagar = isContribuinteICMSST() ? dados.icms?.icms_st?.apuracao?.icms_st_a_recolher || 0 : 0;
     
