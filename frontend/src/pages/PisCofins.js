@@ -156,40 +156,106 @@ const PisCofins = ({ user, onLogout }) => {
     
     return (
       <div className="space-y-6">
-        {/* Cards de Resumo */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <ResumoCard
-            titulo="Créditos PIS/COFINS"
-            valor={dadosRegime.creditos.total}
-            subtitulo={`PIS: ${formatCurrency(dadosRegime.creditos.pis)} | COFINS: ${formatCurrency(dadosRegime.creditos.cofins)}`}
-            icon={TrendingUp}
-            corIcone="bg-green-600"
-            corValor="text-green-400"
-          />
-          <ResumoCard
-            titulo="Débitos PIS/COFINS"
-            valor={dadosRegime.debitos_total.total}
-            subtitulo={`PIS: ${formatCurrency(dadosRegime.debitos_total.pis)} | COFINS: ${formatCurrency(dadosRegime.debitos_total.cofins)}`}
-            icon={TrendingDown}
-            corIcone="bg-red-600"
-            corValor="text-red-400"
-          />
-          <ResumoCard
-            titulo="Saldo"
-            valor={dadosRegime.saldo.total}
-            subtitulo={dadosRegime.saldo.total < 0 ? 'Crédito acumulado' : 'Imposto devido'}
-            icon={Scale}
-            corIcone="bg-blue-600"
-            corValor={dadosRegime.saldo.total < 0 ? 'text-green-400' : 'text-amber-400'}
-          />
-          <ResumoCard
-            titulo="Imposto a Pagar"
-            valor={dadosRegime.imposto_a_pagar.total}
-            subtitulo={`PIS: ${formatCurrency(dadosRegime.imposto_a_pagar.pis)} | COFINS: ${formatCurrency(dadosRegime.imposto_a_pagar.cofins)}`}
-            icon={DollarSign}
-            corIcone="bg-[#C8A951]"
-            corValor="text-[#C8A951]"
-          />
+        {/* Cards de Resumo - PIS */}
+        <div className="mb-2">
+          <h3 className="text-sm font-medium text-[#C8A951] mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            PIS (1,65%)
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <ResumoCard
+              titulo="Créditos PIS"
+              valor={dadosRegime.creditos.pis}
+              icon={TrendingUp}
+              corIcone="bg-green-600"
+              corValor="text-green-400"
+            />
+            <ResumoCard
+              titulo="Débitos PIS"
+              valor={dadosRegime.debitos_total.pis}
+              icon={TrendingDown}
+              corIcone="bg-red-600"
+              corValor="text-red-400"
+            />
+            <ResumoCard
+              titulo="Saldo PIS"
+              valor={dadosRegime.saldo.pis}
+              subtitulo={dadosRegime.saldo.pis < 0 ? 'Crédito acumulado' : 'Imposto devido'}
+              icon={Scale}
+              corIcone="bg-blue-600"
+              corValor={dadosRegime.saldo.pis < 0 ? 'text-green-400' : 'text-amber-400'}
+            />
+            <ResumoCard
+              titulo="PIS a Pagar"
+              valor={dadosRegime.imposto_a_pagar.pis}
+              icon={DollarSign}
+              corIcone="bg-emerald-600"
+              corValor="text-emerald-400"
+            />
+          </div>
+        </div>
+
+        {/* Cards de Resumo - COFINS */}
+        <div className="mb-2">
+          <h3 className="text-sm font-medium text-[#C8A951] mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-teal-500"></span>
+            COFINS (7,6%)
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <ResumoCard
+              titulo="Créditos COFINS"
+              valor={dadosRegime.creditos.cofins}
+              icon={TrendingUp}
+              corIcone="bg-green-600"
+              corValor="text-green-400"
+            />
+            <ResumoCard
+              titulo="Débitos COFINS"
+              valor={dadosRegime.debitos_total.cofins}
+              icon={TrendingDown}
+              corIcone="bg-red-600"
+              corValor="text-red-400"
+            />
+            <ResumoCard
+              titulo="Saldo COFINS"
+              valor={dadosRegime.saldo.cofins}
+              subtitulo={dadosRegime.saldo.cofins < 0 ? 'Crédito acumulado' : 'Imposto devido'}
+              icon={Scale}
+              corIcone="bg-blue-600"
+              corValor={dadosRegime.saldo.cofins < 0 ? 'text-green-400' : 'text-amber-400'}
+            />
+            <ResumoCard
+              titulo="COFINS a Pagar"
+              valor={dadosRegime.imposto_a_pagar.cofins}
+              icon={DollarSign}
+              corIcone="bg-teal-600"
+              corValor="text-teal-400"
+            />
+          </div>
+        </div>
+
+        {/* Total Geral */}
+        <div className="bg-gradient-to-r from-[#C8A951]/20 to-[#C8A951]/10 border border-[#C8A951]/30 rounded-xl p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <p className="text-[#A1A1AA] text-sm">Total Créditos</p>
+              <p className="text-xl font-bold text-green-400">{formatCurrency(dadosRegime.creditos.total)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[#A1A1AA] text-sm">Total Débitos</p>
+              <p className="text-xl font-bold text-red-400">{formatCurrency(dadosRegime.debitos_total.total)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[#A1A1AA] text-sm">Saldo Total</p>
+              <p className={`text-xl font-bold ${dadosRegime.saldo.total < 0 ? 'text-green-400' : 'text-amber-400'}`}>
+                {formatCurrency(dadosRegime.saldo.total)}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-[#A1A1AA] text-sm">Total a Pagar</p>
+              <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(dadosRegime.imposto_a_pagar.total)}</p>
+            </div>
+          </div>
         </div>
 
         {/* Detalhamento de Créditos */}
