@@ -331,30 +331,30 @@ const Reports = ({ user, onLogout }) => {
                     <tr>
                       {reportType === 'product' ? (
                         <>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-[#E0E0E0] uppercase">Código</th>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-[#E0E0E0] uppercase">Descrição</th>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-[#E0E0E0] uppercase">NCM</th>
-                          <th className="px-6 py-4 text-right text-xs font-semibold text-[#E0E0E0] uppercase">Qtd</th>
-                          <th className="px-6 py-4 text-right text-xs font-semibold text-[#E0E0E0] uppercase">Valor</th>
-                          <th className="px-6 py-4 text-right text-xs font-semibold text-[#E0E0E0] uppercase">ICMS</th>
-                          <th className="px-6 py-4 text-right text-xs font-semibold text-[#E0E0E0] uppercase">PIS</th>
-                          <th className="px-6 py-4 text-right text-xs font-semibold text-[#E0E0E0] uppercase">COFINS</th>
+                          <SortableHeader field="codigo" label="Código" />
+                          <SortableHeader field="descricao" label="Descrição" />
+                          <SortableHeader field="ncm" label="NCM" />
+                          <SortableHeader field="quantidade" label="Qtd" align="right" />
+                          <SortableHeader field="valor_total" label="Valor" align="right" />
+                          <SortableHeader field="credito_icms" label="ICMS" align="right" />
+                          <SortableHeader field="credito_pis" label="PIS" align="right" />
+                          <SortableHeader field="credito_cofins" label="COFINS" align="right" />
                         </>
                       ) : (
                         <>
-                          <th className="px-6 py-4 text-left text-xs font-semibold text-[#E0E0E0] uppercase">NCM</th>
-                          <th className="px-6 py-4 text-right text-xs font-semibold text-[#E0E0E0] uppercase">Produtos</th>
-                          <th className="px-6 py-4 text-right text-xs font-semibold text-[#E0E0E0] uppercase">Qtd</th>
-                          <th className="px-6 py-4 text-right text-xs font-semibold text-[#E0E0E0] uppercase">Valor</th>
-                          <th className="px-6 py-4 text-right text-xs font-semibold text-[#E0E0E0] uppercase">ICMS</th>
-                          <th className="px-6 py-4 text-right text-xs font-semibold text-[#E0E0E0] uppercase">PIS</th>
-                          <th className="px-6 py-4 text-right text-xs font-semibold text-[#E0E0E0] uppercase">COFINS</th>
+                          <SortableHeader field="ncm" label="NCM" />
+                          <SortableHeader field="quantidade_produtos" label="Produtos" align="right" />
+                          <SortableHeader field="quantidade" label="Qtd" align="right" />
+                          <SortableHeader field="valor_total" label="Valor" align="right" />
+                          <SortableHeader field="credito_icms" label="ICMS" align="right" />
+                          <SortableHeader field="credito_pis" label="PIS" align="right" />
+                          <SortableHeader field="credito_cofins" label="COFINS" align="right" />
                         </>
                       )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#2A2A2A]">
-                    {reportData.map((item, index) => (
+                    {sortedData.map((item, index) => (
                       <tr key={index} className="hover:bg-[#0C0C0C]">
                         {reportType === 'product' ? (
                           <>
