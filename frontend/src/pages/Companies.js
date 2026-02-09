@@ -788,6 +788,50 @@ const Companies = ({ user, onLogout }) => {
                       </select>
                     </div>
                   </div>
+
+                  {/* Perfis Comerciais - apenas para Comércio, Indústria ou Mista */}
+                  {(formData.tipo_atividade === 'comercio' || formData.tipo_atividade === 'industria' || formData.tipo_atividade === 'mista') && (
+                    <div className="pt-4 border-t border-[#2A2A2A]">
+                      <label className="block text-xs text-[#A1A1AA] mb-3">Perfis de Atividade Comercial (pode selecionar múltiplos)</label>
+                      <div className="flex flex-wrap gap-4">
+                        {[
+                          { key: 'industria', label: 'Indústria', desc: 'Fabricante (alíquotas concentradas PIS/COFINS)' },
+                          { key: 'distribuidor', label: 'Distribuidor/Atacadista', desc: 'Alíquotas diferenciadas monofásicos' },
+                          { key: 'varejo', label: 'Varejo', desc: 'Alíquota zero para revendedor final' }
+                        ].map(perfil => (
+                          <label
+                            key={perfil.key}
+                            className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                              formData.perfis_comerciais?.includes(perfil.key)
+                                ? 'bg-[#C8A951]/10 border-[#C8A951]'
+                                : 'bg-[#141414] border-[#2A2A2A] hover:border-[#444]'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.perfis_comerciais?.includes(perfil.key) || false}
+                              onChange={(e) => {
+                                const current = formData.perfis_comerciais || [];
+                                if (e.target.checked) {
+                                  setFormData({ ...formData, perfis_comerciais: [...current, perfil.key] });
+                                } else {
+                                  setFormData({ ...formData, perfis_comerciais: current.filter(p => p !== perfil.key) });
+                                }
+                              }}
+                              className="mt-1 w-4 h-4 text-[#C8A951] bg-[#141414] border-[#2A2A2A] rounded focus:ring-[#C8A951] focus:ring-2"
+                            />
+                            <div>
+                              <span className="text-white font-medium">{perfil.label}</span>
+                              <p className="text-xs text-[#666] mt-0.5">{perfil.desc}</p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-xs text-[#666] mt-2">
+                        * Perfis afetam alíquotas de PIS/COFINS em produtos monofásicos e com tributação diferenciada
+                      </p>
+                    </div>
+                  )}
                   
                   {/* Presunção - apenas para Lucro Presumido */}
                   {formData.regime_tributario === 'lucro_presumido' && (
