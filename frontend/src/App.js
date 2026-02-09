@@ -25,6 +25,7 @@ import Indicadores from './pages/Indicadores';
 import AnaliseTributariaIA from './pages/AnaliseTributariaIA';
 import SimplesNacionalDashboard from './pages/SimplesNacionalDashboard';
 import DifaLPage from './pages/DifaLPage';
+import Apuracao from './pages/Apuracao';
 import './App.css';
 
 function App() {
