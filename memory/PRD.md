@@ -308,6 +308,63 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - Estilo `accent-color` para mostrar a cor quando marcado
 - Flags funcionando corretamente para marcar/desmarcar
 
+### v2.11.0 (09/02/2026) - Módulo Simples Nacional Completo
+
+**Dashboard Simples Nacional (NOVO):**
+- Nova página `/simples-nacional` exclusiva para empresas do Simples Nacional
+- Menu lateral condicional: quando empresa é Simples, mostra apenas "Simples Nacional" (remove PIS/COFINS, ICMS, ISS, Indicadores, RET)
+
+**Cards Principais:**
+- RBT12 (Receita Bruta dos últimos 12 meses)
+- Faturamento do ano corrente
+- Faixa atual e alíquota efetiva
+- DAS do mês atual
+
+**Limites com Barras de Progresso:**
+- Limite do Simples Nacional (R$ 4.800.000,00) com % consumido
+- Sublimite Estadual ICMS/ISS (R$ 3.600.000,00) com % consumido
+- Alertas automáticos quando próximo dos limites
+
+**Projeção Anual:**
+- Projeção baseada na média mensal
+- Margem disponível até sublimite e limite
+- Alertas inteligentes de situação
+
+**Enquadramento Tributário:**
+- Anexos sugeridos com base nos CNAEs
+- Faixa de faturamento atual (1ª a 6ª)
+- Alíquota nominal vs efetiva
+- Parcela a deduzir
+
+**Fator R (para Anexo V):**
+- Cálculo automático do Fator R
+- Indicador se pode usar Anexo III (Fator R >= 28%)
+- Folha necessária para migrar de Anexo V para III
+- Economia potencial anual se aumentar folha
+
+**Detalhamento do DAS:**
+- Repartição por tributo (IRPJ, CSLL, COFINS, PIS, CPP, ICMS/ISS)
+- Descontos para produtos ST e monofásicos
+- Total a pagar
+
+**Histórico Mensal:**
+- Tabela com faturamento dos últimos 12 meses
+- Quantidade de notas por competência
+- Total RBT12
+
+**Backend - Novos Endpoints:**
+- `POST /api/dashboard/simples-nacional` - Dados completos do dashboard
+- `PUT /api/companies/{id}/simples-nacional/anexos` - Atualizar anexos confirmados
+- `PUT /api/companies/{id}/simples-nacional/folha` - Atualizar folha de pagamento
+- `GET /api/simples-nacional/sugerir-anexos/{cnpj}` - Sugestão de anexos por CNPJ
+
+**Serviço de Cálculo (`simples_nacional_calculator.py`):**
+- Tabelas oficiais de alíquotas por Anexo (I a V)
+- Cálculo de alíquota efetiva
+- Cálculo de Fator R
+- Repartição de tributos
+- Projeção anual e alertas
+
 ### v2.10.0 (09/02/2026) - Dashboard Dinâmico e Flags ICMS
 
 **Dashboard Dinâmico:**
