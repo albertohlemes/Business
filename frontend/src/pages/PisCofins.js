@@ -1042,9 +1042,9 @@ const PisCofins = ({ user, onLogout }) => {
           >
             <AlertTriangle className="w-4 h-4" />
             Divergências
-            {divergencias?.total_produtos_divergentes > 0 && (
+            {divergencias?.totais?.produtos_divergentes > 0 && (
               <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                {divergencias.total_produtos_divergentes}
+                {divergencias.totais.produtos_divergentes}
               </span>
             )}
           </button>
