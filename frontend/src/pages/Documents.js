@@ -343,13 +343,36 @@ const Documents = ({ user, onLogout }) => {
           
           if (data.completed === true && data.results) {
             setUploadProgress({ current: files.length, total: files.length, percent: 100 });
+            
+            // Mapear campos do backend para o formato esperado pelo modal
+            const resumo = data.results.resumo || {};
+            const successList = data.results.success || [];
+            const errorsList = [
+              ...(data.results.errors || []),
+              ...(data.results.duplicadas || []).map(d => ({ arquivo: d.arquivo || d.filename, motivo: 'Documento duplicado', numero: d.numero })),
+              ...(data.results.rejeitadas_cnpj || []).map(d => ({ arquivo: d.arquivo || d.filename, motivo: `CNPJ não corresponde à empresa (encontrado: ${d.cnpj_encontrado})` }))
+            ];
+            
             setUploadResult({
               tipo: 'xml',
-              total: data.results.total_processados,
-              sucesso: data.results.aceitos,
-              erros: data.results.erros,
-              processados: [],
-              rejeitados: []
+              total: resumo.total_arquivos || files.length,
+              sucesso: resumo.importados || successList.length,
+              erros: (resumo.erros || 0) + (resumo.duplicados || 0) + (resumo.rejeitados_cnpj || 0),
+              processados: successList.map(s => ({
+                arquivo: s.arquivo || s.filename,
+                numero: s.numero || s.numero_nfe,
+                valor: s.valor || 0,
+                emitente: s.emitente || s.emitente_nome,
+                modelo: s.modelo
+              })),
+              rejeitados: errorsList.map(e => ({
+                arquivo: e.arquivo || e.filename,
+                motivo: e.motivo || e.erro || e.error || 'Erro desconhecido'
+              })),
+              alertas_cfop: data.results.alertas_cfop || [],
+              duplicadas: data.results.duplicadas || [],
+              rejeitadas_cnpj: data.results.rejeitadas_cnpj || [],
+              performance: data.results.performance || {}
             });
             setShowUploadResult(true);
             setUploading(false);
