@@ -63,8 +63,8 @@ const Layout = ({ user, onLogout, children }) => {
         { name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
         { name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' },
         { name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' },
-        { name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' },
         { name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' },
+        { name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' },
         { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
         { name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' },
       ];
@@ -102,11 +102,11 @@ const Layout = ({ user, onLogout, children }) => {
       baseNav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
     }
     
+    // Indicadores - sempre mostra (acima do RET)
+    baseNav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
+    
     // RET - sempre mostra
     baseNav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
-    
-    // Indicadores - sempre mostra
-    baseNav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
     
     // Relatórios e Exportação - sempre
     baseNav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
