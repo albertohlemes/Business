@@ -15977,8 +15977,6 @@ async def inteligencia_tributaria(
     cofins_real = 0
     try:
         from decimal import Decimal
-        
-        regime_tributario = company.get('regime_tributario', 'lucro_presumido')
         perfil_empresa = company.get('perfil_comercial', 'VAREJO')
         perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
         perfil = perfis[0] if perfis else 'VAREJO'
