@@ -15345,6 +15345,355 @@ async def inteligencia_tributaria(
     }
 
 
+# =============================================================================
+# DASHBOARD SIMPLES NACIONAL
+# =============================================================================
+
+from services.simples_nacional_calculator import (
+    obter_anexos_por_cnaes,
+    obter_faixa_por_rbt12,
+    calcular_aliquota_efetiva,
+    calcular_fator_r,
+    calcular_das_periodo,
+    calcular_projecao_anual,
+    SUBLIMITE_ICMS_ISS,
+    LIMITE_SIMPLES
+)
+
+
+class SimplesNacionalDashboardRequest(BaseModel):
+    company_id: str
+    ano: int = None  # Se não informado, usa ano corrente
+
+
+@api_router.post("/dashboard/simples-nacional")
+async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardRequest, current_user: User = Depends(get_current_user)):
+    """
+    Dashboard do Simples Nacional com:
+    - Faturamento acumulado (últimos 12 meses - RBT12)
+    - Faturamento do ano corrente
+    - Limites/Sublimites e barras de progresso
+    - Projeção anual
+    - Faixa atual e alíquota efetiva
+    - Fator R (se aplicável ao Anexo V)
+    - Sugestão de folha de pagamento para otimização
+    """
+    company = await db.companies.find_one({"id": request.company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Verificar se é Simples Nacional
+    if company.get('regime_tributario') != 'simples_nacional':
+        raise HTTPException(status_code=400, detail="Esta empresa não é optante pelo Simples Nacional")
+    
+    # Determinar ano e mês de referência
+    now = datetime.now(timezone.utc)
+    ano_ref = request.ano or now.year
+    mes_ref = now.month if ano_ref == now.year else 12
+    
+    # Obter CNAEs e anexos
+    cnaes = company.get('cnaes', [])
+    cnae_principal = company.get('cnae_principal', '')
+    if cnae_principal and cnae_principal not in cnaes:
+        cnaes = [cnae_principal] + cnaes
+    
+    anexos_sugeridos = obter_anexos_por_cnaes(cnaes) if cnaes else ['I']
+    anexos_confirmados = company.get('anexos_simples', []) or anexos_sugeridos
+    anexo_principal = anexos_confirmados[0] if anexos_confirmados else 'I'
+    
+    # Calcular faturamento dos últimos 12 meses (RBT12)
+    # Buscar documentos de saída (vendas) dos últimos 12 meses
+    data_inicio_rbt12 = datetime(ano_ref, mes_ref, 1) - timedelta(days=365)
+    data_fim = datetime(ano_ref, mes_ref + 1, 1) if mes_ref < 12 else datetime(ano_ref + 1, 1, 1)
+    
+    # Formatar competências dos últimos 12 meses
+    competencias_12m = []
+    for i in range(12):
+        m = mes_ref - i
+        a = ano_ref
+        if m <= 0:
+            m += 12
+            a -= 1
+        competencias_12m.append(f"{m:02d}/{a}")
+    
+    # Buscar faturamento por competência (últimos 12 meses)
+    filtro_base = {
+        "company_id": request.company_id,
+        "tipo": "saida",
+        "competencia": {"$in": competencias_12m},
+        **get_filtro_notas_ativas()
+    }
+    
+    pipeline_faturamento = [
+        {"$match": filtro_base},
+        {"$group": {
+            "_id": "$competencia",
+            "faturamento": {"$sum": "$valor_total"},
+            "qtd_notas": {"$sum": 1}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    
+    faturamento_por_mes = {}
+    async for doc in db.xml_documents.aggregate(pipeline_faturamento):
+        faturamento_por_mes[doc["_id"]] = {
+            "faturamento": doc["faturamento"],
+            "qtd_notas": doc["qtd_notas"]
+        }
+    
+    # Calcular RBT12 (últimos 12 meses)
+    rbt12 = sum(v["faturamento"] for v in faturamento_por_mes.values())
+    
+    # Calcular faturamento do ano corrente
+    competencias_ano = [f"{m:02d}/{ano_ref}" for m in range(1, mes_ref + 1)]
+    faturamento_ano = sum(
+        faturamento_por_mes.get(c, {}).get("faturamento", 0) 
+        for c in competencias_ano
+    )
+    
+    # Buscar valores de produtos ST e monofásicos do mês atual
+    competencia_atual = f"{mes_ref:02d}/{ano_ref}"
+    produtos_st_mes = 0
+    produtos_monofasicos_mes = 0
+    
+    docs_mes_cursor = db.xml_documents.find({
+        "company_id": request.company_id,
+        "tipo": "saida",
+        "competencia": competencia_atual,
+        **get_filtro_notas_ativas()
+    }, {"_id": 0, "produtos": 1, "valor_total": 1})
+    
+    faturamento_mes_atual = 0
+    async for doc in docs_mes_cursor:
+        faturamento_mes_atual += doc.get("valor_total", 0)
+        for prod in doc.get("produtos", []):
+            cst = prod.get("cst", "")
+            ncm = prod.get("ncm", "")
+            valor = prod.get("valor_total", 0) or prod.get("valor_produto", 0)
+            
+            # ICMS-ST (CST 10, 30, 60, 70, 201, 202, 203, 500)
+            if cst in ['10', '30', '60', '70', '201', '202', '203', '500']:
+                produtos_st_mes += valor
+            
+            # Monofásicos (verificar NCM)
+            if is_ncm_aliquota_zero(ncm):
+                produtos_monofasicos_mes += valor
+    
+    # Calcular alíquota efetiva e faixa
+    aliquota_info = calcular_aliquota_efetiva(rbt12, anexo_principal)
+    faixa_info = obter_faixa_por_rbt12(rbt12)
+    
+    # Calcular DAS do mês atual
+    das_mes = calcular_das_periodo(
+        faturamento_periodo=faturamento_mes_atual,
+        rbt12=rbt12,
+        anexo=anexo_principal,
+        produtos_st=produtos_st_mes,
+        produtos_monofasicos=produtos_monofasicos_mes
+    )
+    
+    # Calcular projeção anual
+    projecao = calcular_projecao_anual(faturamento_ano, mes_ref)
+    
+    # Calcular Fator R (se Anexo V)
+    fator_r_info = None
+    folha_12m = company.get('folha_pagamento_12m', 0)
+    
+    if 'V' in anexos_confirmados and rbt12 > 0:
+        fator_r_info = calcular_fator_r(folha_12m, rbt12)
+    
+    # Calcular limites disponíveis
+    limite_disponivel = max(0, LIMITE_SIMPLES - rbt12)
+    sublimite_disponivel = max(0, SUBLIMITE_ICMS_ISS - rbt12)
+    
+    # Percentuais consumidos
+    percentual_limite = min(100, (rbt12 / LIMITE_SIMPLES) * 100) if LIMITE_SIMPLES > 0 else 0
+    percentual_sublimite = min(100, (rbt12 / SUBLIMITE_ICMS_ISS) * 100) if SUBLIMITE_ICMS_ISS > 0 else 0
+    
+    # Gerar alertas
+    alertas = []
+    if percentual_limite >= 100:
+        alertas.append({
+            "tipo": "critical",
+            "mensagem": "ATENÇÃO: Limite do Simples Nacional EXCEDIDO! A empresa será excluída do regime."
+        })
+    elif percentual_limite >= 90:
+        alertas.append({
+            "tipo": "warning",
+            "mensagem": f"Alerta: Faturamento próximo do limite ({percentual_limite:.1f}%). Monitore os próximos meses."
+        })
+    
+    if percentual_sublimite >= 100:
+        alertas.append({
+            "tipo": "warning",
+            "mensagem": "Sublimite estadual excedido. ICMS e ISS serão recolhidos por fora do DAS."
+        })
+    elif percentual_sublimite >= 90:
+        alertas.append({
+            "tipo": "info",
+            "mensagem": f"Sublimite próximo ({percentual_sublimite:.1f}%). Ao ultrapassar, ICMS/ISS será recolhido separadamente."
+        })
+    
+    # Histórico mensal para gráfico
+    historico_mensal = []
+    for comp in reversed(competencias_12m):
+        dados_mes = faturamento_por_mes.get(comp, {"faturamento": 0, "qtd_notas": 0})
+        historico_mensal.append({
+            "competencia": comp,
+            "faturamento": round(dados_mes["faturamento"], 2),
+            "qtd_notas": dados_mes["qtd_notas"]
+        })
+    
+    return {
+        "empresa": {
+            "id": company.get("id"),
+            "razao_social": company.get("razao_social"),
+            "cnpj": company.get("cnpj"),
+            "regime_tributario": "simples_nacional"
+        },
+        "ano_referencia": ano_ref,
+        "mes_referencia": mes_ref,
+        "competencia_atual": competencia_atual,
+        
+        # Faturamento
+        "faturamento": {
+            "rbt12": round(rbt12, 2),
+            "ano_corrente": round(faturamento_ano, 2),
+            "mes_atual": round(faturamento_mes_atual, 2),
+            "media_mensal": round(rbt12 / 12, 2) if rbt12 > 0 else 0
+        },
+        
+        # Limites
+        "limites": {
+            "limite_simples": LIMITE_SIMPLES,
+            "sublimite_icms_iss": SUBLIMITE_ICMS_ISS,
+            "limite_disponivel": round(limite_disponivel, 2),
+            "sublimite_disponivel": round(sublimite_disponivel, 2),
+            "percentual_limite_consumido": round(percentual_limite, 2),
+            "percentual_sublimite_consumido": round(percentual_sublimite, 2)
+        },
+        
+        # Projeção
+        "projecao": projecao,
+        
+        # Enquadramento
+        "enquadramento": {
+            "anexos_sugeridos": anexos_sugeridos,
+            "anexos_confirmados": anexos_confirmados,
+            "anexo_principal": anexo_principal,
+            "faixa": faixa_info,
+            "aliquota_nominal": aliquota_info["aliquota_nominal"],
+            "aliquota_efetiva": aliquota_info["aliquota_efetiva"],
+            "parcela_deducao": aliquota_info["parcela_deducao"]
+        },
+        
+        # DAS do mês
+        "das_mes_atual": das_mes,
+        
+        # Fator R (se aplicável)
+        "fator_r": fator_r_info,
+        
+        # Alertas
+        "alertas": alertas,
+        
+        # Histórico
+        "historico_mensal": historico_mensal
+    }
+
+
+@api_router.put("/companies/{company_id}/simples-nacional/anexos")
+async def update_anexos_simples(company_id: str, anexos: List[str], current_user: User = Depends(get_current_user)):
+    """
+    Atualiza os anexos do Simples Nacional confirmados para a empresa.
+    """
+    # Validar anexos
+    anexos_validos = ['I', 'II', 'III', 'IV', 'V']
+    for anexo in anexos:
+        if anexo not in anexos_validos:
+            raise HTTPException(status_code=400, detail=f"Anexo inválido: {anexo}. Válidos: {anexos_validos}")
+    
+    result = await db.companies.update_one(
+        {"id": company_id},
+        {"$set": {
+            "anexos_simples": anexos,
+            "anexos_confirmados": True
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    return {"message": "Anexos atualizados com sucesso", "anexos": anexos}
+
+
+@api_router.put("/companies/{company_id}/simples-nacional/folha")
+async def update_folha_simples(company_id: str, folha_12m: float, current_user: User = Depends(get_current_user)):
+    """
+    Atualiza o valor da folha de pagamento dos últimos 12 meses (para cálculo do Fator R).
+    """
+    if folha_12m < 0:
+        raise HTTPException(status_code=400, detail="Valor da folha não pode ser negativo")
+    
+    result = await db.companies.update_one(
+        {"id": company_id},
+        {"$set": {"folha_pagamento_12m": folha_12m}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    return {"message": "Folha de pagamento atualizada", "folha_12m": folha_12m}
+
+
+@api_router.get("/simples-nacional/sugerir-anexos/{cnpj}")
+async def sugerir_anexos_por_cnpj(cnpj: str, current_user: User = Depends(get_current_user)):
+    """
+    Sugere anexos do Simples Nacional baseado nos CNAEs de um CNPJ.
+    Útil no cadastro de nova empresa.
+    """
+    # Buscar dados do CNPJ na Receita Federal
+    try:
+        cnpj_limpo = cnpj.replace('.', '').replace('/', '').replace('-', '')
+        response = requests.get(f'https://brasilapi.com.br/api/cnpj/v1/{cnpj_limpo}', timeout=10)
+        
+        if response.status_code != 200:
+            return {"anexos_sugeridos": ['I'], "cnaes": [], "mensagem": "Não foi possível consultar CNPJ"}
+        
+        data = response.json()
+        
+        # Extrair CNAEs
+        cnaes = []
+        cnae_principal = data.get('cnae_fiscal', '')
+        if cnae_principal:
+            cnaes.append(str(cnae_principal))
+        
+        cnaes_secundarios = data.get('cnaes_secundarios', [])
+        for cs in cnaes_secundarios:
+            if isinstance(cs, dict):
+                cnaes.append(str(cs.get('codigo', '')))
+            else:
+                cnaes.append(str(cs))
+        
+        # Sugerir anexos
+        anexos = obter_anexos_por_cnaes(cnaes)
+        
+        return {
+            "cnpj": cnpj,
+            "razao_social": data.get('razao_social', ''),
+            "cnaes": cnaes,
+            "anexos_sugeridos": anexos,
+            "descricao_anexos": {
+                "I": "Comércio",
+                "II": "Indústria",
+                "III": "Serviços (com CPP)",
+                "IV": "Serviços (sem CPP - construção, vigilância)",
+                "V": "Serviços (Fator R - engenharia, saúde)"
+            }
+        }
+    except Exception as e:
+        return {"anexos_sugeridos": ['I'], "cnaes": [], "mensagem": f"Erro na consulta: {str(e)}"}
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
