@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import CoffeeProgress from '../components/CoffeeProgress';
 import { 
   Building2, Plus, Search, RefreshCw, Trash2, Edit, X, Settings, 
-  Users, ChevronDown, ChevronRight, Filter, Upload, FileSpreadsheet, Download, CheckCircle, AlertCircle, Shield, Eye, EyeOff
+  Users, ChevronDown, ChevronRight, Filter, Upload, FileSpreadsheet, Download, CheckCircle, AlertCircle, Shield, Eye, EyeOff,
+  ArrowUp, ArrowDown, ArrowUpDown
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import * as XLSX from 'xlsx';
@@ -23,6 +24,10 @@ const Companies = ({ user, onLogout }) => {
   const [filterResponsavel, setFilterResponsavel] = useState('');
   const [loadingCNPJ, setLoadingCNPJ] = useState(false);
   const [expandedCompany, setExpandedCompany] = useState(null);
+  
+  // Ordenação
+  const [sortField, setSortField] = useState('codigo_empresa');
+  const [sortDirection, setSortDirection] = useState('asc');
   
   // Importação em lote
   const [showImportModal, setShowImportModal] = useState(false);
