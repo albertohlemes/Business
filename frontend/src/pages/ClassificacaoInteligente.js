@@ -422,12 +422,19 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
         {/* ========== SEÇÃO DE ALERTAS ========== */}
         <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl overflow-hidden">
           <div className="p-4 border-b border-[#2A2A2A] bg-gradient-to-r from-amber-900/20 to-amber-950/10">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="w-6 h-6 text-amber-400" />
-              <div>
-                <h2 className="text-lg font-semibold text-white">Alertas de CFOP</h2>
-                <p className="text-sm text-[#A1A1AA]">CFOPs que precisam de atenção ou correção</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-6 h-6 text-amber-400" />
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Alertas de CFOP</h2>
+                  <p className="text-sm text-[#A1A1AA]">CFOPs agrupados para ação em lote</p>
+                </div>
               </div>
+              {alertasData?.total_produtos_pendentes > 0 && (
+                <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-full text-sm font-medium">
+                  {alertasData.total_produtos_pendentes} pendente(s)
+                </span>
+              )}
             </div>
           </div>
           
@@ -438,86 +445,157 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
               </div>
             ) : alertasError ? (
               <div className="text-center py-8 text-red-400">{alertasError}</div>
-            ) : alertasData?.alertas?.length > 0 ? (
-              <div className="space-y-3">
-                {alertasData.alertas.map((documento, docIdx) => (
+            ) : alertasData?.grupos?.length > 0 ? (
+              <div className="space-y-4">
+                {alertasData.grupos.map((grupo, idx) => (
                   <div 
-                    key={documento.documento_id || docIdx}
-                    className="bg-[#141414] border border-[#2A2A2A] rounded-lg overflow-hidden"
+                    key={grupo.cfop || idx}
+                    className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden"
                   >
-                    {/* Header do documento */}
-                    <button
-                      onClick={() => toggleAlert(docIdx)}
-                      className="w-full p-4 flex items-center justify-between hover:bg-[#1A1A1A] transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        {expandedAlerts[docIdx] ? (
-                          <ChevronDown className="w-5 h-5 text-[#A1A1AA]" />
-                        ) : (
-                          <ChevronRight className="w-5 h-5 text-[#A1A1AA]" />
-                        )}
-                        <span className="px-3 py-1 rounded text-sm font-mono bg-amber-500/20 text-amber-400">
-                          NF-e {documento.numero_nfe}
-                        </span>
-                        <span className="text-white font-medium truncate max-w-[250px]">{documento.emitente}</span>
+                    {/* Header do grupo CFOP */}
+                    <div className="p-4 bg-gradient-to-r from-[#1A1A1A] to-[#141414]">
+                      <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="px-4 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg">
+                            <span className="text-2xl font-bold font-mono text-amber-400">{grupo.cfop}</span>
+                          </div>
+                          <div>
+                            <p className="text-white font-semibold">{grupo.descricao}</p>
+                            <p className="text-sm text-[#A1A1AA]">
+                              <span className="text-amber-400 font-medium">{grupo.quantidade}</span> produto(s) • 
+                              <span className="text-[#C8A951] ml-1">{formatCurrency(grupo.valor_total)}</span>
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Botões de ação em lote */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Botão Manter */}
+                          <button
+                            onClick={() => resolverGrupoCfop(grupo.cfop, grupo.sugestao_manter.cfop, true)}
+                            disabled={resolvingGroup === grupo.cfop}
+                            className="px-4 py-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-500/30 disabled:opacity-50 text-sm font-medium flex items-center gap-2 transition-colors"
+                          >
+                            {resolvingGroup === grupo.cfop ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-4 h-4" />
+                            )}
+                            Manter {grupo.cfop}
+                          </button>
+                          
+                          {/* Botão Converter para Compra */}
+                          <button
+                            onClick={() => resolverGrupoCfop(grupo.cfop, grupo.sugestao_compra.cfop, true)}
+                            disabled={resolvingGroup === grupo.cfop}
+                            className="px-4 py-2 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg hover:bg-green-500/30 disabled:opacity-50 text-sm font-medium flex items-center gap-2 transition-colors"
+                          >
+                            <ArrowRight className="w-4 h-4" />
+                            Converter → {grupo.sugestao_compra.cfop}
+                          </button>
+                          
+                          {/* Botão Editar Manualmente */}
+                          <button
+                            onClick={() => setEditingCfop(prev => ({ ...prev, [grupo.cfop]: !prev[grupo.cfop] }))}
+                            className="px-4 py-2 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded-lg hover:bg-[#333] hover:text-white text-sm font-medium flex items-center gap-2 transition-colors"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                            Outro CFOP
+                          </button>
+                          
+                          {/* Botão Expandir/Recolher */}
+                          <button
+                            onClick={() => toggleAlert(grupo.cfop)}
+                            className="p-2 bg-[#2A2A2A] text-[#A1A1AA] border border-[#333] rounded-lg hover:bg-[#333] hover:text-white transition-colors"
+                          >
+                            {expandedAlerts[grupo.cfop] ? (
+                              <ChevronUp className="w-5 h-5" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <span className="text-amber-400 text-sm font-medium">{documento.qtd_pendentes} produto(s)</span>
-                        <span className="text-white font-semibold">{formatCurrency(documento.valor_total)}</span>
-                      </div>
-                    </button>
+                      
+                      {/* Campo de edição manual */}
+                      {editingCfop[grupo.cfop] && (
+                        <div className="mt-4 p-3 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <label className="text-sm text-[#A1A1AA]">CFOP personalizado:</label>
+                            <input
+                              type="text"
+                              id={`cfop-manual-${grupo.cfop}`}
+                              placeholder="Ex: 1102"
+                              maxLength={4}
+                              className="w-24 px-3 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white font-mono text-center focus:border-[#C8A951] outline-none"
+                            />
+                            <button
+                              onClick={() => {
+                                const input = document.getElementById(`cfop-manual-${grupo.cfop}`);
+                                const novoCfop = input?.value?.trim();
+                                if (novoCfop && /^\d{4}$/.test(novoCfop)) {
+                                  resolverGrupoCfop(grupo.cfop, novoCfop, true);
+                                } else {
+                                  toast.error('CFOP deve ter 4 dígitos');
+                                }
+                              }}
+                              disabled={resolvingGroup === grupo.cfop}
+                              className="px-4 py-2 bg-[#C8A951]/20 text-[#C8A951] border border-[#C8A951]/30 rounded hover:bg-[#C8A951]/30 disabled:opacity-50 text-sm font-medium transition-colors"
+                            >
+                              Aplicar a todos
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     
-                    {/* Conteúdo expandido - produtos pendentes */}
-                    {expandedAlerts[docIdx] && documento.produtos && (
-                      <div className="px-4 pb-4 border-t border-[#2A2A2A]">
-                        <div className="pt-4 space-y-3">
-                          {documento.produtos.map((prod, prodIdx) => (
+                    {/* Lista de produtos (expandida) */}
+                    {expandedAlerts[grupo.cfop] && grupo.produtos && (
+                      <div className="border-t border-[#2A2A2A]">
+                        <div className="p-2 bg-[#0C0C0C] text-xs text-[#666] border-b border-[#2A2A2A]">
+                          <div className="grid grid-cols-12 gap-2 px-2 font-medium">
+                            <div className="col-span-1">NF-e</div>
+                            <div className="col-span-3">Fornecedor</div>
+                            <div className="col-span-4">Produto</div>
+                            <div className="col-span-1">NCM</div>
+                            <div className="col-span-1 text-center">CFOP Orig.</div>
+                            <div className="col-span-1 text-right">Valor</div>
+                            <div className="col-span-1 text-center">Ação</div>
+                          </div>
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto">
+                          {grupo.produtos.map((prod, prodIdx) => (
                             <div 
                               key={prodIdx}
-                              className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg p-4"
+                              className="grid grid-cols-12 gap-2 p-2 px-4 text-sm border-b border-[#1A1A1A] hover:bg-[#1A1A1A] transition-colors items-center"
                             >
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-white font-medium truncate">{prod.produto_descricao || 'Produto sem descrição'}</p>
-                                  <div className="flex flex-wrap gap-2 mt-2 text-xs text-[#A1A1AA]">
-                                    <span>Código: {prod.produto_codigo || '-'}</span>
-                                    <span>•</span>
-                                    <span>NCM: {prod.ncm || '-'}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 mt-2">
-                                    <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded font-mono">
-                                      CFOP Original: {prod.cfop_original_emissor || '-'}
-                                    </span>
-                                    <span className="text-[#666]">→</span>
-                                    <span className="px-2 py-1 bg-amber-500/20 text-amber-400 text-xs rounded font-mono">
-                                      CFOP Atual: {prod.cfop_atual || '-'}
-                                    </span>
-                                  </div>
-                                  {prod.natureza_operacao && (
-                                    <p className="text-xs text-[#666] mt-2">
-                                      Natureza: {prod.natureza_operacao}
-                                    </p>
-                                  )}
-                                </div>
-                                <div className="text-right flex-shrink-0">
-                                  <p className="text-[#C8A951] font-semibold">{formatCurrency(prod.valor)}</p>
-                                </div>
+                              <div className="col-span-1 font-mono text-amber-400">{prod.numero_nfe}</div>
+                              <div className="col-span-3 text-white truncate" title={prod.emitente}>{prod.emitente}</div>
+                              <div className="col-span-4 text-[#A1A1AA] truncate" title={prod.produto_descricao}>{prod.produto_descricao}</div>
+                              <div className="col-span-1 text-[#666] font-mono text-xs">{prod.ncm}</div>
+                              <div className="col-span-1 text-center">
+                                <span className="px-2 py-0.5 bg-red-500/10 text-red-400 rounded text-xs font-mono">
+                                  {prod.cfop_original_emissor}
+                                </span>
                               </div>
-                              
-                              {/* Opções de resolução */}
-                              {prod.opcoes && (
-                                <div className="mt-4 pt-4 border-t border-[#2A2A2A]">
-                                  <p className="text-xs text-[#A1A1AA] mb-2">Escolha uma ação:</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    <button
-                                      onClick={() => resolverAlertaIndividual(documento.documento_id, prod.produto_idx, prod.opcoes.manter_natureza?.cfop)}
-                                      className="px-3 py-1.5 text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded hover:bg-blue-500/30 transition-colors"
-                                    >
-                                      {prod.opcoes.manter_natureza?.descricao || 'Manter CFOP atual'}
-                                    </button>
-                                    <button
-                                      onClick={() => resolverAlertaIndividual(documento.documento_id, prod.produto_idx, prod.opcoes.converter_compra?.cfop)}
-                                      className="px-3 py-1.5 text-xs bg-green-500/20 text-green-400 border border-green-500/30 rounded hover:bg-green-500/30 transition-colors"
+                              <div className="col-span-1 text-right text-[#C8A951]">{formatCurrency(prod.valor)}</div>
+                              <div className="col-span-1 text-center">
+                                <button
+                                  onClick={() => resolverAlertaIndividual(prod.documento_id, prod.produto_idx, grupo.sugestao_compra.cfop)}
+                                  className="p-1 text-[#666] hover:text-green-400 transition-colors"
+                                  title="Converter individualmente"
+                                >
+                                  <CheckCircle2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
                                     >
                                       {prod.opcoes.converter_compra?.descricao || 'Converter para compra'}
                                     </button>
