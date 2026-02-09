@@ -493,7 +493,7 @@ const ApuracaoICMS = ({ user, onLogout }) => {
           {activeTab === 'icms' && (
           <>
             {/* Cards de Resumo - Apuração */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <ResumoCard
                 titulo="Crédito ICMS"
                 valor={dados.apuracao?.credito_icms}
