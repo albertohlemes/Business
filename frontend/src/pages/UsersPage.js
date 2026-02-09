@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import { 
   Users, Plus, Search, Edit, Trash2, X, Check, Shield, 
-  UserCheck, UserX, RefreshCw, Building2 
+  UserCheck, UserX, RefreshCw, Building2, ArrowUp, ArrowDown 
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -17,6 +17,10 @@ const UsersPage = ({ user, onLogout }) => {
   const [editingUser, setEditingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  
+  // Ordenação
+  const [sortField, setSortField] = useState('name');
+  const [sortDirection, setSortDirection] = useState('asc');
 
   const emptyFormData = {
     email: '',
