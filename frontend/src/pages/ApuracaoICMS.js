@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
+import { SortableHeader, useSortableData } from '../components/SortableTable';
 import { 
   TrendingUp, TrendingDown, DollarSign, FileText,
   ChevronDown, ChevronUp, Download, RefreshCw, 
