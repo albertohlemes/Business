@@ -1043,6 +1043,222 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
             </div>
           </div>
         )}
+
+        {/* Modal RET - Comparativo de Regimes Tributários */}
+        {showRetModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] w-full max-w-4xl max-h-[90vh] overflow-hidden">
+              {/* Header do Modal */}
+              <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
+                <div className="flex items-center gap-3">
+                  <Scale className="w-5 h-5 text-purple-400" />
+                  <h3 className="text-lg font-medium text-white">RET - Comparativo de Regimes Tributários</h3>
+                </div>
+                <button 
+                  onClick={() => setShowRetModal(false)} 
+                  className="p-1 text-[#A1A1AA] hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              {/* Conteúdo do Modal */}
+              <div className="p-4 overflow-y-auto max-h-[calc(90vh-120px)]">
+                {loadingRet ? (
+                  <div className="flex items-center justify-center py-12">
+                    <RefreshCw className="w-8 h-8 text-purple-400 animate-spin" />
+                  </div>
+                ) : retData?.mensagem ? (
+                  <div className="text-center py-12">
+                    <AlertCircle className="w-12 h-12 text-amber-400 mx-auto mb-3" />
+                    <p className="text-white">{retData.mensagem}</p>
+                    <p className="text-[#666] text-sm mt-2">{retData.sugestao}</p>
+                  </div>
+                ) : retData && (
+                  <div className="space-y-6">
+                    {/* Info Base */}
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <p className="text-xs text-[#666]">Período</p>
+                          <p className="text-white font-medium">{retData.periodo?.referencia}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-[#666]">RBT12</p>
+                          <p className="text-white font-medium">{formatCurrency(retData.periodo?.rbt12)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-[#666]">Base de Cálculo</p>
+                          <p className="text-white font-medium">{formatCurrency(retData.periodo?.faturamento_base)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-[#666]">Meses Apurados</p>
+                          <p className="text-white font-medium">{retData.periodo?.meses_apurados}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Ranking de Regimes */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {retData.ranking?.map((regime, idx) => (
+                        <div 
+                          key={regime.regime}
+                          className={`rounded-lg p-5 ${
+                            idx === 0 
+                              ? 'bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border-2 border-emerald-500/50' 
+                              : 'bg-[#141414] border border-[#2A2A2A]'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <span className={`text-sm font-medium ${idx === 0 ? 'text-emerald-400' : 'text-[#A1A1AA]'}`}>
+                              {idx === 0 && <Award className="w-4 h-4 inline mr-1" />}
+                              {idx + 1}º - {regime.nome}
+                            </span>
+                            {idx === 0 && (
+                              <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-xs">
+                                Melhor
+                              </span>
+                            )}
+                          </div>
+                          <p className={`text-2xl font-bold ${idx === 0 ? 'text-emerald-400' : 'text-white'}`}>
+                            {formatCurrency(regime.total)}
+                          </p>
+                          
+                          {/* Detalhamento */}
+                          <div className="mt-4 pt-4 border-t border-[#2A2A2A]/50 space-y-2 text-xs">
+                            {regime.dados && (
+                              <>
+                                <div className="flex justify-between">
+                                  <span className="text-[#666]">ICMS</span>
+                                  <span className="text-white">{formatCurrency(regime.dados.icms)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-[#666]">PIS</span>
+                                  <span className="text-white">{formatCurrency(regime.dados.pis)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-[#666]">COFINS</span>
+                                  <span className="text-white">{formatCurrency(regime.dados.cofins)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-[#666]">IRPJ</span>
+                                  <span className="text-white">{formatCurrency(regime.dados.irpj)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-[#666]">CSLL</span>
+                                  <span className="text-white">{formatCurrency(regime.dados.csll)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-[#666]">CPP/INSS</span>
+                                  <span className="text-white">{formatCurrency(regime.dados.cpp)}</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Análise Comparativa */}
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+                      <h4 className="text-purple-400 font-medium mb-3 flex items-center gap-2">
+                        <Zap className="w-4 h-4" />
+                        Análise Comparativa
+                      </h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* vs Presumido */}
+                        <div className="bg-[#0C0C0C] rounded p-3">
+                          <p className="text-xs text-[#666] mb-1">Simples vs Lucro Presumido</p>
+                          <div className="flex items-center gap-2">
+                            {retData.analise?.simples_vs_presumido?.diferenca > 0 ? (
+                              <>
+                                <TrendingDown className="w-4 h-4 text-emerald-400" />
+                                <span className="text-emerald-400 font-semibold">
+                                  Economia de {formatCurrency(retData.analise.simples_vs_presumido.diferenca)}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <TrendingUp className="w-4 h-4 text-red-400" />
+                                <span className="text-red-400 font-semibold">
+                                  Prejuízo de {formatCurrency(Math.abs(retData.analise?.simples_vs_presumido?.diferenca || 0))}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          <p className="text-xs text-[#666] mt-1">
+                            {retData.analise?.simples_vs_presumido?.percentual > 0 ? '+' : ''}{retData.analise?.simples_vs_presumido?.percentual}%
+                          </p>
+                        </div>
+
+                        {/* vs Real */}
+                        <div className="bg-[#0C0C0C] rounded p-3">
+                          <p className="text-xs text-[#666] mb-1">Simples vs Lucro Real</p>
+                          <div className="flex items-center gap-2">
+                            {retData.analise?.simples_vs_real?.diferenca > 0 ? (
+                              <>
+                                <TrendingDown className="w-4 h-4 text-emerald-400" />
+                                <span className="text-emerald-400 font-semibold">
+                                  Economia de {formatCurrency(retData.analise.simples_vs_real.diferenca)}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <TrendingUp className="w-4 h-4 text-red-400" />
+                                <span className="text-red-400 font-semibold">
+                                  Prejuízo de {formatCurrency(Math.abs(retData.analise?.simples_vs_real?.diferenca || 0))}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          <p className="text-xs text-[#666] mt-1">
+                            {retData.analise?.simples_vs_real?.percentual > 0 ? '+' : ''}{retData.analise?.simples_vs_real?.percentual}%
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recomendação */}
+                    <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg p-4">
+                      <p className="text-white">{retData.recomendacao}</p>
+                    </div>
+
+                    {/* Observações */}
+                    <div className="text-xs text-[#666] space-y-1">
+                      {retData.observacoes?.map((obs, idx) => (
+                        <p key={idx}>• {obs}</p>
+                      ))}
+                    </div>
+
+                    {/* Alerta Limite */}
+                    {!retData.simples_disponivel && (
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 text-red-400">
+                          <AlertTriangle className="w-5 h-5" />
+                          <span className="font-medium">Limite do Simples Nacional Excedido</span>
+                        </div>
+                        <p className="text-sm text-[#A1A1AA] mt-2">
+                          O faturamento acumulado excede o limite de R$ 4.800.000,00. A empresa será excluída do Simples Nacional.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Footer do Modal */}
+              <div className="flex justify-end gap-3 p-4 border-t border-[#2A2A2A]">
+                <button
+                  onClick={() => setShowRetModal(false)}
+                  className="px-4 py-2 bg-[#2A2A2A] text-white rounded hover:bg-[#333333] transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
