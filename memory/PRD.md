@@ -90,8 +90,11 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **Classificação IA atualiza CFOP** além da categoria
 - ✅ **Divergências PIS/COFINS apenas SAÍDA** - corrigido filtro
 - ✅ **Indicadores para Lucro Presumido** - corrigida busca de dados
+- ✅ **Vilões e Oportunidades ICMS** - agora mostram % entrada/saída e explicação
+- ✅ **Insights IA** - corrigida referência de campo (insights_ia)
+- ✅ **Gráfico composição vendas** no Dashboard Simples (tributado/ST/mono/zero)
 - ✅ **Componente SortableTable** - ordenação reutilizável criada
-- ✅ 15/15 testes backend passaram (iteration_38)
+- ✅ 29/29 testes backend passaram (iteration_38 + iteration_39)
 
 ### 2026-02-11 (Sessão 1)
 - ✅ **CORRIGIDO: Cálculo do DAS no Dashboard do Simples Nacional**
