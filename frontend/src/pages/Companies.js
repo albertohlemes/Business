@@ -64,7 +64,11 @@ const Companies = ({ user, onLogout }) => {
     classificacao_inteligente: '',
     percentual_presuncao_irpj: 8.0,
     percentual_presuncao_csll: 12.0,
-    responsavel_ids: []
+    responsavel_ids: [],
+    // Certificado Digital
+    certificado_digital_arquivo: '',
+    certificado_digital_senha: '',
+    certificado_digital_validade: ''
   };
   
   const [formData, setFormData] = useState(emptyFormData);
