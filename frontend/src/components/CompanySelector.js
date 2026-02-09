@@ -232,110 +232,13 @@ const CompanySelector = () => {
             <p className="text-xs text-[#A1A1AA] mt-1 text-center">Digite apenas números (ex: 122025 → 12/2025)</p>
           </div>
 
-          {/* SIEG Integration */}
-          {tempCompany && tempCompetencia.length === 7 && (
-            <div className="bg-[#0C0C0C] rounded border border-[#2A2A2A] p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Cloud className="w-4 h-4 text-blue-400" />
-                <span className="text-sm font-medium text-white">SIEG - Cofre de XMLs</span>
-              </div>
-              
-              {siegStatus.loading ? (
-                <div className="flex items-center gap-2 text-blue-400">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Consultando SIEG...</span>
-                </div>
-              ) : siegStatus.error ? (
-                <div className="flex items-center gap-2 text-red-400">
-                  <AlertCircle className="w-4 h-4" />
-                  <span className="text-sm">{siegStatus.error}</span>
-                </div>
-              ) : siegStatus.count ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-[#141414] rounded p-2 border border-emerald-500/20">
-                      <p className="text-xs text-[#A1A1AA]">Entradas</p>
-                      <p className="text-xl font-bold text-emerald-400">{siegStatus.count.entrada?.total || 0}</p>
-                    </div>
-                    <div className="bg-[#141414] rounded p-2 border border-amber-500/20">
-                      <p className="text-xs text-[#A1A1AA]">Saídas</p>
-                      <p className="text-xl font-bold text-amber-400">{siegStatus.count.saida?.total || 0}</p>
-                    </div>
-                  </div>
-                  
-                  {getTotalSieg() > 0 && (
-                    <div className="space-y-3">
-                      <label className="flex items-center gap-2 text-sm text-[#A1A1AA] cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={autoSyncEnabled}
-                          onChange={(e) => setAutoSyncEnabled(e.target.checked)}
-                          className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951] focus:ring-[#C8A951]"
-                        />
-                        <Sparkles className="w-4 h-4 text-[#C8A951]" />
-                        <span>Importar automaticamente ao confirmar</span>
-                      </label>
-                      
-                      {syncProgress.active && (
-                        <div className="space-y-2">
-                          <div className="h-1.5 bg-[#2A2A2A] rounded overflow-hidden">
-                            <div 
-                              className="h-full bg-[#C8A951] transition-all duration-300"
-                              style={{ width: `${syncProgress.percent}%` }}
-                            />
-                          </div>
-                          <p className="text-xs text-[#A1A1AA]">{syncProgress.step}</p>
-                        </div>
-                      )}
-                      
-                      {syncResult && (
-                        <div className={`p-3 rounded text-sm ${syncResult.error ? 'bg-red-500/10 border border-red-500/20 text-red-400' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'}`}>
-                          {syncResult.error ? (
-                            <span>{syncResult.error}</span>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <CheckCircle className="w-4 h-4" />
-                              <span>
-                                {syncResult.entrada?.novos || 0} entradas e {syncResult.saida?.novos || 0} saídas importadas
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {!autoSyncEnabled && (
-                        <button
-                          onClick={handleSyncNow}
-                          disabled={siegSyncing}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded text-sm font-medium hover:bg-blue-500/20 disabled:opacity-50 transition-colors"
-                        >
-                          <CloudDownload className="w-4 h-4" />
-                          Importar Agora
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-[#A1A1AA]">Nenhum XML disponível</p>
-              )}
-            </div>
-          )}
-
           {/* Confirm Button */}
           <button
             onClick={handleConfirm}
-            disabled={!tempCompany || !tempCompetencia || siegSyncing}
+            disabled={!tempCompany || !tempCompetencia}
             className="w-full py-3 bg-[#C8A951] text-black rounded font-semibold hover:bg-[#B09240] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
           >
-            {siegSyncing ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Sincronizando...
-              </span>
-            ) : (
-              'Confirmar'
-            )}
+            Confirmar
           </button>
         </div>
       </div>
