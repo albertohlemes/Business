@@ -398,7 +398,19 @@ const Dashboard = ({ user, onLogout }) => {
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <div>
                     <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>Total de Impostos a Pagar</h3>
-                    <p className="text-[#A1A1AA] text-sm">ICMS + PIS + COFINS + ISS</p>
+                    <p className="text-[#A1A1AA] text-sm">
+                      {[
+                        (stats.empresa?.tipo_atividade === 'comercio' || stats.empresa?.tipo_atividade === 'industria' || stats.empresa?.tipo_atividade === 'mista' || stats.empresa?.apura_icms) ? 'ICMS' : null,
+                        'PIS',
+                        'COFINS',
+                        (stats.empresa?.tipo_atividade === 'servicos' || stats.empresa?.tipo_atividade === 'mista') ? 'ISS' : null
+                      ].filter(Boolean).join(' + ')}
+                    </p>
+                    {stats.indicadores?.perc_total_impostos_faturamento > 0 && (
+                      <p className="text-sm text-[#C8A951] mt-1">
+                        {stats.indicadores.perc_total_impostos_faturamento.toFixed(2)}% do faturamento
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="text-3xl font-bold text-[#C8A951]">{formatCurrency(stats.impostos_pagar.total)}</p>
