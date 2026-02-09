@@ -241,6 +241,9 @@ class CompanyUpdate(BaseModel):
     equiparado_industria: Optional[bool] = None
     apura_icms: Optional[bool] = None
     apura_icms_st: Optional[bool] = None
+    # Flags de desconsiderar ICMS
+    desconsiderar_icms_despesas: Optional[bool] = None
+    desconsiderar_icms_st: Optional[bool] = None
     # Presunção geral
     percentual_presuncao_irpj: Optional[float] = None
     percentual_presuncao_csll: Optional[float] = None
