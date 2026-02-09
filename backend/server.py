@@ -15124,7 +15124,7 @@ async def detalhamento_pis_cofins(
             valor_base = float(prod.get('valor_total', 0) or 0)
             
             # Calcular valores corretos
-            calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, tipo_op, perfil_empresa, regime_tributario)
+            calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, tipo_op, perfil_empresa, regime_para_calculo)
             cst = calc.get('cst', '01' if tipo_op == 'saida' else '50')
             
             chave = f"{ncm}_{cfop}_{cst}"
