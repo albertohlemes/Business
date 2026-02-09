@@ -134,9 +134,16 @@ class Company(BaseModel):
     equiparado_industria: bool = False  # Comércio equiparado a indústria (contribuinte IPI)
     apura_icms: bool = False  # Empresa de serviços que também apura ICMS
     apura_icms_st: bool = False  # Substituto tributário de ICMS
-    # Presunção (Lucro Presumido)
+    # Presunção geral (Lucro Presumido - atividade única)
     percentual_presuncao_irpj: float = 8.0
     percentual_presuncao_csll: float = 12.0
+    # Presunção por atividade (Lucro Presumido - atividade mista)
+    percentual_presuncao_irpj_comercio: float = 8.0
+    percentual_presuncao_csll_comercio: float = 12.0
+    percentual_presuncao_irpj_servico: float = 32.0
+    percentual_presuncao_csll_servico: float = 32.0
+    percentual_presuncao_irpj_industria: float = 8.0
+    percentual_presuncao_csll_industria: float = 12.0
     # Estoque (para ponto de equilíbrio - Lucro Real)
     estoque_inicial: float = 0.0
     estoque_final: float = 0.0
