@@ -11,6 +11,7 @@ import UsersPage from './pages/UsersPage';
 import UploadXML from './pages/UploadXML';
 import Documents from './pages/Documents';
 import ClassificacaoPage from './pages/ClassificacaoPage';
+import ClassificacaoInteligente from './pages/ClassificacaoInteligente';
 import ExportMenu from './pages/ExportMenu';
 import Reports from './pages/Reports';
 import AnaliseSaidas from './pages/AnaliseSaidas';
