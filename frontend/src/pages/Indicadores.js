@@ -567,15 +567,15 @@ const Indicadores = ({ user, onLogout }) => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
                         <p className="text-[#666] text-sm mb-1">Anexo</p>
-                        <p className="text-white font-bold text-lg">{dados?.simples?.anexo || 'I'}</p>
+                        <p className="text-white font-bold text-lg">{dados?.simples?.enquadramento?.anexo_principal || 'I'}</p>
                       </div>
                       <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
                         <p className="text-[#666] text-sm mb-1">Faixa</p>
-                        <p className="text-white font-bold text-lg">{dados?.simples?.faixa || '1'}</p>
+                        <p className="text-white font-bold text-lg">{dados?.simples?.enquadramento?.faixa?.faixa || '1'}</p>
                       </div>
                       <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
                         <p className="text-[#666] text-sm mb-1">RBT12 (Receita Bruta)</p>
-                        <p className="text-white font-bold text-lg">{formatCurrency(dados?.simples?.rbt12)}</p>
+                        <p className="text-white font-bold text-lg">{formatCurrency(dados?.simples?.faturamento?.rbt12)}</p>
                       </div>
                     </div>
                     
@@ -590,42 +590,50 @@ const Indicadores = ({ user, onLogout }) => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#2A2A2A]">
-                          <tr className="hover:bg-[#1A1A1A]">
-                            <td className="px-4 py-3 text-white">IRPJ</td>
-                            <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(dados?.simples?.composicao?.irpj_percent || 5.5)}</td>
-                            <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(dados?.simples?.composicao?.irpj || (dados?.simples?.das_valor * 0.055))}</td>
-                          </tr>
-                          <tr className="hover:bg-[#1A1A1A]">
-                            <td className="px-4 py-3 text-white">CSLL</td>
-                            <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(dados?.simples?.composicao?.csll_percent || 3.5)}</td>
-                            <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(dados?.simples?.composicao?.csll || (dados?.simples?.das_valor * 0.035))}</td>
-                          </tr>
-                          <tr className="hover:bg-[#1A1A1A]">
-                            <td className="px-4 py-3 text-white">COFINS</td>
-                            <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(dados?.simples?.composicao?.cofins_percent || 11.51)}</td>
-                            <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(dados?.simples?.composicao?.cofins || (dados?.simples?.das_valor * 0.1151))}</td>
-                          </tr>
-                          <tr className="hover:bg-[#1A1A1A]">
-                            <td className="px-4 py-3 text-white">PIS</td>
-                            <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(dados?.simples?.composicao?.pis_percent || 2.76)}</td>
-                            <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(dados?.simples?.composicao?.pis || (dados?.simples?.das_valor * 0.0276))}</td>
-                          </tr>
-                          <tr className="hover:bg-[#1A1A1A]">
-                            <td className="px-4 py-3 text-white">CPP</td>
-                            <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(dados?.simples?.composicao?.cpp_percent || 41.5)}</td>
-                            <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(dados?.simples?.composicao?.cpp || (dados?.simples?.das_valor * 0.415))}</td>
-                          </tr>
-                          <tr className="hover:bg-[#1A1A1A]">
-                            <td className="px-4 py-3 text-white">ICMS</td>
-                            <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(dados?.simples?.composicao?.icms_percent || 33.5)}</td>
-                            <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(dados?.simples?.composicao?.icms || (dados?.simples?.das_valor * 0.335))}</td>
-                          </tr>
+                          {(() => {
+                            const reparticao = dados?.simples?.das_mes_atual?.reparticao || {};
+                            const dasValor = dados?.simples?.das_mes_atual?.valor_das_final || 0;
+                            return (
+                              <>
+                                <tr className="hover:bg-[#1A1A1A]">
+                                  <td className="px-4 py-3 text-white">IRPJ</td>
+                                  <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(reparticao.irpj_percent || 5.5)}</td>
+                                  <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(reparticao.irpj || (dasValor * 0.055))}</td>
+                                </tr>
+                                <tr className="hover:bg-[#1A1A1A]">
+                                  <td className="px-4 py-3 text-white">CSLL</td>
+                                  <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(reparticao.csll_percent || 3.5)}</td>
+                                  <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(reparticao.csll || (dasValor * 0.035))}</td>
+                                </tr>
+                                <tr className="hover:bg-[#1A1A1A]">
+                                  <td className="px-4 py-3 text-white">COFINS</td>
+                                  <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(reparticao.cofins_percent || 11.51)}</td>
+                                  <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(reparticao.cofins || (dasValor * 0.1151))}</td>
+                                </tr>
+                                <tr className="hover:bg-[#1A1A1A]">
+                                  <td className="px-4 py-3 text-white">PIS</td>
+                                  <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(reparticao.pis_percent || 2.76)}</td>
+                                  <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(reparticao.pis || (dasValor * 0.0276))}</td>
+                                </tr>
+                                <tr className="hover:bg-[#1A1A1A]">
+                                  <td className="px-4 py-3 text-white">CPP</td>
+                                  <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(reparticao.cpp_percent || 41.5)}</td>
+                                  <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(reparticao.cpp || (dasValor * 0.415))}</td>
+                                </tr>
+                                <tr className="hover:bg-[#1A1A1A]">
+                                  <td className="px-4 py-3 text-white">ICMS</td>
+                                  <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(reparticao.icms_percent || 33.5)}</td>
+                                  <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(reparticao.icms || (dasValor * 0.335))}</td>
+                                </tr>
+                              </>
+                            );
+                          })()}
                         </tbody>
                         <tfoot className="bg-[#C8A951]/10 border-t-2 border-[#C8A951]">
                           <tr>
                             <td className="px-4 py-3 text-[#C8A951] font-bold">TOTAL DAS</td>
-                            <td className="px-4 py-3 text-right text-[#C8A951] font-bold">{formatPercentual(dados?.simples?.aliquota_efetiva || 0)}</td>
-                            <td className="px-4 py-3 text-right text-[#C8A951] font-bold text-lg">{formatCurrency(dados?.simples?.das_valor)}</td>
+                            <td className="px-4 py-3 text-right text-[#C8A951] font-bold">{formatPercentual(dados?.simples?.enquadramento?.aliquota_efetiva || 0)}</td>
+                            <td className="px-4 py-3 text-right text-[#C8A951] font-bold text-lg">{formatCurrency(dados?.simples?.das_mes_atual?.valor_das_final || dados?.simples?.impostos_mes?.das)}</td>
                           </tr>
                         </tfoot>
                       </table>
