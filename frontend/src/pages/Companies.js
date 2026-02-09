@@ -724,10 +724,10 @@ const Companies = ({ user, onLogout }) => {
           <div className="bg-[#141414] rounded border border-[#2A2A2A] overflow-hidden">
             {/* Table Header */}
             <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 bg-[#0C0C0C] border-b border-[#2A2A2A] text-xs font-medium text-[#A1A1AA] uppercase tracking-wider">
-              <div className="col-span-1">Código</div>
-              <div className="col-span-4">Empresa</div>
-              <div className="col-span-2">CNPJ</div>
-              <div className="col-span-2">Regime</div>
+              <SortHeader field="codigo_empresa" className="col-span-1">Código</SortHeader>
+              <SortHeader field="razao_social" className="col-span-4">Empresa</SortHeader>
+              <SortHeader field="cnpj" className="col-span-2">CNPJ</SortHeader>
+              <SortHeader field="regime_tributario" className="col-span-2">Regime</SortHeader>
               <div className="col-span-2">Responsáveis</div>
               <div className="col-span-1 text-right">Ações</div>
             </div>
