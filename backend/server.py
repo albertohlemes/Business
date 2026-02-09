@@ -191,6 +191,8 @@ class CompanyCreate(BaseModel):
     anexos_simples: List[str] = []
     tipo_atividade: str = "comercio"
     tipos_servico: List[str] = []
+    # Perfis de atividade comercial (múltipla escolha)
+    perfis_comerciais: List[str] = []  # ['industria', 'distribuidor', 'varejo']
     # Flags de contribuinte
     equiparado_industria: bool = False
     apura_icms: bool = False
