@@ -145,9 +145,19 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     }));
   };
 
-  // Filtrar e ordenar sugestões de validação
-  const filteredSuggestions = useMemo(() => {
-    if (!validacaoData?.sugestoes) return [];
+  // Configuração das categorias de classificação
+  const categoriasConfig = {
+    revenda: { label: 'Revenda', color: 'blue', icon: '🛒' },
+    insumo: { label: 'Insumo', color: 'green', icon: '⚙️' },
+    despesa: { label: 'Despesa', color: 'red', icon: '📋' },
+    ativo_imobilizado: { label: 'Ativo Imobilizado', color: 'amber', icon: '🏭' },
+    combustivel: { label: 'Combustível', color: 'purple', icon: '⛽' },
+    pendente: { label: 'Pendente de Classificação', color: 'gray', icon: '❓' }
+  };
+
+  // Agrupar produtos por classificação
+  const produtosAgrupados = useMemo(() => {
+    if (!validacaoData?.sugestoes) return {};
     
     let filtered = validacaoData.sugestoes;
     
@@ -170,15 +180,36 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
       });
     }
     
-    // Ordenar por valor
-    filtered.sort((a, b) => {
-      const valA = a.valor_total || 0;
-      const valB = b.valor_total || 0;
-      return sortOrder === 'desc' ? valB - valA : valA - valB;
+    // Agrupar por categoria
+    const grupos = {};
+    filtered.forEach(prod => {
+      const categoria = prod.categoria_atual || 'pendente';
+      if (!grupos[categoria]) {
+        grupos[categoria] = {
+          produtos: [],
+          valor_total: 0,
+          quantidade: 0
+        };
+      }
+      grupos[categoria].produtos.push(prod);
+      grupos[categoria].valor_total += prod.valor_total || 0;
+      grupos[categoria].quantidade += 1;
     });
     
-    return filtered;
+    // Ordenar produtos dentro de cada grupo por valor
+    Object.keys(grupos).forEach(cat => {
+      grupos[cat].produtos.sort((a, b) => {
+        const valA = a.valor_total || 0;
+        const valB = b.valor_total || 0;
+        return sortOrder === 'desc' ? valB - valA : valA - valB;
+      });
+    });
+    
+    return grupos;
   }, [validacaoData, searchTerm, filterStatus, sortOrder]);
+
+  // Ordem de exibição das categorias
+  const ordemCategorias = ['revenda', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel', 'pendente'];
 
   if (!selectedCompany) {
     return (
