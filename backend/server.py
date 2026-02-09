@@ -14197,6 +14197,143 @@ async def apurar_pis_cofins(
     return resultado
 
 
+@api_router.get("/pis-cofins/detalhamento/{company_id}")
+async def detalhamento_pis_cofins(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna detalhamento por NCM+CFOP+CST separado por ENTRADA e SAÍDA com subtotais.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    perfil_empresa = company.get('perfil_comercial', 'VAREJO')
+    regime_tributario = company.get('regime_tributario', 'LUCRO_REAL')
+    
+    # Buscar documentos
+    documents = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    # Estrutura para agrupar
+    entradas = {}  # chave: NCM_CFOP_CST
+    saidas = {}
+    
+    subtotais_entrada = {'valor_base': 0, 'valor_pis': 0, 'valor_cofins': 0, 'quantidade': 0}
+    subtotais_saida = {'valor_base': 0, 'valor_pis': 0, 'valor_cofins': 0, 'quantidade': 0}
+    
+    for doc in documents:
+        tipo_op = doc.get('tipo', 'entrada')
+        
+        for prod in doc.get('produtos', []):
+            ncm = str(prod.get('ncm', '') or '').replace('.', '').strip()
+            cfop = str(prod.get('cfop', '') or '').strip()
+            valor_base = float(prod.get('valor_total', 0) or 0)
+            
+            # Calcular valores corretos
+            calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, tipo_op, perfil_empresa, regime_tributario)
+            cst = calc.get('cst', '01' if tipo_op == 'saida' else '50')
+            
+            chave = f"{ncm}_{cfop}_{cst}"
+            
+            if tipo_op == 'entrada':
+                if chave not in entradas:
+                    entradas[chave] = {
+                        'ncm': ncm,
+                        'cfop': cfop,
+                        'cst': cst,
+                        'classificacao': calc.get('classificacao', {}).get('grupo', 'REGRA_GERAL'),
+                        'quantidade': 0,
+                        'valor_base': 0,
+                        'aliquota_pis': calc.get('aliquota_pis', 0),
+                        'aliquota_cofins': calc.get('aliquota_cofins', 0),
+                        'valor_pis': 0,
+                        'valor_cofins': 0,
+                        'gera_credito': calc.get('gera_credito', False)
+                    }
+                entradas[chave]['quantidade'] += 1
+                entradas[chave]['valor_base'] += valor_base
+                entradas[chave]['valor_pis'] += calc.get('valor_pis', 0)
+                entradas[chave]['valor_cofins'] += calc.get('valor_cofins', 0)
+                
+                subtotais_entrada['quantidade'] += 1
+                subtotais_entrada['valor_base'] += valor_base
+                subtotais_entrada['valor_pis'] += calc.get('valor_pis', 0)
+                subtotais_entrada['valor_cofins'] += calc.get('valor_cofins', 0)
+            else:
+                if chave not in saidas:
+                    saidas[chave] = {
+                        'ncm': ncm,
+                        'cfop': cfop,
+                        'cst': cst,
+                        'classificacao': calc.get('classificacao', {}).get('grupo', 'REGRA_GERAL'),
+                        'quantidade': 0,
+                        'valor_base': 0,
+                        'aliquota_pis': calc.get('aliquota_pis', 0),
+                        'aliquota_cofins': calc.get('aliquota_cofins', 0),
+                        'valor_pis': 0,
+                        'valor_cofins': 0,
+                        'gera_debito': not (cfop in CFOPS_SEM_DEBITO)
+                    }
+                saidas[chave]['quantidade'] += 1
+                saidas[chave]['valor_base'] += valor_base
+                saidas[chave]['valor_pis'] += calc.get('valor_pis', 0)
+                saidas[chave]['valor_cofins'] += calc.get('valor_cofins', 0)
+                
+                subtotais_saida['quantidade'] += 1
+                subtotais_saida['valor_base'] += valor_base
+                subtotais_saida['valor_pis'] += calc.get('valor_pis', 0)
+                subtotais_saida['valor_cofins'] += calc.get('valor_cofins', 0)
+    
+    # Converter para listas e ordenar
+    lista_entradas = list(entradas.values())
+    lista_saidas = list(saidas.values())
+    
+    lista_entradas.sort(key=lambda x: x['valor_base'], reverse=True)
+    lista_saidas.sort(key=lambda x: x['valor_base'], reverse=True)
+    
+    # Arredondar valores
+    for item in lista_entradas + lista_saidas:
+        item['valor_base'] = round(item['valor_base'], 2)
+        item['valor_pis'] = round(item['valor_pis'], 2)
+        item['valor_cofins'] = round(item['valor_cofins'], 2)
+    
+    for k in subtotais_entrada:
+        subtotais_entrada[k] = round(subtotais_entrada[k], 2) if isinstance(subtotais_entrada[k], float) else subtotais_entrada[k]
+    for k in subtotais_saida:
+        subtotais_saida[k] = round(subtotais_saida[k], 2) if isinstance(subtotais_saida[k], float) else subtotais_saida[k]
+    
+    return {
+        'empresa': company.get('razao_social', ''),
+        'competencia': competencia,
+        'entradas': {
+            'itens': lista_entradas,
+            'subtotais': subtotais_entrada
+        },
+        'saidas': {
+            'itens': lista_saidas,
+            'subtotais': subtotais_saida
+        },
+        'saldo': {
+            'credito_pis': subtotais_entrada['valor_pis'],
+            'credito_cofins': subtotais_entrada['valor_cofins'],
+            'debito_pis': subtotais_saida['valor_pis'],
+            'debito_cofins': subtotais_saida['valor_cofins'],
+            'saldo_pis': round(subtotais_saida['valor_pis'] - subtotais_entrada['valor_pis'], 2),
+            'saldo_cofins': round(subtotais_saida['valor_cofins'] - subtotais_entrada['valor_cofins'], 2),
+            'saldo_total': round(
+                (subtotais_saida['valor_pis'] + subtotais_saida['valor_cofins']) -
+                (subtotais_entrada['valor_pis'] + subtotais_entrada['valor_cofins']), 2
+            )
+        }
+    }
+
+
 @api_router.get("/pis-cofins/divergencias/{company_id}")
 async def listar_divergencias_pis_cofins(
     company_id: str,
