@@ -464,32 +464,63 @@ const Dashboard = ({ user, onLogout }) => {
                           {formatCurrency(stats.impostos_pagar.icms)}
                         </span>
                       </div>
-                      {stats.indicadores?.perc_icms_vendas > 0 && (
-                        <div className="text-xs text-[#666] pt-1">
-                          {stats.indicadores.perc_icms_vendas.toFixed(2)}% sobre vendas
-                        </div>
-                      )}
+                      <div className="text-xs text-[#666] pt-1 space-y-0.5">
+                        <div>% Saídas: {((stats.impostos_pagar.icms / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
+                        <div>% Vendas: {((stats.impostos_pagar.icms / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
+                      </div>
                     </div>
                   </div>
                 )}
                 
-                {/* PIS/COFINS - Sempre mostrar */}
-                <TaxCardWithDivergence
-                  title="PIS"
-                  credito={stats.creditos.pis}
-                  debito={stats.debitos.pis}
-                  debitoXml={stats.debitos.pis_xml}
-                  pagar={stats.impostos_pagar.pis}
-                  divergencia={stats.debitos.divergencias?.find(d => d.imposto === 'PIS')}
-                />
-                <TaxCardWithDivergence
-                  title="COFINS"
-                  credito={stats.creditos.cofins}
-                  debito={stats.debitos.cofins}
-                  debitoXml={stats.debitos.cofins_xml}
-                  pagar={stats.impostos_pagar.cofins}
-                  divergencia={stats.debitos.divergencias?.find(d => d.imposto === 'COFINS')}
-                />
+                {/* PIS */}
+                <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                  <h4 className="font-semibold text-white mb-3">PIS</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-emerald-400">Crédito:</span>
+                      <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos.pis)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-red-400">Débito:</span>
+                      <span className="font-medium text-red-400">{formatCurrency(stats.debitos.pis)}</span>
+                    </div>
+                    <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
+                      <span className="text-[#A1A1AA]">A Pagar:</span>
+                      <span className={stats.impostos_pagar.pis > 0 ? 'text-red-400' : 'text-emerald-400'}>
+                        {formatCurrency(stats.impostos_pagar.pis)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-[#666] pt-1 space-y-0.5">
+                      <div>% Saídas: {((stats.impostos_pagar.pis / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
+                      <div>% Vendas: {((stats.impostos_pagar.pis / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* COFINS */}
+                <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                  <h4 className="font-semibold text-white mb-3">COFINS</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-emerald-400">Crédito:</span>
+                      <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos.cofins)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-red-400">Débito:</span>
+                      <span className="font-medium text-red-400">{formatCurrency(stats.debitos.cofins)}</span>
+                    </div>
+                    <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
+                      <span className="text-[#A1A1AA]">A Pagar:</span>
+                      <span className={stats.impostos_pagar.cofins > 0 ? 'text-red-400' : 'text-emerald-400'}>
+                        {formatCurrency(stats.impostos_pagar.cofins)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-[#666] pt-1 space-y-0.5">
+                      <div>% Saídas: {((stats.impostos_pagar.cofins / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
+                      <div>% Vendas: {((stats.impostos_pagar.cofins / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
+                    </div>
+                  </div>
+                </div>
                 
                 {/* ISS - Mostrar apenas se for de serviços */}
                 {(stats.empresa?.tipo_atividade === 'servicos' || stats.empresa?.tipo_atividade === 'mista') && (
@@ -506,11 +537,10 @@ const Dashboard = ({ user, onLogout }) => {
                           {formatCurrency(stats.impostos_pagar.iss)}
                         </span>
                       </div>
-                      {stats.indicadores?.perc_iss_faturamento > 0 && (
-                        <div className="text-xs text-[#666] pt-1">
-                          {stats.indicadores.perc_iss_faturamento.toFixed(2)}% sobre faturamento
-                        </div>
-                      )}
+                      <div className="text-xs text-[#666] pt-1 space-y-0.5">
+                        <div>% Saídas: {((stats.impostos_pagar.iss / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
+                        <div>% Vendas: {((stats.impostos_pagar.iss / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
+                      </div>
                     </div>
                   </div>
                 )}
