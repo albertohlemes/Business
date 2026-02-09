@@ -19,24 +19,30 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - **Barra de progresso com contador tomando café** (novo)
 - Validação automática de CFOP por operação
 
-### 3. Apurações Fiscais
+### 3. Alertas de CFOP (NOVO!)
+- **Agrupamento por CFOP** para ação em lote
+- Botões de ação: Manter, Converter, Editar manualmente
+- Lista expandível de produtos por grupo
+- Ação individual ou em lote
+
+### 4. Apurações Fiscais
 - ICMS, PIS/COFINS, ISS, IPI
 - DIFAL para Simples Nacional
 - Cálculo de Fator R
 - DAS (Simples Nacional)
 
-### 4. RET - Comparativo de Regimes
+### 5. RET - Comparativo de Regimes
 - Comparação entre Simples, Presumido e Real
 - DRE para Lucro Real
-- **Aviso de dados incompletos** (novo)
+- Aviso de dados incompletos
 - Projeção anual
 
-### 5. Classificação Inteligente
+### 6. Classificação Inteligente
 - Classificação de produtos por categoria
-- **Alertas de CFOP corrigidos** (novo)
+- Alertas de CFOP agrupados
 - Comandos de IA para classificação em lote
 
-### 6. Exportação
+### 7. Exportação
 - SPED Fiscal
 - Relatórios por alíquota (ICMS, PIS, COFINS)
 - CSV de entradas/saídas
@@ -56,20 +62,19 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-09
+### 2026-02-09 (Sessão 2)
+- ✅ Alertas de CFOP agrupados por CFOP (não por documento)
+- ✅ Ação em lote para classificação de CFOPs
+- ✅ Edição manual de CFOP com campo de input
+- ✅ Novos endpoints: `/alertas-cfop/agrupado`, `/alertas-cfop/resolver-grupo`
+
+### 2026-02-09 (Sessão 1)
 - ✅ Adicionada barra de progresso com contador tomando café
 - ✅ Corrigido erro de exportação de relatórios (io not defined)
 - ✅ Refeito frontend dos Alertas de CFOP
 - ✅ Adicionado upload de logo da empresa
 - ✅ Adicionado aviso no RET para dados incompletos
 - ✅ Removidos arquivos obsoletos (AlertasCfop.js, ClassificacaoPage.js)
-
-### Sessões Anteriores
-- Unificação do módulo RET
-- Customização de dashboards para Simples Nacional
-- Melhoria no cálculo do Fator R
-- Realocação da integração SIEG para Documentos
-- Criação de relatórios por alíquota
 
 ## Backlog
 
@@ -80,6 +85,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 ### P2 - Média Prioridade
 - [ ] Ordenação em todas as colunas das tabelas
 - [ ] Logo da empresa nos relatórios exportados
+- [ ] Corrigir modal de seleção na página /companies
 
 ### P3 - Baixa Prioridade
 - [ ] Refatorar server.py em routers
@@ -89,3 +95,16 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 ## Credenciais de Teste
 - Email: admin@test.com
 - Senha: 123456
+
+## Endpoints de Alertas CFOP
+
+### GET /api/alertas-cfop/{company_id}/agrupado
+Retorna alertas agrupados por CFOP para ação em lote.
+
+### POST /api/alertas-cfop/resolver-grupo
+Resolve todos os alertas de um CFOP específico.
+Parâmetros: company_id, competencia, cfop_atual, novo_cfop, salvar_regra
+
+### POST /api/alertas-cfop/resolver-individual
+Resolve um alerta específico de um produto.
+Parâmetros: documento_id, produto_idx, novo_cfop
