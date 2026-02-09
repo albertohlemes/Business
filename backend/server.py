@@ -561,6 +561,72 @@ def is_ncm_monofasico(ncm: str) -> bool:
     return False
 
 
+# ===== DETECÇÃO DE TRANSPORTADORA POR CNAE =====
+# CNAEs de transporte rodoviário de cargas e passageiros
+CNAES_TRANSPORTADORA_CARGA = [
+    '4930', '49301', '49302',  # Transporte rodoviário de carga
+    '4940', '49400',           # Transporte dutoviário
+    '5010', '50101', '50102',  # Transporte marítimo de cabotagem - carga
+    '5021', '50210',           # Transporte marítimo de longo curso - carga
+    '5030', '50301', '50302',  # Transporte por navegação interior de carga
+    '5111', '51110',           # Transporte aéreo de carga
+    '5212', '52120',           # Carga e descarga
+    '5231', '52310',           # Gestão de portos e terminais
+    '5250', '52501', '52502',  # Atividades relacionadas à organização do transporte de carga
+]
+
+CNAES_TRANSPORTADORA_PASSAGEIROS = [
+    '4911', '49116',           # Transporte ferroviário de passageiros intermunicipal/interestadual
+    '4912', '49124',           # Transporte metroferroviário de passageiros
+    '4921', '49213',           # Transporte rodoviário coletivo de passageiros (intermunicipal/interestadual)
+    '4922', '49221',           # Transporte rodoviário coletivo de passageiros (municipal)
+    '4923', '49230',           # Transporte rodoviário de táxi
+    '4929', '49299',           # Transporte rodoviário coletivo de passageiros (outros)
+    '5011', '50111', '50112',  # Transporte marítimo de cabotagem - passageiros
+    '5012', '50120',           # Transporte marítimo de longo curso - passageiros
+    '5022', '50220',           # Transporte por navegação interior de passageiros
+    '5112', '51128',           # Transporte aéreo de passageiros regular
+    '5229', '52291', '52299',  # Atividades de organização logística do transporte de carga
+]
+
+def detectar_transportadora(cnaes: List[str]) -> dict:
+    """
+    Detecta se a empresa é transportadora baseado nos CNAEs.
+    Retorna: {"is_transportadora": bool, "tipo_transporte": "carga"|"passageiros"|None}
+    """
+    if not cnaes:
+        return {"is_transportadora": False, "tipo_transporte": None}
+    
+    # Normalizar CNAEs (remover pontos e hífens)
+    cnaes_norm = [str(c).replace('.', '').replace('-', '').replace('/', '')[:5] for c in cnaes]
+    
+    for cnae in cnaes_norm:
+        # Verificar se é transportadora de carga
+        for cnae_carga in CNAES_TRANSPORTADORA_CARGA:
+            if cnae.startswith(cnae_carga[:4]):
+                return {"is_transportadora": True, "tipo_transporte": "carga"}
+        
+        # Verificar se é transportadora de passageiros
+        for cnae_pass in CNAES_TRANSPORTADORA_PASSAGEIROS:
+            if cnae.startswith(cnae_pass[:4]):
+                return {"is_transportadora": True, "tipo_transporte": "passageiros"}
+    
+    return {"is_transportadora": False, "tipo_transporte": None}
+
+
+def calcular_credito_presumido_icms_transportadora(valor_debito_icms: float, percentual: float = 20.0) -> float:
+    """
+    Calcula o crédito presumido de ICMS para transportadoras.
+    Conforme RICMS SP, Art. 70, XI - crédito de 20% do valor do débito nas prestações de serviço de transporte.
+    
+    Fórmula: Crédito Presumido = Débito ICMS × 20%
+    """
+    if valor_debito_icms <= 0:
+        return 0.0
+    
+    return round(valor_debito_icms * (percentual / 100), 2)
+
+
 def is_ncm_cesta_basica(ncm: str) -> bool:
     """
     Verifica se NCM é de produto da cesta básica (alíquota zero por lei específica).
