@@ -77,7 +77,28 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-12 (Sessão 4 - Atual)
+### 2026-02-09 (Sessão 5 - Atual)
+- ✅ **Nova Página de Apuração - Resumo do Movimento**
+  - Endpoint `/apuracao-movimento/{company_id}` criado
+  - Agrupamento por CFOP com descrição automática
+  - Totais de documentos, produtos, valores, ICMS, PIS, COFINS, IPI, ICMS-ST
+  - Abas separadas para Entradas e Saídas
+  - **Todas as colunas ordenáveis** (CFOP, descrição, qtd, valores, impostos)
+  - Cards de resumo com totais por categoria
+  - Exportação para Excel
+  - Menu "Apuração" adicionado ao layout
+- ✅ **Correção de Divergência do Simples Nacional entre Dashboard e RET**
+  - RET agora usa a **mesma função** `calcular_aliquota_efetiva` e `calcular_das_periodo` do Dashboard
+  - RBT12 real (não proporcionalizado) usado para calcular alíquota efetiva
+  - Descontos de ST, monofásicos e alíquota zero aplicados no RET
+  - Campos `anexo`, `faixa`, `aliquota_nominal`, `parcela_deducao` adicionados ao RET
+- ✅ **Adaptação da página Indicadores para Simples Nacional**
+  - Corrigida chamada do endpoint (POST em vez de GET)
+  - Mapeamento correto dos campos `das_mes_atual`, `enquadramento`, `faturamento`
+  - Card DAS com composição por tributo (IRPJ, CSLL, COFINS, PIS, CPP, ICMS)
+  - Exibição do Anexo, Faixa e RBT12
+
+### 2026-02-12 (Sessão 4)
 - ✅ **Nova Página de Relatórios Gerenciais completa**
   - 3 abas: Consolidado, Por Alíquota PIS/COFINS, Por Produto
   - Seleção de seções via flags (Resumo, ICMS, PIS/COFINS Unificado, Documentos, Produtos)
