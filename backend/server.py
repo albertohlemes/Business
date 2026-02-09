@@ -14675,8 +14675,6 @@ async def apurar_pis_cofins(
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     regime_tributario = company.get('regime_tributario', 'lucro_presumido')
-    # Converter para formato esperado pela função calcular_pis_cofins_produto
-    regime_para_calculo = 'LUCRO_REAL' if regime_tributario == 'lucro_real' else 'LUCRO_PRESUMIDO'
     perfil_empresa = company.get('perfil_comercial', 'VAREJO')  # INDUSTRIA, DISTRIBUIDOR, VAREJO
     cnaes_empresa = company.get('cnaes', [])
     
