@@ -308,7 +308,7 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - Estilo `accent-color` para mostrar a cor quando marcado
 - Flags funcionando corretamente para marcar/desmarcar
 
-### v2.14.0 (12/12/2025) - Personalização Dashboard Simples Nacional
+### v2.14.0 (12/12/2025) - Personalização Dashboard Simples Nacional e Fator R
 
 **Dashboard Simples Nacional - Cards Personalizados:**
 - ✅ **Removidos** cards antigos irrelevantes (ICMS, PIS, COFINS individuais)
@@ -325,9 +325,18 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - ✅ **Barras de Progresso:** Limite Simples Nacional e Sublimite Estadual
 - ✅ **Correção de código malformado** nas linhas 440-443
 
+**Fator R - Sugestão de Folha Mínima (NOVO):**
+- ✅ Backend atualizado: `calcular_fator_r()` agora recebe `faturamento_competencia`
+- ✅ **Cálculo de RBT12 projetado:** RBT12 - média mensal + faturamento atual
+- ✅ **Folha Sugerida Projetada:** 28% do RBT12 projetado (para próximo período)
+- ✅ **Folha Mensal Sugerida:** Valor mensal para manter os 28%
+- ✅ **Novo card no Dashboard:** "💡 Folha Mensal Sugerida" com valor e contexto
+- ✅ Exibe mensagem contextual: "Considerando vendas de R$ X nesta competência"
+
 **Backend - Dados para os novos cards:**
 - `difal_mes`: total_difal, qtd_notas, percentual_sobre_compras, total_compras_interestaduais
 - `impostos_mes`: das, difal, total, percentual_sobre_vendas
+- `fator_r`: rbt12_projetado, faturamento_competencia, folha_sugerida_projetada, folha_mensal_sugerida
 
 ### v2.12.0 (09/02/2026) - DIFAL e RET para Simples Nacional
 
