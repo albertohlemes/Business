@@ -77,7 +77,23 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-12 (Sessão 2 - Atual)
+### 2026-02-12 (Sessão 3 - Atual)
+- ✅ **Corrigido modal de visualização de NF** - Erro "Objects are not valid as React child" corrigido com função `formatEndereco`
+- ✅ **Corrigido cálculo do RET - Proporcionalização 12 meses** 
+  - Alíquota Simples agora usa RBT12 proporcionalizado (ex: 1 mês de R$ 149k → 12 meses R$ 1.79M → alíquota 10.7%)
+  - Novos campos: `rbt12`, `rbt12_proporcionalizado`, `meses_com_dados`
+- ✅ **Corrigido card Lucro Real no PIS/COFINS Comparativo**
+  - Adicionados campos `debitos_comercio.total` e `debitos_servicos.total`
+  - Exibindo linha de "Débitos Total" e mensagem de "Crédito acumulado" quando imposto a pagar é zero
+- ✅ **Melhorada aba Divergências PIS/COFINS**
+  - Nova visualização em tabela compacta (sem accordion)
+  - Colunas: NF, Tipo, Emitente, Produto, NCM, CFOP, CST XML, CST Calc., Alíq. PIS, Alíq. COFINS, Impacto
+- ✅ **Barra de pesquisa no modal Memória IA**
+  - Filtro por produto, NCM, categoria ou CFOP
+  - Contador mostra "X de Y regra(s)"
+- ✅ **Filtro de Integridade já existia** - Botões "Todos / Divergentes / Validadas" na página Documents
+
+### 2026-02-12 (Sessão 2)
 - ✅ **Ordenação de colunas em TODAS as tabelas**
   - ICMS: CFOP, Status, Qtd, Valor Total, BC ICMS, Valor ICMS
   - IPI: CFOP, Qtd, Valor Total, BC IPI, Valor IPI
