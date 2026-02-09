@@ -1073,6 +1073,168 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
             </div>
           </div>
         )}
+        
+        {/* Modal de Memória IA */}
+        {showMemoriaIA && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowMemoriaIA(false)}>
+            <div 
+              className="bg-[#141414] border border-[#2A2A2A] rounded-xl max-w-4xl w-full max-h-[80vh] overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header do Modal */}
+              <div className="p-4 border-b border-[#2A2A2A] flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <BookOpen className="w-5 h-5 text-purple-400" />
+                  <h2 className="text-lg font-semibold text-white">Memória IA - Regras Aprendidas</h2>
+                  <span className="bg-purple-500/20 text-purple-300 text-xs px-2 py-0.5 rounded-full">
+                    {memoriaData.length} regra(s)
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowMemoriaIA(false)}
+                  className="p-2 hover:bg-[#2A2A2A] rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-[#A1A1AA]" />
+                </button>
+              </div>
+              
+              {/* Conteúdo */}
+              <div className="p-4 overflow-y-auto max-h-[60vh]">
+                {memoriaLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+                  </div>
+                ) : memoriaData.length === 0 ? (
+                  <div className="text-center py-12">
+                    <BookOpen className="w-12 h-12 text-[#2A2A2A] mx-auto mb-3" />
+                    <p className="text-[#A1A1AA]">Nenhuma regra aprendida ainda</p>
+                    <p className="text-sm text-[#666] mt-1">
+                      Use comandos de IA ou reclassifique produtos para criar regras
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {memoriaData.map((rule) => (
+                      <div 
+                        key={rule.id} 
+                        className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg p-4 hover:border-purple-500/30 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-white font-medium truncate">
+                                {rule.descricao_produto || rule.padrao || 'Produto sem descrição'}
+                              </span>
+                              {rule.ncm && (
+                                <span className="text-xs bg-[#1A1A1A] text-[#A1A1AA] px-2 py-0.5 rounded font-mono">
+                                  NCM: {rule.ncm}
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center gap-3 text-sm">
+                              <span className="text-[#A1A1AA]">Categoria:</span>
+                              {editingRule === rule.id ? (
+                                <select
+                                  defaultValue={rule.categoria || rule.categoria_correta}
+                                  onChange={(e) => updateRule(rule.id, e.target.value, rule.cfop)}
+                                  className="bg-[#1A1A1A] border border-[#2A2A2A] rounded px-2 py-1 text-white text-sm"
+                                >
+                                  <option value="revenda">Revenda</option>
+                                  <option value="insumo">Insumo</option>
+                                  <option value="despesa">Despesa</option>
+                                  <option value="ativo_imobilizado">Ativo Imobilizado</option>
+                                  <option value="combustivel">Combustível</option>
+                                </select>
+                              ) : (
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                  (rule.categoria || rule.categoria_correta) === 'revenda' ? 'bg-blue-500/20 text-blue-400' :
+                                  (rule.categoria || rule.categoria_correta) === 'insumo' ? 'bg-green-500/20 text-green-400' :
+                                  (rule.categoria || rule.categoria_correta) === 'despesa' ? 'bg-orange-500/20 text-orange-400' :
+                                  (rule.categoria || rule.categoria_correta) === 'combustivel' ? 'bg-red-500/20 text-red-400' :
+                                  'bg-purple-500/20 text-purple-400'
+                                }`}>
+                                  {(rule.categoria || rule.categoria_correta || 'N/A').toUpperCase()}
+                                </span>
+                              )}
+                              
+                              {rule.cfop && (
+                                <>
+                                  <span className="text-[#666]">|</span>
+                                  <span className="text-[#A1A1AA]">CFOP:</span>
+                                  <span className="font-mono text-[#C8A951]">{rule.cfop}</span>
+                                </>
+                              )}
+                              
+                              {rule.created_at && (
+                                <>
+                                  <span className="text-[#666]">|</span>
+                                  <span className="text-[#666] text-xs">
+                                    {new Date(rule.created_at).toLocaleDateString('pt-BR')}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            
+                            {rule.motivo && (
+                              <p className="text-xs text-[#666] mt-2 italic">
+                                "{rule.motivo}"
+                              </p>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            {editingRule === rule.id ? (
+                              <button
+                                onClick={() => setEditingRule(null)}
+                                className="p-2 hover:bg-[#2A2A2A] rounded-lg transition-colors"
+                              >
+                                <X className="w-4 h-4 text-[#A1A1AA]" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => setEditingRule(rule.id)}
+                                className="p-2 hover:bg-[#2A2A2A] rounded-lg transition-colors"
+                                title="Editar regra"
+                              >
+                                <Edit2 className="w-4 h-4 text-[#A1A1AA] hover:text-white" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => deleteRule(rule.id)}
+                              disabled={deletingRule === rule.id}
+                              className="p-2 hover:bg-red-900/30 rounded-lg transition-colors"
+                              title="Excluir regra"
+                            >
+                              {deletingRule === rule.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-red-400" />
+                              ) : (
+                                <Trash2 className="w-4 h-4 text-red-400 hover:text-red-300" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Footer */}
+              <div className="p-4 border-t border-[#2A2A2A] flex items-center justify-between">
+                <p className="text-xs text-[#666]">
+                  As regras são aplicadas automaticamente ao classificar novos produtos
+                </p>
+                <button
+                  onClick={() => setShowMemoriaIA(false)}
+                  className="px-4 py-2 bg-[#2A2A2A] text-white rounded-lg hover:bg-[#3A3A3A] transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
