@@ -9074,6 +9074,196 @@ async def get_classification_suggestions(
         "sugestoes": sugestoes
     }
 
+@api_router.post("/classification/ia-command/{company_id}")
+async def classificar_produtos_ia(
+    company_id: str,
+    competencia: str,
+    comando: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Classifica produtos usando comando de IA em linguagem natural.
+    Ex: "classificar etanol como combustível", "todos produtos limpeza são despesa"
+    """
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar produtos de entrada
+    documents = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "entrada",
+        **get_filtro_notas_ativas()
+    }).to_list(10000)
+    
+    # Agrupar produtos únicos
+    produtos_unicos = {}
+    for doc in documents:
+        for idx, prod in enumerate(doc.get('produtos', [])):
+            codigo = prod.get('codigo', '') or 'SEM_CODIGO'
+            descricao = prod.get('descricao', '')
+            chave = f"{codigo}_{descricao[:50]}"
+            
+            if chave not in produtos_unicos:
+                produtos_unicos[chave] = {
+                    'codigo': codigo,
+                    'descricao': descricao,
+                    'ncm': prod.get('ncm', ''),
+                    'categoria_atual': prod.get('categoria_classificada', 'pendente'),
+                    'ocorrencias': []
+                }
+            
+            produtos_unicos[chave]['ocorrencias'].append({
+                'doc_id': doc['id'],
+                'idx': idx
+            })
+    
+    if not produtos_unicos:
+        return {"success": True, "message": "Nenhum produto encontrado", "alteracoes": [], "total_alteracoes": 0}
+    
+    # Preparar contexto para IA
+    produtos_texto = "\n".join([
+        f"- {p['descricao'][:80]} (NCM: {p['ncm']}, categoria atual: {p['categoria_atual']})"
+        for p in list(produtos_unicos.values())[:100]
+    ])
+    
+    # Carregar regras existentes
+    regras_existentes = await db.learned_rules.find({"company_id": company_id}).to_list(100)
+    regras_texto = "\n".join([
+        f"- {r.get('descricao_produto', '')} → {r.get('categoria', '')}"
+        for r in regras_existentes
+    ]) if regras_existentes else "Nenhuma regra cadastrada"
+    
+    prompt = f"""Você é um assistente fiscal especializado em classificação de produtos para fins tributários.
+
+Comando do usuário: "{comando}"
+
+Categorias válidas:
+- revenda: Mercadorias compradas para revenda
+- insumo: Matérias-primas e insumos de produção
+- despesa: Material de uso e consumo, limpeza, escritório
+- ativo_imobilizado: Máquinas, equipamentos, móveis
+- combustivel: Gasolina, etanol, diesel, GNV
+
+Regras já cadastradas para esta empresa:
+{regras_texto}
+
+Produtos disponíveis:
+{produtos_texto}
+
+IMPORTANTE: Analise o comando e identifique TODOS os produtos que correspondem ao critério.
+Considere variações de nome, sinônimos e produtos relacionados.
+
+Retorne um JSON com:
+{{
+    "alteracoes": [
+        {{"descricao_produto": "texto parcial para match", "nova_categoria": "categoria_valida", "motivo": "explicação"}}
+    ],
+    "nova_regra": {{
+        "padrao": "padrão de texto para identificar produtos similares no futuro",
+        "categoria": "categoria_valida",
+        "descricao": "descrição da regra para referência"
+    }}
+}}
+
+Se o comando não for claro, retorne {{"alteracoes": [], "erro": "mensagem explicativa"}}
+"""
+
+    try:
+        llm = LlmChat(
+            api_key=os.environ.get('EMERGENT_LLM_KEY'),
+            session_id=f"classificacao-{company_id}-{competencia}",
+            system_message="Você é um assistente fiscal especializado. Responda sempre em formato JSON válido."
+        )
+        response = await llm.send_message(UserMessage(text=prompt))
+        
+        response_text = response if isinstance(response, str) else str(response)
+        json_match = re.search(r'\{[\s\S]*\}', response_text)
+        
+        if json_match:
+            resultado = json.loads(json_match.group())
+        else:
+            return {"success": True, "message": response_text, "alteracoes": [], "total_alteracoes": 0}
+        
+        if resultado.get('erro'):
+            return {"success": True, "message": resultado['erro'], "alteracoes": [], "total_alteracoes": 0}
+        
+        # Aplicar alterações
+        alteracoes_aplicadas = []
+        docs_atualizados = {}
+        
+        for alt in resultado.get('alteracoes', []):
+            categoria_destino = alt.get('nova_categoria', '')
+            if categoria_destino not in ['revenda', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel']:
+                continue
+            
+            desc_match = alt.get('descricao_produto', '').lower()
+            
+            # Encontrar produtos correspondentes
+            for chave, dados in produtos_unicos.items():
+                if desc_match in dados['descricao'].lower():
+                    # Atualizar todas as ocorrências deste produto
+                    for occ in dados['ocorrencias']:
+                        doc_id = occ['doc_id']
+                        idx = occ['idx']
+                        
+                        if doc_id not in docs_atualizados:
+                            doc = await db.xml_documents.find_one({"id": doc_id})
+                            if doc:
+                                docs_atualizados[doc_id] = doc.get('produtos', [])
+                        
+                        if doc_id in docs_atualizados:
+                            produtos_doc = docs_atualizados[doc_id]
+                            if idx < len(produtos_doc):
+                                produtos_doc[idx]['categoria_classificada'] = categoria_destino
+                                produtos_doc[idx]['classificado_por_ia'] = True
+                                produtos_doc[idx]['comando_ia'] = comando
+                    
+                    alteracoes_aplicadas.append({
+                        'produto': dados['descricao'],
+                        'categoria_anterior': dados['categoria_atual'],
+                        'categoria_nova': categoria_destino,
+                        'ocorrencias': len(dados['ocorrencias']),
+                        'motivo': alt.get('motivo', comando)
+                    })
+        
+        # Salvar alterações no banco
+        for doc_id, produtos in docs_atualizados.items():
+            await db.xml_documents.update_one(
+                {"id": doc_id},
+                {"$set": {"produtos": produtos}}
+            )
+        
+        # Salvar nova regra se fornecida
+        if resultado.get('nova_regra') and resultado['nova_regra'].get('padrao'):
+            nova_regra = resultado['nova_regra']
+            regra_doc = {
+                "id": str(uuid4()),
+                "company_id": company_id,
+                "padrao": nova_regra.get('padrao', ''),
+                "categoria": nova_regra.get('categoria', ''),
+                "descricao": nova_regra.get('descricao', comando),
+                "criado_em": datetime.now(timezone.utc).isoformat(),
+                "criado_por": current_user.id,
+                "comando_original": comando
+            }
+            await db.learned_rules.insert_one(regra_doc)
+        
+        return {
+            "success": True,
+            "total_alteracoes": len(alteracoes_aplicadas),
+            "alteracoes": alteracoes_aplicadas,
+            "comando_original": comando,
+            "regra_salva": bool(resultado.get('nova_regra', {}).get('padrao'))
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao classificar com IA: {e}")
+        return {"success": False, "message": f"Erro ao processar com IA: {str(e)}", "alteracoes": []}
+
 @api_router.get("/reports/by-ncm/{company_id}")
 async def report_by_ncm(
     company_id: str,
