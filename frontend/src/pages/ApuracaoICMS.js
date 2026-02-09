@@ -118,8 +118,49 @@ const ApuracaoICMS = ({ user, onLogout }) => {
     </div>
   );
 
-  // Tabela de CFOP
+  // Tabela de CFOP com ordenação
   const TabelaCFOP = ({ dados, tipo }) => {
+    const [sortField, setSortField] = useState('cfop');
+    const [sortDirection, setSortDirection] = useState('asc');
+    
+    const handleSort = (field) => {
+      if (sortField === field) {
+        setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+      } else {
+        setSortField(field);
+        setSortDirection('asc');
+      }
+    };
+    
+    const sortedDados = useMemo(() => {
+      if (!dados || dados.length === 0) return [];
+      
+      return [...dados].sort((a, b) => {
+        let aVal = a[sortField];
+        let bVal = b[sortField];
+        
+        // Handle null/undefined
+        if (aVal == null) aVal = sortField === 'cfop' ? '9999' : 0;
+        if (bVal == null) bVal = sortField === 'cfop' ? '9999' : 0;
+        
+        // Handle numbers
+        if (['qtd', 'valor_total', 'bc_icms', 'valor_icms'].includes(sortField)) {
+          aVal = Number(aVal) || 0;
+          bVal = Number(bVal) || 0;
+          return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+        }
+        
+        // Handle strings (CFOP)
+        aVal = String(aVal);
+        bVal = String(bVal);
+        
+        if (sortDirection === 'asc') {
+          return aVal.localeCompare(bVal, 'pt-BR', { numeric: true });
+        }
+        return bVal.localeCompare(aVal, 'pt-BR', { numeric: true });
+      });
+    }, [dados, sortField, sortDirection]);
+    
     if (!dados || dados.length === 0) {
       return (
         <div className="text-center py-8 text-[#666]">
@@ -133,16 +174,16 @@ const ApuracaoICMS = ({ user, onLogout }) => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[#2A2A2A]">
-              <th className="text-left py-3 px-4 text-[#A1A1AA] font-medium">CFOP</th>
-              <th className="text-left py-3 px-4 text-[#A1A1AA] font-medium">Status</th>
-              <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Qtd</th>
-              <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Valor Total</th>
-              <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">BC ICMS</th>
-              <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Valor ICMS</th>
+              <SortableHeader label="CFOP" field="cfop" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+              <SortableHeader label="Status" field="status" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} />
+              <SortableHeader label="Qtd" field="qtd" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" />
+              <SortableHeader label="Valor Total" field="valor_total" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" />
+              <SortableHeader label="BC ICMS" field="bc_icms" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" />
+              <SortableHeader label="Valor ICMS" field="valor_icms" sortField={sortField} sortDirection={sortDirection} onSort={handleSort} align="right" />
             </tr>
           </thead>
           <tbody>
-            {dados.map((item, idx) => {
+            {sortedDados.map((item, idx) => {
               // Verificar se CFOP está desconsiderado
               const isDesconsiderado = item.desconsiderado === true;
               const isDespesa = item.is_despesa === true;
