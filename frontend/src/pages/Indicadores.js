@@ -324,8 +324,13 @@ const Indicadores = ({ user, onLogout }) => {
   const lucroContabil = calcularLucroContabil();
 
   // Card de Imposto Individualizado
-  const ImpostoCard = ({ titulo, icone: Icon, cor, valor, percentSaidas, percentVendas, visible = true }) => {
-    if (!visible || valor <= 0) return null;
+  const ImpostoCard = ({ titulo, icone: Icon, cor, valor, percentSaidas, percentVendas, visible = true, saldoCredor = 0, showSempre = false }) => {
+    // Mostrar card se: visible AND (tem valor a pagar OU tem saldo credor OU showSempre)
+    if (!visible) return null;
+    if (!showSempre && valor <= 0 && saldoCredor <= 0) return null;
+    
+    const temAPagar = valor > 0;
+    const temCredor = saldoCredor > 0;
     
     return (
       <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
@@ -334,20 +339,41 @@ const Indicadores = ({ user, onLogout }) => {
             <Icon className="w-5 h-5 text-white" />
           </div>
           <span className="text-white font-semibold">{titulo}</span>
+          {temCredor && !temAPagar && (
+            <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
+              Credor
+            </span>
+          )}
         </div>
         <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-[#A1A1AA] text-sm">Valor</span>
-            <span className="text-white font-bold">{formatCurrency(valor)}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-[#A1A1AA] text-sm">% s/ Saídas</span>
-            <span className="text-[#C8A951] font-medium">{formatPercentual(percentSaidas)}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-[#A1A1AA] text-sm">% s/ Vendas</span>
-            <span className="text-blue-400 font-medium">{formatPercentual(percentVendas)}</span>
-          </div>
+          {temAPagar ? (
+            <>
+              <div className="flex justify-between items-center">
+                <span className="text-[#A1A1AA] text-sm">A Pagar</span>
+                <span className="text-red-400 font-bold">{formatCurrency(valor)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#A1A1AA] text-sm">% s/ Saídas</span>
+                <span className="text-[#C8A951] font-medium">{formatPercentual(percentSaidas)}</span>
+              </div>
+            </>
+          ) : temCredor ? (
+            <>
+              <div className="flex justify-between items-center">
+                <span className="text-[#A1A1AA] text-sm">Saldo Credor</span>
+                <span className="text-green-400 font-bold">{formatCurrency(saldoCredor)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#A1A1AA] text-sm">A Pagar</span>
+                <span className="text-[#666] font-medium">R$ 0,00</span>
+              </div>
+            </>
+          ) : (
+            <div className="flex justify-between items-center">
+              <span className="text-[#A1A1AA] text-sm">Valor</span>
+              <span className="text-[#666] font-medium">R$ 0,00</span>
+            </div>
+          )}
         </div>
       </div>
     );
