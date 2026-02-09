@@ -5620,7 +5620,7 @@ async def _get_simples_nacional_stats(company: dict, company_id: str, competenci
     
     # Obter RBT12 (do histórico importado ou calculado)
     historico_faturamento = company.get('historico_faturamento', [])
-    if historico_faturamento:
+    if historico_faturamento and isinstance(historico_faturamento, list):
         rbt12 = sum(m.get('faturamento', 0) for m in historico_faturamento[-12:])
     else:
         # Calcular do banco de dados se não houver histórico importado
