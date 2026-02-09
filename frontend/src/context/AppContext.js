@@ -59,7 +59,8 @@ export const AppProvider = ({ children }) => {
         const company = companies.find(c => c.id === savedCompanyId);
         if (company) {
           setSelectedCompany(company);
-          // Não fecha o seletor automaticamente se já está aberto pelo usuário
+          // IMPORTANTE: Fechar o seletor se já temos uma empresa válida salva
+          setShowSelector(false);
         } else {
           // Se não encontrou a empresa salva, mostra seletor
           setShowSelector(true);
