@@ -44,6 +44,7 @@ const CATEGORIAS = {
 
 const Documents = ({ user, onLogout }) => {
   const { selectedCompany: ctxCompany, selectedCompetencia, openSelector, siegStatus, siegSyncing, checkSiegCount, syncFromSieg } = useAppContext();
+  const { startUpload, isUploading: globalUploading, progress: globalProgress, currentFile, uploadResults: globalResults, uploadError: globalError, clearResults } = useUpload();
   const [searchParams] = useSearchParams();
   const highlightDocId = searchParams.get('highlight');
   
@@ -56,10 +57,11 @@ const Documents = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Upload
+  // Upload local (para quando não usa streaming)
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, percent: 0 });
   const fileInputRef = useRef(null);
+  const eventSourceRef = useRef(null);
   
   // SIEG
   const [siegProgress, setSiegProgress] = useState({ step: '', percent: 0 });
