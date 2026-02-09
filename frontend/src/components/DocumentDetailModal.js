@@ -30,6 +30,19 @@ const DocumentDetailModal = ({ document, onClose }) => {
     }
   };
 
+  const formatEndereco = (endereco, uf) => {
+    if (!endereco) return uf || '';
+    if (typeof endereco === 'string') return endereco;
+    // Se for objeto, formatar
+    const parts = [];
+    if (endereco.logradouro) parts.push(endereco.logradouro);
+    if (endereco.numero) parts.push(endereco.numero);
+    if (endereco.bairro) parts.push(endereco.bairro);
+    if (endereco.cidade) parts.push(endereco.cidade);
+    if (endereco.uf || uf) parts.push(endereco.uf || uf);
+    return parts.join(', ') || uf || '';
+  };
+
   // Calcular totais dos produtos
   const calcularTotaisProdutos = () => {
     const produtos = document.produtos || [];
