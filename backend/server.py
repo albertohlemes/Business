@@ -10245,7 +10245,7 @@ async def get_ai_chat(session_id: str, system_message: str):
         api_key=api_key,
         session_id=session_id,
         system_message=system_message
-    ).with_model("openai", "gpt-4o")
+    ).with_model("gemini", "gemini-2.5-flash")
     
     return chat
 
