@@ -125,6 +125,11 @@ const Indicadores = ({ user, onLogout }) => {
   const isContribuinteICMSST = () => {
     return selectedCompany?.apura_icms_st;
   };
+  
+  // Verificar se empresa é Simples Nacional
+  const isSimples = () => {
+    return selectedCompany?.regime_tributario === 'simples_nacional';
+  };
 
   // Calcular receitas (vendas de mercadorias + serviços)
   const calcularReceitas = () => {
