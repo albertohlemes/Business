@@ -15592,13 +15592,14 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
             "faixa": faixa_info,
             "aliquota_nominal": aliquota_info["aliquota_nominal"],
             "aliquota_efetiva": aliquota_info["aliquota_efetiva"],
-            "parcela_deducao": aliquota_info["parcela_deducao"]
+            "parcela_deducao": aliquota_info["parcela_deducao"],
+            "controla_fator_r": controla_fator_r
         },
         
         # DAS do mês
         "das_mes_atual": das_mes,
         
-        # Fator R (se aplicável)
+        # Fator R (se aplicável e controla_fator_r ativo)
         "fator_r": fator_r_info,
         
         # Alertas
