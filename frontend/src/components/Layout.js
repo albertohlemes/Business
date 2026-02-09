@@ -357,24 +357,28 @@ const Layout = ({ user, onLogout, children }) => {
         </div>
       )}
 
-      {/* Main Content Area */}
-      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 py-6">
-        <div className="flex gap-6">
-          {/* Sidebar - Apenas em modo vertical */}
-          {menuMode === 'vertical' && (
-            <aside className="hidden md:block w-56 flex-shrink-0">
-              <nav className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-3 sticky top-24">
-                <div className="space-y-1">
-                  {navigation.map((item) => (
-                    <NavItemVertical key={item.name} item={item} />
-                  ))}
-                </div>
-              </nav>
-            </aside>
-          )}
+      {/* Main Content Area - Fixed height with scroll */}
+      <div className="h-[calc(100vh-64px)] overflow-hidden">
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 h-full">
+          <div className="flex gap-6 h-full py-4">
+            {/* Sidebar - Apenas em modo vertical */}
+            {menuMode === 'vertical' && (
+              <aside className="hidden md:block w-56 flex-shrink-0 h-full">
+                <nav className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-3 h-fit sticky top-4">
+                  <div className="space-y-1">
+                    {navigation.map((item) => (
+                      <NavItemVertical key={item.name} item={item} />
+                    ))}
+                  </div>
+                </nav>
+              </aside>
+            )}
 
-          {/* Main Content */}
-          <main className="flex-1 min-w-0">{children}</main>
+            {/* Main Content - Scrollable */}
+            <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden pr-2 scrollbar-thin scrollbar-thumb-[#2A2A2A] scrollbar-track-transparent">
+              {children}
+            </main>
+          </div>
         </div>
       </div>
     </div>
