@@ -15104,7 +15104,7 @@ async def inteligencia_tributaria(
         print(f"Erro ao calcular ICMS: {e}")
     
     # Buscar apuração PIS/COFINS do regime atual
-    # Usar mesma lógica do endpoint /pis-cofins/apuracao que já funciona corretamente
+    # Usar mesma lógica completa do endpoint /pis-cofins/apuracao
     pis_real = 0
     cofins_real = 0
     try:
@@ -15114,6 +15114,7 @@ async def inteligencia_tributaria(
         perfil_empresa = company.get('perfil_comercial', 'VAREJO')
         perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
         perfil = perfis[0] if perfis else 'VAREJO'
+        cnaes_empresa = company.get('cnaes', [])
         
         query_pis = {
             "company_id": company_id,
@@ -15121,7 +15122,7 @@ async def inteligencia_tributaria(
             **get_filtro_notas_ativas()
         }
         
-        docs_pis = await db.xml_documents.find(query_pis, {"_id": 0, "xml_content": 0}).to_list(10000)
+        docs_pis = await db.xml_documents.find(query_pis).to_list(10000)
         
         # Inferir tipo_operacao se não tiver
         for doc in docs_pis:
@@ -15137,55 +15138,61 @@ async def inteligencia_tributaria(
         entradas = [d for d in docs_pis if d.get('tipo_operacao') == 'entrada' or d.get('tipo') == 'entrada']
         saidas = [d for d in docs_pis if d.get('tipo_operacao') == 'saida' or d.get('tipo') == 'saida']
         
-        # Totais Lucro Real
-        totais_lr = {
+        # Estrutura igual ao endpoint original
+        totais = {
             'creditos': {'pis': Decimal('0'), 'cofins': Decimal('0')},
-            'debitos': {'pis': Decimal('0'), 'cofins': Decimal('0')}
+            'debitos_comercio': {'pis': Decimal('0'), 'cofins': Decimal('0')},
+            'debitos_servicos': {'pis': Decimal('0'), 'cofins': Decimal('0')}
         }
         
         # Processar ENTRADAS (Créditos)
         for doc in entradas:
             for prod in doc.get('produtos', []):
-                ncm = str(prod.get('ncm', ''))
+                ncm = str(prod.get('ncm', '')).replace('.', '')
                 cfop = str(prod.get('cfop', ''))
-                valor = Decimal(str(prod.get('valor_total', 0) or 0))
+                valor_base = float(prod.get('valor_total', 0) or 0)
                 
-                resultado = calcular_pis_cofins_produto(
-                    valor_base=float(valor),
-                    ncm=ncm,
-                    cfop=cfop,
-                    tipo_operacao='entrada',
-                    perfil_empresa=perfil,
-                    regime_tributario='LUCRO_REAL'
+                calc_real = calcular_pis_cofins_produto(
+                    valor_base, ncm, cfop, 'entrada', perfil, 'LUCRO_REAL'
                 )
                 
-                if resultado.get('gera_credito', False):
-                    totais_lr['creditos']['pis'] += Decimal(str(resultado.get('pis_valor', 0)))
-                    totais_lr['creditos']['cofins'] += Decimal(str(resultado.get('cofins_valor', 0)))
+                if calc_real.get('gera_credito', False):
+                    totais['creditos']['pis'] += Decimal(str(calc_real.get('valor_pis', 0)))
+                    totais['creditos']['cofins'] += Decimal(str(calc_real.get('valor_cofins', 0)))
         
         # Processar SAÍDAS (Débitos)
         for doc in saidas:
+            modelo = doc.get('modelo', 'nfe')
+            is_servico = modelo in ['nfse', 'nfse_prestado']
+            
             for prod in doc.get('produtos', []):
-                ncm = str(prod.get('ncm', ''))
-                cfop = str(prod.get('cfop', ''))
-                valor = Decimal(str(prod.get('valor_total', 0) or 0))
+                valor_base = float(prod.get('valor_total', 0) or 0)
                 
-                resultado = calcular_pis_cofins_produto(
-                    valor_base=float(valor),
-                    ncm=ncm,
-                    cfop=cfop,
-                    tipo_operacao='saida',
-                    perfil_empresa=perfil,
-                    regime_tributario='LUCRO_REAL'
-                )
-                
-                if resultado.get('gera_debito', False):
-                    totais_lr['debitos']['pis'] += Decimal(str(resultado.get('pis_valor', 0)))
-                    totais_lr['debitos']['cofins'] += Decimal(str(resultado.get('cofins_valor', 0)))
+                if is_servico:
+                    cnae_principal = cnaes_empresa[0] if cnaes_empresa else ''
+                    codigo_servico = prod.get('codigo_servico', '')
+                    
+                    calc_real = calcular_pis_cofins_servico(
+                        valor_base, cnae_principal, codigo_servico, 'saida', 'LUCRO_REAL'
+                    )
+                    totais['debitos_servicos']['pis'] += Decimal(str(calc_real.get('valor_pis', 0)))
+                    totais['debitos_servicos']['cofins'] += Decimal(str(calc_real.get('valor_cofins', 0)))
+                else:
+                    ncm = str(prod.get('ncm', '')).replace('.', '')
+                    cfop = str(prod.get('cfop', ''))
+                    
+                    calc_real = calcular_pis_cofins_produto(
+                        valor_base, ncm, cfop, 'saida', perfil, 'LUCRO_REAL'
+                    )
+                    totais['debitos_comercio']['pis'] += Decimal(str(calc_real.get('valor_pis', 0)))
+                    totais['debitos_comercio']['cofins'] += Decimal(str(calc_real.get('valor_cofins', 0)))
         
-        # Calcular saldo
-        saldo_pis = totais_lr['debitos']['pis'] - totais_lr['creditos']['pis']
-        saldo_cofins = totais_lr['debitos']['cofins'] - totais_lr['creditos']['cofins']
+        # Calcular débitos total e saldo
+        debitos_pis = totais['debitos_comercio']['pis'] + totais['debitos_servicos']['pis']
+        debitos_cofins = totais['debitos_comercio']['cofins'] + totais['debitos_servicos']['cofins']
+        
+        saldo_pis = debitos_pis - totais['creditos']['pis']
+        saldo_cofins = debitos_cofins - totais['creditos']['cofins']
         
         pis_real = float(max(Decimal('0'), saldo_pis))
         cofins_real = float(max(Decimal('0'), saldo_cofins))
