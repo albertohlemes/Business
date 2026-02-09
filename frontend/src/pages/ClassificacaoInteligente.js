@@ -894,6 +894,99 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
             )}
           </div>
         </div>
+
+        {/* Modal de Edição de Produto */}
+        {editingProduct && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] w-full max-w-lg overflow-hidden">
+              <div className="p-4 border-b border-[#2A2A2A]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Edit3 className="w-5 h-5 text-[#C8A951]" />
+                    <h3 className="text-lg font-semibold text-white">Reclassificar Produto</h3>
+                  </div>
+                  <button 
+                    onClick={() => setEditingProduct(null)}
+                    className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-4 space-y-4">
+                {/* Info do Produto */}
+                <div className="bg-[#0C0C0C] rounded-lg p-4 border border-[#2A2A2A]">
+                  <p className="text-white font-medium">{editingProduct.prod?.descricao}</p>
+                  <div className="flex items-center gap-4 mt-2 text-sm text-[#A1A1AA]">
+                    <span className="font-mono">NCM: {editingProduct.prod?.ncm || '-'}</span>
+                    <span className="font-mono">CFOP: {editingProduct.prod?.cfop_atual || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs text-[#666]">Categoria atual:</span>
+                    <span className={`text-xs px-2 py-0.5 rounded ${
+                      editingProduct.categoria === 'pendente' ? 'bg-gray-500/20 text-gray-400' : 'bg-[#C8A951]/20 text-[#C8A951]'
+                    }`}>
+                      {categoriasConfig[editingProduct.categoria]?.label || editingProduct.categoria}
+                    </span>
+                  </div>
+                  {editingProduct.prod?.ocorrencias && (
+                    <div className="mt-3 pt-3 border-t border-[#2A2A2A]">
+                      <span className="text-xs text-[#666]">Presente em {editingProduct.prod.ocorrencias.length} NF(s): </span>
+                      <NFsList ocorrencias={editingProduct.prod.ocorrencias} maxVisible={5} />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Seleção de Nova Categoria */}
+                <div className="space-y-2">
+                  <label className="text-sm text-[#A1A1AA] block">Nova classificação:</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['revenda', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel', 'servico'].map(cat => {
+                      const config = categoriasConfig[cat] || { label: cat, icon: '📦' };
+                      const isSelected = editingProduct.novaCategoria === cat;
+                      return (
+                        <button
+                          key={cat}
+                          onClick={() => setEditingProduct(prev => ({ ...prev, novaCategoria: cat }))}
+                          className={`flex items-center gap-2 p-3 rounded-lg border transition-colors ${
+                            isSelected 
+                              ? 'border-[#C8A951] bg-[#C8A951]/10 text-[#C8A951]' 
+                              : 'border-[#2A2A2A] hover:border-[#3A3A3A] text-[#A1A1AA] hover:text-white'
+                          }`}
+                        >
+                          <span>{config.icon}</span>
+                          <span className="text-sm font-medium">{config.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 border-t border-[#2A2A2A] flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setEditingProduct(null)}
+                  className="px-4 py-2 text-[#A1A1AA] hover:text-white transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => salvarAlteracaoProduto(editingProduct.novaCategoria)}
+                  disabled={savingProduct || editingProduct.novaCategoria === editingProduct.categoria}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#C8A951] text-black font-medium rounded-lg hover:bg-[#D4B85C] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {savingProduct ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Salvar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
