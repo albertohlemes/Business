@@ -114,6 +114,23 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 
 ## Changelog
 
+### v2.11.0 (09/02/2026) - Animação Contador Tomando Café
+
+**Animação de Progresso - Contador Tomando Café:**
+- Novo componente `CoffeeProgress.js` com animação do contador
+- O café diminui conforme o progresso aumenta (100% = café acabou)
+- Vapor saindo da xícara enquanto tem café
+- Contador sorrindo quando termina
+- Substituiu barras de progresso em:
+  - Upload de XMLs (UploadXML.js)
+  - Importação de Empresas (Companies.js)
+  - Indicador flutuante minimizado (GlobalUploadProgress.js)
+
+**Correção das Flags de ICMS:**
+- Checkboxes maiores (5x5) com cores visíveis
+- Estilo `accent-color` para mostrar a cor quando marcado
+- Flags funcionando corretamente para marcar/desmarcar
+
 ### v2.10.0 (09/02/2026) - Dashboard Dinâmico e Flags ICMS
 
 **Dashboard Dinâmico:**
