@@ -215,6 +215,43 @@ const Companies = ({ user, onLogout }) => {
     setShowForm(false);
     setEditingCompany(null);
     setFormData(emptyFormData);
+    setAnexosSugeridos([]);
+  };
+
+  // Função para sugerir anexos do Simples com base nos CNAEs
+  const sugerirAnexosPorCnaes = (cnaes) => {
+    const todosAnexos = new Set();
+    
+    cnaes.forEach(cnae => {
+      const codigo = cnae?.toString().replace(/\D/g, '').substring(0, 2) || '';
+      
+      // Divisões de atividades - mapeamento simplificado
+      const divisaoComercio = ['45', '46', '47']; // Comércio
+      const divisaoIndustria = ['10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33']; // Indústria
+      const divisaoServicosFatorR = ['62', '63', '69', '70', '71', '72', '73', '74', '75', '85', '86', '87', '88']; // Serviços - Fator R (V ou III)
+      const divisaoServicosIII = ['55', '56', '58', '59', '60', '61', '64', '65', '66', '68', '77', '79', '80', '81', '82', '90', '91', '92', '93', '94', '95', '96']; // Serviços - Anexo III
+      const divisaoServicosIV = ['41', '42', '43']; // Construção - Anexo IV
+      
+      if (divisaoComercio.includes(codigo)) todosAnexos.add('I');
+      if (divisaoIndustria.includes(codigo)) todosAnexos.add('II');
+      if (divisaoServicosIII.includes(codigo)) todosAnexos.add('III');
+      if (divisaoServicosIV.includes(codigo)) todosAnexos.add('IV');
+      if (divisaoServicosFatorR.includes(codigo)) todosAnexos.add('V');
+    });
+    
+    // Se nenhum anexo foi identificado, assume Anexo I (Comércio)
+    if (todosAnexos.size === 0) todosAnexos.add('I');
+    
+    return Array.from(todosAnexos).sort();
+  };
+
+  // Descrições dos anexos
+  const descricaoAnexos = {
+    'I': 'Comércio - Revenda de mercadorias',
+    'II': 'Indústria - Produção/transformação',
+    'III': 'Serviços com CPP na guia',
+    'IV': 'Construção, vigilância, limpeza (sem CPP)',
+    'V': 'Serviços intelectuais, técnicos (Fator R)'
   };
 
   const buscarCNPJ = async () => {
@@ -230,6 +267,13 @@ const Companies = ({ user, onLogout }) => {
       const response = await axios.get(`${API}/cnpj/${cnpjLimpo}`);
       const data = response.data;
       
+      // Combinar CNAE principal com secundários
+      const todosOsCnaes = [data.cnae_principal, ...(data.cnaes_secundarios || [])].filter(Boolean);
+      
+      // Sugerir anexos automaticamente
+      const anexos = sugerirAnexosPorCnaes(todosOsCnaes);
+      setAnexosSugeridos(anexos);
+      
       setFormData({
         ...formData,
         razao_social: data.razao_social || '',
@@ -240,11 +284,13 @@ const Companies = ({ user, onLogout }) => {
         uf: data.uf || 'SP',
         cnae_principal: data.cnae_principal || '',
         cnae_principal_descricao: data.cnae_principal_descricao || '',
-        cnaes: data.cnaes_secundarios || []
+        cnaes: data.cnaes_secundarios || [],
+        anexos_simples: anexos, // Preenche automaticamente
+        anexos_confirmados: false // Marca como não confirmado
       });
       
       const qtdCnaes = data.cnaes_secundarios?.length || 0;
-      alert(`✓ Dados carregados da Receita Federal!\n${qtdCnaes > 0 ? `${qtdCnaes} CNAEs secundários importados.` : ''}`);
+      alert(`✓ Dados carregados da Receita Federal!\n${qtdCnaes > 0 ? `${qtdCnaes} CNAEs secundários importados.` : ''}\n\nAnexos sugeridos: ${anexos.join(', ')}`);
     } catch (err) {
       console.error('Erro ao buscar CNPJ:', err);
       alert(err.response?.data?.detail || 'Erro ao consultar CNPJ');
