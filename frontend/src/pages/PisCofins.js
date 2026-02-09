@@ -669,6 +669,216 @@ const PisCofins = ({ user, onLogout }) => {
     );
   };
 
+  // Componente de Cabeçalho de Coluna Ordenável
+  const SortableHeader = ({ field, label, className = "" }) => (
+    <th 
+      className={`px-3 py-2 text-left text-xs font-medium text-[#A1A1AA] uppercase cursor-pointer hover:text-white transition-colors ${className}`}
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {sortField === field ? (
+          sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+        ) : (
+          <ArrowUpDown className="w-3 h-3 opacity-30" />
+        )}
+      </div>
+    </th>
+  );
+
+  // Tab Detalhamento por NCM+CFOP+CST
+  const TabDetalhamento = () => {
+    if (!detalhamento) return null;
+    
+    const { entradas, saidas, saldo } = detalhamento;
+    
+    // Função para ordenar itens
+    const sortItems = (items) => {
+      return [...items].sort((a, b) => {
+        const valA = a[sortField] || 0;
+        const valB = b[sortField] || 0;
+        if (typeof valA === 'string') {
+          return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        return sortDirection === 'asc' ? valA - valB : valB - valA;
+      });
+    };
+    
+    const entradasOrdenadas = sortItems(entradas?.itens || []);
+    const saidasOrdenadas = sortItems(saidas?.itens || []);
+    
+    return (
+      <div className="space-y-6">
+        {/* Resumo do Saldo */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <ResumoCard titulo="Créditos PIS" valor={saldo?.credito_pis || 0} subtitulo="Entradas" icon={TrendingUp} corIcone="bg-green-600" corValor="text-green-400" />
+          <ResumoCard titulo="Créditos COFINS" valor={saldo?.credito_cofins || 0} subtitulo="Entradas" icon={TrendingUp} corIcone="bg-green-600" corValor="text-green-400" />
+          <ResumoCard titulo="Débitos PIS" valor={saldo?.debito_pis || 0} subtitulo="Saídas" icon={TrendingDown} corIcone="bg-red-600" corValor="text-red-400" />
+          <ResumoCard titulo="Débitos COFINS" valor={saldo?.debito_cofins || 0} subtitulo="Saídas" icon={TrendingDown} corIcone="bg-red-600" corValor="text-red-400" />
+        </div>
+
+        {/* SEÇÃO ENTRADAS */}
+        <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-[#2A2A2A] bg-green-900/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <TrendingUp className="w-6 h-6 text-green-400" />
+                <div>
+                  <h2 className="text-lg font-semibold text-white">ENTRADAS - Créditos</h2>
+                  <p className="text-sm text-[#A1A1AA]">{entradas?.subtotais?.quantidade || 0} itens | Base: {formatCurrency(entradas?.subtotais?.valor_base)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-[#666] text-xs">Crédito Total</p>
+                  <p className="text-xl font-bold text-green-400">
+                    {formatCurrency((entradas?.subtotais?.valor_pis || 0) + (entradas?.subtotais?.valor_cofins || 0))}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="max-h-[400px] overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-[#141414] sticky top-0 z-10">
+                <tr>
+                  <SortableHeader field="ncm" label="NCM" />
+                  <SortableHeader field="cfop" label="CFOP" />
+                  <SortableHeader field="cst" label="CST" />
+                  <SortableHeader field="classificacao" label="Classificação" />
+                  <SortableHeader field="quantidade" label="Qtd" className="text-right" />
+                  <SortableHeader field="valor_base" label="Valor Base" className="text-right" />
+                  <SortableHeader field="aliquota_pis" label="% PIS" className="text-right" />
+                  <SortableHeader field="valor_pis" label="PIS" className="text-right" />
+                  <SortableHeader field="aliquota_cofins" label="% COF" className="text-right" />
+                  <SortableHeader field="valor_cofins" label="COFINS" className="text-right" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#2A2A2A]">
+                {entradasOrdenadas.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-white/5">
+                    <td className="px-3 py-2 font-mono text-[#A1A1AA]">{item.ncm || '-'}</td>
+                    <td className="px-3 py-2"><span className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded text-xs">{item.cfop}</span></td>
+                    <td className="px-3 py-2"><span className="px-2 py-0.5 bg-[#2A2A2A] text-white rounded text-xs font-mono">{item.cst}</span></td>
+                    <td className="px-3 py-2 text-[#A1A1AA] text-xs">{item.classificacao}</td>
+                    <td className="px-3 py-2 text-right text-[#A1A1AA]">{item.quantidade}</td>
+                    <td className="px-3 py-2 text-right text-white">{formatCurrency(item.valor_base)}</td>
+                    <td className="px-3 py-2 text-right text-[#A1A1AA]">{item.aliquota_pis?.toFixed(2)}%</td>
+                    <td className="px-3 py-2 text-right text-green-400">{formatCurrency(item.valor_pis)}</td>
+                    <td className="px-3 py-2 text-right text-[#A1A1AA]">{item.aliquota_cofins?.toFixed(2)}%</td>
+                    <td className="px-3 py-2 text-right text-green-400">{formatCurrency(item.valor_cofins)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-[#1A1A1A] border-t border-green-500/30">
+                <tr className="font-semibold">
+                  <td colSpan="4" className="px-3 py-3 text-green-400">SUBTOTAL ENTRADAS</td>
+                  <td className="px-3 py-3 text-right text-white">{entradas?.subtotais?.quantidade}</td>
+                  <td className="px-3 py-3 text-right text-white">{formatCurrency(entradas?.subtotais?.valor_base)}</td>
+                  <td className="px-3 py-3"></td>
+                  <td className="px-3 py-3 text-right text-green-400">{formatCurrency(entradas?.subtotais?.valor_pis)}</td>
+                  <td className="px-3 py-3"></td>
+                  <td className="px-3 py-3 text-right text-green-400">{formatCurrency(entradas?.subtotais?.valor_cofins)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {/* SEÇÃO SAÍDAS */}
+        <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-[#2A2A2A] bg-red-900/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <TrendingDown className="w-6 h-6 text-red-400" />
+                <div>
+                  <h2 className="text-lg font-semibold text-white">SAÍDAS - Débitos</h2>
+                  <p className="text-sm text-[#A1A1AA]">{saidas?.subtotais?.quantidade || 0} itens | Base: {formatCurrency(saidas?.subtotais?.valor_base)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-[#666] text-xs">Débito Total</p>
+                  <p className="text-xl font-bold text-red-400">
+                    {formatCurrency((saidas?.subtotais?.valor_pis || 0) + (saidas?.subtotais?.valor_cofins || 0))}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="max-h-[400px] overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-[#141414] sticky top-0 z-10">
+                <tr>
+                  <SortableHeader field="ncm" label="NCM" />
+                  <SortableHeader field="cfop" label="CFOP" />
+                  <SortableHeader field="cst" label="CST" />
+                  <SortableHeader field="classificacao" label="Classificação" />
+                  <SortableHeader field="quantidade" label="Qtd" className="text-right" />
+                  <SortableHeader field="valor_base" label="Valor Base" className="text-right" />
+                  <SortableHeader field="aliquota_pis" label="% PIS" className="text-right" />
+                  <SortableHeader field="valor_pis" label="PIS" className="text-right" />
+                  <SortableHeader field="aliquota_cofins" label="% COF" className="text-right" />
+                  <SortableHeader field="valor_cofins" label="COFINS" className="text-right" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#2A2A2A]">
+                {saidasOrdenadas.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-white/5">
+                    <td className="px-3 py-2 font-mono text-[#A1A1AA]">{item.ncm || '-'}</td>
+                    <td className="px-3 py-2"><span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs">{item.cfop}</span></td>
+                    <td className="px-3 py-2"><span className="px-2 py-0.5 bg-[#2A2A2A] text-white rounded text-xs font-mono">{item.cst}</span></td>
+                    <td className="px-3 py-2 text-[#A1A1AA] text-xs">{item.classificacao}</td>
+                    <td className="px-3 py-2 text-right text-[#A1A1AA]">{item.quantidade}</td>
+                    <td className="px-3 py-2 text-right text-white">{formatCurrency(item.valor_base)}</td>
+                    <td className="px-3 py-2 text-right text-[#A1A1AA]">{item.aliquota_pis?.toFixed(2)}%</td>
+                    <td className="px-3 py-2 text-right text-red-400">{formatCurrency(item.valor_pis)}</td>
+                    <td className="px-3 py-2 text-right text-[#A1A1AA]">{item.aliquota_cofins?.toFixed(2)}%</td>
+                    <td className="px-3 py-2 text-right text-red-400">{formatCurrency(item.valor_cofins)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-[#1A1A1A] border-t border-red-500/30">
+                <tr className="font-semibold">
+                  <td colSpan="4" className="px-3 py-3 text-red-400">SUBTOTAL SAÍDAS</td>
+                  <td className="px-3 py-3 text-right text-white">{saidas?.subtotais?.quantidade}</td>
+                  <td className="px-3 py-3 text-right text-white">{formatCurrency(saidas?.subtotais?.valor_base)}</td>
+                  <td className="px-3 py-3"></td>
+                  <td className="px-3 py-3 text-right text-red-400">{formatCurrency(saidas?.subtotais?.valor_pis)}</td>
+                  <td className="px-3 py-3"></td>
+                  <td className="px-3 py-3 text-right text-red-400">{formatCurrency(saidas?.subtotais?.valor_cofins)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {/* Card de Saldo Final */}
+        <div className={`p-4 rounded-xl border ${saldo?.saldo_total > 0 ? 'bg-red-500/10 border-red-500/30' : 'bg-green-500/10 border-green-500/30'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Scale className={`w-6 h-6 ${saldo?.saldo_total > 0 ? 'text-red-400' : 'text-green-400'}`} />
+              <div>
+                <h3 className="text-white font-semibold">Saldo a {saldo?.saldo_total > 0 ? 'Recolher' : 'Compensar'}</h3>
+                <p className="text-[#A1A1AA] text-sm">Débitos - Créditos</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className={`text-3xl font-bold ${saldo?.saldo_total > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                {formatCurrency(Math.abs(saldo?.saldo_total || 0))}
+              </p>
+              <p className="text-[#666] text-sm">
+                PIS: {formatCurrency(saldo?.saldo_pis || 0)} | COFINS: {formatCurrency(saldo?.saldo_cofins || 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Tab Divergências
   const TabDivergencias = () => {
     if (!divergencias) return null;
