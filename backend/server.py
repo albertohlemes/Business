@@ -13615,6 +13615,189 @@ async def relacao_notas_detalhada(
 
 
 # ============================================================
+# APURAÇÃO - RESUMO DO MOVIMENTO POR CFOP
+# ============================================================
+
+@api_router.get("/apuracao-movimento/{company_id}")
+async def apuracao_movimento(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna o resumo do movimento do período agrupado por CFOP.
+    Inclui quantidade de documentos, valor total, base de cálculo e impostos.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company.get('cnpj') not in (current_user.company_ids or []):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar documentos do período
+    docs = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }, {"_id": 0}).to_list(None)
+    
+    # Agrupar por CFOP
+    entradas_por_cfop = {}
+    saidas_por_cfop = {}
+    
+    totais_entradas = {
+        "qtd_docs": 0,
+        "qtd_produtos": 0,
+        "valor_total": 0,
+        "bc_icms": 0,
+        "valor_icms": 0,
+        "bc_pis_cofins": 0,
+        "valor_pis": 0,
+        "valor_cofins": 0,
+        "valor_ipi": 0,
+        "icms_st": 0
+    }
+    
+    totais_saidas = {
+        "qtd_docs": 0,
+        "qtd_produtos": 0,
+        "valor_total": 0,
+        "bc_icms": 0,
+        "valor_icms": 0,
+        "bc_pis_cofins": 0,
+        "valor_pis": 0,
+        "valor_cofins": 0,
+        "valor_ipi": 0,
+        "icms_st": 0
+    }
+    
+    for doc in docs:
+        tipo = doc.get('tipo', 'entrada')
+        doc_id = doc.get('id', '')
+        numero_nfe = doc.get('numero_nfe', '')
+        
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', 'SEM CFOP'))
+            valor_produto = float(prod.get('valor_total', 0) or prod.get('valor_produto', 0) or 0)
+            bc_icms = float(prod.get('bc_icms', 0) or prod.get('v_bc', 0) or 0)
+            valor_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+            valor_pis = float(prod.get('v_pis', 0) or prod.get('valor_pis', 0) or 0)
+            valor_cofins = float(prod.get('v_cofins', 0) or prod.get('valor_cofins', 0) or 0)
+            valor_ipi = float(prod.get('v_ipi', 0) or prod.get('valor_ipi', 0) or 0)
+            icms_st = float(prod.get('v_icms_st', 0) or prod.get('valor_icms_st', 0) or 0)
+            
+            # Determinar agrupamento por tipo
+            cfop_primeiro = cfop[0] if cfop else ''
+            is_entrada = cfop_primeiro in ['1', '2', '3'] or tipo == 'entrada'
+            
+            if is_entrada:
+                agrupamento = entradas_por_cfop
+                totais = totais_entradas
+            else:
+                agrupamento = saidas_por_cfop
+                totais = totais_saidas
+            
+            if cfop not in agrupamento:
+                agrupamento[cfop] = {
+                    "cfop": cfop,
+                    "descricao": CFOPS.get(cfop, {}).get("descricao", "Sem descrição"),
+                    "natureza": CFOPS.get(cfop, {}).get("natureza", "N/D"),
+                    "qtd_docs": set(),
+                    "qtd_produtos": 0,
+                    "valor_total": 0,
+                    "bc_icms": 0,
+                    "valor_icms": 0,
+                    "bc_pis_cofins": 0,
+                    "valor_pis": 0,
+                    "valor_cofins": 0,
+                    "valor_ipi": 0,
+                    "icms_st": 0
+                }
+            
+            agrupamento[cfop]["qtd_docs"].add(f"{doc_id}_{numero_nfe}")
+            agrupamento[cfop]["qtd_produtos"] += 1
+            agrupamento[cfop]["valor_total"] += valor_produto
+            agrupamento[cfop]["bc_icms"] += bc_icms
+            agrupamento[cfop]["valor_icms"] += valor_icms
+            agrupamento[cfop]["bc_pis_cofins"] += valor_produto
+            agrupamento[cfop]["valor_pis"] += valor_pis
+            agrupamento[cfop]["valor_cofins"] += valor_cofins
+            agrupamento[cfop]["valor_ipi"] += valor_ipi
+            agrupamento[cfop]["icms_st"] += icms_st
+            
+            # Totais
+            totais["qtd_produtos"] += 1
+            totais["valor_total"] += valor_produto
+            totais["bc_icms"] += bc_icms
+            totais["valor_icms"] += valor_icms
+            totais["bc_pis_cofins"] += valor_produto
+            totais["valor_pis"] += valor_pis
+            totais["valor_cofins"] += valor_cofins
+            totais["valor_ipi"] += valor_ipi
+            totais["icms_st"] += icms_st
+    
+    # Converter sets para contagem e formatar valores
+    def formatar_agrupamento(agrupamento):
+        resultado = []
+        for cfop, dados in sorted(agrupamento.items()):
+            resultado.append({
+                "cfop": dados["cfop"],
+                "descricao": dados["descricao"],
+                "natureza": dados["natureza"],
+                "qtd_docs": len(dados["qtd_docs"]),
+                "qtd_produtos": dados["qtd_produtos"],
+                "valor_total": round(dados["valor_total"], 2),
+                "bc_icms": round(dados["bc_icms"], 2),
+                "valor_icms": round(dados["valor_icms"], 2),
+                "bc_pis_cofins": round(dados["bc_pis_cofins"], 2),
+                "valor_pis": round(dados["valor_pis"], 2),
+                "valor_cofins": round(dados["valor_cofins"], 2),
+                "valor_ipi": round(dados["valor_ipi"], 2),
+                "icms_st": round(dados["icms_st"], 2)
+            })
+        return resultado
+    
+    # Contar documentos únicos
+    docs_entradas = set()
+    docs_saidas = set()
+    for doc in docs:
+        tipo = doc.get('tipo', 'entrada')
+        doc_key = f"{doc.get('id', '')}_{doc.get('numero_nfe', '')}"
+        if tipo == 'entrada':
+            docs_entradas.add(doc_key)
+        else:
+            docs_saidas.add(doc_key)
+    
+    totais_entradas["qtd_docs"] = len(docs_entradas)
+    totais_saidas["qtd_docs"] = len(docs_saidas)
+    
+    # Arredondar totais
+    for totais in [totais_entradas, totais_saidas]:
+        for key in totais:
+            if isinstance(totais[key], float):
+                totais[key] = round(totais[key], 2)
+    
+    return {
+        "empresa": {
+            "id": company.get("id"),
+            "razao_social": company.get("razao_social"),
+            "cnpj": company.get("cnpj"),
+            "regime_tributario": company.get("regime_tributario")
+        },
+        "competencia": competencia,
+        "entradas": {
+            "por_cfop": formatar_agrupamento(entradas_por_cfop),
+            "totais": totais_entradas
+        },
+        "saidas": {
+            "por_cfop": formatar_agrupamento(saidas_por_cfop),
+            "totais": totais_saidas
+        }
+    }
+
+
+# ============================================================
 # EXCLUSÃO EM MASSA DE DOCUMENTOS COM FILTROS
 # ============================================================
 
