@@ -98,6 +98,18 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - ✅ Restaurada **barra de validação de notas** - mostra quantas notas têm soma de produtos = valor total
 - ✅ Barra verde quando 100% validadas, âmbar quando há divergências
 
+### Classificação Inteligente - Agrupamento e Barra de IA
+- ✅ Produtos agrupados por classificação (Revenda, Insumo, Despesa, Ativo, Combustível, Pendente)
+- ✅ Cada grupo é expandível - clique para ver a lista de produtos
+- ✅ **Barra de Comando IA** restaurada - digite instruções em linguagem natural
+- ✅ Exemplos: "classificar etanol como combustível", "produtos limpeza são despesa"
+- ✅ Sugestões rápidas clicáveis na interface
+- ✅ Criado endpoint `/api/classification/ia-command/{company_id}` para processar comandos
+
+### Observação sobre Budget de IA
+- ⚠️ O budget da Emergent LLM Key está esgotado
+- Para usar os comandos de IA, acesse: **Perfil → Universal Key → Add Balance**
+
 ## Próximas Tarefas (Backlog)
 
 ### P1 - Alta Prioridade
