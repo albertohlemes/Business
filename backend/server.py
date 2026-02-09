@@ -12721,20 +12721,49 @@ async def apurar_icms(
                 tipo_item = tipo_op
             
             if tipo_item == 'entrada':
+                # Verificar se CFOP é de despesa ou ST
+                is_despesa = cfop in CFOPS_DESPESA
+                is_st = cfop in CFOPS_ST
+                
                 # Agrupar por CFOP - Entradas
                 if cfop not in entradas_por_cfop:
-                    entradas_por_cfop[cfop] = {"cfop": cfop, "valor_total": 0, "bc_icms": 0, "valor_icms": 0, "qtd": 0}
+                    entradas_por_cfop[cfop] = {
+                        "cfop": cfop, 
+                        "valor_total": 0, 
+                        "bc_icms": 0, 
+                        "valor_icms": 0, 
+                        "qtd": 0,
+                        "is_despesa": is_despesa,
+                        "is_st": is_st,
+                        "desconsiderado": (is_despesa and desconsiderar_icms_despesas) or (is_st and desconsiderar_icms_st)
+                    }
                 entradas_por_cfop[cfop]["valor_total"] += valor_total
                 entradas_por_cfop[cfop]["bc_icms"] += bc_icms
                 entradas_por_cfop[cfop]["valor_icms"] += valor_icms
                 entradas_por_cfop[cfop]["qtd"] += 1
                 
-                # Totais de entradas
+                # Totais de entradas (sempre soma no total geral)
                 totais["entradas"]["valor_total"] += valor_total
-                totais["entradas"]["bc_icms"] += bc_icms
-                totais["entradas"]["valor_icms"] += valor_icms
                 totais["entradas"]["valor_icms_st"] += valor_icms_st
                 totais["entradas"]["qtd_itens"] += 1
+                
+                # Verificar se este CFOP deve ter BC e ICMS zerados
+                if is_despesa and desconsiderar_icms_despesas:
+                    # Acumular o que foi desconsiderado
+                    totais_desconsiderados["despesas"]["bc_icms"] += bc_icms
+                    totais_desconsiderados["despesas"]["valor_icms"] += valor_icms
+                    totais_desconsiderados["despesas"]["qtd_itens"] += 1
+                    # NÃO soma no total de crédito
+                elif is_st and desconsiderar_icms_st:
+                    # Acumular o que foi desconsiderado
+                    totais_desconsiderados["st"]["bc_icms"] += bc_icms
+                    totais_desconsiderados["st"]["valor_icms"] += valor_icms
+                    totais_desconsiderados["st"]["qtd_itens"] += 1
+                    # NÃO soma no total de crédito
+                else:
+                    # Soma normalmente no total de crédito
+                    totais["entradas"]["bc_icms"] += bc_icms
+                    totais["entradas"]["valor_icms"] += valor_icms
                 
                 # ICMS ST de devoluções (dedução)
                 if cfop in cfops_devolucao and valor_icms_st > 0:
@@ -12744,8 +12773,9 @@ async def apurar_icms(
                     icms_st_devolucoes[cfop]["valor_icms_st"] += valor_icms_st
                     icms_st_devolucoes[cfop]["qtd"] += 1
                 
-                # Top produtos crédito
-                if valor_icms > 0:
+                # Top produtos crédito (só inclui se não foi desconsiderado)
+                should_include_in_credito = not ((is_despesa and desconsiderar_icms_despesas) or (is_st and desconsiderar_icms_st))
+                if valor_icms > 0 and should_include_in_credito:
                     key = codigo or descricao[:30]
                     if key not in produtos_credito:
                         produtos_credito[key] = {"codigo": codigo, "descricao": descricao, "ncm": ncm, "valor_icms": 0, "qtd": 0}
