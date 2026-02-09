@@ -463,14 +463,30 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
             </p>
           </div>
           
-          <button
-            onClick={() => { fetchAlertas(); fetchValidacao(); }}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg text-white hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={openMemoriaIA}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-900/30 border border-purple-500/30 rounded-lg text-purple-300 hover:bg-purple-900/50 hover:text-purple-200 transition-colors"
+              data-testid="btn-memoria-ia"
+            >
+              <BookOpen className="w-4 h-4" />
+              Memória IA
+              {memoriaData.length > 0 && (
+                <span className="bg-purple-500/30 text-purple-200 text-xs px-1.5 py-0.5 rounded-full">
+                  {memoriaData.length}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => { fetchAlertas(); fetchValidacao(); }}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg text-white hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </button>
+          </div>
         </div>
 
         {/* ========== BARRA DE COMANDO IA ========== */}
