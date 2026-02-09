@@ -989,6 +989,146 @@ const Companies = ({ user, onLogout }) => {
                       )}
                     </div>
                   )}
+                  
+                  {/* Configuração Simples Nacional */}
+                  {formData.regime_tributario === 'simples_nacional' && (
+                    <div className="pt-4 border-t border-[#2A2A2A]">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-medium text-[#C8A951]">📋 Anexos do Simples Nacional</h4>
+                        {formData.anexos_confirmados && (
+                          <span className="flex items-center gap-1 text-xs text-emerald-400">
+                            <CheckCircle className="w-3 h-3" />
+                            Confirmado
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Anexos sugeridos (se houver) */}
+                      {anexosSugeridos.length > 0 && !formData.anexos_confirmados && (
+                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mb-4">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="w-4 h-4 text-blue-400 mt-0.5" />
+                            <div>
+                              <p className="text-sm text-blue-300">
+                                Anexos sugeridos com base nos CNAEs: <strong>{anexosSugeridos.join(', ')}</strong>
+                              </p>
+                              <p className="text-xs text-[#666] mt-1">
+                                Revise e confirme os anexos abaixo. Após salvar, eles serão marcados como confirmados.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Seleção de Anexos */}
+                      <div className="space-y-2 mb-4">
+                        {['I', 'II', 'III', 'IV', 'V'].map(anexo => {
+                          const selecionado = formData.anexos_simples?.includes(anexo);
+                          const sugerido = anexosSugeridos.includes(anexo);
+                          
+                          return (
+                            <label
+                              key={anexo}
+                              className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                                selecionado
+                                  ? 'bg-[#C8A951]/10 border-[#C8A951]'
+                                  : sugerido
+                                    ? 'bg-blue-500/5 border-blue-500/30 hover:border-blue-500/50'
+                                    : 'bg-[#141414] border-[#2A2A2A] hover:border-[#444]'
+                              }`}
+                              onClick={(e) => {
+                                // Se já está confirmado e está tentando desmarcar, pedir confirmação
+                                if (formData.anexos_confirmados && selecionado) {
+                                  e.preventDefault();
+                                  setAnexoParaAlterar({ anexo, acao: 'remover' });
+                                  setShowAnexoConfirmModal(true);
+                                } else if (formData.anexos_confirmados && !selecionado) {
+                                  e.preventDefault();
+                                  setAnexoParaAlterar({ anexo, acao: 'adicionar' });
+                                  setShowAnexoConfirmModal(true);
+                                }
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selecionado}
+                                onChange={(e) => {
+                                  if (!formData.anexos_confirmados) {
+                                    const current = formData.anexos_simples || [];
+                                    if (e.target.checked) {
+                                      setFormData({ ...formData, anexos_simples: [...current, anexo].sort() });
+                                    } else {
+                                      setFormData({ ...formData, anexos_simples: current.filter(a => a !== anexo) });
+                                    }
+                                  }
+                                }}
+                                className="mt-1 w-5 h-5 text-[#C8A951] bg-[#141414] border-[#2A2A2A] rounded focus:ring-[#C8A951] focus:ring-2"
+                                style={{ accentColor: '#C8A951' }}
+                              />
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-white font-semibold">Anexo {anexo}</span>
+                                  {sugerido && !selecionado && (
+                                    <span className="px-1.5 py-0.5 text-[10px] bg-blue-500/20 text-blue-300 rounded">
+                                      Sugerido
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-[#666] mt-0.5">{descricaoAnexos[anexo]}</p>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Flag Fator R */}
+                      {formData.anexos_simples?.includes('V') && (
+                        <div className="bg-purple-500/10 border border-purple-500/30 rounded p-4 mb-4">
+                          <label className="flex items-start gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.controla_fator_r || false}
+                              onChange={(e) => setFormData({ ...formData, controla_fator_r: e.target.checked })}
+                              className="mt-1 w-5 h-5 text-purple-500 bg-[#141414] border-[#2A2A2A] rounded focus:ring-purple-500 focus:ring-2"
+                              style={{ accentColor: '#a855f7' }}
+                            />
+                            <div>
+                              <span className="text-white font-medium">Controla Fator R</span>
+                              <p className="text-xs text-[#666] mt-1">
+                                Habilita o acompanhamento do Fator R (Folha/RBT12) no Dashboard do Simples Nacional.
+                                <br />
+                                Se Fator R ≥ 28%, a empresa pode tributar pelo <strong className="text-emerald-400">Anexo III</strong> (mais favorável).
+                              </p>
+                            </div>
+                          </label>
+                          
+                          {/* Campo Folha de Pagamento se controla Fator R */}
+                          {formData.controla_fator_r && (
+                            <div className="mt-4 pt-4 border-t border-purple-500/30">
+                              <label className="block text-xs text-[#A1A1AA] mb-2">
+                                Folha de Pagamento (últimos 12 meses)
+                              </label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={formData.folha_pagamento_12m || 0}
+                                onChange={(e) => setFormData({ ...formData, folha_pagamento_12m: parseFloat(e.target.value) || 0 })}
+                                className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                                placeholder="0,00"
+                              />
+                              <p className="text-xs text-[#666] mt-1">
+                                Soma dos valores de pró-labore, salários e encargos pagos nos últimos 12 meses.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      <p className="text-xs text-[#666]">
+                        * Os anexos determinam as alíquotas do DAS. Empresas com múltiplas atividades podem ter mais de um anexo.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* CNAE e Atividade */}
