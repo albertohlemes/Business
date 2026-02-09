@@ -307,33 +307,50 @@ const Dashboard = ({ user, onLogout }) => {
               )}
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* ICMS com informação de ST */}
-                <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
-                  <h4 className="font-semibold text-white mb-3">ICMS</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-emerald-400">Crédito:</span>
-                      <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos.icms)}</span>
-                    </div>
-                    {stats.creditos.icms_st_desconsiderado > 0 && (
-                      <div className="flex justify-between text-xs bg-amber-500/10 -mx-2 px-2 py-1 rounded">
-                        <span className="text-amber-400">ICMS-ST (sem crédito):</span>
-                        <span className="font-medium text-amber-400">{formatCurrency(stats.creditos.icms_st_desconsiderado)}</span>
+                {/* ICMS - Mostrar apenas se for contribuinte */}
+                {(stats.empresa?.tipo_atividade === 'comercio' || 
+                  stats.empresa?.tipo_atividade === 'industria' || 
+                  stats.empresa?.tipo_atividade === 'mista' ||
+                  stats.empresa?.apura_icms) && (
+                  <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                    <h4 className="font-semibold text-white mb-3">ICMS</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-emerald-400">Crédito:</span>
+                        <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos.icms)}</span>
                       </div>
-                    )}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-red-400">Débito:</span>
-                      <span className="font-medium text-red-400">{formatCurrency(stats.debitos.icms)}</span>
-                    </div>
-                    <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
-                      <span className="text-[#A1A1AA]">A Pagar:</span>
-                      <span className={stats.impostos_pagar.icms > 0 ? 'text-red-400' : 'text-emerald-400'}>
-                        {formatCurrency(stats.impostos_pagar.icms)}
-                      </span>
+                      {stats.creditos.icms_st_desconsiderado > 0 && (
+                        <div className="flex justify-between text-xs bg-amber-500/10 -mx-2 px-2 py-1 rounded">
+                          <span className="text-amber-400">ICMS-ST (sem crédito):</span>
+                          <span className="font-medium text-amber-400">{formatCurrency(stats.creditos.icms_st_desconsiderado)}</span>
+                        </div>
+                      )}
+                      {stats.creditos.icms_despesa_desconsiderado > 0 && (
+                        <div className="flex justify-between text-xs bg-orange-500/10 -mx-2 px-2 py-1 rounded">
+                          <span className="text-orange-400">Despesa (sem crédito):</span>
+                          <span className="font-medium text-orange-400">{formatCurrency(stats.creditos.icms_despesa_desconsiderado)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-red-400">Débito:</span>
+                        <span className="font-medium text-red-400">{formatCurrency(stats.debitos.icms)}</span>
+                      </div>
+                      <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
+                        <span className="text-[#A1A1AA]">A Pagar:</span>
+                        <span className={stats.impostos_pagar.icms > 0 ? 'text-red-400' : 'text-emerald-400'}>
+                          {formatCurrency(stats.impostos_pagar.icms)}
+                        </span>
+                      </div>
+                      {stats.indicadores?.perc_icms_vendas > 0 && (
+                        <div className="text-xs text-[#666] pt-1">
+                          {stats.indicadores.perc_icms_vendas.toFixed(2)}% sobre vendas
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
+                )}
                 
+                {/* PIS/COFINS - Sempre mostrar */}
                 <TaxCardWithDivergence
                   title="PIS"
                   credito={stats.creditos.pis}
@@ -351,22 +368,29 @@ const Dashboard = ({ user, onLogout }) => {
                   divergencia={stats.debitos.divergencias?.find(d => d.imposto === 'COFINS')}
                 />
                 
-                {/* ISS */}
-                <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
-                  <h4 className="font-semibold text-white mb-3">ISS (Serviços)</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-[#A1A1AA]">Retido:</span>
-                      <span className="font-medium text-white">{formatCurrency(stats.debitos.iss)}</span>
-                    </div>
-                    <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
-                      <span className="text-[#A1A1AA]">A Pagar:</span>
-                      <span className={stats.impostos_pagar.iss > 0 ? 'text-red-400' : 'text-emerald-400'}>
-                        {formatCurrency(stats.impostos_pagar.iss)}
-                      </span>
+                {/* ISS - Mostrar apenas se for de serviços */}
+                {(stats.empresa?.tipo_atividade === 'servicos' || stats.empresa?.tipo_atividade === 'mista') && (
+                  <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                    <h4 className="font-semibold text-white mb-3">ISS (Serviços)</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[#A1A1AA]">Retido:</span>
+                        <span className="font-medium text-white">{formatCurrency(stats.debitos.iss)}</span>
+                      </div>
+                      <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
+                        <span className="text-[#A1A1AA]">A Pagar:</span>
+                        <span className={stats.impostos_pagar.iss > 0 ? 'text-red-400' : 'text-emerald-400'}>
+                          {formatCurrency(stats.impostos_pagar.iss)}
+                        </span>
+                      </div>
+                      {stats.indicadores?.perc_iss_faturamento > 0 && (
+                        <div className="text-xs text-[#666] pt-1">
+                          {stats.indicadores.perc_iss_faturamento.toFixed(2)}% sobre faturamento
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Total de Impostos */}
