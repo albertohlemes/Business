@@ -912,6 +912,58 @@ const Documents = ({ user, onLogout }) => {
               />
             </div>
           </div>
+
+          {/* Barra de Validação */}
+          {filteredDocuments.length > 0 && (
+            <div className="mt-3">
+              <div className={`flex items-center justify-between px-4 py-2.5 rounded-lg border ${
+                validacaoNotas.percentual === 100 
+                  ? 'bg-green-500/10 border-green-500/30' 
+                  : validacaoNotas.percentual >= 80 
+                    ? 'bg-amber-500/10 border-amber-500/30'
+                    : 'bg-red-500/10 border-red-500/30'
+              }`}>
+                <div className="flex items-center gap-3">
+                  {validacaoNotas.percentual === 100 ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-400" />
+                  ) : (
+                    <AlertTriangle className="w-5 h-5 text-amber-400" />
+                  )}
+                  <span className={`text-sm font-medium ${
+                    validacaoNotas.percentual === 100 ? 'text-green-400' : 'text-amber-400'
+                  }`}>
+                    Validação de Notas
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-white">
+                    <span className="text-green-400 font-semibold">{validacaoNotas.validadas}</span>
+                    <span className="text-[#A1A1AA]"> de </span>
+                    <span className="font-semibold">{validacaoNotas.total}</span>
+                    <span className="text-[#A1A1AA]"> notas validadas</span>
+                  </span>
+                  {validacaoNotas.comDivergencia > 0 && (
+                    <span className="text-sm text-amber-400">
+                      ({validacaoNotas.comDivergencia} com divergência)
+                    </span>
+                  )}
+                  <div className="w-32 h-2 bg-[#2A2A2A] rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all ${
+                        validacaoNotas.percentual === 100 ? 'bg-green-500' : 'bg-amber-500'
+                      }`}
+                      style={{ width: `${validacaoNotas.percentual}%` }}
+                    />
+                  </div>
+                  <span className={`text-sm font-bold ${
+                    validacaoNotas.percentual === 100 ? 'text-green-400' : 'text-amber-400'
+                  }`}>
+                    {validacaoNotas.percentual}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Área de conteúdo com scroll */}
