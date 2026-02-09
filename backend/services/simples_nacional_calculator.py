@@ -251,6 +251,7 @@ def calcular_aliquota_efetiva(rbt12: float, anexo: str) -> dict:
     if rbt12 <= 0:
         return {
             "faixa": 1,
+            "faixa_descricao": "1ª Faixa",
             "aliquota_nominal": 0,
             "parcela_deducao": 0,
             "aliquota_efetiva": 0,
