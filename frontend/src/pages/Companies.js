@@ -75,6 +75,7 @@ const Companies = ({ user, onLogout }) => {
   const [keywordInputs, setKeywordInputs] = useState({
     produto: '', insumo: '', despesa: '', ativo: '', combustivel: '', servico: ''
   });
+  const [showCertificadoSenha, setShowCertificadoSenha] = useState(false);
 
   useEffect(() => {
     fetchCompanies();
