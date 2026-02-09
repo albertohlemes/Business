@@ -1586,11 +1586,11 @@ const Documents = ({ user, onLogout }) => {
             <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] w-full max-w-2xl max-h-[90vh] overflow-hidden">
               <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
                 <div className="flex items-center gap-3">
-                  {uploadResult.erros === 0 ? (
+                  {(uploadResult.erros || 0) === 0 ? (
                     <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
                       <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                     </div>
-                  ) : uploadResult.sucesso === 0 ? (
+                  ) : (uploadResult.sucesso || 0) === 0 ? (
                     <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
                       <XCircle className="w-5 h-5 text-red-400" />
                     </div>
@@ -1601,10 +1601,12 @@ const Documents = ({ user, onLogout }) => {
                   )}
                   <div>
                     <h2 className="text-lg font-medium text-white">
-                      Resultado da Importação
+                      Relatório de Importação
                     </h2>
                     <p className="text-sm text-[#A1A1AA]">
-                      {uploadResult.tipo === 'ia' ? 'Processamento com IA' : 'Importação de XML'}
+                      {uploadResult.tipo === 'ia' ? 'Processamento com IA' : 
+                       uploadResult.tipo === 'erro' ? 'Erro na importação' : 
+                       'Importação de XML'}
                     </p>
                   </div>
                 </div>
@@ -1616,43 +1618,54 @@ const Documents = ({ user, onLogout }) => {
                 </button>
               </div>
               
-              {/* Resumo */}
+              {/* Resumo com números grandes */}
               <div className="p-4 border-b border-[#2A2A2A]">
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-[#0C0C0C] rounded-lg p-3 text-center">
-                    <p className="text-2xl font-bold text-white">{uploadResult.total}</p>
-                    <p className="text-xs text-[#A1A1AA]">Total</p>
+                  <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
+                    <p className="text-3xl font-bold text-white">{uploadResult.total || 0}</p>
+                    <p className="text-sm text-[#A1A1AA] mt-1">Total de Arquivos</p>
                   </div>
-                  <div className="bg-emerald-500/10 rounded-lg p-3 text-center">
-                    <p className="text-2xl font-bold text-emerald-400">{uploadResult.sucesso}</p>
-                    <p className="text-xs text-emerald-400">Aceitos</p>
+                  <div className="bg-emerald-500/10 rounded-lg p-4 text-center border border-emerald-500/20">
+                    <p className="text-3xl font-bold text-emerald-400">{uploadResult.sucesso || 0}</p>
+                    <p className="text-sm text-emerald-400 mt-1">Aceitos</p>
                   </div>
-                  <div className="bg-red-500/10 rounded-lg p-3 text-center">
-                    <p className="text-2xl font-bold text-red-400">{uploadResult.erros}</p>
-                    <p className="text-xs text-red-400">Rejeitados</p>
+                  <div className="bg-red-500/10 rounded-lg p-4 text-center border border-red-500/20">
+                    <p className="text-3xl font-bold text-red-400">{uploadResult.erros || 0}</p>
+                    <p className="text-sm text-red-400 mt-1">Rejeitados</p>
                   </div>
                 </div>
+                
+                {/* Valor total importado */}
+                {uploadResult.processados && uploadResult.processados.length > 0 && (
+                  <div className="mt-4 p-3 bg-[#C8A951]/10 border border-[#C8A951]/30 rounded-lg text-center">
+                    <p className="text-sm text-[#A1A1AA]">Valor Total Importado</p>
+                    <p className="text-2xl font-bold text-[#C8A951]">
+                      {formatCurrency(uploadResult.processados.reduce((sum, item) => sum + (item.valor || 0), 0))}
+                    </p>
+                  </div>
+                )}
               </div>
               
-              <div className="p-4 max-h-[50vh] overflow-y-auto space-y-4">
+              <div className="p-4 max-h-[40vh] overflow-y-auto space-y-4">
                 {/* Arquivos aceitos */}
-                {uploadResult.processados.length > 0 && (
+                {uploadResult.processados && uploadResult.processados.length > 0 && (
                   <div>
                     <h3 className="text-sm font-medium text-emerald-400 mb-2 flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4" />
-                      Documentos Importados
+                      Documentos Importados ({uploadResult.processados.length})
                     </h3>
-                    <div className="space-y-1">
+                    <div className="space-y-1 max-h-[150px] overflow-y-auto">
                       {uploadResult.processados.map((item, idx) => (
                         <div key={idx} className="flex items-center justify-between py-2 px-3 bg-emerald-500/5 rounded border border-emerald-500/20">
-                          <div>
-                            <p className="text-sm text-white">{item.arquivo}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-white truncate">{item.arquivo || `Documento ${idx + 1}`}</p>
                             <p className="text-xs text-[#A1A1AA]">
-                              {item.emitente && `${item.emitente} • `}Nº {item.numero}
+                              {item.emitente && `${item.emitente} • `}
+                              {item.numero && `NF-e Nº ${item.numero}`}
                             </p>
                           </div>
-                          <span className="text-sm font-medium text-[#C8A951]">
-                            {formatCurrency(item.valor)}
+                          <span className="text-sm font-medium text-[#C8A951] ml-2">
+                            {formatCurrency(item.valor || 0)}
                           </span>
                         </div>
                       ))}
@@ -1661,17 +1674,17 @@ const Documents = ({ user, onLogout }) => {
                 )}
                 
                 {/* Arquivos rejeitados */}
-                {uploadResult.rejeitados.length > 0 && (
+                {uploadResult.rejeitados && uploadResult.rejeitados.length > 0 && (
                   <div>
                     <h3 className="text-sm font-medium text-red-400 mb-2 flex items-center gap-2">
                       <XCircle className="w-4 h-4" />
-                      Documentos Rejeitados
+                      Documentos Rejeitados ({uploadResult.rejeitados.length})
                     </h3>
-                    <div className="space-y-1">
+                    <div className="space-y-1 max-h-[150px] overflow-y-auto">
                       {uploadResult.rejeitados.map((item, idx) => (
                         <div key={idx} className="py-2 px-3 bg-red-500/5 rounded border border-red-500/20">
-                          <p className="text-sm text-white">{item.arquivo}</p>
-                          <p className="text-xs text-red-400 mt-1">{item.motivo}</p>
+                          <p className="text-sm text-white">{item.arquivo || `Arquivo ${idx + 1}`}</p>
+                          <p className="text-xs text-red-400 mt-1">{item.motivo || 'Motivo não informado'}</p>
                           {item.tipo_detectado && (
                             <p className="text-xs text-[#A1A1AA] mt-1">
                               Tipo detectado: {item.tipo_detectado}
@@ -1683,12 +1696,57 @@ const Documents = ({ user, onLogout }) => {
                     </div>
                   </div>
                 )}
+                
+                {/* Mensagem se não houver nenhum dado */}
+                {(!uploadResult.processados || uploadResult.processados.length === 0) && 
+                 (!uploadResult.rejeitados || uploadResult.rejeitados.length === 0) && (
+                  <div className="text-center py-8 text-[#A1A1AA]">
+                    <p>Nenhum detalhe disponível</p>
+                  </div>
+                )}
               </div>
               
-              <div className="p-4 border-t border-[#2A2A2A]">
+              <div className="p-4 border-t border-[#2A2A2A] flex gap-3">
+                {/* Botão de Download do Relatório */}
+                {((uploadResult.processados && uploadResult.processados.length > 0) || 
+                  (uploadResult.rejeitados && uploadResult.rejeitados.length > 0)) && (
+                  <button
+                    onClick={() => {
+                      // Gerar CSV do relatório
+                      let csv = 'Status,Arquivo,Número,Emitente,Valor,Motivo\n';
+                      
+                      if (uploadResult.processados) {
+                        uploadResult.processados.forEach(item => {
+                          csv += `Aceito,"${item.arquivo || ''}","${item.numero || ''}","${item.emitente || ''}",${item.valor || 0},""\n`;
+                        });
+                      }
+                      
+                      if (uploadResult.rejeitados) {
+                        uploadResult.rejeitados.forEach(item => {
+                          csv += `Rejeitado,"${item.arquivo || ''}","","","","${(item.motivo || '').replace(/"/g, '""')}"\n`;
+                        });
+                      }
+                      
+                      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `relatorio_importacao_${new Date().toISOString().slice(0,10)}.csv`;
+                      document.body.appendChild(a);
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                    }}
+                    className="flex-1 py-2.5 bg-[#2A2A2A] text-white rounded-lg font-medium hover:bg-[#333] transition-all flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Baixar Relatório CSV
+                  </button>
+                )}
+                
                 <button
                   onClick={() => setShowUploadResult(false)}
-                  className="w-full py-2.5 bg-[#C8A951] text-black rounded-lg font-medium hover:bg-[#D4B85C] transition-all"
+                  className="flex-1 py-2.5 bg-[#C8A951] text-black rounded-lg font-medium hover:bg-[#D4B85C] transition-all"
                 >
                   Fechar
                 </button>
