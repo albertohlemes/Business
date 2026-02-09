@@ -122,8 +122,8 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - ✅ CNAEs de Serviços (Cumulativo 3,65%, Financeiro 4,65%, Regra Geral 9,25%)
 
 ### Observação sobre Budget de IA
-- ⚠️ O budget da Emergent LLM Key está esgotado
-- Para usar os comandos de IA, acesse: **Perfil → Universal Key → Add Balance**
+- ✅ IA agora funcionando com nova chave atualizada
+- Modelo: `gemini-2.5-flash` via Emergent LLM Key
 
 ## Próximas Tarefas (Backlog)
 
