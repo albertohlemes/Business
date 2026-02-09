@@ -140,6 +140,27 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
     }
   };
 
+  // Função para buscar comparativo de regimes (RET)
+  const fetchComparativoRegimes = async () => {
+    if (!selectedCompany?.id) return;
+    
+    setLoadingRet(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${API}/simples-nacional/ret/comparativo?company_id=${selectedCompany.id}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setRetData(response.data);
+    } catch (err) {
+      console.error('Erro ao buscar comparativo:', err);
+      alert(err.response?.data?.detail || 'Erro ao calcular comparativo de regimes');
+    } finally {
+      setLoadingRet(false);
+    }
+  };
+
   const handleSaveFolha = async () => {
     if (!selectedCompany?.id) return;
     
