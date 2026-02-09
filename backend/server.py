@@ -15149,9 +15149,24 @@ async def inteligencia_tributaria(
     # COFINS: 7.6% não cumulativo
     real_cofins = cofins_saldo  # Já calculado com créditos
     
-    # Lucro contábil estimado (faturamento - compras - impostos)
-    custos_estimados = compras  # Simplificado
-    lucro_contabil = faturamento - custos_estimados - real_icms - real_pis - real_cofins
+    # Buscar dados da empresa para cálculo do lucro contábil
+    estoque_inicial = float(company.get('estoque_inicial', 0) or 0)
+    estoque_final = float(company.get('estoque_final', 0) or 0)
+    despesa_real = float(company.get('despesa_real', 0) or 0)
+    
+    # CMV = Estoque Inicial + Compras - Estoque Final
+    cmv = estoque_inicial + compras - estoque_final
+    
+    # Lucro Bruto = Faturamento - CMV
+    lucro_bruto = faturamento - cmv
+    
+    # Lucro Contábil = Lucro Bruto - Despesa Real (informada pelo usuário)
+    # Se despesa_real for 0, usa cálculo simplificado (faturamento - compras)
+    if despesa_real > 0:
+        lucro_contabil = lucro_bruto - despesa_real
+    else:
+        lucro_contabil = faturamento - compras - real_icms - real_pis - real_cofins
+    
     lucro_contabil = max(0, lucro_contabil)  # Não pode ser negativo para IR
     
     # IRPJ: 15% sobre lucro real + adicional
@@ -15172,7 +15187,10 @@ async def inteligencia_tributaria(
         'irpj': round(real_irpj, 2),
         'csll': round(real_csll, 2),
         'total': round(real_icms + real_pis + real_cofins + real_irpj + real_csll, 2),
-        'lucro_contabil': round(lucro_contabil, 2)
+        'lucro_contabil': round(lucro_contabil, 2),
+        'lucro_bruto': round(lucro_bruto, 2),
+        'cmv': round(cmv, 2),
+        'despesa_informada': round(despesa_real, 2)
     }
     
     # Arredondar valores do Simples
