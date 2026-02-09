@@ -173,13 +173,15 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [x] ~~Classificação baseada no regime da empresa~~ ✅
 - [ ] Modal de seleção de empresa (bug de usabilidade - afeta apenas testes automatizados)
 
-### P2 - Média Prioridade
+### P2 - Média Prioridade (MAIORIA CONCLUÍDA)
 - [x] ~~Ordenação na página ICMS~~ ✅
+- [x] ~~Ordenação na página IPI~~ ✅
+- [x] ~~Ordenação na página Usuários~~ ✅
 - [x] ~~Ordenação em Companies~~ ✅
-- [ ] Ordenação nas demais páginas (Documents, PisCofins, etc.)
-- [ ] Classificação padrão "compra para revenda" quando IA não identificar
+- [x] ~~Filtrar modelos fiscais por atividade da empresa~~ ✅
+- [x] ~~Classificação padrão "compra para revenda" quando IA falhar~~ ✅
+- [ ] Ordenação nas páginas restantes (ISS, DIFAL, SimplesNacionalDashboard)
 - [ ] Logo nos relatórios exportados
-- [ ] Filtrar modelos fiscais por atividade da empresa (menu Importação > Saídas)
 - [ ] Upload de Certificado Digital (.pfx)
 
 ### P3 - Baixa Prioridade
