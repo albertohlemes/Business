@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
@@ -6,7 +6,8 @@ import {
   TrendingUp, TrendingDown, DollarSign, FileText,
   AlertTriangle, CheckCircle, ChevronDown, ChevronUp,
   Download, RefreshCw, BarChart3, Search, 
-  Building2, Calculator, Scale, Package
+  Building2, Calculator, Scale, Package, ArrowUp, ArrowDown,
+  ArrowUpDown, Layers
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -17,7 +18,8 @@ const PisCofins = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [apuracao, setApuracao] = useState(null);
   const [divergencias, setDivergencias] = useState(null);
-  const [activeTab, setActiveTab] = useState('apuracao'); // apuracao, comparativo, divergencias
+  const [detalhamento, setDetalhamento] = useState(null);
+  const [activeTab, setActiveTab] = useState('apuracao'); // apuracao, detalhamento, comparativo, divergencias
   const [expandedSections, setExpandedSections] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [agrupamentoDivergencias, setAgrupamentoDivergencias] = useState('notas'); // notas, ncms, produtos
