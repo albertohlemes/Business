@@ -6,14 +6,14 @@ import {
   TrendingUp, TrendingDown, DollarSign, FileText,
   ChevronDown, ChevronUp, Download, RefreshCw, 
   Building2, Package, Hash, BarChart3, ArrowRight,
-  ArrowLeftRight, Minus, Truck
+  ArrowLeftRight, Minus, Truck, Settings, Save, Loader2
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const ApuracaoICMS = ({ user, onLogout }) => {
-  const { selectedCompany, selectedCompetencia } = useAppContext();
+  const { selectedCompany, selectedCompetencia, refreshCompanies } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [dados, setDados] = useState(null);
   const [activeTab, setActiveTab] = useState('icms'); // 'icms' ou 'icms_st'
@@ -21,6 +21,50 @@ const ApuracaoICMS = ({ user, onLogout }) => {
     entradas: true,
     saidas: true
   });
+  
+  // Flags de desconsiderar ICMS - estado local
+  const [desconsiderarDespesas, setDesconsiderarDespesas] = useState(false);
+  const [desconsiderarST, setDesconsiderarST] = useState(false);
+  const [savingFlags, setSavingFlags] = useState(false);
+
+  // Sincronizar flags com a empresa selecionada
+  useEffect(() => {
+    if (selectedCompany) {
+      setDesconsiderarDespesas(selectedCompany.desconsiderar_icms_despesas || false);
+      setDesconsiderarST(selectedCompany.desconsiderar_icms_st || false);
+    }
+  }, [selectedCompany]);
+
+  // Salvar flags e recarregar dados
+  const salvarFlags = async () => {
+    if (!selectedCompany?.id) return;
+    setSavingFlags(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`${API}/companies/${selectedCompany.id}`, {
+        desconsiderar_icms_despesas: desconsiderarDespesas,
+        desconsiderar_icms_st: desconsiderarST
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Atualizar contexto e recarregar dados
+      if (refreshCompanies) refreshCompanies();
+      await fetchData();
+    } catch (err) {
+      console.error('Erro ao salvar flags:', err);
+      alert('Erro ao salvar configurações');
+    } finally {
+      setSavingFlags(false);
+    }
+  };
+
+  // Verificar se há alterações não salvas
+  const hasUnsavedChanges = () => {
+    return (
+      desconsiderarDespesas !== (selectedCompany?.desconsiderar_icms_despesas || false) ||
+      desconsiderarST !== (selectedCompany?.desconsiderar_icms_st || false)
+    );
+  };
 
   const fetchData = useCallback(async () => {
     if (!selectedCompany?.id || !selectedCompetencia) return;
