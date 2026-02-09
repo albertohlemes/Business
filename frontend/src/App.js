@@ -26,6 +26,7 @@ import Indicadores from './pages/Indicadores';
 import AlertasCfop from './pages/AlertasCfop';
 import AnaliseTributariaIA from './pages/AnaliseTributariaIA';
 import SimplesNacionalDashboard from './pages/SimplesNacionalDashboard';
+import DifaLPage from './pages/DifaLPage';
 import './App.css';
 
 function App() {
