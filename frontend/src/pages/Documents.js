@@ -625,6 +625,48 @@ const Documents = ({ user, onLogout }) => {
     return CATEGORIAS[operacao]?.tipos.find(t => t.id === tipoDoc);
   };
 
+  // ========== SIEG ==========
+  
+  // Verificar quantidade de XMLs disponíveis no SIEG
+  const handleCheckSieg = async () => {
+    if (!ctxCompany || !selectedCompetencia) return;
+    setSiegResult(null);
+    await checkSiegCount(ctxCompany.id, selectedCompetencia);
+  };
+
+  // Sincronizar XMLs do SIEG
+  const handleSyncSieg = async () => {
+    if (!ctxCompany || !selectedCompetencia) return;
+    
+    setSiegProgress({ step: 'Iniciando...', percent: 0 });
+    setSiegResult(null);
+    
+    try {
+      const result = await syncFromSieg(ctxCompany.id, selectedCompetencia, (progressData) => {
+        setSiegProgress({
+          step: progressData.step || '',
+          percent: progressData.progress_percent || 0
+        });
+      });
+      setSiegResult(result);
+      // Recarregar documentos após sincronização bem-sucedida
+      if (operacao && tipoDoc) {
+        fetchDocuments();
+      }
+    } catch (err) {
+      setSiegResult({ error: err.response?.data?.detail || err.message || 'Erro na sincronização' });
+    } finally {
+      setSiegProgress({ step: '', percent: 0 });
+    }
+  };
+
+  // Verificar SIEG ao mudar empresa/competência
+  useEffect(() => {
+    if (ctxCompany && selectedCompetencia) {
+      handleCheckSieg();
+    }
+  }, [ctxCompany?.id, selectedCompetencia]);
+
   // ========== RENDERIZAÇÃO ==========
   
   // Tela inicial - Selecionar Empresa
