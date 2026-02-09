@@ -1009,11 +1009,23 @@ const Documents = ({ user, onLogout }) => {
                           {sortField === 'numero_nfe' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
                         </div>
                       </th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider">
-                        {operacao === 'entrada' ? 'Emitente' : 'Destinatário'}
+                      <th 
+                        className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white"
+                        onClick={() => handleSort(operacao === 'entrada' ? 'emitente_nome' : 'destinatario_nome')}
+                      >
+                        <div className="flex items-center gap-1">
+                          {operacao === 'entrada' ? 'Emitente' : 'Destinatário'}
+                          {(sortField === 'emitente_nome' || sortField === 'destinatario_nome') && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                        </div>
                       </th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider hidden lg:table-cell w-32">
-                        CNPJ
+                      <th 
+                        className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white hidden lg:table-cell w-32"
+                        onClick={() => handleSort(operacao === 'entrada' ? 'emitente_cnpj' : 'destinatario_cnpj')}
+                      >
+                        <div className="flex items-center gap-1">
+                          CNPJ
+                          {(sortField === 'emitente_cnpj' || sortField === 'destinatario_cnpj') && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                        </div>
                       </th>
                       <th 
                         className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white w-24 hidden md:table-cell"
