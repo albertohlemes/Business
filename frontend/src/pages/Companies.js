@@ -576,10 +576,67 @@ const Companies = ({ user, onLogout }) => {
     }
   };
 
-  const filteredCompanies = companies.filter(company =>
-    company.razao_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.cnpj?.includes(searchTerm) ||
-    company.codigo_empresa?.toLowerCase().includes(searchTerm.toLowerCase())
+  // Função de ordenação
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Filtrar e ordenar empresas
+  const filteredCompanies = useMemo(() => {
+    let filtered = companies.filter(company =>
+      company.razao_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      company.cnpj?.includes(searchTerm) ||
+      company.codigo_empresa?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    // Ordenar
+    filtered.sort((a, b) => {
+      let aVal = a[sortField];
+      let bVal = b[sortField];
+      
+      if (aVal == null) aVal = '';
+      if (bVal == null) bVal = '';
+      
+      // Tratamento especial para código numérico
+      if (sortField === 'codigo_empresa') {
+        aVal = parseInt(aVal) || 999999;
+        bVal = parseInt(bVal) || 999999;
+      }
+      
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      
+      aVal = String(aVal).toLowerCase();
+      bVal = String(bVal).toLowerCase();
+      
+      if (sortDirection === 'asc') {
+        return aVal.localeCompare(bVal, 'pt-BR');
+      }
+      return bVal.localeCompare(aVal, 'pt-BR');
+    });
+    
+    return filtered;
+  }, [companies, searchTerm, sortField, sortDirection]);
+
+  // Componente de cabeçalho ordenável
+  const SortHeader = ({ field, children, className = "" }) => (
+    <div 
+      className={`cursor-pointer hover:text-white flex items-center gap-1 select-none ${className}`}
+      onClick={() => handleSort(field)}
+    >
+      {children}
+      {sortField === field ? (
+        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-[#C8A951]" /> : <ArrowDown className="w-3 h-3 text-[#C8A951]" />
+      ) : (
+        <ArrowUpDown className="w-3 h-3 opacity-30" />
+      )}
+    </div>
   );
 
   return (
