@@ -135,10 +135,6 @@ function App() {
               element={user ? <RET user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
-              path="/alertas-cfop"
-              element={user ? <AlertasCfop user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
-            />
-            <Route
               path="/analise-saidas"
               element={user ? <AnaliseSaidas user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
