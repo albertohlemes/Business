@@ -1,0 +1,108 @@
+{
+  "summary": "Tested AURION fiscal system ICMS flags feature. Backend API working correctly - flags desconsiderar_icms_despesas and desconsiderar_icms_st properly exclude ICMS values from CFOPs de despesa and ST. Frontend displays 'Valores Desconsiderados na Apuração' card with correct values. Crédito ICMS reduced from R$ 2.072.412,90 to R$ 1.728.559,76 when flags are enabled.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "Login with admin@test.com / 123456 - SUCCESS",
+    "Company selection - COMERCIAL RS LTDA - SUCCESS",
+    "Competência 01/2026 selection - SUCCESS",
+    "API /api/apuracao-icms/{company_id} returns correct data with flags",
+    "API returns desconsiderados section with correct values (despesas: R$ 93.785,18, st: R$ 250.067,96, total: R$ 343.853,14)",
+    "API returns CFOPs with desconsiderado=True when flags are enabled (1403, 1556, 2403, 1551, 2551, 2556, 1411, 1653, 1407, 1406)",
+    "API returns is_despesa and is_st flags for each CFOP",
+    "Frontend displays 'Valores Desconsiderados na Apuração' card with correct values",
+    "Frontend shows ICMS Despesas (Zerado): R$ 93.785,18 - 155 itens afetados",
+    "Frontend shows ICMS ST (Zerado): R$ 250.067,96 - 435 itens afetados",
+    "Frontend shows Total ICMS Desconsiderado: R$ 343.853,14",
+    "Frontend shows reduced Crédito ICMS: R$ 1.728.559,76 (from R$ 2.072.412,90)",
+    "Frontend shows ICMS a Pagar: R$ 211.125,27",
+    "Frontend shows Status column in CFOP table with badges (Normal, Despesa, ST, DESCONSIDERADO)",
+    "API /api/companies/{id} PUT endpoint updates flags correctly",
+    "Company flags desconsiderar_icms_despesas and desconsiderar_icms_st are editable"
+  ],
+  
+  "test_report_links": [
+    "/app/test_reports/iteration_35.json"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Backend API correctly implements ICMS flags logic",
+    "Frontend correctly displays desconsiderados card and reduced ICMS values",
+    "Status column with badges (Normal, Despesa, ST, DESCONSIDERADO) is implemented",
+    "Red line-through styling for desconsiderado CFOPs is implemented in code"
+  ],
+  
+  "updated_files": [],
+  
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+  
+  "seed_data_creation": "Used existing company COMERCIAL RS LTDA with competência 01/2026. Enabled both flags (desconsiderar_icms_despesas and desconsiderar_icms_st) for testing.",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "ICMS flags feature is working correctly. Backend API returns correct data with desconsiderados section. Frontend displays 'Valores Desconsiderados na Apuração' card with correct values. The ENTRADAS section contains the desconsiderado CFOPs (1403, 1556, etc.) with red styling and badges. Both flags are currently enabled for the test company COMERCIAL RS LTDA.",
+  
+  "features_verified": {
+    "login": {
+      "status": "WORKING",
+      "credentials": "admin@test.com / 123456"
+    },
+    "apuracao_icms": {
+      "status": "WORKING",
+      "route": "/icms (Apuração ICMS)",
+      "flags_editable": true,
+      "desconsiderados_card": true,
+      "status_column_badges": true,
+      "red_line_through_styling": true,
+      "icms_totals_reflect_desconsideramentos": true
+    },
+    "backend_api": {
+      "status": "WORKING",
+      "endpoint": "/api/apuracao-icms/{company_id}",
+      "returns_flags": true,
+      "returns_desconsiderados": true,
+      "returns_cfop_status": true
+    }
+  },
+  
+  "api_test_results": {
+    "with_flags_disabled": {
+      "credito_icms": 2072412.90,
+      "debito_icms": 1939685.03,
+      "saldo": -132727.87,
+      "situacao": "A_RECUPERAR",
+      "desconsiderados_total": 0
+    },
+    "with_flags_enabled": {
+      "credito_icms": 1728559.76,
+      "debito_icms": 1939685.03,
+      "saldo": 211125.27,
+      "situacao": "A_PAGAR",
+      "desconsiderados_despesas": 93785.18,
+      "desconsiderados_st": 250067.96,
+      "desconsiderados_total": 343853.14
+    }
+  }
+}
