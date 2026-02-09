@@ -5631,30 +5631,41 @@ async def get_dashboard_stats(
     
     logger.info(f"DASHBOARD: NFe Entrada={len(nfe_entrada)}, NFe Saída={len(nfe_saida)}, NFCe={len(nfce)}, NFSe Prestados={len(nfse_prestados)}, CTe={len(cte_entrada)}, NFSe Tomados={len(nfse_tomados)}")
     
-    # Valores totais - SOMAR valor_total dos documentos pelo TIPO
-    # Isso garante consistência com o relatório de documentos exportado
-    # NOTA: Antes somava por CFOP dos produtos, mas isso incluía devoluções de venda
-    # (CFOP 1202 em notas de saída) erroneamente nas entradas
-    total_entradas = 0
-    total_vendas = 0
-    total_cupons = 0
+    # Valores totais - SOMAR valor_total dos DOCUMENTOS (não dos produtos)
+    # Critério padronizado: sempre por documento, não por item
     
-    # Somar valores pelo TIPO do documento (não pelo CFOP)
-    for doc in nfe_entrada:
-        total_entradas += float(doc.get('valor_total', 0) or 0)
+    # === ENTRADAS ===
+    total_nfe_entrada = sum(float(d.get('valor_total', 0) or 0) for d in nfe_entrada)
+    total_cte_entrada = sum(float(d.get('valor_total', 0) or 0) for d in cte_entrada)
+    total_nfse_tomados = sum(float(d.get('valor_total', 0) or 0) for d in nfse_tomados)
+    total_entradas = total_nfe_entrada + total_cte_entrada + total_nfse_tomados
     
-    for doc in nfe_saida:
-        total_vendas += float(doc.get('valor_total', 0) or 0)
+    # === SAÍDAS ===
+    total_nfe_saida = sum(float(d.get('valor_total', 0) or 0) for d in nfe_saida)
+    total_nfce = sum(float(d.get('valor_total', 0) or 0) for d in nfce)
+    total_cte_saida = sum(float(d.get('valor_total', 0) or 0) for d in cte_saida)
+    total_nfse_prestados = sum(float(d.get('valor_total', 0) or 0) for d in nfse_prestados)
     
-    logger.info(f"DASHBOARD: Total Entradas={total_entradas}, Total Vendas={total_vendas}")
+    # Compatibilidade com código anterior
+    total_vendas = total_nfe_saida
+    total_cupons = total_nfce
+    total_servicos = total_nfse_prestados
     
-    # Cupons (NFC-e) - somar produtos também
-    for doc in nfce:
-        for prod in doc.get('produtos', []):
-            total_cupons += float(prod.get('valor_total', 0) or 0)
+    # Faturamento considera apenas o que gera receita para a empresa
+    # baseado no tipo de atividade
+    if tipo_atividade == 'comercio':
+        faturamento_total = total_nfe_saida + total_nfce
+    elif tipo_atividade == 'servicos':
+        faturamento_total = total_nfse_prestados
+    elif tipo_atividade == 'industria':
+        faturamento_total = total_nfe_saida + total_nfce
+    elif tipo_atividade == 'transporte':
+        faturamento_total = total_cte_saida
+    else:  # mista
+        faturamento_total = total_nfe_saida + total_nfce + total_nfse_prestados + total_cte_saida
     
-    total_servicos = sum(d.get('valor_total', 0) for d in nfse)
-    faturamento_total = total_vendas + total_cupons + total_servicos
+    logger.info(f"DASHBOARD: Entradas(NFe={total_nfe_entrada}, CTe={total_cte_entrada}, Serv.Tomados={total_nfse_tomados}) = {total_entradas}")
+    logger.info(f"DASHBOARD: Saídas(NFe={total_nfe_saida}, NFCe={total_nfce}, CTe={total_cte_saida}, Serv.Prestados={total_nfse_prestados}) = Faturamento {faturamento_total}")
     
     # Regime tributário da empresa (definir antes do loop de créditos)
     regime_tributario = company.get('regime_tributario', 'lucro_presumido')
