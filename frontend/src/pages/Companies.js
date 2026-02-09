@@ -358,6 +358,52 @@ const Companies = ({ user, onLogout }) => {
       .substring(0, 18);
   };
 
+  // Upload de logo da empresa
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione apenas arquivos de imagem (PNG, JPG, etc.)');
+      return;
+    }
+    
+    // Validar tamanho (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('A imagem deve ter no máximo 2MB');
+      return;
+    }
+    
+    setUploadingLogo(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      
+      const response = await axios.post(`${API}/upload/logo`, uploadFormData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      setFormData({ ...formData, logo_url: response.data.url });
+      alert('Logo enviado com sucesso!');
+    } catch (err) {
+      console.error('Erro ao enviar logo:', err);
+      alert('Erro ao enviar logo');
+    } finally {
+      setUploadingLogo(false);
+      e.target.value = '';
+    }
+  };
+
+  const removeLogo = () => {
+    setFormData({ ...formData, logo_url: '' });
+  };
+
   // Keyword handlers
   const addKeyword = (field, inputKey) => {
     const value = keywordInputs[inputKey]?.trim();
