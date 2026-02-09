@@ -885,7 +885,7 @@ const Companies = ({ user, onLogout }) => {
                     <Building2 className="w-4 h-4 text-[#C8A951]" />
                     <span className="text-sm font-medium text-white">CNAE e Atividade</span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                       <label className="block text-xs text-[#A1A1AA] mb-2">CNAE Principal</label>
                       <input
@@ -897,7 +897,7 @@ const Companies = ({ user, onLogout }) => {
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-xs text-[#A1A1AA] mb-2">Descrição CNAE</label>
+                      <label className="block text-xs text-[#A1A1AA] mb-2">Descrição CNAE Principal</label>
                       <input
                         type="text"
                         value={formData.cnae_principal_descricao}
@@ -906,6 +906,40 @@ const Companies = ({ user, onLogout }) => {
                       />
                     </div>
                   </div>
+                  
+                  {/* CNAEs Secundários */}
+                  <div className="pt-4 border-t border-[#2A2A2A]">
+                    <label className="block text-xs text-[#A1A1AA] mb-2">CNAEs Secundários</label>
+                    <div className="flex gap-2 mb-2">
+                      <input
+                        type="text"
+                        value={keywordInputs.cnae}
+                        onChange={(e) => setKeywordInputs({ ...keywordInputs, cnae: e.target.value })}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword('cnaes', 'cnae'))}
+                        placeholder="Ex: 47.11-3-02 - Comércio varejista..."
+                        className="flex-1 px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addKeyword('cnaes', 'cnae')}
+                        className="px-4 py-2 bg-[#C8A951] text-black rounded hover:bg-[#B89841] font-medium"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+                    {formData.cnaes?.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.cnaes.map((cnae, idx) => (
+                          <span key={idx} className="px-3 py-1.5 bg-[#C8A951]/20 text-[#C8A951] text-xs rounded flex items-center gap-2">
+                            <span className="font-mono">{cnae}</span>
+                            <button type="button" onClick={() => removeKeyword('cnaes', idx)} className="hover:text-red-400 font-bold">×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-xs text-[#666] mt-2">Adicione os CNAEs secundários da empresa conforme cartão CNPJ.</p>
+                  </div>
+                  
                   {formData.classificacao_inteligente && (
                     <div className="mt-4 p-3 bg-[#C8A951]/10 border border-[#C8A951]/30 rounded">
                       <label className="block text-xs text-[#C8A951] mb-1">Classificação Inteligente</label>
