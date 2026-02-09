@@ -172,21 +172,29 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
   const [resolvingGroup, setResolvingGroup] = useState(null);
   const [editingCfop, setEditingCfop] = useState({});
 
-  const resolverGrupoCfop = async (cfopAtual, novoCfop, salvarRegra = false) => {
+  const resolverGrupoCfop = async (cfopAtual, novoCfop, salvarRegra = false, categoria = null) => {
     if (!selectedCompany || !selectedCompetencia) return;
     
     setResolvingGroup(cfopAtual);
     
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API}/alertas-cfop/resolver-grupo?company_id=${selectedCompany.id}&competencia=${encodeURIComponent(selectedCompetencia)}&cfop_atual=${cfopAtual}&novo_cfop=${novoCfop}&salvar_regra=${salvarRegra}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      let url = `${API}/alertas-cfop/resolver-grupo?company_id=${selectedCompany.id}&competencia=${encodeURIComponent(selectedCompetencia)}&cfop_atual=${cfopAtual}&novo_cfop=${novoCfop}&salvar_regra=${salvarRegra}`;
+      
+      // Adicionar categoria se informada
+      if (categoria) {
+        url += `&categoria=${categoria}`;
+      }
+      
+      const response = await axios.post(url, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       
       if (response.data.success) {
-        toast.success(response.data.message);
+        const categoriaMsg = response.data.categoria_atribuida 
+          ? ` → Classificados como "${response.data.categoria_atribuida}"`
+          : '';
+        toast.success(response.data.message + categoriaMsg);
         fetchAlertas(); // Recarregar alertas
         fetchValidacao(); // Atualizar grupos validados
       } else {
