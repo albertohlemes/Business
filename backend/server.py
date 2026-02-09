@@ -9209,6 +9209,10 @@ async def alertas_cfop_agrupado_por_cfop(
                     cfop_info = CFOPS_OPERACOES_DISTINTAS_GLOBAL.get(cfop_original, {})
                     descricao_cfop = cfop_info.get('descricao', natureza or f'Operação {cfop_atual}')
                     
+                    # Obter categoria sugerida para cada opção
+                    categoria_manter = obter_categoria_por_cfop(cfop_atual)
+                    categoria_compra = obter_categoria_por_cfop(cfop_compra)
+                    
                     grupos_cfop[cfop_atual] = {
                         'cfop': cfop_atual,
                         'cfop_original': cfop_original,
@@ -9219,11 +9223,15 @@ async def alertas_cfop_agrupado_por_cfop(
                         'produtos': [],
                         'sugestao_manter': {
                             'cfop': cfop_atual,
-                            'descricao': f'Manter {cfop_atual} - {descricao_cfop}'
+                            'descricao': f'Manter {cfop_atual} - {descricao_cfop}',
+                            'categoria': categoria_manter,
+                            'categoria_nome': categoria_manter.title() if categoria_manter else 'Pendente'
                         },
                         'sugestao_compra': {
                             'cfop': cfop_compra,
-                            'descricao': f'Converter para {cfop_compra} - Compra'
+                            'descricao': f'Converter para {cfop_compra} - Compra',
+                            'categoria': categoria_compra,
+                            'categoria_nome': categoria_compra.title() if categoria_compra else 'Produto'
                         }
                     }
                 
