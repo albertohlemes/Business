@@ -1063,53 +1063,71 @@ const Documents = ({ user, onLogout }) => {
                           <span className="font-medium text-white">{doc.numero_nfe}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <p className="text-white truncate max-w-[200px]">
+                          <p className="text-white truncate max-w-[180px]">
                             {operacao === 'entrada' ? doc.emitente_nome : doc.destinatario_nome}
                           </p>
                         </td>
-                        <td className="px-4 py-3 hidden md:table-cell w-40">
-                          <span className="text-[#A1A1AA] font-mono text-sm">
+                        <td className="px-4 py-3 hidden lg:table-cell w-32">
+                          <span className="text-[#A1A1AA] font-mono text-xs">
                             {operacao === 'entrada' ? doc.emitente_cnpj : doc.destinatario_cnpj}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-[#A1A1AA] w-28">
+                        <td className="px-4 py-3 text-[#A1A1AA] w-24 hidden md:table-cell">
                           {formatDate(doc.data_emissao)}
                         </td>
-                        <td className="px-4 py-3 text-right w-32">
+                        {/* CFOPs */}
+                        <td className="px-2 py-3 hidden xl:table-cell w-28">
+                          <div className="flex flex-wrap gap-1">
+                            {getDocumentCfops(doc).slice(0, 3).map(cfop => (
+                              <span key={cfop} className="px-1.5 py-0.5 text-[10px] font-mono bg-[#2A2A2A] text-[#A1A1AA] rounded">
+                                {cfop}
+                              </span>
+                            ))}
+                            {getDocumentCfops(doc).length > 3 && (
+                              <span className="px-1.5 py-0.5 text-[10px] bg-[#2A2A2A] text-[#666] rounded">
+                                +{getDocumentCfops(doc).length - 3}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        {/* Classificações */}
+                        <td className="px-2 py-3 hidden xl:table-cell w-32">
+                          <div className="flex flex-wrap gap-1">
+                            {getDocumentClassificacoes(doc).map(cat => renderClassificacaoBadge(cat))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right w-28">
                           <span className="text-[#C8A951] font-medium">
                             {formatCurrency(doc.valor_total)}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-center w-24">
-                          {doc.status === 'autorizada' ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded text-xs">
-                              <CheckCircle2 className="w-3 h-3" />
-                              OK
-                            </span>
-                          ) : doc.status === 'cancelada' ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-500/10 text-red-400 rounded text-xs">
+                        <td className="px-2 py-3 text-center w-16">
+                          {doc.cancelada ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded text-xs" title="Cancelada">
                               <XCircle className="w-3 h-3" />
-                              Cancelada
+                            </span>
+                          ) : doc.status === 'autorizada' ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 rounded text-xs" title="Autorizada">
+                              <CheckCircle2 className="w-3 h-3" />
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded text-xs">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/10 text-amber-400 rounded text-xs" title="Pendente">
                               <AlertTriangle className="w-3 h-3" />
-                              Pendente
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right w-24">
+                        <td className="px-4 py-3 text-right w-20">
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => fetchDocumentDetail(doc.id)}
-                              className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
+                              className="p-1.5 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
                               title="Ver detalhes"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteDocument(doc.id, doc.numero_nfe)}
-                              className="p-2 text-[#A1A1AA] hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                              className="p-1.5 text-[#A1A1AA] hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
                               title="Excluir"
                             >
                               <Trash2 className="w-4 h-4" />
