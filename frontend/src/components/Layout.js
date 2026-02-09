@@ -53,6 +53,7 @@ const Layout = ({ user, onLogout, children }) => {
     const baseNav = [
       { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
       { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
+      { name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' },
       { name: 'Classificação Inteligente', href: '/classificacao-inteligente', icon: Brain, testId: 'nav-classificacao-inteligente' },
     ];
     
