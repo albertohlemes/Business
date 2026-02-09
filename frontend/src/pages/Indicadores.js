@@ -531,97 +531,192 @@ const Indicadores = ({ user, onLogout }) => {
                   <div className="bg-gradient-to-br from-red-900/30 to-red-950/30 border border-red-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-2">
                       <TrendingDown className="w-6 h-6 text-red-400" />
-                      <span className="text-[#A1A1AA]">Total Impostos</span>
+                      <span className="text-[#A1A1AA]">{isSimples() ? 'DAS a Pagar' : 'Total Impostos'}</span>
                     </div>
-                    <p className="text-2xl font-bold text-red-400">{formatCurrency(totais.total_pagar)}</p>
+                    <p className="text-2xl font-bold text-red-400">
+                      {formatCurrency(isSimples() ? dados?.simples?.das_valor : totais.total_pagar)}
+                    </p>
                   </div>
                   
                   <div className="bg-gradient-to-br from-[#C8A951]/20 to-[#C8A951]/10 border border-[#C8A951]/30 rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-2">
                       <Percent className="w-6 h-6 text-[#C8A951]" />
-                      <span className="text-[#A1A1AA]">% s/ Saídas</span>
+                      <span className="text-[#A1A1AA]">{isSimples() ? 'Alíquota Efetiva' : '% s/ Saídas'}</span>
                     </div>
-                    <p className="text-2xl font-bold text-[#C8A951]">{formatPercentual(percentuais.total.sobre_saidas)}</p>
+                    <p className="text-2xl font-bold text-[#C8A951]">
+                      {isSimples() 
+                        ? formatPercentual(dados?.simples?.aliquota_efetiva || 0)
+                        : formatPercentual(percentuais.total.sobre_saidas)}
+                    </p>
                   </div>
                 </div>
 
-                {/* Grid de Impostos Individualizados */}
-                <h3 className="text-lg font-semibold text-white mt-6 mb-4 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-[#C8A951]" />
-                  Impostos Individualizados
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <ImpostoCard
-                    titulo="ICMS"
-                    icone={FileText}
-                    cor="bg-blue-600"
-                    valor={percentuais.icms.valor}
-                    percentSaidas={percentuais.icms.sobre_saidas}
-                    percentVendas={percentuais.icms.sobre_vendas}
-                    visible={isContribuinteICMS()}
-                  />
-                  <ImpostoCard
-                    titulo="ICMS ST"
-                    icone={FileText}
-                    cor="bg-indigo-600"
-                    valor={percentuais.icms_st.valor}
-                    percentSaidas={percentuais.icms_st.sobre_saidas}
-                    percentVendas={percentuais.icms_st.sobre_vendas}
-                    visible={isContribuinteICMSST()}
-                  />
-                  <ImpostoCard
-                    titulo="PIS"
-                    icone={FileText}
-                    cor="bg-emerald-600"
-                    valor={percentuais.pis.valor}
-                    percentSaidas={percentuais.pis.sobre_saidas}
-                    percentVendas={percentuais.pis.sobre_vendas}
-                    visible={true}
-                  />
-                  <ImpostoCard
-                    titulo="COFINS"
-                    icone={FileText}
-                    cor="bg-teal-600"
-                    valor={percentuais.cofins.valor}
-                    percentSaidas={percentuais.cofins.sobre_saidas}
-                    percentVendas={percentuais.cofins.sobre_vendas}
-                    visible={true}
-                  />
-                  <ImpostoCard
-                    titulo="ISS"
-                    icone={FileText}
-                    cor="bg-purple-600"
-                    valor={percentuais.iss.valor}
-                    percentSaidas={percentuais.iss.sobre_saidas}
-                    percentVendas={percentuais.iss.sobre_vendas}
-                    visible={isContribuinteISS()}
-                  />
-                  <ImpostoCard
-                    titulo="IPI"
-                    icone={FileText}
-                    cor="bg-orange-600"
-                    valor={percentuais.ipi.valor}
-                    percentSaidas={percentuais.ipi.sobre_saidas}
-                    percentVendas={percentuais.ipi.sobre_vendas}
-                    visible={isContribuinteIPI()}
-                  />
-                </div>
-
-                {/* Card Total */}
-                <div className="bg-gradient-to-r from-[#C8A951]/20 to-[#C8A951]/10 border border-[#C8A951]/30 rounded-xl p-5 mt-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Calculator className="w-6 h-6 text-[#C8A951]" />
-                      <span className="text-white font-semibold text-lg">TOTAL DE IMPOSTOS</span>
+                {/* Simples Nacional - Composição do DAS */}
+                {isSimples() ? (
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold text-white mt-6 mb-4 flex items-center gap-2">
+                      <Calculator className="w-5 h-5 text-[#C8A951]" />
+                      Composição do DAS - Simples Nacional
+                    </h3>
+                    
+                    {/* Info do Anexo e Faixa */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
+                        <p className="text-[#666] text-sm mb-1">Anexo</p>
+                        <p className="text-white font-bold text-lg">{dados?.simples?.anexo || 'I'}</p>
+                      </div>
+                      <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
+                        <p className="text-[#666] text-sm mb-1">Faixa</p>
+                        <p className="text-white font-bold text-lg">{dados?.simples?.faixa || '1'}</p>
+                      </div>
+                      <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
+                        <p className="text-[#666] text-sm mb-1">RBT12 (Receita Bruta)</p>
+                        <p className="text-white font-bold text-lg">{formatCurrency(dados?.simples?.rbt12)}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(totais.total_pagar)}</p>
-                      <p className="text-sm text-[#A1A1AA]">
-                        {formatPercentual(percentuais.total.sobre_saidas)} s/ Saídas | {formatPercentual(percentuais.total.sobre_vendas)} s/ Vendas
+                    
+                    {/* Tabela de Composição do DAS */}
+                    <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-[#0C0C0C]">
+                          <tr>
+                            <th className="text-left px-4 py-3 text-[#A1A1AA] font-medium">Tributo</th>
+                            <th className="text-right px-4 py-3 text-[#A1A1AA] font-medium">% no DAS</th>
+                            <th className="text-right px-4 py-3 text-[#A1A1AA] font-medium">Valor</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#2A2A2A]">
+                          <tr className="hover:bg-[#1A1A1A]">
+                            <td className="px-4 py-3 text-white">IRPJ</td>
+                            <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(dados?.simples?.composicao?.irpj_percent || 5.5)}</td>
+                            <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(dados?.simples?.composicao?.irpj || (dados?.simples?.das_valor * 0.055))}</td>
+                          </tr>
+                          <tr className="hover:bg-[#1A1A1A]">
+                            <td className="px-4 py-3 text-white">CSLL</td>
+                            <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(dados?.simples?.composicao?.csll_percent || 3.5)}</td>
+                            <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(dados?.simples?.composicao?.csll || (dados?.simples?.das_valor * 0.035))}</td>
+                          </tr>
+                          <tr className="hover:bg-[#1A1A1A]">
+                            <td className="px-4 py-3 text-white">COFINS</td>
+                            <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(dados?.simples?.composicao?.cofins_percent || 11.51)}</td>
+                            <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(dados?.simples?.composicao?.cofins || (dados?.simples?.das_valor * 0.1151))}</td>
+                          </tr>
+                          <tr className="hover:bg-[#1A1A1A]">
+                            <td className="px-4 py-3 text-white">PIS</td>
+                            <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(dados?.simples?.composicao?.pis_percent || 2.76)}</td>
+                            <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(dados?.simples?.composicao?.pis || (dados?.simples?.das_valor * 0.0276))}</td>
+                          </tr>
+                          <tr className="hover:bg-[#1A1A1A]">
+                            <td className="px-4 py-3 text-white">CPP</td>
+                            <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(dados?.simples?.composicao?.cpp_percent || 41.5)}</td>
+                            <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(dados?.simples?.composicao?.cpp || (dados?.simples?.das_valor * 0.415))}</td>
+                          </tr>
+                          <tr className="hover:bg-[#1A1A1A]">
+                            <td className="px-4 py-3 text-white">ICMS</td>
+                            <td className="px-4 py-3 text-right text-[#A1A1AA]">{formatPercentual(dados?.simples?.composicao?.icms_percent || 33.5)}</td>
+                            <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(dados?.simples?.composicao?.icms || (dados?.simples?.das_valor * 0.335))}</td>
+                          </tr>
+                        </tbody>
+                        <tfoot className="bg-[#C8A951]/10 border-t-2 border-[#C8A951]">
+                          <tr>
+                            <td className="px-4 py-3 text-[#C8A951] font-bold">TOTAL DAS</td>
+                            <td className="px-4 py-3 text-right text-[#C8A951] font-bold">{formatPercentual(dados?.simples?.aliquota_efetiva || 0)}</td>
+                            <td className="px-4 py-3 text-right text-[#C8A951] font-bold text-lg">{formatCurrency(dados?.simples?.das_valor)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                    
+                    {/* Nota informativa */}
+                    <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-4 mt-4">
+                      <p className="text-sm text-blue-300">
+                        <AlertCircle className="w-4 h-4 inline mr-2" />
+                        No Simples Nacional, todos os tributos federais, estaduais e municipais são unificados no DAS (Documento de Arrecadação do Simples Nacional). 
+                        O percentual de cada tributo varia conforme o Anexo e a faixa de faturamento da empresa.
                       </p>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  /* Demais Regimes - Grid de Impostos Individualizados */
+                  <>
+                    <h3 className="text-lg font-semibold text-white mt-6 mb-4 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-[#C8A951]" />
+                      Impostos Individualizados
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <ImpostoCard
+                        titulo="ICMS"
+                        icone={FileText}
+                        cor="bg-blue-600"
+                        valor={percentuais.icms.valor}
+                        percentSaidas={percentuais.icms.sobre_saidas}
+                        percentVendas={percentuais.icms.sobre_vendas}
+                        visible={isContribuinteICMS()}
+                      />
+                      <ImpostoCard
+                        titulo="ICMS ST"
+                        icone={FileText}
+                        cor="bg-indigo-600"
+                        valor={percentuais.icms_st.valor}
+                        percentSaidas={percentuais.icms_st.sobre_saidas}
+                        percentVendas={percentuais.icms_st.sobre_vendas}
+                        visible={isContribuinteICMSST()}
+                      />
+                      <ImpostoCard
+                        titulo="PIS"
+                        icone={FileText}
+                        cor="bg-emerald-600"
+                        valor={percentuais.pis.valor}
+                        percentSaidas={percentuais.pis.sobre_saidas}
+                        percentVendas={percentuais.pis.sobre_vendas}
+                        visible={true}
+                      />
+                      <ImpostoCard
+                        titulo="COFINS"
+                        icone={FileText}
+                        cor="bg-teal-600"
+                        valor={percentuais.cofins.valor}
+                        percentSaidas={percentuais.cofins.sobre_saidas}
+                        percentVendas={percentuais.cofins.sobre_vendas}
+                        visible={true}
+                      />
+                      <ImpostoCard
+                        titulo="ISS"
+                        icone={FileText}
+                        cor="bg-purple-600"
+                        valor={percentuais.iss.valor}
+                        percentSaidas={percentuais.iss.sobre_saidas}
+                        percentVendas={percentuais.iss.sobre_vendas}
+                        visible={isContribuinteISS()}
+                      />
+                      <ImpostoCard
+                        titulo="IPI"
+                        icone={FileText}
+                        cor="bg-orange-600"
+                        valor={percentuais.ipi.valor}
+                        percentSaidas={percentuais.ipi.sobre_saidas}
+                        percentVendas={percentuais.ipi.sobre_vendas}
+                        visible={isContribuinteIPI()}
+                      />
+                    </div>
+
+                    {/* Card Total */}
+                    <div className="bg-gradient-to-r from-[#C8A951]/20 to-[#C8A951]/10 border border-[#C8A951]/30 rounded-xl p-5 mt-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Calculator className="w-6 h-6 text-[#C8A951]" />
+                          <span className="text-white font-semibold text-lg">TOTAL DE IMPOSTOS</span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(totais.total_pagar)}</p>
+                          <p className="text-sm text-[#A1A1AA]">
+                            {formatPercentual(percentuais.total.sobre_saidas)} s/ Saídas | {formatPercentual(percentuais.total.sobre_vendas)} s/ Vendas
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
