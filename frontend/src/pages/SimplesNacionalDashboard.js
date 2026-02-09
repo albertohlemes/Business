@@ -334,31 +334,17 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                 </p>
               </div>
 
-              {/* DIFAL do Mês */}
-              <div className="bg-gradient-to-br from-purple-500/20 to-purple-500/5 rounded-lg border border-purple-500/30 p-5">
+              {/* RBT12 */}
+              <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-purple-400 text-sm font-medium">DIFAL {data.competencia_atual}</span>
-                  <ArrowUpRight className="w-5 h-5 text-purple-400" />
+                  <span className="text-[#A1A1AA] text-sm">RBT12 (Últimos 12 meses)</span>
+                  <Wallet className="w-5 h-5 text-[#C8A951]" />
                 </div>
-                <p className="text-2xl font-bold text-purple-400">
-                  {formatCurrency(data.difal_mes?.total_difal)}
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(data.faturamento?.rbt12)}
                 </p>
                 <p className="text-xs text-[#666] mt-1">
-                  {formatPercent(data.difal_mes?.percentual_sobre_compras)} sobre compras interestaduais
-                </p>
-              </div>
-
-              {/* Total Impostos do Mês */}
-              <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 rounded-lg border border-emerald-500/30 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-emerald-400 text-sm font-medium">Total Impostos</span>
-                  <DollarSign className="w-5 h-5 text-emerald-400" />
-                </div>
-                <p className="text-2xl font-bold text-emerald-400">
-                  {formatCurrency(data.impostos_mes?.total)}
-                </p>
-                <p className="text-xs text-[#666] mt-1">
-                  <span className="text-emerald-400 font-semibold">{formatPercent(data.impostos_mes?.percentual_sobre_vendas)}</span> sobre vendas
+                  Média mensal: {formatCurrency(data.faturamento?.media_mensal)}
                 </p>
               </div>
 
@@ -380,21 +366,7 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
             </div>
 
             {/* Cards Linha 2: Faturamento */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* RBT12 */}
-              <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[#A1A1AA] text-sm">RBT12 (Últimos 12 meses)</span>
-                  <Wallet className="w-5 h-5 text-[#C8A951]" />
-                </div>
-                <p className="text-2xl font-bold text-white">
-                  {formatCurrency(data.faturamento?.rbt12)}
-                </p>
-                <p className="text-xs text-[#666] mt-1">
-                  Média mensal: {formatCurrency(data.faturamento?.media_mensal)}
-                </p>
-              </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Vendas do Mês */}
               <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
                 <div className="flex items-center justify-between mb-3">
@@ -406,20 +378,6 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                 </p>
                 <p className="text-xs text-[#666] mt-1">
                   Faturamento do mês atual
-                </p>
-              </div>
-
-              {/* Compras Interestaduais */}
-              <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[#A1A1AA] text-sm">Compras Interestaduais</span>
-                  <ArrowDownRight className="w-5 h-5 text-purple-400" />
-                </div>
-                <p className="text-2xl font-bold text-white">
-                  {formatCurrency(data.difal_mes?.total_compras_interestaduais)}
-                </p>
-                <p className="text-xs text-[#666] mt-1">
-                  {data.difal_mes?.qtd_notas || 0} notas de outros estados
                 </p>
               </div>
 
