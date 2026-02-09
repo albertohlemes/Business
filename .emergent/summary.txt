@@ -1,103 +1,103 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou uma reestruturação e expansão contínua da aplicação fiscal AURION. Os requisitos evoluíram para incluir:
-1.  **Restauração e Melhoria do Cadastro de Empresa:** Restaurar todos os campos que haviam sido perdidos, como campos de presunção de IRPJ/CSLL (com lógica condicional para atividades de comércio, serviço e mista), campos para classificação de produtos para IA, inscrições estadual/municipal, e a adição de um campo para CNAEs secundários.
-2.  **Automação de CNAEs:** Fazer com que os CNAEs secundários sejam preenchidos automaticamente ao buscar um CNPJ para cadastrar uma nova empresa.
-3.  **Melhorias na Página RET (Rota de Eficiência Tributária):**
-    *   Corrigir o problema em que a página não carrega os dados dos documentos fiscais importados.
-    *   Adicionar campos para Estoque Inicial/Final para calcular o CMV/CPV.
-    *   Implementar um cálculo de Ponto de Equilíbrio para empresas do Lucro Real.
-    *   Criar um comparativo de tributação com o regime do Lucro Presumido.
-    *   Adicionar novos indicadores de negócio: Margem de Contribuição, Markup, valor total de entradas de insumo/revenda, valor total de vendas, e percentuais de impostos sobre o faturamento.
-4.  **UI/UX Dinâmica e Interativa:**
-    *   Tornar o Dashboard inicial dinâmico, mostrando apenas os cards de impostos aplicáveis à empresa selecionada.
-    *   Adicionar flags interativas na página de Apuração ICMS ( e ) que recalculam os impostos em tempo real.
-    *   Substituir as barras de progresso de upload por uma animação customizada de um contador tomando café.
+O usuário iniciou com solicitações de melhoria na UI/UX e correção de bugs para o aplicativo fiscal AURION. Durante a sessão, as solicitações evoluíram para uma série de novas funcionalidades e refatorações significativas, incluindo:
+
+1.  **Classificação Inteligente:** Corrigir erros de carregamento, agrupar produtos por classificação, restaurar a barra de comando de IA para regras em linguagem natural e permitir entrada manual de CFOP nos alertas.
+2.  **Página de Documentos:** Adicionar colunas para CFOPs e classificações de produtos, e reintroduzir a barra de validação de totais da nota fiscal.
+3.  **Módulo PIS/COFINS:**
+    *   Expandir as regras de negócio adicionando NCMs para Alíquota Zero e Monofásico a partir de arquivos fornecidos.
+    *   Implementar um novo relatório de Divergências com três visualizações (por Nota Fiscal, NCM e Produto).
+    *   Aplicar novas regras de CST: 50 para entradas tributadas, 98 para operações sem crédito e 49 para operações sem débito.
+    *   Criar um novo relatório detalhado agrupado por NCM + CFOP + CST.
+    *   Alterar o cadastro da empresa para permitir uma seleção múltipla de perfis (Indústria, Distribuidor, Varejo) e tornar os menus (ICMS ST, IPI) condicionais a esses perfis.
+4.  **UI/UX Geral:** Fixar o layout principal da aplicação para permitir rolagem apenas na área de conteúdo e tornar todas as colunas de todas as tabelas da aplicação ordenáveis.
+5.  **Refatoração Principal (Inteligência Tributária):**
+    *   Renomear o menu RET para Fechamento e reorganizar suas abas.
+    *   Criar um DRE flutuante onde o usuário pode inserir a despesa real para calcular o lucro contábil.
+    *   Criar um novo menu principal chamado Inteligência Tributária para comparar os regimes fiscais (Simples Nacional, Lucro Presumido, Lucro Real) em três cenários: período atual, acumulado do ano e uma projeção anual.
 
 **User's preferred language**:
 Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-A aplicação possui um frontend em React e backend em FastAPI. O agente implementou com sucesso a maioria das solicitações de UI e funcionalidade:
-*   **Cadastro de Empresa:** O formulário em  foi completamente restaurado e agora inclui todos os campos solicitados, com a lógica condicional para presunções e um campo para CNAEs secundários.
-*   **Backend:** O arquivo  foi atualizado para suportar os novos campos nos modelos Pydantic e a lógica de busca de CNPJ foi expandida para incluir CNAEs secundários.
-*   **Dashboard Dinâmico:** O Dashboard principal agora renderiza os cards de impostos condicionalmente, com base no perfil da empresa.
-*   **Apuração ICMS Interativa:** As flags de configuração de ICMS foram movidas para a página  e agora são interativas, permitindo ao usuário recalcular a apuração.
-*   **Animação de Progresso:** Uma nova componente, , foi criada e substituiu as barras de progresso nas páginas de upload.
-*   **Página RET:** A UI foi reescrita para incluir abas para CMV/CPV, Ponto de Equilíbrio, Comparativo de Regimes e, mais recentemente, uma aba de Indicadores. No entanto, a página inteira está quebrada pois não carrega dados.
+A aplicação full-stack (React + FastAPI) está funcional, com a maioria das solicitações recentes implementadas.
+*   **Módulo PIS/COFINS:** O novo relatório de divergências está funcional. As novas regras de CST (49, 50, 98) foram implementadas no backend. As tabelas de NCMs foram expandidas. O cadastro de empresa agora suporta perfis múltiplos (Indústria, Distribuidor, Varejo) e o menu principal se adapta a essa configuração.
+*   **Página Classificação Inteligente:** A barra de IA foi restaurada e está funcional após a correção do problema de orçamento da API (troca da chave). Os produtos agora são agrupados por classificação.
+*   **Página Documentos:** As novas colunas de CFOPs/Classificações e a barra de validação foram adicionadas.
+*   **UI/UX:** O layout fixo com rolagem de conteúdo foi implementado. A ordenação de colunas foi adicionada às páginas de  e .
+*   **Inteligência Tributária:** O trabalho foi iniciado. A página  e o endpoint  foram criados como placeholders.
 
 **Last working item**:
--   **Last item agent was working**: Implementação da aba Indicadores na página RET. O agente adicionou a aba e as funções de cálculo no frontend () para Margem de Contribuição, Markup e percentuais de impostos.
+-   **Last item agent was working**: O agente iniciou a implementação da nova funcionalidade principal, Inteligência Tributária. Foram criados o arquivo da nova página no frontend () e um novo endpoint no backend (). O trabalho foi interrompido antes de integrar a nova página às rotas da aplicação e ao menu principal.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: N (As novas funções e a nova aba não foram testadas com dados reais, pois a página RET não consegue carregar nenhuma informação).
--   **Which testing method agent to use?**: both. É crucial usar o agente de testes de backend para garantir que o endpoint da RET retorne os dados corretos após o upload de XMLs. Em seguida, o agente de frontend para validar que todas as abas da RET (Resumo, CMV/CPV, Ponto de Equilíbrio, Comparativo e os novos Indicadores) são preenchidas e calculadas corretamente.
+-   **Agent Testing Done**: Y (Para tarefas anteriores. Testes via  no backend foram bem-sucedidos. Testes visuais com  falharam devido a problemas de infraestrutura da plataforma, não do código.)
+-   **Which testing method agent to use?**: both. A nova funcionalidade Inteligência Tributária é complexa. O frontend precisa ser testado para validar a nova página, suas 3 abas, e a exibição correta dos dados. O backend requer testes para garantir a precisão dos cálculos dos três regimes tributários nos três cenários de tempo.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0)**: A página RET não carrega dados dos documentos importados.
--   **Issue 2 (P1)**: Implementar backend e conectar frontend para os novos indicadores da RET (Margem de Contribuição, Markup, etc.).
+-   **Issue 1 (P0)**: Concluir a funcionalidade Inteligência Tributária.
+-   **Issue 2 (P1)**: Refatorar a página RET para Fechamento conforme solicitado.
+-   **Issue 3 (P2)**: Implementar ordenação em **todas** as colunas de **todas** as tabelas da aplicação.
 
 **Issues Detail**:
--   **Issue 1: A página RET não carrega dados dos documentos importados**
-    -   **Attempted fixes**: O agente identificou que a empresa de teste não possuía documentos para a competência selecionada. No entanto, o problema central de garantir que a página efetivamente busque e processe os dados quando eles existem ainda não foi resolvido nem verificado.
+-   **Issue 1: Concluir a funcionalidade Inteligência Tributária**
+    -   **Attempted fixes**: N/A
     -   **Next debug checklist**:
-        1.  **Garantir a existência de dados**: Fazer upload de arquivos XML de teste para uma empresa/competência específica usando a funcionalidade de upload.
-        2.  **Verificar o backend**: Inspecionar o endpoint que alimenta a página RET em  (provavelmente  ou similar). Garantir que ele consulta corretamente os documentos (, , etc.) e retorna um payload com dados.
-        3.  **Rastrear o frontend**: No  de , depurar a chamada à API e o estado resultante para garantir que os dados recebidos do backend estão sendo corretamente armazenados e processados.
-    -   **Why fix this issue and what will be achieved with the fix?**: É a funcionalidade principal da página RET. Sem dados, todas as análises e indicadores são inúteis.
+        1.  Adicionar a rota para  em .
+        2.  Adicionar o item de menu Inteligência Tributária em .
+        3.  Desenvolver a UI completa em , incluindo as 3 abas e as tabelas comparativas.
+        4.  Implementar a lógica de cálculo para Simples Nacional, Lucro Presumido e Lucro Real no endpoint  em .
+    -   **Why fix this issue and what will be achieved with the fix?**: Entregar uma nova funcionalidade principal que agrega grande valor ao usuário, permitindo a análise e otimização da carga tributária.
     -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: Both
-    -   **Blocked on other issue**: None. This is the main blocker.
+    -   **Should Test frontend/backend/both after fix?**: both
 
--   **Issue 2: Implementar backend para os novos indicadores da RET**
-    -   **Attempted fixes**: O agente preparou a UI e as funções de cálculo no frontend em .
+-   **Issue 2: Refatorar a página RET para Fechamento**
     -   **Next debug checklist**:
-        1.  Após resolver a Issue 1, verificar se o endpoint do backend já retorna todos os valores base necessários (ex: , ).
-        2.  Se não, modificar o endpoint em  para calcular e incluir esses valores no payload de resposta.
-        3.  Conectar esses novos campos de dados às funções de cálculo no frontend e garantir que os indicadores sejam exibidos corretamente.
-    -   **Why fix this issue and what will be achieved with the fix?**: Atende a um requisito explícito do usuário para análises de negócio mais profundas.
+        1.  Renomear o componente e a rota de  para .
+        2.  Na aba principal, exibir os impostos individualizados (ICMS, IPI, PIS, COFINS) com percentuais sobre as vendas.
+        3.  Unificar as abas CMV/CPV e Ponto de Equilíbrio.
+        4.  Nessa nova aba, adicionar um campo de input para Despesa Real que, ao ser preenchido, recalcula o lucro contábil (DRE flutuante).
+    -   **Why fix this issue and what will be achieved with the fix?**: Atender a uma solicitação direta do usuário para tornar a página de fechamento mais útil e interativa.
     -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Both
-    -   **Blocked on other issue**: Issue 1: A página RET não carrega dados dos documentos importados
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on other issue**: O lucro calculado aqui impacta a análise do Lucro Real na Inteligência Tributária.
+
+-   **Issue 3: Implementar ordenação em todas as colunas**
+    -   **Next debug checklist**:
+        1.  Revisar todas as páginas com tabelas (, , , etc.).
+        2.  Aplicar o padrão de cabeçalho ordenável () e a lógica de estado de ordenação a todas as colunas que ainda não o possuem.
+    -   **Why fix this issue and what will be achieved with the fix?**: Padronizar a UX e melhorar a usabilidade em toda a aplicação, conforme solicitado pelo usuário.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: frontend
 
 **In progress Task List**:
-N/A
+N/A (As tarefas em progresso estão listadas como issues).
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P1) **Implementar upload do Certificado Digital**: A UI no formulário da empresa está pronta, mas o backend precisa ser implementado para lidar com o upload do arquivo  e o armazenamento seguro da senha.
+    -   (P1) **Implementar upload do Certificado Digital**: A UI está pronta em , mas o backend precisa ser implementado para processar o arquivo  e armazenar a senha de forma segura.
 -   **Future Tasks:**
     -   Refatorar o monolito  para uma arquitetura baseada em routers.
     -   Implementar um sistema de licenças comerciais.
     -   Criar um dashboard de estatísticas para o perfil Master.
-    -   Implementar funcionalidades para empresas do regime Simples Nacional.
 
 **Completed work in this session**
--   **Cadastro de Empresa Completo**: O formulário  foi totalmente reformulado, restaurando todos os campos perdidos e adicionando novas funcionalidades como presunções condicionais e CNAEs secundários.
--   **Automação de CNAE Secundário**: O endpoint de busca de CNPJ agora preenche automaticamente os CNAEs secundários.
--   **Dashboard Dinâmico**: A página  agora mostra cards de impostos com base no perfil da empresa selecionada.
--   **Flags de ICMS Interativas**: As flags de configuração de ICMS foram movidas para a página  e se tornaram interativas e funcionais.
--   **Animação de Progresso**: As barras de progresso foram substituídas pela animação customizada contador tomando café em toda a aplicação.
+-   **Relatório de Divergências PIS/COFINS:** Criado e integrado com sucesso.
+-   **Novas Regras de Negócio PIS/COFINS:** Regras para CST 49, 50, e 98 implementadas.
+-   **Expansão das Tabelas PIS/COFINS:** Novos NCMs para Alíquota Zero e Monofásicos adicionados.
+-   **Perfis de Empresa Múltiplos:** Sistema de perfis (Indústria/Distribuidor/Varejo) implementado no backend e frontend.
+-   **IA de Classificação Restaurada:** Problema de orçamento resolvido e barra de IA funcional.
+-   **Melhorias na UI:** Layout fixo implementado e ordenação de colunas adicionada em  e .
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1**: O arquivo  é um monolito, o que representa uma dívida técnica a ser tratada futuramente.
-
-**Known issue recurrence from previous fork**
-- **Issue**: A página RET perde funcionalidades ou não carrega dados. Este é um problema recorrente que precisa de uma solução definitiva.
-- **Recurrence count**: 2
-- **Status**: IN PROGRESS
+-   **Issue 1:** O arquivo  é um monolito. Isto é uma dívida técnica conhecida, rastreada como uma tarefa futura de refatoração.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend**: React, React Context API, TailwindCSS. Uso intensivo de renderização condicional.
--   **Backend**: FastAPI, Motor (MongoDB assíncrono), Pydantic.
--   **UI Dinâmica**: Vários componentes (, ) reagem ao perfil da empresa selecionada para mostrar informações contextuais.
-
-**key DB schema**
--   ** collection**: Esquema estendido para incluir campos como , , , ,  (lista), , , e campos para classificação de produtos (, , etc.).
+- **Frontend**: React, /, TailwindCSS, criação de componentes reutilizáveis para ordenação de tabelas.
+- **Backend**: FastAPI, agregação de dados com , implementação de lógicas de negócio tributárias complexas, integração com MongoDB (Motor).
+- **IA**: Uso da biblioteca  para chamadas a LLMs, com tratamento de erro para orçamento de API excedido.
 
 **All files of reference**
 -   
@@ -105,54 +105,44 @@ N/A
 -   
 -   
 -   
-
-**Areas that need refactoring**:
--    é um monolito e deve ser dividido em roteadores.
--   A lógica de persistência para as flags de ICMS na página  precisa ser revista. Atualmente, elas podem estar sendo gerenciadas apenas no estado local do frontend, o que significa que a configuração não será salva entre as sessões. É preciso garantir que o clique no botão Aplicar e Recalcular dispare uma chamada de API para salvar o estado dessas flags no objeto da empresa no banco de dados.
-
-**key api endpoints**
--   : Endpoint principal para salvar as alterações do formulário de empresa.
--   : Endpoint que fornece dados para o dashboard dinâmico.
--   : Provável endpoint para a página RET, que precisa ser depurado.
--   : Endpoint para buscar dados de empresa por CNPJ.
-
-**Critical Info for New Agent**
--   **Sua prioridade máxima é consertar a página RET.** Comece garantindo que você pode fazer upload de documentos XML para uma empresa de teste. Em seguida, depure o fluxo de dados do backend para o frontend para fazer a página carregar as informações.
--   Após a correção do carregamento de dados, finalize a implementação dos novos indicadores (Margem de Contribuição, Markup, etc.), garantindo que o backend forneça todos os dados necessários.
--   Revise a persistência das flags de ICMS na página . Elas devem ser salvas no banco de dados para que a configuração seja mantida entre as sessões e afete corretamente outras partes do sistema, como o Dashboard e a própria RET.
-
-**documents and test reports created in this job**
+-   
+-   
 -   
 
+**Critical Info for New Agent**
+-   A prioridade máxima é continuar e concluir a implementação da nova funcionalidade Inteligência Tributária, que já foi iniciada. Comece integrando a página à aplicação (rota e menu).
+-   O usuário é muito detalhista e frequentemente envia múltiplas solicitações em uma única mensagem. É crucial ler com atenção e criar um plano de ação claro para cada item.
+-   A ferramenta de  da plataforma está instável. Não perca tempo depurando-a. Confie nos testes de  para o backend e na verificação do servidor local para o frontend.
+-   A integração com a IA está funcionando. Continue garantindo que todas as chamadas utilizem o modelo gratuito () para evitar problemas de custo.
+
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Usuário**: Pediu para mover as flags de ICMS para a página de  e depois focar em corrigir a página RET. (Status: Flags movidas, RET pendente)
-2.  **Usuário**: Pediu para consertar as flags de ICMS que não eram clicáveis e para substituir as barras de progresso pela animação do café. (Status: Concluído)
-3.  **Usuário**: Reportou que a página RET não está carregando dados e solicitou novos indicadores (margem, markup), além de flags na apuração de ICMS e um dashboard dinâmico. (Status: Dashboard e flags concluídos; RET e indicadores pendentes)
-4.  **Usuário**: Solicitou que CNAEs secundários fossem preenchidos automaticamente na importação e pediu melhorias na RET (CMV/CPV, Ponto de Equilíbrio, Comparativo de Regimes). (Status: Automação de CNAE e UI da RET concluídos; carregamento de dados da RET pendente)
-5.  **Usuário**: Pediu para o formulário de empresa mostrar campos de presunção separados para atividade mista (Comércio + Serviço) e para exibir os CNAEs secundários. (Status: Concluído)
-6.  **Usuário**: Forneceu uma imagem e pediu para restaurar campos específicos no cadastro de empresa (presunção, classificação de produtos, inscrições). (Status: Concluído)
-7.  **Usuário**: Pediu para restaurar TODOS os campos antigos do cadastro da empresa. (Status: Concluído)
-8.  **Usuário**: Deu o OK para continuar.
-9.  **Agente**: Propôs um plano de ação inicial (não incluído, pois foi substituído).
-10. **Usuário**: (Primeira mensagem da sessão) Reportou os bugs iniciais no formulário da empresa, na página RET e no menu dinâmico. (Status: Concluído, exceto pela funcionalidade de dados da RET)
+1.  **Usuário**: Solicitou a grande refatoração do RET para Fechamento e a criação do novo menu Inteligência Tributária. (Status: IN PROGRESS)
+2.  **Usuário**: Pediu para adicionar novas tabelas de NCM, criar perfis de empresa (Indústria/Varejo) e tornar menus condicionais. (Status: COMPLETED)
+3.  **Usuário**: PODE - Deu sinal verde para o plano. (Status: ACK)
+4.  **Usuário**: Pediu 7 itens: IA gratuita, separação Entrada/Saída em PIS/COFINS, regras de CST (49,50,98), novo relatório, layout fixo e colunas ordenáveis. (Status: MOSTLY COMPLETED)
+5.  **Usuário**: Pediu para restaurar a barra de IA e ajustar os alertas de CFOP. (Status: COMPLETED)
+6.  **Usuário**: Pediu para agrupar produtos por classificação. (Status: COMPLETED)
+7.  **Agente**: Tentou finalizar a tarefa.
+8.  **Usuário**: Reportou bug e pediu novas colunas e a barra de validação na página de Documentos. (Status: COMPLETED)
+9.  **Agente**: Propôs plano.
+10. **Usuário**: PODEMOS SEGUIR, MAS SEM O TESTING AGENT, POR FVR - Pediu para pular o . (Status: ACK)
 
 **Project Health Check:**
--   **Broken**:
-    -   **Funcionalidade da Página RET**: A página inteira não funciona, pois não carrega dados. Isso impede a utilização de todas as suas funcionalidades (CMV/CPV, Ponto de Equilíbrio, Comparativo, Indicadores).
--   **Mocked**:
-    -   **Upload de Certificado Digital**: A UI existe, mas o backend não processa o upload do arquivo.
+-   **Broken**: A ferramenta de  da plataforma está apresentando falhas.
+-   **Mocked**: A funcionalidade de upload do Certificado Digital tem UI, mas o backend não está implementado.
 
 **3rd Party Integrations**
--    / : Usado para a funcionalidade de IA na página RET (via Emergent LLM Key). A funcionalidade atual também está quebrada devido à falta de dados na página.
+-    para LLMs (usando  via Emergent LLM Key).
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, mas as últimas implementações (RET, Indicadores) não foram testadas devido à falta de dados.
--   **Known regressions**: A funcionalidade da página RET, que o usuário relata ter sido perdida e ainda não foi restaurada.
+-   **Testing agent used after significant changes**: NO. O usuário pediu explicitamente para não usar o agente de testes na última interação.
+-   **Test files created**: N/A
+-   **Known regressions**: Nenhuma.
 
 **Credentials to test flow:**
 -   **Email**: 
 -   **Senha**: 
 
 **What agent forgot to execute**
-- O agente não validou o fluxo de ponta a ponta do carregamento de dados para a página RET. Apesar de ter construído uma UI complexa, a funcionalidade central de exibir dados de documentos importados permanece quebrada e não foi depurada.
-- A persistência das flags de ICMS na página  não foi totalmente implementada; elas provavelmente só funcionam no estado local do frontend.</analysis>
+-   Finalizar a tarefa de tornar **todas** as colunas de **todas** as tabelas ordenáveis. O trabalho foi feito em  e , mas precisa ser estendido para outras páginas.
+-   Remover os arquivos obsoletos (, ) que foram substituídos pela nova página .</analysis>
