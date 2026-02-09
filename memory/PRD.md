@@ -70,7 +70,8 @@ Sistema de contabilidade fiscal para escritórios de contabilidade brasileiros, 
 - **ISS** (`/apuracao-iss`): Apuração para serviços
 - **IPI** (`/apuracao-ipi`): Apuração para indústrias
 - **ICMS ST**: Aba dentro de Apuração ICMS
-- **RET** (`/ret`): Rota de Eficiência Tributária com IA
+- **RET** (`/ret`): Rota de Eficiência Tributária - Comparativo de Simples Nacional, Lucro Presumido e Lucro Real
+- **Indicadores** (`/indicadores`): CMV/CPV, Margens, Ponto de Equilíbrio, DRE Simplificado
 
 ### Menu Dinâmico ✅
 O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
