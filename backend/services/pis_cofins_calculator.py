@@ -10,57 +10,145 @@ from decimal import Decimal, ROUND_HALF_UP
 # TABELAS DE PARAMETRIZAÇÃO - COMÉRCIO
 # =============================================================================
 
-# NCMs de Alíquota Zero (CST 06) - Cesta Básica, Hortifruti, Carnes, etc.
+# NCMs com Alíquota Zero (Tabela 4.3.13 e produtos essenciais)
 NCMS_ALIQUOTA_ZERO = {
-    # Hortifruti - Capítulos 07 e 08
-    '07': 'LEGUMES E HORTALIÇAS',
-    '08': 'FRUTAS',
-    # Proteína Animal
-    '0201': 'Carne Bovina Fresca/Refrigerada',
+    # Carnes e Miudezas (já existentes + novos)
+    '0201': 'Carne Bovina Fresca',
     '0202': 'Carne Bovina Congelada',
     '0203': 'Carne Suína',
     '0204': 'Carne Ovina/Caprina',
     '0206': 'Miudezas Comestíveis',
+    '02061000': 'Miudezas Bovinas Frescas',
+    '02063000': 'Miudezas Suínas Frescas',
+    '02068000': 'Miudezas Outras Carnes',
     '0207': 'Aves (Frango, Peru, Pato)',
+    '02102000': 'Carnes Salgadas Bovinas',
+    '02109900': 'Outras Carnes Salgadas',
+    # Peixes e Frutos do Mar
     '0302': 'Peixes Frescos',
+    '02029000': 'Peixes não especificados',
     '0303': 'Peixes Congelados',
     '0304': 'Filés de Peixe',
-    '04072100': 'Ovos de galinha',
     # Laticínios
+    '04051000': 'Manteiga',
     '04011010': 'Leite UHT Desnatado',
     '04012010': 'Leite UHT Integral',
     '04014010': 'Leite UHT Alto Teor Gordura',
     '04015010': 'Creme de Leite',
     '04021010': 'Leite em pó parcial desnatado',
     '04022110': 'Leite em pó integral',
-    '04051000': 'Manteiga',
     '04061010': 'Queijo Minas Frescal',
     '04061090': 'Queijo Ricota, Cottage, Requeijão',
     '04062000': 'Queijos ralados ou em pó',
     '04069010': 'Queijo Prato',
     '04069020': 'Queijo Mussarela',
     '04069030': 'Queijo Parmesão',
-    # Mercearia Básica
+    '04072100': 'Ovos de galinha',
+    # Produtos Animais
+    '05069000': 'Ossos e Derivados',
+    '05100010': 'Substâncias para Farmacêuticos',
+    '05119910': 'Sêmen de Bovinos',
+    '05119920': 'Embriões de Bovinos',
+    # Leguminosas e Cereais
+    '07133319': 'Feijões Pretos',
+    '07133329': 'Feijões Brancos',
+    '07133399': 'Outros Feijões',
     '0901': 'Café (Torrado, moído ou em grão)',
     '10059010': 'Milho em grão',
     '1006': 'Arroz',
+    # Farinhas e Derivados
     '11010010': 'Farinha de Trigo',
     '11022000': 'Farinha de Milho (Fubá)',
+    # Gorduras e Óleos
     '15079011': 'Óleo de Soja Refinado',
     '15121911': 'Óleo de Girassol Refinado',
     '15171000': 'Margarina',
+    # Açúcares
     '17011400': 'Açúcar de cana',
     '17019900': 'Açúcar Cristal/Refinado',
+    # Massas e Pães
+    '19012000': 'Misturas para Padaria',
     '19021100': 'Macarrão com ovos',
     '19021900': 'Outras massas sem recheio',
+    '19022000': 'Massas Alimentícias Recheadas',
+    '19023000': 'Massas Secas',
     '19059090': 'Pão Francês/Sal',
-    '25010020': 'Sal de Cozinha',
-    # Insumos Agrícolas
+    # Preparações Alimentícias
+    '21069010': 'Preparações Compostas',
+    '22019000': 'Água Comum',
+    '22029000': 'Bebidas não Alcoólicas',
+    # Combustíveis (GLP e Gás Natural)
+    '27101911': 'Óleo Diesel Marítimo',
+    '27101921': 'Óleo Diesel',
+    '27111100': 'Gás Natural Liquefeito',
+    '27111910': 'GLP',
+    '27112100': 'Gás Natural',
+    # Produtos Farmacêuticos
+    '30029099': 'Produtos Farmacêuticos',
+    '30039099': 'Medicamentos não Acondicionados',
+    '30049099': 'Medicamentos Acondicionados',
+    '34011190': 'Sabonetes',
+    '38260000': 'Biodiesel',
+    # Pneus Bicicletas e Câmaras
+    '40115000': 'Pneus para Bicicletas',
+    '40132000': 'Câmaras de Ar',
+    # Papel e Derivados
+    '48010010': 'Papel de Jornal em Bobinas',
+    '48010090': 'Papel de Jornal em Folhas',
+    '48026191': 'Papel Offset em Bobinas',
+    '48026199': 'Papel Offset em Folhas',
+    '48101989': 'Papel Couché',
+    '48102290': 'Papel LWC',
+    '48181000': 'Papel Higiênico',
+    # Equipamentos de Informática (Lei 10.925/2004)
+    '84433222': 'Impressoras Fiscais',
+    '84690039': 'Máquinas de Calcular',
+    '84701000': 'Calculadoras Eletrônicas',
+    '84713012': 'Notebooks',
+    '84713019': 'Outros Computadores Portáteis',
+    '84713090': 'Computadores Pessoais',
+    '84715010': 'Unidades Processamento Digital',
+    '84716052': 'Teclados',
+    '84716053': 'Mouse',
+    '84716090': 'Outros Periféricos',
+    '84719014': 'Leitores de Códigos',
+    '84721000': 'Duplicadores',
+    # Geradores e Partes
+    '85023100': 'Grupos Geradores Eólicos',
+    '85030090': 'Partes de Máquinas Elétricas',
+    # Telefonia
+    '85171231': 'Telefones Celulares',
+    '85176241': 'Aparelhos de Recepção',
+    '85176255': 'Modems',
+    '85176262': 'Roteadores',
+    '85176272': 'Multiplexadores',
+    '85176277': 'Aparelhos para Rede',
+    '85258019': 'Câmeras de Televisão',
+    # Veículos
+    '87021000': 'Veículos de Transporte Coletivo',
+    '87029090': 'Outros Veículos de Transporte',
+    '87100000': 'Veículos Militares',
+    '87142000': 'Peças de Cadeiras de Rodas',
+    '89019000': 'Embarcações',
+    # Equipamentos Médicos
+    '90189099': 'Instrumentos Médicos',
+    '90213980': 'Próteses',
+    '90214000': 'Aparelhos Auditivos',
+    '90219019': 'Artigos para Deficientes',
+    '90219082': 'Válvulas Cardíacas',
+    '90219089': 'Partes de Próteses',
+    '90219091': 'Artigos para Fraturas',
+    '90219092': 'Artigos para Cirurgia',
+    '90219099': 'Outros Artigos Médicos',
+    # Insumos Agrícolas (já existentes)
     '1209': 'Sementes para semeadura',
     '31': 'Adubos e Fertilizantes',
     '3808': 'Defensivos Agrícolas',
+    # Livros e Publicações
     '4901': 'Livros e didáticos',
     '4902': 'Jornais e revistas',
+    # Sal
+    '25010020': 'Sal de Cozinha',
 }
 
 # NCMs Monofásicos - Tributação concentrada (Tabela 4.3.10)
