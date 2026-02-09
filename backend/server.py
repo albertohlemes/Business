@@ -40,8 +40,12 @@ from services.pis_cofins_calculator import (
     classificar_cnae_servico,
     comparar_xml_vs_calculado,
     verificar_cfop_gera_credito,
+    verificar_cfop_gera_debito,
     CFOPS_SEM_CREDITO,
-    ALIQUOTAS_PRESUMIDO
+    CFOPS_SEM_DEBITO,
+    ALIQUOTAS_PRESUMIDO,
+    CST_ENTRADA,
+    CST_SAIDA
 )
 
 ROOT_DIR = Path(__file__).parent
