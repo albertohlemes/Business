@@ -158,16 +158,25 @@ Estrutura esperada:
         }
     ],
     
-    "cfop_principal": "1253 para energia, 1353 para comunicação, etc",
+    "cfop_principal": "use o CFOP correto conforme tabela abaixo",
     "codigo_consumo": "código da classe de consumo se aplicável",
     "observacoes": "texto ou null"
 }
 
-Para CFOP, use:
-- 1253 para energia elétrica (entrada)
-- 1353 para serviços de comunicação (internet/telefone)
-- 1556 para água/esgoto
-- 1253 para gás
+REGRAS IMPORTANTES DE CFOP (CLASSIFICAÇÃO AUTOMÁTICA):
+Analise o conteúdo do documento e classifique corretamente:
+
+- **1253**: Energia elétrica (contas de luz, distribuidoras de energia)
+- **1303**: Serviços de telecomunicação (internet, telefonia fixa, telefonia celular, TV por assinatura, banda larga)
+- **1933**: Aquisição de serviços tributados pelo ISSQN (serviços em geral: consultorias, manutenção, vigilância, limpeza, contabilidade, etc.)
+- **1556**: Água e esgoto (contas de água/saneamento)
+- **1253**: Gás canalizado/encanado
+
+COMO IDENTIFICAR O TIPO DE DOCUMENTO:
+- Se mencionar "kWh", "energia", "distribuidora", "CPFL", "CEMIG", "Light", "Enel", "Equatorial", "Energisa" → usar **1253**
+- Se mencionar "Mbps", "internet", "banda larga", "fibra", "telefone", "celular", "Vivo", "Claro", "Tim", "Oi", "NET", "SKY" → usar **1303**
+- Se mencionar "m³", "água", "esgoto", "saneamento", "SABESP", "COPASA", "CEDAE" → usar **1556**
+- Se for nota de serviço (NFS-e) ou fatura de prestador de serviços (contabilidade, advocacia, consultoria, TI, manutenção) → usar **1933**
 
 Se algum campo não estiver visível, use null para strings ou 0.00 para valores numéricos.
 """
