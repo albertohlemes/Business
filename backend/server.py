@@ -14201,63 +14201,297 @@ async def apurar_pis_cofins(
 async def listar_divergencias_pis_cofins(
     company_id: str,
     competencia: str,
+    agrupamento: str = "notas",  # "notas", "ncms", "produtos"
     current_user: User = Depends(get_current_user)
 ):
     """
-    Lista todas as divergências de PIS/COFINS entre XML e cálculo do sistema,
-    agrupadas por produto.
+    Lista divergências de PIS/COFINS com 3 tipos de agrupamento:
+    - notas: Agrupa por documento fiscal
+    - ncms: Agrupa por código NCM
+    - produtos: Agrupa por descrição do produto
+    
+    Verifica: CST, Alíquota e Valor de PIS e COFINS
     """
-    # Buscar apuração completa
-    apuracao = await apurar_pis_cofins(company_id, competencia, current_user)
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    divergencias = apuracao.get('divergencias', [])
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
     
-    # Agrupar por NCM/Produto
-    agrupado = {}
-    for div in divergencias:
-        ncm = div.get('ncm', 'SEM_NCM')
-        produto = div.get('produto', 'Produto')
-        key = f"{ncm}_{produto}"
+    # Determinar perfil da empresa
+    tipo_atividade = company.get('tipo_atividade', 'comercio')
+    if tipo_atividade == 'industria':
+        perfil = 'INDUSTRIA'
+    elif tipo_atividade in ['comercio', 'mista']:
+        perfil = 'VAREJO'  # Considerar varejo como padrão para comércio
+    else:
+        perfil = 'VAREJO'
+    
+    # Buscar todos os documentos
+    documents = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        **get_filtro_notas_ativas()
+    }, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    todas_divergencias = []
+    totais = {
+        'total_documentos': len(documents),
+        'documentos_com_divergencia': 0,
+        'produtos_divergentes': 0,
+        'valor_base_divergente': 0,
+        'diferenca_pis_total': 0,
+        'diferenca_cofins_total': 0,
+        'recolhido_a_maior': 0,
+        'recolhido_a_menor': 0
+    }
+    
+    # Analisar cada documento
+    for doc in documents:
+        tipo_op = doc.get('tipo', 'entrada')
+        doc_tem_divergencia = False
         
-        if key not in agrupado:
-            agrupado[key] = {
-                'ncm': ncm,
-                'produto': produto,
-                'ocorrencias': 0,
-                'valor_base_total': 0,
-                'diferenca_pis_total': 0,
-                'diferenca_cofins_total': 0,
-                'diferenca_total': 0,
-                'documentos': []
-            }
+        for prod in doc.get('produtos', []):
+            ncm = str(prod.get('ncm', '')).replace('.', '').strip()
+            cfop = str(prod.get('cfop', ''))
+            valor_base = float(prod.get('valor_total', 0) or 0)
+            
+            # Dados do XML
+            cst_pis_xml = str(prod.get('cst_pis', '') or '')
+            cst_cofins_xml = str(prod.get('cst_cofins', '') or '')
+            aliq_pis_xml = float(prod.get('aliquota_pis', 0) or prod.get('p_pis', 0) or 0)
+            aliq_cofins_xml = float(prod.get('aliquota_cofins', 0) or prod.get('p_cofins', 0) or 0)
+            v_pis_xml = float(prod.get('v_pis', 0) or 0)
+            v_cofins_xml = float(prod.get('v_cofins', 0) or 0)
+            
+            # Calcular valores corretos
+            calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, tipo_op, perfil, 'LUCRO_REAL')
+            
+            # Comparar
+            divergencias_prod = []
+            
+            # CST PIS
+            cst_correto = calc.get('cst', '')
+            if cst_pis_xml and cst_pis_xml != cst_correto:
+                divergencias_prod.append({
+                    'campo': 'CST PIS',
+                    'xml': cst_pis_xml,
+                    'calculado': cst_correto,
+                    'tipo': 'CST'
+                })
+            
+            # CST COFINS
+            if cst_cofins_xml and cst_cofins_xml != cst_correto:
+                divergencias_prod.append({
+                    'campo': 'CST COFINS',
+                    'xml': cst_cofins_xml,
+                    'calculado': cst_correto,
+                    'tipo': 'CST'
+                })
+            
+            # Alíquota PIS
+            aliq_pis_calc = calc.get('aliquota_pis', 0)
+            if abs(aliq_pis_xml - aliq_pis_calc) > 0.01:
+                divergencias_prod.append({
+                    'campo': 'Alíquota PIS',
+                    'xml': aliq_pis_xml,
+                    'calculado': aliq_pis_calc,
+                    'tipo': 'ALIQUOTA'
+                })
+            
+            # Alíquota COFINS
+            aliq_cofins_calc = calc.get('aliquota_cofins', 0)
+            if abs(aliq_cofins_xml - aliq_cofins_calc) > 0.01:
+                divergencias_prod.append({
+                    'campo': 'Alíquota COFINS',
+                    'xml': aliq_cofins_xml,
+                    'calculado': aliq_cofins_calc,
+                    'tipo': 'ALIQUOTA'
+                })
+            
+            # Valor PIS
+            v_pis_calc = calc.get('valor_pis', 0)
+            diff_pis = v_pis_xml - v_pis_calc
+            if abs(diff_pis) > 0.10:  # Tolerância de R$ 0.10
+                divergencias_prod.append({
+                    'campo': 'Valor PIS',
+                    'xml': v_pis_xml,
+                    'calculado': v_pis_calc,
+                    'diferenca': round(diff_pis, 2),
+                    'tipo': 'VALOR'
+                })
+            
+            # Valor COFINS
+            v_cofins_calc = calc.get('valor_cofins', 0)
+            diff_cofins = v_cofins_xml - v_cofins_calc
+            if abs(diff_cofins) > 0.10:  # Tolerância de R$ 0.10
+                divergencias_prod.append({
+                    'campo': 'Valor COFINS',
+                    'xml': v_cofins_xml,
+                    'calculado': v_cofins_calc,
+                    'diferenca': round(diff_cofins, 2),
+                    'tipo': 'VALOR'
+                })
+            
+            if divergencias_prod:
+                doc_tem_divergencia = True
+                totais['produtos_divergentes'] += 1
+                totais['valor_base_divergente'] += valor_base
+                totais['diferenca_pis_total'] += diff_pis if abs(diff_pis) > 0.10 else 0
+                totais['diferenca_cofins_total'] += diff_cofins if abs(diff_cofins) > 0.10 else 0
+                
+                if (diff_pis + diff_cofins) > 0:
+                    totais['recolhido_a_maior'] += (diff_pis + diff_cofins)
+                else:
+                    totais['recolhido_a_menor'] += abs(diff_pis + diff_cofins)
+                
+                todas_divergencias.append({
+                    'doc_id': doc.get('id', ''),
+                    'numero_nfe': doc.get('numero_nfe', ''),
+                    'tipo_doc': doc.get('modelo', 'nfe'),
+                    'tipo_operacao': tipo_op,
+                    'emitente': doc.get('emitente_nome', ''),
+                    'destinatario': doc.get('destinatario_nome', ''),
+                    'data_emissao': doc.get('data_emissao', ''),
+                    'produto': prod.get('descricao', ''),
+                    'codigo': prod.get('codigo', ''),
+                    'ncm': ncm,
+                    'cfop': cfop,
+                    'valor_base': round(valor_base, 2),
+                    'classificacao': calc.get('classificacao', {}).get('grupo', 'REGRA_GERAL'),
+                    'divergencias': divergencias_prod,
+                    'diferenca_pis': round(diff_pis, 2) if abs(diff_pis) > 0.10 else 0,
+                    'diferenca_cofins': round(diff_cofins, 2) if abs(diff_cofins) > 0.10 else 0,
+                    'diferenca_total': round(diff_pis + diff_cofins, 2) if abs(diff_pis + diff_cofins) > 0.10 else 0
+                })
         
-        agrupado[key]['ocorrencias'] += 1
-        agrupado[key]['valor_base_total'] += div.get('valor_base', 0)
-        agrupado[key]['diferenca_pis_total'] += div['impacto'].get('diferenca_pis', 0)
-        agrupado[key]['diferenca_cofins_total'] += div['impacto'].get('diferenca_cofins', 0)
-        agrupado[key]['diferenca_total'] += div['impacto'].get('total_diferenca', 0)
-        agrupado[key]['documentos'].append({
-            'numero': div.get('documento', ''),
-            'emitente': div.get('emitente', div.get('destinatario', '')),
-            'valor_base': div.get('valor_base', 0),
-            'divergencias': div.get('divergencias', [])
-        })
+        if doc_tem_divergencia:
+            totais['documentos_com_divergencia'] += 1
     
-    # Converter para lista e ordenar por impacto
-    lista = list(agrupado.values())
-    lista.sort(key=lambda x: abs(x['diferenca_total']), reverse=True)
+    # Agrupar conforme solicitado
+    resultado = {}
     
-    # Arredondar valores
-    for item in lista:
-        item['valor_base_total'] = round(item['valor_base_total'], 2)
-        item['diferenca_pis_total'] = round(item['diferenca_pis_total'], 2)
-        item['diferenca_cofins_total'] = round(item['diferenca_cofins_total'], 2)
-        item['diferenca_total'] = round(item['diferenca_total'], 2)
+    if agrupamento == "notas":
+        # Agrupar por documento
+        agrupado = {}
+        for div in todas_divergencias:
+            key = div['doc_id']
+            if key not in agrupado:
+                agrupado[key] = {
+                    'doc_id': div['doc_id'],
+                    'numero_nfe': div['numero_nfe'],
+                    'tipo_doc': div['tipo_doc'],
+                    'tipo_operacao': div['tipo_operacao'],
+                    'emitente': div['emitente'],
+                    'destinatario': div['destinatario'],
+                    'data_emissao': div['data_emissao'],
+                    'produtos_divergentes': 0,
+                    'valor_base_total': 0,
+                    'diferenca_pis': 0,
+                    'diferenca_cofins': 0,
+                    'diferenca_total': 0,
+                    'produtos': []
+                }
+            agrupado[key]['produtos_divergentes'] += 1
+            agrupado[key]['valor_base_total'] += div['valor_base']
+            agrupado[key]['diferenca_pis'] += div['diferenca_pis']
+            agrupado[key]['diferenca_cofins'] += div['diferenca_cofins']
+            agrupado[key]['diferenca_total'] += div['diferenca_total']
+            agrupado[key]['produtos'].append({
+                'produto': div['produto'],
+                'ncm': div['ncm'],
+                'cfop': div['cfop'],
+                'valor_base': div['valor_base'],
+                'divergencias': div['divergencias'],
+                'diferenca_total': div['diferenca_total']
+            })
+        
+        lista = list(agrupado.values())
+        lista.sort(key=lambda x: abs(x['diferenca_total']), reverse=True)
+        resultado['agrupamento'] = 'notas'
+        resultado['itens'] = lista
+        
+    elif agrupamento == "ncms":
+        # Agrupar por NCM
+        agrupado = {}
+        for div in todas_divergencias:
+            key = div['ncm'] or 'SEM_NCM'
+            if key not in agrupado:
+                agrupado[key] = {
+                    'ncm': key,
+                    'classificacao': div['classificacao'],
+                    'ocorrencias': 0,
+                    'valor_base_total': 0,
+                    'diferenca_pis': 0,
+                    'diferenca_cofins': 0,
+                    'diferenca_total': 0,
+                    'documentos': []
+                }
+            agrupado[key]['ocorrencias'] += 1
+            agrupado[key]['valor_base_total'] += div['valor_base']
+            agrupado[key]['diferenca_pis'] += div['diferenca_pis']
+            agrupado[key]['diferenca_cofins'] += div['diferenca_cofins']
+            agrupado[key]['diferenca_total'] += div['diferenca_total']
+            if len(agrupado[key]['documentos']) < 5:  # Limitar exemplos
+                agrupado[key]['documentos'].append({
+                    'numero_nfe': div['numero_nfe'],
+                    'produto': div['produto'],
+                    'divergencias': div['divergencias']
+                })
+        
+        lista = list(agrupado.values())
+        lista.sort(key=lambda x: abs(x['diferenca_total']), reverse=True)
+        resultado['agrupamento'] = 'ncms'
+        resultado['itens'] = lista
+        
+    else:  # produtos
+        # Agrupar por produto (codigo + descricao)
+        agrupado = {}
+        for div in todas_divergencias:
+            key = f"{div['codigo']}_{div['produto'][:50]}"
+            if key not in agrupado:
+                agrupado[key] = {
+                    'codigo': div['codigo'],
+                    'produto': div['produto'],
+                    'ncm': div['ncm'],
+                    'classificacao': div['classificacao'],
+                    'ocorrencias': 0,
+                    'valor_base_total': 0,
+                    'diferenca_pis': 0,
+                    'diferenca_cofins': 0,
+                    'diferenca_total': 0,
+                    'notas': []
+                }
+            agrupado[key]['ocorrencias'] += 1
+            agrupado[key]['valor_base_total'] += div['valor_base']
+            agrupado[key]['diferenca_pis'] += div['diferenca_pis']
+            agrupado[key]['diferenca_cofins'] += div['diferenca_cofins']
+            agrupado[key]['diferenca_total'] += div['diferenca_total']
+            if len(agrupado[key]['notas']) < 5:  # Limitar exemplos
+                agrupado[key]['notas'].append({
+                    'numero_nfe': div['numero_nfe'],
+                    'data_emissao': div['data_emissao'],
+                    'divergencias': div['divergencias']
+                })
+        
+        lista = list(agrupado.values())
+        lista.sort(key=lambda x: abs(x['diferenca_total']), reverse=True)
+        resultado['agrupamento'] = 'produtos'
+        resultado['itens'] = lista
+    
+    # Arredondar totais
+    totais['valor_base_divergente'] = round(totais['valor_base_divergente'], 2)
+    totais['diferenca_pis_total'] = round(totais['diferenca_pis_total'], 2)
+    totais['diferenca_cofins_total'] = round(totais['diferenca_cofins_total'], 2)
+    totais['recolhido_a_maior'] = round(totais['recolhido_a_maior'], 2)
+    totais['recolhido_a_menor'] = round(totais['recolhido_a_menor'], 2)
     
     return {
-        'total_produtos_divergentes': len(lista),
-        'resumo': apuracao.get('resumo_divergencias', {}),
-        'produtos': lista
+        'empresa': company.get('razao_social', ''),
+        'competencia': competencia,
+        'totais': totais,
+        **resultado
     }
 
 
