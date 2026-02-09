@@ -63,10 +63,11 @@ class TestDocumentDetail:
             headers=auth_headers
         )
         assert response.status_code == 200, f"Failed to get documents: {response.text}"
-        data = response.json()
-        assert "documents" in data, "Response should have 'documents' key"
-        assert len(data["documents"]) > 0, "Should have at least one document"
-        return data["documents"][0]["id"]
+        documents = response.json()
+        # API returns list directly
+        assert isinstance(documents, list), "Response should be a list"
+        assert len(documents) > 0, "Should have at least one document"
+        return documents[0]["id"]
     
     def test_get_document_detail_structure(self, auth_headers):
         """Test document detail returns complete structure with products"""
@@ -77,7 +78,7 @@ class TestDocumentDetail:
             headers=auth_headers
         )
         assert list_response.status_code == 200
-        documents = list_response.json().get("documents", [])
+        documents = list_response.json()  # API returns list directly
         assert len(documents) > 0, "Need at least one document to test"
         
         doc_id = documents[0]["id"]
@@ -154,7 +155,7 @@ class TestSingleProductClassification:
             headers=auth_headers
         )
         assert list_response.status_code == 200
-        documents = list_response.json().get("documents", [])
+        documents = list_response.json()  # API returns list directly
         
         # Find a document with products
         doc_with_products = None
@@ -210,7 +211,7 @@ class TestSingleProductClassification:
             params={"company_id": COMPANY_ID_SIMPLES, "competencia": COMPETENCIA},
             headers=auth_headers
         )
-        documents = list_response.json().get("documents", [])
+        documents = list_response.json()  # API returns list directly
         if not documents:
             pytest.skip("No documents found")
         
@@ -425,7 +426,7 @@ class TestCfopPorCategoria:
             params={"company_id": COMPANY_ID_SIMPLES, "competencia": COMPETENCIA, "tipo": "entrada"},
             headers=auth_headers
         )
-        documents = list_response.json().get("documents", [])
+        documents = list_response.json()  # API returns list directly
         
         # Find a document with products
         doc_with_products = None
