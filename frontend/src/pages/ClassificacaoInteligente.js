@@ -168,6 +168,39 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     }
   };
 
+  // Resolver alertas de um grupo inteiro (por CFOP)
+  const [resolvingGroup, setResolvingGroup] = useState(null);
+  const [editingCfop, setEditingCfop] = useState({});
+
+  const resolverGrupoCfop = async (cfopAtual, novoCfop, salvarRegra = false) => {
+    if (!selectedCompany || !selectedCompetencia) return;
+    
+    setResolvingGroup(cfopAtual);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${API}/alertas-cfop/resolver-grupo?company_id=${selectedCompany.id}&competencia=${encodeURIComponent(selectedCompetencia)}&cfop_atual=${cfopAtual}&novo_cfop=${novoCfop}&salvar_regra=${salvarRegra}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        toast.success(response.data.message);
+        fetchAlertas(); // Recarregar alertas
+        fetchValidacao(); // Atualizar grupos validados
+      } else {
+        toast.error(response.data.message || 'Erro ao processar grupo');
+      }
+    } catch (err) {
+      console.error('Erro ao resolver grupo:', err);
+      toast.error('Erro ao resolver grupo de CFOPs');
+    } finally {
+      setResolvingGroup(null);
+      setEditingCfop(prev => ({ ...prev, [cfopAtual]: false }));
+    }
+  };
+
   // Função para enviar comando de IA
   const enviarComandoIA = async () => {
     if (!comandoIA.trim() || processandoIA) return;
