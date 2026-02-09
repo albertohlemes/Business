@@ -649,6 +649,21 @@ const Documents = ({ user, onLogout }) => {
       );
     }
     
+    // Filtro por divergência
+    if (filterDivergencia !== 'all') {
+      filtered = filtered.filter(doc => {
+        const produtos = doc.produtos || [];
+        const temDivergencia = produtos.some(p => 
+          p.cst_divergente || 
+          (p.cfop_original && p.cfop !== p.cfop_original)
+        );
+        
+        if (filterDivergencia === 'divergente') return temDivergencia;
+        if (filterDivergencia === 'ok') return !temDivergencia;
+        return true;
+      });
+    }
+    
     // Ordenação
     filtered.sort((a, b) => {
       let aVal = a[sortField] || '';
@@ -666,7 +681,7 @@ const Documents = ({ user, onLogout }) => {
     });
     
     return filtered;
-  }, [documents, searchTerm, sortField, sortDirection]);
+  }, [documents, searchTerm, sortField, sortDirection, filterDivergencia]);
 
   // Calcular totais dos documentos filtrados
   const totais = useMemo(() => {
