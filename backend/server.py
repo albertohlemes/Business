@@ -15249,6 +15249,10 @@ async def listar_divergencias_pis_cofins(
     else:
         perfil = 'VAREJO'
     
+    # Determinar regime tributário da empresa
+    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
+    regime_para_calculo = 'LUCRO_REAL' if regime_tributario == 'lucro_real' else 'LUCRO_PRESUMIDO'
+    
     # Buscar apenas documentos de SAÍDA (notas emitidas pela empresa)
     # Divergências de PIS/COFINS são relevantes apenas nas saídas
     documents = await db.xml_documents.find({
@@ -15267,7 +15271,8 @@ async def listar_divergencias_pis_cofins(
         'diferenca_pis_total': 0,
         'diferenca_cofins_total': 0,
         'recolhido_a_maior': 0,
-        'recolhido_a_menor': 0
+        'recolhido_a_menor': 0,
+        'regime_tributario': regime_tributario
     }
     
     # Analisar cada documento
@@ -15288,8 +15293,8 @@ async def listar_divergencias_pis_cofins(
             v_pis_xml = float(prod.get('v_pis', 0) or 0)
             v_cofins_xml = float(prod.get('v_cofins', 0) or 0)
             
-            # Calcular valores corretos
-            calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, tipo_op, perfil, 'LUCRO_REAL')
+            # Calcular valores corretos usando o regime da empresa
+            calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, tipo_op, perfil, regime_para_calculo)
             
             # Comparar
             divergencias_prod = []
