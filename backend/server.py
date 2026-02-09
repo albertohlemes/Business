@@ -16528,9 +16528,10 @@ async def inteligencia_tributaria(
         print(f"Erro ao calcular produtos ST/mono/zero: {e}")
     
     # Calcular DAS com descontos (igual ao Dashboard)
+    # IMPORTANTE: Usar rbt12 REAL para ser consistente com o Dashboard
     das_calculado = calc_das(
         faturamento_periodo=faturamento,
-        rbt12=rbt12_proporcionalizado,
+        rbt12=rbt12,  # Usar RBT12 real, não proporcionalizado
         anexo=anexo_principal,
         produtos_st=produtos_st,
         produtos_monofasicos=produtos_monofasicos,
