@@ -5,9 +5,9 @@ import { useAppContext } from '../context/AppContext';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { 
-  Brain, CheckCircle, Search, Edit2, Save, Sparkles, Check, CheckCheck, X, 
+  Brain, CheckCircle, Search, Edit2, Edit3, Save, Sparkles, Check, CheckCheck, X, 
   Filter, Layers, FileText, Package, Info, ArrowUpDown, ArrowUp, ArrowDown,
-  RefreshCw, ChevronDown, ChevronRight, Send, BookOpen, Trash2, AlertTriangle,
+  RefreshCw, ChevronDown, ChevronRight, ChevronUp, Send, BookOpen, Trash2, AlertTriangle,
   Loader2, Wand2, CheckCircle2, BarChart3, ArrowRight
 } from 'lucide-react';
 
