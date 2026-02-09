@@ -85,7 +85,7 @@ const Layout = ({ user, onLogout, children }) => {
       baseNav.push({ name: 'Simples Nacional', href: '/simples-nacional', icon: Star, testId: 'nav-simples-nacional' });
       baseNav.push({ name: 'DIFAL', href: '/difal', icon: ArrowLeftRight, testId: 'nav-difal' });
       baseNav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
-      baseNav.push({ name: 'RET', href: '/ret-simples', icon: Zap, testId: 'nav-ret-simples' });
+      baseNav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
     }
     
     // PIS/COFINS - sempre mostra (todas empresas pagam) - exceto Simples
