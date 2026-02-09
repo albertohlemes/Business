@@ -15,13 +15,18 @@ const ExportMenu = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [documentsCount, setDocumentsCount] = useState(0);
   const [availableCompetencias, setAvailableCompetencias] = useState([]);
-  const [activeTab, setActiveTab] = useState('sped'); // sped, entrada, saida
+  const [activeTab, setActiveTab] = useState('sped'); // sped, entrada, saida, relatorios
   const [excluirCreditosDespesaST, setExcluirCreditosDespesaST] = useState(true); // Default: excluir
   const [validacao, setValidacao] = useState(null);
   const [loadingValidacao, setLoadingValidacao] = useState(false);
   const [corrigindoItem, setCorrigindoItem] = useState(null); // Item sendo corrigido
   const [modalCorrecao, setModalCorrecao] = useState(null); // Modal de correção
   const [itensSelecionados, setItensSelecionados] = useState(new Set()); // Itens selecionados para correção em lote
+  
+  // Estados para relatórios agrupados por alíquota
+  const [relatorioImposto, setRelatorioImposto] = useState('icms');
+  const [relatorioTipo, setRelatorioTipo] = useState('saida');
+  const [relatorioFormato, setRelatorioFormato] = useState('xlsx');
 
   useEffect(() => {
     fetchCompanies();
