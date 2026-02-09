@@ -1140,77 +1140,91 @@ const PisCofins = ({ user, onLogout }) => {
           </div>
         ) : !loadingDivergencias && (
           <div className="space-y-3">
-            {/* Agrupamento por NOTAS */}
-            {agrupamento === 'notas' && itensFiltrados.map((item, idx) => (
-              <div 
-                key={idx}
-                className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden hover:border-[#C8A951]/50 transition-colors"
-              >
-                <button
-                  onClick={() => toggleSection(`nota_${idx}`)}
-                  className="w-full p-4 flex items-center justify-between hover:bg-[#1A1A1A] transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-lg ${item.diferenca_total > 0 ? 'bg-green-600' : 'bg-red-600'}`}>
-                      <FileText className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-white font-semibold">NF {item.numero_nfe}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded ${item.tipo_operacao === 'entrada' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
-                          {item.tipo_operacao?.toUpperCase()}
-                        </span>
-                        <span className="text-[#A1A1AA] text-sm">{item.emitente || item.destinatario}</span>
-                      </div>
-                      <p className="text-[#666] text-xs mt-1">{item.data_emissao} | {item.produtos_divergentes} produto(s) divergente(s)</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-[#666] text-xs">Impacto</p>
-                      <p className={`text-lg font-bold ${item.diferenca_total > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {item.diferenca_total > 0 ? '+' : ''}{formatCurrency(item.diferenca_total)}
-                      </p>
-                    </div>
-                    {expandedSections[`nota_${idx}`] ? <ChevronUp className="w-5 h-5 text-[#A1A1AA]" /> : <ChevronDown className="w-5 h-5 text-[#A1A1AA]" />}
-                  </div>
-                </button>
-                {expandedSections[`nota_${idx}`] && (
-                  <div className="border-t border-[#2A2A2A] p-4 bg-[#0C0C0C]">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-[#666] text-left">
-                          <th className="pb-2">Produto</th>
-                          <th className="pb-2">NCM</th>
-                          <th className="pb-2">CFOP</th>
-                          <th className="pb-2">Divergência</th>
-                          <th className="pb-2 text-right">Impacto</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#2A2A2A]">
-                        {item.produtos?.map((prod, pIdx) => (
-                          <tr key={pIdx} className="text-white">
-                            <td className="py-2 max-w-[200px] truncate">{prod.produto}</td>
-                            <td className="py-2 font-mono text-[#A1A1AA]">{prod.ncm}</td>
-                            <td className="py-2">{prod.cfop}</td>
-                            <td className="py-2">
-                              {prod.divergencias?.map((d, dIdx) => (
-                                <span key={dIdx} className="inline-flex items-center gap-1 mr-2 text-xs bg-[#2A2A2A] px-2 py-0.5 rounded">
-                                  {d.campo}: <span className="text-red-400">{d.xml}</span> → <span className="text-green-400">{d.calculado}</span>
-                                </span>
-                              ))}
+            {/* Agrupamento por NOTAS - Versão Compacta em Lista */}
+            {agrupamento === 'notas' && (
+              <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-[#0C0C0C] sticky top-0">
+                      <tr className="text-[#666] text-left">
+                        <th className="px-3 py-2 font-medium">NF</th>
+                        <th className="px-3 py-2 font-medium">Tipo</th>
+                        <th className="px-3 py-2 font-medium">Emitente/Dest.</th>
+                        <th className="px-3 py-2 font-medium">Produto</th>
+                        <th className="px-3 py-2 font-medium">NCM</th>
+                        <th className="px-3 py-2 font-medium">CFOP</th>
+                        <th className="px-3 py-2 font-medium">CST XML</th>
+                        <th className="px-3 py-2 font-medium">CST Calc.</th>
+                        <th className="px-3 py-2 font-medium">Alíq. PIS</th>
+                        <th className="px-3 py-2 font-medium">Alíq. COFINS</th>
+                        <th className="px-3 py-2 font-medium text-right">Impacto</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#2A2A2A]">
+                      {itensFiltrados.flatMap((item, idx) => 
+                        (item.produtos || []).map((prod, pIdx) => (
+                          <tr key={`${idx}-${pIdx}`} className="hover:bg-[#1A1A1A]">
+                            <td className="px-3 py-2 text-white font-medium">{item.numero_nfe}</td>
+                            <td className="px-3 py-2">
+                              <span className={`text-xs px-1.5 py-0.5 rounded ${item.tipo_operacao === 'entrada' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                {item.tipo_operacao?.substring(0,3).toUpperCase()}
+                              </span>
                             </td>
-                            <td className={`py-2 text-right font-medium ${prod.diferenca_total > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            <td className="px-3 py-2 text-[#A1A1AA] max-w-[120px] truncate" title={item.emitente || item.destinatario}>
+                              {(item.emitente || item.destinatario)?.substring(0,20)}
+                            </td>
+                            <td className="px-3 py-2 text-white max-w-[150px] truncate" title={prod.produto}>
+                              {prod.produto?.substring(0,25)}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-[#A1A1AA] text-xs">{prod.ncm}</td>
+                            <td className="px-3 py-2 font-mono text-white">{prod.cfop}</td>
+                            <td className="px-3 py-2">
+                              {prod.divergencias?.find(d => d.campo === 'CST PIS') ? (
+                                <span className="text-red-400 font-mono">{prod.divergencias.find(d => d.campo === 'CST PIS')?.xml || '-'}</span>
+                              ) : (
+                                <span className="text-[#666] font-mono">{prod.cst_xml || '-'}</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2">
+                              {prod.divergencias?.find(d => d.campo === 'CST PIS') ? (
+                                <span className="text-green-400 font-mono">{prod.divergencias.find(d => d.campo === 'CST PIS')?.calculado || '-'}</span>
+                              ) : (
+                                <span className="text-[#666] font-mono">-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-xs">
+                              {prod.divergencias?.find(d => d.campo?.includes('Alíq') && d.campo?.includes('PIS')) ? (
+                                <span>
+                                  <span className="text-red-400">{prod.divergencias.find(d => d.campo?.includes('Alíq') && d.campo?.includes('PIS'))?.xml}%</span>
+                                  <span className="text-[#666] mx-1">→</span>
+                                  <span className="text-green-400">{prod.divergencias.find(d => d.campo?.includes('Alíq') && d.campo?.includes('PIS'))?.calculado}%</span>
+                                </span>
+                              ) : (
+                                <span className="text-[#666]">OK</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-xs">
+                              {prod.divergencias?.find(d => d.campo?.includes('COFINS')) ? (
+                                <span>
+                                  <span className="text-red-400">{prod.divergencias.find(d => d.campo?.includes('COFINS'))?.xml}%</span>
+                                  <span className="text-[#666] mx-1">→</span>
+                                  <span className="text-green-400">{prod.divergencias.find(d => d.campo?.includes('COFINS'))?.calculado}%</span>
+                                </span>
+                              ) : (
+                                <span className="text-[#666]">OK</span>
+                              )}
+                            </td>
+                            <td className={`px-3 py-2 text-right font-medium ${prod.diferenca_total > 0 ? 'text-green-400' : 'text-red-400'}`}>
                               {prod.diferenca_total > 0 ? '+' : ''}{formatCurrency(prod.diferenca_total)}
                             </td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            ))}
+            )}
 
             {/* Agrupamento por NCMs */}
             {agrupamento === 'ncms' && itensFiltrados.map((item, idx) => (
