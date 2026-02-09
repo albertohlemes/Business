@@ -245,6 +245,73 @@ const RetSimples = ({ user, onLogout }) => {
               </div>
             </div>
 
+            {/* DRE - Demonstração do Resultado (Lucro Real) */}
+            {retData.ranking?.find(r => r.regime === 'real')?.dados?.dre && (
+              <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-5">
+                <h3 className="text-sm font-medium text-[#A1A1AA] mb-4">DRE - Base de Cálculo do Lucro Real</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div className="bg-[#0C0C0C] rounded-lg p-4">
+                    <p className="text-xs text-[#666]">Faturamento</p>
+                    <p className="text-lg font-bold text-emerald-400">
+                      {formatCurrency(retData.ranking.find(r => r.regime === 'real').dados.dre.faturamento)}
+                    </p>
+                  </div>
+                  <div className="bg-[#0C0C0C] rounded-lg p-4">
+                    <p className="text-xs text-[#666]">(-) CMV</p>
+                    <p className="text-lg font-bold text-red-400">
+                      {formatCurrency(retData.ranking.find(r => r.regime === 'real').dados.dre.cmv)}
+                    </p>
+                  </div>
+                  <div className="bg-[#0C0C0C] rounded-lg p-4">
+                    <p className="text-xs text-[#666]">(=) Lucro Bruto</p>
+                    <p className="text-lg font-bold text-white">
+                      {formatCurrency(retData.ranking.find(r => r.regime === 'real').dados.dre.lucro_bruto)}
+                    </p>
+                  </div>
+                  <div className="bg-[#0C0C0C] rounded-lg p-4">
+                    <p className="text-xs text-[#666]">(-) Despesas</p>
+                    <p className="text-lg font-bold text-amber-400">
+                      {formatCurrency(retData.ranking.find(r => r.regime === 'real').dados.dre.despesas)}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-blue-400">(=) Lucro Contábil (Base IRPJ/CSLL)</p>
+                      <p className="text-xs text-[#666] mt-1">
+                        Compras: {formatCurrency(retData.ranking.find(r => r.regime === 'real').dados.dre.compras)} | 
+                        Est.Inicial: {formatCurrency(retData.ranking.find(r => r.regime === 'real').dados.dre.estoque_inicial)} | 
+                        Est.Final: {formatCurrency(retData.ranking.find(r => r.regime === 'real').dados.dre.estoque_final)}
+                      </p>
+                    </div>
+                    <p className="text-2xl font-bold text-blue-400">
+                      {formatCurrency(retData.ranking.find(r => r.regime === 'real').dados.dre.lucro_contabil)}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Créditos */}
+                {retData.ranking.find(r => r.regime === 'real').dados.creditos && (
+                  <div className="mt-4 pt-4 border-t border-[#2A2A2A]">
+                    <p className="text-xs text-[#666] mb-2">Créditos apurados (não-cumulativo)</p>
+                    <div className="flex gap-4 text-sm">
+                      <span className="text-emerald-400">
+                        PIS: {formatCurrency(retData.ranking.find(r => r.regime === 'real').dados.creditos.pis)}
+                      </span>
+                      <span className="text-emerald-400">
+                        COFINS: {formatCurrency(retData.ranking.find(r => r.regime === 'real').dados.creditos.cofins)}
+                      </span>
+                      <span className="text-emerald-400">
+                        ICMS: {formatCurrency(retData.ranking.find(r => r.regime === 'real').dados.creditos.icms)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Análise Comparativa */}
             {retData.analise && (
               <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-5">
