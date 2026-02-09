@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
+import CoffeeProgress from '../components/CoffeeProgress';
 import { Upload, FileText, Check, AlertCircle, Sparkles, Calendar, Loader2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useUpload } from '../context/UploadContext';
