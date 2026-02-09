@@ -308,6 +308,57 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - Estilo `accent-color` para mostrar a cor quando marcado
 - Flags funcionando corretamente para marcar/desmarcar
 
+### v2.12.0 (09/02/2026) - DIFAL e RET para Simples Nacional
+
+**DIFAL - Diferencial de Alíquota (NOVO):**
+- Menu exclusivo para empresas do Simples Nacional
+- Apuração de ICMS nas entradas interestaduais (compras de outros estados)
+- Duas abas: Apuração e Detalhamento por Produto
+
+**Aba Apuração:**
+- Cards resumo: Total DIFAL, Notas Interestaduais, Produtos com/sem DIFAL
+- Alíquota interna do estado da empresa (18 UFs configuradas)
+- Resumo por UF de origem com alíquota interestadual
+- Lista de notas fiscais com expansão para detalhes
+- Embasamento legal completo (LC 123/2006, Art. 13, §1º, XIII)
+
+**Aba Detalhamento:**
+- Tabela de produtos COM DIFAL: NF, NCM, descrição, UF, alíquotas, diferença, valor DIFAL
+- Tabela de produtos SEM DIFAL (ST): NF, NCM, CST, motivo isenção
+- Embasamento legal por seção
+
+**Alertas de Convênio ICMS:**
+- Alerta quando produto pode não ter convênio entre estados
+- Aviso sobre GNRE a recolher antes da entrada da mercadoria
+
+**Regras implementadas:**
+- Produtos com ST (CST 10, 30, 60, 70, 201, 202, 203, 500) = SEM DIFAL
+- Revenda, uso/consumo, ativo imobilizado = COM DIFAL
+- Alíquotas interestaduais: 7% (Sul/Sudeste → N/NE/CO/ES) ou 12% (demais)
+
+**RET - Comparativo de Regimes (NOVO):**
+- Botão "RET" no Dashboard Simples Nacional
+- Modal com comparativo: Simples Nacional vs Lucro Presumido vs Lucro Real
+- Ranking dos regimes por menor carga tributária
+- Detalhamento por tributo: ICMS, PIS, COFINS, IRPJ, CSLL, CPP
+- Análise comparativa com economia/prejuízo
+- Usa dados do PGDAS quando disponível
+- Alertas quando limite do Simples é excedido
+
+**Endpoints DIFAL:**
+- `POST /api/simples-nacional/difal/apuracao` - Apuração completa
+- `GET /api/simples-nacional/difal/detalhamento/{company_id}/{competencia}` - Detalhamento por produto
+- `GET /api/simples-nacional/difal/aliquotas` - Tabela de alíquotas internas
+
+**Endpoints RET:**
+- `POST /api/simples-nacional/ret/comparativo` - Comparativo de regimes
+
+**Serviço de Cálculo DIFAL (`difal_calculator.py`):**
+- Tabela de alíquotas internas por UF com embasamento legal
+- Cálculo de alíquota interestadual (Resolução SF 22/1989)
+- Verificação de ST e convênios
+- Processamento de documentos e produtos
+
 ### v2.11.0 (09/02/2026) - Módulo Simples Nacional Completo
 
 **Dashboard Simples Nacional (NOVO):**
