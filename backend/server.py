@@ -8235,6 +8235,9 @@ async def exportar_relatorio_agrupado_aliquota(
     """
     Exporta relatório agrupado por alíquota em XLSX ou PDF.
     """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    
     # Buscar dados do relatório
     dados = await relatorio_agrupado_aliquota(company_id, competencia, imposto, tipo, current_user)
     
