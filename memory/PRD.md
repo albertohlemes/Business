@@ -79,7 +79,8 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - ICMS: Comércio, Indústria, Mista ou flag `apura_icms`
 - ISS: Serviços ou Mista
 - IPI: Indústria ou flag `equiparado_industria`
-- RET: Sempre visível
+- RET: Sempre visível (Comparativo de Regimes)
+- Indicadores: Sempre visível (Indicadores Financeiros)
 
 ### Nova Navegação de Documentos ✅
 - Nível 1: ENTRADAS (verde) / SAÍDAS (azul)
