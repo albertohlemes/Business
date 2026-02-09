@@ -77,7 +77,25 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-12 (Sessão Atual)
+### 2026-02-12 (Sessão 2 - Atual)
+- ✅ **Ordenação de colunas em TODAS as tabelas**
+  - ICMS: CFOP, Status, Qtd, Valor Total, BC ICMS, Valor ICMS
+  - IPI: CFOP, Qtd, Valor Total, BC IPI, Valor IPI
+  - Usuários: Usuário, Email, Perfil, Status
+  - Documentos: já tinha ordenação completa
+  - Indicadores visuais: ↑ (ascendente), ↕ (ordenável)
+- ✅ **Filtro de modelos fiscais por atividade da empresa**
+  - Menu Saídas filtra tipos de documento pela atividade cadastrada
+  - COMERCIO: vê NF-e e NFC-e (não vê CT-e ou Serviços Prestados)
+  - SERVICOS: vê Serviços Prestados
+  - TRANSPORTE: vê CT-e
+  - Mensagem "Exibindo opções para: [ATIVIDADE]" exibida
+- ✅ **Classificação padrão "compra para revenda"**
+  - Quando IA não consegue classificar, usa categoria "revenda" (CFOP 1102/2102)
+  - Fallback implementado no servidor (linhas 13087-13093)
+- ✅ 100% testes passaram (iteration 42)
+
+### 2026-02-12 (Sessão 1)
 - ✅ **Classificação baseada no regime da empresa**
   - Divergências PIS/COFINS usam regime_tributario da empresa (não mais LUCRO_REAL fixo)
   - Detalhamento PIS/COFINS usa regime_para_calculo correto
@@ -91,9 +109,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
   - Funcionalidades: listar, editar categoria, excluir regra
   - Endpoints: GET /learned-rules/{company_id}, PUT/DELETE /ai/learned-rules/{rule_id}
 - ✅ **Ordenação de colunas na página ICMS**
-  - Colunas ordenáveis: CFOP, Status, Qtd, Valor Total, BC ICMS, Valor ICMS
   - CFOP em ordem crescente por padrão
-  - Indicadores visuais: ↑ (ascendente), ↕ (ordenável)
 - ✅ 100% testes passaram (iteration 41)
 
 ### 2026-02-11 (Sessão 2)
