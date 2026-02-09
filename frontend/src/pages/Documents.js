@@ -676,9 +676,14 @@ const Documents = ({ user, onLogout }) => {
     if (filterDivergencia !== 'all') {
       filtered = filtered.filter(doc => {
         const produtos = doc.produtos || [];
-        const temDivergencia = produtos.some(p => 
+        const servicos = doc.servicos || [];
+        const itens = [...produtos, ...servicos];
+        
+        const temDivergencia = itens.some(p => 
           p.cst_divergente || 
-          (p.cfop_original && p.cfop !== p.cfop_original)
+          p.cfop_divergente ||
+          (p.cfop_original && p.cfop !== p.cfop_original) ||
+          p.status_validacao === 'divergente'
         );
         
         if (filterDivergencia === 'divergente') return temDivergencia;
