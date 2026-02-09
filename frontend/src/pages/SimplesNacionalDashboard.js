@@ -781,6 +781,231 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
             )}
           </>
         )}
+
+        {/* Modal de Importação PGDAS */}
+        {showPgdasModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] w-full max-w-3xl max-h-[90vh] overflow-hidden">
+              {/* Header do Modal */}
+              <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
+                <div className="flex items-center gap-3">
+                  <FileText className="w-5 h-5 text-[#C8A951]" />
+                  <h3 className="text-lg font-medium text-white">Importar PGDAS</h3>
+                </div>
+                <button 
+                  onClick={() => {
+                    setShowPgdasModal(false);
+                    setPgdasResult(null);
+                  }} 
+                  className="p-1 text-[#A1A1AA] hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              {/* Conteúdo do Modal */}
+              <div className="p-4 overflow-y-auto max-h-[calc(90vh-120px)]">
+                {/* Área de Upload */}
+                <div className="mb-6">
+                  <div className="bg-[#0C0C0C] border-2 border-dashed border-[#2A2A2A] rounded-lg p-8 text-center hover:border-[#C8A951]/50 transition-colors">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf"
+                      onChange={handlePgdasUpload}
+                      className="hidden"
+                      id="pgdas-upload"
+                    />
+                    <label htmlFor="pgdas-upload" className="cursor-pointer">
+                      {uploadingPgdas ? (
+                        <div className="flex flex-col items-center">
+                          <RefreshCw className="w-12 h-12 text-[#C8A951] animate-spin mb-3" />
+                          <p className="text-white font-medium">Processando PGDAS...</p>
+                          <p className="text-sm text-[#666] mt-1">Extraindo dados de faturamento</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center">
+                          <Upload className="w-12 h-12 text-[#666] mb-3" />
+                          <p className="text-white font-medium">Clique para selecionar o arquivo PGDAS</p>
+                          <p className="text-sm text-[#666] mt-1">Arquivo PDF exportado do portal do Simples Nacional</p>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                  
+                  <p className="text-xs text-[#666] mt-3">
+                    💡 <strong>Dica:</strong> No portal do Simples Nacional, acesse PGDAS-D &gt; Declarações Anteriores &gt; Imprimir para exportar o PDF.
+                  </p>
+                </div>
+                
+                {/* Resultado da Importação */}
+                {pgdasResult && (
+                  <div className="space-y-4">
+                    {pgdasResult.sucesso ? (
+                      <>
+                        {/* Sucesso */}
+                        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+                          <div className="flex items-center gap-2 text-emerald-400 mb-2">
+                            <CheckCircle className="w-5 h-5" />
+                            <span className="font-medium">{pgdasResult.mensagem}</span>
+                          </div>
+                          
+                          {/* Dados Extraídos */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                            <div className="bg-[#0C0C0C] rounded p-2">
+                              <p className="text-xs text-[#666]">Período</p>
+                              <p className="text-sm text-white font-medium">{pgdasResult.dados_extraidos?.periodo_apuracao || '-'}</p>
+                            </div>
+                            <div className="bg-[#0C0C0C] rounded p-2">
+                              <p className="text-xs text-[#666]">RBT12</p>
+                              <p className="text-sm text-white font-medium">{formatCurrency(pgdasResult.dados_extraidos?.rbt12_pgdas)}</p>
+                            </div>
+                            <div className="bg-[#0C0C0C] rounded p-2">
+                              <p className="text-xs text-[#666]">Receita PA</p>
+                              <p className="text-sm text-white font-medium">{formatCurrency(pgdasResult.dados_extraidos?.receita_pa)}</p>
+                            </div>
+                            <div className="bg-[#0C0C0C] rounded p-2">
+                              <p className="text-xs text-[#666]">DAS</p>
+                              <p className="text-sm text-[#C8A951] font-medium">{formatCurrency(pgdasResult.dados_extraidos?.valor_das)}</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Alertas de Divergência */}
+                        {pgdasResult.alertas?.length > 0 && (
+                          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+                            <div className="flex items-center gap-2 text-amber-400 mb-3">
+                              <AlertTriangle className="w-5 h-5" />
+                              <span className="font-medium">Divergências Encontradas</span>
+                            </div>
+                            <div className="space-y-2">
+                              {pgdasResult.alertas.map((alerta, idx) => (
+                                <p key={idx} className="text-sm text-[#A1A1AA]">
+                                  {alerta.mensagem}
+                                </p>
+                              ))}
+                            </div>
+                            <p className="text-xs text-[#666] mt-3">
+                              ⚠️ Verifique se todos os documentos fiscais foram importados no sistema.
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Comparação */}
+                        {pgdasResult.comparacao_sistema && (
+                          <div className="bg-[#0C0C0C] rounded-lg p-4">
+                            <h4 className="text-sm font-medium text-white mb-3">Comparativo PGDAS vs Sistema</h4>
+                            <div className="grid grid-cols-3 gap-3 text-center">
+                              <div>
+                                <p className="text-2xl font-bold text-emerald-400">{pgdasResult.comparacao_sistema.meses_conferem}</p>
+                                <p className="text-xs text-[#666]">Conferem</p>
+                              </div>
+                              <div>
+                                <p className="text-2xl font-bold text-amber-400">{pgdasResult.comparacao_sistema.meses_divergentes}</p>
+                                <p className="text-xs text-[#666]">Divergentes</p>
+                              </div>
+                              <div>
+                                <p className="text-2xl font-bold text-white">{pgdasResult.comparacao_sistema.percentual_conferencia}%</p>
+                                <p className="text-xs text-[#666]">Conferência</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      /* Erro */
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 text-red-400">
+                          <AlertTriangle className="w-5 h-5" />
+                          <span>{pgdasResult.mensagem}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Histórico de Faturamento */}
+                {historicoFaturamento && (
+                  <div className="mt-6">
+                    <div 
+                      className="flex items-center justify-between cursor-pointer"
+                      onClick={() => setShowHistorico(!showHistorico)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <History className="w-4 h-4 text-[#C8A951]" />
+                        <h4 className="text-sm font-medium text-white">Histórico de Faturamento</h4>
+                        {historicoFaturamento.pgdas_ultima_importacao && (
+                          <span className="text-xs text-[#666]">
+                            (Última importação: {new Date(historicoFaturamento.pgdas_ultima_importacao).toLocaleDateString('pt-BR')})
+                          </span>
+                        )}
+                      </div>
+                      {showHistorico ? <ChevronUp className="w-4 h-4 text-[#666]" /> : <ChevronDown className="w-4 h-4 text-[#666]" />}
+                    </div>
+                    
+                    {showHistorico && (
+                      <div className="mt-3 overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-[#2A2A2A]">
+                              <th className="text-left py-2 px-3 text-[#A1A1AA] font-medium">Competência</th>
+                              <th className="text-right py-2 px-3 text-[#A1A1AA] font-medium">PGDAS</th>
+                              <th className="text-right py-2 px-3 text-[#A1A1AA] font-medium">Sistema</th>
+                              <th className="text-right py-2 px-3 text-[#A1A1AA] font-medium">Diferença</th>
+                              <th className="text-center py-2 px-3 text-[#A1A1AA] font-medium">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {historicoFaturamento.historico?.slice(0, 12).map((item, idx) => (
+                              <tr key={idx} className="border-b border-[#2A2A2A]/50 hover:bg-white/5">
+                                <td className="py-2 px-3 text-white">
+                                  {item.competencia}
+                                  {item.origem === 'pgdas' && (
+                                    <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-blue-500/20 text-blue-300 rounded">PGDAS</span>
+                                  )}
+                                </td>
+                                <td className="py-2 px-3 text-right text-white">
+                                  {item.valor_pgdas > 0 ? formatCurrency(item.valor_pgdas) : '-'}
+                                </td>
+                                <td className="py-2 px-3 text-right text-[#A1A1AA]">
+                                  {formatCurrency(item.valor_sistema)}
+                                </td>
+                                <td className={`py-2 px-3 text-right ${
+                                  Math.abs(item.diferenca) < 1 ? 'text-[#666]' : 
+                                  item.diferenca > 0 ? 'text-emerald-400' : 'text-red-400'
+                                }`}>
+                                  {item.diferenca !== 0 ? formatCurrency(item.diferenca) : '-'}
+                                </td>
+                                <td className="py-2 px-3 text-center">
+                                  {item.status === 'ok' && <CheckCircle className="w-4 h-4 text-emerald-400 mx-auto" />}
+                                  {item.status === 'alerta' && <AlertCircle className="w-4 h-4 text-amber-400 mx-auto" />}
+                                  {item.status === 'divergente' && <AlertTriangle className="w-4 h-4 text-red-400 mx-auto" />}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Footer do Modal */}
+              <div className="flex justify-end gap-3 p-4 border-t border-[#2A2A2A]">
+                <button
+                  onClick={() => {
+                    setShowPgdasModal(false);
+                    setPgdasResult(null);
+                  }}
+                  className="px-4 py-2 bg-[#2A2A2A] text-white rounded hover:bg-[#333333] transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
