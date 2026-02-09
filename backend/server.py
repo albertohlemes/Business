@@ -15294,8 +15294,6 @@ async def inteligencia_tributaria(
             real['total'] - regimes[0][1]
         ), 2) if regimes else 0
     }
-
-
     
     # Arredondar valores do Simples
     for k in simples:
