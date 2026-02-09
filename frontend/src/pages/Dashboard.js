@@ -188,49 +188,108 @@ const Dashboard = ({ user, onLogout }) => {
           </div>
         ) : stats ? (
           <>
-            {/* Quantidade de Documentos */}
+            {/* Quantidade de Documentos - Filtrado por Atividade */}
             <div>
               <h2 className="text-lg font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>Documentos por Tipo</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                <StatCard
-                  icon={ArrowDownCircle}
-                  title="NF-e Entrada"
-                  value={stats.quantidades.nfe_entrada}
-                  color="bg-blue-600"
-                  link="/documents"
-                  subtitle="Compras"
-                />
-                <StatCard
-                  icon={ArrowUpCircle}
-                  title="NF-e Saída"
-                  value={stats.quantidades.nfe_saida}
-                  color="bg-green-600"
-                  link="/documents"
-                  subtitle="Vendas"
-                />
-                <StatCard
-                  icon={Receipt}
-                  title="Cupons (NFC-e)"
-                  value={stats.quantidades.nfce}
-                  color="bg-purple-600"
-                  link="/documents"
-                  subtitle="PDV"
-                />
-                <StatCard
-                  icon={FileCheck}
-                  title="Serviços (NFS-e)"
-                  value={stats.quantidades.nfse}
-                  color="bg-orange-600"
-                  link="/documents"
-                  subtitle="Serviços"
-                />
-                <StatCard
-                  icon={FileText}
-                  title="Total"
-                  value={stats.quantidades.total_documentos}
-                  color="bg-gray-600"
-                  link="/documents"
-                />
+              
+              {/* ENTRADAS */}
+              <div className="mb-4">
+                <h3 className="text-sm text-[#A1A1AA] mb-2 flex items-center gap-2">
+                  <ArrowDownCircle className="w-4 h-4 text-blue-400" />
+                  ENTRADAS
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  <StatCard
+                    icon={FileText}
+                    title="NF-e Entrada"
+                    value={stats.quantidades.nfe_entrada}
+                    color="bg-blue-600"
+                    link="/documents"
+                    subtitle="Mercadorias"
+                  />
+                  {(stats.quantidades.cte_entrada > 0 || stats.empresa.tipo_atividade === 'transporte') && (
+                    <StatCard
+                      icon={FileText}
+                      title="CT-e Entrada"
+                      value={stats.quantidades.cte_entrada || 0}
+                      color="bg-cyan-600"
+                      link="/documents"
+                      subtitle="Frete Tomado"
+                    />
+                  )}
+                  {(stats.quantidades.nfse_tomados > 0 || ['servicos', 'mista'].includes(stats.empresa.tipo_atividade)) && (
+                    <StatCard
+                      icon={FileCheck}
+                      title="NFS-e Tomados"
+                      value={stats.quantidades.nfse_tomados || 0}
+                      color="bg-orange-600"
+                      link="/documents"
+                      subtitle="Serviços Tomados"
+                    />
+                  )}
+                  <div className="bg-[#0C0C0C] rounded-lg p-5 border border-[#2A2A2A]">
+                    <h3 className="text-[#666] text-sm font-medium mb-1">Total Entradas</h3>
+                    <p className="text-2xl font-bold text-blue-400">{stats.quantidades.total_entradas || (stats.quantidades.nfe_entrada + (stats.quantidades.cte_entrada || 0) + (stats.quantidades.nfse_tomados || 0))}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* SAÍDAS - Filtrado por Atividade */}
+              <div>
+                <h3 className="text-sm text-[#A1A1AA] mb-2 flex items-center gap-2">
+                  <ArrowUpCircle className="w-4 h-4 text-green-400" />
+                  SAÍDAS
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {/* NF-e Saída - Comércio, Indústria, Mista */}
+                  {['comercio', 'industria', 'mista'].includes(stats.empresa.tipo_atividade) && (
+                    <StatCard
+                      icon={ArrowUpCircle}
+                      title="NF-e Saída"
+                      value={stats.quantidades.nfe_saida}
+                      color="bg-green-600"
+                      link="/documents"
+                      subtitle="Vendas"
+                    />
+                  )}
+                  {/* NFC-e - Comércio, Mista */}
+                  {['comercio', 'mista'].includes(stats.empresa.tipo_atividade) && (
+                    <StatCard
+                      icon={Receipt}
+                      title="Cupons (NFC-e)"
+                      value={stats.quantidades.nfce}
+                      color="bg-purple-600"
+                      link="/documents"
+                      subtitle="PDV"
+                    />
+                  )}
+                  {/* CT-e Saída - Transporte */}
+                  {(stats.quantidades.cte_saida > 0 || stats.empresa.tipo_atividade === 'transporte') && (
+                    <StatCard
+                      icon={FileText}
+                      title="CT-e Saída"
+                      value={stats.quantidades.cte_saida || 0}
+                      color="bg-teal-600"
+                      link="/documents"
+                      subtitle="Frete Prestado"
+                    />
+                  )}
+                  {/* NFS-e Prestados - Serviços, Mista */}
+                  {['servicos', 'mista'].includes(stats.empresa.tipo_atividade) && (
+                    <StatCard
+                      icon={FileCheck}
+                      title="NFS-e Prestados"
+                      value={stats.quantidades.nfse_prestados || stats.quantidades.nfse || 0}
+                      color="bg-amber-600"
+                      link="/documents"
+                      subtitle="Serviços Prestados"
+                    />
+                  )}
+                  <div className="bg-[#0C0C0C] rounded-lg p-5 border border-[#2A2A2A]">
+                    <h3 className="text-[#666] text-sm font-medium mb-1">Total Saídas</h3>
+                    <p className="text-2xl font-bold text-green-400">{stats.quantidades.total_saidas || (stats.quantidades.nfe_saida + stats.quantidades.nfce + (stats.quantidades.cte_saida || 0) + (stats.quantidades.nfse_prestados || 0))}</p>
+                  </div>
+                </div>
               </div>
             </div>
 
