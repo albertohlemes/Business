@@ -308,6 +308,27 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - Estilo `accent-color` para mostrar a cor quando marcado
 - Flags funcionando corretamente para marcar/desmarcar
 
+### v2.14.0 (12/12/2025) - Personalização Dashboard Simples Nacional
+
+**Dashboard Simples Nacional - Cards Personalizados:**
+- ✅ **Removidos** cards antigos irrelevantes (ICMS, PIS, COFINS individuais)
+- ✅ **Cards da Linha 1 - Impostos do Mês:**
+  - DAS do Mês (valor e alíquota efetiva)
+  - DIFAL do Mês (valor e % sobre compras interestaduais)
+  - Total Impostos (DAS + DIFAL e % sobre vendas)
+  - Enquadramento (Faixa e Anexo)
+- ✅ **Cards da Linha 2 - Faturamento:**
+  - RBT12 (Últimos 12 meses) com média mensal
+  - Vendas do Mês
+  - Compras Interestaduais (com qtd de notas)
+  - Faturamento do Ano
+- ✅ **Barras de Progresso:** Limite Simples Nacional e Sublimite Estadual
+- ✅ **Correção de código malformado** nas linhas 440-443
+
+**Backend - Dados para os novos cards:**
+- `difal_mes`: total_difal, qtd_notas, percentual_sobre_compras, total_compras_interestaduais
+- `impostos_mes`: das, difal, total, percentual_sobre_vendas
+
 ### v2.12.0 (09/02/2026) - DIFAL e RET para Simples Nacional
 
 **DIFAL - Diferencial de Alíquota (NOVO):**
