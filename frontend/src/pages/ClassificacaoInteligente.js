@@ -295,6 +295,74 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
           </button>
         </div>
 
+        {/* ========== BARRA DE COMANDO IA ========== */}
+        <div className="bg-gradient-to-r from-[#C8A951]/10 to-purple-500/10 border border-[#C8A951]/30 rounded-xl p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <Wand2 className="w-5 h-5 text-[#C8A951]" />
+            <span className="text-white font-medium">Comando de IA</span>
+            <span className="text-xs text-[#A1A1AA]">Digite qualquer instrução em linguagem natural</span>
+          </div>
+          
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={comandoIA}
+                onChange={(e) => setComandoIA(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && enviarComandoIA()}
+                placeholder="Ex: classificar etanol e gasolina como combustível, todos produtos limpeza são despesa..."
+                className="w-full px-4 py-3 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white placeholder-[#666] focus:border-[#C8A951] focus:outline-none focus:ring-1 focus:ring-[#C8A951]/50"
+                disabled={processandoIA}
+              />
+            </div>
+            <button
+              onClick={enviarComandoIA}
+              disabled={!comandoIA.trim() || processandoIA}
+              className="px-6 py-3 bg-[#C8A951] hover:bg-[#D4B962] text-black font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {processandoIA ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  Executar
+                </>
+              )}
+            </button>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 mt-3">
+            <span className="text-xs text-[#666]">Sugestões:</span>
+            <button 
+              onClick={() => setComandoIA('classificar todos produtos de limpeza como despesa')}
+              className="text-xs px-2 py-1 bg-[#1A1A1A] text-[#A1A1AA] rounded hover:bg-[#2A2A2A] hover:text-white transition-colors"
+            >
+              limpeza → despesa
+            </button>
+            <button 
+              onClick={() => setComandoIA('todo etanol, gasolina e diesel são combustível')}
+              className="text-xs px-2 py-1 bg-[#1A1A1A] text-[#A1A1AA] rounded hover:bg-[#2A2A2A] hover:text-white transition-colors"
+            >
+              combustíveis
+            </button>
+            <button 
+              onClick={() => setComandoIA('classificar embalagens e caixas como insumo')}
+              className="text-xs px-2 py-1 bg-[#1A1A1A] text-[#A1A1AA] rounded hover:bg-[#2A2A2A] hover:text-white transition-colors"
+            >
+              embalagens → insumo
+            </button>
+            <button 
+              onClick={() => setComandoIA('papel, caneta e material de escritório são despesa')}
+              className="text-xs px-2 py-1 bg-[#1A1A1A] text-[#A1A1AA] rounded hover:bg-[#2A2A2A] hover:text-white transition-colors"
+            >
+              escritório → despesa
+            </button>
+          </div>
+        </div>
+
         {/* ========== SEÇÃO DE ALERTAS ========== */}
         <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl overflow-hidden">
           <div className="p-4 border-b border-[#2A2A2A] bg-gradient-to-r from-amber-900/20 to-amber-950/10">
