@@ -12931,6 +12931,27 @@ async def apurar_icms(
                 ),
                 "situacao": "A_RECOLHER" if (totais["saidas"]["valor_icms_st"] - sum(x["valor_icms_st"] for x in icms_st_devolucoes.values())) > 0 else "ZERADO"
             }
+        },
+        "flags": {
+            "desconsiderar_icms_despesas": desconsiderar_icms_despesas,
+            "desconsiderar_icms_st": desconsiderar_icms_st,
+            "cfops_despesa": CFOPS_DESPESA,
+            "cfops_st": CFOPS_ST
+        },
+        "desconsiderados": {
+            "despesas": {
+                "bc_icms": round(totais_desconsiderados["despesas"]["bc_icms"], 2),
+                "valor_icms": round(totais_desconsiderados["despesas"]["valor_icms"], 2),
+                "qtd_itens": totais_desconsiderados["despesas"]["qtd_itens"]
+            },
+            "st": {
+                "bc_icms": round(totais_desconsiderados["st"]["bc_icms"], 2),
+                "valor_icms": round(totais_desconsiderados["st"]["valor_icms"], 2),
+                "qtd_itens": totais_desconsiderados["st"]["qtd_itens"]
+            },
+            "total_icms_desconsiderado": round(
+                totais_desconsiderados["despesas"]["valor_icms"] + totais_desconsiderados["st"]["valor_icms"], 2
+            )
         }
     }
 
