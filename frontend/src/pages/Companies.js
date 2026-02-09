@@ -85,7 +85,9 @@ const Companies = ({ user, onLogout }) => {
     // Certificado Digital
     certificado_digital_arquivo: '',
     certificado_digital_senha: '',
-    certificado_digital_validade: ''
+    certificado_digital_validade: '',
+    // Logo da empresa
+    logo_url: ''
   };
   
   const [formData, setFormData] = useState(emptyFormData);
