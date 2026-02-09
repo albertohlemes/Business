@@ -337,7 +337,7 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - Parcela a deduzir
 
 **Fator R (para Anexo V):**
-- Cálculo automático do Fator R
+- Cálculo automático do Fator R (somente se flag `controla_fator_r` ativa)
 - Indicador se pode usar Anexo III (Fator R >= 28%)
 - Folha necessária para migrar de Anexo V para III
 - Economia potencial anual se aumentar folha
@@ -352,11 +352,27 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - Quantidade de notas por competência
 - Total RBT12
 
+**Cadastro de Empresa - Configuração Simples Nacional (NOVO):**
+- Seção de Anexos com seleção visual (I a V)
+- Sugestão automática de anexos baseada nos CNAEs do CNPJ
+- Descrição explicativa de cada anexo
+- Badge "Sugerido" para anexos recomendados
+- Modal de confirmação ao alterar anexos já confirmados
+- Flag **"Controla Fator R"** (habilita cálculo no Dashboard)
+- Campo de Folha de Pagamento (últimos 12 meses)
+- Indicador visual de anexos confirmados
+
 **Backend - Novos Endpoints:**
 - `POST /api/dashboard/simples-nacional` - Dados completos do dashboard
 - `PUT /api/companies/{id}/simples-nacional/anexos` - Atualizar anexos confirmados
 - `PUT /api/companies/{id}/simples-nacional/folha` - Atualizar folha de pagamento
 - `GET /api/simples-nacional/sugerir-anexos/{cnpj}` - Sugestão de anexos por CNPJ
+
+**Backend - Novos Campos no Modelo Company:**
+- `anexos_simples`: Lista de anexos (I, II, III, IV, V)
+- `anexos_confirmados`: Boolean se usuário confirmou os anexos
+- `controla_fator_r`: Boolean se empresa controla Fator R
+- `folha_pagamento_12m`: Float com valor da folha dos últimos 12 meses
 
 **Serviço de Cálculo (`simples_nacional_calculator.py`):**
 - Tabelas oficiais de alíquotas por Anexo (I a V)
