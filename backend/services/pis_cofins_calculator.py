@@ -390,6 +390,13 @@ def verificar_cfop_gera_credito(cfop: str) -> bool:
     return cfop not in CFOPS_SEM_CREDITO
 
 
+def verificar_cfop_gera_debito(cfop: str) -> bool:
+    """
+    Verifica se um CFOP gera débito de PIS/COFINS.
+    """
+    return cfop not in CFOPS_SEM_DEBITO
+
+
 def classificar_cst_entrada(cfop: str, ncm: str, perfil_empresa: str = 'VAREJO') -> str:
     """
     Determina o CST de entrada correto baseado no CFOP e NCM.
@@ -401,6 +408,19 @@ def classificar_cst_entrada(cfop: str, ncm: str, perfil_empresa: str = 'VAREJO')
     # Classificar pelo NCM
     classificacao = classificar_ncm_comercio(ncm, perfil_empresa)
     return classificacao['cst_entrada']
+
+
+def classificar_cst_saida(cfop: str, ncm: str, perfil_empresa: str = 'VAREJO') -> str:
+    """
+    Determina o CST de saída correto baseado no CFOP e NCM.
+    """
+    # Se CFOP não gera débito, sempre CST 49
+    if not verificar_cfop_gera_debito(cfop):
+        return CST_SAIDA['SEM_DEBITO_CFOP']
+    
+    # Classificar pelo NCM
+    classificacao = classificar_ncm_comercio(ncm, perfil_empresa)
+    return classificacao['cst_saida']
 
 
 def classificar_cnae_servico(cnae: str) -> Dict[str, Any]:
