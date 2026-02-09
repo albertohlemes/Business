@@ -72,8 +72,39 @@ const ApuracaoIPI = ({ user, onLogout }) => {
     </div>
   );
 
-  // Tabela de CFOP
+  // Tabela de CFOP com ordenação
   const TabelaCFOP = ({ dados, tipo }) => {
+    const [sortField, setSortField] = useState('cfop');
+    const [sortDirection, setSortDirection] = useState('asc');
+    
+    const handleSort = (field) => {
+      if (sortField === field) {
+        setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+      } else {
+        setSortField(field);
+        setSortDirection('asc');
+      }
+    };
+    
+    const sortedDados = useMemo(() => {
+      if (!dados || dados.length === 0) return [];
+      return [...dados].sort((a, b) => {
+        let aVal = a[sortField];
+        let bVal = b[sortField];
+        if (typeof aVal === 'string') {
+          return sortDirection === 'asc' 
+            ? aVal.localeCompare(bVal, 'pt-BR', { numeric: true })
+            : bVal.localeCompare(aVal, 'pt-BR', { numeric: true });
+        }
+        return sortDirection === 'asc' ? (aVal || 0) - (bVal || 0) : (bVal || 0) - (aVal || 0);
+      });
+    }, [dados, sortField, sortDirection]);
+    
+    const SortIndicator = ({ field }) => {
+      if (sortField !== field) return null;
+      return sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 inline ml-1" /> : <ArrowDown className="w-3 h-3 inline ml-1" />;
+    };
+    
     if (!dados || dados.length === 0) {
       return (
         <div className="text-center py-8 text-[#666]">
@@ -87,15 +118,25 @@ const ApuracaoIPI = ({ user, onLogout }) => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-[#2A2A2A]">
-              <th className="text-left py-3 px-4 text-[#A1A1AA] font-medium">CFOP</th>
-              <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Qtd</th>
-              <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Valor Total</th>
-              <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">BC IPI</th>
-              <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Valor IPI</th>
+              <th className="text-left py-3 px-4 text-[#A1A1AA] font-medium cursor-pointer hover:text-white" onClick={() => handleSort('cfop')}>
+                CFOP <SortIndicator field="cfop" />
+              </th>
+              <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium cursor-pointer hover:text-white" onClick={() => handleSort('qtd')}>
+                Qtd <SortIndicator field="qtd" />
+              </th>
+              <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium cursor-pointer hover:text-white" onClick={() => handleSort('valor_total')}>
+                Valor Total <SortIndicator field="valor_total" />
+              </th>
+              <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium cursor-pointer hover:text-white" onClick={() => handleSort('bc_ipi')}>
+                BC IPI <SortIndicator field="bc_ipi" />
+              </th>
+              <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium cursor-pointer hover:text-white" onClick={() => handleSort('valor_ipi')}>
+                Valor IPI <SortIndicator field="valor_ipi" />
+              </th>
             </tr>
           </thead>
           <tbody>
-            {dados.map((item, idx) => (
+            {sortedDados.map((item, idx) => (
               <tr key={idx} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
                 <td className="py-3 px-4">
                   <span className="font-mono text-white bg-[#2A2A2A] px-2 py-1 rounded">
