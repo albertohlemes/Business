@@ -134,6 +134,8 @@ class Company(BaseModel):
     anexos_simples: List[str] = []  # I, II, III, IV, V
     tipo_atividade: str = "comercio"  # comercio, industria, servicos, mista
     tipos_servico: List[str] = []  # transporte, ti, consultoria, etc
+    # Perfis de atividade comercial (múltipla escolha)
+    perfis_comerciais: List[str] = []  # ['industria', 'distribuidor', 'varejo']
     # Flags de contribuinte
     equiparado_industria: bool = False  # Comércio equiparado a indústria (contribuinte IPI)
     apura_icms: bool = False  # Empresa de serviços que também apura ICMS
