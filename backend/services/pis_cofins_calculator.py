@@ -144,7 +144,7 @@ CST_SAIDA = {
     'NAO_TRIBUTADO': '08',  # Não Tributado
 }
 
-# CFOPs que NÃO geram crédito de PIS/COFINS (CST 98)
+# CFOPs que NÃO geram crédito de PIS/COFINS (CST 98 na entrada)
 CFOPS_SEM_CREDITO = [
     '1128', '2128',  # Compra para utilização na prestação de serviço
     '1407', '2407',  # Compra de mercadoria para uso ou consumo
@@ -162,6 +162,50 @@ CFOPS_SEM_CREDITO = [
     '1503', '2503',  # Entrada de mercadoria de energia elétrica
     '1504', '2504',  # Entrada de mercadoria de energia elétrica
     '1653', '2653',  # Compra de combustível para consumo
+    '1918', '2918',  # Devolução de mercadoria de produção do estabelecimento
+    '1414', '2414',  # Retorno de mercadoria remetida em consignação
+    '1415', '2415',  # Devolução de mercadoria de produção remetida em consignação
+    '1451', '2451',  # Entrada de mercadoria de devolução de produção
+    '1452', '2452',  # Devolução de mercadoria de produção remetida para demonstração
+    '1660', '2660',  # Devolução de venda de mercadoria de produção própria
+    '1661', '2661',  # Devolução de venda de mercadoria adquirida ou recebida de terceiros
+    '1662', '2662',  # Devolução de venda de mercadoria de produção do estabelecimento
+]
+
+# CFOPs que NÃO geram débito de PIS/COFINS (CST 49 na saída)
+CFOPS_SEM_DEBITO = [
+    '5910', '6910',  # Remessa em bonificação, doação ou brinde
+    '5911', '6911',  # Remessa de amostra grátis
+    '5912', '6912',  # Remessa de mercadoria ou bem para demonstração
+    '5913', '6913',  # Retorno de mercadoria ou bem recebido para demonstração
+    '5914', '6914',  # Remessa de mercadoria ou bem para exposição ou feira
+    '5915', '6915',  # Remessa de mercadoria ou bem para conserto ou reparo
+    '5916', '6916',  # Retorno de mercadoria ou bem recebido para conserto ou reparo
+    '5917', '6917',  # Remessa de mercadoria em consignação mercantil ou industrial
+    '5918', '6918',  # Devolução de mercadoria recebida em consignação
+    '5919', '6919',  # Devolução simbólica de mercadoria vendida
+    '5920', '6920',  # Remessa de vasilhame ou sacaria
+    '5921', '6921',  # Devolução de vasilhame ou sacaria
+    '5922', '6922',  # Lançamento efetuado a título de simples faturamento
+    '5923', '6923',  # Remessa de mercadoria por conta e ordem de terceiros
+    '5924', '6924',  # Remessa para industrialização por conta e ordem do adquirente
+    '5925', '6925',  # Retorno de mercadoria recebida para industrialização
+    '5949', '6949',  # Outra saída de mercadoria ou prestação de serviço não especificado
+    '5929', '6929',  # Lançamento efetuado em decorrência de emissão de documento fiscal
+    '5931', '6931',  # Lançamento efetuado em decorrência da responsabilidade de retenção
+    '5932', '6932',  # Prestação de serviço de transporte iniciada em UF diversa
+    '5551', '6551',  # Venda de bem do ativo imobilizado
+    '5552', '6552',  # Transferência de bem do ativo imobilizado
+    '5553', '6553',  # Devolução de compra de bem para o ativo imobilizado
+    '5554', '6554',  # Remessa de bem do ativo imobilizado para uso fora do estabelecimento
+    '5555', '6555',  # Devolução de bem do ativo imobilizado de terceiros
+    '5556', '6556',  # Devolução de compra de material de uso ou consumo
+    '5557', '6557',  # Transferência de material de uso ou consumo
+    '5601', '6601',  # Transferência de crédito de ICMS acumulado
+    '5602', '6602',  # Transferência de saldo credor de ICMS
+    '5603', '6603',  # Ressarcimento de ICMS retido por substituição tributária
+    '5605', '6605',  # Transferência de saldo devedor de ICMS
+    '5606', '6606',  # Utilização de saldo credor de ICMS
 ]
 
 # =============================================================================
