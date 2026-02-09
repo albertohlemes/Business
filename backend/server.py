@@ -15703,6 +15703,269 @@ async def sugerir_anexos_por_cnpj(cnpj: str, current_user: User = Depends(get_cu
         return {"anexos_sugeridos": ['I'], "cnaes": [], "mensagem": f"Erro na consulta: {str(e)}"}
 
 
+# =============================================================================
+# IMPORTAÇÃO PGDAS - HISTÓRICO DE FATURAMENTO
+# =============================================================================
+
+from services.pgdas_extractor import (
+    extrair_dados_pgdas,
+    comparar_faturamento_pgdas_sistema,
+    gerar_historico_para_salvar,
+    calcular_rbt12_do_historico
+)
+
+# PyMuPDF para extração de texto do PDF
+try:
+    import fitz  # PyMuPDF
+    PYMUPDF_AVAILABLE = True
+except ImportError:
+    PYMUPDF_AVAILABLE = False
+    logger.warning("PyMuPDF não disponível. Instalando...")
+
+
+@api_router.post("/simples-nacional/{company_id}/importar-pgdas")
+async def importar_pgdas(
+    company_id: str,
+    file: UploadFile = File(...),
+    sobrepor_historico: bool = Form(default=False),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Importa arquivo PGDAS (PDF) e extrai histórico de faturamento mensal.
+    
+    - Extrai dados de faturamento por competência
+    - Compara com valores calculados pelo sistema (notas fiscais)
+    - Atualiza histórico da empresa
+    - Retorna divergências encontradas
+    """
+    # Verificar se empresa existe e é Simples Nacional
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if company.get('regime_tributario') != 'simples_nacional':
+        raise HTTPException(status_code=400, detail="Empresa não é optante pelo Simples Nacional")
+    
+    # Verificar tipo do arquivo
+    if not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Arquivo deve ser PDF")
+    
+    # Ler conteúdo do arquivo
+    content = await file.read()
+    
+    # Extrair texto do PDF
+    if not PYMUPDF_AVAILABLE:
+        raise HTTPException(status_code=500, detail="Biblioteca de leitura de PDF não disponível. Contate o suporte.")
+    
+    try:
+        pdf_document = fitz.open(stream=content, filetype="pdf")
+        texto_completo = ""
+        for page in pdf_document:
+            texto_completo += page.get_text()
+        pdf_document.close()
+    except Exception as e:
+        logger.error(f"Erro ao ler PDF: {e}")
+        raise HTTPException(status_code=400, detail=f"Erro ao ler arquivo PDF: {str(e)}")
+    
+    # Extrair dados do PGDAS
+    dados_pgdas = extrair_dados_pgdas(texto_completo)
+    
+    if not dados_pgdas["sucesso"]:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Não foi possível extrair dados do PGDAS: {', '.join(dados_pgdas['erros'])}"
+        )
+    
+    # Buscar faturamento calculado pelo sistema (notas fiscais)
+    faturamento_sistema = {}
+    competencias = list(dados_pgdas["faturamento_mensal"].keys())
+    
+    if competencias:
+        pipeline = [
+            {"$match": {
+                "company_id": company_id,
+                "tipo": "saida",
+                "competencia": {"$in": competencias},
+                **get_filtro_notas_ativas()
+            }},
+            {"$group": {
+                "_id": "$competencia",
+                "faturamento": {"$sum": "$valor_total"}
+            }}
+        ]
+        
+        async for doc in db.xml_documents.aggregate(pipeline):
+            faturamento_sistema[doc["_id"]] = round(doc["faturamento"], 2)
+    
+    # Comparar PGDAS com sistema
+    comparacao = comparar_faturamento_pgdas_sistema(
+        dados_pgdas["faturamento_mensal"],
+        faturamento_sistema
+    )
+    
+    # Preparar histórico para salvar
+    historico_existente = company.get("historico_faturamento", {}) if not sobrepor_historico else {}
+    novo_historico = gerar_historico_para_salvar(dados_pgdas, historico_existente)
+    
+    # Atualizar empresa com histórico
+    update_data = {
+        "historico_faturamento": novo_historico,
+        "pgdas_ultima_importacao": datetime.now(timezone.utc).isoformat(),
+        "pgdas_periodo_apuracao": dados_pgdas.get("periodo_apuracao"),
+        "pgdas_rbt12": dados_pgdas.get("rbt12", 0),
+        "pgdas_rba": dados_pgdas.get("rba", 0)
+    }
+    
+    await db.companies.update_one(
+        {"id": company_id},
+        {"$set": update_data}
+    )
+    
+    return {
+        "sucesso": True,
+        "mensagem": f"PGDAS importado com sucesso. {len(dados_pgdas['faturamento_mensal'])} meses processados.",
+        "dados_extraidos": {
+            "periodo_apuracao": dados_pgdas.get("periodo_apuracao"),
+            "rbt12_pgdas": dados_pgdas.get("rbt12"),
+            "rba": dados_pgdas.get("rba"),
+            "receita_pa": dados_pgdas.get("receita_pa"),
+            "valor_das": dados_pgdas.get("valor_das"),
+            "tributos": dados_pgdas.get("tributos"),
+            "meses_importados": len(dados_pgdas["faturamento_mensal"])
+        },
+        "comparacao_sistema": comparacao,
+        "faturamento_mensal": dados_pgdas["faturamento_mensal"],
+        "alertas": [
+            {
+                "tipo": "warning" if d["percentual_diferenca"] > 5 else "info",
+                "mensagem": f"Divergência em {d['competencia']}: PGDAS R$ {d['valor_pgdas']:,.2f} vs Sistema R$ {d['valor_sistema']:,.2f} (dif: R$ {d['diferenca']:,.2f})"
+            }
+            for d in comparacao.get("divergencias", [])
+        ] if comparacao.get("divergencias") else []
+    }
+
+
+@api_router.get("/simples-nacional/{company_id}/historico-faturamento")
+async def get_historico_faturamento(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna o histórico de faturamento da empresa (PGDAS + Sistema).
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    historico = company.get("historico_faturamento", {})
+    
+    # Buscar faturamento calculado pelo sistema para comparação
+    faturamento_sistema = {}
+    competencias = list(historico.keys()) if historico else []
+    
+    # Se não tem histórico PGDAS, buscar últimos 24 meses do sistema
+    if not competencias:
+        now = datetime.now(timezone.utc)
+        competencias = []
+        for i in range(24):
+            m = now.month - i
+            a = now.year
+            while m <= 0:
+                m += 12
+                a -= 1
+            competencias.append(f"{m:02d}/{a}")
+    
+    pipeline = [
+        {"$match": {
+            "company_id": company_id,
+            "tipo": "saida",
+            "competencia": {"$in": competencias},
+            **get_filtro_notas_ativas()
+        }},
+        {"$group": {
+            "_id": "$competencia",
+            "faturamento": {"$sum": "$valor_total"},
+            "qtd_notas": {"$sum": 1}
+        }},
+        {"$sort": {"_id": -1}}
+    ]
+    
+    async for doc in db.xml_documents.aggregate(pipeline):
+        faturamento_sistema[doc["_id"]] = {
+            "valor": round(doc["faturamento"], 2),
+            "qtd_notas": doc["qtd_notas"]
+        }
+    
+    # Montar resposta consolidada
+    resultado = []
+    todas_competencias = set(historico.keys()) | set(faturamento_sistema.keys())
+    
+    for comp in sorted(todas_competencias, reverse=True):
+        dados_pgdas = historico.get(comp, {})
+        dados_sistema = faturamento_sistema.get(comp, {})
+        
+        valor_pgdas = dados_pgdas.get("valor", 0) if dados_pgdas else 0
+        valor_sistema = dados_sistema.get("valor", 0) if dados_sistema else 0
+        diferenca = round(valor_pgdas - valor_sistema, 2) if valor_pgdas > 0 else 0
+        
+        resultado.append({
+            "competencia": comp,
+            "valor_pgdas": valor_pgdas,
+            "valor_sistema": valor_sistema,
+            "origem": dados_pgdas.get("origem", "sistema") if dados_pgdas else "sistema",
+            "bloqueado": dados_pgdas.get("bloqueado", False) if dados_pgdas else False,
+            "diferenca": diferenca,
+            "qtd_notas": dados_sistema.get("qtd_notas", 0) if dados_sistema else 0,
+            "status": "ok" if abs(diferenca) < 1 else ("alerta" if abs(diferenca) < valor_pgdas * 0.05 else "divergente")
+        })
+    
+    return {
+        "historico": resultado,
+        "pgdas_ultima_importacao": company.get("pgdas_ultima_importacao"),
+        "pgdas_periodo_apuracao": company.get("pgdas_periodo_apuracao"),
+        "pgdas_rbt12": company.get("pgdas_rbt12", 0),
+        "total_meses": len(resultado)
+    }
+
+
+@api_router.put("/simples-nacional/{company_id}/historico-faturamento/{competencia}")
+async def update_faturamento_competencia(
+    company_id: str,
+    competencia: str,
+    valor: float,
+    origem: str = "manual",
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Atualiza manualmente o faturamento de uma competência específica.
+    """
+    # Validar competência
+    if not re.match(r'^\d{2}/\d{4}$', competencia):
+        raise HTTPException(status_code=400, detail="Competência inválida. Use formato MM/YYYY")
+    
+    if valor < 0:
+        raise HTTPException(status_code=400, detail="Valor não pode ser negativo")
+    
+    # Atualizar histórico
+    update_key = f"historico_faturamento.{competencia}"
+    result = await db.companies.update_one(
+        {"id": company_id},
+        {"$set": {
+            update_key: {
+                "valor": valor,
+                "origem": origem,
+                "data_atualizacao": datetime.now(timezone.utc).isoformat(),
+                "bloqueado": origem == "pgdas"
+            }
+        }}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    return {"message": f"Faturamento de {competencia} atualizado para R$ {valor:,.2f}"}
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
