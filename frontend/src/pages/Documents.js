@@ -1525,6 +1525,61 @@ const Documents = ({ user, onLogout }) => {
           </div>
         )}
 
+        {/* Modal de Progresso com Contador Tomando Café */}
+        {uploading && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] w-full max-w-md overflow-hidden">
+              <div className="p-6">
+                {/* Componente do Contador Tomando Café */}
+                <CoffeeProgress 
+                  progress={uploadProgress.percent} 
+                  message={uploadProgress.current > 0 
+                    ? `Processando ${uploadProgress.current} de ${uploadProgress.total} arquivos...` 
+                    : 'Preparando importação...'
+                  }
+                  showPercentage={true}
+                />
+                
+                {/* Info adicional */}
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-[#A1A1AA]">
+                    {ctxCompany?.razao_social}
+                  </p>
+                  <p className="text-xs text-[#666] mt-1">
+                    Competência: {selectedCompetencia}
+                  </p>
+                </div>
+                
+                {/* Barra de progresso */}
+                <div className="mt-6">
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-[#A1A1AA]">
+                      {uploadProgress.percent < 100 ? 'Café esfriando...' : 'Café pronto!'}
+                    </span>
+                    <span className="text-[#C8A951] font-bold">{uploadProgress.percent}%</span>
+                  </div>
+                  <div className="h-3 bg-[#2A2A2A] rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-[#C8A951] to-[#D4B85C] rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress.percent}%` }}
+                    />
+                  </div>
+                  {uploadProgress.total > 0 && (
+                    <p className="text-xs text-center text-[#666] mt-2">
+                      {uploadProgress.current} de {uploadProgress.total} arquivos processados
+                    </p>
+                  )}
+                </div>
+                
+                {/* Dica */}
+                <p className="text-xs text-center text-[#555] mt-4">
+                  💡 Você pode continuar navegando no sistema enquanto a importação é processada
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Modal de Resultado do Upload */}
         {showUploadResult && uploadResult && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
