@@ -119,19 +119,19 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [x] ~~Classificação IA atualizando CFOP~~ ✅
 - [x] ~~Barra de progresso não bloqueante~~ ✅
 
-### P1 - Alta Prioridade (Em Progresso)
+### P1 - Alta Prioridade (MAIORIA CONCLUÍDA)
 - [x] ~~Modal de edição de produtos clicável~~ ✅
 - [x] ~~Links de NFs nos produtos~~ ✅
 - [x] ~~Divergências PIS/COFINS só saídas~~ ✅
 - [x] ~~Indicadores Lucro Presumido~~ ✅
-- [ ] Vilões e Oportunidades ICMS com % entrada/saída
-- [ ] Insights IA no menu Indicadores
+- [x] ~~Vilões e Oportunidades ICMS com % entrada/saída~~ ✅
+- [x] ~~Insights IA no menu Indicadores~~ ✅
+- [x] ~~Gráfico proporção vendas no Dashboard Simples~~ ✅
 - [ ] Modal de seleção de empresa (bug de usabilidade)
 - [ ] Exportação de relatórios (problema recorrente)
 
 ### P2 - Média Prioridade
 - [ ] **Ordenação em TODAS as colunas** - componente criado, falta aplicar
-- [ ] Gráfico proporção vendas no Dashboard Simples (alíquota zero, ST, tributado)
 - [ ] Relatório exportação por agrupamento de produtos (NCM, valor, base legal)
 - [ ] Logo nos relatórios exportados
 - [ ] Upload de Certificado Digital (.pfx)
