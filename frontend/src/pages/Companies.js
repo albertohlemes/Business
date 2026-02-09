@@ -3,7 +3,7 @@ import axios from 'axios';
 import Layout from '../components/Layout';
 import { 
   Building2, Plus, Search, RefreshCw, Trash2, Edit, X, Settings, 
-  Users, ChevronDown, ChevronRight, Filter, Upload, FileSpreadsheet, Download, CheckCircle, AlertCircle
+  Users, ChevronDown, ChevronRight, Filter, Upload, FileSpreadsheet, Download, CheckCircle, AlertCircle, Shield, Eye, EyeOff
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import * as XLSX from 'xlsx';
