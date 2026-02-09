@@ -93,6 +93,13 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 
 ## Atualizações Recentes (09/02/2026)
 
+### Página RET - Comparativo de Regimes Tributários (CORRIGIDO)
+- ✅ **Lucro Real**: Agora usa os valores REAIS das apurações (ICMS, PIS, COFINS apurados)
+- ✅ **Lucro Presumido**: ICMS igual ao Real, PIS 0,65% e COFINS 3% cumulativo sobre faturamento
+- ✅ **IRPJ/CSLL Lucro Real**: Calculado sobre lucro contábil (Lucro Bruto - Despesa Real)
+- ✅ **Indicação do Melhor Regime**: Destaque visual do regime mais econômico
+- ✅ **Performance otimizada**: Uso de agregação MongoDB e queries eficientes
+
 ### Renomeação de Páginas - RET e Indicadores
 - ✅ **RET** agora é a página de "Rota de Eficiência Tributária" (comparativo de regimes tributários)
 - ✅ **Indicadores** é a página de indicadores financeiros (antiga RET) - CMV/CPV, Margens, DRE
