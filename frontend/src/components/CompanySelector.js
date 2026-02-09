@@ -25,6 +25,14 @@ const CompanySelector = () => {
   const [tempCompetencia, setTempCompetencia] = useState(getInitialCompetencia());
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Sincronizar tempCompany e tempCompetencia quando o modal abrir
+  useEffect(() => {
+    if (showSelector) {
+      setTempCompany(selectedCompany);
+      setTempCompetencia(selectedCompetencia || getInitialCompetencia());
+    }
+  }, [showSelector, selectedCompany, selectedCompetencia]);
+
   const handleCompetenciaChange = (e) => {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length > 6) {
