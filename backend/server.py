@@ -14965,6 +14965,8 @@ async def apurar_pis_cofins(
     
     # Calcular totais - Lucro Real
     resultado['lucro_real']['creditos']['total'] = resultado['lucro_real']['creditos']['pis'] + resultado['lucro_real']['creditos']['cofins']
+    resultado['lucro_real']['debitos_comercio']['total'] = resultado['lucro_real']['debitos_comercio']['pis'] + resultado['lucro_real']['debitos_comercio']['cofins']
+    resultado['lucro_real']['debitos_servicos']['total'] = resultado['lucro_real']['debitos_servicos']['pis'] + resultado['lucro_real']['debitos_servicos']['cofins']
     resultado['lucro_real']['debitos_total']['pis'] = resultado['lucro_real']['debitos_comercio']['pis'] + resultado['lucro_real']['debitos_servicos']['pis']
     resultado['lucro_real']['debitos_total']['cofins'] = resultado['lucro_real']['debitos_comercio']['cofins'] + resultado['lucro_real']['debitos_servicos']['cofins']
     resultado['lucro_real']['debitos_total']['total'] = resultado['lucro_real']['debitos_total']['pis'] + resultado['lucro_real']['debitos_total']['cofins']
