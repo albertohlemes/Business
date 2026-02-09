@@ -73,6 +73,10 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
   // Estados compartilhados
   const [comandoIA, setComandoIA] = useState('');
   const [processandoIA, setProcessandoIA] = useState(false);
+  
+  // Estado para edição de produto individual
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [savingProduct, setSavingProduct] = useState(false);
 
   // Carregar dados
   useEffect(() => {
