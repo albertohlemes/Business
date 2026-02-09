@@ -95,12 +95,17 @@ function App() {
               element={user ? <Documents user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
+              path="/classificacao-inteligente"
+              element={user ? <ClassificacaoInteligente user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            <Route
               path="/classificacao"
               element={user ? <ClassificacaoPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             {/* Rotas antigas redirecionam */}
-            <Route path="/validation" element={<Navigate to="/classificacao" />} />
-            <Route path="/reclassification" element={<Navigate to="/classificacao" />} />
+            <Route path="/validation" element={<Navigate to="/classificacao-inteligente" />} />
+            <Route path="/reclassification" element={<Navigate to="/classificacao-inteligente" />} />
+            <Route path="/alertas-cfop" element={<Navigate to="/classificacao-inteligente" />} />
             <Route
               path="/export"
               element={user ? <ExportMenu user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
