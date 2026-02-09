@@ -16249,10 +16249,11 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     # Se não há meses com faturamento, usar o mês de referência
     meses_para_projecao = meses_com_faturamento if meses_com_faturamento > 0 else mes_ref
     
-    # Buscar valores de produtos ST e monofásicos do mês atual
+    # Buscar valores de produtos ST, monofásicos e alíquota zero do mês atual
     competencia_atual = f"{mes_ref:02d}/{ano_ref}"
     produtos_st_mes = 0
     produtos_monofasicos_mes = 0
+    produtos_aliquota_zero_mes = 0
     
     docs_mes_cursor = db.xml_documents.find({
         "company_id": request.company_id,
@@ -16273,9 +16274,13 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
             if cst in ['10', '30', '60', '70', '201', '202', '203', '500']:
                 produtos_st_mes += valor
             
-            # Monofásicos (verificar NCM)
-            if is_ncm_aliquota_zero(ncm):
+            # Verificar tipo de isenção de PIS/COFINS (prioridade: monofásico > alíquota zero)
+            if is_ncm_monofasico(ncm):
+                # Monofásicos - tributação concentrada na fonte
                 produtos_monofasicos_mes += valor
+            elif is_ncm_aliquota_zero(ncm) or is_ncm_cesta_basica(ncm):
+                # Alíquota zero - cesta básica e outros produtos com isenção legal
+                produtos_aliquota_zero_mes += valor
     
     # Calcular alíquota efetiva e faixa
     aliquota_info = calcular_aliquota_efetiva(rbt12, anexo_principal)
@@ -16287,7 +16292,8 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
         rbt12=rbt12,
         anexo=anexo_principal,
         produtos_st=produtos_st_mes,
-        produtos_monofasicos=produtos_monofasicos_mes
+        produtos_monofasicos=produtos_monofasicos_mes,
+        produtos_aliquota_zero=produtos_aliquota_zero_mes
     )
     
     # Calcular projeção anual usando o número de meses com dados reais
