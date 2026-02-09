@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
-import { FileBarChart, Download, TrendingUp, Package, Boxes, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { FileBarChart, Download, TrendingUp, Package, Boxes, ArrowDownCircle, ArrowUpCircle, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -13,10 +13,54 @@ const Reports = ({ user, onLogout }) => {
   const [tipoOperacao, setTipoOperacao] = useState('entrada'); // entrada, saida, todos
   const [reportData, setReportData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [sortField, setSortField] = useState('valor_total');
+  const [sortDirection, setSortDirection] = useState('desc');
 
   // Usar valores diretamente do contexto
   const selectedCompany = ctxCompany?.id || '';
   const competencia = ctxCompetencia || '';
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  // Dados ordenados
+  const sortedData = useMemo(() => {
+    return [...reportData].sort((a, b) => {
+      let valA = a[sortField] || 0;
+      let valB = b[sortField] || 0;
+      
+      if (typeof valA === 'string') {
+        valA = valA.toLowerCase();
+        valB = String(valB).toLowerCase();
+        return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      
+      return sortDirection === 'asc' ? valA - valB : valB - valA;
+    });
+  }, [reportData, sortField, sortDirection]);
+
+  // Componente de header ordenável
+  const SortableHeader = ({ field, label, align = "left" }) => (
+    <th 
+      className={`px-6 py-4 text-${align} text-xs font-semibold text-[#E0E0E0] uppercase cursor-pointer hover:text-white transition-colors`}
+      onClick={() => handleSort(field)}
+    >
+      <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}>
+        {label}
+        {sortField === field ? (
+          sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+        ) : (
+          <ArrowUpDown className="w-3 h-3 opacity-30" />
+        )}
+      </div>
+    </th>
+  );
 
   const generateReport = async () => {
     if (!selectedCompany) {
