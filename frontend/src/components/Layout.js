@@ -4,7 +4,7 @@ import {
   Home, FileText, Download, LogOut, Menu, X, BarChart3, 
   Brain, ChevronDown, Calculator, AlertTriangle, Calendar, 
   DollarSign, Sparkles, Building2, Users, LayoutGrid, LayoutList,
-  Briefcase, Factory, Zap
+  Briefcase, Factory, Zap, Star
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import axios from 'axios';
@@ -75,38 +75,50 @@ const Layout = ({ user, onLogout, children }) => {
     const equiparadoIndustria = selectedCompany.equiparado_industria || false;
     const apuraIcms = selectedCompany.apura_icms || false;
     const apuraIcmsSt = selectedCompany.apura_icms_st || false;
+    const regimeTributario = selectedCompany.regime_tributario || 'lucro_presumido';
     
     // Verificar se é indústria (pelo tipo ou pelo perfil)
     const ehIndustria = tipoAtividade === 'industria' || perfisComerciais.includes('industria') || equiparadoIndustria;
     
-    // PIS/COFINS - sempre mostra (todas empresas pagam)
-    baseNav.push({ name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' });
+    // Se for Simples Nacional, adicionar Dashboard exclusivo
+    if (regimeTributario === 'simples_nacional') {
+      baseNav.push({ name: 'Simples Nacional', href: '/simples-nacional', icon: Star, testId: 'nav-simples-nacional' });
+    }
     
-    // ICMS - Comércio, Indústria, Mista OU flag apura_icms
-    if (['comercio', 'industria', 'mista'].includes(tipoAtividade) || apuraIcms) {
+    // PIS/COFINS - sempre mostra (todas empresas pagam) - exceto Simples
+    if (regimeTributario !== 'simples_nacional') {
+      baseNav.push({ name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' });
+    }
+    
+    // ICMS - Comércio, Indústria, Mista OU flag apura_icms - exceto Simples
+    if (regimeTributario !== 'simples_nacional' && (['comercio', 'industria', 'mista'].includes(tipoAtividade) || apuraIcms)) {
       baseNav.push({ name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' });
     }
     
-    // ICMS ST - Apenas Indústria (ou equiparado) OU flag explícita
-    if (ehIndustria || apuraIcmsSt) {
+    // ICMS ST - Apenas Indústria (ou equiparado) OU flag explícita - exceto Simples
+    if (regimeTributario !== 'simples_nacional' && (ehIndustria || apuraIcmsSt)) {
       baseNav.push({ name: 'ICMS ST', href: '/apuracao-icms-st', icon: Calculator, testId: 'nav-apuracao-icms-st' });
     }
     
-    // ISS - Serviços ou Mista
-    if (['servicos', 'mista'].includes(tipoAtividade)) {
+    // ISS - Serviços ou Mista - exceto Simples
+    if (regimeTributario !== 'simples_nacional' && ['servicos', 'mista'].includes(tipoAtividade)) {
       baseNav.push({ name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' });
     }
     
-    // IPI - Apenas Indústria (ou equiparado)
-    if (ehIndustria) {
+    // IPI - Apenas Indústria (ou equiparado) - exceto Simples
+    if (regimeTributario !== 'simples_nacional' && ehIndustria) {
       baseNav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
     }
     
-    // Indicadores - sempre mostra (acima do RET)
-    baseNav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
+    // Indicadores - sempre mostra (acima do RET) - exceto Simples
+    if (regimeTributario !== 'simples_nacional') {
+      baseNav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
+    }
     
-    // RET - sempre mostra
-    baseNav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
+    // RET - sempre mostra - exceto Simples
+    if (regimeTributario !== 'simples_nacional') {
+      baseNav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
+    }
     
     // Relatórios e Exportação - sempre
     baseNav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
