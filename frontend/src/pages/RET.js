@@ -445,17 +445,31 @@ const RET = ({ user, onLogout }) => {
                       <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.real?.icms)}</td>
                     </tr>
                     <tr className="border-t border-[#2A2A2A]">
-                      <td className="p-3 text-[#A1A1AA]">PIS</td>
+                      <td className="p-3 text-[#A1A1AA]">PIS (débitos)</td>
                       <td className="p-3 text-right text-white">{simplesIndisponivel ? '-' : formatCurrency(dadosAtivos?.simples?.pis)}</td>
                       <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.presumido?.pis)}</td>
-                      <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.real?.pis)}</td>
+                      <td className="p-3 text-right text-white">
+                        {formatCurrency(dadosAtivos?.real?.pis_debitos || dadosAtivos?.real?.pis)}
+                      </td>
                     </tr>
                     <tr className="border-t border-[#2A2A2A]">
-                      <td className="p-3 text-[#A1A1AA]">COFINS</td>
+                      <td className="p-3 text-[#A1A1AA]">COFINS (débitos)</td>
                       <td className="p-3 text-right text-white">{simplesIndisponivel ? '-' : formatCurrency(dadosAtivos?.simples?.cofins)}</td>
                       <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.presumido?.cofins)}</td>
-                      <td className="p-3 text-right text-white">{formatCurrency(dadosAtivos?.real?.cofins)}</td>
+                      <td className="p-3 text-right text-white">
+                        {formatCurrency(dadosAtivos?.real?.cofins_debitos || dadosAtivos?.real?.cofins)}
+                      </td>
                     </tr>
+                    {(dadosAtivos?.real?.pis_creditos > 0 || dadosAtivos?.real?.cofins_creditos > 0) && (
+                      <tr className="border-t border-[#2A2A2A] bg-[#0A1F0A]">
+                        <td className="p-3 text-green-400 text-sm">(-) Créditos PIS/COFINS</td>
+                        <td className="p-3 text-right text-[#666]">-</td>
+                        <td className="p-3 text-right text-[#666]">-</td>
+                        <td className="p-3 text-right text-green-400 text-sm">
+                          {formatCurrency((dadosAtivos?.real?.pis_creditos || 0) + (dadosAtivos?.real?.cofins_creditos || 0))}
+                        </td>
+                      </tr>
+                    )}
                     <tr className="border-t border-[#2A2A2A]">
                       <td className="p-3 text-[#A1A1AA]">IRPJ</td>
                       <td className="p-3 text-right text-white">{simplesIndisponivel ? '-' : formatCurrency(dadosAtivos?.simples?.irpj)}</td>
