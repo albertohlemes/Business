@@ -755,6 +755,104 @@ const Companies = ({ user, onLogout }) => {
                   </div>
                 </div>
 
+                {/* CNAE e Atividade */}
+                <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Building2 className="w-4 h-4 text-[#C8A951]" />
+                    <span className="text-sm font-medium text-white">CNAE e Atividade</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs text-[#A1A1AA] mb-2">CNAE Principal</label>
+                      <input
+                        type="text"
+                        value={formData.cnae_principal}
+                        onChange={(e) => setFormData({ ...formData, cnae_principal: e.target.value })}
+                        placeholder="00.00-0-00"
+                        className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white font-mono placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs text-[#A1A1AA] mb-2">Descrição CNAE</label>
+                      <input
+                        type="text"
+                        value={formData.cnae_principal_descricao}
+                        onChange={(e) => setFormData({ ...formData, cnae_principal_descricao: e.target.value })}
+                        className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                      />
+                    </div>
+                  </div>
+                  {formData.classificacao_inteligente && (
+                    <div className="mt-4 p-3 bg-[#C8A951]/10 border border-[#C8A951]/30 rounded">
+                      <label className="block text-xs text-[#C8A951] mb-1">Classificação Inteligente</label>
+                      <p className="text-sm text-white">{formData.classificacao_inteligente}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Flags de Contribuinte */}
+                <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Settings className="w-4 h-4 text-amber-400" />
+                    <span className="text-sm font-medium text-white">Flags de Contribuinte</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Equiparado a Indústria - só para Comércio */}
+                    {(formData.tipo_atividade === 'comercio' || formData.tipo_atividade === 'mista') && (
+                      <label className="flex items-center gap-3 p-3 bg-[#141414] border border-[#2A2A2A] rounded cursor-pointer hover:border-amber-500/50">
+                        <input
+                          type="checkbox"
+                          checked={formData.equiparado_industria}
+                          onChange={(e) => setFormData({ ...formData, equiparado_industria: e.target.checked })}
+                          className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-amber-500 focus:ring-amber-500"
+                        />
+                        <div>
+                          <span className="text-sm text-white block">Equiparado a Indústria</span>
+                          <span className="text-xs text-[#A1A1AA]">Contribuinte de IPI e ICMS ST</span>
+                        </div>
+                      </label>
+                    )}
+                    
+                    {/* Apura ICMS - só para Serviços */}
+                    {(formData.tipo_atividade === 'servicos' || formData.tipo_atividade === 'mista') && (
+                      <label className="flex items-center gap-3 p-3 bg-[#141414] border border-[#2A2A2A] rounded cursor-pointer hover:border-blue-500/50">
+                        <input
+                          type="checkbox"
+                          checked={formData.apura_icms}
+                          onChange={(e) => setFormData({ ...formData, apura_icms: e.target.checked })}
+                          className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-blue-500 focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="text-sm text-white block">Apura ICMS</span>
+                          <span className="text-xs text-[#A1A1AA]">CNAE secundário de comércio</span>
+                        </div>
+                      </label>
+                    )}
+
+                    {/* Apura ICMS ST - só para Comércio */}
+                    {(formData.tipo_atividade === 'comercio' || formData.tipo_atividade === 'mista' || formData.equiparado_industria) && (
+                      <label className="flex items-center gap-3 p-3 bg-[#141414] border border-[#2A2A2A] rounded cursor-pointer hover:border-purple-500/50">
+                        <input
+                          type="checkbox"
+                          checked={formData.apura_icms_st}
+                          onChange={(e) => setFormData({ ...formData, apura_icms_st: e.target.checked })}
+                          className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-purple-500 focus:ring-purple-500"
+                        />
+                        <div>
+                          <span className="text-sm text-white block">Apura ICMS ST</span>
+                          <span className="text-xs text-[#A1A1AA]">Substituto tributário</span>
+                        </div>
+                      </label>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#666] mt-3">
+                    {formData.tipo_atividade === 'industria' && '✓ Indústrias são automaticamente contribuintes de IPI e ICMS ST'}
+                    {formData.tipo_atividade === 'servicos' && '✓ Empresas de serviço apuram ISS. Marque "Apura ICMS" se tiver CNAE secundário de comércio.'}
+                    {formData.tipo_atividade === 'comercio' && '✓ Comércios apuram ICMS próprio. Marque "Equiparado a Indústria" se contribuinte de IPI.'}
+                    {formData.tipo_atividade === 'mista' && '✓ Empresas mistas podem apurar todos os tributos conforme configuração.'}
+                  </p>
+                </div>
+
                 {/* Responsáveis */}
                 {allUsers.length > 0 && (
                   <div>
