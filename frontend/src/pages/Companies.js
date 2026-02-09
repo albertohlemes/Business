@@ -60,6 +60,9 @@ const Companies = ({ user, onLogout }) => {
     equiparado_industria: false,
     apura_icms: false,
     apura_icms_st: false,
+    // Flags de desconsiderar ICMS
+    desconsiderar_icms_despesas: false,
+    desconsiderar_icms_st: false,
     // Classificação inteligente
     classificacao_inteligente: '',
     // Presunção geral (para atividade única)
