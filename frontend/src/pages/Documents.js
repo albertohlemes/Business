@@ -1045,6 +1045,15 @@ const Documents = ({ user, onLogout }) => {
     const categoria = CATEGORIAS[operacao];
     const isEntrada = operacao === 'entrada';
     
+    // Filtrar tipos de documento pela atividade da empresa
+    const atividadeEmpresa = ctxCompany?.tipo_atividade || 'comercio';
+    const tiposFiltrados = categoria.tipos.filter(tipo => {
+      // Se não tem filtro de atividade, mostra sempre
+      if (!tipo.atividades) return true;
+      // Mostra se a atividade da empresa está na lista de atividades do tipo
+      return tipo.atividades.includes(atividadeEmpresa);
+    });
+    
     return (
       <Layout user={user} onLogout={onLogout}>
         <div data-testid="documents-tipos" className="space-y-6">
@@ -1069,7 +1078,7 @@ const Documents = ({ user, onLogout }) => {
 
           {/* Grid de tipos */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-8">
-            {categoria.tipos.map((tipo) => {
+            {tiposFiltrados.map((tipo) => {
               const TipoIcon = tipo.icon;
               return (
                 <button
@@ -1097,6 +1106,13 @@ const Documents = ({ user, onLogout }) => {
               );
             })}
           </div>
+          
+          {/* Info sobre atividade */}
+          {tiposFiltrados.length < categoria.tipos.length && (
+            <div className="text-center text-sm text-[#666] mt-4">
+              <p>Exibindo opções para: <span className="text-[#A1A1AA]">{atividadeEmpresa.toUpperCase()}</span></p>
+            </div>
+          )}
         </div>
       </Layout>
     );
