@@ -90,8 +90,9 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     
     try {
       const token = localStorage.getItem('token');
+      // Usar endpoint agrupado por CFOP
       const response = await axios.get(
-        `${API}/alertas-cfop/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
+        `${API}/alertas-cfop/${selectedCompany.id}/agrupado?competencia=${encodeURIComponent(selectedCompetencia)}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setAlertasData(response.data);
