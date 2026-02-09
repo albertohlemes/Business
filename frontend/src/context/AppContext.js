@@ -193,7 +193,6 @@ export const AppProvider = ({ children }) => {
   const selectCompany = (company) => {
     setSelectedCompany(company);
     localStorage.setItem('selectedCompanyId', company.id);
-    setHasCompanySelection(true);
     setShowSelector(false);
   };
 
@@ -217,7 +216,7 @@ export const AppProvider = ({ children }) => {
   const clearSelection = () => {
     setSelectedCompany(null);
     setSelectedCompetencia('');
-    setHasCompanySelection(false);
+    setCompaniesLoaded(false);
     localStorage.removeItem('selectedCompanyId');
     localStorage.removeItem('selectedCompetencia');
   };
