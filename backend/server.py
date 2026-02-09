@@ -15070,6 +15070,7 @@ async def get_pis_cofins_apuracao_rapida(company_id: str, competencia: str, comp
         if not perfis:
             perfil = company.get('perfil_comercial', 'VAREJO')
             perfis = [perfil] if perfil else ['VAREJO']
+        perfil_empresa = perfis[0] if perfis else 'VAREJO'
         
         # Buscar documentos
         filtro_ativas = get_filtro_notas_ativas()
@@ -15105,12 +15106,14 @@ async def get_pis_cofins_apuracao_rapida(company_id: str, competencia: str, comp
                 else:
                     tipo_op = tipo_doc
                 
-                # Calcular PIS/COFINS
+                # Calcular PIS/COFINS com parâmetros corretos
                 resultado = calcular_pis_cofins_produto(
+                    valor_base=valor_base,
                     ncm=ncm,
                     cfop=cfop,
-                    valor_base=valor_base,
-                    regime=regime_tributario
+                    tipo_operacao=tipo_op,
+                    perfil_empresa=perfil_empresa,
+                    regime_tributario=regime_tributario
                 )
                 
                 pis_valor = float(resultado.get('pis_valor', 0) or 0)
