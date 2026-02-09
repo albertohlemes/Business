@@ -121,6 +121,28 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - ✅ Alíquotas por Perfil (Indústria, Distribuidor, Varejo)
 - ✅ CNAEs de Serviços (Cumulativo 3,65%, Financeiro 4,65%, Regra Geral 9,25%)
 
+### Tabelas de PIS/COFINS Atualizadas (09/02/2026)
+- ✅ NCMs Alíquota Zero expandidos: +83 NCMs (Tabela 4.3.13) - Carnes, Laticínios, Informática, Equipamentos Médicos, etc.
+- ✅ NCMs Monofásicos expandidos: +50 NCMs (Tabela 4.3.10) - Bebidas, Combustíveis, Autopeças, Perfumaria, Farmácia, Máquinas Agrícolas
+- ✅ Alíquotas por Perfil: INDÚSTRIA (concentrado), DISTRIBUIDOR (diferenciado), VAREJO (alíquota zero monofásicos)
+- ✅ Regras de CST:
+  - CST 50: Entradas tributadas com crédito
+  - CST 70: Monofásicos sem crédito (adquirente)
+  - CST 98: CFOPs sem crédito (bonificação, uso/consumo, ativo imob.)
+  - CST 49: CFOPs sem débito (remessas, demonstração, consignação)
+  - CST 04: Saídas monofásicas
+  - CST 01: Saídas tributadas
+
+### Perfis Comerciais (Múltipla Escolha)
+- ✅ Campo `perfis_comerciais` na empresa (array: ['industria', 'distribuidor', 'varejo'])
+- ✅ Formulário de cadastro com checkboxes para seleção múltipla
+- ✅ Alíquotas diferenciadas aplicadas automaticamente conforme perfil selecionado
+
+### Menus Condicionais
+- ✅ ICMS ST: Visível apenas para Indústria ou equiparado
+- ✅ IPI: Visível apenas para Indústria ou equiparado
+- ✅ ISS: Visível apenas para Serviços ou Mista
+
 ### Layout e Ordenação
 - ✅ **Layout fixo com scroll apenas no conteúdo** - Menu e header fixos, rolagem só na área de conteúdo
 - ✅ **Colunas ordenáveis em Documents.js** - Número, Emitente/Destinatário, CNPJ, Data, Valor
