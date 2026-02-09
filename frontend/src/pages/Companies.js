@@ -45,6 +45,7 @@ const Companies = ({ user, onLogout }) => {
     cep: '',
     cnae_principal: '',
     cnae_principal_descricao: '',
+    cnaes: [],
     atividade_principal: '',
     produtos_comercializados: [],
     insumos_producao: [],
@@ -55,6 +56,12 @@ const Companies = ({ user, onLogout }) => {
     anexos_simples: [],
     tipo_atividade: 'comercio',
     tipos_servico: [],
+    // Flags de contribuinte
+    equiparado_industria: false,
+    apura_icms: false,
+    apura_icms_st: false,
+    // Classificação inteligente
+    classificacao_inteligente: '',
     percentual_presuncao_irpj: 8.0,
     percentual_presuncao_csll: 12.0,
     responsavel_ids: []
