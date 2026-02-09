@@ -375,6 +375,20 @@ const RET = ({ user, onLogout }) => {
               </div>
             )}
 
+            {/* Aviso de dados incompletos para Lucro Real */}
+            {(dadosAtivos?.real?.despesa_informada === 0 || dadosAtivos?.real?.lucro_bruto === dadosAtivos?.real?.lucro_contabil) && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="text-amber-400 font-semibold mb-1">Cálculo do Lucro Real pode estar impreciso</p>
+                  <p className="text-[#A1A1AA]">
+                    Para maior precisão no comparativo, informe os dados de <strong className="text-white">estoque</strong> e <strong className="text-white">despesas</strong> na página <strong className="text-[#C8A951]">Indicadores</strong>.
+                    Sem esses dados, o sistema considera despesas zeradas, resultando em um Lucro Real superestimado.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Cards de Regimes - Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <RegimeCard 
