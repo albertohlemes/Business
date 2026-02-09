@@ -8,7 +8,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 ### 1. Gestão de Empresas
 - Cadastro com busca automática na Receita Federal
 - Múltiplos regimes tributários
-- **Upload de logo da empresa** (novo)
+- **Upload de logo da empresa** ✅
 - Configuração de CNAE, tipo de atividade
 - Perfis comerciais (indústria, distribuidor, varejo)
 
@@ -16,33 +16,46 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - Upload de XMLs (NF-e, NFC-e, CT-e, NFS-e)
 - Importação via IA (PDFs, imagens)
 - Integração com SIEG (BLOQUEADO - chave inválida)
-- **Barra de progresso com contador tomando café** (novo)
+- **Barra de progresso flutuante** ✅ (não bloqueia navegação)
 - Validação automática de CFOP por operação
+- **Filtro de divergências** ✅ (Todos/Divergente/OK)
 
-### 3. Alertas de CFOP (NOVO!)
-- **Agrupamento por CFOP** para ação em lote
+### 3. Visualização de NF-e (NOVO!)
+- **Modal detalhado de documento** ✅
+- Comparativo Capa NF × Produtos
+- Indicadores visuais de divergência (verde/vermelho)
+- Tabela completa de produtos com CFOP, CST, NCM, bases, impostos
+
+### 4. Alertas de CFOP
+- **Agrupamento por CFOP** para ação em lote ✅
 - Botões de ação: Manter, Converter, Editar manualmente
-- Lista expandível de produtos por grupo
+- **Atualização de CFOP ao classificar via IA** ✅
 - Ação individual ou em lote
+- Lista de NFs por produto
 
-### 4. Apurações Fiscais
+### 5. Apurações Fiscais
 - ICMS, PIS/COFINS, ISS, IPI
 - DIFAL para Simples Nacional
 - Cálculo de Fator R
-- DAS (Simples Nacional)
+- **DAS corrigido** ✅ (cálculo de descontos ST/monofásico)
+- **Indicadores para Lucro Presumido** ✅
 
-### 5. RET - Comparativo de Regimes
+### 6. RET - Comparativo de Regimes
 - Comparação entre Simples, Presumido e Real
 - DRE para Lucro Real
 - Aviso de dados incompletos
 - Projeção anual
 
-### 6. Classificação Inteligente
-- Classificação de produtos por categoria
-- Alertas de CFOP agrupados
-- Comandos de IA para classificação em lote
+### 7. Classificação Inteligente
+- **Modal de edição de produto** ✅
+- **Links para NFs do produto** ✅
+- Classificação atualiza CFOP automaticamente
+- Comandos de IA com atualização de CFOP
 
-### 7. Exportação
+### 8. Divergências PIS/COFINS
+- **Filtra apenas notas de SAÍDA** ✅
+
+### 9. Exportação
 - SPED Fiscal
 - Relatórios por alíquota (ICMS, PIS, COFINS)
 - CSV de entradas/saídas
@@ -58,6 +71,8 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 ### Frontend (React)
 - `/app/frontend/src/pages/` - Páginas principais
 - `/app/frontend/src/components/` - Componentes reutilizáveis
+  - `DocumentDetailModal.js` - Modal de detalhes NF ✅ (NOVO)
+  - `SortableTable.js` - Componente de ordenação ✅ (NOVO)
 - `/app/frontend/src/context/` - Contextos (App, Upload)
 
 ## Changelog
