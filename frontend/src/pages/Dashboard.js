@@ -192,13 +192,13 @@ const Dashboard = ({ user, onLogout }) => {
             <div>
               <h2 className="text-lg font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>Documentos por Tipo</h2>
               
-              {/* ENTRADAS */}
+              {/* ENTRADAS - Sempre mostra os 4 tipos */}
               <div className="mb-4">
                 <h3 className="text-sm text-[#A1A1AA] mb-2 flex items-center gap-2">
                   <ArrowDownCircle className="w-4 h-4 text-blue-400" />
                   ENTRADAS
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <StatCard
                     icon={FileText}
                     title="NF-e Entrada"
@@ -207,26 +207,30 @@ const Dashboard = ({ user, onLogout }) => {
                     link="/documents"
                     subtitle="Mercadorias"
                   />
-                  {(stats.quantidades.cte_entrada > 0 || stats.empresa.tipo_atividade === 'transporte') && (
-                    <StatCard
-                      icon={FileText}
-                      title="CT-e Entrada"
-                      value={stats.quantidades.cte_entrada || 0}
-                      color="bg-cyan-600"
-                      link="/documents"
-                      subtitle="Frete Tomado"
-                    />
-                  )}
-                  {(stats.quantidades.nfse_tomados > 0 || ['servicos', 'mista'].includes(stats.empresa.tipo_atividade)) && (
-                    <StatCard
-                      icon={FileCheck}
-                      title="NFS-e Tomados"
-                      value={stats.quantidades.nfse_tomados || 0}
-                      color="bg-orange-600"
-                      link="/documents"
-                      subtitle="Serviços Tomados"
-                    />
-                  )}
+                  <StatCard
+                    icon={FileText}
+                    title="CT-e Entrada"
+                    value={stats.quantidades.cte_entrada || 0}
+                    color="bg-cyan-600"
+                    link="/documents"
+                    subtitle="Frete Tomado"
+                  />
+                  <StatCard
+                    icon={FileCheck}
+                    title="NFS-e Tomados"
+                    value={stats.quantidades.nfse_tomados || 0}
+                    color="bg-orange-600"
+                    link="/documents"
+                    subtitle="Serviços Tomados"
+                  />
+                  <StatCard
+                    icon={FileText}
+                    title="Outros"
+                    value={0}
+                    color="bg-slate-600"
+                    link="/documents"
+                    subtitle="Demais Docs"
+                  />
                   <div className="bg-[#0C0C0C] rounded-lg p-5 border border-[#2A2A2A]">
                     <h3 className="text-[#666] text-sm font-medium mb-1">Total Entradas</h3>
                     <p className="text-2xl font-bold text-blue-400">{stats.quantidades.total_entradas || (stats.quantidades.nfe_entrada + (stats.quantidades.cte_entrada || 0) + (stats.quantidades.nfse_tomados || 0))}</p>
@@ -240,7 +244,7 @@ const Dashboard = ({ user, onLogout }) => {
                   <ArrowUpCircle className="w-4 h-4 text-green-400" />
                   SAÍDAS
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   {/* NF-e Saída - Comércio, Indústria, Mista */}
                   {['comercio', 'industria', 'mista'].includes(stats.empresa.tipo_atividade) && (
                     <StatCard
