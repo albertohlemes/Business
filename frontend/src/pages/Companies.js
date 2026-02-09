@@ -219,10 +219,12 @@ const Companies = ({ user, onLogout }) => {
         cidade: data.municipio || '',
         uf: data.uf || 'SP',
         cnae_principal: data.cnae_principal || '',
-        cnae_principal_descricao: data.cnae_principal_descricao || ''
+        cnae_principal_descricao: data.cnae_principal_descricao || '',
+        cnaes: data.cnaes_secundarios || []
       });
       
-      alert('✓ Dados carregados da Receita Federal!');
+      const qtdCnaes = data.cnaes_secundarios?.length || 0;
+      alert(`✓ Dados carregados da Receita Federal!\n${qtdCnaes > 0 ? `${qtdCnaes} CNAEs secundários importados.` : ''}`);
     } catch (err) {
       console.error('Erro ao buscar CNPJ:', err);
       alert(err.response?.data?.detail || 'Erro ao consultar CNPJ');
