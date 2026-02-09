@@ -8993,6 +8993,87 @@ CFOPS_OPERACOES_DISTINTAS_GLOBAL = {
     '6122': {'descricao': 'Venda com entrega futura', 'sugestao_entrada': '2102', 'sugestao_compra': '2102'},
 }
 
+# Mapeamento de CFOP para categoria de classificação
+# Usado para classificar automaticamente o produto quando um CFOP é atribuído
+CFOP_PARA_CATEGORIA = {
+    # COMPRAS PARA REVENDA/COMERCIALIZAÇÃO (produto)
+    '1102': 'produto', '2102': 'produto',  # Compra para comercialização
+    '1403': 'produto', '2403': 'produto',  # Compra em operação de substituição tributária
+    '1910': 'produto', '2910': 'produto',  # Entrada de bonificação
+    '1911': 'produto', '2911': 'produto',  # Entrada de amostra grátis
+    '1949': 'produto', '2949': 'produto',  # Outras entradas (geralmente mercadoria)
+    
+    # COMPRAS PARA INDUSTRIALIZAÇÃO (insumo)
+    '1101': 'insumo', '2101': 'insumo',    # Compra para industrialização
+    '1401': 'insumo', '2401': 'insumo',    # Compra para industrialização - ST
+    '1116': 'insumo', '2116': 'insumo',    # Compra para industrialização (c/ ICMS)
+    '1117': 'insumo', '2117': 'insumo',    # Compra para industrialização (s/ ICMS)
+    '1120': 'insumo', '2120': 'insumo',    # Compra para industrialização
+    '1121': 'insumo', '2121': 'insumo',    # Compra para industrialização
+    '1122': 'insumo', '2122': 'insumo',    # Compra para industrialização
+    '1126': 'insumo', '2126': 'insumo',    # Compra para utilização na produção
+    '1201': 'insumo', '2201': 'insumo',    # Devolução de venda (indústria)
+    
+    # DESPESAS (uso e consumo)
+    '1556': 'despesa', '2556': 'despesa',  # Compra de material para uso/consumo
+    '1557': 'despesa', '2557': 'despesa',  # Transferência de uso/consumo
+    '1407': 'despesa', '2407': 'despesa',  # Compra de mercadoria para uso/consumo - ST
+    '1253': 'despesa',                      # Energia elétrica
+    '1303': 'despesa',                      # Serviços de comunicação
+    '1352': 'despesa',                      # Serviços de transporte
+    '1353': 'despesa',                      # Serviços de transporte
+    '1933': 'despesa',                      # Aquisição de serviços (ISSQN)
+    '1209': 'despesa', '2209': 'despesa',  # Devolução de remessa para uso/consumo
+    
+    # ATIVO IMOBILIZADO
+    '1551': 'ativo', '2551': 'ativo',      # Compra de bem para ativo imobilizado
+    '1406': 'ativo', '2406': 'ativo',      # Compra de bem para ativo - ST
+    '1553': 'ativo', '2553': 'ativo',      # Devolução de venda de ativo
+    '1554': 'ativo', '2554': 'ativo',      # Retorno de remessa de ativo
+    
+    # COMBUSTÍVEL
+    '1651': 'combustivel', '2651': 'combustivel',  # Compra de combustível
+    '1652': 'combustivel', '2652': 'combustivel',  # Compra de combustível - ST
+    '1653': 'combustivel', '2653': 'combustivel',  # Compra de combustível
+    '1658': 'combustivel', '2658': 'combustivel',  # Compra de combustível
+    '1659': 'combustivel', '2659': 'combustivel',  # Compra de combustível
+    '1662': 'combustivel', '2662': 'combustivel',  # Compra de combustível
+    '1663': 'combustivel', '2663': 'combustivel',  # Compra de combustível
+    '1664': 'combustivel', '2664': 'combustivel',  # Compra de combustível
+    
+    # SERVIÇOS TOMADOS
+    '1933': 'servico',                      # Serviços tributados pelo ISSQN
+}
+
+def obter_categoria_por_cfop(cfop: str) -> str:
+    """
+    Retorna a categoria de classificação baseada no CFOP.
+    Se não encontrar, retorna None (pendente de classificação).
+    """
+    cfop = str(cfop).strip()
+    
+    # Busca direta
+    if cfop in CFOP_PARA_CATEGORIA:
+        return CFOP_PARA_CATEGORIA[cfop]
+    
+    # Regras genéricas baseadas no padrão do CFOP
+    if cfop.startswith(('1102', '2102', '1403', '2403')):
+        return 'produto'
+    if cfop.startswith(('1101', '2101', '1401', '2401')):
+        return 'insumo'
+    if cfop.startswith(('1551', '2551', '1406', '2406')):
+        return 'ativo'
+    if cfop.startswith(('1556', '2556', '1253', '1303')):
+        return 'despesa'
+    if cfop.startswith(('165', '265')):  # CFOPs de combustível começam com 165x/265x
+        return 'combustivel'
+    
+    # Bonificações e amostras geralmente são para revenda
+    if cfop in ('1910', '2910', '1911', '2911'):
+        return 'produto'
+    
+    return None  # Pendente de classificação
+
 @api_router.get("/alertas-cfop/{company_id}")
 async def alertas_cfop_operacoes_distintas(
     company_id: str,
