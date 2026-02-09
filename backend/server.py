@@ -1273,6 +1273,7 @@ def _parse_single_nfse(nfse: Dict[str, Any]) -> Dict[str, Any]:
         'cnae': cnae,
         'descricao': discriminacao[:200] if discriminacao else 'Serviço',
         'valor_total': valor_servicos,
+        'cfop': '5933',  # CFOP padrão para prestação de serviços (SPED)
         'aliq_iss': aliq_iss,
         'valor_iss': valor_iss,
         'v_pis': float(valores.get('ValorPis', 0) or 0),
