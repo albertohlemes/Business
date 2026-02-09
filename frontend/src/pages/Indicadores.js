@@ -42,11 +42,14 @@ const Indicadores = ({ user, onLogout }) => {
       setDespesaReal(selectedCompany.despesa_real || 0);
       
       // Buscar dados de apuração consolidados
-      const [icmsRes, issRes, pisRes, ipiRes] = await Promise.all([
+      const [icmsRes, issRes, pisRes, ipiRes, simplesRes] = await Promise.all([
         axios.get(`${API}/apuracao-icms/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }).catch(() => null),
         axios.get(`${API}/apuracao-iss/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }).catch(() => null),
         axios.get(`${API}/pis-cofins/apuracao/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }).catch(() => null),
-        axios.get(`${API}/apuracao-ipi/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }).catch(() => null)
+        axios.get(`${API}/apuracao-ipi/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }).catch(() => null),
+        selectedCompany?.regime_tributario === 'simples_nacional' 
+          ? axios.get(`${API}/simples-nacional/dashboard/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }).catch(() => null)
+          : null
       ]);
       
       // Buscar análise tributária IA
@@ -59,7 +62,8 @@ const Indicadores = ({ user, onLogout }) => {
         icms: icmsRes?.data,
         iss: issRes?.data,
         pis_cofins: pisRes?.data,
-        ipi: ipiRes?.data
+        ipi: ipiRes?.data,
+        simples: simplesRes?.data
       });
       setAnaliseIA(analiseRes?.data);
     } catch (err) {
