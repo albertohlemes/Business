@@ -64,20 +64,22 @@ export const AppProvider = ({ children }) => {
         const company = companies.find(c => c.id === savedCompanyId);
         if (company) {
           setSelectedCompany(company);
-          // IMPORTANTE: Fechar o seletor se já temos uma empresa válida salva
+          // IMPORTANTE: Fechar o seletor - já temos uma empresa válida salva
           setShowSelector(false);
+          setHasCompanySelection(true);
         } else {
           // Se não encontrou a empresa salva, mostra seletor
           setShowSelector(true);
+          setHasCompanySelection(false);
         }
-      } else {
-        // Primeira vez com empresas, mostra seletor
+      } else if (!hasCompanySelection) {
+        // Primeira vez com empresas E não tem seleção prévia, mostra seletor
         setShowSelector(true);
       }
       setLoading(false);
       setInitialLoadDone(true);
     }
-  }, [companies, initialLoadDone]);
+  }, [companies, initialLoadDone, hasCompanySelection]);
 
   const fetchCompanies = async () => {
     try {
