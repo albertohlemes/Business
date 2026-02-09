@@ -22,6 +22,7 @@ import ApuracaoICMS from './pages/ApuracaoICMS';
 import ApuracaoISS from './pages/ApuracaoISS';
 import ApuracaoIPI from './pages/ApuracaoIPI';
 import RET from './pages/RET';
+import Indicadores from './pages/Indicadores';
 import AlertasCfop from './pages/AlertasCfop';
 import AnaliseTributariaIA from './pages/AnaliseTributariaIA';
 import './App.css';
@@ -133,6 +134,10 @@ function App() {
             <Route
               path="/ret"
               element={user ? <RET user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/indicadores"
+              element={user ? <Indicadores user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
               path="/analise-saidas"
