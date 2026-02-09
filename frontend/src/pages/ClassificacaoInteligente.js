@@ -492,6 +492,11 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                           >
                             <ArrowRight className="w-4 h-4" />
                             Converter → {grupo.sugestao_compra.cfop}
+                            {grupo.sugestao_compra.categoria_nome && (
+                              <span className="px-2 py-0.5 bg-green-500/30 rounded text-xs">
+                                {grupo.sugestao_compra.categoria_nome}
+                              </span>
+                            )}
                           </button>
                           
                           {/* Botão Editar Manualmente */}
@@ -517,10 +522,25 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                         </div>
                       </div>
                       
+                      {/* Info de categoria que será atribuída */}
+                      <div className="mt-2 flex items-center gap-2 text-xs text-[#666]">
+                        <Info className="w-3 h-3" />
+                        <span>
+                          Ao resolver, os produtos serão classificados automaticamente como: 
+                          <span className="text-[#C8A951] ml-1">
+                            {grupo.sugestao_manter.categoria_nome || 'Pendente'} (manter) 
+                          </span>
+                          ou
+                          <span className="text-green-400 ml-1">
+                            {grupo.sugestao_compra.categoria_nome || 'Produto'} (converter)
+                          </span>
+                        </span>
+                      </div>
+                      
                       {/* Campo de edição manual */}
                       {editingCfop[grupo.cfop] && (
                         <div className="mt-4 p-3 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 flex-wrap">
                             <label className="text-sm text-[#A1A1AA]">CFOP personalizado:</label>
                             <input
                               type="text"
@@ -529,12 +549,26 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                               maxLength={4}
                               className="w-24 px-3 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white font-mono text-center focus:border-[#C8A951] outline-none"
                             />
+                            <select
+                              id={`categoria-manual-${grupo.cfop}`}
+                              className="px-3 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white text-sm focus:border-[#C8A951] outline-none"
+                            >
+                              <option value="">Categoria automática</option>
+                              <option value="produto">Revenda/Produto</option>
+                              <option value="insumo">Insumo</option>
+                              <option value="despesa">Despesa</option>
+                              <option value="ativo">Ativo Imobilizado</option>
+                              <option value="combustivel">Combustível</option>
+                              <option value="servico">Serviço</option>
+                            </select>
                             <button
                               onClick={() => {
-                                const input = document.getElementById(`cfop-manual-${grupo.cfop}`);
-                                const novoCfop = input?.value?.trim();
+                                const inputCfop = document.getElementById(`cfop-manual-${grupo.cfop}`);
+                                const selectCategoria = document.getElementById(`categoria-manual-${grupo.cfop}`);
+                                const novoCfop = inputCfop?.value?.trim();
+                                const categoria = selectCategoria?.value || null;
                                 if (novoCfop && /^\d{4}$/.test(novoCfop)) {
-                                  resolverGrupoCfop(grupo.cfop, novoCfop, true);
+                                  resolverGrupoCfop(grupo.cfop, novoCfop, true, categoria);
                                 } else {
                                   toast.error('CFOP deve ter 4 dígitos');
                                 }
