@@ -511,6 +511,15 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                 corValor="text-red-400"
               />
               <ResumoCard
+                titulo="ICMS por Documento"
+                valor={dados.apuracao?.credito_icms && dados.entradas?.totais?.qtd_documentos ? 
+                  (dados.apuracao.credito_icms / dados.entradas.totais.qtd_documentos) : 0}
+                subtitulo="Média de crédito por documento"
+                icon={FileText}
+                corIcone="bg-blue-600"
+                corValor="text-blue-400"
+              />
+              <ResumoCard
                 titulo="Saldo"
                 valor={Math.abs(dados.apuracao?.saldo || 0)}
                 subtitulo={dados.apuracao?.situacao === 'A_PAGAR' ? 'Imposto a pagar' : dados.apuracao?.situacao === 'A_RECUPERAR' ? 'Crédito a recuperar' : 'Zerado'}
