@@ -16051,17 +16051,32 @@ async def inteligencia_tributaria(
         # Calcular débitos total e saldo
         debitos_pis = totais['debitos_comercio']['pis'] + totais['debitos_servicos']['pis']
         debitos_cofins = totais['debitos_comercio']['cofins'] + totais['debitos_servicos']['cofins']
+        creditos_pis = totais['creditos']['pis']
+        creditos_cofins = totais['creditos']['cofins']
         
-        saldo_pis = debitos_pis - totais['creditos']['pis']
-        saldo_cofins = debitos_cofins - totais['creditos']['cofins']
+        saldo_pis = debitos_pis - creditos_pis
+        saldo_cofins = debitos_cofins - creditos_cofins
         
+        # Para o comparativo RET, mostrar os DÉBITOS (não o saldo a pagar)
+        # Isso permite comparação justa com Lucro Presumido (que não tem créditos)
+        # Porém o "imposto a pagar" efetivo é o saldo (se positivo)
         pis_real = float(max(Decimal('0'), saldo_pis))
         cofins_real = float(max(Decimal('0'), saldo_cofins))
+        
+        # Armazenar débitos e créditos separados para exibição detalhada
+        pis_debitos_real = float(debitos_pis)
+        cofins_debitos_real = float(debitos_cofins)
+        pis_creditos_real = float(creditos_pis)
+        cofins_creditos_real = float(creditos_cofins)
         
     except Exception as e:
         print(f"Erro ao calcular PIS/COFINS: {e}")
         import traceback
         traceback.print_exc()
+        pis_debitos_real = 0
+        cofins_debitos_real = 0
+        pis_creditos_real = 0
+        cofins_creditos_real = 0
     
     # IRPJ e CSLL do Lucro Real (baseado no lucro contábil)
     estoque_inicial = float(company.get('estoque_inicial', 0) or 0)
