@@ -345,6 +345,17 @@ const ExportMenu = ({ user, onLogout }) => {
                 <ArrowUpRight className="w-5 h-5" />
                 CSV Saídas
             </button>
+            <button
+                onClick={() => setActiveTab('relatorios')}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-colors ${
+                    activeTab === 'relatorios' 
+                    ? 'bg-purple-50 text-purple-700 shadow-sm' 
+                    : 'text-[#A1A1AA] hover:bg-[#0C0C0C]'
+                }`}
+            >
+                <FileSpreadsheet className="w-5 h-5" />
+                Por Alíquota
+            </button>
         </div>
 
         <div className="bg-[#141414] rounded-lg p-6 shadow-md border border-[#2A2A2A]">
