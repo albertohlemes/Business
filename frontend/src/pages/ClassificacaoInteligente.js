@@ -259,6 +259,46 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     }
   };
 
+  // Salvar alteração de produto individual
+  const salvarAlteracaoProduto = async (novaCategoria) => {
+    if (!editingProduct || savingProduct) return;
+    
+    setSavingProduct(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const prod = editingProduct.prod;
+      
+      // Usar as ocorrências para atualizar todos os documentos que têm esse produto
+      if (prod.ocorrencias && prod.ocorrencias.length > 0) {
+        // Atualizar cada ocorrência do produto
+        for (const ocorrencia of prod.ocorrencias) {
+          await axios.post(
+            `${API}/products/classify-single`,
+            {
+              document_id: ocorrencia.doc_id,
+              product_idx: ocorrencia.produto_idx,
+              nova_categoria: novaCategoria,
+              salvar_regra: true
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        }
+        
+        toast.success(`Produto "${prod.descricao?.substring(0, 30)}..." reclassificado para ${categoriasConfig[novaCategoria]?.label || novaCategoria}`);
+        fetchValidacao(); // Recarregar dados
+      } else {
+        toast.error('Não foi possível identificar as ocorrências do produto');
+      }
+    } catch (err) {
+      console.error('Erro ao salvar alteração:', err);
+      toast.error('Erro ao reclassificar produto');
+    } finally {
+      setSavingProduct(false);
+      setEditingProduct(null);
+    }
+  };
+
   // Configuração das categorias de classificação
   const categoriasConfig = {
     revenda: { label: 'Revenda', color: 'blue', icon: '🛒' },
