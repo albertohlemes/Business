@@ -5651,6 +5651,61 @@ async def get_dashboard_stats(
     total_cupons = total_nfce
     total_servicos = total_nfse_prestados
     
+    # === COMPRAS E VENDAS LÍQUIDAS (para Markup) ===
+    # CFOPs de COMPRA para revenda e insumos
+    CFOPS_COMPRA_REVENDA = ['1102', '2102', '1403', '2403', '1101', '2101']  # Compra para revenda/comercialização
+    CFOPS_COMPRA_INSUMO = ['1101', '2101', '1201', '2201', '1551', '2551']   # Compra de matéria-prima/insumo
+    CFOPS_COMPRAS = CFOPS_COMPRA_REVENDA + CFOPS_COMPRA_INSUMO
+    
+    # CFOPs de DEVOLUÇÃO de compra (empresa devolvendo para fornecedor)
+    CFOPS_DEVOLUCAO_COMPRA = ['5201', '5202', '5410', '5411', '6201', '6202', '6410', '6411']
+    
+    # CFOPs de VENDA
+    CFOPS_VENDA = ['5102', '5103', '5104', '5105', '5106', '5401', '5403', '5405',
+                   '6102', '6103', '6104', '6105', '6106', '6401', '6403', '6404']
+    
+    # CFOPs de DEVOLUÇÃO de venda (cliente devolvendo para empresa)
+    CFOPS_DEVOLUCAO_VENDA = ['1202', '1410', '1411', '2202', '2410', '2411']
+    
+    # Calcular COMPRAS (revenda + insumos) por CFOP dos produtos
+    total_compras_brutas = 0
+    total_devolucao_compras = 0
+    total_vendas_brutas = 0
+    total_devolucao_vendas = 0
+    
+    for doc in documents:
+        produtos = doc.get('produtos', [])
+        for prod in produtos:
+            cfop = str(prod.get('cfop', ''))
+            valor = float(prod.get('valor_total', 0) or 0)
+            
+            # Compras para revenda/insumo
+            if cfop in CFOPS_COMPRAS:
+                total_compras_brutas += valor
+            
+            # Devolução de compra (empresa devolvendo)
+            if cfop in CFOPS_DEVOLUCAO_COMPRA:
+                total_devolucao_compras += valor
+            
+            # Vendas
+            if cfop in CFOPS_VENDA:
+                total_vendas_brutas += valor
+            
+            # Devolução de venda (cliente devolvendo)
+            if cfop in CFOPS_DEVOLUCAO_VENDA:
+                total_devolucao_vendas += valor
+    
+    # Valores líquidos (descontando devoluções)
+    compras_liquidas = total_compras_brutas - total_devolucao_compras
+    vendas_liquidas = total_vendas_brutas - total_devolucao_vendas
+    
+    # Markup = (Vendas - Compras) / Compras * 100
+    markup = ((vendas_liquidas - compras_liquidas) / compras_liquidas * 100) if compras_liquidas > 0 else 0
+    
+    logger.info(f"DASHBOARD: Compras Brutas={total_compras_brutas}, Devoluções Compra={total_devolucao_compras}, Compras Líquidas={compras_liquidas}")
+    logger.info(f"DASHBOARD: Vendas Brutas={total_vendas_brutas}, Devoluções Venda={total_devolucao_vendas}, Vendas Líquidas={vendas_liquidas}")
+    logger.info(f"DASHBOARD: Markup={markup:.2f}%")
+    
     # Faturamento considera apenas o que gera receita para a empresa
     # baseado no tipo de atividade
     if tipo_atividade == 'comercio':
