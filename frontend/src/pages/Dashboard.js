@@ -108,48 +108,6 @@ const Dashboard = ({ user, onLogout }) => {
     </div>
   );
 
-  // Card de PIS/COFINS com divergência (para Lucro Real)
-  const TaxCardWithDivergence = ({ title, credito, debito, debitoXml, pagar, divergencia }) => (
-    <div className={`bg-[#141414] rounded-lg p-4 border ${divergencia ? 'border-amber-500/30 bg-amber-500/5' : 'border-[#2A2A2A]'}`}>
-      <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
-        {title}
-        {divergencia && (
-          <span className="text-xs bg-amber-500 text-black px-2 py-0.5 rounded-full">
-            Divergência
-          </span>
-        )}
-      </h4>
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm">
-          <span className="text-emerald-400">Crédito:</span>
-          <span className="font-medium text-emerald-400">{formatCurrency(credito)}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-red-400">Débito ({title === 'PIS' ? '1.65%' : '7.6%'}):</span>
-          <span className="font-medium text-red-400">{formatCurrency(debito)}</span>
-        </div>
-        {divergencia && debitoXml !== null && (
-          <div className="flex justify-between text-xs bg-amber-500/10 -mx-2 px-2 py-1 rounded">
-            <span className="text-amber-400">Valor no XML ({divergencia.aliquota_xml}):</span>
-            <span className="font-medium text-amber-400">{formatCurrency(debitoXml)}</span>
-          </div>
-        )}
-        {divergencia && (
-          <div className="flex justify-between text-xs text-amber-400">
-            <span>Diferença:</span>
-            <span className="font-medium">{formatCurrency(divergencia.diferenca)}</span>
-          </div>
-        )}
-        <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
-          <span className="text-[#A1A1AA]">A Pagar:</span>
-          <span className={pagar > 0 ? 'text-red-400' : 'text-emerald-400'}>
-            {formatCurrency(pagar)}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="dashboard-page" className="space-y-6">
