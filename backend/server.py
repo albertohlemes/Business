@@ -197,6 +197,9 @@ class CompanyCreate(BaseModel):
     # Regime Tributário
     regime_tributario: str = "lucro_presumido"
     anexos_simples: List[str] = []
+    anexos_confirmados: bool = False
+    controla_fator_r: bool = False
+    folha_pagamento_12m: float = 0.0
     tipo_atividade: str = "comercio"
     tipos_servico: List[str] = []
     # Perfis de atividade comercial (múltipla escolha)
