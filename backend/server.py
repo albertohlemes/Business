@@ -10087,6 +10087,13 @@ Se o comando não for claro, retorne {{"alteracoes": [], "erro": "mensagem expli
                                 produtos_doc[idx]['categoria_classificada'] = categoria_destino
                                 produtos_doc[idx]['classificado_por_ia'] = True
                                 produtos_doc[idx]['comando_ia'] = comando
+                                
+                                # ATUALIZAR CFOP baseado na categoria
+                                cfop_atual = produtos_doc[idx].get('cfop', '1102')
+                                cfop_novo = obter_cfop_por_categoria(categoria_destino, cfop_atual)
+                                if cfop_novo:
+                                    produtos_doc[idx]['cfop_anterior'] = cfop_atual
+                                    produtos_doc[idx]['cfop'] = cfop_novo
                     
                     alteracoes_aplicadas.append({
                         'produto': dados['descricao'],
