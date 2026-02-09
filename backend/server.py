@@ -156,6 +156,8 @@ class Company(BaseModel):
     # Estoque (para ponto de equilíbrio - Lucro Real)
     estoque_inicial: float = 0.0
     estoque_final: float = 0.0
+    # Despesa real informada pelo usuário (DRE flutuante)
+    despesa_real: float = 0.0
     # Classificação inteligente (gerada pela IA)
     classificacao_inteligente: Optional[str] = None
     # Responsáveis pela empresa
