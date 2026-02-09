@@ -96,11 +96,19 @@ const CompanySelector = () => {
     return (siegStatus.count.entrada?.total || 0) + (siegStatus.count.saida?.total || 0);
   };
 
-  const filteredCompanies = companies.filter(company =>
-    company.razao_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    company.cnpj?.includes(searchTerm) ||
-    company.codigo_empresa?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrar e ordenar empresas por codigo_empresa
+  const filteredCompanies = companies
+    .filter(company =>
+      company.razao_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      company.cnpj?.includes(searchTerm) ||
+      company.codigo_empresa?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Ordenar por codigo_empresa numericamente
+      const codeA = parseInt(a.codigo_empresa) || 999999;
+      const codeB = parseInt(b.codigo_empresa) || 999999;
+      return codeA - codeB;
+    });
 
   if (!showSelector) return null;
 
