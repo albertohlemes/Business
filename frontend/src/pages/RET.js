@@ -531,8 +531,11 @@ const RET = ({ user, onLogout }) => {
               <div className="text-sm text-[#A1A1AA]">
                 <p className="mb-1"><strong className="text-white">Nota:</strong> Esta análise considera os dados fiscais da empresa no período selecionado.</p>
                 <p>• <strong>Simples Nacional:</strong> Limitado a R$ 4.800.000/ano. Alíquotas conforme anexos e faixas.</p>
-                <p>• <strong>Lucro Presumido:</strong> Presunção de {selectedCompany?.percentual_presuncao_irpj || 8}% IRPJ e {selectedCompany?.percentual_presuncao_csll || 12}% CSLL. PIS 0,65% e COFINS 3% (cumulativo).</p>
-                <p>• <strong>Lucro Real:</strong> Base = Lucro Contábil (informe estoque e despesas na página Indicadores). PIS 1,65% e COFINS 7,6% (não cumulativo, com créditos).</p>
+                <p>• <strong>Lucro Presumido:</strong> Presunção de {selectedCompany?.percentual_presuncao_irpj || 8}% IRPJ e {selectedCompany?.percentual_presuncao_csll || 12}% CSLL. PIS 0,65% e COFINS 3% (cumulativo, sem créditos).</p>
+                <p>• <strong>Lucro Real:</strong> Base = Lucro Contábil (informe estoque e despesas na página Indicadores). PIS 1,65% e COFINS 7,6% (não cumulativo, com direito a créditos nas entradas).</p>
+                {(dadosAtivos?.real?.pis_creditos > 0 || dadosAtivos?.real?.cofins_creditos > 0) && (
+                  <p className="mt-2 text-green-400">• <strong>Créditos de PIS/COFINS:</strong> A empresa possui créditos de {formatCurrency((dadosAtivos?.real?.pis_creditos || 0) + (dadosAtivos?.real?.cofins_creditos || 0))} que podem ser compensados com os débitos.</p>
+                )}
               </div>
             </div>
           </div>
