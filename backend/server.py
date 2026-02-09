@@ -5934,7 +5934,13 @@ async def get_dashboard_stats(
             "id": company['id'],
             "razao_social": company['razao_social'],
             "cnpj": company['cnpj'],
-            "regime_tributario": regime_tributario
+            "regime_tributario": regime_tributario,
+            "tipo_atividade": company.get('tipo_atividade', 'comercio'),
+            "equiparado_industria": company.get('equiparado_industria', False),
+            "apura_icms": company.get('apura_icms', False),
+            "apura_icms_st": company.get('apura_icms_st', False),
+            "desconsiderar_icms_despesas": company.get('desconsiderar_icms_despesas', False),
+            "desconsiderar_icms_st": company.get('desconsiderar_icms_st', False)
         },
         "competencia": competencia,
         "quantidades": {
@@ -5960,6 +5966,7 @@ async def get_dashboard_stats(
         "creditos": {
             "icms": round(credito_icms, 2),
             "icms_st_desconsiderado": round(credito_icms_st_desconsiderado, 2),
+            "icms_despesa_desconsiderado": round(credito_icms_despesa_desconsiderado, 2),
             "pis": round(credito_pis, 2),
             "cofins": round(credito_cofins, 2),
             "total": round(credito_icms + credito_pis + credito_cofins, 2)
@@ -5985,7 +5992,17 @@ async def get_dashboard_stats(
             "total": round(total_impostos_pagar, 2)
         },
         "indicadores": {
-            "markup_percentual": round(markup_percentual, 2)
+            "markup_percentual": round(markup_percentual, 2),
+            # Percentuais sobre faturamento
+            "perc_icms_faturamento": round((icms_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+            "perc_pis_faturamento": round((pis_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+            "perc_cofins_faturamento": round((cofins_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+            "perc_iss_faturamento": round((total_iss / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+            "perc_total_impostos_faturamento": round((total_impostos_pagar / faturamento_total * 100) if faturamento_total > 0 else 0, 2),
+            # Percentuais sobre vendas (sem serviços)
+            "perc_icms_vendas": round((icms_pagar / (total_vendas + total_cupons) * 100) if (total_vendas + total_cupons) > 0 else 0, 2),
+            "perc_pis_vendas": round((pis_pagar / (total_vendas + total_cupons) * 100) if (total_vendas + total_cupons) > 0 else 0, 2),
+            "perc_cofins_vendas": round((cofins_pagar / (total_vendas + total_cupons) * 100) if (total_vendas + total_cupons) > 0 else 0, 2)
         },
         "analise_comparativa": analise_comparativa
     }
