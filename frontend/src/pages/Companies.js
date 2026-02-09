@@ -140,6 +140,9 @@ const Companies = ({ user, onLogout }) => {
       ...emptyFormData,
       ...company,
       codigo_empresa: company.codigo_empresa || '',
+      cnae_principal: company.cnae_principal || '',
+      cnae_principal_descricao: company.cnae_principal_descricao || '',
+      cnaes: company.cnaes || [],
       produtos_comercializados: company.produtos_comercializados || [],
       insumos_producao: company.insumos_producao || [],
       produtos_despesa: company.produtos_despesa || [],
@@ -147,6 +150,12 @@ const Companies = ({ user, onLogout }) => {
       combustivel: company.combustivel || [],
       anexos_simples: company.anexos_simples || [],
       tipos_servico: company.tipos_servico || [],
+      // Flags de contribuinte
+      equiparado_industria: company.equiparado_industria || false,
+      apura_icms: company.apura_icms || false,
+      apura_icms_st: company.apura_icms_st || false,
+      // Classificação inteligente
+      classificacao_inteligente: company.classificacao_inteligente || '',
       responsavel_ids: company.responsavel_ids || []
     });
     setShowForm(true);
