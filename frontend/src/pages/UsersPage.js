@@ -414,11 +414,31 @@ const UsersPage = ({ user, onLogout }) => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#2A2A2A] bg-[#0C0C0C]">
-                  <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider">Usuário</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider hidden md:table-cell">Email</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider">Perfil</th>
+                  <th 
+                    className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white"
+                    onClick={() => handleSort('name')}
+                  >
+                    Usuário <SortIndicator field="name" />
+                  </th>
+                  <th 
+                    className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider hidden md:table-cell cursor-pointer hover:text-white"
+                    onClick={() => handleSort('email')}
+                  >
+                    Email <SortIndicator field="email" />
+                  </th>
+                  <th 
+                    className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white"
+                    onClick={() => handleSort('role')}
+                  >
+                    Perfil <SortIndicator field="role" />
+                  </th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider hidden lg:table-cell">Empresas</th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider">Status</th>
+                  <th 
+                    className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white"
+                    onClick={() => handleSort('is_active')}
+                  >
+                    Status <SortIndicator field="is_active" />
+                  </th>
                   <th className="text-right px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider">Ações</th>
                 </tr>
               </thead>
