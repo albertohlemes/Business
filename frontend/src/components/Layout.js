@@ -48,20 +48,63 @@ const Layout = ({ user, onLogout, children }) => {
   // Check if user is Master/Admin
   const isMasterOrAdmin = user?.role === 'admin' || user?.role === 'master' || user?.role === 'super_admin';
 
-  // Navigation items
-  const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
-    { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
-    { name: 'Alertas', href: '/alertas-cfop', icon: AlertTriangle, testId: 'nav-alertas-cfop' },
-    { name: 'Validação IA', href: '/classificacao', icon: Brain, testId: 'nav-classificacao' },
-    { name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
-    { name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' },
-    { name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' },
-    { name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' },
-    { name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' },
-    { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
-    { name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' },
-  ];
+  // Determinar quais apurações mostrar baseado nos flags da empresa
+  const getVisibleNavigation = () => {
+    const baseNav = [
+      { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
+      { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
+      { name: 'Alertas', href: '/alertas-cfop', icon: AlertTriangle, testId: 'nav-alertas-cfop' },
+      { name: 'Validação IA', href: '/classificacao', icon: Brain, testId: 'nav-classificacao' },
+    ];
+    
+    // Se não tem empresa selecionada, mostra todos os menus
+    if (!selectedCompany) {
+      return [
+        ...baseNav,
+        { name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
+        { name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' },
+        { name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' },
+        { name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' },
+        { name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' },
+        { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
+        { name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' },
+      ];
+    }
+    
+    const tipoAtividade = selectedCompany.tipo_atividade || 'comercio';
+    const equiparadoIndustria = selectedCompany.equiparado_industria || false;
+    const apuraIcms = selectedCompany.apura_icms || false;
+    const apuraIcmsSt = selectedCompany.apura_icms_st || false;
+    
+    // PIS/COFINS - sempre mostra (todas empresas pagam)
+    baseNav.push({ name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' });
+    
+    // ICMS - Comércio, Indústria, Mista OU flag apura_icms
+    if (['comercio', 'industria', 'mista'].includes(tipoAtividade) || apuraIcms) {
+      baseNav.push({ name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' });
+    }
+    
+    // ISS - Serviços ou Mista
+    if (['servicos', 'mista'].includes(tipoAtividade)) {
+      baseNav.push({ name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' });
+    }
+    
+    // IPI - Indústria OU Equiparado a Indústria
+    if (tipoAtividade === 'industria' || equiparadoIndustria) {
+      baseNav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
+    }
+    
+    // RET - sempre mostra
+    baseNav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
+    
+    // Relatórios e Exportação - sempre
+    baseNav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
+    baseNav.push({ name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' });
+    
+    return baseNav;
+  };
+  
+  const navigation = getVisibleNavigation();
 
   const isActive = (href) => {
     if (href === '/') return location.pathname === '/';
