@@ -89,12 +89,20 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - **Email**: admin@test.com
 - **Senha**: 123456
 
+## Atualizações Recentes (09/02/2026)
+
+### Correções e Melhorias - Documentos e Classificação
+- ✅ Criado endpoint `/api/classification/suggestions/{company_id}` para carregar produtos na página Classificação Inteligente
+- ✅ Adicionada **coluna de CFOPs** na tabela de Documentos (mostra até 3 CFOPs únicos por nota)
+- ✅ Adicionada **coluna de Classificações** na tabela de Documentos (badges de REV, INS, DES, ATI, CMB, PEN)
+- ✅ Restaurada **barra de validação de notas** - mostra quantas notas têm soma de produtos = valor total
+- ✅ Barra verde quando 100% validadas, âmbar quando há divergências
+
 ## Próximas Tarefas (Backlog)
 
 ### P1 - Alta Prioridade
 - [ ] Upload real de arquivo de certificado digital (.pfx)
 - [ ] Validação de certificado digital
-- [ ] Verificar budget do Emergent LLM Key para AI insights
 
 ### P2 - Média Prioridade
 - [ ] Refatorar server.py em módulos (routers)
