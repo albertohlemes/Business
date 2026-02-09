@@ -196,6 +196,7 @@ export const AppProvider = ({ children }) => {
   const selectCompany = (company) => {
     setSelectedCompany(company);
     localStorage.setItem('selectedCompanyId', company.id);
+    setHasCompanySelection(true);
     setShowSelector(false);
   };
 
