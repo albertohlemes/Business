@@ -91,6 +91,12 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 
 ## Atualizações Recentes (09/02/2026)
 
+### Renomeação de Páginas - RET e Indicadores
+- ✅ **RET** agora é a página de "Rota de Eficiência Tributária" (comparativo de regimes tributários)
+- ✅ **Indicadores** é a página de indicadores financeiros (antiga RET) - CMV/CPV, Margens, DRE
+- ✅ Rotas atualizadas: `/ret` (comparativo) e `/indicadores` (indicadores financeiros)
+- ✅ Menu lateral atualizado com ambas as opções
+
 ### Correções e Melhorias - Documentos e Classificação
 - ✅ Criado endpoint `/api/classification/suggestions/{company_id}` para carregar produtos na página Classificação Inteligente
 - ✅ Adicionada **coluna de CFOPs** na tabela de Documentos (mostra até 3 CFOPs únicos por nota)
