@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, DollarSign, FileText,
   ChevronDown, ChevronUp, Download, RefreshCw, 
   Building2, Package, Hash, BarChart3, ArrowRight,
-  ArrowLeftRight, Minus, Factory
+  ArrowLeftRight, Minus, Factory, ArrowUp, ArrowDown
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
