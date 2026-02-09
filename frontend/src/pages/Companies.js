@@ -773,35 +773,108 @@ const Companies = ({ user, onLogout }) => {
                         <option value="comercio">Comércio</option>
                         <option value="industria">Indústria</option>
                         <option value="servicos">Serviços</option>
-                        <option value="mista">Mista</option>
+                        <option value="mista">Mista (Comércio + Serviços)</option>
                       </select>
                     </div>
                   </div>
+                  
                   {/* Presunção - apenas para Lucro Presumido */}
                   {formData.regime_tributario === 'lucro_presumido' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-[#2A2A2A]">
-                      <div>
-                        <label className="block text-xs text-[#A1A1AA] mb-2">Presunção IRPJ (%)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={formData.percentual_presuncao_irpj}
-                          onChange={(e) => setFormData({ ...formData, percentual_presuncao_irpj: parseFloat(e.target.value) || 8 })}
-                          className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
-                        />
-                        <p className="text-xs text-[#666] mt-1">Comércio: 8% | Serviços: 32%</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-[#A1A1AA] mb-2">Presunção CSLL (%)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={formData.percentual_presuncao_csll}
-                          onChange={(e) => setFormData({ ...formData, percentual_presuncao_csll: parseFloat(e.target.value) || 12 })}
-                          className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
-                        />
-                        <p className="text-xs text-[#666] mt-1">Comércio: 12% | Serviços: 32%</p>
-                      </div>
+                    <div className="pt-4 border-t border-[#2A2A2A]">
+                      {/* Atividade única (não mista) */}
+                      {formData.tipo_atividade !== 'mista' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs text-[#A1A1AA] mb-2">Presunção IRPJ (%)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.percentual_presuncao_irpj}
+                              onChange={(e) => setFormData({ ...formData, percentual_presuncao_irpj: parseFloat(e.target.value) || 8 })}
+                              className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                            />
+                            <p className="text-xs text-[#666] mt-1">
+                              {formData.tipo_atividade === 'comercio' || formData.tipo_atividade === 'industria' ? 'Padrão: 8%' : 'Padrão: 32%'}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-[#A1A1AA] mb-2">Presunção CSLL (%)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.percentual_presuncao_csll}
+                              onChange={(e) => setFormData({ ...formData, percentual_presuncao_csll: parseFloat(e.target.value) || 12 })}
+                              className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                            />
+                            <p className="text-xs text-[#666] mt-1">
+                              {formData.tipo_atividade === 'comercio' || formData.tipo_atividade === 'industria' ? 'Padrão: 12%' : 'Padrão: 32%'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Atividade Mista - campos separados */}
+                      {formData.tipo_atividade === 'mista' && (
+                        <div className="space-y-4">
+                          {/* Comércio */}
+                          <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3">
+                            <h4 className="text-sm font-medium text-blue-400 mb-3">📦 Atividade de Comércio</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs text-[#A1A1AA] mb-2">Presunção IRPJ Comércio (%)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={formData.percentual_presuncao_irpj_comercio}
+                                  onChange={(e) => setFormData({ ...formData, percentual_presuncao_irpj_comercio: parseFloat(e.target.value) || 8 })}
+                                  className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                />
+                                <p className="text-xs text-[#666] mt-1">Padrão: 8%</p>
+                              </div>
+                              <div>
+                                <label className="block text-xs text-[#A1A1AA] mb-2">Presunção CSLL Comércio (%)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={formData.percentual_presuncao_csll_comercio}
+                                  onChange={(e) => setFormData({ ...formData, percentual_presuncao_csll_comercio: parseFloat(e.target.value) || 12 })}
+                                  className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                />
+                                <p className="text-xs text-[#666] mt-1">Padrão: 12%</p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Serviços */}
+                          <div className="bg-purple-500/10 border border-purple-500/30 rounded p-3">
+                            <h4 className="text-sm font-medium text-purple-400 mb-3">🛠️ Atividade de Serviços</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs text-[#A1A1AA] mb-2">Presunção IRPJ Serviços (%)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={formData.percentual_presuncao_irpj_servico}
+                                  onChange={(e) => setFormData({ ...formData, percentual_presuncao_irpj_servico: parseFloat(e.target.value) || 32 })}
+                                  className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                                />
+                                <p className="text-xs text-[#666] mt-1">Padrão: 32%</p>
+                              </div>
+                              <div>
+                                <label className="block text-xs text-[#A1A1AA] mb-2">Presunção CSLL Serviços (%)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={formData.percentual_presuncao_csll_servico}
+                                  onChange={(e) => setFormData({ ...formData, percentual_presuncao_csll_servico: parseFloat(e.target.value) || 32 })}
+                                  className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                                />
+                                <p className="text-xs text-[#666] mt-1">Padrão: 32%</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
