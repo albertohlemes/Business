@@ -77,7 +77,26 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-11 (Sessão 2 - Atual)
+### 2026-02-12 (Sessão Atual)
+- ✅ **Classificação baseada no regime da empresa**
+  - Divergências PIS/COFINS usam regime_tributario da empresa (não mais LUCRO_REAL fixo)
+  - Detalhamento PIS/COFINS usa regime_para_calculo correto
+  - Lucro Real agora é APENAS para comparação no RET e cards comparativos
+- ✅ **RET - Dados do Lucro Real corrigidos**
+  - Novos campos: pis_debitos, cofins_debitos, pis_creditos, cofins_creditos
+  - Teknolink: Débitos PIS R$ 2.397,58 | Débitos COFINS R$ 11.043,73
+  - Nota explicativa sobre créditos de PIS/COFINS
+- ✅ **Botão "Memória IA" na Classificação Inteligente**
+  - Modal exibe 108 regras aprendidas para Teknolink
+  - Funcionalidades: listar, editar categoria, excluir regra
+  - Endpoints: GET /learned-rules/{company_id}, PUT/DELETE /ai/learned-rules/{rule_id}
+- ✅ **Ordenação de colunas na página ICMS**
+  - Colunas ordenáveis: CFOP, Status, Qtd, Valor Total, BC ICMS, Valor ICMS
+  - CFOP em ordem crescente por padrão
+  - Indicadores visuais: ↑ (ascendente), ↕ (ordenável)
+- ✅ 100% testes passaram (iteration 41)
+
+### 2026-02-11 (Sessão 2)
 - ✅ **Novo componente DocumentDetailModal** - visualização detalhada de NF
   - Comparativo Capa NF × Produtos
   - Indicadores verde (OK) / vermelho (divergência)
