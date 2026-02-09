@@ -1552,40 +1552,49 @@ const Documents = ({ user, onLogout }) => {
           />
         )}
 
-        {/* Barra de Progresso Flutuante (não bloqueante) */}
+        {/* Barra de Progresso Flutuante com Contador de Café (não bloqueante) */}
         {uploading && (
-          <div className="fixed bottom-4 right-4 z-40 w-80 bg-[#141414] rounded-xl border border-[#2A2A2A] shadow-2xl overflow-hidden">
+          <div className="fixed bottom-4 right-4 z-40 w-96 bg-[#141414] rounded-xl border border-[#2A2A2A] shadow-2xl overflow-hidden">
             <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-[#C8A951]/20 rounded-lg flex items-center justify-center">
-                    <Upload className="w-4 h-4 text-[#C8A951] animate-pulse" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">Importando...</p>
-                    <p className="text-xs text-[#666]">{ctxCompany?.razao_social?.substring(0, 25)}</p>
-                  </div>
+              <div className="flex items-start gap-4">
+                {/* Animação do Contador de Café */}
+                <div className="flex-shrink-0">
+                  <CoffeeProgress 
+                    progress={uploadProgress.percent} 
+                    message=""
+                    showPercentage={false}
+                  />
                 </div>
-                <span className="text-lg font-bold text-[#C8A951]">{uploadProgress.percent}%</span>
+                
+                {/* Info do Upload */}
+                <div className="flex-1 pt-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="text-sm font-medium text-white">Importando...</p>
+                      <p className="text-xs text-[#666]">{ctxCompany?.razao_social?.substring(0, 25)}</p>
+                    </div>
+                    <span className="text-2xl font-bold text-[#C8A951]">{uploadProgress.percent}%</span>
+                  </div>
+                  
+                  {/* Barra de progresso */}
+                  <div className="h-3 bg-[#2A2A2A] rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-[#C8A951] to-[#D4B85C] rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress.percent}%` }}
+                    />
+                  </div>
+                  
+                  {uploadProgress.total > 0 && (
+                    <p className="text-xs text-[#A1A1AA] mt-2">
+                      {uploadProgress.current} de {uploadProgress.total} arquivos
+                    </p>
+                  )}
+                  
+                  <p className="text-xs text-[#666] mt-1 italic">
+                    ☕ Continue navegando enquanto processamos...
+                  </p>
+                </div>
               </div>
-              
-              {/* Barra de progresso */}
-              <div className="h-2 bg-[#2A2A2A] rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-[#C8A951] to-[#D4B85C] rounded-full transition-all duration-300"
-                  style={{ width: `${uploadProgress.percent}%` }}
-                />
-              </div>
-              
-              {uploadProgress.total > 0 && (
-                <p className="text-xs text-center text-[#666] mt-2">
-                  {uploadProgress.current} de {uploadProgress.total} arquivos
-                </p>
-              )}
-              
-              <p className="text-xs text-center text-[#555] mt-2">
-                ☕ Continue navegando normalmente
-              </p>
             </div>
           </div>
         )}
