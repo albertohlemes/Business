@@ -115,7 +115,7 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 
 ## Changelog
 
-### v2.12.0 (09/02/2026) - Correção da Página RET e Nova Aba Indicadores
+### v2.12.0 (09/02/2026) - Correção da Página RET, Nova Aba Indicadores e Flags de ICMS Funcionais
 
 **Correção Crítica - Página RET não carregava dados:**
 - Identificado que a competência padrão (data atual 12/2025) era diferente da competência com documentos (01/2026)
@@ -137,10 +137,26 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - **Percentual de Impostos sobre Faturamento**: ICMS, PIS, COFINS, ISS e Total
 - **DRE Simplificado**: Receita Bruta, Vendas, Serviços, CMV/CPV, Lucro Bruto
 
-**Flags de ICMS na página Apuração ICMS:**
-- Confirmado que as flags são editáveis e persistem no banco de dados
-- Indicador visual "Não salvo" quando há mudanças pendentes
-- Botão "Aplicar e Recalcular" habilita quando há alterações
+**Flags de ICMS na página Apuração ICMS - FUNCIONALIDADE COMPLETA:**
+- **Backend atualizado** com listas de CFOPs:
+  - `CFOPS_DESPESA`: 1407, 2407, 1556, 2556, 1551, 2551, 1653, 2653, etc.
+  - `CFOPS_ST`: 1403, 2403, 1409, 2409, 1410, 2410, etc.
+- **Marcação visual** de CFOPs desconsiderados:
+  - Linha vermelha com texto riscado (line-through)
+  - Badge de status: ⛔ DESPESA, ⛔ ST, ⛔ DESCONSIDERADO
+  - Fundo vermelho/laranja na linha da tabela
+- **Card "Valores Desconsiderados na Apuração"**:
+  - ICMS Despesas (Zerado): valor e quantidade de itens
+  - ICMS ST (Zerado): valor e quantidade de itens
+  - Total ICMS Desconsiderado: soma dos valores
+- **Recálculo automático** dos totais de crédito ICMS
+- **Impacto real na apuração** (exemplo da empresa teste):
+  - Sem flags: Crédito R$ 2.072.412,90 → Saldo a recuperar
+  - Com flags: Crédito R$ 1.728.559,76 → Saldo a pagar
+
+**Troca de IA - Gemini 2.5 Flash (Gratuito):**
+- Substituído gpt-4o por gemini-2.5-flash em todas as chamadas de LlmChat
+- Mantém a mesma qualidade de análise tributária com custo zero
 
 ### v2.11.0 (09/02/2026) - Animação Contador Tomando Café
 
