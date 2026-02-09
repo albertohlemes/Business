@@ -16560,6 +16560,166 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     }
 
 
+@api_router.get("/simples-nacional/{company_id}/exportar-produtos")
+async def exportar_produtos_agrupados_simples(
+    company_id: str,
+    competencia: str,
+    formato: str = "xlsx",
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Exporta relatório de produtos agrupados por classificação fiscal (ST, Monofásico, Alíquota Zero, Tributado).
+    Inclui: NCM, Descrição, Valor, Classificação e Base Legal.
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar documentos de saída
+    docs = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "saida",
+        **get_filtro_notas_ativas()
+    }, {"_id": 0, "produtos": 1, "numero_nfe": 1}).to_list(10000)
+    
+    # Agrupar produtos por classificação
+    produtos_agrupados = {
+        "tributado": [],
+        "icms_st": [],
+        "monofasico": [],
+        "aliquota_zero": []
+    }
+    
+    ncm_totais = {}
+    
+    for doc in docs:
+        for prod in doc.get("produtos", []):
+            ncm = prod.get("ncm", "SEM NCM")
+            descricao = prod.get("descricao", "")[:60]
+            valor = prod.get("valor_total", 0) or prod.get("valor_produto", 0)
+            cst = prod.get("cst", "")
+            
+            # Determinar classificação
+            classificacao = "tributado"
+            base_legal = "Tributação normal"
+            
+            if cst in ['10', '30', '60', '70', '201', '202', '203', '500']:
+                classificacao = "icms_st"
+                base_legal = "ICMS Substituição Tributária - Art. 13 da LC 123/2006"
+            elif is_ncm_monofasico(ncm):
+                classificacao = "monofasico"
+                base_legal = "PIS/COFINS Monofásico - Art. 18, §4º-A da LC 123/2006"
+            elif is_ncm_aliquota_zero(ncm) or is_ncm_cesta_basica(ncm):
+                classificacao = "aliquota_zero"
+                base_legal = "Alíquota Zero PIS/COFINS - Lei 10.925/2004 (Cesta Básica)"
+            
+            # Agregar por NCM
+            if ncm not in ncm_totais:
+                ncm_totais[ncm] = {
+                    "ncm": ncm,
+                    "descricao": descricao,
+                    "classificacao": classificacao,
+                    "base_legal": base_legal,
+                    "valor_total": 0,
+                    "quantidade": 0
+                }
+            ncm_totais[ncm]["valor_total"] += valor
+            ncm_totais[ncm]["quantidade"] += 1
+    
+    # Separar por classificação
+    for ncm_data in ncm_totais.values():
+        produtos_agrupados[ncm_data["classificacao"]].append(ncm_data)
+    
+    # Criar arquivo Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Produtos Simples Nacional"
+    
+    # Estilos
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="C8A951", end_color="C8A951", fill_type="solid")
+    section_fill = {
+        "tributado": PatternFill(start_color="22C55E", end_color="22C55E", fill_type="solid"),
+        "icms_st": PatternFill(start_color="F59E0B", end_color="F59E0B", fill_type="solid"),
+        "monofasico": PatternFill(start_color="3B82F6", end_color="3B82F6", fill_type="solid"),
+        "aliquota_zero": PatternFill(start_color="A855F7", end_color="A855F7", fill_type="solid"),
+    }
+    number_format = 'R$ #,##0.00'
+    
+    # Cabeçalho do relatório
+    ws['A1'] = "RELATÓRIO DE PRODUTOS - SIMPLES NACIONAL"
+    ws['A1'].font = Font(bold=True, size=14)
+    ws['A2'] = f"Empresa: {company.get('razao_social')}"
+    ws['A3'] = f"CNPJ: {company.get('cnpj')}"
+    ws['A4'] = f"Competência: {competencia}"
+    
+    linha = 6
+    
+    # Para cada classificação
+    classificacoes_labels = {
+        "tributado": "TRIBUTADO NORMALMENTE",
+        "icms_st": "ICMS - SUBSTITUIÇÃO TRIBUTÁRIA",
+        "monofasico": "PIS/COFINS MONOFÁSICO",
+        "aliquota_zero": "PIS/COFINS ALÍQUOTA ZERO"
+    }
+    
+    for classif, label in classificacoes_labels.items():
+        produtos = produtos_agrupados[classif]
+        if not produtos:
+            continue
+        
+        # Header da seção
+        total_secao = sum(p["valor_total"] for p in produtos)
+        ws.cell(row=linha, column=1, value=f"{label} - Total: R$ {total_secao:,.2f}")
+        ws.cell(row=linha, column=1).font = Font(bold=True, color="FFFFFF", size=11)
+        ws.cell(row=linha, column=1).fill = section_fill[classif]
+        ws.merge_cells(start_row=linha, start_column=1, end_row=linha, end_column=5)
+        linha += 1
+        
+        # Cabeçalhos das colunas
+        colunas = ['NCM', 'Descrição', 'Qtd', 'Valor Total', 'Base Legal']
+        for col, titulo in enumerate(colunas, 1):
+            cell = ws.cell(row=linha, column=col, value=titulo)
+            cell.font = header_font
+            cell.fill = header_fill
+        linha += 1
+        
+        # Produtos ordenados por valor
+        for prod in sorted(produtos, key=lambda x: x["valor_total"], reverse=True):
+            ws.cell(row=linha, column=1, value=prod["ncm"])
+            ws.cell(row=linha, column=2, value=prod["descricao"])
+            ws.cell(row=linha, column=3, value=prod["quantidade"])
+            ws.cell(row=linha, column=4, value=prod["valor_total"]).number_format = number_format
+            ws.cell(row=linha, column=5, value=prod["base_legal"])
+            linha += 1
+        
+        linha += 1  # Espaço entre seções
+    
+    # Ajustar largura das colunas
+    ws.column_dimensions['A'].width = 15
+    ws.column_dimensions['B'].width = 45
+    ws.column_dimensions['C'].width = 8
+    ws.column_dimensions['D'].width = 18
+    ws.column_dimensions['E'].width = 55
+    
+    # Salvar em buffer
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    
+    filename = f"produtos_simples_{company_id[:8]}_{competencia.replace('/', '-')}.xlsx"
+    
+    return Response(
+        content=buffer.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 @api_router.put("/companies/{company_id}/simples-nacional/anexos")
 async def update_anexos_simples(company_id: str, anexos: List[str], current_user: User = Depends(get_current_user)):
     """
