@@ -567,12 +567,21 @@ def calcular_pis_cofins_produto(
                     resultado['valor_cofins'] = 0
                     resultado['gera_credito'] = False
         else:  # saída
-            resultado['cst'] = classificacao['cst_saida']
-            resultado['aliquota_pis'] = float(classificacao['aliquota_pis'])
-            resultado['aliquota_cofins'] = float(classificacao['aliquota_cofins'])
-            resultado['valor_pis'] = float((valor * classificacao['aliquota_pis'] / 100).quantize(Decimal('0.01'), ROUND_HALF_UP))
-            resultado['valor_cofins'] = float((valor * classificacao['aliquota_cofins'] / 100).quantize(Decimal('0.01'), ROUND_HALF_UP))
-            resultado['gera_credito'] = False
+            # Verificar CFOP sem débito
+            if not verificar_cfop_gera_debito(cfop):
+                resultado['cst'] = CST_SAIDA['SEM_DEBITO_CFOP']
+                resultado['aliquota_pis'] = 0
+                resultado['aliquota_cofins'] = 0
+                resultado['valor_pis'] = 0
+                resultado['valor_cofins'] = 0
+                resultado['gera_credito'] = False
+            else:
+                resultado['cst'] = classificacao['cst_saida']
+                resultado['aliquota_pis'] = float(classificacao['aliquota_pis'])
+                resultado['aliquota_cofins'] = float(classificacao['aliquota_cofins'])
+                resultado['valor_pis'] = float((valor * classificacao['aliquota_pis'] / 100).quantize(Decimal('0.01'), ROUND_HALF_UP))
+                resultado['valor_cofins'] = float((valor * classificacao['aliquota_cofins'] / 100).quantize(Decimal('0.01'), ROUND_HALF_UP))
+                resultado['gera_credito'] = False
     
     return resultado
 
