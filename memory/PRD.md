@@ -62,6 +62,18 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-11 (Sessão Atual)
+- ✅ **CORRIGIDO: Cálculo do DAS no Dashboard do Simples Nacional**
+  - O valor do DAS estava retornando R$ 0,00 mesmo com faturamento
+  - Causa: Descontos de ICMS-ST e PIS/COFINS calculados incorretamente
+  - Solução: Fórmula corrigida para `desconto = valor_produtos × alíquota_efetiva × (% tributo / 100)`
+  - Resultado: DAS da E.L.M. em 01/2026 = R$ 6.173,67 (verificado por testes automatizados)
+- ✅ Adicionadas funções `is_ncm_monofasico` e `is_ncm_cesta_basica` para melhor classificação
+- ✅ Separação de produtos em 3 categorias: ST, monofásicos, alíquota zero
+- ✅ Proteção: descontos não podem exceder o valor bruto do DAS
+- ✅ Criado teste automatizado: `/app/backend/tests/test_simples_nacional_das.py`
+- 🔄 Modal de seleção de empresa: melhorada lógica de fechamento (em validação)
+
 ### 2026-02-09 (Sessão 2)
 - ✅ Alertas de CFOP agrupados por CFOP (não por documento)
 - ✅ Ação em lote para classificação de CFOPs
@@ -78,14 +90,18 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Backlog
 
+### P0 - Crítico
+- [x] ~~Corrigir cálculo do DAS no Simples Nacional~~ ✅ CONCLUÍDO
+
 ### P1 - Alta Prioridade
 - [ ] Upload de Certificado Digital (.pfx) - backend
 - [ ] Integração SIEG - aguardando chave válida
+- [ ] Corrigir modal de seleção de empresa (aparece em páginas inesperadas)
+- [ ] Corrigir exportação de relatórios (problema recorrente)
 
 ### P2 - Média Prioridade
-- [ ] Ordenação em todas as colunas das tabelas
 - [ ] Logo da empresa nos relatórios exportados
-- [ ] Corrigir modal de seleção na página /companies
+- [ ] Ordenação em todas as colunas das tabelas
 
 ### P3 - Baixa Prioridade
 - [ ] Refatorar server.py em routers
