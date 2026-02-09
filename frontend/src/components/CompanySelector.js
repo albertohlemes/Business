@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Calendar, ChevronRight, X, Cloud, CloudDownload, CheckCircle, Loader2, AlertCircle, Sparkles, Search } from 'lucide-react';
+import { Building2, Calendar, ChevronRight, X, CheckCircle, Search } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const CompanySelector = () => {
@@ -10,11 +10,7 @@ const CompanySelector = () => {
     showSelector,
     selectCompany, 
     selectCompetencia, 
-    closeSelector,
-    siegStatus,
-    siegSyncing,
-    checkSiegCount,
-    syncFromSieg
+    closeSelector
   } = useAppContext();
 
   const getInitialCompetencia = () => {
@@ -27,15 +23,7 @@ const CompanySelector = () => {
 
   const [tempCompany, setTempCompany] = useState(selectedCompany);
   const [tempCompetencia, setTempCompetencia] = useState(getInitialCompetencia());
-  const [syncResult, setSyncResult] = useState(null);
-  const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const [syncProgress, setSyncProgress] = useState({
-    active: false,
-    step: '',
-    percent: 0
-  });
 
   useEffect(() => {
     if (tempCompany && tempCompetencia && tempCompetencia.length === 7) {
