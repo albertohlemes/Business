@@ -129,16 +129,21 @@ const RET = ({ user, onLogout }) => {
   // Calcular CMV/CPV (Custo da Mercadoria/Produto Vendido)
   const calcularCMV = () => {
     // CMV = Estoque Inicial + Compras - Estoque Final
-    const compras = dados?.icms?.entradas?.total_produtos || dados?.pis_cofins?.compras?.total || 0;
+    // Usar totais.valor_total das entradas (formato correto do backend)
+    const compras = dados?.icms?.entradas?.totais?.valor_total || 
+                    dados?.icms?.entradas?.total_produtos ||
+                    dados?.pis_cofins?.compras?.total || 0;
     return estoqueInicial + compras - estoqueFinal;
   };
 
   // Calcular receitas
   const calcularReceitas = () => {
-    // Receita de vendas de mercadorias
-    const receitaComercio = dados?.icms?.saidas?.total_produtos || 0;
+    // Receita de vendas de mercadorias (usar totais.valor_total)
+    const receitaComercio = dados?.icms?.saidas?.totais?.valor_total || 
+                           dados?.icms?.saidas?.total_produtos || 0;
     // Receita de serviços
-    const receitaServicos = dados?.iss?.resumo?.receita_servicos || 0;
+    const receitaServicos = dados?.iss?.resumo?.receita_servicos || 
+                           dados?.iss?.resumo?.total_servicos || 0;
     
     return {
       comercio: receitaComercio,
@@ -159,21 +164,22 @@ const RET = ({ user, onLogout }) => {
     
     // CFOPs de Revenda: 1102, 2102, 1403, 2403
     const cfopsRevenda = ['1102', '2102', '1403', '2403', '1101', '2101'];
-    // CFOPs de Insumo: 1101, 2101, 1551, 2551
-    const cfopsInsumo = ['1551', '2551', '1556', '2556'];
-    // CFOPs de Despesa: 1556, 2556, 1407, 2407
-    const cfopsDespesa = ['1407', '2407', '1556', '2556', '1128', '2128', '1126', '2126'];
+    // CFOPs de Insumo/Matéria-prima: 1101, 2101, 1201, 2201
+    const cfopsInsumo = ['1101', '2101', '1201', '2201'];
+    // CFOPs de Despesa: 1556, 2556, 1407, 2407, 1653, 2653
+    const cfopsDespesa = ['1556', '2556', '1407', '2407', '1653', '2653', '1128', '2128', '1126', '2126'];
     // CFOPs de Ativo: 1551, 2551
     const cfopsAtivo = ['1551', '2551'];
     
     cfops.forEach(c => {
       const cfop = String(c.cfop || '');
-      const valor = c.total_produtos || c.valor || 0;
+      // Usar valor_total (formato do backend atual)
+      const valor = c.valor_total || c.total_produtos || c.valor || 0;
       
-      if (cfopsRevenda.some(x => cfop.startsWith(x))) revenda += valor;
-      else if (cfopsInsumo.some(x => cfop.startsWith(x))) insumo += valor;
+      if (cfopsAtivo.some(x => cfop.startsWith(x))) ativo += valor;
       else if (cfopsDespesa.some(x => cfop.startsWith(x))) despesa += valor;
-      else if (cfopsAtivo.some(x => cfop.startsWith(x))) ativo += valor;
+      else if (cfopsInsumo.some(x => cfop.startsWith(x))) insumo += valor;
+      else if (cfopsRevenda.some(x => cfop.startsWith(x))) revenda += valor;
       else revenda += valor; // Default para revenda
     });
     
