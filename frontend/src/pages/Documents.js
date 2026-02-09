@@ -174,7 +174,23 @@ const Documents = ({ user, onLogout }) => {
   const [uploadResult, setUploadResult] = useState(null);
   const [showUploadResult, setShowUploadResult] = useState(false);
 
-  // ========== UPLOAD ==========
+  // Limpar EventSource ao desmontar
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
+  }, []);
+
+  // Recarregar documentos quando upload global terminar
+  useEffect(() => {
+    if (globalResults && !globalUploading && operacao && tipoDoc) {
+      fetchDocuments();
+    }
+  }, [globalResults, globalUploading]);
+
+  // ========== UPLOAD COM SSE ==========
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
@@ -182,10 +198,25 @@ const Documents = ({ user, onLogout }) => {
     const tipoConfig = getTipoConfig();
     if (!tipoConfig) return;
     
-    setUploading(true);
-    setUploadProgress({ current: 0, total: files.length });
-    
     const token = localStorage.getItem('token');
+    const isXmlUpload = tipoConfig.importType === 'xml' || 
+      (tipoConfig.importType === 'both' && files[0].name.toLowerCase().endsWith('.xml'));
+    
+    // Para poucos arquivos XML ou arquivos não-XML, usar upload direto
+    if (!isXmlUpload || files.length <= 10) {
+      await handleDirectUpload(files, tipoConfig, token);
+    } else {
+      // Para muitos XMLs, usar upload com streaming e SSE
+      await handleStreamingUpload(files, tipoConfig, token);
+    }
+    
+    e.target.value = '';
+  };
+
+  // Upload direto (para poucos arquivos ou não-XML)
+  const handleDirectUpload = async (files, tipoConfig, token) => {
+    setUploading(true);
+    setUploadProgress({ current: 0, total: files.length, percent: 0 });
     
     try {
       const formData = new FormData();
@@ -198,7 +229,13 @@ const Documents = ({ user, onLogout }) => {
         formData.append('files', file);
       });
       
-      setUploadProgress({ current: files.length, total: files.length });
+      // Simular progresso durante o upload
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          const newPercent = Math.min(prev.percent + 5, 90);
+          return { ...prev, percent: newPercent };
+        });
+      }, 200);
       
       let response;
       
@@ -212,6 +249,9 @@ const Documents = ({ user, onLogout }) => {
             'Content-Type': 'multipart/form-data'
           }
         });
+        
+        clearInterval(progressInterval);
+        setUploadProgress({ current: files.length, total: files.length, percent: 100 });
         
         setUploadResult({
           tipo: 'ia',
@@ -229,6 +269,9 @@ const Documents = ({ user, onLogout }) => {
             'Content-Type': 'multipart/form-data'
           }
         });
+        
+        clearInterval(progressInterval);
+        setUploadProgress({ current: files.length, total: files.length, percent: 100 });
         
         setUploadResult({
           tipo: 'xml',
@@ -262,8 +305,120 @@ const Documents = ({ user, onLogout }) => {
       setShowUploadResult(true);
     }
     
-    setUploading(false);
-    e.target.value = '';
+    setTimeout(() => setUploading(false), 500);
+  };
+
+  // Upload com streaming (para muitos XMLs)
+  const handleStreamingUpload = async (files, tipoConfig, token) => {
+    setUploading(true);
+    setUploadProgress({ current: 0, total: files.length, percent: 0 });
+    
+    try {
+      // 1. Iniciar upload
+      const initFormData = new FormData();
+      initFormData.append('company_id', ctxCompany.id);
+      initFormData.append('competencia', selectedCompetencia);
+      initFormData.append('tipo', operacao);
+      initFormData.append('total_files', files.length);
+      
+      const initResponse = await axios.post(`${API}/xml/upload-init`, initFormData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const uploadId = initResponse.data.upload_id;
+      
+      // 2. Conectar ao SSE para receber atualizações de progresso
+      const eventSource = new EventSource(`${BACKEND_URL}/api/xml/upload-progress/${uploadId}`);
+      eventSourceRef.current = eventSource;
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('SSE Event:', data);
+          
+          if (data.completed === true && data.results) {
+            setUploadProgress({ current: files.length, total: files.length, percent: 100 });
+            setUploadResult({
+              tipo: 'xml',
+              total: data.results.total_processados,
+              sucesso: data.results.aceitos,
+              erros: data.results.erros,
+              processados: [],
+              rejeitados: []
+            });
+            setShowUploadResult(true);
+            setUploading(false);
+            fetchDocuments();
+            eventSource.close();
+            eventSourceRef.current = null;
+          } else if (data.error) {
+            setUploadResult({
+              tipo: 'erro',
+              total: files.length,
+              sucesso: 0,
+              erros: files.length,
+              processados: [],
+              rejeitados: [{ arquivo: 'Erro', motivo: data.error }]
+            });
+            setShowUploadResult(true);
+            setUploading(false);
+            eventSource.close();
+            eventSourceRef.current = null;
+          } else {
+            const processed = data.processed_files || 0;
+            const total = data.total_files || files.length;
+            const percent = data.progress_percent || Math.round((processed / total) * 100);
+            
+            setUploadProgress({
+              current: processed,
+              total: total,
+              percent: percent
+            });
+          }
+        } catch (e) {
+          console.error('Erro ao processar evento SSE:', e);
+        }
+      };
+      
+      eventSource.onerror = () => {
+        console.error('Erro na conexão SSE');
+      };
+      
+      // 3. Enviar arquivos em lotes
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < files.length; i += BATCH_SIZE) {
+        const batch = files.slice(i, i + BATCH_SIZE);
+        const formData = new FormData();
+        formData.append('upload_id', uploadId);
+        
+        batch.forEach(file => {
+          formData.append('files', file);
+        });
+        
+        await axios.post(`${API}/xml/upload-stream`, formData, {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      }
+      
+    } catch (err) {
+      console.error('Erro no upload:', err);
+      setUploadResult({
+        tipo: 'erro',
+        total: files.length,
+        sucesso: 0,
+        erros: files.length,
+        processados: [],
+        rejeitados: [{
+          arquivo: 'Todos os arquivos',
+          motivo: err.response?.data?.detail || err.message || 'Erro de conexão'
+        }]
+      });
+      setShowUploadResult(true);
+      setUploading(false);
+    }
   };
 
   // Ordenação
