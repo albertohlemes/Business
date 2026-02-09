@@ -14220,7 +14220,18 @@ async def detalhamento_pis_cofins(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    perfil_empresa = company.get('perfil_comercial', 'VAREJO')
+    # Determinar perfil da empresa (prioridade: perfis_comerciais > tipo_atividade)
+    perfis_comerciais = company.get('perfis_comerciais', [])
+    tipo_atividade = company.get('tipo_atividade', 'comercio')
+    
+    # Determinar perfil para cálculo de PIS/COFINS
+    if 'industria' in perfis_comerciais or tipo_atividade == 'industria':
+        perfil_empresa = 'INDUSTRIA'
+    elif 'distribuidor' in perfis_comerciais:
+        perfil_empresa = 'DISTRIBUIDOR'
+    else:
+        perfil_empresa = 'VAREJO'
+    
     regime_tributario = company.get('regime_tributario', 'LUCRO_REAL')
     
     # Buscar documentos
