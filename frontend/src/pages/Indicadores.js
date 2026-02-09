@@ -909,11 +909,57 @@ const Indicadores = ({ user, onLogout }) => {
                       <div className="flex items-start gap-3">
                         <AlertTriangle className="w-6 h-6 text-red-400 flex-shrink-0 mt-1" />
                         <div className="flex-1">
-                          <h4 className="text-white font-semibold">{vilao.produto || vilao.ncm || `Item ${idx + 1}`}</h4>
-                          <p className="text-[#A1A1AA] text-sm mt-1">{vilao.motivo || vilao.descricao}</p>
-                          {vilao.valor && (
-                            <p className="text-red-400 font-bold mt-2">Impacto: {formatCurrency(vilao.valor)}</p>
-                          )}
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-white font-semibold">{vilao.descricao || vilao.produto || vilao.ncm || `Item ${idx + 1}`}</h4>
+                            <span className="text-xs px-2 py-1 bg-[#2A2A2A] text-[#A1A1AA] rounded font-mono">
+                              NCM: {vilao.ncm}
+                            </span>
+                          </div>
+                          
+                          {/* Indicadores de alíquota */}
+                          <div className="flex flex-wrap items-center gap-4 mt-3 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[#A1A1AA]">Entrada:</span>
+                              <span className={`font-bold px-2 py-0.5 rounded ${vilao.aliq_entrada > 0 ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'}`}>
+                                {vilao.aliq_entrada || 0}% ICMS
+                              </span>
+                            </div>
+                            <span className="text-[#666]">→</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[#A1A1AA]">Saída:</span>
+                              <span className="font-bold px-2 py-0.5 rounded bg-red-500/20 text-red-400">
+                                {vilao.aliq_saida || 0}% ICMS
+                              </span>
+                            </div>
+                            <div className="text-[#666]">|</div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[#A1A1AA]">Diferença:</span>
+                              <span className="font-bold text-red-400">
+                                +{vilao.diferenca_aliquota || (vilao.aliq_saida - vilao.aliq_entrada)}pp
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Explicação */}
+                          <p className="text-[#A1A1AA] text-sm mt-3 bg-[#0C0C0C] p-3 rounded-lg">
+                            💡 {vilao.explicacao || vilao.motivo || 'Produto gera mais débito do que crédito de ICMS'}
+                          </p>
+                          
+                          {/* Valores */}
+                          <div className="grid grid-cols-3 gap-4 mt-3 pt-3 border-t border-red-500/20">
+                            <div>
+                              <span className="text-xs text-[#666]">Crédito ICMS</span>
+                              <p className="text-blue-400 font-medium">{formatCurrency(vilao.icms_credito || 0)}</p>
+                            </div>
+                            <div>
+                              <span className="text-xs text-[#666]">Débito ICMS</span>
+                              <p className="text-red-400 font-medium">{formatCurrency(vilao.icms_debito || 0)}</p>
+                            </div>
+                            <div>
+                              <span className="text-xs text-[#666]">Impacto Negativo</span>
+                              <p className="text-red-400 font-bold">{formatCurrency(vilao.impacto_negativo || vilao.valor || 0)}</p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -922,6 +968,7 @@ const Indicadores = ({ user, onLogout }) => {
                   <div className="text-center py-12 text-[#A1A1AA]">
                     <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-400/50" />
                     <p>Nenhum vilão tributário identificado nesta competência</p>
+                    <p className="text-sm mt-2 text-[#666]">Todos os produtos estão com tributação adequada</p>
                   </div>
                 )}
               </div>
@@ -936,11 +983,61 @@ const Indicadores = ({ user, onLogout }) => {
                       <div className="flex items-start gap-3">
                         <Lightbulb className="w-6 h-6 text-green-400 flex-shrink-0 mt-1" />
                         <div className="flex-1">
-                          <h4 className="text-white font-semibold">{oportunidade.titulo || `Oportunidade ${idx + 1}`}</h4>
-                          <p className="text-[#A1A1AA] text-sm mt-1">{oportunidade.descricao}</p>
-                          {oportunidade.economia_potencial && (
-                            <p className="text-green-400 font-bold mt-2">Economia potencial: {formatCurrency(oportunidade.economia_potencial)}</p>
-                          )}
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-white font-semibold">{oportunidade.descricao || oportunidade.titulo || `Oportunidade ${idx + 1}`}</h4>
+                            <span className="text-xs px-2 py-1 bg-[#2A2A2A] text-[#A1A1AA] rounded font-mono">
+                              NCM: {oportunidade.ncm}
+                            </span>
+                          </div>
+                          
+                          {/* Indicadores de alíquota */}
+                          <div className="flex flex-wrap items-center gap-4 mt-3 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[#A1A1AA]">Entrada:</span>
+                              <span className="font-bold px-2 py-0.5 rounded bg-green-500/20 text-green-400">
+                                {oportunidade.aliq_entrada || 0}% ICMS
+                              </span>
+                            </div>
+                            <span className="text-[#666]">→</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[#A1A1AA]">Saída:</span>
+                              <span className={`font-bold px-2 py-0.5 rounded ${oportunidade.aliq_saida > 0 ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'}`}>
+                                {oportunidade.aliq_saida || 0}% ICMS
+                              </span>
+                            </div>
+                            {oportunidade.diferenca_aliquota && (
+                              <>
+                                <div className="text-[#666]">|</div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[#A1A1AA]">Vantagem:</span>
+                                  <span className="font-bold text-green-400">
+                                    {oportunidade.diferenca_aliquota}pp
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                          
+                          {/* Explicação */}
+                          <p className="text-[#A1A1AA] text-sm mt-3 bg-[#0C0C0C] p-3 rounded-lg">
+                            🎯 {oportunidade.explicacao || 'Produto gera mais crédito do que débito de ICMS'}
+                          </p>
+                          
+                          {/* Valores */}
+                          <div className="grid grid-cols-3 gap-4 mt-3 pt-3 border-t border-green-500/20">
+                            <div>
+                              <span className="text-xs text-[#666]">Crédito ICMS</span>
+                              <p className="text-green-400 font-medium">{formatCurrency(oportunidade.icms_credito || 0)}</p>
+                            </div>
+                            <div>
+                              <span className="text-xs text-[#666]">Débito ICMS</span>
+                              <p className="text-blue-400 font-medium">{formatCurrency(oportunidade.icms_debito || 0)}</p>
+                            </div>
+                            <div>
+                              <span className="text-xs text-[#666]">Benefício</span>
+                              <p className="text-green-400 font-bold">{formatCurrency(oportunidade.beneficio || oportunidade.economia_potencial || 0)}</p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -949,6 +1046,7 @@ const Indicadores = ({ user, onLogout }) => {
                   <div className="text-center py-12 text-[#A1A1AA]">
                     <Sparkles className="w-16 h-16 mx-auto mb-4 opacity-50" />
                     <p>Nenhuma oportunidade de economia identificada nesta competência</p>
+                    <p className="text-sm mt-2 text-[#666]">Continue importando documentos para análise</p>
                   </div>
                 )}
               </div>
