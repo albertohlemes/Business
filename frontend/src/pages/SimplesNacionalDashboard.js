@@ -83,7 +83,7 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
 
   useEffect(() => {
     fetchDashboard();
-  }, [fetchDashboard]);
+  }, [fetchDashboard, selectedCompetencia]);
 
   // Função para upload do PGDAS
   const handlePgdasUpload = async (event) => {
