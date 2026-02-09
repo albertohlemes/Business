@@ -1242,6 +1242,18 @@ const PisCofins = ({ user, onLogout }) => {
             Apuração
           </button>
           <button
+            onClick={() => setActiveTab('detalhamento')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+              activeTab === 'detalhamento'
+                ? 'bg-[#C8A951] text-black'
+                : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
+            }`}
+            data-testid="tab-detalhamento"
+          >
+            <Layers className="w-4 h-4" />
+            Detalhamento
+          </button>
+          <button
             onClick={() => setActiveTab('comparativo')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
               activeTab === 'comparativo'
