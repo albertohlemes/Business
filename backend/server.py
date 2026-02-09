@@ -3451,6 +3451,45 @@ async def sieg_check_status(
         "api_key_preview": api_key[:10] + "..." if api_key else None
     }
 
+
+# Upload de logo da empresa
+@api_router.post("/upload/logo")
+async def upload_company_logo(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Upload de logo da empresa. Retorna URL da imagem.
+    Aceita PNG, JPG, JPEG, WEBP. Máximo 2MB.
+    """
+    # Validar tipo de arquivo
+    allowed_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Tipo de arquivo não permitido. Use PNG, JPG ou WEBP.")
+    
+    # Ler conteúdo
+    content = await file.read()
+    
+    # Validar tamanho (max 2MB)
+    if len(content) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Arquivo muito grande. Máximo 2MB.")
+    
+    # Gerar nome único
+    import hashlib
+    file_hash = hashlib.md5(content).hexdigest()[:12]
+    extension = file.filename.split('.')[-1].lower()
+    filename = f"logo_{file_hash}.{extension}"
+    
+    # Converter para base64 para armazenar no banco ou servir diretamente
+    import base64
+    base64_content = base64.b64encode(content).decode('utf-8')
+    
+    # Retornar como data URL
+    data_url = f"data:{file.content_type};base64,{base64_content}"
+    
+    return {"url": data_url, "filename": filename}
+
+
 @api_router.post("/xml/upload")
 async def upload_xml_batch(
     company_id: str = Form(...),
