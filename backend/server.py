@@ -16917,8 +16917,16 @@ async def inteligencia_tributaria(
         'irpj': round(presumido_irpj, 2),
         'csll': round(presumido_csll, 2),
         'total': round(presumido_icms + presumido_pis + presumido_cofins + presumido_irpj + presumido_csll, 2),
-        'base_presuncao_irpj': round(base_irpj, 2),
-        'base_presuncao_csll': round(base_csll, 2)
+        'base_presuncao_irpj': round(base_irpj_total, 2),
+        'base_presuncao_csll': round(base_csll_total, 2),
+        # Detalhamento por atividade
+        'faturamento_comercio': round(faturamento_comercio, 2),
+        'faturamento_servicos': round(faturamento_servicos, 2),
+        'presuncao_comercio_irpj': presuncao_comercio_irpj,
+        'presuncao_comercio_csll': presuncao_comercio_csll,
+        'presuncao_servicos_irpj': presuncao_servicos_irpj,
+        'presuncao_servicos_csll': presuncao_servicos_csll,
+        'tipo_atividade': tipo_atividade
     }
     
     # Arredondar valores do Simples
