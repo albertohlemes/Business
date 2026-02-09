@@ -16830,19 +16830,85 @@ async def inteligencia_tributaria(
     # COFINS: 3% sobre faturamento (CUMULATIVO - sem crédito)
     presumido_cofins = faturamento * 0.03
     
+    # IRPJ/CSLL: Presunção baseada na atividade da empresa
+    # Comércio: 8% IRPJ, 12% CSLL
+    # Serviços: 32% IRPJ, 32% CSLL
+    # Indústria: 8% IRPJ, 12% CSLL
+    # Transportadora (carga): 8% IRPJ, 12% CSLL
+    # Transportadora (passageiros): 16% IRPJ, 12% CSLL
+    # Revenda combustível: 1.6% IRPJ, 12% CSLL
+    
+    tipo_atividade = company.get('tipo_atividade', 'comercio')
+    
+    # Calcular faturamento por atividade se for empresa mista
+    faturamento_comercio = 0
+    faturamento_servicos = 0
+    
+    if tipo_atividade == 'mista':
+        # Separar faturamento por tipo
+        docs_saida = await db.xml_documents.find({
+            "company_id": company_id,
+            "tipo": "saida",
+            **query_competencia,
+            **get_filtro_notas_ativas()
+        }, {"_id": 0, "valor_total": 1, "modelo": 1, "tipo_operacao": 1}).to_list(10000)
+        
+        for doc in docs_saida:
+            modelo = doc.get('modelo', '').lower()
+            tipo_op = doc.get('tipo_operacao', '').lower()
+            valor = float(doc.get('valor_total', 0) or 0)
+            
+            if modelo in ['nfse', 'nfs-e'] or tipo_op == 'prestado':
+                faturamento_servicos += valor
+            else:
+                faturamento_comercio += valor
+        
+        # Se não separou, usar proporção padrão
+        if faturamento_comercio == 0 and faturamento_servicos == 0:
+            faturamento_comercio = faturamento * 0.5
+            faturamento_servicos = faturamento * 0.5
+    elif tipo_atividade == 'servicos':
+        faturamento_servicos = faturamento
+    else:  # comercio ou industria
+        faturamento_comercio = faturamento
+    
+    # Definir presunções por atividade
+    presuncao_comercio_irpj = float(company.get('percentual_presuncao_irpj', 8))
+    presuncao_comercio_csll = float(company.get('percentual_presuncao_csll', 12))
+    presuncao_servicos_irpj = float(company.get('percentual_presuncao_servicos_irpj', 32))
+    presuncao_servicos_csll = float(company.get('percentual_presuncao_servicos_csll', 32))
+    
+    # Verificar se é transportadora (presunções especiais)
+    is_transportadora = company.get('is_transportadora', False)
+    is_revenda_combustivel = company.get('is_revenda_combustivel', False)
+    
+    if is_revenda_combustivel:
+        presuncao_comercio_irpj = 1.6
+    if is_transportadora:
+        tipo_transporte = company.get('tipo_transporte', 'carga')
+        if tipo_transporte == 'passageiros':
+            presuncao_comercio_irpj = 16
+    
+    # Calcular bases presumidas
+    base_irpj_comercio = faturamento_comercio * (presuncao_comercio_irpj / 100)
+    base_irpj_servicos = faturamento_servicos * (presuncao_servicos_irpj / 100)
+    base_irpj_total = base_irpj_comercio + base_irpj_servicos
+    
+    base_csll_comercio = faturamento_comercio * (presuncao_comercio_csll / 100)
+    base_csll_servicos = faturamento_servicos * (presuncao_servicos_csll / 100)
+    base_csll_total = base_csll_comercio + base_csll_servicos
+    
     # IRPJ: 15% sobre base presumida + adicional
-    base_irpj = faturamento * (pres_irpj / 100)
-    presumido_irpj = base_irpj * 0.15
+    presumido_irpj = base_irpj_total * 0.15
     if tipo == "periodo":
-        if base_irpj > 20000:
-            presumido_irpj += (base_irpj - 20000) * 0.10
+        if base_irpj_total > 20000:
+            presumido_irpj += (base_irpj_total - 20000) * 0.10
     else:
-        if base_irpj > (60000 * (meses_apurados / 3)):
-            presumido_irpj += (base_irpj - 60000 * (meses_apurados / 3)) * 0.10
+        if base_irpj_total > (60000 * (meses_apurados / 3)):
+            presumido_irpj += (base_irpj_total - 60000 * (meses_apurados / 3)) * 0.10
     
     # CSLL: 9% sobre base presumida
-    base_csll = faturamento * (pres_csll / 100)
-    presumido_csll = base_csll * 0.09
+    presumido_csll = base_csll_total * 0.09
     
     presumido = {
         'icms': round(presumido_icms, 2),
