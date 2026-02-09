@@ -9245,7 +9245,7 @@ Se o comando não for claro, retorne {{"alteracoes": [], "erro": "mensagem expli
         if resultado.get('nova_regra') and resultado['nova_regra'].get('padrao'):
             nova_regra = resultado['nova_regra']
             regra_doc = {
-                "id": str(uuid4()),
+                "id": str(uuid.uuid4()),
                 "company_id": company_id,
                 "padrao": nova_regra.get('padrao', ''),
                 "categoria": nova_regra.get('categoria', ''),
