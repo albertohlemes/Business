@@ -3649,7 +3649,116 @@ async def upload_xml_batch(
             # Detectar tipo de XML automaticamente
             xml_type = detect_xml_type(xml_str)
             
-            # Parser apropriado para cada tipo
+            # Verificar se é uma lista de NFS-e (múltiplas notas em um único arquivo)
+            if is_lista_nfse(xml_str):
+                # Processar lista de NFS-e
+                lista_nfse = parse_xml_lista_nfse(xml_str)
+                print(f"Arquivo com {len(lista_nfse)} NFS-e detectado")
+                
+                for idx, parsed_data in enumerate(lista_nfse):
+                    try:
+                        # Processar cada NFS-e individualmente
+                        chave_nfe = parsed_data['chave_nfe']
+                        modelo = parsed_data.get('modelo', 'nfse')
+                        
+                        # VALIDAR CNPJ
+                        cnpj_emitente = parsed_data.get('emitente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+                        cnpj_destinatario = parsed_data.get('destinatario_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+                        
+                        # Para NFS-e Prestados, a empresa é o PRESTADOR (emitente)
+                        # Para NFS-e Tomados, a empresa é o TOMADOR (destinatário)
+                        cnpj_valido = False
+                        if tipo == 'saida':  # NFS-e Prestados
+                            cnpj_valido = cnpj_emitente == cnpj_empresa
+                        else:  # NFS-e Tomados
+                            cnpj_valido = cnpj_destinatario == cnpj_empresa
+                        
+                        if not cnpj_valido:
+                            rejeitadas_cnpj.append({
+                                "arquivo": f"{file.filename} (nota {idx + 1})",
+                                "numero": parsed_data.get('numero_nfe', ''),
+                                "cnpj_encontrado": cnpj_emitente if tipo == 'saida' else cnpj_destinatario,
+                                "cnpj_esperado": cnpj_empresa
+                            })
+                            continue
+                        
+                        # Verificar duplicidade
+                        existing = await db.xml_documents.find_one({
+                            "chave_nfe": chave_nfe,
+                            "company_id": company_id
+                        })
+                        
+                        if existing:
+                            duplicadas.append({
+                                "arquivo": f"{file.filename} (nota {idx + 1})",
+                                "numero": parsed_data.get('numero_nfe', ''),
+                                "chave": chave_nfe
+                            })
+                            continue
+                        
+                        # Extrair competência da NFS-e
+                        competencia_nfse = parsed_data.get('competencia_nfse', '')
+                        if competencia_nfse:
+                            try:
+                                # Formato: 2026-01-01T00:00:00
+                                comp_date = competencia_nfse.split('T')[0]
+                                ano, mes, _ = comp_date.split('-')
+                                competencia_doc = f"{mes}/{ano}"
+                            except:
+                                competencia_doc = competencia
+                        else:
+                            competencia_doc = competencia
+                        
+                        # Preparar documento
+                        document = {
+                            "id": str(uuid.uuid4()),
+                            "company_id": company_id,
+                            "chave_nfe": chave_nfe,
+                            "numero_nfe": parsed_data.get('numero_nfe', ''),
+                            "serie": parsed_data.get('serie', '1'),
+                            "modelo": modelo,
+                            "data_emissao": parsed_data.get('data_emissao', ''),
+                            "valor_total": parsed_data.get('valor_total', 0),
+                            "valor_servicos": parsed_data.get('valor_servicos', 0),
+                            "emitente_cnpj": cnpj_emitente,
+                            "emitente_nome": parsed_data.get('emitente_nome', ''),
+                            "emitente_ie": parsed_data.get('emitente_ie', ''),
+                            "emitente_uf": parsed_data.get('emitente_uf', ''),
+                            "emitente_endereco": parsed_data.get('emitente_endereco', {}),
+                            "destinatario_cnpj": cnpj_destinatario,
+                            "destinatario_nome": parsed_data.get('destinatario_nome', ''),
+                            "destinatario_ie": parsed_data.get('destinatario_ie', ''),
+                            "destinatario_uf": parsed_data.get('destinatario_uf', ''),
+                            "destinatario_endereco": parsed_data.get('destinatario_endereco', {}),
+                            "produtos": parsed_data.get('produtos', []),
+                            "servicos": parsed_data.get('servicos', []),
+                            "tipo": tipo,
+                            "tipo_operacao": "prestado" if tipo == "saida" else "tomado",
+                            "competencia": competencia_doc,
+                            "imported_at": datetime.now(timezone.utc).isoformat(),
+                            "status": "active"
+                        }
+                        
+                        await db.xml_documents.insert_one(document)
+                        results.append({
+                            "arquivo": f"{file.filename} (nota {idx + 1})",
+                            "numero": parsed_data.get('numero_nfe', ''),
+                            "tipo": tipo,
+                            "valor": parsed_data.get('valor_total', 0),
+                            "modelo": modelo,
+                            "competencia": competencia_doc
+                        })
+                        
+                    except Exception as e:
+                        errors.append({
+                            "arquivo": f"{file.filename} (nota {idx + 1})",
+                            "erro": str(e)
+                        })
+                
+                # Pular o resto do loop para este arquivo (já processamos todas as NFS-e)
+                continue
+            
+            # Parser apropriado para cada tipo (arquivo único)
             if xml_type == 'nfse':
                 parsed_data = parse_xml_nfse(xml_str)
             elif xml_type == 'nfce':
