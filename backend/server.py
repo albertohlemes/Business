@@ -22,6 +22,7 @@ import xmltodict
 import re
 import requests
 from io import BytesIO
+import io
 from collections import defaultdict
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 import json
