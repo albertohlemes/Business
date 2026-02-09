@@ -1374,11 +1374,23 @@ const Documents = ({ user, onLogout }) => {
                           {sortField === 'data_emissao' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
                         </div>
                       </th>
-                      <th className="text-left px-2 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider hidden xl:table-cell w-28">
-                        CFOPs
+                      <th 
+                        className="text-left px-2 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white hidden xl:table-cell w-28"
+                        onClick={() => handleSort('cfops')}
+                      >
+                        <div className="flex items-center gap-1">
+                          CFOPs
+                          {sortField === 'cfops' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                        </div>
                       </th>
-                      <th className="text-left px-2 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider hidden xl:table-cell w-32">
-                        Classif.
+                      <th 
+                        className="text-left px-2 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white hidden xl:table-cell w-32"
+                        onClick={() => handleSort('status_validacao')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Classif.
+                          {sortField === 'status_validacao' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                        </div>
                       </th>
                       <th 
                         className="text-right px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white w-28"
