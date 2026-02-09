@@ -186,9 +186,16 @@ class CompanyCreate(BaseModel):
     equiparado_industria: bool = False
     apura_icms: bool = False
     apura_icms_st: bool = False
-    # Presunção
+    # Presunção geral
     percentual_presuncao_irpj: float = 8.0
     percentual_presuncao_csll: float = 12.0
+    # Presunção por atividade (mista)
+    percentual_presuncao_irpj_comercio: float = 8.0
+    percentual_presuncao_csll_comercio: float = 12.0
+    percentual_presuncao_irpj_servico: float = 32.0
+    percentual_presuncao_csll_servico: float = 32.0
+    percentual_presuncao_irpj_industria: float = 8.0
+    percentual_presuncao_csll_industria: float = 12.0
     estoque_inicial: float = 0.0
     estoque_final: float = 0.0
     # Classificação inteligente
