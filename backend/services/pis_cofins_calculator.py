@@ -63,23 +63,40 @@ NCMS_ALIQUOTA_ZERO = {
     '4902': 'Jornais e revistas',
 }
 
-# NCMs Monofásicos - Tributação concentrada
+# NCMs Monofásicos - Tributação concentrada (Tabela 4.3.10)
 NCMS_MONOFASICOS = {
     # Bebidas Frias
     '22011000': {'grupo': 'BEBIDAS', 'descricao': 'Águas Minerais e Gasosas'},
     '22021000': {'grupo': 'BEBIDAS', 'descricao': 'Refrigerantes'},
     '22029900': {'grupo': 'BEBIDAS', 'descricao': 'Energéticos, Isotônicos, Chás'},
     '22030000': {'grupo': 'BEBIDAS', 'descricao': 'Cervejas'},
+    '22071000': {'grupo': 'BEBIDAS', 'descricao': 'Álcool Etílico não Desnaturado'},
+    '22072010': {'grupo': 'BEBIDAS', 'descricao': 'Álcool Etílico Desnaturado'},
+    '22089000': {'grupo': 'BEBIDAS', 'descricao': 'Destilados/Licores'},
+    # Combustíveis
+    '27101159': {'grupo': 'COMBUSTIVEIS', 'descricao': 'Gasolina'},
+    '27101259': {'grupo': 'COMBUSTIVEIS', 'descricao': 'Querosene'},
+    '27101911': {'grupo': 'COMBUSTIVEIS', 'descricao': 'Óleo Diesel Marítimo'},
+    '27101921': {'grupo': 'COMBUSTIVEIS', 'descricao': 'Óleo Diesel'},
+    '27111910': {'grupo': 'COMBUSTIVEIS', 'descricao': 'GLP'},
     # Autopeças
     '40111000': {'grupo': 'AUTOPECAS', 'descricao': 'Pneus Novos (Carro)'},
     '40112090': {'grupo': 'AUTOPECAS', 'descricao': 'Pneus Novos (Carga)'},
+    '40115000': {'grupo': 'AUTOPECAS', 'descricao': 'Pneus Bicicletas'},
+    '40132000': {'grupo': 'AUTOPECAS', 'descricao': 'Câmaras de Ar'},
     '4013': {'grupo': 'AUTOPECAS', 'descricao': 'Câmaras de Ar'},
     '8708': {'grupo': 'AUTOPECAS', 'descricao': 'Peças Automotivas'},
     '8409': {'grupo': 'AUTOPECAS', 'descricao': 'Partes de Motor'},
     '85071010': {'grupo': 'AUTOPECAS', 'descricao': 'Baterias Automotivas'},
     '8511': {'grupo': 'AUTOPECAS', 'descricao': 'Velas, Ignição, Arranque'},
     '8512': {'grupo': 'AUTOPECAS', 'descricao': 'Faróis, Lanternas, Piscas'},
-    # Perfumaria e Farmácia
+    # Máquinas Agrícolas
+    '84306990': {'grupo': 'MAQ_AGRICOLA', 'descricao': 'Máquinas e Aparelhos Terraplanagem'},
+    '84324000': {'grupo': 'MAQ_AGRICOLA', 'descricao': 'Espalhadores de Estrume'},
+    '84333000': {'grupo': 'MAQ_AGRICOLA', 'descricao': 'Máquinas Colher Feno'},
+    '84334000': {'grupo': 'MAQ_AGRICOLA', 'descricao': 'Enfardadeiras de Palha'},
+    '87162000': {'grupo': 'MAQ_AGRICOLA', 'descricao': 'Reboques Agrícolas'},
+    # Perfumaria e Higiene Pessoal
     '33030010': {'grupo': 'PERFUMARIA', 'descricao': 'Perfumes'},
     '3304': {'grupo': 'PERFUMARIA', 'descricao': 'Maquiagem, Cremes'},
     '33051000': {'grupo': 'PERFUMARIA', 'descricao': 'Xampus'},
@@ -87,7 +104,20 @@ NCMS_MONOFASICOS = {
     '3306': {'grupo': 'PERFUMARIA', 'descricao': 'Pasta de Dente, Fio Dental'},
     '330720': {'grupo': 'PERFUMARIA', 'descricao': 'Desodorantes'},
     '34011190': {'grupo': 'PERFUMARIA', 'descricao': 'Sabonetes'},
+    '34012010': {'grupo': 'PERFUMARIA', 'descricao': 'Sabão em Pó/Líquido'},
+    # Farmácia
+    '30029020': {'grupo': 'FARMACIA', 'descricao': 'Sangue Humano'},
+    '30029092': {'grupo': 'FARMACIA', 'descricao': 'Vacinas'},
+    '30029099': {'grupo': 'FARMACIA', 'descricao': 'Outros Produtos Farmacêuticos'},
+    '30039056': {'grupo': 'FARMACIA', 'descricao': 'Medicamentos não Acondicionados'},
+    '30049046': {'grupo': 'FARMACIA', 'descricao': 'Medicamentos Acondicionados'},
+    '30051010': {'grupo': 'FARMACIA', 'descricao': 'Curativos Adesivos'},
+    '30066000': {'grupo': 'FARMACIA', 'descricao': 'Preparações Contraceptivas'},
     '300490': {'grupo': 'FARMACIA', 'descricao': 'Medicamentos'},
+    # Embalagens
+    '76129012': {'grupo': 'EMBALAGENS', 'descricao': 'Latas de Alumínio para Bebidas'},
+    '38249029': {'grupo': 'QUIMICOS', 'descricao': 'Produtos Químicos'},
+    '38260000': {'grupo': 'COMBUSTIVEIS', 'descricao': 'Biodiesel'},
 }
 
 # Alíquotas por Grupo e Perfil (INDÚSTRIA, DISTRIBUIDOR, VAREJO)
