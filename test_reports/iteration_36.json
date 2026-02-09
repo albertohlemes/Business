@@ -1,0 +1,147 @@
+{
+  "summary": "Completed comprehensive testing of AURION fiscal system. All requested features verified: Dashboard with ENTRADAS/SAÍDAS sections, document filtering by activity type (Comércio), Apuração ICMS with CFOP flags (red highlighting for ST and DESPESA), and values consistency between Dashboard and Apuração ICMS.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "Login with admin@test.com / 123456 - SUCCESS",
+    "Company selection - COMERCIAL RS LTDA (tipo_atividade=comercio) - SUCCESS",
+    "Competência 01/2026 selection - SUCCESS",
+    "Dashboard - Shows ENTRADAS section with NF-e Entrada (427), Total Entradas (427)",
+    "Dashboard - Shows SAÍDAS section with NF-e Saída (4040), Cupons NFC-e (0), Total Saídas (4040)",
+    "Dashboard - Shows tipo_atividade 'Comercio' in Faturamento Total card",
+    "Dashboard - NFS-e Prestados NOT shown for Comércio company (correct filtering)",
+    "Dashboard - Total Entradas: R$ 11.980.397,41 - CORRECT",
+    "Dashboard - Total Saídas: R$ 11.871.817,60 - CORRECT",
+    "Dashboard - ICMS card shows Crédito, ICMS-ST (sem crédito), Despesa (sem crédito), Débito, A Pagar",
+    "Dashboard - PIS card with 'Divergência' badge displayed",
+    "Dashboard - COFINS card with 'Divergência' badge displayed",
+    "Dashboard - 'Divergência de Alíquotas Detectada' alert for Lucro Real",
+    "Apuração ICMS - Page loads with correct data",
+    "Apuração ICMS - 'Valores Desconsiderados na Apuração' card displayed",
+    "Apuração ICMS - ICMS Despesas (Zerado): R$ 93.785,18 - 153 itens afetados",
+    "Apuração ICMS - ICMS ST (Zerado): R$ 228.819,95 - 431 itens afetados",
+    "Apuração ICMS - Total ICMS Desconsiderado: R$ 322.605,13",
+    "Apuração ICMS - 'Configurações de ICMS' section with editable flags",
+    "Apuração ICMS - Checkbox 'Desconsiderar ICMS CFOPs Despesas' - EDITABLE",
+    "Apuração ICMS - Checkbox 'Desconsiderar ICMS sobre Operações ST' - EDITABLE",
+    "Apuração ICMS - 'Aplicar e Recalcular' button present",
+    "Apuração ICMS - CFOP table with Status column (Normal, ST, DESPESA badges)",
+    "Apuração ICMS - CFOPs 1403, 2403, 1411 marked as ST with RED background",
+    "Apuração ICMS - CFOPs 1556, 1551, 2551, 2556 marked as DESPESA with RED background",
+    "Apuração ICMS - Crédito ICMS: R$ 1.671.755,85",
+    "Apuração ICMS - Débito ICMS: R$ 1.914.466,47",
+    "Apuração ICMS - ICMS a Pagar: R$ 242.710,62",
+    "Values Match - Dashboard Total Entradas = Apuração ICMS Total Entradas",
+    "Values Match - Dashboard Total Saídas = Apuração ICMS Total Saídas",
+    "Values Match - Dashboard Crédito ICMS = Apuração ICMS Crédito ICMS",
+    "Values Match - Dashboard Débito ICMS = Apuração ICMS Débito ICMS"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_aurion_fiscal.py",
+    "/app/test_reports/pytest/pytest_iteration36.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Dashboard correctly implements ENTRADAS/SAÍDAS separation with document type cards",
+    "Document filtering by tipo_atividade working correctly (NFS-e not shown for Comércio)",
+    "Apuração ICMS correctly implements CFOP flags (is_despesa, is_st, desconsiderado)",
+    "Red highlighting for desconsiderado CFOPs implemented with badges (ST, DESPESA)",
+    "Values consistency between Dashboard and Apuração ICMS verified",
+    "ICMS flags are editable with 'Aplicar e Recalcular' button"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_aurion_fiscal.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (17/17 tests passed)",
+    "frontend": "100% (all features verified)"
+  },
+  
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456"
+  },
+  
+  "seed_data_creation": "Used existing company COMERCIAL RS LTDA with competência 01/2026. Company has tipo_atividade=comercio and both ICMS flags enabled (desconsiderar_icms_despesas=true, desconsiderar_icms_st=true).",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "All requested features are working correctly. Dashboard shows ENTRADAS/SAÍDAS sections with correct document counts (427 entradas, 4040 saídas) and values (R$ 11.980.397,41 entradas, R$ 11.871.817,60 saídas). Apuração ICMS shows CFOP flags with red highlighting for ST and DESPESA CFOPs. Values are consistent between Dashboard and Apuração ICMS. ICMS flags are editable.",
+  
+  "features_verified": {
+    "login": {
+      "status": "WORKING",
+      "credentials": "admin@test.com / 123456"
+    },
+    "dashboard": {
+      "status": "WORKING",
+      "entradas_section": true,
+      "saidas_section": true,
+      "tipo_atividade_displayed": "comercio",
+      "nfse_filtered_for_comercio": true,
+      "total_entradas": "R$ 11.980.397,41",
+      "total_saidas": "R$ 11.871.817,60",
+      "document_counts": {
+        "nfe_entrada": 427,
+        "nfe_saida": 4040,
+        "nfce": 0,
+        "cte_entrada": 0,
+        "cte_saida": 0,
+        "nfse_tomados": 0,
+        "nfse_prestados": 0
+      }
+    },
+    "apuracao_icms": {
+      "status": "WORKING",
+      "route": "/icms",
+      "flags_editable": true,
+      "desconsiderados_card": true,
+      "cfop_status_badges": true,
+      "red_highlighting_for_desconsiderados": true,
+      "values_match_dashboard": true,
+      "icms_totals": {
+        "credito": "R$ 1.671.755,85",
+        "debito": "R$ 1.914.466,47",
+        "saldo": "R$ 242.710,62",
+        "situacao": "A_PAGAR"
+      },
+      "desconsiderados": {
+        "despesas": "R$ 93.785,18 (153 itens)",
+        "st": "R$ 228.819,95 (431 itens)",
+        "total": "R$ 322.605,13"
+      }
+    }
+  },
+  
+  "api_test_results": {
+    "dashboard_stats": {
+      "endpoint": "/api/dashboard/stats/{company_id}?competencia=01/2026",
+      "status": 200,
+      "values_correct": true
+    },
+    "apuracao_icms": {
+      "endpoint": "/api/apuracao-icms/{company_id}?competencia=01/2026",
+      "status": 200,
+      "flags_present": true,
+      "cfop_status_flags": true,
+      "desconsiderados_present": true
+    }
+  }
+}
