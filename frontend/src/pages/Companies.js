@@ -170,6 +170,9 @@ const Companies = ({ user, onLogout }) => {
       equiparado_industria: company.equiparado_industria || false,
       apura_icms: company.apura_icms || false,
       apura_icms_st: company.apura_icms_st || false,
+      // Flags de desconsiderar ICMS
+      desconsiderar_icms_despesas: company.desconsiderar_icms_despesas || false,
+      desconsiderar_icms_st: company.desconsiderar_icms_st || false,
       // Classificação inteligente
       classificacao_inteligente: company.classificacao_inteligente || '',
       // Presunção por atividade
