@@ -13442,11 +13442,14 @@ async def apurar_pis_cofins(
     perfil_empresa = company.get('perfil_comercial', 'VAREJO')  # INDUSTRIA, DISTRIBUIDOR, VAREJO
     cnaes_empresa = company.get('cnaes', [])
     
-    # Buscar documentos da competência
-    documentos = await db.xml_documents.find({
+    # Buscar documentos da competência (EXCLUIR notas canceladas - mesmo critério do Dashboard)
+    query = {
         "company_id": company_id,
         "competencia": competencia
-    }, {"_id": 0, "xml_content": 0}).to_list(10000)
+    }
+    query.update(get_filtro_notas_ativas())
+    
+    documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
     
     # Inferir tipo_operacao para documentos que não têm
     for doc in documentos:
