@@ -5198,7 +5198,13 @@ async def list_documents(
     
     # Filtrar por tipo de operação após inferência
     if tipo_operacao:
-        documents = [d for d in documents if d.get('tipo_operacao') == tipo_operacao]
+        # Para NFS-e, mapear 'saida' para 'prestado' e 'entrada' para 'tomado'
+        if tipo_operacao == 'saida':
+            documents = [d for d in documents if d.get('tipo_operacao') in ['saida', 'prestado'] or d.get('tipo') == 'saida']
+        elif tipo_operacao == 'entrada':
+            documents = [d for d in documents if d.get('tipo_operacao') in ['entrada', 'tomado'] or d.get('tipo') == 'entrada']
+        else:
+            documents = [d for d in documents if d.get('tipo_operacao') == tipo_operacao]
     
     # Filtrar por modelo do documento
     if modelo:
