@@ -509,6 +509,86 @@ const Documents = ({ user, onLogout }) => {
     };
   }, [filteredDocuments]);
 
+  // Extrair CFOPs únicos e classificações de um documento
+  const getDocumentCfops = (doc) => {
+    if (!doc.produtos || doc.produtos.length === 0) return [];
+    const cfops = [...new Set(doc.produtos.map(p => p.cfop).filter(Boolean))];
+    return cfops.sort();
+  };
+
+  const getDocumentClassificacoes = (doc) => {
+    if (!doc.produtos || doc.produtos.length === 0) return [];
+    const categorias = doc.produtos.map(p => p.categoria_classificada || 'pendente');
+    const uniqueCategorias = [...new Set(categorias)];
+    return uniqueCategorias;
+  };
+
+  // Função para renderizar badge de classificação
+  const renderClassificacaoBadge = (categoria) => {
+    const styles = {
+      revenda: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      insumo: 'bg-green-500/20 text-green-400 border-green-500/30',
+      despesa: 'bg-red-500/20 text-red-400 border-red-500/30',
+      ativo_imobilizado: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+      combustivel: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+      pendente: 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+    };
+    const labels = {
+      revenda: 'REV',
+      insumo: 'INS',
+      despesa: 'DES',
+      ativo_imobilizado: 'ATI',
+      combustivel: 'CMB',
+      pendente: 'PEN'
+    };
+    return (
+      <span 
+        key={categoria} 
+        className={`px-1.5 py-0.5 text-[10px] font-medium rounded border ${styles[categoria] || styles.pendente}`}
+        title={categoria}
+      >
+        {labels[categoria] || 'PEN'}
+      </span>
+    );
+  };
+
+  // Validação de notas - verificar se soma dos produtos bate com valor total
+  const validacaoNotas = useMemo(() => {
+    let validadas = 0;
+    let comDivergencia = 0;
+    
+    filteredDocuments.forEach(doc => {
+      if (doc.produtos && doc.produtos.length > 0) {
+        // Soma dos valores dos produtos
+        const somaProdutos = doc.produtos.reduce((sum, p) => {
+          const valorProd = parseFloat(p.valor_total) || parseFloat(p.valor_produto) || 0;
+          return sum + valorProd;
+        }, 0);
+        
+        // Valor total do documento
+        const valorDoc = parseFloat(doc.valor_total) || 0;
+        
+        // Considerar validado se diferença for menor que R$ 0.10 (tolerância)
+        const diferenca = Math.abs(valorDoc - somaProdutos);
+        if (diferenca < 0.10) {
+          validadas++;
+        } else {
+          comDivergencia++;
+        }
+      } else {
+        // Documento sem produtos = validado
+        validadas++;
+      }
+    });
+    
+    return {
+      total: filteredDocuments.length,
+      validadas,
+      comDivergencia,
+      percentual: filteredDocuments.length > 0 ? Math.round((validadas / filteredDocuments.length) * 100) : 0
+    };
+  }, [filteredDocuments]);
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   };
