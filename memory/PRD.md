@@ -116,6 +116,10 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 
 ### v2.8.0 (09/02/2026) - Restauração Completa do Cadastro de Empresa
 - **Campos de Presunção restaurados**: Presunção IRPJ (%) e CSLL (%) agora aparecem quando regime = Lucro Presumido
+- **Presunção por Atividade (NOVO)**: Quando tipo de atividade = "Mista", exibe campos separados:
+  - 📦 Atividade de Comércio: Presunção IRPJ Comércio (8%), CSLL Comércio (12%)
+  - 🛠️ Atividade de Serviços: Presunção IRPJ Serviços (32%), CSLL Serviços (32%)
+- **CNAEs Secundários (NOVO)**: Campo para adicionar múltiplos CNAEs secundários conforme cartão CNPJ
 - **Campos de Classificação de Produtos restaurados**:
   - Produtos Comercializados (para classificação REVENDA) - cor azul
   - Insumos de Produção (para classificação INSUMO) - cor verde
