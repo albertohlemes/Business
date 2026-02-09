@@ -491,7 +491,7 @@ const RET = ({ user, onLogout }) => {
                       </tr>
                     )}
                     <tr className="border-t-2 border-[#C8A951] bg-[#0C0C0C]">
-                      <td className="p-3 text-[#C8A951] font-bold">TOTAL</td>
+                      <td className="p-3 text-[#C8A951] font-bold">TOTAL A PAGAR</td>
                       <td className={`p-3 text-right font-bold ${melhorRegime?.regime === 'simples' ? 'text-green-400' : 'text-white'}`}>
                         {simplesIndisponivel ? '-' : formatCurrency(dadosAtivos?.simples?.total)}
                         {melhorRegime?.regime === 'simples' && <Award className="w-4 h-4 inline ml-1" />}
@@ -503,6 +503,9 @@ const RET = ({ user, onLogout }) => {
                       <td className={`p-3 text-right font-bold ${melhorRegime?.regime === 'real' ? 'text-green-400' : 'text-white'}`}>
                         {formatCurrency(dadosAtivos?.real?.total)}
                         {melhorRegime?.regime === 'real' && <Award className="w-4 h-4 inline ml-1" />}
+                        {(dadosAtivos?.real?.pis_creditos > 0 || dadosAtivos?.real?.cofins_creditos > 0) && dadosAtivos?.real?.total === 0 && (
+                          <span className="text-xs text-green-400 block">(Crédito acumulado)</span>
+                        )}
                       </td>
                     </tr>
                     <tr className="border-t border-[#2A2A2A]">
