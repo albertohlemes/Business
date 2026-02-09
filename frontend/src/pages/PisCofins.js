@@ -368,48 +368,110 @@ const PisCofins = ({ user, onLogout }) => {
             subtitulo={`${apuracao.por_cfop_cst.length} combinação(ões)`}
             sectionKey="cfop_cst"
           >
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[#2A2A2A]">
-                    <th className="text-left py-2 px-3 text-[#A1A1AA]">CFOP</th>
-                    <th className="text-left py-2 px-3 text-[#A1A1AA]">CST</th>
-                    <th className="text-center py-2 px-3 text-[#A1A1AA]">Tipo</th>
-                    <th className="text-right py-2 px-3 text-[#A1A1AA]">Qtd</th>
-                    <th className="text-right py-2 px-3 text-[#A1A1AA]">Valor Base</th>
-                    <th className="text-right py-2 px-3 text-[#A1A1AA]">PIS</th>
-                    <th className="text-right py-2 px-3 text-[#A1A1AA]">COFINS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {apuracao.por_cfop_cst.map((item, idx) => (
-                    <tr key={idx} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
-                      <td className="py-2 px-3">
-                        <span className="font-mono text-white">{item.cfop}</span>
-                      </td>
-                      <td className="py-2 px-3">
-                        <span className="font-mono text-[#C8A951]">{item.cst}</span>
-                      </td>
-                      <td className="py-2 px-3 text-center">
-                        <span className={`text-xs px-2 py-0.5 rounded ${
-                          item.tipo === 'ENTRADA' ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
-                        }`}>
-                          {item.tipo}
+            {(() => {
+              // Separar entradas e saídas
+              const entradas = apuracao.por_cfop_cst.filter(item => item.tipo === 'ENTRADA');
+              const saidas = apuracao.por_cfop_cst.filter(item => item.tipo === 'SAIDA' || item.tipo === 'SAÍDA');
+              
+              // Calcular subtotais de entradas
+              const subtotalEntradas = entradas.reduce((acc, item) => ({
+                qtd: acc.qtd + (item.qtd || 0),
+                valor_base: acc.valor_base + (item.valor_base || 0),
+                valor_pis: acc.valor_pis + (item.valor_pis || 0),
+                valor_cofins: acc.valor_cofins + (item.valor_cofins || 0)
+              }), { qtd: 0, valor_base: 0, valor_pis: 0, valor_cofins: 0 });
+              
+              // Calcular subtotais de saídas
+              const subtotalSaidas = saidas.reduce((acc, item) => ({
+                qtd: acc.qtd + (item.qtd || 0),
+                valor_base: acc.valor_base + (item.valor_base || 0),
+                valor_pis: acc.valor_pis + (item.valor_pis || 0),
+                valor_cofins: acc.valor_cofins + (item.valor_cofins || 0)
+              }), { qtd: 0, valor_base: 0, valor_pis: 0, valor_cofins: 0 });
+
+              const TabelaCFOP = ({ dados, tipo, subtotal }) => (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[#2A2A2A]">
+                        <th className="text-left py-2 px-3 text-[#A1A1AA]">CFOP</th>
+                        <th className="text-left py-2 px-3 text-[#A1A1AA]">CST</th>
+                        <th className="text-right py-2 px-3 text-[#A1A1AA]">Qtd</th>
+                        <th className="text-right py-2 px-3 text-[#A1A1AA]">Valor Base</th>
+                        <th className="text-right py-2 px-3 text-[#A1A1AA]">PIS</th>
+                        <th className="text-right py-2 px-3 text-[#A1A1AA]">COFINS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dados.map((item, idx) => (
+                        <tr key={idx} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
+                          <td className="py-2 px-3">
+                            <span className="font-mono text-white">{item.cfop}</span>
+                          </td>
+                          <td className="py-2 px-3">
+                            <span className="font-mono text-[#C8A951]">{item.cst}</span>
+                          </td>
+                          <td className="py-2 px-3 text-right text-[#A1A1AA]">{item.qtd}</td>
+                          <td className="py-2 px-3 text-right text-white">{formatCurrency(item.valor_base)}</td>
+                          <td className={`py-2 px-3 text-right ${tipo === 'ENTRADA' ? 'text-green-400' : 'text-red-400'}`}>
+                            {formatCurrency(item.valor_pis)}
+                          </td>
+                          <td className={`py-2 px-3 text-right ${tipo === 'ENTRADA' ? 'text-green-400' : 'text-red-400'}`}>
+                            {formatCurrency(item.valor_cofins)}
+                          </td>
+                        </tr>
+                      ))}
+                      {/* Linha de Subtotal */}
+                      <tr className={`${tipo === 'ENTRADA' ? 'bg-green-600/10' : 'bg-red-600/10'} font-semibold`}>
+                        <td colSpan="2" className="py-3 px-3 text-white">
+                          SUBTOTAL {tipo}
+                        </td>
+                        <td className="py-3 px-3 text-right text-white">{subtotal.qtd}</td>
+                        <td className="py-3 px-3 text-right text-white">{formatCurrency(subtotal.valor_base)}</td>
+                        <td className={`py-3 px-3 text-right font-bold ${tipo === 'ENTRADA' ? 'text-green-400' : 'text-red-400'}`}>
+                          {formatCurrency(subtotal.valor_pis)}
+                        </td>
+                        <td className={`py-3 px-3 text-right font-bold ${tipo === 'ENTRADA' ? 'text-green-400' : 'text-red-400'}`}>
+                          {formatCurrency(subtotal.valor_cofins)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              );
+
+              return (
+                <div className="space-y-6">
+                  {/* ENTRADAS (Créditos) */}
+                  {entradas.length > 0 && (
+                    <div>
+                      <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                        <ArrowDown className="w-4 h-4 text-green-400" />
+                        ENTRADAS (Créditos)
+                        <span className="text-xs bg-green-600/20 text-green-400 px-2 py-0.5 rounded-full">
+                          {entradas.length} CFOP(s)
                         </span>
-                      </td>
-                      <td className="py-2 px-3 text-right text-[#A1A1AA]">{item.qtd}</td>
-                      <td className="py-2 px-3 text-right text-white">{formatCurrency(item.valor_base)}</td>
-                      <td className={`py-2 px-3 text-right ${item.tipo === 'ENTRADA' ? 'text-green-400' : 'text-red-400'}`}>
-                        {formatCurrency(item.valor_pis)}
-                      </td>
-                      <td className={`py-2 px-3 text-right ${item.tipo === 'ENTRADA' ? 'text-green-400' : 'text-red-400'}`}>
-                        {formatCurrency(item.valor_cofins)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </h4>
+                      <TabelaCFOP dados={entradas} tipo="ENTRADA" subtotal={subtotalEntradas} />
+                    </div>
+                  )}
+                  
+                  {/* SAÍDAS (Débitos) */}
+                  {saidas.length > 0 && (
+                    <div>
+                      <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                        <ArrowUp className="w-4 h-4 text-red-400" />
+                        SAÍDAS (Débitos)
+                        <span className="text-xs bg-red-600/20 text-red-400 px-2 py-0.5 rounded-full">
+                          {saidas.length} CFOP(s)
+                        </span>
+                      </h4>
+                      <TabelaCFOP dados={saidas} tipo="SAIDA" subtotal={subtotalSaidas} />
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </SecaoColapsavel>
         )}
 
