@@ -1,0 +1,106 @@
+{
+  "summary": "Completed testing of Iteration 41 features. All 9 backend tests passed. Frontend testing verified: 1) 'Memória IA' button visible and functional in Classificação Inteligente page - opens modal showing 108 learned rules with edit/delete capabilities, 2) ICMS page has sortable columns (CFOP, Status, Qtd, Valor Total, BC ICMS, Valor ICMS) with sort indicators (↑/↕), 3) Endpoints correctly use company regime (lucro_presumido for Teknolink), 4) inteligencia-tributaria returns pis_debitos/cofins_debitos fields for Lucro Real comparison",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "GET /api/pis-cofins/divergencias - Returns regime_tributario=lucro_presumido for Teknolink",
+    "GET /api/pis-cofins/detalhamento - Returns entradas/saidas with subtotais",
+    "GET /api/inteligencia-tributaria - Returns pis_debitos=2397.58, cofins_debitos=11043.73",
+    "GET /api/learned-rules/{company_id} - Returns 108 learned rules for Teknolink",
+    "PUT /api/ai/learned-rules/{rule_id} - Successfully updates rule categoria",
+    "PUT /api/ai/learned-rules/{nonexistent} - Returns 404 as expected",
+    "DELETE /api/ai/learned-rules/{nonexistent} - Returns 404 as expected",
+    "GET /api/companies/{id} - Returns regime_tributario field",
+    "GET /api/apuracao-icms - Returns por_cfop with sortable fields (cfop, qtd, valor_total, bc_icms, valor_icms)",
+    "UI: Memória IA button visible in Classificação Inteligente header",
+    "UI: Memória IA modal opens showing 108 rules with edit/delete buttons",
+    "UI: ICMS page shows sortable column headers with sort indicators (↑/↕)",
+    "UI: CFOP column sorted in ascending order by default"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_iteration41_features.py",
+    "/app/test_reports/pytest/pytest_iteration41.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [],
+  
+  "updated_files": [
+    "/app/backend/tests/test_iteration41_features.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456",
+    "company_tested": "TEKNOLINK SJC (b76b3672-229c-4973-8ed4-5eaa9739e160)",
+    "competencia": "01/2026"
+  },
+  
+  "seed_data_creation": "None - used existing Teknolink company data",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "All features from iteration 41 are working correctly: 1) PIS/COFINS endpoints use company regime (not fixed LUCRO_REAL), 2) inteligencia-tributaria returns pis_debitos/cofins_debitos for Lucro Real comparison, 3) Memória IA button and modal functional in Classificação Inteligente, 4) ICMS page has sortable columns with sort indicators. The learned_rules collection has 108 rules for Teknolink company.",
+  
+  "features_verified": {
+    "pis_cofins_divergencias_regime": {
+      "status": "WORKING",
+      "description": "Endpoint uses company regime_tributario (lucro_presumido for Teknolink)",
+      "response_field": "totais.regime_tributario"
+    },
+    "pis_cofins_detalhamento_regime": {
+      "status": "WORKING",
+      "description": "Endpoint calculates based on company regime",
+      "response_structure": "entradas.itens, entradas.subtotais, saidas.itens, saidas.subtotais"
+    },
+    "inteligencia_tributaria_debitos": {
+      "status": "WORKING",
+      "description": "Returns pis_debitos and cofins_debitos for Lucro Real comparison",
+      "values": {
+        "pis_debitos": 2397.58,
+        "cofins_debitos": 11043.73,
+        "pis_creditos": 3882.79,
+        "cofins_creditos": 17884.33
+      }
+    },
+    "learned_rules_crud": {
+      "status": "WORKING",
+      "endpoints": [
+        "GET /api/learned-rules/{company_id}",
+        "PUT /api/ai/learned-rules/{rule_id}",
+        "DELETE /api/ai/learned-rules/{rule_id}"
+      ],
+      "total_rules": 108
+    },
+    "memoria_ia_button": {
+      "status": "WORKING",
+      "location": "Classificação Inteligente page header",
+      "modal_features": ["List rules", "Edit rule categoria", "Delete rule"]
+    },
+    "icms_sortable_columns": {
+      "status": "WORKING",
+      "columns": ["CFOP", "Status", "Qtd", "Valor Total", "BC ICMS", "Valor ICMS"],
+      "default_sort": "CFOP ascending",
+      "sort_indicators": "↑ (ascending), ↕ (sortable)"
+    }
+  }
+}
