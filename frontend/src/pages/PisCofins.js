@@ -20,6 +20,8 @@ const PisCofins = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('apuracao'); // apuracao, comparativo, divergencias
   const [expandedSections, setExpandedSections] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [agrupamentoDivergencias, setAgrupamentoDivergencias] = useState('notas'); // notas, ncms, produtos
+  const [loadingDivergencias, setLoadingDivergencias] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!selectedCompany?.id || !selectedCompetencia) return;
@@ -28,14 +30,39 @@ const PisCofins = ({ user, onLogout }) => {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
       
-      // Buscar apuração e divergências em paralelo
-      const [apuracaoRes, divergenciasRes] = await Promise.all([
-        axios.get(`${API}/pis-cofins/apuracao/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }),
-        axios.get(`${API}/pis-cofins/divergencias/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers })
-      ]);
-      
+      // Buscar apuração
+      const apuracaoRes = await axios.get(
+        `${API}/pis-cofins/apuracao/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
+        { headers }
+      );
       setApuracao(apuracaoRes.data);
-      setDivergencias(divergenciasRes.data);
+      
+      // Buscar divergências com agrupamento padrão
+      fetchDivergencias('notas');
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCompany, selectedCompetencia]);
+
+  const fetchDivergencias = async (agrupamento) => {
+    if (!selectedCompany?.id || !selectedCompetencia) return;
+    setLoadingDivergencias(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/pis-cofins/divergencias/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}&agrupamento=${agrupamento}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setDivergencias(response.data);
+      setAgrupamentoDivergencias(agrupamento);
+    } catch (err) {
+      console.error('Erro ao carregar divergências:', err);
+    } finally {
+      setLoadingDivergencias(false);
+    }
+  };
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
     } finally {
