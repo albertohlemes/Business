@@ -132,6 +132,11 @@ class Company(BaseModel):
     # Regime Tributário
     regime_tributario: str = "lucro_presumido"  # simples_nacional, lucro_presumido, lucro_real
     anexos_simples: List[str] = []  # I, II, III, IV, V
+    anexos_confirmados: bool = False  # Se o usuário confirmou os anexos sugeridos
+    # Simples Nacional - Fator R
+    folha_pagamento_12m: float = 0.0  # Total de folha + pro-labore + CPP dos últimos 12 meses
+    # Simples Nacional - Histórico de faturamento mensal
+    faturamento_mensal: dict = {}  # {"01/2026": 100000, "02/2026": 150000, ...}
     tipo_atividade: str = "comercio"  # comercio, industria, servicos, mista
     tipos_servico: List[str] = []  # transporte, ti, consultoria, etc
     # Perfis de atividade comercial (múltipla escolha)
