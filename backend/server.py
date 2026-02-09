@@ -16284,27 +16284,68 @@ async def ret_simples_nacional(
         'base_presuncao_csll': pres_csll
     }
     
-    # ============== CÁLCULO LUCRO REAL ==============
-    # PIS: 1.65% (não-cumulativo, estimando créditos de 50%)
-    real_pis = faturamento_base * 0.0165 * 0.5
+    # ============== CÁLCULO LUCRO REAL (baseado no DRE) ==============
+    # Buscar dados de entrada (compras) para calcular CMV
+    pipeline_entradas = [
+        {"$match": {
+            "company_id": company_id,
+            "tipo": "entrada",
+            "competencia": {"$in": competencias_ano},
+            **get_filtro_notas_ativas()
+        }},
+        {"$group": {"_id": None, "total": {"$sum": "$valor_total"}}}
+    ]
+    result_entradas = await db.xml_documents.aggregate(pipeline_entradas).to_list(1)
+    total_compras = result_entradas[0]["total"] if result_entradas else 0
     
-    # COFINS: 7.6% (não-cumulativo, estimando créditos de 50%)
-    real_cofins = faturamento_base * 0.076 * 0.5
+    # Dados do DRE da empresa
+    estoque_inicial = float(company.get('estoque_inicial', 0) or 0)
+    estoque_final = float(company.get('estoque_final', 0) or 0)
+    despesa_real = float(company.get('despesa_real', 0) or 0)
     
-    # IRPJ: 15% sobre lucro (estimando margem de 10%)
-    lucro_estimado = faturamento_base * 0.10
-    real_irpj = lucro_estimado * 0.15
-    if lucro_estimado > 240000:
-        real_irpj += (lucro_estimado - 240000) * 0.10
+    # CMV = Estoque Inicial + Compras - Estoque Final
+    cmv = estoque_inicial + total_compras - estoque_final
+    cmv = max(0, cmv)  # Não pode ser negativo
     
-    # CSLL: 9% sobre lucro
-    real_csll = lucro_estimado * 0.09
+    # Lucro Bruto = Faturamento - CMV
+    lucro_bruto = faturamento_base - cmv
     
-    # ICMS: Similar ao presumido
-    real_icms = faturamento_base * 0.03
+    # Lucro Contábil = Lucro Bruto - Despesas Operacionais
+    lucro_contabil = lucro_bruto - despesa_real if despesa_real > 0 else lucro_bruto
+    lucro_contabil = max(0, lucro_contabil)  # Se der prejuízo, não há IRPJ/CSLL
     
-    # CPP: Similar ao presumido
-    real_cpp = folha_estimada * 0.20
+    # PIS: 1.65% (não-cumulativo) - com créditos sobre entradas
+    # Débito sobre saídas
+    real_pis_debito = faturamento_base * 0.0165
+    # Crédito sobre entradas (mercadorias para revenda, insumos)
+    real_pis_credito = total_compras * 0.0165
+    real_pis = max(0, real_pis_debito - real_pis_credito)
+    
+    # COFINS: 7.6% (não-cumulativo) - com créditos sobre entradas
+    real_cofins_debito = faturamento_base * 0.076
+    real_cofins_credito = total_compras * 0.076
+    real_cofins = max(0, real_cofins_debito - real_cofins_credito)
+    
+    # IRPJ: 15% sobre lucro contábil + adicional de 10% sobre excedente
+    real_irpj = lucro_contabil * 0.15
+    # Adicional de 10% sobre o que exceder R$20.000/mês ou R$60.000/trimestre
+    limite_adicional = 20000 * mes_ref  # Proporcional ao período
+    if lucro_contabil > limite_adicional:
+        real_irpj += (lucro_contabil - limite_adicional) * 0.10
+    
+    # CSLL: 9% sobre lucro contábil
+    real_csll = lucro_contabil * 0.09
+    
+    # ICMS: Calcular com base nos créditos das entradas vs débitos das saídas
+    # Estimativa: débito 18% sobre saídas - crédito sobre entradas
+    real_icms_debito = faturamento_base * 0.18  # Alíquota média
+    real_icms_credito = total_compras * 0.12  # Crédito médio (origem interestadual)
+    real_icms = max(0, real_icms_debito - real_icms_credito)
+    
+    # CPP/INSS: 20% sobre folha
+    folha_12m = float(company.get('folha_pagamento_12m', 0) or 0)
+    folha_mensal = folha_12m / 12 if folha_12m > 0 else faturamento_base * 0.10
+    real_cpp = folha_mensal * mes_ref * 0.20
     
     real = {
         'irpj': round(real_irpj, 2),
@@ -16314,7 +16355,22 @@ async def ret_simples_nacional(
         'cpp': round(real_cpp, 2),
         'icms': round(real_icms, 2),
         'total': round(real_irpj + real_csll + real_cofins + real_pis + real_cpp + real_icms, 2),
-        'margem_lucro_estimada': 10
+        # Detalhamento do DRE
+        'dre': {
+            'faturamento': round(faturamento_base, 2),
+            'compras': round(total_compras, 2),
+            'estoque_inicial': round(estoque_inicial, 2),
+            'estoque_final': round(estoque_final, 2),
+            'cmv': round(cmv, 2),
+            'lucro_bruto': round(lucro_bruto, 2),
+            'despesas': round(despesa_real, 2),
+            'lucro_contabil': round(lucro_contabil, 2)
+        },
+        'creditos': {
+            'pis': round(real_pis_credito, 2),
+            'cofins': round(real_cofins_credito, 2),
+            'icms': round(real_icms_credito, 2)
+        }
     }
     
     # ============== COMPARATIVO ==============
