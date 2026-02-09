@@ -193,13 +193,13 @@ const CompanySelector = () => {
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         {company.codigo_empresa && (
-                          <span className="px-1.5 py-0.5 bg-[#C8A951]/10 text-[#C8A951] rounded text-xs font-semibold shrink-0">
-                            #{company.codigo_empresa}
+                          <span className="px-2 py-0.5 bg-[#C8A951]/20 text-[#C8A951] rounded text-xs font-bold shrink-0 min-w-[40px] text-center">
+                            {company.codigo_empresa}
                           </span>
                         )}
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="font-medium text-white text-sm truncate">{company.razao_social}</p>
-                          <p className="text-xs text-[#A1A1AA] font-mono">{company.cnpj}</p>
+                          <p className="text-xs text-[#666] font-mono">{company.cnpj}</p>
                         </div>
                       </div>
                       {tempCompany?.id === company.id && (
@@ -208,7 +208,8 @@ const CompanySelector = () => {
                         </div>
                       )}
                     </button>
-                  ))}
+                  ))
+                  )}
                 </div>
               </>
             )}
