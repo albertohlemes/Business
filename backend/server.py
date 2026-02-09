@@ -9177,7 +9177,7 @@ Se o comando não for claro, retorne {{"alteracoes": [], "erro": "mensagem expli
             api_key=os.environ.get('EMERGENT_LLM_KEY'),
             session_id=f"classificacao-{company_id}-{competencia}",
             system_message="Você é um assistente fiscal especializado. Responda sempre em formato JSON válido."
-        )
+        ).with_model("gemini", "gemini-2.5-flash")
         response = await llm.send_message(UserMessage(text=prompt))
         
         response_text = response if isinstance(response, str) else str(response)
