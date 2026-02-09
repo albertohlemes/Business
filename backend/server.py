@@ -15060,10 +15060,16 @@ async def get_icms_apuracao_rapida(company_id: str, competencia: str):
 
 # Função auxiliar para buscar dados de apuração PIS/COFINS
 async def get_pis_cofins_apuracao_rapida(company_id: str, competencia: str, company: dict):
-    """Busca resumo rápido da apuração PIS/COFINS"""
+    """Busca resumo rápido da apuração PIS/COFINS usando a mesma lógica do endpoint principal"""
     try:
         if not competencia:
             return None
+        
+        regime_tributario = company.get('regime_tributario', 'LUCRO_REAL')
+        perfis = company.get('perfis_comerciais', [])
+        if not perfis:
+            perfil = company.get('perfil_comercial', 'VAREJO')
+            perfis = [perfil] if perfil else ['VAREJO']
         
         # Buscar documentos
         filtro_ativas = get_filtro_notas_ativas()
@@ -15075,44 +15081,70 @@ async def get_pis_cofins_apuracao_rapida(company_id: str, competencia: str, comp
         
         documentos = await db.xml_documents.find(query, {"produtos": 1, "tipo": 1, "tipo_operacao": 1}).to_list(10000)
         
-        pis_debito = 0
-        cofins_debito = 0
-        pis_credito = 0
-        cofins_credito = 0
+        # Totalizadores
+        totais_real = {
+            'debitos': {'pis': 0, 'cofins': 0},
+            'creditos': {'pis': 0, 'cofins': 0}
+        }
         
         for doc in documentos:
             produtos = doc.get('produtos', [])
+            tipo_doc = doc.get('tipo_operacao') or doc.get('tipo', 'entrada')
             
             for prod in produtos:
                 cfop = str(prod.get('cfop', ''))
-                valor_base = float(prod.get('valor_total', 0) or 0)
                 ncm = str(prod.get('ncm', ''))
+                valor_base = float(prod.get('valor_total', 0) or 0)
                 
-                # Calcular usando a função existente
+                # Determinar tipo pela CFOP
+                cfop_primeiro = cfop[0] if cfop else ''
+                if cfop_primeiro in ['5', '6', '7']:
+                    tipo_op = 'saida'
+                elif cfop_primeiro in ['1', '2', '3']:
+                    tipo_op = 'entrada'
+                else:
+                    tipo_op = tipo_doc
+                
+                # Calcular PIS/COFINS
                 resultado = calcular_pis_cofins_produto(
                     ncm=ncm,
                     cfop=cfop,
                     valor_base=valor_base,
-                    regime='LUCRO_REAL'
+                    regime=regime_tributario
                 )
                 
-                cfop_primeiro = cfop[0] if cfop else ''
-                if cfop_primeiro in ['5', '6', '7']:
-                    pis_debito += resultado.get('pis_valor', 0)
-                    cofins_debito += resultado.get('cofins_valor', 0)
-                elif cfop_primeiro in ['1', '2', '3']:
+                pis_valor = float(resultado.get('pis_valor', 0) or 0)
+                cofins_valor = float(resultado.get('cofins_valor', 0) or 0)
+                
+                if tipo_op == 'saida':
+                    # Débito (saídas)
+                    if verificar_cfop_gera_debito(cfop):
+                        totais_real['debitos']['pis'] += pis_valor
+                        totais_real['debitos']['cofins'] += cofins_valor
+                else:
+                    # Crédito (entradas)
                     if verificar_cfop_gera_credito(cfop):
-                        pis_credito += resultado.get('pis_valor', 0)
-                        cofins_credito += resultado.get('cofins_valor', 0)
+                        totais_real['creditos']['pis'] += pis_valor
+                        totais_real['creditos']['cofins'] += cofins_valor
         
-        pis_saldo = pis_debito - pis_credito
-        cofins_saldo = cofins_debito - cofins_credito
+        # Calcular saldos
+        pis_saldo = totais_real['debitos']['pis'] - totais_real['creditos']['pis']
+        cofins_saldo = totais_real['debitos']['cofins'] - totais_real['creditos']['cofins']
         
         return {
             "lucro_real": {
-                "debitos": {"pis": round(pis_debito, 2), "cofins": round(cofins_debito, 2)},
-                "creditos": {"pis": round(pis_credito, 2), "cofins": round(cofins_credito, 2)},
-                "saldo": {"pis": round(pis_saldo, 2), "cofins": round(cofins_saldo, 2)},
+                "debitos": {
+                    "pis": round(totais_real['debitos']['pis'], 2),
+                    "cofins": round(totais_real['debitos']['cofins'], 2)
+                },
+                "creditos": {
+                    "pis": round(totais_real['creditos']['pis'], 2),
+                    "cofins": round(totais_real['creditos']['cofins'], 2)
+                },
+                "saldo": {
+                    "pis": round(pis_saldo, 2),
+                    "cofins": round(cofins_saldo, 2)
+                },
                 "imposto_a_pagar": {
                     "pis": round(max(0, pis_saldo), 2),
                     "cofins": round(max(0, cofins_saldo), 2)
@@ -15121,6 +15153,8 @@ async def get_pis_cofins_apuracao_rapida(company_id: str, competencia: str, comp
         }
     except Exception as e:
         print(f"Erro get_pis_cofins_apuracao_rapida: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 @api_router.get("/inteligencia-tributaria/{company_id}")
