@@ -93,6 +93,11 @@ const Companies = ({ user, onLogout }) => {
     produto: '', insumo: '', despesa: '', ativo: '', combustivel: '', servico: '', cnae: ''
   });
   const [showCertificadoSenha, setShowCertificadoSenha] = useState(false);
+  
+  // Estado para anexos do Simples Nacional
+  const [anexosSugeridos, setAnexosSugeridos] = useState([]);
+  const [showAnexoConfirmModal, setShowAnexoConfirmModal] = useState(false);
+  const [anexoParaAlterar, setAnexoParaAlterar] = useState(null);
 
   useEffect(() => {
     fetchCompanies();
