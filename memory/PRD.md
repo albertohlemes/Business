@@ -93,6 +93,16 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 
 ## Atualizações Recentes (09/02/2026)
 
+### Página PIS/COFINS - Melhorias na UI
+- ✅ **Cards separados para PIS e COFINS**: 
+  - Seção PIS (1,65%): Créditos, Débitos, Saldo, A Pagar
+  - Seção COFINS (7,6%): Créditos, Débitos, Saldo, A Pagar
+  - Total consolidado ao final
+- ✅ **Detalhamento por CFOP + CST**:
+  - Separação visual entre ENTRADAS (Créditos) e SAÍDAS (Débitos)
+  - Subtotal ao final de cada seção
+  - Badge com quantidade de CFOPs
+
 ### Página RET - Comparativo de Regimes Tributários (CORRIGIDO)
 - ✅ **Lucro Real**: Agora usa os valores REAIS das apurações (ICMS, PIS, COFINS apurados)
 - ✅ **Lucro Presumido**: ICMS igual ao Real, PIS 0,65% e COFINS 3% cumulativo sobre faturamento
