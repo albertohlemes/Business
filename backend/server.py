@@ -15007,42 +15007,40 @@ async def get_icms_apuracao_rapida(company_id: str, competencia: str):
         if not company:
             return None
         
-        # Pipeline de agregação para performance
-        pipeline = [
-            {"$match": {
-                "company_id": company_id,
-                "competencia": competencia,
-                **get_filtro_notas_ativas()
-            }},
-            {"$unwind": {"path": "$produtos", "preserveNullAndEmptyArrays": True}},
-            {"$group": {
-                "_id": {
-                    "tipo": "$tipo",
-                    "cfop": {"$substr": [{"$toString": {"$ifNull": ["$produtos.cfop", "0"]}}, 0, 4]}
-                },
-                "valor_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_icms", 0]}}}
-            }}
-        ]
+        # CFOPs de despesa que não geram crédito
+        CFOPS_SEM_CREDITO = ['1407', '2407', '1556', '2556', '1551', '2551', '1653', '2653', '1128', '2128', '1126', '2126']
+        desconsiderar_despesas = company.get('desconsiderar_icms_despesas', False)
+        
+        # Buscar documentos
+        query = {
+            "company_id": company_id,
+            "competencia": competencia,
+            **get_filtro_notas_ativas()
+        }
+        
+        documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0, "produtos": 1, "tipo": 1}).to_list(10000)
         
         debito_total = 0
         credito_total = 0
         
-        # CFOPs de despesa que não geram crédito
-        CFOPS_SEM_CREDITO = ['1407', '2407', '1556', '2556', '1551', '2551', '1653', '2653', '1128', '2128']
-        desconsiderar_despesas = company.get('desconsiderar_icms_despesas', False)
-        
-        async for doc in db.xml_documents.aggregate(pipeline):
-            tipo = doc["_id"].get("tipo", "entrada")
-            cfop = doc["_id"].get("cfop", "")
-            valor = float(doc.get("valor_icms", 0) or 0)
+        for doc in documentos:
+            tipo_doc = doc.get('tipo', 'entrada')
+            produtos = doc.get('produtos', [])
             
-            if tipo == "saida":
-                debito_total += valor
-            else:
-                # Verificar se deve desconsiderar despesas
-                if desconsiderar_despesas and cfop in CFOPS_SEM_CREDITO:
-                    continue
-                credito_total += valor
+            for prod in produtos:
+                cfop = str(prod.get('cfop', ''))
+                valor_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+                
+                # Determinar tipo pela CFOP
+                cfop_primeiro = cfop[0] if cfop else ''
+                if cfop_primeiro in ['5', '6', '7']:
+                    # Saída = débito
+                    debito_total += valor_icms
+                elif cfop_primeiro in ['1', '2', '3']:
+                    # Entrada = crédito (verificar se é despesa)
+                    if desconsiderar_despesas and cfop in CFOPS_SEM_CREDITO:
+                        continue
+                    credito_total += valor_icms
         
         saldo = debito_total - credito_total
         
