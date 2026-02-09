@@ -6070,6 +6070,18 @@ async def get_dashboard_stats(
                 "servicos_prestados": round(total_nfse_prestados, 2),
                 "total": round(total_nfe_saida + total_nfce + total_cte_saida + total_nfse_prestados, 2)
             },
+            # COMPRAS E VENDAS LÍQUIDAS (para Markup)
+            "compras": {
+                "brutas": round(total_compras_brutas, 2),
+                "devolucoes": round(total_devolucao_compras, 2),
+                "liquidas": round(compras_liquidas, 2)
+            },
+            "vendas_liquidas": {
+                "brutas": round(total_vendas_brutas, 2),
+                "devolucoes": round(total_devolucao_vendas, 2),
+                "liquidas": round(vendas_liquidas, 2)
+            },
+            "markup": round(markup, 2),
             # Compatibilidade com código anterior
             "total_entradas": round(total_entradas, 2),
             "total_vendas": round(total_vendas, 2),
