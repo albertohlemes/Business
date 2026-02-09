@@ -308,6 +308,30 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - Estilo `accent-color` para mostrar a cor quando marcado
 - Flags funcionando corretamente para marcar/desmarcar
 
+### v2.15.0 (12/12/2025) - Dashboard Principal Personalizado para Simples Nacional
+
+**Dashboard Principal - Seção de Impostos Condicional:**
+- ✅ **Para empresas do Simples Nacional:**
+  - Card "DAS do Mês" (valor + alíquota efetiva)
+  - Card "DIFAL do Mês" (valor + % sobre compras interestaduais)
+  - Card "Compras Interestaduais" (valor + qtd de notas)
+  - Card "Total Impostos" (DAS + DIFAL + % saídas + % vendas)
+  - Total de Impostos a Pagar consolidado
+- ✅ **Para outros regimes:** Mantém cards de ICMS, PIS, COFINS, ISS
+
+**Menu Lateral - RET como item de menu:**
+- ✅ Removido botão RET do Dashboard do Simples Nacional
+- ✅ Adicionado item "RET" no menu lateral para empresas do Simples
+- ✅ Criada página dedicada `/ret-simples` (RetSimples.js)
+
+**Dashboard Simples Nacional - Cards simplificados:**
+- ✅ Removidos cards: DIFAL, Total Impostos, Compras Interestaduais (já aparecem no Dashboard principal)
+- ✅ Mantidos: DAS do Mês, RBT12, Enquadramento, Vendas, Faturamento do Ano
+
+**Backend - Função auxiliar `_get_simples_nacional_stats()`:**
+- Retorna dados específicos para o Dashboard principal de empresas do Simples
+- Campos: das_valor, aliquota_efetiva, difal_valor, difal_percentual_compras, compras_interestaduais, total_impostos, percentual_sobre_vendas
+
 ### v2.14.0 (12/12/2025) - Personalização Dashboard Simples Nacional e Fator R
 
 **Dashboard Simples Nacional - Cards Personalizados:**
