@@ -57,6 +57,8 @@ const Companies = ({ user, onLogout }) => {
     anexos_simples: [],
     tipo_atividade: 'comercio',
     tipos_servico: [],
+    // Perfis comerciais (múltipla escolha)
+    perfis_comerciais: ['varejo'],  // industria, distribuidor, varejo
     // Flags de contribuinte
     equiparado_industria: false,
     apura_icms: false,
