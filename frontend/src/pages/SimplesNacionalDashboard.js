@@ -728,6 +728,24 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                     )}
                   </div>
                   
+                  {/* NOVO: Sugestão de Folha Mensal Projetada */}
+                  {data.fator_r.folha_mensal_sugerida > 0 && (
+                    <div className="bg-[#C8A951]/10 border border-[#C8A951]/30 rounded p-4">
+                      <p className="text-xs text-[#C8A951] mb-1">💡 Folha Mensal Sugerida</p>
+                      <p className="text-xl font-bold text-[#C8A951]">
+                        {formatCurrency(data.fator_r.folha_mensal_sugerida)}
+                      </p>
+                      <p className="text-xs text-[#666] mt-1">
+                        Para manter 28% no próximo período
+                      </p>
+                      {data.fator_r.faturamento_competencia > 0 && (
+                        <p className="text-xs text-[#A1A1AA] mt-2">
+                          Considerando vendas de {formatCurrency(data.fator_r.faturamento_competencia)} nesta competência
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
                   {/* Economia Potencial */}
                   {!data.fator_r.pode_usar_anexo_iii && data.fator_r.economia_potencial_anual > 0 && (
                     <div className="bg-emerald-500/10 border border-emerald-500/30 rounded p-4">
