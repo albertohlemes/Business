@@ -134,6 +134,9 @@ class Company(BaseModel):
     equiparado_industria: bool = False  # Comércio equiparado a indústria (contribuinte IPI)
     apura_icms: bool = False  # Empresa de serviços que também apura ICMS
     apura_icms_st: bool = False  # Substituto tributário de ICMS
+    # Flags de desconsiderar ICMS
+    desconsiderar_icms_despesas: bool = False  # Zera ICMS de CFOPs de despesa
+    desconsiderar_icms_st: bool = False  # Zera ICMS de CFOPs de mercadorias ST
     # Presunção geral (Lucro Presumido - atividade única)
     percentual_presuncao_irpj: float = 8.0
     percentual_presuncao_csll: float = 12.0
