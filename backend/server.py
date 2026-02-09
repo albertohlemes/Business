@@ -15003,8 +15003,13 @@ async def process_document_with_ai(
 async def get_icms_apuracao_rapida(company_id: str, competencia: str):
     """Busca resumo rápido da apuração ICMS"""
     try:
+        if not competencia:
+            print(f"DEBUG: competencia is None")
+            return None
+            
         company = await db.companies.find_one({"id": company_id}, {"_id": 0})
         if not company:
+            print(f"DEBUG: company not found")
             return None
         
         # CFOPs de despesa que não geram crédito
@@ -15012,13 +15017,18 @@ async def get_icms_apuracao_rapida(company_id: str, competencia: str):
         desconsiderar_despesas = company.get('desconsiderar_icms_despesas', False)
         
         # Buscar documentos
+        filtro_ativas = get_filtro_notas_ativas()
         query = {
             "company_id": company_id,
-            "competencia": competencia,
-            **get_filtro_notas_ativas()
+            "competencia": competencia
         }
+        query.update(filtro_ativas)
+        
+        print(f"DEBUG ICMS query: {query}")
         
         documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0, "produtos": 1, "tipo": 1}).to_list(10000)
+        
+        print(f"DEBUG ICMS docs encontrados: {len(documentos)}")
         
         debito_total = 0
         credito_total = 0
@@ -15044,6 +15054,8 @@ async def get_icms_apuracao_rapida(company_id: str, competencia: str):
         
         saldo = debito_total - credito_total
         
+        print(f"DEBUG ICMS resultado: debito={debito_total}, credito={credito_total}, saldo={saldo}")
+        
         return {
             "apuracao": {
                 "debitos": round(debito_total, 2),
@@ -15054,6 +15066,8 @@ async def get_icms_apuracao_rapida(company_id: str, competencia: str):
         }
     except Exception as e:
         print(f"Erro get_icms_apuracao_rapida: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 # Função auxiliar para buscar dados de apuração PIS/COFINS
