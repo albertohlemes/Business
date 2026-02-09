@@ -1059,9 +1059,9 @@ const Indicadores = ({ user, onLogout }) => {
                   <Brain className="w-6 h-6 text-purple-400" />
                   <h3 className="text-lg font-semibold text-white">Análise Inteligente</h3>
                 </div>
-                {analiseIA?.insights ? (
+                {(analiseIA?.insights_ia || analiseIA?.insights) ? (
                   <div className="prose prose-invert max-w-none">
-                    {renderInsightsIA(analiseIA.insights)}
+                    {renderInsightsIA(analiseIA.insights_ia || analiseIA.insights)}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-[#A1A1AA]">
