@@ -9494,13 +9494,13 @@ async def alertas_cfop_agrupado_por_cfop(
                             'cfop': cfop_atual,
                             'descricao': f'Manter {cfop_atual} - {descricao_cfop}',
                             'categoria': categoria_manter,
-                            'categoria_nome': categoria_manter.title() if categoria_manter else 'Pendente'
+                            'categoria_nome': obter_nome_categoria(categoria_manter)
                         },
                         'sugestao_compra': {
                             'cfop': cfop_compra,
                             'descricao': f'Converter para {cfop_compra} - Compra',
                             'categoria': categoria_compra,
-                            'categoria_nome': categoria_compra.title() if categoria_compra else 'Produto'
+                            'categoria_nome': obter_nome_categoria(categoria_compra)
                         }
                     }
                 
