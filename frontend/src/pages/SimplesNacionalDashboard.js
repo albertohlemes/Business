@@ -437,10 +437,6 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                 </p>
               </div>
             </div>
-                  </p>
-                )}
-              </div>
-            </div>
 
             {/* Barras de Progresso - Limites */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
