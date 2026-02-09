@@ -254,6 +254,9 @@ class CompanyUpdate(BaseModel):
     combustivel: Optional[List[str]] = None
     regime_tributario: Optional[str] = None
     anexos_simples: Optional[List[str]] = None
+    anexos_confirmados: Optional[bool] = None
+    controla_fator_r: Optional[bool] = None
+    folha_pagamento_12m: Optional[float] = None
     tipo_atividade: Optional[str] = None
     tipos_servico: Optional[List[str]] = None
     # Perfis de atividade comercial (múltipla escolha)
