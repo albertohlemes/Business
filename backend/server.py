@@ -118,6 +118,7 @@ class Company(BaseModel):
     cep: Optional[str] = None
     cnae_principal: Optional[str] = None
     cnae_principal_descricao: Optional[str] = None
+    cnaes: List[str] = []  # CNAEs secundários
     atividade_principal: Optional[str] = None
     produtos_comercializados: List[str] = []
     insumos_producao: List[str] = []
@@ -129,12 +130,24 @@ class Company(BaseModel):
     anexos_simples: List[str] = []  # I, II, III, IV, V
     tipo_atividade: str = "comercio"  # comercio, industria, servicos, mista
     tipos_servico: List[str] = []  # transporte, ti, consultoria, etc
+    # Flags de contribuinte
+    equiparado_industria: bool = False  # Comércio equiparado a indústria (contribuinte IPI)
+    apura_icms: bool = False  # Empresa de serviços que também apura ICMS
+    apura_icms_st: bool = False  # Substituto tributário de ICMS
     # Presunção (Lucro Presumido)
     percentual_presuncao_irpj: float = 8.0
     percentual_presuncao_csll: float = 12.0
     # Estoque (para ponto de equilíbrio - Lucro Real)
     estoque_inicial: float = 0.0
     estoque_final: float = 0.0
+    # Classificação inteligente (gerada pela IA)
+    classificacao_inteligente: Optional[str] = None
+    # Responsáveis pela empresa
+    responsavel_ids: List[str] = []
+    # Certificado Digital
+    certificado_digital_arquivo: Optional[str] = None  # Nome/path do arquivo .pfx
+    certificado_digital_senha: Optional[str] = None  # Senha do certificado
+    certificado_digital_validade: Optional[str] = None  # Data de validade
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CompanyCreate(BaseModel):
@@ -150,6 +163,7 @@ class CompanyCreate(BaseModel):
     cep: Optional[str] = None
     cnae_principal: Optional[str] = None
     cnae_principal_descricao: Optional[str] = None
+    cnaes: List[str] = []  # CNAEs secundários
     atividade_principal: Optional[str] = None
     produtos_comercializados: List[str] = []
     insumos_producao: List[str] = []
@@ -161,10 +175,23 @@ class CompanyCreate(BaseModel):
     anexos_simples: List[str] = []
     tipo_atividade: str = "comercio"
     tipos_servico: List[str] = []
+    # Flags de contribuinte
+    equiparado_industria: bool = False
+    apura_icms: bool = False
+    apura_icms_st: bool = False
+    # Presunção
     percentual_presuncao_irpj: float = 8.0
     percentual_presuncao_csll: float = 12.0
     estoque_inicial: float = 0.0
     estoque_final: float = 0.0
+    # Classificação inteligente
+    classificacao_inteligente: Optional[str] = None
+    # Responsáveis
+    responsavel_ids: List[str] = []
+    # Certificado Digital
+    certificado_digital_arquivo: Optional[str] = None
+    certificado_digital_senha: Optional[str] = None
+    certificado_digital_validade: Optional[str] = None
 
 class CompanyUpdate(BaseModel):
     """Modelo para atualização de empresa"""
@@ -179,6 +206,7 @@ class CompanyUpdate(BaseModel):
     cep: Optional[str] = None
     cnae_principal: Optional[str] = None
     cnae_principal_descricao: Optional[str] = None
+    cnaes: Optional[List[str]] = None  # CNAEs secundários
     atividade_principal: Optional[str] = None
     produtos_comercializados: Optional[List[str]] = None
     insumos_producao: Optional[List[str]] = None
@@ -189,10 +217,23 @@ class CompanyUpdate(BaseModel):
     anexos_simples: Optional[List[str]] = None
     tipo_atividade: Optional[str] = None
     tipos_servico: Optional[List[str]] = None
+    # Flags de contribuinte
+    equiparado_industria: Optional[bool] = None
+    apura_icms: Optional[bool] = None
+    apura_icms_st: Optional[bool] = None
+    # Presunção
     percentual_presuncao_irpj: Optional[float] = None
     percentual_presuncao_csll: Optional[float] = None
     estoque_inicial: Optional[float] = None
     estoque_final: Optional[float] = None
+    # Classificação inteligente
+    classificacao_inteligente: Optional[str] = None
+    # Responsáveis
+    responsavel_ids: Optional[List[str]] = None
+    # Certificado Digital
+    certificado_digital_arquivo: Optional[str] = None
+    certificado_digital_senha: Optional[str] = None
+    certificado_digital_validade: Optional[str] = None
 
 class XMLDocument(BaseModel):
     model_config = ConfigDict(extra="ignore")
