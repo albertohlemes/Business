@@ -15568,14 +15568,57 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
             "mensagem": f"Sublimite próximo ({percentual_sublimite:.1f}%). Ao ultrapassar, ICMS/ISS será recolhido separadamente."
         })
     
+    # Calcular DIFAL do mês atual
+    uf_empresa = company.get('uf', 'SP').upper()
+    difal_mes = {
+        "total_difal": 0.0,
+        "total_compras_interestaduais": 0.0,
+        "percentual_sobre_compras": 0.0,
+        "qtd_notas": 0
+    }
+    
+    # Buscar notas de entrada interestaduais do mês
+    filtro_difal = {
+        "company_id": request.company_id,
+        "tipo": "entrada",
+        "competencia": competencia_atual,
+        "uf_emitente": {"$ne": uf_empresa, "$exists": True, "$ne": ""},
+        **get_filtro_notas_ativas()
+    }
+    
+    total_compras_inter = 0.0
+    total_difal_mes = 0.0
+    qtd_notas_difal = 0
+    
+    async for doc in db.xml_documents.find(filtro_difal, {"_id": 0}):
+        resultado_difal = processar_documento_difal(doc, uf_empresa)
+        if resultado_difal:
+            total_difal_mes += resultado_difal["total_difal"]
+            total_compras_inter += resultado_difal["total_base_calculo_difal"]
+            qtd_notas_difal += 1
+    
+    difal_mes = {
+        "total_difal": round(total_difal_mes, 2),
+        "total_compras_interestaduais": round(total_compras_inter, 2),
+        "percentual_sobre_compras": round((total_difal_mes / total_compras_inter * 100) if total_compras_inter > 0 else 0, 2),
+        "qtd_notas": qtd_notas_difal
+    }
+    
+    # Calcular total de impostos (DAS + DIFAL)
+    das_valor = das_mes.get("valor_das_final", 0) if das_mes else 0
+    total_impostos_mes = das_valor + total_difal_mes
+    
+    # Percentuais sobre faturamento
+    percentual_impostos_sobre_vendas = round((total_impostos_mes / faturamento_mes_atual * 100) if faturamento_mes_atual > 0 else 0, 2)
+    
     # Histórico mensal para gráfico
     historico_mensal = []
     for comp in reversed(competencias_12m):
         dados_mes = faturamento_por_mes.get(comp, {"faturamento": 0, "qtd_notas": 0})
         historico_mensal.append({
             "competencia": comp,
-            "faturamento": round(dados_mes["faturamento"], 2),
-            "qtd_notas": dados_mes["qtd_notas"]
+            "faturamento": round(dados_mes.get("faturamento", 0), 2),
+            "qtd_notas": dados_mes.get("qtd_notas", 0)
         })
     
     return {
