@@ -10186,12 +10186,39 @@ async def classificar_produtos_ia(
     """
     Classifica produtos usando comando de IA em linguagem natural.
     Ex: "classificar etanol como combustível", "todos produtos limpeza são despesa"
+    
+    MELHORIA: Analisa os produtos de SAÍDA da empresa para entender o que ela comercializa,
+    e usa isso como referência para classificar as ENTRADAS como revenda.
     """
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    tipo_atividade = company.get('tipo_atividade', 'comercio')
+    
+    # NOVA LÓGICA: Buscar produtos de SAÍDA para entender o que a empresa vende
+    produtos_vendidos = set()
+    ncms_vendidos = set()
+    
+    docs_saida = await db.xml_documents.find({
+        "company_id": company_id,
+        "$or": [
+            {"tipo": "saida"},
+            {"tipo_operacao": {"$in": ["saida", "prestado"]}}
+        ],
+        **get_filtro_notas_ativas()
+    }, {"_id": 0, "produtos": 1}).to_list(5000)
+    
+    for doc in docs_saida:
+        for prod in doc.get('produtos', []):
+            desc = prod.get('descricao', '').lower().strip()[:50]
+            ncm = str(prod.get('ncm', '')).replace('.', '')[:8]
+            if desc:
+                produtos_vendidos.add(desc)
+            if ncm and len(ncm) >= 4:
+                ncms_vendidos.add(ncm)
     
     # Buscar produtos de entrada
     documents = await db.xml_documents.find({
@@ -10239,25 +10266,56 @@ async def classificar_produtos_ia(
         for r in regras_existentes
     ]) if regras_existentes else "Nenhuma regra cadastrada"
     
+    # NOVA LÓGICA: Adicionar contexto dos produtos vendidos
+    produtos_vendidos_texto = "\n".join([f"- {p}" for p in list(produtos_vendidos)[:50]]) if produtos_vendidos else "Nenhum produto de saída encontrado"
+    ncms_vendidos_texto = ", ".join(list(ncms_vendidos)[:20]) if ncms_vendidos else "N/A"
+    
+    # Definir categoria padrão baseada na atividade
+    categoria_padrao = "revenda" if tipo_atividade in ['comercio', 'mista'] else "insumo" if tipo_atividade == 'industria' else "servico_aplicacao"
+    
     prompt = f"""Você é um assistente fiscal especializado em classificação de produtos para fins tributários.
 
 Comando do usuário: "{comando}"
 
+**CONTEXTO DA EMPRESA:**
+- Tipo de atividade: {tipo_atividade.upper()}
+- Categoria padrão para dúvidas: {categoria_padrao}
+
+**PRODUTOS QUE A EMPRESA VENDE (referência para classificar como REVENDA):**
+{produtos_vendidos_texto}
+
+**NCMs dos produtos vendidos:** {ncms_vendidos_texto}
+
+**REGRA IMPORTANTE:** 
+Se um produto de ENTRADA tiver descrição ou NCM similar aos produtos de SAÍDA, ele é para REVENDA.
+Em caso de DÚVIDA para empresas de comércio, classificar como REVENDA.
+
 Categorias válidas:
-- revenda: Mercadorias compradas para revenda
-- insumo: Matérias-primas e insumos de produção
-- despesa: Material de uso e consumo, limpeza, escritório
-- ativo_imobilizado: Máquinas, equipamentos, móveis
+- revenda: Mercadorias compradas para revenda (PRIORIZAR para empresas de comércio)
+- insumo: Matérias-primas e insumos de produção industrial
+- despesa: Material de uso e consumo, limpeza, escritório, manutenção
+- ativo_imobilizado: Máquinas, equipamentos, móveis, veículos
 - combustivel: Gasolina, etanol, diesel, GNV
+- bonificacao: Produtos recebidos em bonificação/doação
+- servico_aplicacao: Para empresas de serviço - material aplicado no serviço
+
+Palavras-chave para DESPESA:
+- limpeza, desinfetante, papel toalha, papel higiênico, sabonete, detergente
+- escritório, caneta, papel A4, impressora, toner, cartucho
+- manutenção, peças de reposição, ferramenta
+- segurança, EPI, luva, máscara, capacete
 
 Regras já cadastradas para esta empresa:
 {regras_texto}
 
-Produtos disponíveis:
+Produtos de ENTRADA para classificar:
 {produtos_texto}
 
-IMPORTANTE: Analise o comando e identifique TODOS os produtos que correspondem ao critério.
-Considere variações de nome, sinônimos e produtos relacionados.
+IMPORTANTE: 
+1. Analise o comando e identifique TODOS os produtos que correspondem ao critério
+2. Compare com os produtos de SAÍDA - se forem similares, é REVENDA
+3. Em caso de dúvida para comércio, classificar como REVENDA
+4. Considere variações de nome, sinônimos e produtos relacionados
 
 Retorne um JSON com:
 {{
