@@ -1440,94 +1440,12 @@ const Documents = ({ user, onLogout }) => {
           )}
         </div>
 
-        {/* Modal de detalhes */}
+        {/* Modal de detalhes - Usando novo componente */}
         {selectedDocument && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] w-full max-w-4xl max-h-[90vh] overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
-                <div>
-                  <h2 className="text-lg font-medium text-white">
-                    Documento {selectedDocument.numero_nfe}
-                  </h2>
-                  <p className="text-sm text-[#A1A1AA]">{selectedDocument.chave_acesso}</p>
-                </div>
-                <button 
-                  onClick={() => setSelectedDocument(null)}
-                  className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <div className="p-4 max-h-[70vh] overflow-y-auto space-y-4">
-                {/* Info Geral */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-[#0C0C0C] rounded-lg p-3">
-                    <p className="text-xs text-[#A1A1AA]">Valor Total</p>
-                    <p className="text-lg font-bold text-[#C8A951]">{formatCurrency(selectedDocument.valor_total)}</p>
-                  </div>
-                  <div className="bg-[#0C0C0C] rounded-lg p-3">
-                    <p className="text-xs text-[#A1A1AA]">Data Emissão</p>
-                    <p className="text-lg font-medium text-white">{formatDate(selectedDocument.data_emissao)}</p>
-                  </div>
-                  <div className="bg-[#0C0C0C] rounded-lg p-3">
-                    <p className="text-xs text-[#A1A1AA]">ICMS</p>
-                    <p className="text-lg font-medium text-white">{formatCurrency(selectedDocument.icms_total)}</p>
-                  </div>
-                  <div className="bg-[#0C0C0C] rounded-lg p-3">
-                    <p className="text-xs text-[#A1A1AA]">Produtos</p>
-                    <p className="text-lg font-medium text-white">{selectedDocument.produtos?.length || 0}</p>
-                  </div>
-                </div>
-                
-                {/* Emitente/Destinatário */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-[#0C0C0C] rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-[#A1A1AA] mb-2">Emitente</h4>
-                    <p className="text-white font-medium">{selectedDocument.emitente_nome}</p>
-                    <p className="text-sm text-[#A1A1AA] font-mono">{selectedDocument.emitente_cnpj}</p>
-                  </div>
-                  <div className="bg-[#0C0C0C] rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-[#A1A1AA] mb-2">Destinatário</h4>
-                    <p className="text-white font-medium">{selectedDocument.destinatario_nome}</p>
-                    <p className="text-sm text-[#A1A1AA] font-mono">{selectedDocument.destinatario_cnpj}</p>
-                  </div>
-                </div>
-
-                {/* Produtos */}
-                {selectedDocument.produtos && selectedDocument.produtos.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-[#A1A1AA] mb-2">Produtos ({selectedDocument.produtos.length})</h4>
-                    <div className="bg-[#0C0C0C] rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead className="bg-[#1A1A1A]">
-                          <tr>
-                            <th className="text-left px-3 py-2 text-xs text-[#A1A1AA]">Descrição</th>
-                            <th className="text-left px-3 py-2 text-xs text-[#A1A1AA]">NCM</th>
-                            <th className="text-right px-3 py-2 text-xs text-[#A1A1AA]">Valor</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#2A2A2A]">
-                          {selectedDocument.produtos.slice(0, 10).map((prod, idx) => (
-                            <tr key={idx}>
-                              <td className="px-3 py-2 text-white truncate max-w-[300px]">{prod.descricao}</td>
-                              <td className="px-3 py-2 text-[#A1A1AA] font-mono">{prod.ncm}</td>
-                              <td className="px-3 py-2 text-right text-[#C8A951]">{formatCurrency(prod.valor_total)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {selectedDocument.produtos.length > 10 && (
-                        <p className="text-center py-2 text-xs text-[#A1A1AA]">
-                          +{selectedDocument.produtos.length - 10} produtos
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          <DocumentDetailModal 
+            document={selectedDocument} 
+            onClose={() => setSelectedDocument(null)} 
+          />
         )}
 
         {/* Modal de Progresso com Contador Tomando Café */}
