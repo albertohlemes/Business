@@ -1001,7 +1001,7 @@ const Documents = ({ user, onLogout }) => {
                   <thead>
                     <tr>
                       <th 
-                        className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white w-24"
+                        className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white w-20"
                         onClick={() => handleSort('numero_nfe')}
                       >
                         <div className="flex items-center gap-1">
@@ -1012,11 +1012,11 @@ const Documents = ({ user, onLogout }) => {
                       <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider">
                         {operacao === 'entrada' ? 'Emitente' : 'Destinatário'}
                       </th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider hidden md:table-cell w-40">
+                      <th className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider hidden lg:table-cell w-32">
                         CNPJ
                       </th>
                       <th 
-                        className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white w-28"
+                        className="text-left px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white w-24 hidden md:table-cell"
                         onClick={() => handleSort('data_emissao')}
                       >
                         <div className="flex items-center gap-1">
@@ -1024,8 +1024,14 @@ const Documents = ({ user, onLogout }) => {
                           {sortField === 'data_emissao' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
                         </div>
                       </th>
+                      <th className="text-left px-2 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider hidden xl:table-cell w-28">
+                        CFOPs
+                      </th>
+                      <th className="text-left px-2 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider hidden xl:table-cell w-32">
+                        Classif.
+                      </th>
                       <th 
-                        className="text-right px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white w-32"
+                        className="text-right px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider cursor-pointer hover:text-white w-28"
                         onClick={() => handleSort('valor_total')}
                       >
                         <div className="flex items-center justify-end gap-1">
@@ -1033,10 +1039,10 @@ const Documents = ({ user, onLogout }) => {
                           {sortField === 'valor_total' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
                         </div>
                       </th>
-                      <th className="text-center px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider w-24">
+                      <th className="text-center px-2 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider w-16">
                         Status
                       </th>
-                      <th className="text-right px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider w-24">
+                      <th className="text-right px-4 py-3 text-xs font-medium text-[#A1A1AA] uppercase tracking-wider w-20">
                         Ações
                       </th>
                     </tr>
