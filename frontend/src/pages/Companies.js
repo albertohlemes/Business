@@ -160,7 +160,11 @@ const Companies = ({ user, onLogout }) => {
       apura_icms_st: company.apura_icms_st || false,
       // Classificação inteligente
       classificacao_inteligente: company.classificacao_inteligente || '',
-      responsavel_ids: company.responsavel_ids || []
+      responsavel_ids: company.responsavel_ids || [],
+      // Certificado Digital
+      certificado_digital_arquivo: company.certificado_digital_arquivo || '',
+      certificado_digital_senha: company.certificado_digital_senha || '',
+      certificado_digital_validade: company.certificado_digital_validade || ''
     });
     setShowForm(true);
   };
