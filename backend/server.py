@@ -15633,8 +15633,8 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
         produtos_monofasicos=produtos_monofasicos_mes
     )
     
-    # Calcular projeção anual
-    projecao = calcular_projecao_anual(faturamento_ano, mes_ref)
+    # Calcular projeção anual usando o número de meses com dados reais
+    projecao = calcular_projecao_anual(faturamento_ano, meses_para_projecao)
     
     # Calcular Fator R (se Anexo V E flag controla_fator_r ativa)
     fator_r_info = None
