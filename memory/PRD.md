@@ -114,6 +114,38 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 
 ## Changelog
 
+### v2.9.0 (09/02/2026) - RET Completo e CNAEs Secundários Automáticos
+
+**CNAEs Secundários Automáticos:**
+- Ao buscar CNPJ no cadastro de empresa, os CNAEs secundários são importados automaticamente da Receita Federal
+- Backend atualizado para retornar `cnaes_secundarios` da BrasilAPI
+
+**RET - Rota de Eficiência Tributária (Reescrito):**
+- **Aba CMV/CPV (Nova)**:
+  - Campos de Estoque Inicial e Final com botão "Salvar Estoque"
+  - Cálculo automático: CMV = Estoque Inicial + Compras - Estoque Final
+  - Exibição do Lucro Bruto (Receita - CMV)
+
+- **Aba Ponto de Equilíbrio (Nova)**:
+  - Demonstrativo com Receita Total, CMV e Lucro Bruto
+  - **Despesas para Equilibrar**: Valor necessário para zerar lucro tributável
+  - **Economia Potencial em IRPJ+CSLL**: Economia se atingir o ponto de equilíbrio
+  - Dica para o empresário com sugestões de despesas dedutíveis
+
+- **Aba Comparativo Regimes (Nova)**:
+  - Simulação de Lucro Presumido com base nas receitas escrituradas
+  - Separação por atividade (Comércio/Indústria e Serviços) se empresa for mista
+  - Cálculo de IRPJ (15% + adicional 10%) e CSLL (9%)
+  - Total consolidado de IRPJ + CSLL
+
+- **Dashboard Dinâmico**:
+  - Cards de impostos só aparecem para contribuintes (baseado no cadastro da empresa)
+  - ICMS: apenas se tipo_atividade = comercio, industria, mista ou flag apura_icms
+  - ISS: apenas se tipo_atividade = servicos ou mista
+  - IPI: apenas se tipo_atividade = industria ou flag equiparado_industria
+  - ICMS ST: apenas se flag apura_icms_st
+  - PIS/COFINS: sempre visível
+
 ### v2.8.0 (09/02/2026) - Restauração Completa do Cadastro de Empresa
 - **Campos de Presunção restaurados**: Presunção IRPJ (%) e CSLL (%) agora aparecem quando regime = Lucro Presumido
 - **Presunção por Atividade (NOVO)**: Quando tipo de atividade = "Mista", exibe campos separados:
