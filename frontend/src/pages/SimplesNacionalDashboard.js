@@ -72,6 +72,69 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
     fetchDashboard();
   }, [fetchDashboard]);
 
+  // Função para upload do PGDAS
+  const handlePgdasUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      alert('Por favor, selecione um arquivo PDF do PGDAS');
+      return;
+    }
+    
+    setUploadingPgdas(true);
+    setPgdasResult(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('sobrepor_historico', 'false');
+      
+      const response = await axios.post(
+        `${API}/simples-nacional/${selectedCompany.id}/importar-pgdas`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      setPgdasResult(response.data);
+      fetchDashboard(); // Atualizar dashboard com novos dados
+      fetchHistoricoFaturamento(); // Atualizar histórico
+    } catch (err) {
+      console.error('Erro ao importar PGDAS:', err);
+      setPgdasResult({
+        sucesso: false,
+        mensagem: err.response?.data?.detail || 'Erro ao processar arquivo PGDAS'
+      });
+    } finally {
+      setUploadingPgdas(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Função para buscar histórico de faturamento
+  const fetchHistoricoFaturamento = async () => {
+    if (!selectedCompany?.id) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/simples-nacional/${selectedCompany.id}/historico-faturamento`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setHistoricoFaturamento(response.data);
+    } catch (err) {
+      console.error('Erro ao buscar histórico:', err);
+    }
+  };
+
   const handleSaveFolha = async () => {
     if (!selectedCompany?.id) return;
     
