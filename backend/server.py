@@ -15296,6 +15296,48 @@ async def inteligencia_tributaria(
     }
 
 
+    
+    # Arredondar valores do Simples
+    for k in simples:
+        if isinstance(simples[k], float):
+            simples[k] = round(simples[k], 2)
+    
+    # Identificar melhor regime
+    regimes = [
+        ('simples', simples['total']),
+        ('presumido', presumido['total']),
+        ('real', real['total'])
+    ]
+    
+    # Verificar limite do Simples
+    limite_simples = 4800000 if tipo == "acumulado" else 400000
+    simples_disponivel = faturamento <= limite_simples
+    
+    if not simples_disponivel:
+        regimes = [r for r in regimes if r[0] != 'simples']
+    
+    regimes.sort(key=lambda x: x[1])
+    melhor_regime = regimes[0][0] if regimes else 'presumido'
+    
+    return {
+        'empresa': company.get('razao_social', ''),
+        'competencia': competencia,
+        'tipo': tipo,
+        'meses_apurados': meses_apurados,
+        'faturamento': round(faturamento, 2),
+        'compras': round(compras, 2),
+        'simples': simples,
+        'presumido': presumido,
+        'real': real,
+        'simples_disponivel': simples_disponivel,
+        'melhor_regime': melhor_regime,
+        'economia_potencial': round(max(
+            presumido['total'] - regimes[0][1],
+            real['total'] - regimes[0][1]
+        ), 2) if regimes else 0
+    }
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
