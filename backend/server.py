@@ -9318,17 +9318,30 @@ def obter_categoria_por_cfop(cfop: str) -> str:
     if cfop.startswith(('1101', '2101', '1401', '2401')):
         return 'insumo'
     if cfop.startswith(('1551', '2551', '1406', '2406')):
-        return 'ativo'
+        return 'ativo_imobilizado'
     if cfop.startswith(('1556', '2556', '1253', '1303')):
         return 'despesa'
     if cfop.startswith(('165', '265')):  # CFOPs de combustível começam com 165x/265x
         return 'combustivel'
     
-    # Bonificações e amostras geralmente são para revenda
-    if cfop in ('1910', '2910', '1911', '2911'):
-        return 'produto'
+    # Bonificações e amostras têm categorias próprias
+    if cfop in ('1910', '2910'):
+        return 'bonificacao'
+    if cfop in ('1911', '2911'):
+        return 'amostra_gratis'
+    
+    # 1949/2949 são "Outras Operações"
+    if cfop in ('1949', '2949'):
+        return 'outros'
     
     return None  # Pendente de classificação
+
+
+def obter_nome_categoria(categoria: str) -> str:
+    """Retorna o nome amigável de uma categoria"""
+    if not categoria:
+        return 'Pendente'
+    return CATEGORIA_NOMES.get(categoria, categoria.replace('_', ' ').title())
 
 @api_router.get("/alertas-cfop/{company_id}")
 async def alertas_cfop_operacoes_distintas(
