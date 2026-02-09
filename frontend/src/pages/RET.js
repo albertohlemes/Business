@@ -769,6 +769,145 @@ const RET = ({ user, onLogout }) => {
               </div>
             )}
 
+            {/* Tab Indicadores */}
+            {activeTab === 'indicadores' && (
+              <div className="space-y-6">
+                {/* Cards de Indicadores Principais */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Margem de Contribuição */}
+                  <div className="bg-gradient-to-br from-green-900/30 to-green-950/30 border border-green-500/30 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="w-5 h-5 text-green-400" />
+                      <span className="text-[#A1A1AA] text-sm">Margem de Contribuição</span>
+                    </div>
+                    <p className="text-2xl font-bold text-green-400">{formatCurrency(calcularMargemContribuicao().absoluta)}</p>
+                    <p className="text-sm text-green-300/70 mt-1">{calcularMargemContribuicao().percentual.toFixed(2)}% sobre receita</p>
+                  </div>
+                  
+                  {/* Markup */}
+                  <div className="bg-gradient-to-br from-purple-900/30 to-purple-950/30 border border-purple-500/30 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Percent className="w-5 h-5 text-purple-400" />
+                      <span className="text-[#A1A1AA] text-sm">Markup</span>
+                    </div>
+                    <p className="text-2xl font-bold text-purple-400">{calcularMarkup().toFixed(2)}%</p>
+                    <p className="text-sm text-purple-300/70 mt-1">Sobre o custo</p>
+                  </div>
+
+                  {/* Total de Vendas */}
+                  <div className="bg-gradient-to-br from-blue-900/30 to-blue-950/30 border border-blue-500/30 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <DollarSign className="w-5 h-5 text-blue-400" />
+                      <span className="text-[#A1A1AA] text-sm">Total de Vendas</span>
+                    </div>
+                    <p className="text-2xl font-bold text-blue-400">{formatCurrency(calcularReceitas().total)}</p>
+                    <p className="text-sm text-blue-300/70 mt-1">Receita bruta do período</p>
+                  </div>
+
+                  {/* Total de Entradas */}
+                  <div className="bg-gradient-to-br from-amber-900/30 to-amber-950/30 border border-amber-500/30 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Package className="w-5 h-5 text-amber-400" />
+                      <span className="text-[#A1A1AA] text-sm">Total de Entradas</span>
+                    </div>
+                    <p className="text-2xl font-bold text-amber-400">{formatCurrency(calcularEntradasPorTipo().total)}</p>
+                    <p className="text-sm text-amber-300/70 mt-1">Insumo + Revenda + Despesa</p>
+                  </div>
+                </div>
+
+                {/* Detalhamento de Entradas por Tipo */}
+                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Package className="w-6 h-6 text-[#C8A951]" />
+                    <h3 className="text-lg font-semibold text-white">Entradas por Tipo</h3>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <span className="text-xs text-[#A1A1AA]">Revenda</span>
+                      <p className="text-xl font-bold text-blue-400 mt-1">{formatCurrency(calcularEntradasPorTipo().revenda)}</p>
+                    </div>
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <span className="text-xs text-[#A1A1AA]">Insumo</span>
+                      <p className="text-xl font-bold text-green-400 mt-1">{formatCurrency(calcularEntradasPorTipo().insumo)}</p>
+                    </div>
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <span className="text-xs text-[#A1A1AA]">Despesa</span>
+                      <p className="text-xl font-bold text-red-400 mt-1">{formatCurrency(calcularEntradasPorTipo().despesa)}</p>
+                    </div>
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <span className="text-xs text-[#A1A1AA]">Ativo Imob.</span>
+                      <p className="text-xl font-bold text-purple-400 mt-1">{formatCurrency(calcularEntradasPorTipo().ativo)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Percentuais de Impostos */}
+                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Percent className="w-6 h-6 text-red-400" />
+                    <h3 className="text-lg font-semibold text-white">Percentual de Impostos sobre Faturamento</h3>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
+                      <span className="text-xs text-[#A1A1AA]">ICMS</span>
+                      <p className="text-xl font-bold text-blue-400 mt-1">{calcularPercentuaisImpostos().icms_sobre_total.toFixed(2)}%</p>
+                    </div>
+                    <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
+                      <span className="text-xs text-[#A1A1AA]">PIS</span>
+                      <p className="text-xl font-bold text-green-400 mt-1">{calcularPercentuaisImpostos().pis_sobre_total.toFixed(2)}%</p>
+                    </div>
+                    <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
+                      <span className="text-xs text-[#A1A1AA]">COFINS</span>
+                      <p className="text-xl font-bold text-emerald-400 mt-1">{calcularPercentuaisImpostos().cofins_sobre_total.toFixed(2)}%</p>
+                    </div>
+                    <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
+                      <span className="text-xs text-[#A1A1AA]">ISS</span>
+                      <p className="text-xl font-bold text-purple-400 mt-1">{calcularPercentuaisImpostos().iss_sobre_total.toFixed(2)}%</p>
+                    </div>
+                    <div className="bg-gradient-to-r from-[#C8A951]/20 to-[#C8A951]/10 rounded-lg p-4 text-center border border-[#C8A951]/30">
+                      <span className="text-xs text-[#A1A1AA]">Total Impostos</span>
+                      <p className="text-xl font-bold text-[#C8A951] mt-1">{calcularPercentuaisImpostos().total_impostos_sobre_total.toFixed(2)}%</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* DRE Simplificado */}
+                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <BarChart3 className="w-6 h-6 text-[#C8A951]" />
+                    <h3 className="text-lg font-semibold text-white">DRE Simplificado</h3>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-3 border-b border-[#2A2A2A]">
+                      <span className="text-white font-medium">Receita Bruta (Vendas + Serviços)</span>
+                      <span className="text-green-400 font-bold text-lg">{formatCurrency(calcularReceitas().total)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-[#2A2A2A] pl-4">
+                      <span className="text-[#A1A1AA]">└ Vendas de Mercadorias</span>
+                      <span className="text-white">{formatCurrency(calcularReceitas().comercio)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-[#2A2A2A] pl-4">
+                      <span className="text-[#A1A1AA]">└ Prestação de Serviços</span>
+                      <span className="text-white">{formatCurrency(calcularReceitas().servicos)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-[#2A2A2A]">
+                      <span className="text-white font-medium flex items-center gap-2">
+                        <Minus className="w-4 h-4 text-red-400" />
+                        CMV/CPV
+                      </span>
+                      <span className="text-red-400 font-bold text-lg">{formatCurrency(calcularCMV())}</span>
+                    </div>
+                    <div className={`flex justify-between items-center py-4 rounded-lg px-3 ${calcularLucroBruto() >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                      <span className={`font-semibold ${calcularLucroBruto() >= 0 ? 'text-green-400' : 'text-red-400'}`}>= Lucro Bruto</span>
+                      <span className={`font-bold text-xl ${calcularLucroBruto() >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatCurrency(calcularLucroBruto())}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Tab Ponto de Equilíbrio */}
             {activeTab === 'equilibrio' && (
               <div className="space-y-6">
