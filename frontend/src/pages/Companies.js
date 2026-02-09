@@ -922,6 +922,60 @@ const Companies = ({ user, onLogout }) => {
                   </div>
                 </div>
 
+                {/* Certificado Digital */}
+                <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Shield className="w-4 h-4 text-emerald-400" />
+                    <span className="text-sm font-medium text-white">Certificado Digital</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs text-[#A1A1AA] mb-2">Nome do Arquivo (.pfx)</label>
+                      <input
+                        data-testid="company-certificado-arquivo-input"
+                        type="text"
+                        value={formData.certificado_digital_arquivo}
+                        onChange={(e) => setFormData({ ...formData, certificado_digital_arquivo: e.target.value })}
+                        placeholder="certificado.pfx"
+                        className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#A1A1AA] mb-2">Senha do Certificado</label>
+                      <div className="relative">
+                        <input
+                          data-testid="company-certificado-senha-input"
+                          type={showCertificadoSenha ? "text" : "password"}
+                          value={formData.certificado_digital_senha}
+                          onChange={(e) => setFormData({ ...formData, certificado_digital_senha: e.target.value })}
+                          placeholder="••••••••"
+                          className="w-full px-4 py-2 pr-10 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCertificadoSenha(!showCertificadoSenha)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1AA] hover:text-white"
+                        >
+                          {showCertificadoSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#A1A1AA] mb-2">Validade</label>
+                      <input
+                        data-testid="company-certificado-validade-input"
+                        type="date"
+                        value={formData.certificado_digital_validade}
+                        onChange={(e) => setFormData({ ...formData, certificado_digital_validade: e.target.value })}
+                        className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-[#666] mt-3">
+                    Informe os dados do certificado A1 da empresa para assinatura de documentos fiscais.
+                  </p>
+                </div>
+
                 {/* Actions */}
                 <div className="flex gap-3 pt-4 border-t border-[#2A2A2A]">
                   <button
