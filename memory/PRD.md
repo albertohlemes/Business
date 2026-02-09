@@ -77,7 +77,21 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-12 (Sessão 3 - Atual)
+### 2026-02-12 (Sessão 4 - Atual)
+- ✅ **Nova Página de Relatórios Gerenciais completa**
+  - 3 abas: Consolidado, Por Alíquota PIS/COFINS, Por Produto
+  - Seleção de seções via flags (Resumo, ICMS, PIS/COFINS Unificado, Documentos, Produtos)
+  - Botões "Selecionar Todos" e "Nenhum"
+  - Exportação em Excel (.xlsx) com formatação profissional
+  - Preview dos dados antes de exportar
+  - PIS/COFINS unificados em uma única tabela
+- ✅ **Endpoint /relatorio-consolidado/{company_id}/exportar**
+  - Gera Excel com múltiplas abas (Resumo, ICMS, PIS-COFINS, Documentos, Produtos)
+  - Formatação com cores, bordas e valores monetários
+  - Logo placeholder no cabeçalho
+- ✅ **Logo da empresa já aparece no menu de navegação** (implementado anteriormente)
+
+### 2026-02-12 (Sessão 3)
 - ✅ **Corrigido modal de visualização de NF** - Erro "Objects are not valid as React child" corrigido com função `formatEndereco`
 - ✅ **Corrigido cálculo do RET - Proporcionalização 12 meses** 
   - Alíquota Simples agora usa RBT12 proporcionalizado (ex: 1 mês de R$ 149k → 12 meses R$ 1.79M → alíquota 10.7%)
