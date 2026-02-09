@@ -166,6 +166,10 @@ function App() {
               path="/difal"
               element={user ? <DifaLPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/ret-simples"
+              element={user ? <RetSimples user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
             {/* Rotas antigas redirecionam */}
             <Route path="/analise-aliquotas-saida" element={<Navigate to="/analise-saidas" />} />
             <Route path="/divergencias-saida" element={<Navigate to="/analise-pis-cofins" />} />
