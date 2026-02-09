@@ -245,6 +245,8 @@ class CompanyUpdate(BaseModel):
     anexos_simples: Optional[List[str]] = None
     tipo_atividade: Optional[str] = None
     tipos_servico: Optional[List[str]] = None
+    # Perfis de atividade comercial (múltipla escolha)
+    perfis_comerciais: Optional[List[str]] = None
     # Flags de contribuinte
     equiparado_industria: Optional[bool] = None
     apura_icms: Optional[bool] = None
