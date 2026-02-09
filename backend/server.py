@@ -16546,8 +16546,6 @@ async def inteligencia_tributaria(
                     produtos_monofasicos += valor
                 elif is_ncm_aliquota_zero(ncm) or is_ncm_cesta_basica(ncm):
                     produtos_aliquota_zero += valor
-                elif is_ncm_aliquota_zero(ncm) or is_ncm_cesta_basica(ncm):
-                    produtos_aliquota_zero += valor
     except Exception as e:
         print(f"Erro ao calcular produtos ST/mono/zero: {e}")
     
