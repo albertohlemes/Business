@@ -480,6 +480,16 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                           <span className="text-white font-medium ml-auto">{pctZero}%</span>
                         </div>
                       </div>
+                      
+                      {/* Botão Exportar */}
+                      <button
+                        onClick={exportarProdutosAgrupados}
+                        disabled={exportingProdutos}
+                        className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-[#C8A951] bg-[#C8A951]/10 hover:bg-[#C8A951]/20 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        {exportingProdutos ? 'Exportando...' : 'Exportar Relatório'}
+                      </button>
                     </>
                   );
                 })()}
