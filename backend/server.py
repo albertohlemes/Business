@@ -9261,17 +9261,22 @@ async def resolver_alerta_cfop_por_grupo(
     competencia: str,
     cfop_atual: str,
     novo_cfop: str,
+    categoria: str = None,  # Se não informado, será inferida pelo CFOP
     salvar_regra: bool = False,
     current_user: User = Depends(get_current_user)
 ):
     """
     Resolve todos os alertas de um CFOP específico em lote.
+    Também classifica automaticamente os produtos baseado no CFOP.
     """
     documents = await db.xml_documents.find({
         "company_id": company_id,
         "competencia": competencia,
         "tipo": "entrada"
     }).to_list(10000)
+    
+    # Determinar categoria baseada no CFOP se não foi informada
+    categoria_final = categoria or obter_categoria_por_cfop(novo_cfop)
     
     total_resolvidos = 0
     
@@ -9283,10 +9288,17 @@ async def resolver_alerta_cfop_por_grupo(
             if prod.get('pendente_revisao_cfop') and str(prod.get('cfop', '')) == cfop_atual:
                 cfop_anterior = prod.get('cfop', '')
                 
+                # Atualizar CFOP
                 produtos[idx]['cfop'] = novo_cfop
                 produtos[idx]['pendente_revisao_cfop'] = False
                 produtos[idx]['cfop_revisado_por'] = current_user.id
                 produtos[idx]['cfop_revisado_em'] = datetime.now(timezone.utc).isoformat()
+                
+                # CLASSIFICAR AUTOMATICAMENTE baseado no CFOP
+                if categoria_final:
+                    produtos[idx]['categoria'] = categoria_final
+                    produtos[idx]['categoria_origem'] = 'cfop_auto'
+                    produtos[idx]['categoria_classificada_em'] = datetime.now(timezone.utc).isoformat()
                 
                 atualizado = True
                 total_resolvidos += 1
@@ -9298,8 +9310,8 @@ async def resolver_alerta_cfop_por_grupo(
                         "company_id": company_id,
                         "cfop_original": cfop_anterior,
                         "cfop_correto": novo_cfop,
-                        "categoria_correta": "conversao_cfop_grupo",
-                        "motivo": f"Conversão em lote de {cfop_anterior} para {novo_cfop}",
+                        "categoria_correta": categoria_final or "conversao_cfop_grupo",
+                        "motivo": f"Conversão em lote de {cfop_anterior} para {novo_cfop}" + (f" → {categoria_final}" if categoria_final else ""),
                         "aprendido_de": "user_batch_correction",
                         "created_by": current_user.id,
                         "created_at": datetime.now(timezone.utc)
@@ -9311,10 +9323,12 @@ async def resolver_alerta_cfop_por_grupo(
                 {"$set": {"produtos": produtos}}
             )
     
+    categoria_msg = f" e classificados como '{categoria_final}'" if categoria_final else ""
     return {
         "success": True, 
-        "message": f"{total_resolvidos} produto(s) atualizados de {cfop_atual} para {novo_cfop}",
-        "total_resolvidos": total_resolvidos
+        "message": f"{total_resolvidos} produto(s) atualizados de {cfop_atual} para {novo_cfop}{categoria_msg}",
+        "total_resolvidos": total_resolvidos,
+        "categoria_atribuida": categoria_final
     }
 
 @api_router.post("/alertas-cfop/resolver-individual")
