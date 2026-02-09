@@ -314,8 +314,17 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - Nova página `/simples-nacional` exclusiva para empresas do Simples Nacional
 - Menu lateral condicional: quando empresa é Simples, mostra apenas "Simples Nacional" (remove PIS/COFINS, ICMS, ISS, Indicadores, RET)
 
+**Importação PGDAS (NOVO):**
+- Upload de PDF do PGDAS exportado do portal do Simples Nacional
+- Extração automática de faturamento mensal (histórico completo)
+- Comparação entre valores do PGDAS vs valores calculados pelo sistema (notas fiscais)
+- Alertas de divergência quando PGDAS ≠ Sistema
+- Histórico de faturamento com indicação de origem (PGDAS ou Sistema)
+- Valores do PGDAS são bloqueados e têm prioridade sobre valores do sistema
+- RBT12 calculado a partir do histórico importado
+
 **Cards Principais:**
-- RBT12 (Receita Bruta dos últimos 12 meses)
+- RBT12 (Receita Bruta dos últimos 12 meses) - usa PGDAS quando disponível
 - Faturamento do ano corrente
 - Faixa atual e alíquota efetiva
 - DAS do mês atual
@@ -364,6 +373,9 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 
 **Backend - Novos Endpoints:**
 - `POST /api/dashboard/simples-nacional` - Dados completos do dashboard
+- `POST /api/simples-nacional/{id}/importar-pgdas` - Importação de PDF PGDAS
+- `GET /api/simples-nacional/{id}/historico-faturamento` - Histórico de faturamento
+- `PUT /api/simples-nacional/{id}/historico-faturamento/{comp}` - Atualizar faturamento manual
 - `PUT /api/companies/{id}/simples-nacional/anexos` - Atualizar anexos confirmados
 - `PUT /api/companies/{id}/simples-nacional/folha` - Atualizar folha de pagamento
 - `GET /api/simples-nacional/sugerir-anexos/{cnpj}` - Sugestão de anexos por CNPJ
@@ -373,6 +385,9 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - `anexos_confirmados`: Boolean se usuário confirmou os anexos
 - `controla_fator_r`: Boolean se empresa controla Fator R
 - `folha_pagamento_12m`: Float com valor da folha dos últimos 12 meses
+- `historico_faturamento`: Dict com faturamento mensal (origem PGDAS ou Sistema)
+- `pgdas_ultima_importacao`: Data da última importação do PGDAS
+- `pgdas_rbt12`: RBT12 extraído do PGDAS
 
 **Serviço de Cálculo (`simples_nacional_calculator.py`):**
 - Tabelas oficiais de alíquotas por Anexo (I a V)
@@ -380,6 +395,13 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - Cálculo de Fator R
 - Repartição de tributos
 - Projeção anual e alertas
+
+**Serviço de Extração PGDAS (`pgdas_extractor.py`):**
+- Extração de texto do PDF via PyMuPDF
+- Parsing de valores em formato brasileiro (1.234,56)
+- Extração de RBT12, RBA, faturamento mensal
+- Comparação PGDAS vs Sistema
+- Geração de histórico para salvar
 
 ### v2.10.0 (09/02/2026) - Dashboard Dinâmico e Flags ICMS
 
