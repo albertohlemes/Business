@@ -104,6 +104,9 @@ const Layout = ({ user, onLogout, children }) => {
     // RET - sempre mostra
     baseNav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
     
+    // Indicadores - sempre mostra
+    baseNav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
+    
     // Relatórios e Exportação - sempre
     baseNav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
     baseNav.push({ name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' });
