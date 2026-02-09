@@ -5978,10 +5978,19 @@ async def get_dashboard_stats(
         },
         "competencia": competencia,
         "quantidades": {
+            # Entradas
             "nfe_entrada": len(nfe_entrada),
+            "cte_entrada": len(cte_entrada),
+            "nfse_tomados": len(nfse_tomados),
+            "total_entradas": len(nfe_entrada) + len(cte_entrada) + len(nfse_tomados),
+            # Saídas
             "nfe_saida": len(nfe_saida),
             "nfce": len(nfce),
-            "nfse": len(nfse),
+            "cte_saida": len(cte_saida),
+            "nfse_prestados": len(nfse_prestados),
+            "total_saidas": len(nfe_saida) + len(nfce) + len(cte_saida) + len(nfse_prestados),
+            # Compatibilidade
+            "nfse": len(nfse_prestados),
             "total_documentos": len(documents)
         },
         "validacao": {
