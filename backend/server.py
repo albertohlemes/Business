@@ -15584,6 +15584,14 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
         for c in competencias_ano
     )
     
+    # Contar quantos meses realmente têm faturamento no ano
+    meses_com_faturamento = sum(
+        1 for c in competencias_ano 
+        if faturamento_por_mes.get(c, {}).get("faturamento", 0) > 0
+    )
+    # Se não há meses com faturamento, usar o mês de referência
+    meses_para_projecao = meses_com_faturamento if meses_com_faturamento > 0 else mes_ref
+    
     # Buscar valores de produtos ST e monofásicos do mês atual
     competencia_atual = f"{mes_ref:02d}/{ano_ref}"
     produtos_st_mes = 0
