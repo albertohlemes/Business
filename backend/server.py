@@ -8979,6 +8979,101 @@ async def report_by_product(
     
     return sorted(report, key=lambda x: x['valor_total'], reverse=True)
 
+@api_router.get("/classification/suggestions/{company_id}")
+async def get_classification_suggestions(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna sugestões de classificação de produtos para validação.
+    Agrupa produtos por código/descrição e mostra status de classificação.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar documentos de entrada (onde os produtos precisam ser classificados)
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "entrada",
+        **get_filtro_notas_ativas()
+    }
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    # Agrupar produtos por código+descricao
+    produtos_agrupados = defaultdict(lambda: {
+        'codigo': '',
+        'descricao': '',
+        'ncm': '',
+        'cfop_atual': '',
+        'categoria_atual': '',
+        'quantidade': 0,
+        'valor_total': 0,
+        'ocorrencias': [],
+        'classificado': False
+    })
+    
+    categorias_validas = ['revenda', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel']
+    total_produtos = 0
+    validados = 0
+    pendentes = 0
+    
+    for doc in documents:
+        for prod in doc.get('produtos', []):
+            codigo = prod.get('codigo', '') or 'SEM_CODIGO'
+            descricao = prod.get('descricao', '')
+            chave = f"{codigo}_{descricao[:50]}"
+            
+            grupo = produtos_agrupados[chave]
+            grupo['codigo'] = codigo
+            grupo['descricao'] = descricao
+            grupo['ncm'] = prod.get('ncm', '')
+            grupo['cfop_atual'] = prod.get('cfop', '')
+            
+            # Verificar categoria classificada
+            categoria = prod.get('categoria_classificada', '')
+            if categoria in categorias_validas:
+                grupo['categoria_atual'] = categoria
+                grupo['classificado'] = True
+            else:
+                grupo['categoria_atual'] = 'pendente'
+            
+            grupo['quantidade'] += prod.get('quantidade', 0)
+            grupo['valor_total'] += prod.get('valor_total', 0)
+            grupo['ocorrencias'].append({
+                'doc_id': doc['id'],
+                'numero_nfe': doc.get('numero_nfe', ''),
+                'nf': doc.get('numero_nfe', '')
+            })
+            total_produtos += 1
+    
+    # Converter para lista e contar validados/pendentes
+    sugestoes = []
+    for chave, dados in produtos_agrupados.items():
+        if dados['classificado']:
+            validados += 1
+        else:
+            pendentes += 1
+        sugestoes.append(dados)
+    
+    # Ordenar por valor total decrescente
+    sugestoes.sort(key=lambda x: x['valor_total'], reverse=True)
+    
+    return {
+        "empresa": company.get('razao_social', ''),
+        "competencia": competencia,
+        "resumo": {
+            "total_produtos": len(sugestoes),
+            "validados": validados,
+            "pendentes": pendentes,
+            "valor_total": sum(s['valor_total'] for s in sugestoes)
+        },
+        "sugestoes": sugestoes
+    }
+
 @api_router.get("/reports/by-ncm/{company_id}")
 async def report_by_ncm(
     company_id: str,
