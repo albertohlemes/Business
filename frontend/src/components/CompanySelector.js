@@ -25,12 +25,6 @@ const CompanySelector = () => {
   const [tempCompetencia, setTempCompetencia] = useState(getInitialCompetencia());
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    if (tempCompany && tempCompetencia && tempCompetencia.length === 7) {
-      checkSiegCount(tempCompany.id, tempCompetencia);
-    }
-  }, [tempCompany, tempCompetencia]);
-
   const handleCompetenciaChange = (e) => {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length > 6) {
