@@ -16121,7 +16121,65 @@ async def inteligencia_tributaria(
     }
     
     # ============ SIMPLES NACIONAL ============
-    fat_anual_estimado = faturamento * (12 / meses_apurados) if tipo == "periodo" else faturamento
+    # Para Simples Nacional, precisamos do faturamento dos últimos 12 meses para calcular a alíquota correta
+    # RBT12 = Receita Bruta dos últimos 12 meses
+    
+    # Calcular RBT12 (faturamento dos últimos 12 meses)
+    try:
+        mes_atual, ano_atual = competencia.split('/')
+        mes_atual = int(mes_atual)
+        ano_atual = int(ano_atual)
+        
+        # Gerar lista dos últimos 12 meses
+        competencias_12m = []
+        for i in range(12):
+            m = mes_atual - i
+            a = ano_atual
+            if m <= 0:
+                m += 12
+                a -= 1
+            competencias_12m.append(f"{str(m).zfill(2)}/{a}")
+        
+        # Buscar faturamento total dos últimos 12 meses
+        pipeline_rbt12 = [
+            {"$match": {
+                "company_id": company_id,
+                "competencia": {"$in": competencias_12m},
+                "$or": [{"tipo_operacao": "saida"}, {"tipo": "saida"}],
+                **get_filtro_notas_ativas()
+            }},
+            {"$group": {
+                "_id": None,
+                "rbt12": {"$sum": {"$toDouble": {"$ifNull": ["$valor_total", 0]}}}
+            }}
+        ]
+        
+        rbt12_result = await db.xml_documents.aggregate(pipeline_rbt12).to_list(1)
+        rbt12 = float(rbt12_result[0]['rbt12']) if rbt12_result else faturamento * 12
+        
+        # Contar quantos meses têm dados
+        meses_com_dados = await db.xml_documents.distinct("competencia", {
+            "company_id": company_id,
+            "competencia": {"$in": competencias_12m},
+            "$or": [{"tipo_operacao": "saida"}, {"tipo": "saida"}],
+            **get_filtro_notas_ativas()
+        })
+        qtd_meses_dados = len(meses_com_dados) if meses_com_dados else 1
+        
+        # Proporcionalizar para 12 meses se não tiver dados completos
+        if qtd_meses_dados < 12 and qtd_meses_dados > 0:
+            rbt12_proporcionalizado = (rbt12 / qtd_meses_dados) * 12
+        else:
+            rbt12_proporcionalizado = rbt12
+            
+    except Exception as e:
+        print(f"Erro ao calcular RBT12: {e}")
+        rbt12 = faturamento * 12
+        rbt12_proporcionalizado = rbt12
+        qtd_meses_dados = 1
+    
+    # Usar RBT12 proporcionalizado para calcular alíquota
+    fat_anual_estimado = rbt12_proporcionalizado
     
     if fat_anual_estimado <= 180000:
         aliq_simples = 0.04
