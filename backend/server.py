@@ -5604,6 +5604,92 @@ async def get_integrity_summary(
         "divergencias": divergencias_detalhe[:10]  # Limitar a 10 para não sobrecarregar
     }
 
+
+# ============================================================
+# FUNÇÃO AUXILIAR: Dados específicos para Simples Nacional
+# ============================================================
+async def _get_simples_nacional_stats(company: dict, company_id: str, competencia: str, faturamento_total: float, documents: list) -> dict:
+    """
+    Retorna dados específicos para empresas do Simples Nacional:
+    - DAS do mês e alíquota efetiva
+    - DIFAL do mês e % sobre compras
+    - Compras interestaduais
+    - Percentuais sobre saídas/vendas
+    """
+    from services.simples_nacional_calculator import calcular_aliquota_efetiva, calcular_fator_r
+    from services.difal_calculator import calcular_difal_simples_nacional
+    
+    # Obter RBT12 (do histórico importado ou calculado)
+    historico_faturamento = company.get('historico_faturamento', [])
+    if historico_faturamento:
+        rbt12 = sum(m.get('faturamento', 0) for m in historico_faturamento[-12:])
+    else:
+        # Calcular do banco de dados se não houver histórico importado
+        rbt12 = company.get('faturamento_acumulado_12m', 0)
+    
+    # Anexos da empresa
+    anexos = company.get('anexos_simples', ['I'])
+    if not anexos:
+        anexos = ['I']
+    anexo_principal = anexos[0]
+    
+    # Calcular alíquota efetiva
+    aliq_info = calcular_aliquota_efetiva(rbt12, anexo_principal)
+    aliquota_efetiva = aliq_info.get('aliquota_efetiva', 0)
+    
+    # Calcular DAS do mês
+    das_valor = faturamento_total * (aliquota_efetiva / 100) if faturamento_total > 0 else 0
+    
+    # CFOPs de compras interestaduais (de outros estados - começam com 2)
+    CFOPS_INTERESTADUAIS = ['2102', '2403', '2101', '2201', '2551', '2556']
+    
+    # Calcular compras interestaduais
+    compras_interestaduais = 0
+    qtd_notas_interestaduais = 0
+    notas_contadas = set()
+    
+    for doc in documents:
+        if doc.get('tipo') != 'entrada':
+            continue
+        
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            if cfop.startswith('2'):  # Operação interestadual
+                valor = float(prod.get('valor_total', 0) or 0)
+                compras_interestaduais += valor
+                
+                doc_id = doc.get('id', '')
+                if doc_id and doc_id not in notas_contadas:
+                    notas_contadas.add(doc_id)
+                    qtd_notas_interestaduais += 1
+    
+    # Calcular DIFAL
+    difal_result = await calcular_difal_simples_nacional(company_id, competencia)
+    difal_valor = difal_result.get('total_difal', 0) if difal_result else 0
+    
+    # Percentuais
+    total_saidas = faturamento_total
+    percentual_difal_compras = (difal_valor / compras_interestaduais * 100) if compras_interestaduais > 0 else 0
+    
+    total_impostos = das_valor + difal_valor
+    percentual_sobre_saidas = (total_impostos / total_saidas * 100) if total_saidas > 0 else 0
+    percentual_sobre_vendas = percentual_sobre_saidas  # Para Simples, saídas = vendas
+    
+    return {
+        "das_valor": round(das_valor, 2),
+        "aliquota_efetiva": round(aliquota_efetiva, 2),
+        "difal_valor": round(difal_valor, 2),
+        "difal_percentual_compras": round(percentual_difal_compras, 2),
+        "compras_interestaduais": round(compras_interestaduais, 2),
+        "qtd_notas_interestaduais": qtd_notas_interestaduais,
+        "total_impostos": round(total_impostos, 2),
+        "percentual_sobre_saidas": round(percentual_sobre_saidas, 2),
+        "percentual_sobre_vendas": round(percentual_sobre_vendas, 2),
+        "rbt12": round(rbt12, 2),
+        "anexo_principal": anexo_principal
+    }
+
+
 @api_router.get("/dashboard/stats/{company_id}")
 async def get_dashboard_stats(
     company_id: str,
