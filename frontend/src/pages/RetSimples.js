@@ -37,18 +37,29 @@ const RetSimples = ({ user, onLogout }) => {
     
     try {
       const token = localStorage.getItem('token');
+      // O endpoint espera query params, não body
       const response = await axios.post(
-        `${API}/simples-nacional/ret/comparativo`,
-        { 
-          company_id: selectedCompany.id, 
-          ano: selectedAno
-        },
+        `${API}/simples-nacional/ret/comparativo?company_id=${selectedCompany.id}&ano=${selectedAno}`,
+        {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setRetData(response.data);
     } catch (err) {
       console.error('Erro ao buscar comparativo:', err);
-      setError(err.response?.data?.detail || 'Erro ao carregar comparativo de regimes');
+      // Tratar erro de validação Pydantic
+      const errorData = err.response?.data;
+      if (errorData?.detail) {
+        if (typeof errorData.detail === 'string') {
+          setError(errorData.detail);
+        } else if (Array.isArray(errorData.detail)) {
+          // Erro de validação Pydantic
+          setError(errorData.detail.map(e => e.msg || e.message || JSON.stringify(e)).join(', '));
+        } else {
+          setError('Erro ao carregar comparativo de regimes');
+        }
+      } else {
+        setError('Erro ao carregar comparativo de regimes');
+      }
     } finally {
       setLoading(false);
     }
