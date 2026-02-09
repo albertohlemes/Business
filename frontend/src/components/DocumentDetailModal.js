@@ -190,7 +190,7 @@ const DocumentDetailModal = ({ document, onClose }) => {
               {document.destinatario_uf && (
                 <div className="flex items-center gap-1 mt-1 text-xs text-[#666]">
                   <MapPin className="w-3 h-3" />
-                  {document.destinatario_endereco || document.destinatario_uf}
+                  {formatEndereco(document.destinatario_endereco, document.destinatario_uf)}
                 </div>
               )}
             </div>
