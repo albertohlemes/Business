@@ -83,6 +83,7 @@ const Layout = ({ user, onLogout, children }) => {
     // Se for Simples Nacional, adicionar Dashboard exclusivo
     if (regimeTributario === 'simples_nacional') {
       baseNav.push({ name: 'Simples Nacional', href: '/simples-nacional', icon: Star, testId: 'nav-simples-nacional' });
+      baseNav.push({ name: 'DIFAL', href: '/difal', icon: ArrowLeftRight, testId: 'nav-difal' });
     }
     
     // PIS/COFINS - sempre mostra (todas empresas pagam) - exceto Simples
