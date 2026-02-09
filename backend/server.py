@@ -5617,7 +5617,6 @@ async def _get_simples_nacional_stats(company: dict, company_id: str, competenci
     - Percentuais sobre saídas/vendas
     """
     from services.simples_nacional_calculator import calcular_aliquota_efetiva, calcular_fator_r
-    from services.difal_calculator import calcular_difal_simples_nacional
     
     # Obter RBT12 (do histórico importado ou calculado)
     historico_faturamento = company.get('historico_faturamento', [])
@@ -5663,9 +5662,22 @@ async def _get_simples_nacional_stats(company: dict, company_id: str, competenci
                     notas_contadas.add(doc_id)
                     qtd_notas_interestaduais += 1
     
-    # Calcular DIFAL
-    difal_result = await calcular_difal_simples_nacional(company_id, competencia)
-    difal_valor = difal_result.get('total_difal', 0) if difal_result else 0
+    # Calcular DIFAL - usar query direta ao banco em vez de chamar função externa
+    difal_valor = 0
+    try:
+        # Query para buscar o total de DIFAL já calculado
+        difal_query = {"company_id": company_id, "competencia": competencia}
+        difal_docs = await db.xml_documents.find(difal_query, {"_id": 0}).to_list(10000)
+        
+        for doc in difal_docs:
+            if doc.get('tipo') != 'entrada':
+                continue
+            for prod in doc.get('produtos', []):
+                difal_prod = float(prod.get('difal_calculado', 0) or 0)
+                difal_valor += difal_prod
+    except Exception as e:
+        logger.error(f"Erro ao calcular DIFAL para stats: {e}")
+        difal_valor = 0
     
     # Percentuais
     total_saidas = faturamento_total
