@@ -166,6 +166,17 @@ const ExportMenu = ({ user, onLogout }) => {
           } else {
             alert('⚠️ SPED exportado, mas foram encontradas divergências. Verifique o relatório abaixo.');
           }
+      } else if (activeTab === 'relatorios') {
+          // Relatório agrupado por alíquota
+          const url = `${API}/relatorio-agrupado-aliquota/${selectedCompany}/exportar?competencia=${encodeURIComponent(competencia)}&imposto=${relatorioImposto}&tipo=${relatorioTipo}&formato=${relatorioFormato}`;
+          response = await axios.get(url, { 
+            headers: { Authorization: `Bearer ${token}` },
+            responseType: 'blob'
+          });
+          
+          filename = `relatorio_${relatorioImposto}_${relatorioTipo}_${competencia.replace('/', '_')}.${relatorioFormato}`;
+          downloadBlob(response.data, filename);
+          alert(`Relatório de ${relatorioImposto.toUpperCase()} exportado com sucesso!`);
       } else {
           // CSV Export
           const endpoint = activeTab === 'entrada' ? 'csv/entrada' : 'csv/saida';
