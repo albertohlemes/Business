@@ -308,6 +308,22 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - Estilo `accent-color` para mostrar a cor quando marcado
 - Flags funcionando corretamente para marcar/desmarcar
 
+### v2.16.0 (12/12/2025) - Correções RET e Projeção Anual
+
+**Página RET (RetSimples.js) - Correções:**
+- ✅ Corrigido endpoint: `/api/simples-nacional/ret/comparativo?company_id=X&ano=Y`
+- ✅ Tratamento de erros de validação Pydantic que causavam "Objects are not valid as React child"
+- ✅ Página funcionando e exibindo comparativo completo entre regimes
+
+**Projeção Anual - Lógica corrigida:**
+- ✅ Agora usa o número de meses COM faturamento (não o mês de referência)
+- ✅ Fórmula: (faturamento acumulado do ano) / (meses com faturamento) * 12
+- ✅ Variável `meses_para_projecao` calculada corretamente
+
+**Endpoint RET - Parâmetro `ano` adicionado:**
+- ✅ Permite selecionar o ano para o comparativo
+- ✅ Usa mês 12 para anos anteriores, mês atual para ano corrente
+
 ### v2.15.0 (12/12/2025) - Dashboard Principal Personalizado para Simples Nacional
 
 **Dashboard Principal - Seção de Impostos Condicional:**
