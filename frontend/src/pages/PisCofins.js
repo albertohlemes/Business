@@ -63,12 +63,6 @@ const PisCofins = ({ user, onLogout }) => {
       setLoadingDivergencias(false);
     }
   };
-    } catch (err) {
-      console.error('Erro ao carregar dados:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedCompany, selectedCompetencia]);
 
   useEffect(() => {
     if (selectedCompany && selectedCompetencia) {
