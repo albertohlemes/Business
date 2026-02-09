@@ -15008,8 +15008,7 @@ async def inteligencia_tributaria(
 ):
     """
     Calcula e compara impostos nos três regimes tributários: Simples, Presumido e Real.
-    - tipo=periodo: apenas a competência selecionada
-    - tipo=acumulado: soma todas competências do ano
+    Usa os valores REAIS das apurações existentes para o regime atual.
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
@@ -15027,9 +15026,7 @@ async def inteligencia_tributaria(
         query_competencia = {"competencia": competencia}
         meses_apurados = 1
     else:
-        # Acumulado: pegar todas as competências do ano
         query_competencia = {"competencia": {"$regex": f"/{ano}$"}}
-        # Contar meses com dados
         competencias_unicas = await db.xml_documents.distinct("competencia", {
             "company_id": company_id,
             "competencia": {"$regex": f"/{ano}$"},
@@ -15037,50 +15034,63 @@ async def inteligencia_tributaria(
         })
         meses_apurados = len(competencias_unicas) if competencias_unicas else 1
     
-    # Buscar documentos
-    documents = await db.xml_documents.find({
-        "company_id": company_id,
-        **query_competencia,
-        **get_filtro_notas_ativas()
-    }, {"_id": 0}).to_list(50000)
+    # Usar agregação para melhor performance
+    pipeline = [
+        {"$match": {
+            "company_id": company_id,
+            **query_competencia,
+            **get_filtro_notas_ativas()
+        }},
+        {"$group": {
+            "_id": "$tipo",
+            "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$valor_total", 0]}}},
+            "icms_total": {"$sum": {"$toDouble": {"$ifNull": ["$icms_total", 0]}}},
+            "pis_total": {"$sum": {"$toDouble": {"$ifNull": ["$pis_total", 0]}}},
+            "cofins_total": {"$sum": {"$toDouble": {"$ifNull": ["$cofins_total", 0]}}},
+        }}
+    ]
     
-    # Calcular totais
-    faturamento = 0  # Total de saídas (vendas)
-    compras = 0  # Total de entradas
-    icms_debito = 0
-    icms_credito = 0
-    pis_debito = 0
-    pis_credito = 0
-    cofins_debito = 0
-    cofins_credito = 0
+    totais_por_tipo = {}
+    async for doc in db.xml_documents.aggregate(pipeline):
+        totais_por_tipo[doc["_id"]] = doc
     
-    for doc in documents:
-        tipo_op = doc.get('tipo', 'entrada')
-        valor_doc = float(doc.get('valor_total', 0) or 0)
-        
-        if tipo_op == 'saida':
-            faturamento += valor_doc
-            icms_debito += float(doc.get('icms_total', 0) or 0)
-            pis_debito += float(doc.get('pis_total', 0) or 0)
-            cofins_debito += float(doc.get('cofins_total', 0) or 0)
-        else:
-            compras += valor_doc
-            icms_credito += float(doc.get('icms_total', 0) or 0)
-            pis_credito += float(doc.get('pis_total', 0) or 0)
-            cofins_credito += float(doc.get('cofins_total', 0) or 0)
+    saidas = totais_por_tipo.get("saida", {})
+    entradas = totais_por_tipo.get("entrada", {})
     
-    # Saldos de impostos
-    icms_saldo = max(0, icms_debito - icms_credito)
-    pis_saldo = max(0, pis_debito - pis_credito)
-    cofins_saldo = max(0, cofins_debito - cofins_credito)
+    faturamento = float(saidas.get("valor_total", 0) or 0)
+    compras = float(entradas.get("valor_total", 0) or 0)
     
     # Percentuais de presunção da empresa
     pres_irpj = float(company.get('percentual_presuncao_irpj', 8))
     pres_csll = float(company.get('percentual_presuncao_csll', 12))
     
+    # ============ BUSCAR VALORES REAIS DAS APURAÇÕES ============
+    # ICMS - valor real apurado
+    icms_real_a_pagar = 0
+    try:
+        # Buscar apuração ICMS existente
+        icms_apuracao = await calcular_apuracao_icms_interno(company_id, competencia if tipo == "periodo" else None, ano if tipo != "periodo" else None)
+        if icms_apuracao and icms_apuracao.get('apuracao'):
+            ap = icms_apuracao['apuracao']
+            if ap.get('situacao') == 'A_PAGAR':
+                icms_real_a_pagar = float(ap.get('saldo', 0) or 0)
+    except Exception as e:
+        print(f"Erro ao buscar ICMS: {e}")
+    
+    # PIS/COFINS - valores reais apurados
+    pis_real_a_pagar = 0
+    cofins_real_a_pagar = 0
+    try:
+        # Buscar apuração PIS/COFINS existente
+        pis_cofins_apuracao = await get_pis_cofins_apuracao_data(company_id, competencia if tipo == "periodo" else f"01/{ano}", company)
+        if pis_cofins_apuracao:
+            lr = pis_cofins_apuracao.get('lucro_real', {})
+            pis_real_a_pagar = float(lr.get('imposto_a_pagar', {}).get('pis', 0) or 0)
+            cofins_real_a_pagar = float(lr.get('imposto_a_pagar', {}).get('cofins', 0) or 0)
+    except Exception as e:
+        print(f"Erro ao buscar PIS/COFINS: {e}")
+    
     # ============ SIMPLES NACIONAL ============
-    # Alíquota efetiva média do Simples (Anexo I - Comércio)
-    # Faixa 1: até 180k = 4%, Faixa 2: até 360k = 7.3%, Faixa 3: até 720k = 9.5%, etc
     fat_anual_estimado = faturamento * (12 / meses_apurados) if tipo == "periodo" else faturamento
     
     if fat_anual_estimado <= 180000:
@@ -15096,36 +15106,34 @@ async def inteligencia_tributaria(
     elif fat_anual_estimado <= 4800000:
         aliq_simples = 0.19
     else:
-        aliq_simples = 0.19  # Excedeu limite
+        aliq_simples = 0.19
     
     simples_total = faturamento * aliq_simples
-    # Distribuição aproximada do Simples (Anexo I)
     simples = {
-        'icms': simples_total * 0.34,  # ~34% do DAS é ICMS
-        'pis': simples_total * 0.025,   # ~2.5% PIS
-        'cofins': simples_total * 0.115, # ~11.5% COFINS
-        'irpj': simples_total * 0.055,   # ~5.5% IRPJ
-        'csll': simples_total * 0.035,   # ~3.5% CSLL
-        'cpp': simples_total * 0.415,    # ~41.5% CPP
-        'total': simples_total,
-        'aliquota_efetiva': aliq_simples * 100
+        'icms': round(simples_total * 0.34, 2),
+        'pis': round(simples_total * 0.025, 2),
+        'cofins': round(simples_total * 0.115, 2),
+        'irpj': round(simples_total * 0.055, 2),
+        'csll': round(simples_total * 0.035, 2),
+        'cpp': round(simples_total * 0.415, 2),
+        'total': round(simples_total, 2),
+        'aliquota_efetiva': round(aliq_simples * 100, 2)
     }
     
     # ============ LUCRO PRESUMIDO ============
-    # ICMS: mesmo do regime atual
-    presumido_icms = icms_saldo
-    # PIS: 0.65% sobre faturamento (cumulativo)
+    # ICMS: mesmo valor real (débito-crédito é igual em qualquer regime)
+    presumido_icms = icms_real_a_pagar
+    # PIS: 0.65% sobre faturamento (cumulativo - sem crédito)
     presumido_pis = faturamento * 0.0065
-    # COFINS: 3% sobre faturamento (cumulativo)
+    # COFINS: 3% sobre faturamento (cumulativo - sem crédito)
     presumido_cofins = faturamento * 0.03
-    # IRPJ: 15% sobre base presumida + adicional 10% sobre excedente de 20k/mês
+    # IRPJ: 15% sobre base presumida + adicional
     base_irpj = faturamento * (pres_irpj / 100)
     presumido_irpj = base_irpj * 0.15
     if tipo == "periodo":
         if base_irpj > 20000:
             presumido_irpj += (base_irpj - 20000) * 0.10
     else:
-        # Trimestral: adicional sobre 60k
         if base_irpj > (60000 * (meses_apurados / 3)):
             presumido_irpj += (base_irpj - 60000 * (meses_apurados / 3)) * 0.10
     # CSLL: 9% sobre base presumida
@@ -15144,35 +15152,27 @@ async def inteligencia_tributaria(
     }
     
     # ============ LUCRO REAL ============
-    # ICMS: débito - crédito
-    real_icms = icms_saldo
-    # PIS: 1.65% não cumulativo
-    real_pis = pis_saldo  # Já calculado com créditos
-    # COFINS: 7.6% não cumulativo
-    real_cofins = cofins_saldo  # Já calculado com créditos
+    # ICMS: valor real apurado
+    real_icms = icms_real_a_pagar
+    # PIS/COFINS: valores reais apurados (não cumulativo com créditos)
+    real_pis = pis_real_a_pagar
+    real_cofins = cofins_real_a_pagar
     
-    # Buscar dados da empresa para cálculo do lucro contábil
+    # IRPJ/CSLL baseado no lucro contábil
     estoque_inicial = float(company.get('estoque_inicial', 0) or 0)
     estoque_final = float(company.get('estoque_final', 0) or 0)
     despesa_real = float(company.get('despesa_real', 0) or 0)
     
-    # CMV = Estoque Inicial + Compras - Estoque Final
     cmv = estoque_inicial + compras - estoque_final
-    
-    # Lucro Bruto = Faturamento - CMV
     lucro_bruto = faturamento - cmv
     
-    # Lucro Contábil = Lucro Bruto - Despesa Real (informada pelo usuário)
-    # Se despesa_real for 0, considera lucro bruto (sem deduzir despesas)
     if despesa_real > 0:
         lucro_contabil = lucro_bruto - despesa_real
     else:
-        # Sem despesa informada, usa lucro bruto
         lucro_contabil = lucro_bruto
     
-    lucro_contabil = max(0, lucro_contabil)  # Não pode ser negativo para IR
+    lucro_contabil = max(0, lucro_contabil)
     
-    # IRPJ: 15% sobre lucro real + adicional
     real_irpj = lucro_contabil * 0.15
     if tipo == "periodo":
         if lucro_contabil > 20000:
@@ -15180,7 +15180,6 @@ async def inteligencia_tributaria(
     else:
         if lucro_contabil > (60000 * (meses_apurados / 3)):
             real_irpj += (lucro_contabil - 60000 * (meses_apurados / 3)) * 0.10
-    # CSLL: 9% sobre lucro real
     real_csll = lucro_contabil * 0.09
     
     real = {
