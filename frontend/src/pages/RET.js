@@ -7,19 +7,25 @@ import {
   Download, RefreshCw, Building2, BarChart3, 
   AlertTriangle, CheckCircle, Sparkles, Calculator,
   Scale, ArrowRight, Lightbulb, Target, Zap,
-  Package, Brain, ChevronDown, ChevronUp, AlertCircle
+  Package, Brain, ChevronDown, ChevronUp, AlertCircle,
+  Percent, PiggyBank, Minus, Plus, Save
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const RET = ({ user, onLogout }) => {
-  const { selectedCompany, selectedCompetencia } = useAppContext();
+  const { selectedCompany, selectedCompetencia, refreshCompanies } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [dados, setDados] = useState(null);
   const [analiseIA, setAnaliseIA] = useState(null);
-  const [activeTab, setActiveTab] = useState('resumo'); // resumo, viloes, oportunidades, insights
+  const [activeTab, setActiveTab] = useState('resumo');
   const [expandedSections, setExpandedSections] = useState({});
+  
+  // Estoque para CMV/CPV
+  const [estoqueInicial, setEstoqueInicial] = useState(0);
+  const [estoqueFinal, setEstoqueFinal] = useState(0);
+  const [savingEstoque, setSavingEstoque] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!selectedCompany?.id || !selectedCompetencia) return;
@@ -27,6 +33,10 @@ const RET = ({ user, onLogout }) => {
     try {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
+      
+      // Carregar estoque da empresa
+      setEstoqueInicial(selectedCompany.estoque_inicial || 0);
+      setEstoqueFinal(selectedCompany.estoque_final || 0);
       
       // Buscar dados de apuração consolidados
       const [icmsRes, issRes, pisRes, ipiRes] = await Promise.all([
@@ -36,7 +46,7 @@ const RET = ({ user, onLogout }) => {
         axios.get(`${API}/apuracao-ipi/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`, { headers }).catch(() => null)
       ]);
       
-      // Buscar análise tributária IA (com vilões e oportunidades)
+      // Buscar análise tributária IA
       const analiseRes = await axios.get(
         `${API}/analise-tributaria-ia/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
         { headers }
@@ -62,61 +72,187 @@ const RET = ({ user, onLogout }) => {
     }
   }, [selectedCompany, selectedCompetencia, fetchData]);
 
+  // Salvar estoque na empresa
+  const salvarEstoque = async () => {
+    if (!selectedCompany?.id) return;
+    setSavingEstoque(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`${API}/companies/${selectedCompany.id}`, {
+        estoque_inicial: estoqueInicial,
+        estoque_final: estoqueFinal
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      refreshCompanies && refreshCompanies();
+      alert('Estoque salvo com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar estoque:', err);
+      alert('Erro ao salvar estoque');
+    } finally {
+      setSavingEstoque(false);
+    }
+  };
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+  };
+
+  const formatPercent = (value) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'percent', minimumFractionDigits: 2 }).format(value || 0);
   };
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Card de Imposto
-  const ImpostoCard = ({ titulo, icone: Icon, corIcone, apagar, arecuperar }) => (
-    <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`${corIcone} p-2 rounded-lg`}>
-          <Icon className="w-5 h-5 text-white" />
-        </div>
-        <span className="text-white font-semibold">{titulo}</span>
-      </div>
-      <div className="space-y-2">
-        {apagar > 0 && (
-          <div className="flex justify-between items-center">
-            <span className="text-[#A1A1AA] text-sm">A Pagar</span>
-            <span className="text-red-400 font-bold">{formatCurrency(apagar)}</span>
-          </div>
-        )}
-        {arecuperar > 0 && (
-          <div className="flex justify-between items-center">
-            <span className="text-[#A1A1AA] text-sm">A Recuperar</span>
-            <span className="text-green-400 font-bold">{formatCurrency(arecuperar)}</span>
-          </div>
-        )}
-        {!apagar && !arecuperar && (
-          <div className="text-center py-2">
-            <span className="text-[#666] text-sm">Sem movimentação</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  // Verificar se empresa é contribuinte de cada imposto
+  const isContribuinteICMS = () => {
+    const tipo = selectedCompany?.tipo_atividade || '';
+    return tipo === 'comercio' || tipo === 'industria' || tipo === 'mista' || selectedCompany?.apura_icms;
+  };
 
-  // Calcular totais
+  const isContribuinteISS = () => {
+    const tipo = selectedCompany?.tipo_atividade || '';
+    return tipo === 'servicos' || tipo === 'mista';
+  };
+
+  const isContribuinteIPI = () => {
+    const tipo = selectedCompany?.tipo_atividade || '';
+    return tipo === 'industria' || selectedCompany?.equiparado_industria;
+  };
+
+  const isContribuinteICMSST = () => {
+    return selectedCompany?.apura_icms_st;
+  };
+
+  // Calcular CMV/CPV (Custo da Mercadoria/Produto Vendido)
+  const calcularCMV = () => {
+    // CMV = Estoque Inicial + Compras - Estoque Final
+    const compras = dados?.icms?.entradas?.total_produtos || dados?.pis_cofins?.compras?.total || 0;
+    return estoqueInicial + compras - estoqueFinal;
+  };
+
+  // Calcular receitas
+  const calcularReceitas = () => {
+    // Receita de vendas de mercadorias
+    const receitaComercio = dados?.icms?.saidas?.total_produtos || 0;
+    // Receita de serviços
+    const receitaServicos = dados?.iss?.resumo?.receita_servicos || 0;
+    
+    return {
+      comercio: receitaComercio,
+      servicos: receitaServicos,
+      total: receitaComercio + receitaServicos
+    };
+  };
+
+  // Calcular Lucro Bruto
+  const calcularLucroBruto = () => {
+    const receitas = calcularReceitas();
+    const cmv = calcularCMV();
+    return receitas.total - cmv;
+  };
+
+  // Calcular Ponto de Equilíbrio para Lucro Real
+  const calcularPontoEquilibrio = () => {
+    // Para Lucro Real, o objetivo é minimizar o lucro tributável
+    // Lucro = Receita - CMV - Despesas
+    // Para lucro zero: Despesas = Receita - CMV
+    const receitas = calcularReceitas();
+    const cmv = calcularCMV();
+    const lucroBruto = receitas.total - cmv;
+    
+    // Despesas necessárias para zerar o lucro tributável
+    const despesasParaEquilibrio = lucroBruto > 0 ? lucroBruto : 0;
+    
+    return {
+      receita_total: receitas.total,
+      cmv: cmv,
+      lucro_bruto: lucroBruto,
+      despesas_para_equilibrio: despesasParaEquilibrio,
+      economia_potencial: despesasParaEquilibrio * 0.34 // IRPJ 25% + CSLL 9%
+    };
+  };
+
+  // Calcular Lucro Presumido por atividade
+  const calcularLucroPresumido = () => {
+    const receitas = calcularReceitas();
+    const isMista = selectedCompany?.tipo_atividade === 'mista';
+    
+    // Percentuais de presunção
+    const presuncaoIRPJComercio = selectedCompany?.percentual_presuncao_irpj_comercio || selectedCompany?.percentual_presuncao_irpj || 8;
+    const presuncaoCSLLComercio = selectedCompany?.percentual_presuncao_csll_comercio || selectedCompany?.percentual_presuncao_csll || 12;
+    const presuncaoIRPJServico = selectedCompany?.percentual_presuncao_irpj_servico || 32;
+    const presuncaoCSLLServico = selectedCompany?.percentual_presuncao_csll_servico || 32;
+    
+    // Base de cálculo
+    const baseIRPJComercio = receitas.comercio * (presuncaoIRPJComercio / 100);
+    const baseCSLLComercio = receitas.comercio * (presuncaoCSLLComercio / 100);
+    const baseIRPJServico = receitas.servicos * (presuncaoIRPJServico / 100);
+    const baseCSLLServico = receitas.servicos * (presuncaoCSLLServico / 100);
+    
+    // IRPJ 15% + Adicional 10% sobre excedente de R$ 20.000/mês
+    const calcularIRPJ = (base) => {
+      const irpjBase = base * 0.15;
+      const adicional = base > 20000 ? (base - 20000) * 0.10 : 0;
+      return irpjBase + adicional;
+    };
+    
+    // CSLL 9%
+    const calcularCSLL = (base) => base * 0.09;
+    
+    const irpjComercio = calcularIRPJ(baseIRPJComercio);
+    const csllComercio = calcularCSLL(baseCSLLComercio);
+    const irpjServico = calcularIRPJ(baseIRPJServico);
+    const csllServico = calcularCSLL(baseCSLLServico);
+    
+    return {
+      comercio: {
+        receita: receitas.comercio,
+        presuncao_irpj: presuncaoIRPJComercio,
+        presuncao_csll: presuncaoCSLLComercio,
+        base_irpj: baseIRPJComercio,
+        base_csll: baseCSLLComercio,
+        irpj: irpjComercio,
+        csll: csllComercio,
+        total: irpjComercio + csllComercio
+      },
+      servicos: {
+        receita: receitas.servicos,
+        presuncao_irpj: presuncaoIRPJServico,
+        presuncao_csll: presuncaoCSLLServico,
+        base_irpj: baseIRPJServico,
+        base_csll: baseCSLLServico,
+        irpj: irpjServico,
+        csll: csllServico,
+        total: irpjServico + csllServico
+      },
+      total: {
+        irpj: irpjComercio + irpjServico,
+        csll: csllComercio + csllServico,
+        total: irpjComercio + csllComercio + irpjServico + csllServico
+      },
+      is_mista: isMista
+    };
+  };
+
+  // Calcular totais de impostos
   const calcularTotais = () => {
     if (!dados) return { total_pagar: 0, total_recuperar: 0, saldo_liquido: 0, detalhes: {} };
     
-    const icms_pagar = dados.icms?.apuracao?.situacao === 'A_PAGAR' ? dados.icms?.apuracao?.saldo || 0 : 0;
-    const icms_recuperar = dados.icms?.apuracao?.situacao === 'A_RECUPERAR' ? Math.abs(dados.icms?.apuracao?.saldo || 0) : 0;
+    const icms_pagar = isContribuinteICMS() && dados.icms?.apuracao?.situacao === 'A_PAGAR' ? dados.icms?.apuracao?.saldo || 0 : 0;
+    const icms_recuperar = isContribuinteICMS() && dados.icms?.apuracao?.situacao === 'A_RECUPERAR' ? Math.abs(dados.icms?.apuracao?.saldo || 0) : 0;
     
-    const iss_pagar = dados.iss?.resumo?.iss_a_pagar || 0;
+    const iss_pagar = isContribuinteISS() ? dados.iss?.resumo?.iss_a_pagar || 0 : 0;
     
     const pis_pagar = dados.pis_cofins?.lucro_real?.imposto_a_pagar?.total > 0 ? dados.pis_cofins?.lucro_real?.imposto_a_pagar?.total : 0;
     const pis_recuperar = dados.pis_cofins?.lucro_real?.saldo?.total < 0 ? Math.abs(dados.pis_cofins?.lucro_real?.saldo?.total) : 0;
     
-    const icms_st_pagar = dados.icms?.icms_st?.apuracao?.icms_st_a_recolher || 0;
+    const icms_st_pagar = isContribuinteICMSST() ? dados.icms?.icms_st?.apuracao?.icms_st_a_recolher || 0 : 0;
     
-    const ipi_pagar = dados.ipi?.apuracao?.situacao === 'A_PAGAR' ? dados.ipi?.apuracao?.saldo || 0 : 0;
-    const ipi_recuperar = dados.ipi?.apuracao?.situacao === 'A_RECUPERAR' ? Math.abs(dados.ipi?.apuracao?.saldo || 0) : 0;
+    const ipi_pagar = isContribuinteIPI() && dados.ipi?.apuracao?.situacao === 'A_PAGAR' ? dados.ipi?.apuracao?.saldo || 0 : 0;
+    const ipi_recuperar = isContribuinteIPI() && dados.ipi?.apuracao?.situacao === 'A_RECUPERAR' ? Math.abs(dados.ipi?.apuracao?.saldo || 0) : 0;
     
     const total_pagar = icms_pagar + iss_pagar + pis_pagar + icms_st_pagar + ipi_pagar;
     const total_recuperar = icms_recuperar + pis_recuperar + ipi_recuperar;
@@ -136,6 +272,43 @@ const RET = ({ user, onLogout }) => {
   };
 
   const totais = calcularTotais();
+  const pontoEquilibrio = calcularPontoEquilibrio();
+  const lucroPresumido = calcularLucroPresumido();
+
+  // Card de Imposto (só renderiza se empresa for contribuinte)
+  const ImpostoCard = ({ titulo, icone: Icon, corIcone, apagar, arecuperar, visible = true }) => {
+    if (!visible) return null;
+    
+    return (
+      <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className={`${corIcone} p-2 rounded-lg`}>
+            <Icon className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-white font-semibold">{titulo}</span>
+        </div>
+        <div className="space-y-2">
+          {apagar > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-[#A1A1AA] text-sm">A Pagar</span>
+              <span className="text-red-400 font-bold">{formatCurrency(apagar)}</span>
+            </div>
+          )}
+          {arecuperar > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-[#A1A1AA] text-sm">A Recuperar</span>
+              <span className="text-green-400 font-bold">{formatCurrency(arecuperar)}</span>
+            </div>
+          )}
+          {!apagar && !arecuperar && (
+            <div className="text-center py-2">
+              <span className="text-[#666] text-sm">Sem movimentação</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   // Renderizar insights IA formatados
   const renderInsightsIA = (texto) => {
@@ -182,7 +355,7 @@ const RET = ({ user, onLogout }) => {
               RET - Rota de Eficiência Tributária
             </h1>
             <p className="text-[#A1A1AA] text-sm mt-1">
-              Visão consolidada, análise inteligente e oportunidades
+              CMV/CPV, Ponto de Equilíbrio, Comparativo de Regimes e Análise Inteligente
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -214,7 +387,8 @@ const RET = ({ user, onLogout }) => {
                 <h2 className="text-white font-semibold">{selectedCompany.razao_social}</h2>
                 <p className="text-[#A1A1AA] text-sm">
                   CNPJ: {selectedCompany.cnpj} | Competência: {selectedCompetencia} | 
-                  Regime: <span className="text-[#C8A951]">{selectedCompany.regime_tributario?.replace('_', ' ')?.toUpperCase() || 'N/D'}</span>
+                  Regime: <span className="text-[#C8A951]">{selectedCompany.regime_tributario?.replace('_', ' ')?.toUpperCase() || 'N/D'}</span> |
+                  Atividade: <span className="text-blue-400">{selectedCompany.tipo_atividade?.toUpperCase() || 'N/D'}</span>
                 </p>
               </div>
             </div>
@@ -232,6 +406,33 @@ const RET = ({ user, onLogout }) => {
             >
               <BarChart3 className="w-4 h-4" />
               Resumo
+            </button>
+            <button
+              onClick={() => setActiveTab('cmv')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'cmv' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
+              }`}
+            >
+              <Package className="w-4 h-4" />
+              CMV/CPV
+            </button>
+            <button
+              onClick={() => setActiveTab('equilibrio')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'equilibrio' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
+              }`}
+            >
+              <Scale className="w-4 h-4" />
+              Ponto de Equilíbrio
+            </button>
+            <button
+              onClick={() => setActiveTab('comparativo')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'comparativo' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
+              }`}
+            >
+              <Calculator className="w-4 h-4" />
+              Comparativo Regimes
             </button>
             <button
               onClick={() => setActiveTab('viloes')}
@@ -255,9 +456,9 @@ const RET = ({ user, onLogout }) => {
             >
               <Lightbulb className="w-4 h-4" />
               Oportunidades
-              {analiseIA?.oportunidades?.length > 0 && (
+              {analiseIA?.oportunidades_economia?.length > 0 && (
                 <span className="bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                  {analiseIA.oportunidades.length}
+                  {analiseIA.oportunidades_economia.length}
                 </span>
               )}
             </button>
@@ -267,169 +468,438 @@ const RET = ({ user, onLogout }) => {
                 activeTab === 'insights' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
               }`}
             >
-              <Brain className="w-4 h-4" />
+              <Sparkles className="w-4 h-4" />
               Insights IA
             </button>
           </div>
         )}
 
-        {/* Conteúdo */}
+        {/* Conteúdo das Tabs */}
         {!selectedCompany ? (
-          <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-12 text-center">
-            <Building2 className="w-16 h-16 text-[#666] mx-auto mb-4" />
-            <h3 className="text-white text-xl font-bold mb-2">Selecione uma empresa</h3>
-            <p className="text-[#A1A1AA]">Escolha uma empresa para visualizar a rota de eficiência tributária</p>
+          <div className="text-center py-12 text-[#A1A1AA]">
+            <Building2 className="w-16 h-16 mx-auto mb-4 opacity-50" />
+            <p>Selecione uma empresa para visualizar a rota de eficiência tributária</p>
           </div>
         ) : loading ? (
-          <div className="flex items-center justify-center py-20">
-            <RefreshCw className="w-8 h-8 text-[#C8A951] animate-spin" />
+          <div className="text-center py-12">
+            <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-[#C8A951]" />
+            <p className="text-[#A1A1AA]">Carregando dados...</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <>
             {/* Tab Resumo */}
             {activeTab === 'resumo' && (
-              <>
-                {/* Resumo Consolidado */}
+              <div className="space-y-6">
+                {/* Cards de Resumo */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-6">
+                  <div className="bg-gradient-to-br from-red-900/30 to-red-950/30 border border-red-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-2">
                       <TrendingDown className="w-6 h-6 text-red-400" />
                       <span className="text-[#A1A1AA]">Total a Pagar</span>
                     </div>
-                    <p className="text-3xl font-bold text-red-400">{formatCurrency(totais.total_pagar)}</p>
+                    <p className="text-2xl font-bold text-red-400">{formatCurrency(totais.total_pagar)}</p>
                   </div>
-                  <div className="bg-green-500/10 border border-green-500/50 rounded-xl p-6">
+                  
+                  <div className="bg-gradient-to-br from-green-900/30 to-green-950/30 border border-green-500/30 rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-2">
                       <TrendingUp className="w-6 h-6 text-green-400" />
                       <span className="text-[#A1A1AA]">Total a Recuperar</span>
                     </div>
-                    <p className="text-3xl font-bold text-green-400">{formatCurrency(totais.total_recuperar)}</p>
+                    <p className="text-2xl font-bold text-green-400">{formatCurrency(totais.total_recuperar)}</p>
                   </div>
-                  <div className={`rounded-xl p-6 border ${
-                    totais.saldo_liquido > 0 ? 'bg-amber-500/10 border-amber-500/50' : 
-                    totais.saldo_liquido < 0 ? 'bg-green-500/10 border-green-500/50' : 'bg-[#141414] border-[#2A2A2A]'
-                  }`}>
+                  
+                  <div className={`bg-gradient-to-br ${totais.saldo_liquido > 0 ? 'from-red-900/30 to-red-950/30 border-red-500/30' : 'from-green-900/30 to-green-950/30 border-green-500/30'} border rounded-xl p-5`}>
                     <div className="flex items-center gap-3 mb-2">
-                      <Scale className="w-6 h-6 text-[#C8A951]" />
+                      <DollarSign className={`w-6 h-6 ${totais.saldo_liquido > 0 ? 'text-red-400' : 'text-green-400'}`} />
                       <span className="text-[#A1A1AA]">Saldo Líquido</span>
                     </div>
-                    <p className={`text-3xl font-bold ${
-                      totais.saldo_liquido > 0 ? 'text-amber-400' : totais.saldo_liquido < 0 ? 'text-green-400' : 'text-white'
-                    }`}>
+                    <p className={`text-2xl font-bold ${totais.saldo_liquido > 0 ? 'text-red-400' : 'text-green-400'}`}>
                       {formatCurrency(Math.abs(totais.saldo_liquido))}
                     </p>
-                    <p className="text-xs text-[#666] mt-1">
-                      {totais.saldo_liquido > 0 ? 'Débito líquido' : totais.saldo_liquido < 0 ? 'Crédito líquido' : 'Equilibrado'}
-                    </p>
                   </div>
                 </div>
 
-                {/* Cards de Impostos */}
-                <div>
-                  <h3 className="text-white font-bold mb-4 flex items-center gap-2">
-                    <Calculator className="w-5 h-5 text-[#C8A951]" />
-                    Detalhamento por Tributo
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <ImpostoCard titulo="ICMS Próprio" icone={BarChart3} corIcone="bg-blue-600"
-                      apagar={totais.detalhes?.icms?.pagar} arecuperar={totais.detalhes?.icms?.recuperar} />
-                    <ImpostoCard titulo="ICMS ST" icone={BarChart3} corIcone="bg-amber-600"
-                      apagar={totais.detalhes?.icms_st?.pagar} arecuperar={0} />
-                    <ImpostoCard titulo="PIS/COFINS" icone={DollarSign} corIcone="bg-purple-600"
-                      apagar={totais.detalhes?.pis_cofins?.pagar} arecuperar={totais.detalhes?.pis_cofins?.recuperar} />
-                    <ImpostoCard titulo="ISS" icone={FileText} corIcone="bg-teal-600"
-                      apagar={totais.detalhes?.iss?.pagar} arecuperar={0} />
-                    <ImpostoCard titulo="IPI" icone={Package} corIcone="bg-indigo-600"
-                      apagar={totais.detalhes?.ipi?.pagar} arecuperar={totais.detalhes?.ipi?.recuperar} />
-                  </div>
+                {/* Grid de Impostos - Dinâmico baseado nos contribuintes */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <ImpostoCard
+                    titulo="ICMS"
+                    icone={FileText}
+                    corIcone="bg-blue-600"
+                    apagar={totais.detalhes.icms?.pagar}
+                    arecuperar={totais.detalhes.icms?.recuperar}
+                    visible={isContribuinteICMS()}
+                  />
+                  <ImpostoCard
+                    titulo="ICMS ST"
+                    icone={FileText}
+                    corIcone="bg-indigo-600"
+                    apagar={totais.detalhes.icms_st?.pagar}
+                    arecuperar={0}
+                    visible={isContribuinteICMSST()}
+                  />
+                  <ImpostoCard
+                    titulo="ISS"
+                    icone={FileText}
+                    corIcone="bg-purple-600"
+                    apagar={totais.detalhes.iss?.pagar}
+                    arecuperar={0}
+                    visible={isContribuinteISS()}
+                  />
+                  <ImpostoCard
+                    titulo="IPI"
+                    icone={FileText}
+                    corIcone="bg-orange-600"
+                    apagar={totais.detalhes.ipi?.pagar}
+                    arecuperar={totais.detalhes.ipi?.recuperar}
+                    visible={isContribuinteIPI()}
+                  />
+                  <ImpostoCard
+                    titulo="PIS/COFINS"
+                    icone={FileText}
+                    corIcone="bg-emerald-600"
+                    apagar={totais.detalhes.pis_cofins?.pagar}
+                    arecuperar={totais.detalhes.pis_cofins?.recuperar}
+                    visible={true}
+                  />
                 </div>
+              </div>
+            )}
 
-                {/* Comparativo de Regimes */}
-                {dados?.pis_cofins?.comparativo && (
-                  <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
-                    <h3 className="text-white font-bold mb-4 flex items-center gap-2">
-                      <Scale className="w-5 h-5 text-[#C8A951]" />
-                      Comparativo de Regimes (PIS/COFINS)
-                    </h3>
-                    <div className="flex items-center justify-center gap-6 flex-wrap">
-                      <div className="text-center p-4 bg-green-500/10 rounded-lg border border-green-500/30 min-w-[200px]">
-                        <p className="text-[#A1A1AA] text-sm">Lucro Real</p>
-                        <p className="text-green-400 text-2xl font-bold">
-                          {formatCurrency(dados.pis_cofins?.lucro_real?.imposto_a_pagar?.total)}
-                        </p>
-                      </div>
-                      <ArrowRight className="w-6 h-6 text-[#666]" />
-                      <div className="text-center p-4 bg-blue-500/10 rounded-lg border border-blue-500/30 min-w-[200px]">
-                        <p className="text-[#A1A1AA] text-sm">Lucro Presumido</p>
-                        <p className="text-blue-400 text-2xl font-bold">
-                          {formatCurrency(dados.pis_cofins?.lucro_presumido?.imposto_a_pagar?.total)}
-                        </p>
-                      </div>
-                      {dados.pis_cofins?.comparativo?.economia > 0 && (
-                        <>
-                          <ArrowRight className="w-6 h-6 text-[#C8A951]" />
-                          <div className="text-center p-4 bg-[#C8A951]/10 rounded-lg border border-[#C8A951]/30 min-w-[200px]">
-                            <p className="text-[#A1A1AA] text-sm">Economia Potencial</p>
-                            <p className="text-[#C8A951] text-2xl font-bold">
-                              {formatCurrency(dados.pis_cofins?.comparativo?.economia)}
-                            </p>
-                            <p className="text-xs text-[#666]">{dados.pis_cofins?.comparativo?.regime_mais_economico?.replace('_', ' ')}</p>
-                          </div>
-                        </>
-                      )}
+            {/* Tab CMV/CPV */}
+            {activeTab === 'cmv' && (
+              <div className="space-y-6">
+                {/* Campos de Estoque */}
+                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Package className="w-6 h-6 text-[#C8A951]" />
+                    <h3 className="text-lg font-semibold text-white">Estoque para CMV/CPV</h3>
+                  </div>
+                  <p className="text-[#A1A1AA] text-sm mb-4">
+                    Informe o estoque inicial e final do período para calcular o Custo da Mercadoria Vendida (CMV) ou Custo do Produto Vendido (CPV).
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <label className="block text-xs text-[#A1A1AA] mb-2">Estoque Inicial (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={estoqueInicial}
+                        onChange={(e) => setEstoqueInicial(parseFloat(e.target.value) || 0)}
+                        className="w-full px-4 py-3 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#A1A1AA] mb-2">Estoque Final (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={estoqueFinal}
+                        onChange={(e) => setEstoqueFinal(parseFloat(e.target.value) || 0)}
+                        className="w-full px-4 py-3 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        onClick={salvarEstoque}
+                        disabled={savingEstoque}
+                        className="flex items-center gap-2 bg-[#C8A951] hover:bg-[#B8993D] text-black px-4 py-3 rounded-lg transition-colors font-medium disabled:opacity-50"
+                      >
+                        <Save className="w-4 h-4" />
+                        {savingEstoque ? 'Salvando...' : 'Salvar Estoque'}
+                      </button>
                     </div>
                   </div>
-                )}
-              </>
+                </div>
+
+                {/* Cálculo do CMV */}
+                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Calculator className="w-6 h-6 text-blue-400" />
+                    <h3 className="text-lg font-semibold text-white">Cálculo do CMV/CPV</h3>
+                  </div>
+                  
+                  <div className="bg-[#0C0C0C] rounded-lg p-4 mb-4 font-mono text-sm">
+                    <p className="text-[#A1A1AA]">CMV = Estoque Inicial + Compras - Estoque Final</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                      <span className="text-[#A1A1AA]">Estoque Inicial</span>
+                      <span className="text-white font-medium">{formatCurrency(estoqueInicial)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                      <span className="text-[#A1A1AA] flex items-center gap-2">
+                        <Plus className="w-4 h-4 text-green-400" />
+                        Compras do Período
+                      </span>
+                      <span className="text-green-400 font-medium">
+                        {formatCurrency(dados?.icms?.entradas?.total_produtos || dados?.pis_cofins?.compras?.total || 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                      <span className="text-[#A1A1AA] flex items-center gap-2">
+                        <Minus className="w-4 h-4 text-red-400" />
+                        Estoque Final
+                      </span>
+                      <span className="text-red-400 font-medium">{formatCurrency(estoqueFinal)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 bg-[#C8A951]/10 rounded-lg px-3">
+                      <span className="text-[#C8A951] font-semibold">= CMV/CPV</span>
+                      <span className="text-[#C8A951] font-bold text-xl">{formatCurrency(calcularCMV())}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lucro Bruto */}
+                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <TrendingUp className="w-6 h-6 text-green-400" />
+                    <h3 className="text-lg font-semibold text-white">Lucro Bruto</h3>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                      <span className="text-[#A1A1AA]">Receita Total</span>
+                      <span className="text-green-400 font-medium">{formatCurrency(calcularReceitas().total)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                      <span className="text-[#A1A1AA] flex items-center gap-2">
+                        <Minus className="w-4 h-4 text-red-400" />
+                        CMV/CPV
+                      </span>
+                      <span className="text-red-400 font-medium">{formatCurrency(calcularCMV())}</span>
+                    </div>
+                    <div className={`flex justify-between items-center py-3 rounded-lg px-3 ${calcularLucroBruto() >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                      <span className={`font-semibold ${calcularLucroBruto() >= 0 ? 'text-green-400' : 'text-red-400'}`}>= Lucro Bruto</span>
+                      <span className={`font-bold text-xl ${calcularLucroBruto() >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatCurrency(calcularLucroBruto())}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab Ponto de Equilíbrio */}
+            {activeTab === 'equilibrio' && (
+              <div className="space-y-6">
+                <div className="bg-gradient-to-br from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Scale className="w-6 h-6 text-blue-400" />
+                    <h3 className="text-lg font-semibold text-white">Ponto de Equilíbrio - Lucro Real</h3>
+                  </div>
+                  <p className="text-[#A1A1AA] text-sm mb-4">
+                    Para empresas do <span className="text-blue-400 font-medium">Lucro Real</span>, quanto menor o lucro tributável, menor o imposto. 
+                    Esta análise mostra quanto de despesa você precisaria ter para zerar o lucro e a economia potencial.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Demonstrativo */}
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <h4 className="text-white font-medium mb-3">Demonstrativo</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">Receita Total</span>
+                          <span className="text-white font-medium">{formatCurrency(pontoEquilibrio.receita_total)}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">(-) CMV/CPV</span>
+                          <span className="text-red-400 font-medium">{formatCurrency(pontoEquilibrio.cmv)}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">= Lucro Bruto</span>
+                          <span className="text-[#C8A951] font-medium">{formatCurrency(pontoEquilibrio.lucro_bruto)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Análise */}
+                    <div className="bg-[#0C0C0C] rounded-lg p-4">
+                      <h4 className="text-white font-medium mb-3">Análise de Ponto de Equilíbrio</h4>
+                      <div className="space-y-4">
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Target className="w-5 h-5 text-amber-400" />
+                            <span className="text-amber-400 font-medium">Despesas para Equilibrar</span>
+                          </div>
+                          <p className="text-2xl font-bold text-amber-400">
+                            {formatCurrency(pontoEquilibrio.despesas_para_equilibrio)}
+                          </p>
+                          <p className="text-xs text-[#A1A1AA] mt-1">
+                            Valor de despesas operacionais necessário para zerar o lucro tributável
+                          </p>
+                        </div>
+                        
+                        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <PiggyBank className="w-5 h-5 text-green-400" />
+                            <span className="text-green-400 font-medium">Economia Potencial em IRPJ+CSLL</span>
+                          </div>
+                          <p className="text-2xl font-bold text-green-400">
+                            {formatCurrency(pontoEquilibrio.economia_potencial)}
+                          </p>
+                          <p className="text-xs text-[#A1A1AA] mt-1">
+                            Economia se conseguir despesas até o ponto de equilíbrio (IRPJ 25% + CSLL 9%)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 p-4 bg-[#2A2A2A] rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <Lightbulb className="w-5 h-5 text-[#C8A951] mt-0.5" />
+                      <div>
+                        <p className="text-white font-medium">Dica para o empresário</p>
+                        <p className="text-[#A1A1AA] text-sm mt-1">
+                          Considere investimentos, manutenções, treinamentos ou outras despesas operacionais dedutíveis
+                          para aproveitar o lucro bruto sem pagar imposto desnecessário. Consulte seu contador para 
+                          avaliar as melhores opções de despesas dedutíveis.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab Comparativo de Regimes */}
+            {activeTab === 'comparativo' && (
+              <div className="space-y-6">
+                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Calculator className="w-6 h-6 text-[#C8A951]" />
+                    <h3 className="text-lg font-semibold text-white">Simulação Lucro Presumido</h3>
+                  </div>
+                  <p className="text-[#A1A1AA] text-sm mb-4">
+                    Simulação do IRPJ e CSLL caso a empresa fosse do Lucro Presumido, com base nas receitas escrituradas.
+                  </p>
+
+                  {/* Atividade de Comércio */}
+                  {(calcularReceitas().comercio > 0 || selectedCompany?.tipo_atividade === 'comercio' || selectedCompany?.tipo_atividade === 'mista') && (
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                        <h4 className="text-blue-400 font-medium">Atividade de Comércio/Indústria</h4>
+                      </div>
+                      <div className="bg-[#0C0C0C] rounded-lg p-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                          <div>
+                            <span className="text-xs text-[#A1A1AA]">Receita</span>
+                            <p className="text-white font-medium">{formatCurrency(lucroPresumido.comercio.receita)}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-[#A1A1AA]">Presunção IRPJ</span>
+                            <p className="text-white font-medium">{lucroPresumido.comercio.presuncao_irpj}%</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-[#A1A1AA]">Presunção CSLL</span>
+                            <p className="text-white font-medium">{lucroPresumido.comercio.presuncao_csll}%</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-[#2A2A2A]">
+                          <div>
+                            <span className="text-xs text-[#A1A1AA]">IRPJ (15% + adicional)</span>
+                            <p className="text-red-400 font-bold">{formatCurrency(lucroPresumido.comercio.irpj)}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-[#A1A1AA]">CSLL (9%)</span>
+                            <p className="text-red-400 font-bold">{formatCurrency(lucroPresumido.comercio.csll)}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-[#A1A1AA]">Total Comércio</span>
+                            <p className="text-[#C8A951] font-bold">{formatCurrency(lucroPresumido.comercio.total)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Atividade de Serviços */}
+                  {(calcularReceitas().servicos > 0 || selectedCompany?.tipo_atividade === 'servicos' || selectedCompany?.tipo_atividade === 'mista') && (
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                        <h4 className="text-purple-400 font-medium">Atividade de Serviços</h4>
+                      </div>
+                      <div className="bg-[#0C0C0C] rounded-lg p-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                          <div>
+                            <span className="text-xs text-[#A1A1AA]">Receita</span>
+                            <p className="text-white font-medium">{formatCurrency(lucroPresumido.servicos.receita)}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-[#A1A1AA]">Presunção IRPJ</span>
+                            <p className="text-white font-medium">{lucroPresumido.servicos.presuncao_irpj}%</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-[#A1A1AA]">Presunção CSLL</span>
+                            <p className="text-white font-medium">{lucroPresumido.servicos.presuncao_csll}%</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-[#2A2A2A]">
+                          <div>
+                            <span className="text-xs text-[#A1A1AA]">IRPJ (15% + adicional)</span>
+                            <p className="text-red-400 font-bold">{formatCurrency(lucroPresumido.servicos.irpj)}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-[#A1A1AA]">CSLL (9%)</span>
+                            <p className="text-red-400 font-bold">{formatCurrency(lucroPresumido.servicos.csll)}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs text-[#A1A1AA]">Total Serviços</span>
+                            <p className="text-[#C8A951] font-bold">{formatCurrency(lucroPresumido.servicos.total)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Total Consolidado */}
+                  <div className="bg-gradient-to-r from-[#C8A951]/20 to-[#C8A951]/10 border border-[#C8A951]/30 rounded-lg p-4">
+                    <h4 className="text-[#C8A951] font-semibold mb-3">Total Lucro Presumido (IRPJ + CSLL)</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <span className="text-xs text-[#A1A1AA]">IRPJ Total</span>
+                        <p className="text-xl font-bold text-white">{formatCurrency(lucroPresumido.total.irpj)}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-[#A1A1AA]">CSLL Total</span>
+                        <p className="text-xl font-bold text-white">{formatCurrency(lucroPresumido.total.csll)}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-[#A1A1AA]">Total a Pagar</span>
+                        <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(lucroPresumido.total.total)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Tab Vilões */}
             {activeTab === 'viloes' && (
-              <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <AlertTriangle className="w-6 h-6 text-red-500" />
-                  <div>
-                    <h3 className="text-white font-bold">Vilões Tributários</h3>
-                    <p className="text-[#A1A1AA] text-sm">Produtos que geram pouco crédito nas entradas e muito débito nas saídas</p>
-                  </div>
-                </div>
-                
+              <div className="space-y-4">
                 {analiseIA?.viloes_tributarios?.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-[#2A2A2A]">
-                          <th className="text-left py-3 px-4 text-[#A1A1AA] font-medium">Produto</th>
-                          <th className="text-left py-3 px-4 text-[#A1A1AA] font-medium">NCM</th>
-                          <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Valor Entrada</th>
-                          <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Crédito ICMS</th>
-                          <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Valor Saída</th>
-                          <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Débito ICMS</th>
-                          <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Saldo</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {analiseIA.viloes_tributarios.slice(0, 20).map((item, idx) => (
-                          <tr key={idx} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
-                            <td className="py-3 px-4 text-white max-w-[200px] truncate">{item.descricao}</td>
-                            <td className="py-3 px-4 font-mono text-[#A1A1AA]">{item.ncm}</td>
-                            <td className="py-3 px-4 text-right text-white">{formatCurrency(item.entrada_valor)}</td>
-                            <td className="py-3 px-4 text-right text-green-400">{formatCurrency(item.entrada_icms_creditavel || item.entrada_icms)}</td>
-                            <td className="py-3 px-4 text-right text-white">{formatCurrency(item.saida_valor)}</td>
-                            <td className="py-3 px-4 text-right text-red-400">{formatCurrency(item.saida_icms)}</td>
-                            <td className={`py-3 px-4 text-right font-bold ${item.saldo_icms > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                              {formatCurrency(item.saldo_icms)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  analiseIA.viloes_tributarios.map((vilao, idx) => (
+                    <div key={idx} className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="w-6 h-6 text-red-400 flex-shrink-0 mt-1" />
+                        <div className="flex-1">
+                          <h4 className="text-white font-semibold">{vilao.produto || vilao.ncm || `Item ${idx + 1}`}</h4>
+                          <p className="text-[#A1A1AA] text-sm mt-1">{vilao.motivo || vilao.descricao}</p>
+                          {vilao.valor && (
+                            <p className="text-red-400 font-bold mt-2">Impacto: {formatCurrency(vilao.valor)}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
                 ) : (
-                  <div className="text-center py-8">
-                    <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                    <p className="text-white font-medium">Nenhum vilão tributário identificado</p>
-                    <p className="text-[#A1A1AA] text-sm">Seus produtos estão com uma boa relação crédito/débito</p>
+                  <div className="text-center py-12 text-[#A1A1AA]">
+                    <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-400/50" />
+                    <p>Nenhum vilão tributário identificado nesta competência</p>
                   </div>
                 )}
               </div>
@@ -437,51 +907,28 @@ const RET = ({ user, onLogout }) => {
 
             {/* Tab Oportunidades */}
             {activeTab === 'oportunidades' && (
-              <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <Lightbulb className="w-6 h-6 text-green-500" />
-                  <div>
-                    <h3 className="text-white font-bold">Oportunidades Tributárias</h3>
-                    <p className="text-[#A1A1AA] text-sm">Produtos que geram muito crédito nas entradas e pouco débito nas saídas</p>
-                  </div>
-                </div>
-                
-                {analiseIA?.oportunidades?.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-[#2A2A2A]">
-                          <th className="text-left py-3 px-4 text-[#A1A1AA] font-medium">Produto</th>
-                          <th className="text-left py-3 px-4 text-[#A1A1AA] font-medium">NCM</th>
-                          <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Valor Entrada</th>
-                          <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Crédito ICMS</th>
-                          <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Valor Saída</th>
-                          <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Débito ICMS</th>
-                          <th className="text-right py-3 px-4 text-[#A1A1AA] font-medium">Saldo (Crédito)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {analiseIA.oportunidades.slice(0, 20).map((item, idx) => (
-                          <tr key={idx} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
-                            <td className="py-3 px-4 text-white max-w-[200px] truncate">{item.descricao}</td>
-                            <td className="py-3 px-4 font-mono text-[#A1A1AA]">{item.ncm}</td>
-                            <td className="py-3 px-4 text-right text-white">{formatCurrency(item.entrada_valor)}</td>
-                            <td className="py-3 px-4 text-right text-green-400">{formatCurrency(item.entrada_icms_creditavel || item.entrada_icms)}</td>
-                            <td className="py-3 px-4 text-right text-white">{formatCurrency(item.saida_valor)}</td>
-                            <td className="py-3 px-4 text-right text-red-400">{formatCurrency(item.saida_icms)}</td>
-                            <td className="py-3 px-4 text-right font-bold text-green-400">
-                              {formatCurrency(Math.abs(item.saldo_icms))}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+              <div className="space-y-4">
+                {analiseIA?.oportunidades_economia?.length > 0 ? (
+                  analiseIA.oportunidades_economia.map((oportunidade, idx) => (
+                    <div key={idx} className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <Lightbulb className="w-6 h-6 text-green-400 flex-shrink-0 mt-1" />
+                        <div className="flex-1">
+                          <h4 className="text-white font-semibold">{oportunidade.titulo || `Oportunidade ${idx + 1}`}</h4>
+                          <p className="text-[#A1A1AA] text-sm mt-1">{oportunidade.descricao}</p>
+                          {oportunidade.economia_potencial && (
+                            <p className="text-green-400 font-bold mt-2">
+                              Economia potencial: {formatCurrency(oportunidade.economia_potencial)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
                 ) : (
-                  <div className="text-center py-8">
-                    <Package className="w-12 h-12 text-[#666] mx-auto mb-3" />
-                    <p className="text-white font-medium">Nenhuma oportunidade identificada</p>
-                    <p className="text-[#A1A1AA] text-sm">Não há produtos com saldo de crédito significativo</p>
+                  <div className="text-center py-12 text-[#A1A1AA]">
+                    <Sparkles className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p>Nenhuma oportunidade de economia identificada nesta competência</p>
                   </div>
                 )}
               </div>
@@ -491,27 +938,22 @@ const RET = ({ user, onLogout }) => {
             {activeTab === 'insights' && (
               <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <Brain className="w-6 h-6 text-purple-500" />
-                  <div>
-                    <h3 className="text-white font-bold">Análise Inteligente</h3>
-                    <p className="text-[#A1A1AA] text-sm">Insights gerados por IA sobre sua situação tributária</p>
-                  </div>
+                  <Brain className="w-6 h-6 text-purple-400" />
+                  <h3 className="text-lg font-semibold text-white">Análise Inteligente</h3>
                 </div>
-                
-                {analiseIA?.insights_ia ? (
-                  <div className="prose max-w-none">
-                    {renderInsightsIA(analiseIA.insights_ia)}
+                {analiseIA?.insights ? (
+                  <div className="prose prose-invert max-w-none">
+                    {renderInsightsIA(analiseIA.insights)}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <Brain className="w-12 h-12 text-[#666] mx-auto mb-3" />
-                    <p className="text-white font-medium">Insights não disponíveis</p>
-                    <p className="text-[#A1A1AA] text-sm">Acesse a página de Análise Tributária IA para gerar insights</p>
+                  <div className="text-center py-8 text-[#A1A1AA]">
+                    <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Nenhum insight disponível para esta competência</p>
                   </div>
                 )}
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
     </Layout>
