@@ -9336,11 +9336,13 @@ async def resolver_alerta_cfop_individual(
     documento_id: str,
     produto_idx: int,
     novo_cfop: str,
+    categoria: str = None,  # Se não informado, será inferida pelo CFOP
     salvar_regra: bool = False,
     current_user: User = Depends(get_current_user)
 ):
     """
     Resolve um alerta de CFOP individual.
+    Também classifica automaticamente o produto baseado no CFOP.
     """
     doc = await db.xml_documents.find_one({"id": documento_id})
     if not doc:
@@ -9353,11 +9355,20 @@ async def resolver_alerta_cfop_individual(
     produto = produtos[produto_idx]
     cfop_anterior = produto.get('cfop', '')
     
-    # Atualizar produto
+    # Determinar categoria baseada no CFOP se não foi informada
+    categoria_final = categoria or obter_categoria_por_cfop(novo_cfop)
+    
+    # Atualizar CFOP
     produtos[produto_idx]['cfop'] = novo_cfop
     produtos[produto_idx]['pendente_revisao_cfop'] = False
     produtos[produto_idx]['cfop_revisado_por'] = current_user.id
     produtos[produto_idx]['cfop_revisado_em'] = datetime.now(timezone.utc).isoformat()
+    
+    # CLASSIFICAR AUTOMATICAMENTE baseado no CFOP
+    if categoria_final:
+        produtos[produto_idx]['categoria'] = categoria_final
+        produtos[produto_idx]['categoria_origem'] = 'cfop_auto'
+        produtos[produto_idx]['categoria_classificada_em'] = datetime.now(timezone.utc).isoformat()
     
     await db.xml_documents.update_one(
         {"id": documento_id},
@@ -9374,14 +9385,19 @@ async def resolver_alerta_cfop_individual(
             "ncm": produto.get('ncm', ''),
             "cfop_original": produto.get('cfop_original_emissor', cfop_anterior),
             "cfop_correto": novo_cfop,
-            "categoria_correta": "conversao_cfop",
-            "motivo": f"Conversão manual de {cfop_anterior} para {novo_cfop}",
+            "categoria_correta": categoria_final or "conversao_cfop",
+            "motivo": f"Conversão manual de {cfop_anterior} para {novo_cfop}" + (f" → {categoria_final}" if categoria_final else ""),
             "aprendido_de": "user_correction",
             "created_by": current_user.id,
             "created_at": datetime.now(timezone.utc)
         })
     
-    return {"success": True, "message": f"CFOP alterado de {cfop_anterior} para {novo_cfop}"}
+    categoria_msg = f" e classificado como '{categoria_final}'" if categoria_final else ""
+    return {
+        "success": True, 
+        "message": f"CFOP alterado de {cfop_anterior} para {novo_cfop}{categoria_msg}",
+        "categoria_atribuida": categoria_final
+    }
 
 @api_router.post("/alertas-cfop/resolver-lote")
 async def resolver_alerta_cfop_lote(
