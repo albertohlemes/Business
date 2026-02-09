@@ -268,6 +268,8 @@ class CompanyUpdate(BaseModel):
     percentual_presuncao_csll_industria: Optional[float] = None
     estoque_inicial: Optional[float] = None
     estoque_final: Optional[float] = None
+    # Despesa real (DRE flutuante)
+    despesa_real: Optional[float] = None
     # Classificação inteligente
     classificacao_inteligente: Optional[str] = None
     # Responsáveis
