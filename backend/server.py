@@ -15423,7 +15423,11 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
             a -= 1
         competencias_12m.append(f"{m:02d}/{a}")
     
-    # Buscar faturamento por competência (últimos 12 meses)
+    # Buscar histórico do PGDAS (se disponível)
+    historico_pgdas = company.get("historico_faturamento", {})
+    pgdas_rbt12 = company.get("pgdas_rbt12", 0)
+    
+    # Buscar faturamento por competência (últimos 12 meses) do sistema
     filtro_base = {
         "company_id": request.company_id,
         "tipo": "saida",
@@ -15445,11 +15449,33 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     async for doc in db.xml_documents.aggregate(pipeline_faturamento):
         faturamento_por_mes[doc["_id"]] = {
             "faturamento": doc["faturamento"],
-            "qtd_notas": doc["qtd_notas"]
+            "qtd_notas": doc["qtd_notas"],
+            "origem": "sistema"
         }
     
-    # Calcular RBT12 (últimos 12 meses)
-    rbt12 = sum(v["faturamento"] for v in faturamento_por_mes.values())
+    # Mesclar com dados do PGDAS (PGDAS tem prioridade para meses bloqueados)
+    for comp in competencias_12m:
+        dados_pgdas = historico_pgdas.get(comp, {})
+        if dados_pgdas and dados_pgdas.get("bloqueado"):
+            # Usar valor do PGDAS
+            faturamento_por_mes[comp] = {
+                "faturamento": dados_pgdas.get("valor", 0),
+                "qtd_notas": faturamento_por_mes.get(comp, {}).get("qtd_notas", 0),
+                "origem": "pgdas"
+            }
+        elif comp not in faturamento_por_mes and dados_pgdas:
+            # Se não tem no sistema, usar PGDAS
+            faturamento_por_mes[comp] = {
+                "faturamento": dados_pgdas.get("valor", 0),
+                "qtd_notas": 0,
+                "origem": "pgdas"
+            }
+    
+    # Calcular RBT12 (últimos 12 meses) - usar PGDAS se disponível
+    if pgdas_rbt12 > 0:
+        rbt12 = pgdas_rbt12
+    else:
+        rbt12 = sum(faturamento_por_mes.get(c, {}).get("faturamento", 0) for c in competencias_12m)
     
     # Calcular faturamento do ano corrente
     competencias_ano = [f"{m:02d}/{ano_ref}" for m in range(1, mes_ref + 1)]
