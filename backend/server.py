@@ -6156,7 +6156,9 @@ async def get_dashboard_stats(
             "perc_pis_vendas": round((pis_pagar / (total_vendas + total_cupons) * 100) if (total_vendas + total_cupons) > 0 else 0, 2),
             "perc_cofins_vendas": round((cofins_pagar / (total_vendas + total_cupons) * 100) if (total_vendas + total_cupons) > 0 else 0, 2)
         },
-        "analise_comparativa": analise_comparativa
+        "analise_comparativa": analise_comparativa,
+        # === DADOS ESPECÍFICOS PARA SIMPLES NACIONAL ===
+        "simples": await _get_simples_nacional_stats(company, company_id, competencia, faturamento_total, documents) if regime_tributario == 'simples_nacional' else None
     }
 
 @api_router.get("/apuracao-pis-cofins/{company_id}")
