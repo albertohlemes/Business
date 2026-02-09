@@ -16421,7 +16421,7 @@ async def inteligencia_tributaria(
         obter_anexos_por_cnaes
     )
     
-    # Calcular RBT12 (faturamento dos últimos 12 meses)
+    # Calcular RBT12 usando a MESMA LÓGICA do Dashboard
     try:
         mes_atual, ano_atual = competencia.split('/')
         mes_atual = int(mes_atual)
@@ -16437,34 +16437,55 @@ async def inteligencia_tributaria(
                 a -= 1
             competencias_12m.append(f"{str(m).zfill(2)}/{a}")
         
-        # Buscar faturamento total dos últimos 12 meses
-        pipeline_rbt12 = [
-            {"$match": {
-                "company_id": company_id,
-                "competencia": {"$in": competencias_12m},
-                "$or": [{"tipo_operacao": "saida"}, {"tipo": "saida"}],
-                **get_filtro_notas_ativas()
-            }},
-            {"$group": {
-                "_id": None,
-                "rbt12": {"$sum": {"$toDouble": {"$ifNull": ["$valor_total", 0]}}}
-            }}
-        ]
+        # PRIORIDADE 1: Usar PGDAS_RBT12 se disponível (igual ao Dashboard)
+        pgdas_rbt12 = company.get("pgdas_rbt12", 0)
+        historico_pgdas = company.get("historico_faturamento", {})
         
-        rbt12_result = await db.xml_documents.aggregate(pipeline_rbt12).to_list(1)
-        rbt12 = float(rbt12_result[0]['rbt12']) if rbt12_result else faturamento * 12
+        if pgdas_rbt12 > 0:
+            # Usar valor do PGDAS importado (fonte oficial)
+            rbt12 = pgdas_rbt12
+            qtd_meses_dados = 12  # PGDAS sempre tem dados completos
+        else:
+            # PRIORIDADE 2: Calcular a partir dos documentos + histórico PGDAS
+            # Buscar faturamento por competência do sistema
+            pipeline_faturamento = [
+                {"$match": {
+                    "company_id": company_id,
+                    "tipo": "saida",
+                    "competencia": {"$in": competencias_12m},
+                    **get_filtro_notas_ativas()
+                }},
+                {"$group": {
+                    "_id": "$competencia",
+                    "faturamento": {"$sum": "$valor_total"}
+                }}
+            ]
+            
+            faturamento_por_mes = {}
+            async for doc in db.xml_documents.aggregate(pipeline_faturamento):
+                faturamento_por_mes[doc["_id"]] = doc["faturamento"]
+            
+            # Mesclar com dados do PGDAS (PGDAS tem prioridade para meses bloqueados)
+            for comp in competencias_12m:
+                dados_pgdas = historico_pgdas.get(comp, {})
+                if dados_pgdas and dados_pgdas.get("bloqueado"):
+                    # Usar valor do PGDAS para meses bloqueados
+                    faturamento_por_mes[comp] = dados_pgdas.get("valor", 0)
+                elif comp not in faturamento_por_mes and dados_pgdas:
+                    # Se não tem no sistema, usar PGDAS
+                    faturamento_por_mes[comp] = dados_pgdas.get("valor", 0)
+            
+            # Calcular RBT12 total
+            rbt12 = sum(faturamento_por_mes.get(c, 0) for c in competencias_12m)
+            qtd_meses_dados = len([c for c in competencias_12m if faturamento_por_mes.get(c, 0) > 0])
+            
+            # Se não tem dados, usar faturamento do período * 12 como fallback
+            if rbt12 == 0:
+                rbt12 = faturamento * 12
+                qtd_meses_dados = 1
         
-        # Contar quantos meses têm dados
-        meses_com_dados = await db.xml_documents.distinct("competencia", {
-            "company_id": company_id,
-            "competencia": {"$in": competencias_12m},
-            "$or": [{"tipo_operacao": "saida"}, {"tipo": "saida"}],
-            **get_filtro_notas_ativas()
-        })
-        qtd_meses_dados = len(meses_com_dados) if meses_com_dados else 1
-        
-        # Proporcionalizar para 12 meses se não tiver dados completos
-        if qtd_meses_dados < 12 and qtd_meses_dados > 0:
+        # Proporcionalização (apenas para exibição, não afeta cálculo da alíquota)
+        if qtd_meses_dados < 12 and qtd_meses_dados > 0 and pgdas_rbt12 == 0:
             rbt12_proporcionalizado = (rbt12 / qtd_meses_dados) * 12
         else:
             rbt12_proporcionalizado = rbt12
