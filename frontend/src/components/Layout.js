@@ -64,6 +64,7 @@ const Layout = ({ user, onLogout, children }) => {
         { name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' },
         { name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' },
         { name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' },
+        { name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' },
         { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
         { name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' },
       ];
