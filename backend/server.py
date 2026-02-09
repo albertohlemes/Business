@@ -15103,12 +15103,16 @@ async def inteligencia_tributaria(
     except Exception as e:
         print(f"Erro ao calcular ICMS: {e}")
     
-    # Buscar apuração PIS/COFINS do regime atual - usando a lógica do endpoint existente
+    # Buscar apuração PIS/COFINS do regime atual
+    # Usar mesma lógica do endpoint /pis-cofins/apuracao que já funciona corretamente
     pis_real = 0
     cofins_real = 0
     try:
-        regime = company.get('regime_tributario', 'LUCRO_REAL')
-        perfis = company.get('perfis_comerciais', []) or [company.get('perfil_comercial', 'VAREJO')]
+        from decimal import Decimal
+        
+        regime_tributario = company.get('regime_tributario', 'LUCRO_REAL')
+        perfil_empresa = company.get('perfil_comercial', 'VAREJO')
+        perfis = company.get('perfis_comerciais', []) or [perfil_empresa]
         perfil = perfis[0] if perfis else 'VAREJO'
         
         query_pis = {
@@ -15117,53 +15121,74 @@ async def inteligencia_tributaria(
             **get_filtro_notas_ativas()
         }
         
-        docs_pis = await db.xml_documents.find(query_pis, {"produtos": 1, "tipo": 1}).to_list(10000)
+        docs_pis = await db.xml_documents.find(query_pis, {"_id": 0, "xml_content": 0}).to_list(10000)
         
-        # Totais PIS/COFINS Real (não cumulativo)
-        totais_real = {
-            'debitos': {'pis': 0, 'cofins': 0},
-            'creditos': {'pis': 0, 'cofins': 0}
+        # Inferir tipo_operacao se não tiver
+        for doc in docs_pis:
+            if not doc.get('tipo_operacao'):
+                produtos = doc.get('produtos', [])
+                if produtos:
+                    cfop = str(produtos[0].get('cfop', ''))
+                    if cfop and cfop[0] in ['1', '2', '3']:
+                        doc['tipo_operacao'] = 'entrada'
+                    elif cfop and cfop[0] in ['5', '6', '7']:
+                        doc['tipo_operacao'] = 'saida'
+        
+        entradas = [d for d in docs_pis if d.get('tipo_operacao') == 'entrada' or d.get('tipo') == 'entrada']
+        saidas = [d for d in docs_pis if d.get('tipo_operacao') == 'saida' or d.get('tipo') == 'saida']
+        
+        # Totais Lucro Real
+        totais_lr = {
+            'creditos': {'pis': Decimal('0'), 'cofins': Decimal('0')},
+            'debitos': {'pis': Decimal('0'), 'cofins': Decimal('0')}
         }
         
-        for doc in docs_pis:
+        # Processar ENTRADAS (Créditos)
+        for doc in entradas:
             for prod in doc.get('produtos', []):
-                cfop = str(prod.get('cfop', ''))
                 ncm = str(prod.get('ncm', ''))
-                valor_base = float(prod.get('valor_total', 0) or 0)
+                cfop = str(prod.get('cfop', ''))
+                valor = Decimal(str(prod.get('valor_total', 0) or 0))
                 
-                cfop_primeiro = cfop[0] if cfop else ''
-                tipo_op = 'saida' if cfop_primeiro in ['5', '6', '7'] else 'entrada'
-                
-                # Calcular PIS/COFINS usando função existente
                 resultado = calcular_pis_cofins_produto(
-                    valor_base=valor_base,
+                    valor_base=float(valor),
                     ncm=ncm,
                     cfop=cfop,
-                    tipo_operacao=tipo_op,
+                    tipo_operacao='entrada',
                     perfil_empresa=perfil,
-                    regime_tributario=regime
+                    regime_tributario='LUCRO_REAL'
                 )
                 
-                pis_val = float(resultado.get('pis_valor', 0) or 0)
-                cofins_val = float(resultado.get('cofins_valor', 0) or 0)
-                
-                if tipo_op == 'saida':
-                    # Verificar se gera débito - usar lógica de classificação
-                    classificacao = resultado.get('classificacao', {})
-                    tipo_class = classificacao.get('tipo', 'TRIBUTADO')
-                    if tipo_class not in ['MONOFASICO', 'ALIQUOTA_ZERO', 'SUBSTITUICAO_TRIBUTARIA']:
-                        totais_real['debitos']['pis'] += pis_val
-                        totais_real['debitos']['cofins'] += cofins_val
-                    # Monofásicos: o imposto já foi retido na fonte, não debita nem credita na saída
-                else:
-                    # Entrada: sempre gera crédito (no regime não cumulativo)
-                    if verificar_cfop_gera_credito(cfop):
-                        totais_real['creditos']['pis'] += pis_val
-                        totais_real['creditos']['cofins'] += cofins_val
+                if resultado.get('gera_credito', False):
+                    totais_lr['creditos']['pis'] += Decimal(str(resultado.get('pis_valor', 0)))
+                    totais_lr['creditos']['cofins'] += Decimal(str(resultado.get('cofins_valor', 0)))
         
-        # Saldo final
-        pis_real = max(0, totais_real['debitos']['pis'] - totais_real['creditos']['pis'])
-        cofins_real = max(0, totais_real['debitos']['cofins'] - totais_real['creditos']['cofins'])
+        # Processar SAÍDAS (Débitos)
+        for doc in saidas:
+            for prod in doc.get('produtos', []):
+                ncm = str(prod.get('ncm', ''))
+                cfop = str(prod.get('cfop', ''))
+                valor = Decimal(str(prod.get('valor_total', 0) or 0))
+                
+                resultado = calcular_pis_cofins_produto(
+                    valor_base=float(valor),
+                    ncm=ncm,
+                    cfop=cfop,
+                    tipo_operacao='saida',
+                    perfil_empresa=perfil,
+                    regime_tributario='LUCRO_REAL'
+                )
+                
+                if resultado.get('gera_debito', False):
+                    totais_lr['debitos']['pis'] += Decimal(str(resultado.get('pis_valor', 0)))
+                    totais_lr['debitos']['cofins'] += Decimal(str(resultado.get('cofins_valor', 0)))
+        
+        # Calcular saldo
+        saldo_pis = totais_lr['debitos']['pis'] - totais_lr['creditos']['pis']
+        saldo_cofins = totais_lr['debitos']['cofins'] - totais_lr['creditos']['cofins']
+        
+        pis_real = float(max(Decimal('0'), saldo_pis))
+        cofins_real = float(max(Decimal('0'), saldo_cofins))
         
     except Exception as e:
         print(f"Erro ao calcular PIS/COFINS: {e}")
