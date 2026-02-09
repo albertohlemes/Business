@@ -106,6 +106,21 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 - ✅ Sugestões rápidas clicáveis na interface
 - ✅ Criado endpoint `/api/classification/ia-command/{company_id}` para processar comandos
 
+### PIS/COFINS - Relatório de Divergências Completo
+- ✅ Implementado endpoint `/api/pis-cofins/divergencias/{company_id}` com 3 agrupamentos
+- ✅ **Agrupamento por Notas Fiscais**: Lista NFs com produtos divergentes, expandível
+- ✅ **Agrupamento por NCMs**: Agrupa divergências por código NCM
+- ✅ **Agrupamento por Produtos**: Agrupa por descrição do produto
+- ✅ Verifica: CST, Alíquota e Valor de PIS e COFINS
+- ✅ Calcula automaticamente: Recolhido a Maior (crédito), Recolhido a Menor (passivo)
+- ✅ Frontend atualizado com seletor de agrupamento e cards de resumo
+
+### Tabelas de PIS/COFINS Implementadas
+- ✅ NCMs de Alíquota Zero (Hortifruti, Carnes, Laticínios, Mercearia Básica)
+- ✅ NCMs Monofásicos (Bebidas, Autopeças, Perfumaria, Farmácia)
+- ✅ Alíquotas por Perfil (Indústria, Distribuidor, Varejo)
+- ✅ CNAEs de Serviços (Cumulativo 3,65%, Financeiro 4,65%, Regra Geral 9,25%)
+
 ### Observação sobre Budget de IA
 - ⚠️ O budget da Emergent LLM Key está esgotado
 - Para usar os comandos de IA, acesse: **Perfil → Universal Key → Add Balance**
