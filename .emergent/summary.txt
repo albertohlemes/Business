@@ -1,72 +1,61 @@
 <analysis>**original_problem_statement:**
 O usuário iniciou com solicitações de melhoria na UI/UX e correção de bugs para o aplicativo fiscal AURION. Durante a sessão, as solicitações evoluíram para uma série de novas funcionalidades e refatorações significativas, incluindo:
 
-1.  **Classificação Inteligente:** Corrigir erros de carregamento, agrupar produtos por classificação, restaurar a barra de comando de IA para regras em linguagem natural e permitir entrada manual de CFOP nos alertas.
-2.  **Página de Documentos:** Adicionar colunas para CFOPs e classificações de produtos, e reintroduzir a barra de validação de totais da nota fiscal.
-3.  **Módulo PIS/COFINS:**
-    *   Expandir as regras de negócio adicionando NCMs para Alíquota Zero e Monofásico a partir de arquivos fornecidos.
-    *   Implementar um novo relatório de Divergências com três visualizações (por Nota Fiscal, NCM e Produto).
-    *   Aplicar novas regras de CST: 50 para entradas tributadas, 98 para operações sem crédito e 49 para operações sem débito.
-    *   Criar um novo relatório detalhado agrupado por NCM + CFOP + CST.
-    *   Alterar o cadastro da empresa para permitir uma seleção múltipla de perfis (Indústria, Distribuidor, Varejo) e tornar os menus (ICMS ST, IPI) condicionais a esses perfis.
-4.  **UI/UX Geral:** Fixar o layout principal da aplicação para permitir rolagem apenas na área de conteúdo e tornar todas as colunas de todas as tabelas da aplicação ordenáveis.
-5.  **Refatoração Principal (Inteligência Tributária):**
-    *   Renomear o menu RET para Fechamento e reorganizar suas abas.
-    *   Criar um DRE flutuante onde o usuário pode inserir a despesa real para calcular o lucro contábil.
-    *   Criar um novo menu principal chamado Inteligência Tributária para comparar os regimes fiscais (Simples Nacional, Lucro Presumido, Lucro Real) em três cenários: período atual, acumulado do ano e uma projeção anual.
+1.  **Classificação Inteligente e Documentos:** Melhorias gerais e correção de bugs.
+2.  **Módulo PIS/COFINS:** Implementação de novas regras de negócio, novos relatórios de Divergências e Detalhamento por NCM + CFOP + CST, e melhorias na UI como a separação de cards e subtotais em tabelas.
+3.  **Refatoração de Menus:** A página RET foi refatorada para Indicadores, com um DRE flutuante para cálculo de lucro contábil. A funcionalidade Inteligência Tributária foi criada e renomeada para RET, servindo como um comparativo de regimes fiscais (Simples Nacional, Lucro Presumido, Lucro Real).
+4.  **Correção de Lógica de Cálculo:** A principal tarefa foi corrigir o comparativo de regimes (página RET) para que os valores do Lucro Real (ICMS, PIS, COFINS) fossem buscados das apurações já existentes na plataforma, em vez de serem recalculados incorretamente do zero, o que gerava valores zerados e inconsistentes.
+5.  **Novo Módulo Simples Nacional:** A solicitação mais recente e de maior escopo é a construção de um módulo completo para empresas do Simples Nacional. Isso inclui:
+    *   Atualização do cadastro de empresas para sugerir e configurar os Anexos do Simples com base nos CNAEs.
+    *   Criação de um Dashboard Simples Nacional exclusivo para essas empresas.
+    *   O dashboard deve exibir indicadores chave: faturamento acumulado, barras de progresso para os limites/sublimites, projeção anual de faturamento, e a faixa/alíquota atual da empresa.
+    *   Implementação da lógica do Fator R para empresas do Anexo V, sugerindo a folha de pagamento necessária para migrar para o Anexo III.
+    *   Cálculo do imposto considerando as particularidades do regime (produtos com ST, monofásicos, etc.).
 
 **User's preferred language**:
 Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-A aplicação full-stack (React + FastAPI) está funcional, com a maioria das solicitações recentes implementadas.
-*   **Módulo PIS/COFINS:** O novo relatório de divergências está funcional. As novas regras de CST (49, 50, 98) foram implementadas no backend. As tabelas de NCMs foram expandidas. O cadastro de empresa agora suporta perfis múltiplos (Indústria, Distribuidor, Varejo) e o menu principal se adapta a essa configuração.
-*   **Página Classificação Inteligente:** A barra de IA foi restaurada e está funcional após a correção do problema de orçamento da API (troca da chave). Os produtos agora são agrupados por classificação.
-*   **Página Documentos:** As novas colunas de CFOPs/Classificações e a barra de validação foram adicionadas.
-*   **UI/UX:** O layout fixo com rolagem de conteúdo foi implementado. A ordenação de colunas foi adicionada às páginas de  e .
-*   **Inteligência Tributária:** O trabalho foi iniciado. A página  e o endpoint  foram criados como placeholders.
+A aplicação full-stack (React + FastAPI) está funcional.
+*   **Menus e Estrutura:** A página  (antiga) foi renomeada e refatorada para , e a nova página  foi criada e renomeada para . As rotas e menus no frontend (, ) foram atualizados para refletir essa nova estrutura.
+*   **Página RET (Comparativo de Regimes):** A lógica do backend foi corrigida. O endpoint  agora busca os valores de impostos apurados (ICMS, PIS, COFINS) de outras partes do sistema para o Lucro Real, em vez de recalcular de forma inconsistente. O comparativo está funcional e exibe os valores corretos para os três regimes.
+*   **Página Indicadores:** Foi refatorada para incluir um DRE flutuante, onde o usuário pode inserir uma . Esse valor é salvo e utilizado no cálculo do Lucro Real na página RET.
+*   **Página PIS/COFINS:** A UI foi melhorada. Os cards de resumo agora separam PIS e COFINS. A tabela de Detalhamento por CFOP + CST foi atualizada para agrupar por Entradas e Saídas, com subtotais para cada grupo.
+*   **Módulo Simples Nacional:** O trabalho foi iniciado no backend. Foram adicionados novos modelos de dados em  (, , ) e foi criado um novo arquivo de serviço  como placeholder.
 
 **Last working item**:
--   **Last item agent was working**: O agente iniciou a implementação da nova funcionalidade principal, Inteligência Tributária. Foram criados o arquivo da nova página no frontend () e um novo endpoint no backend (). O trabalho foi interrompido antes de integrar a nova página às rotas da aplicação e ao menu principal.
+-   **Last item agent was working**: O agente iniciou a construção do novo e complexo módulo Simples Nacional. O primeiro passo foi estruturar o backend, adicionando os modelos de dados Pydantic necessários em  e criando o arquivo  para abrigar a futura lógica de cálculo.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: Y (Para tarefas anteriores. Testes via  no backend foram bem-sucedidos. Testes visuais com  falharam devido a problemas de infraestrutura da plataforma, não do código.)
--   **Which testing method agent to use?**: both. A nova funcionalidade Inteligência Tributária é complexa. O frontend precisa ser testado para validar a nova página, suas 3 abas, e a exibição correta dos dados. O backend requer testes para garantir a precisão dos cálculos dos três regimes tributários nos três cenários de tempo.
+-   **Agent Testing Done**: N (Para o novo módulo Simples Nacional).
+-   **Which testing method agent to use?**: both. Esta é uma feature de grande escala. O backend precisa de testes rigorosos para garantir a precisão dos cálculos tributários complexos (Fator R, limites, alíquotas). O frontend precisa ser testado para validar a nova UI condicional, o dashboard, e a interação no cadastro da empresa.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0)**: Concluir a funcionalidade Inteligência Tributária.
--   **Issue 2 (P1)**: Refatorar a página RET para Fechamento conforme solicitado.
--   **Issue 3 (P2)**: Implementar ordenação em **todas** as colunas de **todas** as tabelas da aplicação.
+-   **Issue 1 (P0)**: Construir e finalizar o módulo Simples Nacional.
+-   **Issue 2 (P1)**: Implementar ordenação em **todas** as colunas de **todas** as tabelas da aplicação.
 
 **Issues Detail**:
--   **Issue 1: Concluir a funcionalidade Inteligência Tributária**
-    -   **Attempted fixes**: N/A
+-   **Issue 1: Construir e finalizar o módulo Simples Nacional**
+    -   **Attempted fixes**: N/A.
     -   **Next debug checklist**:
-        1.  Adicionar a rota para  em .
-        2.  Adicionar o item de menu Inteligência Tributária em .
-        3.  Desenvolver a UI completa em , incluindo as 3 abas e as tabelas comparativas.
-        4.  Implementar a lógica de cálculo para Simples Nacional, Lucro Presumido e Lucro Real no endpoint  em .
-    -   **Why fix this issue and what will be achieved with the fix?**: Entregar uma nova funcionalidade principal que agrega grande valor ao usuário, permitindo a análise e otimização da carga tributária.
+        1.  **Backend - Lógica**: Popular o arquivo  com as tabelas de CNAE x Anexo, faixas de faturamento, alíquotas e a lógica de cálculo para Fator R, segregação de receita (ST, monofásico), etc.
+        2.  **Backend - Cadastro**: Modificar o endpoint de criação/atualização de empresa para, ao marcar Simples Nacional, sugerir os anexos com base nos CNAEs informados, permitindo que o usuário edite a sugestão.
+        3.  **Backend - Endpoint Dashboard**: Criar o endpoint  que utilizará o  para calcular e retornar todos os dados do dashboard (faturamento, projeção, limites, Fator R, etc.).
+        4.  **Frontend - Rota e Menu**: Criar a nova página  e adicioná-la às rotas em . No , renderizar o link para este dashboard condicionalmente, apenas para empresas marcadas como Simples Nacional.
+        5.  **Frontend - UI Cadastro**: Atualizar a UI de  para exibir as flags de seleção dos anexos.
+        6.  **Frontend - UI Dashboard**: Desenvolver a UI completa do  conforme a especificação do usuário (cards, barras de progresso, projeções, etc.).
+    -   **Why fix this issue and what will be achieved with the fix?**: Entregar um módulo essencial e de grande valor para o produto, atendendo a uma parcela significativa de empresas brasileiras.
     -   **Status**: IN PROGRESS
     -   **Should Test frontend/backend/both after fix?**: both
 
--   **Issue 2: Refatorar a página RET para Fechamento**
+-   **Issue 2: Implementar ordenação em todas as colunas**
+    -   **Attempted fixes**: A funcionalidade foi implementada em algumas tabelas (, ), mas não em todas.
     -   **Next debug checklist**:
-        1.  Renomear o componente e a rota de  para .
-        2.  Na aba principal, exibir os impostos individualizados (ICMS, IPI, PIS, COFINS) com percentuais sobre as vendas.
-        3.  Unificar as abas CMV/CPV e Ponto de Equilíbrio.
-        4.  Nessa nova aba, adicionar um campo de input para Despesa Real que, ao ser preenchido, recalcula o lucro contábil (DRE flutuante).
-    -   **Why fix this issue and what will be achieved with the fix?**: Atender a uma solicitação direta do usuário para tornar a página de fechamento mais útil e interativa.
-    -   **Status**: NOT STARTED
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on other issue**: O lucro calculado aqui impacta a análise do Lucro Real na Inteligência Tributária.
-
--   **Issue 3: Implementar ordenação em todas as colunas**
-    -   **Next debug checklist**:
-        1.  Revisar todas as páginas com tabelas (, , , etc.).
-        2.  Aplicar o padrão de cabeçalho ordenável () e a lógica de estado de ordenação a todas as colunas que ainda não o possuem.
-    -   **Why fix this issue and what will be achieved with the fix?**: Padronizar a UX e melhorar a usabilidade em toda a aplicação, conforme solicitado pelo usuário.
+        1.  Identificar todas as páginas que contêm tabelas de dados (ex: ,  nas abas de detalhamento, ).
+        2.  Aplicar o componente reutilizável de cabeçalho ordenável () e a lógica de estado de ordenação a todas as colunas que ainda não possuem essa funcionalidade.
+    -   **Why fix this issue and what will be achieved with the fix?**: Padronizar a experiência do usuário e melhorar a usabilidade da aplicação, completando uma solicitação antiga.
     -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: frontend
 
 **In progress Task List**:
@@ -79,25 +68,37 @@ N/A (As tarefas em progresso estão listadas como issues).
     -   Refatorar o monolito  para uma arquitetura baseada em routers.
     -   Implementar um sistema de licenças comerciais.
     -   Criar um dashboard de estatísticas para o perfil Master.
+    -   Remover arquivos obsoletos (, ).
 
 **Completed work in this session**
--   **Relatório de Divergências PIS/COFINS:** Criado e integrado com sucesso.
--   **Novas Regras de Negócio PIS/COFINS:** Regras para CST 49, 50, e 98 implementadas.
--   **Expansão das Tabelas PIS/COFINS:** Novos NCMs para Alíquota Zero e Monofásicos adicionados.
--   **Perfis de Empresa Múltiplos:** Sistema de perfis (Indústria/Distribuidor/Varejo) implementado no backend e frontend.
--   **IA de Classificação Restaurada:** Problema de orçamento resolvido e barra de IA funcional.
--   **Melhorias na UI:** Layout fixo implementado e ordenação de colunas adicionada em  e .
+-   **Refatoração de Menus e Páginas**:  (antigo) -> ;  ->  (novo).
+-   **Correção Crítica do Comparativo de Regimes (RET)**: A lógica do Lucro Real foi corrigida para usar os valores de impostos apurados (ICMS, PIS, COFINS), tornando o comparativo preciso e funcional.
+-   **Implementação do DRE Flutuante**: A página  agora permite ao usuário inserir uma  que impacta o cálculo do Lucro Real no comparativo.
+-   **Melhorias na UI de PIS/COFINS**: Os cards de resumo foram separados para PIS e COFINS, e a tabela de detalhamento por CFOP+CST agora agrupa por Entradas/Saídas com subtotais.
+-   **Início do Módulo Simples Nacional**: A estrutura de dados inicial foi criada no backend.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1:** O arquivo  é um monolito. Isto é uma dívida técnica conhecida, rastreada como uma tarefa futura de refatoração.
+-   **Issue 2:** Os arquivos  e  são obsoletos e não foram removidos.
+
+**Known issue recurrence from previous fork**
+-   **Issue recurrence in previous fork**: O agente anterior demonstrou grande dificuldade em implementar a lógica de cálculo para o comparativo de regimes (página RET). O erro recorrente foi tentar recalcular os impostos do Lucro Real a partir dos documentos brutos, o que resultava em valores zerados, em vez de buscar os totais já processados pelos endpoints de apuração de ICMS e PIS/COFINS.
+-   **Recurrence count**: Múltiplas tentativas (mais de 5 ciclos de ).
+-   **Status**: RESOLVED. A solução foi refatorar o endpoint  para reutilizar a lógica interna das funções de apuração (, ), garantindo consistência de dados.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Frontend**: React, /, TailwindCSS, criação de componentes reutilizáveis para ordenação de tabelas.
-- **Backend**: FastAPI, agregação de dados com , implementação de lógicas de negócio tributárias complexas, integração com MongoDB (Motor).
-- **IA**: Uso da biblioteca  para chamadas a LLMs, com tratamento de erro para orçamento de API excedido.
+- **Frontend**: React, /, TailwindCSS.
+- **Backend**: FastAPI, Pydantic, Motor (MongoDB), reutilização de lógica de negócio complexa em funções auxiliares internas para garantir consistência de dados e performance, evitando chamadas HTTP internas.
+- **Arquitetura**: A sessão reforçou a importância de uma fonte única da verdade para os dados. Em vez de recalcular métricas complexas em múltiplos lugares, a solução foi centralizar ou reutilizar a lógica de cálculo original.
+
+**key DB schema**
+-   **companies**: { : Optional[list[str]], : float, ... }
+-   **AnexoSimples (Novo Modelo Pydantic)**: { : str, : list[FaixaSimples] }
+-   **FaixaSimples (Novo Modelo Pydantic)**: { : float, : float, : float }
+-   **SimplesNacionalDashboardData (Novo Modelo Pydantic)**: { : float, : float, : float, : float, : float, : str, : list, : dict }
 
 **All files of reference**
 -   
@@ -110,32 +111,32 @@ N/A (As tarefas em progresso estão listadas como issues).
 -   
 
 **Critical Info for New Agent**
--   A prioridade máxima é continuar e concluir a implementação da nova funcionalidade Inteligência Tributária, que já foi iniciada. Comece integrando a página à aplicação (rota e menu).
--   O usuário é muito detalhista e frequentemente envia múltiplas solicitações em uma única mensagem. É crucial ler com atenção e criar um plano de ação claro para cada item.
--   A ferramenta de  da plataforma está instável. Não perca tempo depurando-a. Confie nos testes de  para o backend e na verificação do servidor local para o frontend.
--   A integração com a IA está funcionando. Continue garantindo que todas as chamadas utilizem o modelo gratuito () para evitar problemas de custo.
+-   A prioridade máxima é a construção do módulo Simples Nacional. Siga o plano detalhado na seção Issues Detail.
+-   O problema de inconsistência de dados no comparativo de regimes (RET) foi resolvido reutilizando a lógica de apuração existente. Este padrão de design (fonte única da verdade) é crucial e deve ser mantido. Não tente recalcular valores que já são calculados em outro lugar.
+-   O usuário mencionou a performance como um ponto de atenção. Ao implementar as novas consultas para o Simples Nacional, considere o uso de agregações do MongoDB (, , etc.) para otimizar a busca de dados.
+-   A ferramenta de  da plataforma continua instável. Confie nos testes de  e na verificação dos logs do servidor.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Usuário**: Solicitou a grande refatoração do RET para Fechamento e a criação do novo menu Inteligência Tributária. (Status: IN PROGRESS)
-2.  **Usuário**: Pediu para adicionar novas tabelas de NCM, criar perfis de empresa (Indústria/Varejo) e tornar menus condicionais. (Status: COMPLETED)
-3.  **Usuário**: PODE - Deu sinal verde para o plano. (Status: ACK)
-4.  **Usuário**: Pediu 7 itens: IA gratuita, separação Entrada/Saída em PIS/COFINS, regras de CST (49,50,98), novo relatório, layout fixo e colunas ordenáveis. (Status: MOSTLY COMPLETED)
-5.  **Usuário**: Pediu para restaurar a barra de IA e ajustar os alertas de CFOP. (Status: COMPLETED)
-6.  **Usuário**: Pediu para agrupar produtos por classificação. (Status: COMPLETED)
-7.  **Agente**: Tentou finalizar a tarefa.
-8.  **Usuário**: Reportou bug e pediu novas colunas e a barra de validação na página de Documentos. (Status: COMPLETED)
-9.  **Agente**: Propôs plano.
-10. **Usuário**: PODEMOS SEGUIR, MAS SEM O TESTING AGENT, POR FVR - Pediu para pular o . (Status: ACK)
+10. **Usuário**: perfeito, isso mesmo! - Aprovou o plano para a construção do módulo Simples Nacional. (Status: ACK)
+9.  **Agente**: Enviou um plano detalhado com perguntas de confirmação sobre os requisitos do módulo Simples Nacional. (Status: RESOLVED)
+8.  **Usuário**: Solicitou a construção completa do módulo Simples Nacional, com detalhes sobre cadastro, dashboard, Fator R, limites e projeções. (Status: IN PROGRESS)
+7.  **Agente**: Finalizou as melhorias na página PIS/COFINS. (Status: COMPLETED)
+6.  **Usuário**: Pediu para separar os cards de PIS/COFINS e para agrupar por Entrada/Saída com subtotais no detalhamento da página PIS/COFINS. (Status: COMPLETED)
+5.  **Agente**: Finalizou a correção do comparativo de regimes (RET). (Status: COMPLETED)
+4.  **Usuário**: esta completamente inconsistente... - Reportou que o comparativo de regimes (RET) estava incorreto e forneceu imagens mostrando os valores corretos na página Indicadores, pedindo para que o RET usasse os mesmos valores. (Status: COMPLETED)
+3.  **Usuário**: ainda esta havendo confusao... - Apontou que os cálculos do RET estavam errados e pediu melhoria de performance. (Status: IN PROGRESS, pois a correção de lógica foi feita, mas a performance pode ser melhorada).
+2.  **Usuário**: nao esta calculando o imposto no lucro real... - Reportou que a página RET não exibia os impostos para o Lucro Real. (Status: COMPLETED)
+1.  **Usuário**: Pediu ajustes de layout e lógica na página  (antiga ), como a posição no menu e a implementação do DRE flutuante. (Status: COMPLETED)
 
 **Project Health Check:**
--   **Broken**: A ferramenta de  da plataforma está apresentando falhas.
--   **Mocked**: A funcionalidade de upload do Certificado Digital tem UI, mas o backend não está implementado.
+-   **Broken**: A ferramenta de  da plataforma permanece instável.
+-   **Mocked**: A funcionalidade de upload do Certificado Digital () possui a UI, mas a lógica de backend não foi implementada.
 
 **3rd Party Integrations**
 -    para LLMs (usando  via Emergent LLM Key).
 
 **Testing status**
--   **Testing agent used after significant changes**: NO. O usuário pediu explicitamente para não usar o agente de testes na última interação.
+-   **Testing agent used after significant changes**: NO. O usuário pediu explicitamente para não usar.
 -   **Test files created**: N/A
 -   **Known regressions**: Nenhuma.
 
@@ -144,5 +145,5 @@ N/A (As tarefas em progresso estão listadas como issues).
 -   **Senha**: 
 
 **What agent forgot to execute**
--   Finalizar a tarefa de tornar **todas** as colunas de **todas** as tabelas ordenáveis. O trabalho foi feito em  e , mas precisa ser estendido para outras páginas.
--   Remover os arquivos obsoletos (, ) que foram substituídos pela nova página .</analysis>
+-   Concluir a implementação da ordenação em todas as colunas de todas as tabelas da aplicação.
+-   Remover os arquivos de componentes obsoletos:  e .</analysis>
