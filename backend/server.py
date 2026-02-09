@@ -16810,6 +16810,337 @@ async def exportar_produtos_agrupados_simples(
     )
 
 
+@api_router.get("/relatorio-consolidado/{company_id}/exportar")
+async def exportar_relatorio_consolidado(
+    company_id: str,
+    competencia: str,
+    formato: str = "xlsx",
+    secoes: str = "resumo,icms,pis_cofins",
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Exporta relatório consolidado em XLSX ou DOCX com múltiplas seções.
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    secoes_lista = secoes.split(',')
+    
+    # Criar workbook Excel
+    wb = Workbook()
+    wb.remove(wb.active)  # Remove sheet padrão
+    
+    # Estilos
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill(start_color="C8A951", end_color="C8A951", fill_type="solid")
+    title_font = Font(bold=True, size=14, color="C8A951")
+    subtitle_font = Font(bold=True, size=12)
+    currency_format = 'R$ #,##0.00'
+    thin_border = Border(
+        left=Side(style='thin', color='2A2A2A'),
+        right=Side(style='thin', color='2A2A2A'),
+        top=Side(style='thin', color='2A2A2A'),
+        bottom=Side(style='thin', color='2A2A2A')
+    )
+    
+    # Seção: Resumo Executivo
+    if 'resumo' in secoes_lista:
+        ws = wb.create_sheet("Resumo Executivo")
+        
+        # Cabeçalho com logo placeholder
+        ws['A1'] = company.get('razao_social', 'EMPRESA')
+        ws['A1'].font = title_font
+        ws.merge_cells('A1:E1')
+        
+        ws['A2'] = f"CNPJ: {company.get('cnpj', '')}"
+        ws['A3'] = f"Competência: {competencia}"
+        ws['A4'] = f"Regime: {company.get('regime_tributario', 'N/A').upper()}"
+        
+        # Buscar dados do dashboard
+        try:
+            dash = await db.xml_documents.aggregate([
+                {"$match": {"company_id": company_id, "competencia": competencia, **get_filtro_notas_ativas()}},
+                {"$group": {
+                    "_id": None,
+                    "total_docs": {"$sum": 1},
+                    "faturamento": {"$sum": {"$cond": [
+                        {"$or": [{"$eq": ["$tipo", "saida"]}, {"$eq": ["$tipo_operacao", "saida"]}]},
+                        {"$toDouble": {"$ifNull": ["$valor_total", 0]}},
+                        0
+                    ]}},
+                    "compras": {"$sum": {"$cond": [
+                        {"$or": [{"$eq": ["$tipo", "entrada"]}, {"$eq": ["$tipo_operacao", "entrada"]}]},
+                        {"$toDouble": {"$ifNull": ["$valor_total", 0]}},
+                        0
+                    ]}}
+                }}
+            ]).to_list(1)
+            
+            dados = dash[0] if dash else {"total_docs": 0, "faturamento": 0, "compras": 0}
+        except:
+            dados = {"total_docs": 0, "faturamento": 0, "compras": 0}
+        
+        ws['A6'] = "RESUMO EXECUTIVO"
+        ws['A6'].font = subtitle_font
+        
+        # Tabela de resumo
+        resumo_data = [
+            ["Indicador", "Valor"],
+            ["Total de Documentos", dados.get('total_docs', 0)],
+            ["Faturamento (Saídas)", dados.get('faturamento', 0)],
+            ["Compras (Entradas)", dados.get('compras', 0)],
+        ]
+        
+        for row_idx, row_data in enumerate(resumo_data, start=8):
+            for col_idx, value in enumerate(row_data, start=1):
+                cell = ws.cell(row=row_idx, column=col_idx, value=value)
+                if row_idx == 8:
+                    cell.font = header_font
+                    cell.fill = header_fill
+                elif col_idx == 2 and row_idx > 8:
+                    if isinstance(value, (int, float)) and row_idx > 9:
+                        cell.number_format = currency_format
+                cell.border = thin_border
+        
+        ws.column_dimensions['A'].width = 25
+        ws.column_dimensions['B'].width = 20
+    
+    # Seção: ICMS
+    if 'icms' in secoes_lista:
+        ws = wb.create_sheet("ICMS")
+        
+        ws['A1'] = "APURAÇÃO DE ICMS"
+        ws['A1'].font = title_font
+        ws['A2'] = f"{company.get('razao_social', '')} | {competencia}"
+        
+        # Buscar dados de ICMS
+        try:
+            icms_data = await db.xml_documents.aggregate([
+                {"$match": {"company_id": company_id, "competencia": competencia, **get_filtro_notas_ativas()}},
+                {"$unwind": "$produtos"},
+                {"$group": {
+                    "_id": {"tipo": "$tipo"},
+                    "valor_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms", 0]}}},
+                    "base_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_bc_icms", 0]}}}
+                }}
+            ]).to_list(10)
+            
+            credito = sum(d['valor_icms'] for d in icms_data if d['_id']['tipo'] == 'entrada')
+            debito = sum(d['valor_icms'] for d in icms_data if d['_id']['tipo'] == 'saida')
+        except:
+            credito = debito = 0
+        
+        icms_resumo = [
+            ["Tipo", "Valor"],
+            ["Crédito ICMS (Entradas)", credito],
+            ["Débito ICMS (Saídas)", debito],
+            ["Saldo", credito - debito],
+        ]
+        
+        for row_idx, row_data in enumerate(icms_resumo, start=4):
+            for col_idx, value in enumerate(row_data, start=1):
+                cell = ws.cell(row=row_idx, column=col_idx, value=value)
+                if row_idx == 4:
+                    cell.font = header_font
+                    cell.fill = header_fill
+                elif col_idx == 2:
+                    cell.number_format = currency_format
+                cell.border = thin_border
+        
+        ws.column_dimensions['A'].width = 25
+        ws.column_dimensions['B'].width = 20
+    
+    # Seção: PIS/COFINS Unificado
+    if 'pis_cofins' in secoes_lista:
+        ws = wb.create_sheet("PIS-COFINS")
+        
+        ws['A1'] = "APURAÇÃO PIS/COFINS UNIFICADO"
+        ws['A1'].font = title_font
+        ws['A2'] = f"{company.get('razao_social', '')} | {competencia}"
+        
+        # Buscar dados de PIS/COFINS
+        try:
+            piscofins = await db.xml_documents.aggregate([
+                {"$match": {"company_id": company_id, "competencia": competencia, **get_filtro_notas_ativas()}},
+                {"$unwind": "$produtos"},
+                {"$group": {
+                    "_id": {"tipo": "$tipo"},
+                    "pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", 0]}}},
+                    "cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_cofins", 0]}}}
+                }}
+            ]).to_list(10)
+            
+            credito_pis = sum(d['pis'] for d in piscofins if d['_id']['tipo'] == 'entrada')
+            credito_cofins = sum(d['cofins'] for d in piscofins if d['_id']['tipo'] == 'entrada')
+            debito_pis = sum(d['pis'] for d in piscofins if d['_id']['tipo'] == 'saida')
+            debito_cofins = sum(d['cofins'] for d in piscofins if d['_id']['tipo'] == 'saida')
+        except:
+            credito_pis = credito_cofins = debito_pis = debito_cofins = 0
+        
+        headers = ["", "PIS", "COFINS", "Total"]
+        data_rows = [
+            headers,
+            ["Créditos (Entradas)", credito_pis, credito_cofins, credito_pis + credito_cofins],
+            ["Débitos (Saídas)", debito_pis, debito_cofins, debito_pis + debito_cofins],
+            ["Saldo", credito_pis - debito_pis, credito_cofins - debito_cofins, (credito_pis - debito_pis) + (credito_cofins - debito_cofins)],
+        ]
+        
+        for row_idx, row_data in enumerate(data_rows, start=4):
+            for col_idx, value in enumerate(row_data, start=1):
+                cell = ws.cell(row=row_idx, column=col_idx, value=value)
+                if row_idx == 4:
+                    cell.font = header_font
+                    cell.fill = header_fill
+                elif col_idx > 1:
+                    cell.number_format = currency_format
+                cell.border = thin_border
+        
+        ws.column_dimensions['A'].width = 20
+        ws.column_dimensions['B'].width = 15
+        ws.column_dimensions['C'].width = 15
+        ws.column_dimensions['D'].width = 15
+    
+    # Seção: Documentos Fiscais
+    if 'documentos' in secoes_lista:
+        ws = wb.create_sheet("Documentos")
+        
+        ws['A1'] = "DOCUMENTOS FISCAIS"
+        ws['A1'].font = title_font
+        ws['A2'] = f"{company.get('razao_social', '')} | {competencia}"
+        
+        docs = await db.xml_documents.find(
+            {"company_id": company_id, "competencia": competencia, **get_filtro_notas_ativas()},
+            {"_id": 0, "numero_nfe": 1, "data_emissao": 1, "emitente_nome": 1, "destinatario_nome": 1, "tipo": 1, "valor_total": 1}
+        ).to_list(1000)
+        
+        headers = ["Número", "Data", "Emitente/Destinatário", "Tipo", "Valor"]
+        for col_idx, header in enumerate(headers, start=1):
+            cell = ws.cell(row=4, column=col_idx, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = thin_border
+        
+        for row_idx, doc in enumerate(docs[:500], start=5):
+            ws.cell(row=row_idx, column=1, value=doc.get('numero_nfe', '')).border = thin_border
+            ws.cell(row=row_idx, column=2, value=doc.get('data_emissao', '')).border = thin_border
+            nome = doc.get('emitente_nome') or doc.get('destinatario_nome') or ''
+            ws.cell(row=row_idx, column=3, value=nome[:40]).border = thin_border
+            ws.cell(row=row_idx, column=4, value=doc.get('tipo', '').upper()).border = thin_border
+            cell = ws.cell(row=row_idx, column=5, value=doc.get('valor_total', 0))
+            cell.number_format = currency_format
+            cell.border = thin_border
+        
+        ws.column_dimensions['A'].width = 12
+        ws.column_dimensions['B'].width = 12
+        ws.column_dimensions['C'].width = 40
+        ws.column_dimensions['D'].width = 10
+        ws.column_dimensions['E'].width = 15
+    
+    # Seção: Produtos Entrada
+    if 'produtos_entrada' in secoes_lista:
+        ws = wb.create_sheet("Produtos Entrada")
+        
+        ws['A1'] = "PRODUTOS - ENTRADAS"
+        ws['A1'].font = title_font
+        ws['A2'] = f"{company.get('razao_social', '')} | {competencia}"
+        
+        prods = await db.xml_documents.aggregate([
+            {"$match": {"company_id": company_id, "competencia": competencia, "tipo": "entrada", **get_filtro_notas_ativas()}},
+            {"$unwind": "$produtos"},
+            {"$group": {
+                "_id": {"desc": "$produtos.descricao", "ncm": "$produtos.ncm"},
+                "qtd": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.quantidade", 1]}}},
+                "valor": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                "icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms", 0]}}},
+                "pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", 0]}}},
+                "cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_cofins", 0]}}}
+            }},
+            {"$sort": {"valor": -1}},
+            {"$limit": 500}
+        ]).to_list(500)
+        
+        headers = ["Descrição", "NCM", "Qtd", "Valor", "ICMS", "PIS", "COFINS"]
+        for col_idx, header in enumerate(headers, start=1):
+            cell = ws.cell(row=4, column=col_idx, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+        
+        for row_idx, prod in enumerate(prods, start=5):
+            ws.cell(row=row_idx, column=1, value=(prod['_id']['desc'] or '')[:50])
+            ws.cell(row=row_idx, column=2, value=prod['_id']['ncm'] or '')
+            ws.cell(row=row_idx, column=3, value=prod['qtd']).number_format = '#,##0.00'
+            ws.cell(row=row_idx, column=4, value=prod['valor']).number_format = currency_format
+            ws.cell(row=row_idx, column=5, value=prod['icms']).number_format = currency_format
+            ws.cell(row=row_idx, column=6, value=prod['pis']).number_format = currency_format
+            ws.cell(row=row_idx, column=7, value=prod['cofins']).number_format = currency_format
+        
+        ws.column_dimensions['A'].width = 50
+        ws.column_dimensions['B'].width = 12
+        for col in ['C', 'D', 'E', 'F', 'G']:
+            ws.column_dimensions[col].width = 12
+    
+    # Seção: Produtos Saída
+    if 'produtos_saida' in secoes_lista:
+        ws = wb.create_sheet("Produtos Saída")
+        
+        ws['A1'] = "PRODUTOS - SAÍDAS"
+        ws['A1'].font = title_font
+        ws['A2'] = f"{company.get('razao_social', '')} | {competencia}"
+        
+        prods = await db.xml_documents.aggregate([
+            {"$match": {"company_id": company_id, "competencia": competencia, "$or": [{"tipo": "saida"}, {"tipo_operacao": "saida"}], **get_filtro_notas_ativas()}},
+            {"$unwind": "$produtos"},
+            {"$group": {
+                "_id": {"desc": "$produtos.descricao", "ncm": "$produtos.ncm"},
+                "qtd": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.quantidade", 1]}}},
+                "valor": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}},
+                "icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms", 0]}}},
+                "pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", 0]}}},
+                "cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_cofins", 0]}}}
+            }},
+            {"$sort": {"valor": -1}},
+            {"$limit": 500}
+        ]).to_list(500)
+        
+        headers = ["Descrição", "NCM", "Qtd", "Valor", "ICMS", "PIS", "COFINS"]
+        for col_idx, header in enumerate(headers, start=1):
+            cell = ws.cell(row=4, column=col_idx, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+        
+        for row_idx, prod in enumerate(prods, start=5):
+            ws.cell(row=row_idx, column=1, value=(prod['_id']['desc'] or '')[:50])
+            ws.cell(row=row_idx, column=2, value=prod['_id']['ncm'] or '')
+            ws.cell(row=row_idx, column=3, value=prod['qtd']).number_format = '#,##0.00'
+            ws.cell(row=row_idx, column=4, value=prod['valor']).number_format = currency_format
+            ws.cell(row=row_idx, column=5, value=prod['icms']).number_format = currency_format
+            ws.cell(row=row_idx, column=6, value=prod['pis']).number_format = currency_format
+            ws.cell(row=row_idx, column=7, value=prod['cofins']).number_format = currency_format
+        
+        ws.column_dimensions['A'].width = 50
+        ws.column_dimensions['B'].width = 12
+        for col in ['C', 'D', 'E', 'F', 'G']:
+            ws.column_dimensions[col].width = 12
+    
+    # Salvar em buffer
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    
+    filename = f"relatorio_consolidado_{competencia.replace('/', '-')}.xlsx"
+    
+    return Response(
+        content=buffer.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 @api_router.put("/companies/{company_id}/simples-nacional/anexos")
 async def update_anexos_simples(company_id: str, anexos: List[str], current_user: User = Depends(get_current_user)):
     """
