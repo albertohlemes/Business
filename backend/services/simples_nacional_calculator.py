@@ -290,11 +290,16 @@ def calcular_aliquota_efetiva(rbt12: float, anexo: str) -> dict:
     }
 
 
-def calcular_fator_r(folha_12m: float, rbt12: float) -> dict:
+def calcular_fator_r(folha_12m: float, rbt12: float, faturamento_competencia: float = 0) -> dict:
     """
     Calcula o Fator R e verifica se a empresa pode migrar do Anexo V para Anexo III.
     Fator R = (Folha de Pagamento 12 meses) / RBT12
     Se Fator R >= 28%, a empresa pode usar o Anexo III ao invés do V.
+    
+    Parâmetros:
+    - folha_12m: Total de folha de pagamento dos últimos 12 meses
+    - rbt12: Receita Bruta Total dos últimos 12 meses
+    - faturamento_competencia: Faturamento da competência atual (para projeção)
     """
     if rbt12 <= 0:
         return {
@@ -308,9 +313,22 @@ def calcular_fator_r(folha_12m: float, rbt12: float) -> dict:
     fator_r = folha_12m / rbt12
     pode_usar_anexo_iii = fator_r >= FATOR_R_MINIMO
     
-    # Quanto de folha precisaria para atingir 28%
+    # Quanto de folha precisaria para atingir 28% do RBT12 atual
     folha_necessaria = rbt12 * FATOR_R_MINIMO
     folha_faltando = max(0, folha_necessaria - folha_12m)
+    
+    # NOVO: Sugestão de folha considerando o faturamento da competência atual
+    # O RBT12 do próximo mês será: RBT12 atual - faturamento mais antigo + faturamento_competencia
+    # Simplificando, assumimos que o faturamento mais antigo = média mensal
+    # Então o novo RBT12 será aproximadamente: RBT12 + faturamento_competencia - (RBT12/12)
+    rbt12_projetado = rbt12
+    if faturamento_competencia > 0:
+        media_mensal = rbt12 / 12
+        rbt12_projetado = rbt12 - media_mensal + faturamento_competencia
+    
+    # Folha sugerida baseada no RBT12 projetado (para manter os 28% no próximo período)
+    folha_sugerida_projetada = rbt12_projetado * FATOR_R_MINIMO
+    folha_mensal_sugerida = folha_sugerida_projetada / 12  # Valor mensal para atingir o objetivo
     
     # Calcular economia potencial (diferença entre Anexo V e III)
     aliq_v = calcular_aliquota_efetiva(rbt12, "V")
@@ -329,6 +347,11 @@ def calcular_fator_r(folha_12m: float, rbt12: float) -> dict:
         "folha_atual": folha_12m,
         "folha_necessaria_anexo_iii": round(folha_necessaria, 2),
         "folha_faltando": round(folha_faltando, 2),
+        # NOVO: Sugestão de folha considerando a competência atual
+        "rbt12_projetado": round(rbt12_projetado, 2),
+        "faturamento_competencia": round(faturamento_competencia, 2),
+        "folha_sugerida_projetada": round(folha_sugerida_projetada, 2),
+        "folha_mensal_sugerida": round(folha_mensal_sugerida, 2),
         "economia_potencial_mensal": round(economia_mensal, 2) if not pode_usar_anexo_iii else 0,
         "economia_potencial_anual": round(economia_anual, 2) if not pode_usar_anexo_iii else 0,
         "aliquota_anexo_v": aliq_v["aliquota_efetiva"],
