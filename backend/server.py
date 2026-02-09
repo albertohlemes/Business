@@ -15951,6 +15951,280 @@ async def get_aliquotas_difal(current_user: User = Depends(get_current_user)):
 
 
 # =============================================================================
+# RET SIMPLES NACIONAL - COMPARATIVO DE REGIMES
+# =============================================================================
+
+@api_router.post("/simples-nacional/ret/comparativo")
+async def ret_simples_nacional(
+    company_id: str,
+    competencia: str = None,  # Se não informado, usa acumulado do ano
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Comparativo de Regimes Tributários para empresas do Simples Nacional.
+    Calcula quanto a empresa pagaria em cada regime para avaliar se o Simples ainda é vantajoso.
+    
+    Usa dados do PGDAS quando disponível para maior precisão.
+    """
+    # Verificar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if company.get('regime_tributario') != 'simples_nacional':
+        raise HTTPException(status_code=400, detail="Este comparativo é exclusivo para empresas do Simples Nacional")
+    
+    # Obter dados de faturamento
+    now = datetime.now(timezone.utc)
+    ano_ref = now.year
+    mes_ref = now.month
+    
+    if competencia:
+        try:
+            mes_ref, ano_ref = map(int, competencia.split('/'))
+        except:
+            pass
+    
+    # Buscar RBT12 do PGDAS ou calcular
+    pgdas_rbt12 = company.get('pgdas_rbt12', 0)
+    historico = company.get('historico_faturamento', {})
+    
+    # Calcular faturamento dos últimos 12 meses
+    competencias_12m = []
+    for i in range(12):
+        m = mes_ref - i
+        a = ano_ref
+        if m <= 0:
+            m += 12
+            a -= 1
+        competencias_12m.append(f"{m:02d}/{a}")
+    
+    # Buscar faturamento do sistema se não tiver PGDAS
+    if pgdas_rbt12 <= 0:
+        pipeline = [
+            {"$match": {
+                "company_id": company_id,
+                "tipo": "saida",
+                "competencia": {"$in": competencias_12m},
+                **get_filtro_notas_ativas()
+            }},
+            {"$group": {"_id": None, "total": {"$sum": "$valor_total"}}}
+        ]
+        result = await db.xml_documents.aggregate(pipeline).to_list(1)
+        rbt12 = result[0]["total"] if result else 0
+    else:
+        rbt12 = pgdas_rbt12
+    
+    # Faturamento acumulado no ano
+    competencias_ano = [f"{m:02d}/{ano_ref}" for m in range(1, mes_ref + 1)]
+    faturamento_ano = 0
+    
+    for comp in competencias_ano:
+        if comp in historico:
+            faturamento_ano += historico[comp].get('valor', 0)
+    
+    if faturamento_ano == 0:
+        pipeline = [
+            {"$match": {
+                "company_id": company_id,
+                "tipo": "saida",
+                "competencia": {"$in": competencias_ano},
+                **get_filtro_notas_ativas()
+            }},
+            {"$group": {"_id": None, "total": {"$sum": "$valor_total"}}}
+        ]
+        result = await db.xml_documents.aggregate(pipeline).to_list(1)
+        faturamento_ano = result[0]["total"] if result else 0
+    
+    # Usar faturamento para cálculos
+    faturamento_base = rbt12 if rbt12 > 0 else faturamento_ano
+    
+    if faturamento_base <= 0:
+        return {
+            "mensagem": "Não há dados de faturamento suficientes para o comparativo",
+            "sugestao": "Importe o PGDAS ou aguarde o processamento das notas fiscais"
+        }
+    
+    # ============== CÁLCULO SIMPLES NACIONAL ==============
+    from services.simples_nacional_calculator import (
+        calcular_aliquota_efetiva,
+        TABELA_ANEXO_I
+    )
+    
+    anexo = company.get('anexos_simples', ['I'])[0] if company.get('anexos_simples') else 'I'
+    info_aliquota = calcular_aliquota_efetiva(rbt12, anexo)
+    aliquota_efetiva = info_aliquota['aliquota_efetiva']
+    
+    # Cálculo DAS
+    simples_total = faturamento_base * (aliquota_efetiva / 100)
+    
+    # Repartição aproximada dos tributos no Simples (Anexo I)
+    # Percentuais baseados na tabela do Anexo I - 4ª faixa
+    reparticao_simples = {
+        'irpj': round(simples_total * 0.055, 2),
+        'csll': round(simples_total * 0.035, 2),
+        'cofins': round(simples_total * 0.128, 2),
+        'pis': round(simples_total * 0.028, 2),
+        'cpp': round(simples_total * 0.415, 2),
+        'icms': round(simples_total * 0.339, 2),
+    }
+    
+    simples = {
+        **reparticao_simples,
+        'total': round(simples_total, 2),
+        'aliquota_efetiva': aliquota_efetiva,
+        'anexo': anexo,
+        'faixa': info_aliquota['faixa'],
+        'faixa_descricao': info_aliquota['faixa_descricao']
+    }
+    
+    # ============== CÁLCULO LUCRO PRESUMIDO ==============
+    # Usar presunções da empresa ou padrão
+    pres_irpj = company.get('percentual_presuncao_irpj', 8)
+    pres_csll = company.get('percentual_presuncao_csll', 12)
+    
+    # PIS: 0.65% (cumulativo)
+    presumido_pis = faturamento_base * 0.0065
+    
+    # COFINS: 3% (cumulativo)
+    presumido_cofins = faturamento_base * 0.03
+    
+    # IRPJ: 15% sobre base presumida + adicional
+    base_irpj = faturamento_base * (pres_irpj / 100)
+    presumido_irpj = base_irpj * 0.15
+    # Adicional de 10% sobre o que exceder R$ 60.000 no trimestre (R$ 240.000 no ano)
+    if base_irpj > 240000:
+        presumido_irpj += (base_irpj - 240000) * 0.10
+    
+    # CSLL: 9% sobre base presumida
+    base_csll = faturamento_base * (pres_csll / 100)
+    presumido_csll = base_csll * 0.09
+    
+    # ICMS: Estimar como 3% do faturamento (valor médio após créditos)
+    presumido_icms = faturamento_base * 0.03
+    
+    # CPP/INSS: 20% sobre folha estimada (10% do faturamento)
+    folha_estimada = faturamento_base * 0.10
+    presumido_cpp = folha_estimada * 0.20
+    
+    presumido = {
+        'irpj': round(presumido_irpj, 2),
+        'csll': round(presumido_csll, 2),
+        'cofins': round(presumido_cofins, 2),
+        'pis': round(presumido_pis, 2),
+        'cpp': round(presumido_cpp, 2),
+        'icms': round(presumido_icms, 2),
+        'total': round(presumido_irpj + presumido_csll + presumido_cofins + presumido_pis + presumido_cpp + presumido_icms, 2),
+        'base_presuncao_irpj': pres_irpj,
+        'base_presuncao_csll': pres_csll
+    }
+    
+    # ============== CÁLCULO LUCRO REAL ==============
+    # PIS: 1.65% (não-cumulativo, estimando créditos de 50%)
+    real_pis = faturamento_base * 0.0165 * 0.5
+    
+    # COFINS: 7.6% (não-cumulativo, estimando créditos de 50%)
+    real_cofins = faturamento_base * 0.076 * 0.5
+    
+    # IRPJ: 15% sobre lucro (estimando margem de 10%)
+    lucro_estimado = faturamento_base * 0.10
+    real_irpj = lucro_estimado * 0.15
+    if lucro_estimado > 240000:
+        real_irpj += (lucro_estimado - 240000) * 0.10
+    
+    # CSLL: 9% sobre lucro
+    real_csll = lucro_estimado * 0.09
+    
+    # ICMS: Similar ao presumido
+    real_icms = faturamento_base * 0.03
+    
+    # CPP: Similar ao presumido
+    real_cpp = folha_estimada * 0.20
+    
+    real = {
+        'irpj': round(real_irpj, 2),
+        'csll': round(real_csll, 2),
+        'cofins': round(real_cofins, 2),
+        'pis': round(real_pis, 2),
+        'cpp': round(real_cpp, 2),
+        'icms': round(real_icms, 2),
+        'total': round(real_irpj + real_csll + real_cofins + real_pis + real_cpp + real_icms, 2),
+        'margem_lucro_estimada': 10
+    }
+    
+    # ============== COMPARATIVO ==============
+    regimes = [
+        {'regime': 'simples', 'nome': 'Simples Nacional', 'total': simples['total'], 'dados': simples},
+        {'regime': 'presumido', 'nome': 'Lucro Presumido', 'total': presumido['total'], 'dados': presumido},
+        {'regime': 'real', 'nome': 'Lucro Real', 'total': real['total'], 'dados': real}
+    ]
+    
+    # Verificar se o Simples ainda é viável (limite de R$ 4.8M)
+    simples_disponivel = rbt12 <= 4800000
+    
+    if not simples_disponivel:
+        regimes = [r for r in regimes if r['regime'] != 'simples']
+    
+    # Ordenar por menor carga tributária
+    regimes.sort(key=lambda x: x['total'])
+    melhor_regime = regimes[0]
+    
+    # Calcular economia/prejuízo
+    economia_vs_presumido = presumido['total'] - simples['total']
+    economia_vs_real = real['total'] - simples['total']
+    
+    return {
+        "empresa": {
+            "id": company.get("id"),
+            "razao_social": company.get("razao_social"),
+            "regime_atual": "simples_nacional"
+        },
+        "periodo": {
+            "referencia": f"{mes_ref:02d}/{ano_ref}",
+            "rbt12": round(rbt12, 2),
+            "faturamento_base": round(faturamento_base, 2),
+            "meses_apurados": mes_ref
+        },
+        "simples_disponivel": simples_disponivel,
+        "limite_simples": 4800000,
+        "comparativo": {
+            "simples": simples if simples_disponivel else None,
+            "presumido": presumido,
+            "real": real
+        },
+        "ranking": regimes,
+        "melhor_regime": {
+            "regime": melhor_regime['regime'],
+            "nome": melhor_regime['nome'],
+            "total": melhor_regime['total']
+        },
+        "analise": {
+            "simples_vs_presumido": {
+                "diferenca": round(economia_vs_presumido, 2),
+                "vantagem": "simples" if economia_vs_presumido > 0 else "presumido",
+                "percentual": round((economia_vs_presumido / presumido['total']) * 100, 2) if presumido['total'] > 0 else 0
+            },
+            "simples_vs_real": {
+                "diferenca": round(economia_vs_real, 2),
+                "vantagem": "simples" if economia_vs_real > 0 else "real",
+                "percentual": round((economia_vs_real / real['total']) * 100, 2) if real['total'] > 0 else 0
+            }
+        },
+        "recomendacao": f"Com base nos dados analisados, o regime mais vantajoso é o {melhor_regime['nome']} com carga tributária de {formatCurrency(melhor_regime['total'])}.",
+        "observacoes": [
+            "Os cálculos do Lucro Presumido e Real são estimativas baseadas em médias de mercado.",
+            "Para análise mais precisa, considere a margem de lucro real e os créditos efetivos de PIS/COFINS.",
+            "O Simples Nacional possui limite de faturamento de R$ 4.800.000,00 nos últimos 12 meses."
+        ]
+    }
+
+
+def formatCurrency(value):
+    """Formata valor como moeda brasileira."""
+    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+# =============================================================================
 # IMPORTAÇÃO PGDAS - HISTÓRICO DE FATURAMENTO
 # =============================================================================
 
