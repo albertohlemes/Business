@@ -661,30 +661,47 @@ const PisCofins = ({ user, onLogout }) => {
   const TabDivergencias = () => {
     if (!divergencias) return null;
     
-    const { produtos, resumo, total_produtos_divergentes } = divergencias;
+    const { totais, itens, agrupamento } = divergencias;
     
-    // Filtrar produtos pela busca
-    const produtosFiltrados = searchTerm
-      ? produtos.filter(p => 
-          p.produto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.ncm?.includes(searchTerm)
-        )
-      : produtos;
+    // Filtrar itens pela busca
+    const itensFiltrados = searchTerm
+      ? itens.filter(item => {
+          const termo = searchTerm.toLowerCase();
+          if (agrupamento === 'notas') {
+            return item.numero_nfe?.toLowerCase().includes(termo) ||
+                   item.emitente?.toLowerCase().includes(termo) ||
+                   item.destinatario?.toLowerCase().includes(termo);
+          } else if (agrupamento === 'ncms') {
+            return item.ncm?.includes(termo) ||
+                   item.classificacao?.toLowerCase().includes(termo);
+          } else {
+            return item.produto?.toLowerCase().includes(termo) ||
+                   item.ncm?.includes(termo);
+          }
+        })
+      : itens || [];
     
     return (
       <div className="space-y-6">
         {/* Cards de Resumo */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <ResumoCard
+            titulo="Documentos"
+            valor={null}
+            subtitulo={`${totais?.documentos_com_divergencia || 0} de ${totais?.total_documentos || 0}`}
+            icon={FileText}
+            corIcone="bg-blue-600"
+          />
           <ResumoCard
             titulo="Produtos Divergentes"
             valor={null}
-            subtitulo={`${total_produtos_divergentes} produto(s)`}
+            subtitulo={`${totais?.produtos_divergentes || 0} produto(s)`}
             icon={Package}
             corIcone="bg-orange-600"
           />
           <ResumoCard
             titulo="Recolhido a Maior"
-            valor={resumo?.recolhido_a_maior || 0}
+            valor={totais?.recolhido_a_maior || 0}
             subtitulo="Crédito a recuperar"
             icon={TrendingUp}
             corIcone="bg-green-600"
@@ -692,59 +709,208 @@ const PisCofins = ({ user, onLogout }) => {
           />
           <ResumoCard
             titulo="Recolhido a Menor"
-            valor={resumo?.recolhido_a_menor || 0}
+            valor={totais?.recolhido_a_menor || 0}
             subtitulo="Passivo tributário"
             icon={TrendingDown}
             corIcone="bg-red-600"
             corValor="text-red-400"
           />
           <ResumoCard
-            titulo="Saldo Reclassificação"
-            valor={resumo?.saldo_reclassificacao || 0}
-            subtitulo={resumo?.saldo_reclassificacao >= 0 ? 'Economia potencial' : 'Risco fiscal'}
+            titulo="Diferença Total"
+            valor={Math.abs((totais?.diferenca_pis_total || 0) + (totais?.diferenca_cofins_total || 0))}
+            subtitulo="PIS + COFINS"
             icon={Scale}
             corIcone="bg-[#C8A951]"
-            corValor={resumo?.saldo_reclassificacao >= 0 ? 'text-green-400' : 'text-red-400'}
+            corValor="text-[#C8A951]"
           />
         </div>
 
-        {/* Barra de Busca */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#666]" />
-          <input
-            type="text"
-            placeholder="Buscar por produto ou NCM..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#141414] border border-[#2A2A2A] rounded-lg pl-10 pr-4 py-3 text-white placeholder-[#666] focus:border-[#C8A951] focus:outline-none"
-          />
+        {/* Seletor de Agrupamento */}
+        <div className="flex flex-wrap items-center gap-4 bg-[#141414] border border-[#2A2A2A] rounded-xl p-4">
+          <span className="text-[#A1A1AA] text-sm">Agrupar por:</span>
+          <div className="flex gap-2">
+            {[
+              { key: 'notas', label: 'Notas Fiscais', icon: FileText },
+              { key: 'ncms', label: 'NCMs', icon: BarChart3 },
+              { key: 'produtos', label: 'Produtos', icon: Package }
+            ].map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => fetchDivergencias(key)}
+                disabled={loadingDivergencias}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  agrupamentoDivergencias === key
+                    ? 'bg-[#C8A951] text-black'
+                    : 'bg-[#2A2A2A] text-white hover:bg-[#333]'
+                } disabled:opacity-50`}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </button>
+            ))}
+          </div>
+          
+          {/* Barra de Busca */}
+          <div className="flex-1 relative min-w-[250px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666]" />
+            <input
+              type="text"
+              placeholder={`Buscar ${agrupamento === 'notas' ? 'NF, emitente...' : agrupamento === 'ncms' ? 'NCM...' : 'produto, NCM...'}` }
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg pl-10 pr-4 py-2 text-white text-sm placeholder-[#666] focus:border-[#C8A951] focus:outline-none"
+            />
+          </div>
         </div>
+
+        {/* Loading */}
+        {loadingDivergencias && (
+          <div className="flex justify-center py-8">
+            <RefreshCw className="w-8 h-8 text-[#C8A951] animate-spin" />
+          </div>
+        )}
 
         {/* Lista de Divergências */}
-        {produtosFiltrados.length === 0 ? (
+        {!loadingDivergencias && itensFiltrados.length === 0 ? (
           <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-8 text-center">
             <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
             <h3 className="text-white font-bold text-lg">Nenhuma divergência encontrada</h3>
             <p className="text-[#A1A1AA]">
-              {searchTerm ? 'Nenhum produto corresponde à busca.' : 'Todos os produtos estão com a classificação correta.'}
+              {searchTerm ? 'Nenhum item corresponde à busca.' : 'Todos os itens estão com a classificação correta de PIS/COFINS.'}
             </p>
           </div>
-        ) : (
+        ) : !loadingDivergencias && (
           <div className="space-y-3">
-            {produtosFiltrados.map((item, idx) => (
+            {/* Agrupamento por NOTAS */}
+            {agrupamento === 'notas' && itensFiltrados.map((item, idx) => (
+              <div 
+                key={idx}
+                className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden hover:border-[#C8A951]/50 transition-colors"
+              >
+                <button
+                  onClick={() => toggleSection(`nota_${idx}`)}
+                  className="w-full p-4 flex items-center justify-between hover:bg-[#1A1A1A] transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2 rounded-lg ${item.diferenca_total > 0 ? 'bg-green-600' : 'bg-red-600'}`}>
+                      <FileText className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-white font-semibold">NF {item.numero_nfe}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded ${item.tipo_operacao === 'entrada' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                          {item.tipo_operacao?.toUpperCase()}
+                        </span>
+                        <span className="text-[#A1A1AA] text-sm">{item.emitente || item.destinatario}</span>
+                      </div>
+                      <p className="text-[#666] text-xs mt-1">{item.data_emissao} | {item.produtos_divergentes} produto(s) divergente(s)</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-[#666] text-xs">Impacto</p>
+                      <p className={`text-lg font-bold ${item.diferenca_total > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {item.diferenca_total > 0 ? '+' : ''}{formatCurrency(item.diferenca_total)}
+                      </p>
+                    </div>
+                    {expandedSections[`nota_${idx}`] ? <ChevronUp className="w-5 h-5 text-[#A1A1AA]" /> : <ChevronDown className="w-5 h-5 text-[#A1A1AA]" />}
+                  </div>
+                </button>
+                {expandedSections[`nota_${idx}`] && (
+                  <div className="border-t border-[#2A2A2A] p-4 bg-[#0C0C0C]">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-[#666] text-left">
+                          <th className="pb-2">Produto</th>
+                          <th className="pb-2">NCM</th>
+                          <th className="pb-2">CFOP</th>
+                          <th className="pb-2">Divergência</th>
+                          <th className="pb-2 text-right">Impacto</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#2A2A2A]">
+                        {item.produtos?.map((prod, pIdx) => (
+                          <tr key={pIdx} className="text-white">
+                            <td className="py-2 max-w-[200px] truncate">{prod.produto}</td>
+                            <td className="py-2 font-mono text-[#A1A1AA]">{prod.ncm}</td>
+                            <td className="py-2">{prod.cfop}</td>
+                            <td className="py-2">
+                              {prod.divergencias?.map((d, dIdx) => (
+                                <span key={dIdx} className="inline-flex items-center gap-1 mr-2 text-xs bg-[#2A2A2A] px-2 py-0.5 rounded">
+                                  {d.campo}: <span className="text-red-400">{d.xml}</span> → <span className="text-green-400">{d.calculado}</span>
+                                </span>
+                              ))}
+                            </td>
+                            <td className={`py-2 text-right font-medium ${prod.diferenca_total > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {prod.diferenca_total > 0 ? '+' : ''}{formatCurrency(prod.diferenca_total)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Agrupamento por NCMs */}
+            {agrupamento === 'ncms' && itensFiltrados.map((item, idx) => (
               <div 
                 key={idx}
                 className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4 hover:border-[#C8A951]/50 transition-colors"
               >
                 <div className="flex items-start gap-4">
-                  <div className={`p-2 rounded-lg ${
-                    item.diferenca_total > 0 ? 'bg-green-600' : 'bg-red-600'
-                  }`}>
-                    {item.diferenca_total > 0 ? (
-                      <TrendingUp className="w-5 h-5 text-white" />
-                    ) : (
-                      <TrendingDown className="w-5 h-5 text-white" />
-                    )}
+                  <div className={`p-2 rounded-lg ${item.diferenca_total > 0 ? 'bg-green-600' : 'bg-red-600'}`}>
+                    <BarChart3 className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-white font-semibold font-mono">NCM {item.ncm}</span>
+                      <span className="bg-[#C8A951]/20 text-[#C8A951] text-xs px-2 py-0.5 rounded">
+                        {item.classificacao}
+                      </span>
+                      <span className="bg-[#2A2A2A] text-[#A1A1AA] text-xs px-2 py-0.5 rounded">
+                        {item.ocorrencias} ocorrência(s)
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-4 mt-3">
+                      <div>
+                        <p className="text-[#666] text-xs">Valor Base Total</p>
+                        <p className="text-white font-medium">{formatCurrency(item.valor_base_total)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[#666] text-xs">Diferença PIS</p>
+                        <p className={`font-medium ${item.diferenca_pis > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {item.diferenca_pis > 0 ? '+' : ''}{formatCurrency(item.diferenca_pis)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[#666] text-xs">Diferença COFINS</p>
+                        <p className={`font-medium ${item.diferenca_cofins > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {item.diferenca_cofins > 0 ? '+' : ''}{formatCurrency(item.diferenca_cofins)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[#666] text-xs">Impacto Total</p>
+                        <p className={`text-xl font-bold ${item.diferenca_total > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {item.diferenca_total > 0 ? '+' : ''}{formatCurrency(item.diferenca_total)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Agrupamento por PRODUTOS */}
+            {agrupamento === 'produtos' && itensFiltrados.map((item, idx) => (
+              <div 
+                key={idx}
+                className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-4 hover:border-[#C8A951]/50 transition-colors"
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`p-2 rounded-lg ${item.diferenca_total > 0 ? 'bg-green-600' : 'bg-red-600'}`}>
+                    <Package className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -753,36 +919,33 @@ const PisCofins = ({ user, onLogout }) => {
                         NCM {item.ncm}
                       </span>
                       <span className="bg-[#C8A951]/20 text-[#C8A951] text-xs px-2 py-0.5 rounded">
-                        {item.ocorrencias} ocorrência(s)
+                        {item.ocorrencias} NF(s)
                       </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 mt-3">
+                    <div className="grid grid-cols-4 gap-4 mt-3">
                       <div>
                         <p className="text-[#666] text-xs">Valor Base Total</p>
                         <p className="text-white font-medium">{formatCurrency(item.valor_base_total)}</p>
                       </div>
                       <div>
                         <p className="text-[#666] text-xs">Diferença PIS</p>
-                        <p className={`font-medium ${item.diferenca_pis_total > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {item.diferenca_pis_total > 0 ? '+' : ''}{formatCurrency(item.diferenca_pis_total)}
+                        <p className={`font-medium ${item.diferenca_pis > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {item.diferenca_pis > 0 ? '+' : ''}{formatCurrency(item.diferenca_pis)}
                         </p>
                       </div>
                       <div>
                         <p className="text-[#666] text-xs">Diferença COFINS</p>
-                        <p className={`font-medium ${item.diferenca_cofins_total > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {item.diferenca_cofins_total > 0 ? '+' : ''}{formatCurrency(item.diferenca_cofins_total)}
+                        <p className={`font-medium ${item.diferenca_cofins > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {item.diferenca_cofins > 0 ? '+' : ''}{formatCurrency(item.diferenca_cofins)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[#666] text-xs">Impacto Total</p>
+                        <p className={`text-xl font-bold ${item.diferenca_total > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {item.diferenca_total > 0 ? '+' : ''}{formatCurrency(item.diferenca_total)}
                         </p>
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[#666] text-xs">Impacto Total</p>
-                    <p className={`text-xl font-bold ${item.diferenca_total > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {item.diferenca_total > 0 ? '+' : ''}{formatCurrency(item.diferenca_total)}
-                    </p>
-                    <p className="text-xs text-[#666]">
-                      {item.diferenca_total > 0 ? 'Crédito a recuperar' : 'Passivo tributário'}
-                    </p>
                   </div>
                 </div>
               </div>
