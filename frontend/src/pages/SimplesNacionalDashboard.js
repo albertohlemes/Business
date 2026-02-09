@@ -210,14 +210,28 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
               Acompanhamento de faturamento, limites e tributação
             </p>
           </div>
-          <button
-            onClick={fetchDashboard}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#C8A951] text-black rounded font-medium hover:bg-[#B09240] transition-all disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Botão Importar PGDAS */}
+            <button
+              onClick={() => {
+                setShowPgdasModal(true);
+                fetchHistoricoFaturamento();
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2A2A2A] text-white rounded font-medium hover:bg-[#333333] transition-all border border-[#444]"
+            >
+              <Upload className="w-4 h-4" />
+              Importar PGDAS
+            </button>
+            {/* Botão Atualizar */}
+            <button
+              onClick={fetchDashboard}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#C8A951] text-black rounded font-medium hover:bg-[#B09240] transition-all disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </button>
+          </div>
         </div>
 
         {/* Error State */}
