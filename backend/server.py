@@ -16539,10 +16539,13 @@ async def inteligencia_tributaria(
                 # ICMS-ST (CST 10, 30, 60, 70, 201, 202, 203, 500)
                 if cst in ['10', '30', '60', '70', '201', '202', '203', '500']:
                     produtos_st += valor
-                # Monofásicos
-                elif is_ncm_monofasico(ncm):
+                
+                # Verificar tipo de isenção de PIS/COFINS (independente do CST)
+                # Prioridade: monofásico > alíquota zero (igual ao Dashboard)
+                if is_ncm_monofasico(ncm):
                     produtos_monofasicos += valor
-                # Alíquota zero / cesta básica
+                elif is_ncm_aliquota_zero(ncm) or is_ncm_cesta_basica(ncm):
+                    produtos_aliquota_zero += valor
                 elif is_ncm_aliquota_zero(ncm) or is_ncm_cesta_basica(ncm):
                     produtos_aliquota_zero += valor
     except Exception as e:
