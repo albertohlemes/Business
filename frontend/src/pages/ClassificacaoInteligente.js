@@ -790,9 +790,21 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                 </thead>
                                 <tbody className="divide-y divide-[#2A2A2A]">
                                   {grupo.produtos.map((prod, idx) => (
-                                    <tr key={idx} className="hover:bg-white/5">
+                                    <tr 
+                                      key={idx} 
+                                      className="hover:bg-white/5 cursor-pointer group"
+                                      onClick={() => {
+                                        // Permitir edição do produto
+                                        setEditingProduct({ 
+                                          categoria, 
+                                          idx, 
+                                          prod,
+                                          novaCategoria: categoria 
+                                        });
+                                      }}
+                                    >
                                       <td className="px-4 py-3">
-                                        <p className="text-white text-sm truncate max-w-[300px]" title={prod.descricao}>
+                                        <p className="text-white text-sm truncate max-w-[300px] group-hover:text-[#C8A951]" title={prod.descricao}>
                                           {prod.descricao}
                                         </p>
                                       </td>
@@ -811,7 +823,11 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                         <span className="text-[#C8A951] font-medium text-sm">{formatCurrency(prod.valor_total)}</span>
                                       </td>
                                       <td className="px-4 py-3 text-center">
-                                        <span className="text-[#666] text-xs">{prod.ocorrencias?.length || 0}</span>
+                                        {prod.ocorrencias && prod.ocorrencias.length > 0 ? (
+                                          <NFsList ocorrencias={prod.ocorrencias} maxVisible={3} />
+                                        ) : (
+                                          <span className="text-[#666] text-xs">0</span>
+                                        )}
                                       </td>
                                     </tr>
                                   ))}
