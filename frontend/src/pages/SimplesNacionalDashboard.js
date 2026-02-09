@@ -7,7 +7,7 @@ import {
   DollarSign, Target, Calculator, Percent, BarChart3, Calendar,
   ChevronDown, ChevronUp, RefreshCw, Edit2, Check, X, HelpCircle,
   Building2, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight,
-  Upload, FileText, CheckCircle, History
+  Upload, FileText, CheckCircle, History, Zap, Award, Scale
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -28,6 +28,11 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
   const [pgdasResult, setPgdasResult] = useState(null);
   const [historicoFaturamento, setHistoricoFaturamento] = useState(null);
   const [showHistorico, setShowHistorico] = useState(false);
+  
+  // Estados para RET (comparativo de regimes)
+  const [showRetModal, setShowRetModal] = useState(false);
+  const [retData, setRetData] = useState(null);
+  const [loadingRet, setLoadingRet] = useState(false);
   const fileInputRef = useRef(null);
   
   // Obter ano da competência selecionada
