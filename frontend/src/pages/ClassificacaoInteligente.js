@@ -145,6 +145,52 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     }));
   };
 
+  // Função para enviar comando de IA
+  const enviarComandoIA = async () => {
+    if (!comandoIA.trim() || processandoIA) return;
+    
+    setProcessandoIA(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${API}/classification/ia-command/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}&comando=${encodeURIComponent(comandoIA)}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        const totalAlteracoes = response.data.total_alteracoes || 0;
+        
+        if (totalAlteracoes > 0) {
+          toast.success(`✨ ${totalAlteracoes} produto(s) classificado(s) com sucesso!`);
+          
+          // Mostrar detalhes das alterações
+          response.data.alteracoes?.slice(0, 3).forEach(alt => {
+            toast.info(`${alt.produto?.substring(0, 30)}... → ${alt.categoria_nova}`);
+          });
+          
+          if (response.data.regra_salva) {
+            toast.success('📝 Regra salva na memória para uso futuro');
+          }
+          
+          // Recarregar dados
+          fetchValidacao();
+          setComandoIA('');
+        } else {
+          toast.warning(response.data.message || 'Nenhum produto correspondeu ao comando');
+        }
+      } else {
+        toast.error(response.data.message || 'Erro ao processar comando');
+      }
+    } catch (err) {
+      console.error('Erro ao enviar comando IA:', err);
+      toast.error('Erro ao processar comando de IA');
+    } finally {
+      setProcessandoIA(false);
+    }
+  };
+
   // Configuração das categorias de classificação
   const categoriasConfig = {
     revenda: { label: 'Revenda', color: 'blue', icon: '🛒' },
