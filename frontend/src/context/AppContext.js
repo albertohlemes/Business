@@ -220,6 +220,7 @@ export const AppProvider = ({ children }) => {
   const clearSelection = () => {
     setSelectedCompany(null);
     setSelectedCompetencia('');
+    setHasCompanySelection(false);
     localStorage.removeItem('selectedCompanyId');
     localStorage.removeItem('selectedCompetencia');
   };
