@@ -1013,6 +1013,44 @@ const Companies = ({ user, onLogout }) => {
                   </p>
                 </div>
 
+                {/* Flags de ICMS - Desconsiderar */}
+                <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Settings className="w-4 h-4 text-red-400" />
+                    <span className="text-sm font-medium text-white">Configurações de ICMS na Apuração</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label className="flex items-center gap-3 p-3 bg-[#141414] border border-[#2A2A2A] rounded cursor-pointer hover:border-red-500/50">
+                      <input
+                        type="checkbox"
+                        checked={formData.desconsiderar_icms_despesas}
+                        onChange={(e) => setFormData({ ...formData, desconsiderar_icms_despesas: e.target.checked })}
+                        className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-red-500 focus:ring-red-500"
+                      />
+                      <div>
+                        <span className="text-sm text-white block">Desconsiderar ICMS CFOPs Despesas</span>
+                        <span className="text-xs text-[#A1A1AA]">Zera base e ICMS de CFOPs de despesa</span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-3 p-3 bg-[#141414] border border-[#2A2A2A] rounded cursor-pointer hover:border-orange-500/50">
+                      <input
+                        type="checkbox"
+                        checked={formData.desconsiderar_icms_st}
+                        onChange={(e) => setFormData({ ...formData, desconsiderar_icms_st: e.target.checked })}
+                        className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-orange-500 focus:ring-orange-500"
+                      />
+                      <div>
+                        <span className="text-sm text-white block">Desconsiderar ICMS sobre Operações ST</span>
+                        <span className="text-xs text-[#A1A1AA]">Zera base e ICMS de CFOPs de mercadorias ST</span>
+                      </div>
+                    </label>
+                  </div>
+                  <p className="text-xs text-[#666] mt-3">
+                    Estas flags afetam a apuração de ICMS, Dashboard e RET. Ao desmarcar, os valores voltam automaticamente.
+                  </p>
+                </div>
+
                 {/* Responsáveis */}
                 {allUsers.length > 0 && (
                   <div>
