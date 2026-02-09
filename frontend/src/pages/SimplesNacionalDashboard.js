@@ -35,15 +35,22 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
   const [loadingRet, setLoadingRet] = useState(false);
   const fileInputRef = useRef(null);
   
-  // Obter ano da competência selecionada
-  const getAnoFromCompetencia = useCallback(() => {
+  // Obter ano e mês da competência selecionada
+  const getCompetenciaInfo = useCallback(() => {
     if (selectedCompetencia) {
       const parts = selectedCompetencia.split('/');
       if (parts.length === 2) {
-        return parseInt(parts[1]);
+        return {
+          mes: parseInt(parts[0]),
+          ano: parseInt(parts[1])
+        };
       }
     }
-    return new Date().getFullYear();
+    const now = new Date();
+    return {
+      mes: now.getMonth() + 1,
+      ano: now.getFullYear()
+    };
   }, [selectedCompetencia]);
 
   const fetchDashboard = useCallback(async () => {
@@ -54,11 +61,12 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const ano = getAnoFromCompetencia();
+      const { mes, ano } = getCompetenciaInfo();
       
       const response = await axios.post(`${API}/dashboard/simples-nacional`, {
         company_id: selectedCompany.id,
-        ano: ano
+        ano: ano,
+        mes: mes
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -71,7 +79,7 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
     } finally {
       setLoading(false);
     }
-  }, [selectedCompany?.id, getAnoFromCompetencia]);
+  }, [selectedCompany?.id, getCompetenciaInfo]);
 
   useEffect(() => {
     fetchDashboard();
