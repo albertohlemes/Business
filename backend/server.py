@@ -12607,11 +12607,43 @@ async def apurar_icms(
     """
     Realiza a apuração completa de ICMS para uma empresa/competência.
     Agrupa por CFOP, mostra Top 10 produtos e NCMs, e calcula saldo.
+    Aplica flags de desconsiderar ICMS de CFOPs de despesa e ST.
     """
     # Buscar empresa
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Flags de desconsiderar ICMS
+    desconsiderar_icms_despesas = company.get('desconsiderar_icms_despesas', False)
+    desconsiderar_icms_st = company.get('desconsiderar_icms_st', False)
+    
+    # CFOPs de DESPESA (entradas que não geram crédito tributário)
+    CFOPS_DESPESA = [
+        '1407', '2407',  # Compra de mercadoria para uso ou consumo
+        '1556', '2556',  # Compra de material para uso ou consumo
+        '1557', '2557',  # Transferência de material para uso ou consumo
+        '1128', '2128',  # Compra para utilização na prestação de serviço
+        '1551', '2551',  # Compra de ativo imobilizado
+        '1406', '2406',  # Compra de bem para ativo imobilizado
+        '1653', '2653',  # Compra de combustíveis
+        '1126', '2126',  # Compra para industrialização
+        '1352', '2352',  # Aquisição de serviço de transporte
+        '1353', '2353',  # Aquisição de serviço de comunicação
+        '1354', '2354',  # Aquisição de serviço de energia elétrica
+    ]
+    
+    # CFOPs de MERCADORIAS ST (Substituição Tributária)
+    CFOPS_ST = [
+        '1403', '2403',  # Compra para comercialização ST
+        '1409', '2409',  # Transferência para comercialização ST
+        '1410', '2410',  # Devolução de venda ST
+        '1411', '2411',  # Devolução de venda fora do estabelecimento ST
+        '1414', '2414',  # Retorno de mercadoria ST
+        '1415', '2415',  # Retorno de mercadoria diversa ST
+        '1651', '2651',  # Compra de combustível ST
+        '1652', '2652',  # Compra de combustível ST fora do estado
+    ]
     
     # Buscar documentos da competência
     documentos = await db.xml_documents.find({
@@ -12634,6 +12666,12 @@ async def apurar_icms(
     totais = {
         "entradas": {"valor_total": 0, "bc_icms": 0, "valor_icms": 0, "valor_icms_st": 0, "qtd_docs": 0, "qtd_itens": 0},
         "saidas": {"valor_total": 0, "bc_icms": 0, "valor_icms": 0, "valor_icms_st": 0, "qtd_docs": 0, "qtd_itens": 0}
+    }
+    
+    # Totais desconsiderados (para mostrar no frontend)
+    totais_desconsiderados = {
+        "despesas": {"bc_icms": 0, "valor_icms": 0, "qtd_itens": 0},
+        "st": {"bc_icms": 0, "valor_icms": 0, "qtd_itens": 0}
     }
     
     # CFOPs de devolução que geram dedução de ICMS ST
