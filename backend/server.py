@@ -15004,19 +15004,17 @@ async def get_icms_apuracao_rapida(company_id: str, competencia: str):
     """Busca resumo rápido da apuração ICMS"""
     try:
         if not competencia:
-            print(f"DEBUG: competencia is None")
             return None
             
         company = await db.companies.find_one({"id": company_id}, {"_id": 0})
         if not company:
-            print(f"DEBUG: company not found")
             return None
         
         # CFOPs de despesa que não geram crédito
         CFOPS_SEM_CREDITO = ['1407', '2407', '1556', '2556', '1551', '2551', '1653', '2653', '1128', '2128', '1126', '2126']
         desconsiderar_despesas = company.get('desconsiderar_icms_despesas', False)
         
-        # Buscar documentos
+        # Buscar documentos (sem misturar inclusão e exclusão)
         filtro_ativas = get_filtro_notas_ativas()
         query = {
             "company_id": company_id,
@@ -15024,17 +15022,13 @@ async def get_icms_apuracao_rapida(company_id: str, competencia: str):
         }
         query.update(filtro_ativas)
         
-        print(f"DEBUG ICMS query: {query}")
-        
-        documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0, "produtos": 1, "tipo": 1}).to_list(10000)
-        
-        print(f"DEBUG ICMS docs encontrados: {len(documentos)}")
+        # Usar apenas inclusão na projeção
+        documentos = await db.xml_documents.find(query, {"produtos": 1, "tipo": 1}).to_list(10000)
         
         debito_total = 0
         credito_total = 0
         
         for doc in documentos:
-            tipo_doc = doc.get('tipo', 'entrada')
             produtos = doc.get('produtos', [])
             
             for prod in produtos:
@@ -15044,17 +15038,13 @@ async def get_icms_apuracao_rapida(company_id: str, competencia: str):
                 # Determinar tipo pela CFOP
                 cfop_primeiro = cfop[0] if cfop else ''
                 if cfop_primeiro in ['5', '6', '7']:
-                    # Saída = débito
                     debito_total += valor_icms
                 elif cfop_primeiro in ['1', '2', '3']:
-                    # Entrada = crédito (verificar se é despesa)
                     if desconsiderar_despesas and cfop in CFOPS_SEM_CREDITO:
                         continue
                     credito_total += valor_icms
         
         saldo = debito_total - credito_total
-        
-        print(f"DEBUG ICMS resultado: debito={debito_total}, credito={credito_total}, saldo={saldo}")
         
         return {
             "apuracao": {
@@ -15066,104 +15056,54 @@ async def get_icms_apuracao_rapida(company_id: str, competencia: str):
         }
     except Exception as e:
         print(f"Erro get_icms_apuracao_rapida: {e}")
-        import traceback
-        traceback.print_exc()
         return None
 
 # Função auxiliar para buscar dados de apuração PIS/COFINS
 async def get_pis_cofins_apuracao_rapida(company_id: str, competencia: str, company: dict):
     """Busca resumo rápido da apuração PIS/COFINS"""
     try:
-        from services.pis_cofins_calculator import PisCofinsCalculator
+        if not competencia:
+            return None
         
-        perfis = company.get('perfis_comerciais', [])
-        if not perfis:
-            perfil = company.get('perfil_comercial', 'VAREJO')
-            perfis = [perfil] if perfil else ['VAREJO']
+        # Buscar documentos
+        filtro_ativas = get_filtro_notas_ativas()
+        query = {
+            "company_id": company_id,
+            "competencia": competencia
+        }
+        query.update(filtro_ativas)
         
-        calculator = PisCofinsCalculator(
-            regime_tributario=company.get('regime_tributario', 'LUCRO_REAL'),
-            perfis_empresa=perfis,
-            cnaes_empresa=company.get('cnaes', [])
-        )
+        documentos = await db.xml_documents.find(query, {"produtos": 1, "tipo": 1, "tipo_operacao": 1}).to_list(10000)
         
-        # Pipeline de agregação para performance
-        pipeline = [
-            {"$match": {
-                "company_id": company_id,
-                "competencia": competencia,
-                **get_filtro_notas_ativas()
-            }},
-            {"$project": {
-                "_id": 0,
-                "tipo": 1,
-                "tipo_operacao": 1,
-                "produtos": 1,
-                "valor_total": 1
-            }}
-        ]
-        
-        documentos = []
-        async for doc in db.xml_documents.aggregate(pipeline):
-            documentos.append(doc)
-        
-        # Separar por tipo
-        entradas = []
-        saidas = []
-        for doc in documentos:
-            tipo = doc.get('tipo_operacao') or doc.get('tipo', 'entrada')
-            produtos = doc.get('produtos', [])
-            if produtos:
-                cfop = str(produtos[0].get('cfop', ''))
-                if cfop and cfop[0] in ['5', '6', '7']:
-                    tipo = 'saida'
-                elif cfop and cfop[0] in ['1', '2', '3']:
-                    tipo = 'entrada'
-            
-            if tipo == 'saida':
-                saidas.append(doc)
-            else:
-                entradas.append(doc)
-        
-        # Calcular PIS/COFINS
         pis_debito = 0
         cofins_debito = 0
         pis_credito = 0
         cofins_credito = 0
         
-        # Saídas (débitos)
-        for doc in saidas:
+        for doc in documentos:
             produtos = doc.get('produtos', [])
+            
             for prod in produtos:
-                valor = float(prod.get('valor_total', 0) or 0)
-                ncm = str(prod.get('ncm', ''))
                 cfop = str(prod.get('cfop', ''))
-                
-                result = calculator.calcular_item(
-                    tipo_operacao='saida',
-                    cfop=cfop,
-                    ncm=ncm,
-                    valor_base=valor
-                )
-                pis_debito += result.get('pis_valor', 0)
-                cofins_debito += result.get('cofins_valor', 0)
-        
-        # Entradas (créditos)
-        for doc in entradas:
-            produtos = doc.get('produtos', [])
-            for prod in produtos:
-                valor = float(prod.get('valor_total', 0) or 0)
+                valor_base = float(prod.get('valor_total', 0) or 0)
                 ncm = str(prod.get('ncm', ''))
-                cfop = str(prod.get('cfop', ''))
                 
-                result = calculator.calcular_item(
-                    tipo_operacao='entrada',
-                    cfop=cfop,
+                # Calcular usando a função existente
+                resultado = calcular_pis_cofins_produto(
                     ncm=ncm,
-                    valor_base=valor
+                    cfop=cfop,
+                    valor_base=valor_base,
+                    regime='LUCRO_REAL'
                 )
-                pis_credito += result.get('pis_valor', 0)
-                cofins_credito += result.get('cofins_valor', 0)
+                
+                cfop_primeiro = cfop[0] if cfop else ''
+                if cfop_primeiro in ['5', '6', '7']:
+                    pis_debito += resultado.get('pis_valor', 0)
+                    cofins_debito += resultado.get('cofins_valor', 0)
+                elif cfop_primeiro in ['1', '2', '3']:
+                    if verificar_cfop_gera_credito(cfop):
+                        pis_credito += resultado.get('pis_valor', 0)
+                        cofins_credito += resultado.get('cofins_valor', 0)
         
         pis_saldo = pis_debito - pis_credito
         cofins_saldo = cofins_debito - cofins_credito
