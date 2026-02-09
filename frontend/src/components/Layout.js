@@ -63,7 +63,6 @@ const Layout = ({ user, onLogout, children }) => {
         { name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
         { name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' },
         { name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' },
-        { name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' },
         { name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' },
         { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
         { name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' },
@@ -71,9 +70,13 @@ const Layout = ({ user, onLogout, children }) => {
     }
     
     const tipoAtividade = selectedCompany.tipo_atividade || 'comercio';
+    const perfisComerciais = selectedCompany.perfis_comerciais || [];
     const equiparadoIndustria = selectedCompany.equiparado_industria || false;
     const apuraIcms = selectedCompany.apura_icms || false;
     const apuraIcmsSt = selectedCompany.apura_icms_st || false;
+    
+    // Verificar se é indústria (pelo tipo ou pelo perfil)
+    const ehIndustria = tipoAtividade === 'industria' || perfisComerciais.includes('industria') || equiparadoIndustria;
     
     // PIS/COFINS - sempre mostra (todas empresas pagam)
     baseNav.push({ name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' });
@@ -83,13 +86,18 @@ const Layout = ({ user, onLogout, children }) => {
       baseNav.push({ name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' });
     }
     
+    // ICMS ST - Apenas Indústria (ou equiparado) OU flag explícita
+    if (ehIndustria || apuraIcmsSt) {
+      baseNav.push({ name: 'ICMS ST', href: '/apuracao-icms-st', icon: Calculator, testId: 'nav-apuracao-icms-st' });
+    }
+    
     // ISS - Serviços ou Mista
     if (['servicos', 'mista'].includes(tipoAtividade)) {
       baseNav.push({ name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' });
     }
     
-    // IPI - Indústria OU Equiparado a Indústria
-    if (tipoAtividade === 'industria' || equiparadoIndustria) {
+    // IPI - Apenas Indústria (ou equiparado)
+    if (ehIndustria) {
       baseNav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
     }
     
