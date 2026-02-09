@@ -8104,6 +8104,307 @@ async def relatorio_divergencias_saida(
     }
 
 
+# ============== RELATÓRIO AGRUPADO POR ALÍQUOTA ==============
+
+@api_router.get("/relatorio-agrupado-aliquota/{company_id}")
+async def relatorio_agrupado_aliquota(
+    company_id: str,
+    competencia: str,
+    imposto: str = "icms",  # icms, pis ou cofins
+    tipo: str = "saida",  # entrada ou saida
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Relatório que agrupa produtos por alíquota (ordem decrescente).
+    Para cada alíquota, lista os produtos com:
+    - Descrição do produto
+    - NCM
+    - Valor do movimento
+    - Base de cálculo
+    - Valor do imposto
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if imposto not in ['icms', 'pis', 'cofins']:
+        raise HTTPException(status_code=400, detail="Imposto deve ser: icms, pis ou cofins")
+    
+    # Buscar documentos
+    filtro = {
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": tipo,
+        **get_filtro_notas_ativas()
+    }
+    
+    documents = await db.xml_documents.find(filtro, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    # Mapear campo de alíquota e valor conforme o imposto
+    if imposto == 'icms':
+        campo_aliquota = 'aliquota_icms'
+        campo_base = 'base_icms'
+        campo_valor = 'valor_icms'
+    elif imposto == 'pis':
+        campo_aliquota = 'aliquota_pis'
+        campo_base = 'base_pis'
+        campo_valor = 'valor_pis'
+    else:  # cofins
+        campo_aliquota = 'aliquota_cofins'
+        campo_base = 'base_cofins'
+        campo_valor = 'valor_cofins'
+    
+    # Agrupar produtos por alíquota
+    grupos = {}
+    
+    for doc in documents:
+        for prod in doc.get('produtos', []):
+            aliquota = float(prod.get(campo_aliquota, 0) or 0)
+            aliq_key = f"{aliquota:.2f}"
+            
+            if aliq_key not in grupos:
+                grupos[aliq_key] = {
+                    'aliquota': aliquota,
+                    'produtos': [],
+                    'totais': {
+                        'valor_movimento': 0,
+                        'base_calculo': 0,
+                        'valor_imposto': 0,
+                        'qtd_itens': 0
+                    }
+                }
+            
+            valor_movimento = float(prod.get('valor_total', 0) or 0)
+            base_calculo = float(prod.get(campo_base, 0) or 0)
+            valor_imposto = float(prod.get(campo_valor, 0) or 0)
+            
+            grupos[aliq_key]['produtos'].append({
+                'nf_numero': doc.get('numero_nfe', ''),
+                'nf_data': doc.get('data_emissao', '')[:10] if doc.get('data_emissao') else '',
+                'emitente_dest': doc.get('emitente_nome' if tipo == 'entrada' else 'destinatario_nome', ''),
+                'codigo': prod.get('codigo', ''),
+                'descricao': prod.get('descricao', '')[:60],
+                'ncm': prod.get('ncm', ''),
+                'cfop': prod.get('cfop', ''),
+                'cst': prod.get('cst_icms' if imposto == 'icms' else f'cst_{imposto}', ''),
+                'quantidade': float(prod.get('quantidade', 0) or 0),
+                'valor_unitario': float(prod.get('valor_unitario', 0) or 0),
+                'valor_movimento': valor_movimento,
+                'base_calculo': base_calculo,
+                'valor_imposto': valor_imposto
+            })
+            
+            grupos[aliq_key]['totais']['valor_movimento'] += valor_movimento
+            grupos[aliq_key]['totais']['base_calculo'] += base_calculo
+            grupos[aliq_key]['totais']['valor_imposto'] += valor_imposto
+            grupos[aliq_key]['totais']['qtd_itens'] += 1
+    
+    # Ordenar por alíquota decrescente
+    grupos_ordenados = sorted(grupos.values(), key=lambda x: x['aliquota'], reverse=True)
+    
+    # Calcular totais gerais
+    total_geral = {
+        'valor_movimento': sum(g['totais']['valor_movimento'] for g in grupos_ordenados),
+        'base_calculo': sum(g['totais']['base_calculo'] for g in grupos_ordenados),
+        'valor_imposto': sum(g['totais']['valor_imposto'] for g in grupos_ordenados),
+        'qtd_itens': sum(g['totais']['qtd_itens'] for g in grupos_ordenados),
+        'qtd_aliquotas': len(grupos_ordenados)
+    }
+    
+    return {
+        "empresa": company['razao_social'],
+        "cnpj": company['cnpj'],
+        "competencia": competencia,
+        "imposto": imposto.upper(),
+        "tipo_operacao": "Entradas" if tipo == "entrada" else "Saídas",
+        "total_documentos": len(documents),
+        "total_geral": total_geral,
+        "grupos": grupos_ordenados
+    }
+
+
+@api_router.get("/relatorio-agrupado-aliquota/{company_id}/exportar")
+async def exportar_relatorio_agrupado_aliquota(
+    company_id: str,
+    competencia: str,
+    imposto: str = "icms",
+    tipo: str = "saida",
+    formato: str = "xlsx",  # xlsx ou pdf
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Exporta relatório agrupado por alíquota em XLSX ou PDF.
+    """
+    # Buscar dados do relatório
+    dados = await relatorio_agrupado_aliquota(company_id, competencia, imposto, tipo, current_user)
+    
+    if formato == "xlsx":
+        # Criar arquivo Excel
+        wb = Workbook()
+        ws = wb.active
+        ws.title = f"{imposto.upper()} por Alíquota"
+        
+        # Estilos
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="C8A951", end_color="C8A951", fill_type="solid")
+        subheader_fill = PatternFill(start_color="4A4A4A", end_color="4A4A4A", fill_type="solid")
+        number_format = '#,##0.00'
+        
+        # Cabeçalho do relatório
+        ws['A1'] = f"RELATÓRIO DE {imposto.upper()} AGRUPADO POR ALÍQUOTA"
+        ws['A1'].font = Font(bold=True, size=14)
+        ws['A2'] = f"Empresa: {dados['empresa']}"
+        ws['A3'] = f"CNPJ: {dados['cnpj']}"
+        ws['A4'] = f"Competência: {dados['competencia']} | Operação: {dados['tipo_operacao']}"
+        ws['A5'] = f"Total de Documentos: {dados['total_documentos']} | Total de Itens: {dados['total_geral']['qtd_itens']}"
+        
+        # Resumo geral
+        ws['A7'] = "RESUMO GERAL"
+        ws['A7'].font = Font(bold=True)
+        ws['A8'] = f"Valor Total Movimento: R$ {dados['total_geral']['valor_movimento']:,.2f}"
+        ws['A9'] = f"Base de Cálculo Total: R$ {dados['total_geral']['base_calculo']:,.2f}"
+        ws['A10'] = f"Valor Total {imposto.upper()}: R$ {dados['total_geral']['valor_imposto']:,.2f}"
+        ws['A11'] = f"Quantidade de Alíquotas: {dados['total_geral']['qtd_aliquotas']}"
+        
+        linha_atual = 13
+        
+        # Para cada grupo de alíquota
+        for grupo in dados['grupos']:
+            # Cabeçalho do grupo
+            ws.cell(row=linha_atual, column=1, value=f"ALÍQUOTA: {grupo['aliquota']:.2f}%")
+            ws.cell(row=linha_atual, column=1).font = Font(bold=True, size=12)
+            ws.cell(row=linha_atual, column=1).fill = PatternFill(start_color="2A2A2A", end_color="2A2A2A", fill_type="solid")
+            ws.cell(row=linha_atual, column=1).font = Font(bold=True, color="FFFFFF")
+            ws.merge_cells(start_row=linha_atual, start_column=1, end_row=linha_atual, end_column=10)
+            linha_atual += 1
+            
+            # Subtotais do grupo
+            ws.cell(row=linha_atual, column=1, value=f"Itens: {grupo['totais']['qtd_itens']} | Movimento: R$ {grupo['totais']['valor_movimento']:,.2f} | Base: R$ {grupo['totais']['base_calculo']:,.2f} | Imposto: R$ {grupo['totais']['valor_imposto']:,.2f}")
+            ws.cell(row=linha_atual, column=1).font = Font(italic=True)
+            ws.merge_cells(start_row=linha_atual, start_column=1, end_row=linha_atual, end_column=10)
+            linha_atual += 1
+            
+            # Cabeçalhos das colunas
+            colunas = ['NF', 'Data', 'Emit/Dest', 'Código', 'Descrição', 'NCM', 'CFOP', 'Valor Mov.', 'Base Cálc.', 'Valor Imp.']
+            for col, titulo in enumerate(colunas, 1):
+                cell = ws.cell(row=linha_atual, column=col, value=titulo)
+                cell.font = header_font
+                cell.fill = header_fill
+            linha_atual += 1
+            
+            # Dados dos produtos
+            for prod in grupo['produtos']:
+                ws.cell(row=linha_atual, column=1, value=prod['nf_numero'])
+                ws.cell(row=linha_atual, column=2, value=prod['nf_data'])
+                ws.cell(row=linha_atual, column=3, value=prod['emitente_dest'][:30])
+                ws.cell(row=linha_atual, column=4, value=prod['codigo'])
+                ws.cell(row=linha_atual, column=5, value=prod['descricao'])
+                ws.cell(row=linha_atual, column=6, value=prod['ncm'])
+                ws.cell(row=linha_atual, column=7, value=prod['cfop'])
+                ws.cell(row=linha_atual, column=8, value=prod['valor_movimento']).number_format = number_format
+                ws.cell(row=linha_atual, column=9, value=prod['base_calculo']).number_format = number_format
+                ws.cell(row=linha_atual, column=10, value=prod['valor_imposto']).number_format = number_format
+                linha_atual += 1
+            
+            linha_atual += 1  # Linha em branco entre grupos
+        
+        # Ajustar largura das colunas
+        ws.column_dimensions['A'].width = 10
+        ws.column_dimensions['B'].width = 12
+        ws.column_dimensions['C'].width = 25
+        ws.column_dimensions['D'].width = 15
+        ws.column_dimensions['E'].width = 40
+        ws.column_dimensions['F'].width = 12
+        ws.column_dimensions['G'].width = 8
+        ws.column_dimensions['H'].width = 15
+        ws.column_dimensions['I'].width = 15
+        ws.column_dimensions['J'].width = 15
+        
+        # Salvar em buffer
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        
+        filename = f"relatorio_{imposto}_{tipo}_{competencia.replace('/', '_')}.xlsx"
+        
+        return StreamingResponse(
+            buffer,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
+    elif formato == "pdf":
+        # Criar PDF
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        from reportlab.lib.units import mm
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), leftMargin=10*mm, rightMargin=10*mm)
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=14, spaceAfter=10)
+        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=10, spaceAfter=5)
+        
+        elements = []
+        
+        # Título
+        elements.append(Paragraph(f"RELATÓRIO DE {imposto.upper()} AGRUPADO POR ALÍQUOTA", title_style))
+        elements.append(Paragraph(f"Empresa: {dados['empresa']} | CNPJ: {dados['cnpj']}", subtitle_style))
+        elements.append(Paragraph(f"Competência: {dados['competencia']} | Operação: {dados['tipo_operacao']}", subtitle_style))
+        elements.append(Spacer(1, 10))
+        
+        # Resumo
+        elements.append(Paragraph(f"<b>RESUMO:</b> Documentos: {dados['total_documentos']} | Itens: {dados['total_geral']['qtd_itens']} | Movimento: R$ {dados['total_geral']['valor_movimento']:,.2f} | Imposto: R$ {dados['total_geral']['valor_imposto']:,.2f}", subtitle_style))
+        elements.append(Spacer(1, 15))
+        
+        # Para cada grupo
+        for grupo in dados['grupos']:
+            elements.append(Paragraph(f"<b>ALÍQUOTA: {grupo['aliquota']:.2f}%</b> - {grupo['totais']['qtd_itens']} itens | Mov: R$ {grupo['totais']['valor_movimento']:,.2f} | Imp: R$ {grupo['totais']['valor_imposto']:,.2f}", subtitle_style))
+            
+            # Tabela resumida (apenas primeiros 50 itens por alíquota no PDF)
+            table_data = [['NF', 'Descrição', 'NCM', 'Valor Mov.', 'Base', 'Imposto']]
+            for prod in grupo['produtos'][:50]:
+                table_data.append([
+                    prod['nf_numero'],
+                    prod['descricao'][:35],
+                    prod['ncm'],
+                    f"R$ {prod['valor_movimento']:,.2f}",
+                    f"R$ {prod['base_calculo']:,.2f}",
+                    f"R$ {prod['valor_imposto']:,.2f}"
+                ])
+            
+            if len(grupo['produtos']) > 50:
+                table_data.append(['...', f'+ {len(grupo["produtos"]) - 50} itens', '', '', '', ''])
+            
+            table = Table(table_data, colWidths=[40, 150, 50, 70, 70, 70])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.78, 0.66, 0.32)),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTSIZE', (0, 0), (-1, -1), 7),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),
+            ]))
+            elements.append(table)
+            elements.append(Spacer(1, 10))
+        
+        doc.build(elements)
+        buffer.seek(0)
+        
+        filename = f"relatorio_{imposto}_{tipo}_{competencia.replace('/', '_')}.pdf"
+        
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
+    else:
+        raise HTTPException(status_code=400, detail="Formato deve ser: xlsx ou pdf")
+
+
 # ============== ANÁLISE COMPLETA DE PIS/COFINS ==============
 
 # Tabela de NCMs com tributação MONOFÁSICA (alíquota zero na revenda)
