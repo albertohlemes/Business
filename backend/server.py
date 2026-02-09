@@ -12739,26 +12739,18 @@ async def apurar_icms(
         if not produtos:
             continue
         
-        # Determinar se é entrada ou saída pelo CFOP do primeiro produto
-        primeiro_cfop = str(produtos[0].get('cfop', ''))
-        if primeiro_cfop and primeiro_cfop[0] in ['1', '2', '3']:
+        # Determinar se é entrada ou saída pelo campo TIPO do documento (mesmo critério do Dashboard)
+        tipo_doc = doc.get('tipo', 'entrada')
+        if tipo_doc == 'entrada':
             tipo_op = 'entrada'
             totais["entradas"]["qtd_docs"] += 1
             # Soma por DOCUMENTO (critério Dashboard)
             totais_por_documento["entradas"] += float(doc.get('valor_total', 0) or 0)
-        elif primeiro_cfop and primeiro_cfop[0] in ['5', '6', '7']:
+        else:  # saida
             tipo_op = 'saida'
             totais["saidas"]["qtd_docs"] += 1
             # Soma por DOCUMENTO (critério Dashboard)
             totais_por_documento["saidas"] += float(doc.get('valor_total', 0) or 0)
-        else:
-            tipo_op = doc.get('tipo_operacao', doc.get('tipo', 'entrada'))
-            if tipo_op == 'entrada':
-                totais["entradas"]["qtd_docs"] += 1
-                totais_por_documento["entradas"] += float(doc.get('valor_total', 0) or 0)
-            else:
-                totais["saidas"]["qtd_docs"] += 1
-                totais_por_documento["saidas"] += float(doc.get('valor_total', 0) or 0)
         
         for prod in produtos:
             cfop = str(prod.get('cfop', 'SEM CFOP'))
