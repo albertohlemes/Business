@@ -383,152 +383,234 @@ const Dashboard = ({ user, onLogout }) => {
               </div>
             </div>
 
-            {/* Impostos */}
+            {/* Impostos - Diferenciado por regime tributário */}
             <div>
               <h2 className="text-lg font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>Impostos</h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* ICMS - Mostrar apenas se for contribuinte */}
-                {(stats.empresa?.tipo_atividade === 'comercio' || 
-                  stats.empresa?.tipo_atividade === 'industria' || 
-                  stats.empresa?.tipo_atividade === 'mista' ||
-                  stats.empresa?.apura_icms) && (
-                  <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
-                    <h4 className="font-semibold text-white mb-3">ICMS</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-emerald-400">Crédito:</span>
-                        <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos.icms)}</span>
-                      </div>
-                      {stats.creditos.icms_st_desconsiderado > 0 && (
-                        <div className="flex justify-between text-xs bg-amber-500/10 -mx-2 px-2 py-1 rounded">
-                          <span className="text-amber-400">ICMS-ST (sem crédito):</span>
-                          <span className="font-medium text-amber-400">{formatCurrency(stats.creditos.icms_st_desconsiderado)}</span>
+              {/* === SIMPLES NACIONAL === */}
+              {stats.empresa?.regime_tributario === 'simples_nacional' ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* DAS do Mês */}
+                    <div className="bg-gradient-to-br from-[#C8A951]/20 to-[#C8A951]/5 rounded-lg border border-[#C8A951]/30 p-4">
+                      <h4 className="font-semibold text-[#C8A951] mb-3">DAS do Mês</h4>
+                      <div className="space-y-2">
+                        <p className="text-2xl font-bold text-[#C8A951]">
+                          {formatCurrency(stats.simples?.das_valor || 0)}
+                        </p>
+                        <div className="text-xs text-[#A1A1AA] space-y-0.5">
+                          <div>Alíquota Efetiva: <span className="text-[#C8A951] font-semibold">{formatPercent(stats.simples?.aliquota_efetiva || 0)}</span></div>
                         </div>
-                      )}
-                      {stats.creditos.icms_despesa_desconsiderado > 0 && (
-                        <div className="flex justify-between text-xs bg-orange-500/10 -mx-2 px-2 py-1 rounded">
-                          <span className="text-orange-400">Despesa (sem crédito):</span>
-                          <span className="font-medium text-orange-400">{formatCurrency(stats.creditos.icms_despesa_desconsiderado)}</span>
+                      </div>
+                    </div>
+                    
+                    {/* DIFAL do Mês */}
+                    <div className="bg-gradient-to-br from-purple-500/20 to-purple-500/5 rounded-lg border border-purple-500/30 p-4">
+                      <h4 className="font-semibold text-purple-400 mb-3">DIFAL do Mês</h4>
+                      <div className="space-y-2">
+                        <p className="text-2xl font-bold text-purple-400">
+                          {formatCurrency(stats.simples?.difal_valor || 0)}
+                        </p>
+                        <div className="text-xs text-[#A1A1AA] space-y-0.5">
+                          <div>% Compras Inter.: <span className="text-purple-400 font-semibold">{formatPercent(stats.simples?.difal_percentual_compras || 0)}</span></div>
                         </div>
-                      )}
-                      <div className="flex justify-between text-sm">
-                        <span className="text-red-400">Débito:</span>
-                        <span className="font-medium text-red-400">{formatCurrency(stats.debitos.icms)}</span>
                       </div>
-                      <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
-                        <span className="text-[#A1A1AA]">A Pagar:</span>
-                        <span className={stats.impostos_pagar.icms > 0 ? 'text-red-400' : 'text-emerald-400'}>
-                          {formatCurrency(stats.impostos_pagar.icms)}
-                        </span>
+                    </div>
+                    
+                    {/* Compras Interestaduais */}
+                    <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                      <h4 className="font-semibold text-white mb-3">Compras Interestaduais</h4>
+                      <div className="space-y-2">
+                        <p className="text-2xl font-bold text-white">
+                          {formatCurrency(stats.simples?.compras_interestaduais || 0)}
+                        </p>
+                        <div className="text-xs text-[#A1A1AA] space-y-0.5">
+                          <div>{stats.simples?.qtd_notas_interestaduais || 0} notas de outros estados</div>
+                        </div>
                       </div>
-                      <div className="text-xs text-[#666] pt-1 space-y-0.5">
-                        <div>% Saídas: {((stats.impostos_pagar.icms / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
-                        <div>% Vendas: {((stats.impostos_pagar.icms / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
+                    </div>
+                    
+                    {/* Total de Impostos (DAS + DIFAL) */}
+                    <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 rounded-lg border border-emerald-500/30 p-4">
+                      <h4 className="font-semibold text-emerald-400 mb-3">Total Impostos</h4>
+                      <div className="space-y-2">
+                        <p className="text-2xl font-bold text-emerald-400">
+                          {formatCurrency((stats.simples?.das_valor || 0) + (stats.simples?.difal_valor || 0))}
+                        </p>
+                        <div className="text-xs text-[#A1A1AA] space-y-0.5">
+                          <div>% Saídas: <span className="text-emerald-400 font-semibold">{formatPercent(stats.simples?.percentual_sobre_saidas || 0)}</span></div>
+                          <div>% Vendas: <span className="text-emerald-400 font-semibold">{formatPercent(stats.simples?.percentual_sobre_vendas || 0)}</span></div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                )}
-                
-                {/* PIS */}
-                <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
-                  <h4 className="font-semibold text-white mb-3">PIS</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-emerald-400">Crédito:</span>
-                      <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos.pis)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-red-400">Débito:</span>
-                      <span className="font-medium text-red-400">{formatCurrency(stats.debitos.pis)}</span>
-                    </div>
-                    <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
-                      <span className="text-[#A1A1AA]">A Pagar:</span>
-                      <span className={stats.impostos_pagar.pis > 0 ? 'text-red-400' : 'text-emerald-400'}>
-                        {formatCurrency(stats.impostos_pagar.pis)}
-                      </span>
-                    </div>
-                    <div className="text-xs text-[#666] pt-1 space-y-0.5">
-                      <div>% Saídas: {((stats.impostos_pagar.pis / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
-                      <div>% Vendas: {((stats.impostos_pagar.pis / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
-                    </div>
-                  </div>
-                </div>
 
-                {/* COFINS */}
-                <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
-                  <h4 className="font-semibold text-white mb-3">COFINS</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-emerald-400">Crédito:</span>
-                      <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos.cofins)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-red-400">Débito:</span>
-                      <span className="font-medium text-red-400">{formatCurrency(stats.debitos.cofins)}</span>
-                    </div>
-                    <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
-                      <span className="text-[#A1A1AA]">A Pagar:</span>
-                      <span className={stats.impostos_pagar.cofins > 0 ? 'text-red-400' : 'text-emerald-400'}>
-                        {formatCurrency(stats.impostos_pagar.cofins)}
-                      </span>
-                    </div>
-                    <div className="text-xs text-[#666] pt-1 space-y-0.5">
-                      <div>% Saídas: {((stats.impostos_pagar.cofins / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
-                      <div>% Vendas: {((stats.impostos_pagar.cofins / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* ISS - Mostrar apenas se for de serviços */}
-                {(stats.empresa?.tipo_atividade === 'servicos' || stats.empresa?.tipo_atividade === 'mista') && (
-                  <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
-                    <h4 className="font-semibold text-white mb-3">ISS (Serviços)</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-[#A1A1AA]">Retido:</span>
-                        <span className="font-medium text-white">{formatCurrency(stats.debitos.iss)}</span>
+                  {/* Total de Impostos - Simples Nacional */}
+                  <div className="mt-4 bg-[#0C0C0C] border border-[#C8A951]/30 rounded-lg p-6">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>Total de Impostos a Pagar</h3>
+                        <p className="text-[#A1A1AA] text-sm">DAS + DIFAL</p>
+                        <p className="text-sm text-[#C8A951] mt-1">
+                          {formatPercent(stats.simples?.percentual_sobre_vendas || 0)} sobre vendas
+                        </p>
                       </div>
-                      <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
-                        <span className="text-[#A1A1AA]">A Pagar:</span>
-                        <span className={stats.impostos_pagar.iss > 0 ? 'text-red-400' : 'text-emerald-400'}>
-                          {formatCurrency(stats.impostos_pagar.iss)}
-                        </span>
-                      </div>
-                      <div className="text-xs text-[#666] pt-1 space-y-0.5">
-                        <div>% Saídas: {((stats.impostos_pagar.iss / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
-                        <div>% Vendas: {((stats.impostos_pagar.iss / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
+                      <div className="text-right">
+                        <p className="text-3xl font-bold text-[#C8A951]">
+                          {formatCurrency((stats.simples?.das_valor || 0) + (stats.simples?.difal_valor || 0))}
+                        </p>
+                        <p className="text-sm text-[#A1A1AA]">Competência {selectedCompetencia}</p>
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
+                </>
+              ) : (
+                /* === LUCRO PRESUMIDO / LUCRO REAL === */
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* ICMS - Mostrar apenas se for contribuinte */}
+                    {(stats.empresa?.tipo_atividade === 'comercio' || 
+                      stats.empresa?.tipo_atividade === 'industria' || 
+                      stats.empresa?.tipo_atividade === 'mista' ||
+                      stats.empresa?.apura_icms) && (
+                      <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                        <h4 className="font-semibold text-white mb-3">ICMS</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-emerald-400">Crédito:</span>
+                            <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos.icms)}</span>
+                          </div>
+                          {stats.creditos.icms_st_desconsiderado > 0 && (
+                            <div className="flex justify-between text-xs bg-amber-500/10 -mx-2 px-2 py-1 rounded">
+                              <span className="text-amber-400">ICMS-ST (sem crédito):</span>
+                              <span className="font-medium text-amber-400">{formatCurrency(stats.creditos.icms_st_desconsiderado)}</span>
+                            </div>
+                          )}
+                          {stats.creditos.icms_despesa_desconsiderado > 0 && (
+                            <div className="flex justify-between text-xs bg-orange-500/10 -mx-2 px-2 py-1 rounded">
+                              <span className="text-orange-400">Despesa (sem crédito):</span>
+                              <span className="font-medium text-orange-400">{formatCurrency(stats.creditos.icms_despesa_desconsiderado)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-sm">
+                            <span className="text-red-400">Débito:</span>
+                            <span className="font-medium text-red-400">{formatCurrency(stats.debitos.icms)}</span>
+                          </div>
+                          <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
+                            <span className="text-[#A1A1AA]">A Pagar:</span>
+                            <span className={stats.impostos_pagar.icms > 0 ? 'text-red-400' : 'text-emerald-400'}>
+                              {formatCurrency(stats.impostos_pagar.icms)}
+                            </span>
+                          </div>
+                          <div className="text-xs text-[#666] pt-1 space-y-0.5">
+                            <div>% Saídas: {((stats.impostos_pagar.icms / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
+                            <div>% Vendas: {((stats.impostos_pagar.icms / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* PIS */}
+                    <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                      <h4 className="font-semibold text-white mb-3">PIS</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-emerald-400">Crédito:</span>
+                          <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos.pis)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-red-400">Débito:</span>
+                          <span className="font-medium text-red-400">{formatCurrency(stats.debitos.pis)}</span>
+                        </div>
+                        <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
+                          <span className="text-[#A1A1AA]">A Pagar:</span>
+                          <span className={stats.impostos_pagar.pis > 0 ? 'text-red-400' : 'text-emerald-400'}>
+                            {formatCurrency(stats.impostos_pagar.pis)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-[#666] pt-1 space-y-0.5">
+                          <div>% Saídas: {((stats.impostos_pagar.pis / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
+                          <div>% Vendas: {((stats.impostos_pagar.pis / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
+                        </div>
+                      </div>
+                    </div>
 
-              {/* Total de Impostos */}
-              <div className="mt-4 bg-[#0C0C0C] border border-[#C8A951]/30 rounded-lg p-6">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>Total de Impostos a Pagar</h3>
-                    <p className="text-[#A1A1AA] text-sm">
-                      {[
-                        (stats.empresa?.tipo_atividade === 'comercio' || stats.empresa?.tipo_atividade === 'industria' || stats.empresa?.tipo_atividade === 'mista' || stats.empresa?.apura_icms) ? 'ICMS' : null,
-                        'PIS',
-                        'COFINS',
-                        (stats.empresa?.tipo_atividade === 'servicos' || stats.empresa?.tipo_atividade === 'mista') ? 'ISS' : null
-                      ].filter(Boolean).join(' + ')}
-                    </p>
-                    {stats.indicadores?.perc_total_impostos_faturamento > 0 && (
-                      <p className="text-sm text-[#C8A951] mt-1">
-                        {stats.indicadores.perc_total_impostos_faturamento.toFixed(2)}% do faturamento
-                      </p>
+                    {/* COFINS */}
+                    <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                      <h4 className="font-semibold text-white mb-3">COFINS</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-emerald-400">Crédito:</span>
+                          <span className="font-medium text-emerald-400">{formatCurrency(stats.creditos.cofins)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-red-400">Débito:</span>
+                          <span className="font-medium text-red-400">{formatCurrency(stats.debitos.cofins)}</span>
+                        </div>
+                        <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
+                          <span className="text-[#A1A1AA]">A Pagar:</span>
+                          <span className={stats.impostos_pagar.cofins > 0 ? 'text-red-400' : 'text-emerald-400'}>
+                            {formatCurrency(stats.impostos_pagar.cofins)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-[#666] pt-1 space-y-0.5">
+                          <div>% Saídas: {((stats.impostos_pagar.cofins / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
+                          <div>% Vendas: {((stats.impostos_pagar.cofins / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* ISS - Mostrar apenas se for de serviços */}
+                    {(stats.empresa?.tipo_atividade === 'servicos' || stats.empresa?.tipo_atividade === 'mista') && (
+                      <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
+                        <h4 className="font-semibold text-white mb-3">ISS (Serviços)</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-[#A1A1AA]">Retido:</span>
+                            <span className="font-medium text-white">{formatCurrency(stats.debitos.iss)}</span>
+                          </div>
+                          <div className="border-t border-[#2A2A2A] pt-2 flex justify-between text-sm font-bold">
+                            <span className="text-[#A1A1AA]">A Pagar:</span>
+                            <span className={stats.impostos_pagar.iss > 0 ? 'text-red-400' : 'text-emerald-400'}>
+                              {formatCurrency(stats.impostos_pagar.iss)}
+                            </span>
+                          </div>
+                          <div className="text-xs text-[#666] pt-1 space-y-0.5">
+                            <div>% Saídas: {((stats.impostos_pagar.iss / (stats.valores.saidas?.total || 1)) * 100).toFixed(2)}%</div>
+                            <div>% Vendas: {((stats.impostos_pagar.iss / (stats.valores.vendas_liquidas?.liquidas || 1)) * 100).toFixed(2)}%</div>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <div className="text-right">
-                    <p className="text-3xl font-bold text-[#C8A951]">{formatCurrency(stats.impostos_pagar.total)}</p>
-                    <p className="text-sm text-[#A1A1AA]">Competência {selectedCompetencia}</p>
+
+                  {/* Total de Impostos */}
+                  <div className="mt-4 bg-[#0C0C0C] border border-[#C8A951]/30 rounded-lg p-6">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>Total de Impostos a Pagar</h3>
+                        <p className="text-[#A1A1AA] text-sm">
+                          {[
+                            (stats.empresa?.tipo_atividade === 'comercio' || stats.empresa?.tipo_atividade === 'industria' || stats.empresa?.tipo_atividade === 'mista' || stats.empresa?.apura_icms) ? 'ICMS' : null,
+                            'PIS',
+                            'COFINS',
+                            (stats.empresa?.tipo_atividade === 'servicos' || stats.empresa?.tipo_atividade === 'mista') ? 'ISS' : null
+                          ].filter(Boolean).join(' + ')}
+                        </p>
+                        {stats.indicadores?.perc_total_impostos_faturamento > 0 && (
+                          <p className="text-sm text-[#C8A951] mt-1">
+                            {stats.indicadores.perc_total_impostos_faturamento.toFixed(2)}% do faturamento
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-3xl font-bold text-[#C8A951]">{formatCurrency(stats.impostos_pagar.total)}</p>
+                        <p className="text-sm text-[#A1A1AA]">Competência {selectedCompetencia}</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
 
             {/* Indicadores */}
