@@ -1298,6 +1298,7 @@ const PisCofins = ({ user, onLogout }) => {
         ) : (
           <>
             {activeTab === 'apuracao' && <TabApuracao />}
+            {activeTab === 'detalhamento' && <TabDetalhamento />}
             {activeTab === 'comparativo' && <TabComparativo />}
             {activeTab === 'divergencias' && <TabDivergencias />}
           </>
