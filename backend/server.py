@@ -16113,6 +16113,7 @@ async def get_aliquotas_difal(current_user: User = Depends(get_current_user)):
 @api_router.post("/simples-nacional/ret/comparativo")
 async def ret_simples_nacional(
     company_id: str,
+    ano: int = None,  # Ano para o comparativo
     competencia: str = None,  # Se não informado, usa acumulado do ano
     current_user: User = Depends(get_current_user)
 ):
@@ -16132,8 +16133,8 @@ async def ret_simples_nacional(
     
     # Obter dados de faturamento
     now = datetime.now(timezone.utc)
-    ano_ref = now.year
-    mes_ref = now.month
+    ano_ref = ano if ano else now.year
+    mes_ref = now.month if ano == now.year or not ano else 12
     
     if competencia:
         try:
