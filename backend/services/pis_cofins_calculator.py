@@ -454,7 +454,7 @@ def calcular_pis_cofins_produto(
                 resultado['gera_credito'] = True
             else:
                 # Sem crédito
-                resultado['cst'] = CST_ENTRADA['SEM_CREDITO']
+                resultado['cst'] = CST_ENTRADA['SEM_CREDITO_CFOP']
                 resultado['aliquota_pis'] = 0
                 resultado['aliquota_cofins'] = 0
                 resultado['valor_pis'] = 0
@@ -481,7 +481,7 @@ def calcular_pis_cofins_produto(
         if tipo_operacao == 'entrada':
             # Verificar CFOP
             if not verificar_cfop_gera_credito(cfop):
-                resultado['cst'] = CST_ENTRADA['SEM_CREDITO']
+                resultado['cst'] = CST_ENTRADA['SEM_CREDITO_CFOP']
                 resultado['aliquota_pis'] = 0
                 resultado['aliquota_cofins'] = 0
                 resultado['valor_pis'] = 0
