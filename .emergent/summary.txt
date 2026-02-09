@@ -1,82 +1,72 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou uma reestruturação e expansão dos módulos de apuração fiscal da aplicação AURION.
-
-**Requisitos Iniciais e Implementados:**
-1.  **Módulo PIS/COFINS (Concluído):** Substituição completa do cálculo antigo, com lógica para diferentes regimes e atividades, dashboard comparativo, análise de divergências, rankings de Top 10 produtos/NCMs e agrupamento por CFOP+CST.
-2.  **Fracionamento do Menu Apuração (Concluído):**
-    *   **Apuração ICMS:** Página dedicada com apuração por CFOP, rankings Top 10 e saldo do imposto.
-    *   **Apuração ISS:** Página dedicada para apuração de serviços.
-    *   **Apuração IPI:** Página dedicada para apuração de IPI para indústrias.
-    *   **Apuração ICMS ST:** Aba dedicada dentro da apuração de ICMS.
-    *   **RET (Rota de Eficiência Tributária):** Nova página destinada a consolidar relatórios e análises de IA.
-
-**Requisitos Atuais (Em Andamento/Bugs):**
-1.  **Correção no Cadastro de Empresa:** O formulário de edição de empresa está incompleto e não exibe campos cruciais adicionados recentemente (CNAEs, flags como , ).
-2.  **Correção na Página RET:** A página perdeu suas funcionalidades principais, como a análise de IA (insights, alertas) e os relatórios de produtos vilões/oportunidades.
-3.  **Menu Dinâmico:** Os menus de apuração (ICMS, ISS, IPI) devem aparecer condicionalmente, com base nos flags de atividade da empresa selecionada.
+O usuário solicitou uma reestruturação e expansão contínua da aplicação fiscal AURION. Os requisitos evoluíram para incluir:
+1.  **Restauração e Melhoria do Cadastro de Empresa:** Restaurar todos os campos que haviam sido perdidos, como campos de presunção de IRPJ/CSLL (com lógica condicional para atividades de comércio, serviço e mista), campos para classificação de produtos para IA, inscrições estadual/municipal, e a adição de um campo para CNAEs secundários.
+2.  **Automação de CNAEs:** Fazer com que os CNAEs secundários sejam preenchidos automaticamente ao buscar um CNPJ para cadastrar uma nova empresa.
+3.  **Melhorias na Página RET (Rota de Eficiência Tributária):**
+    *   Corrigir o problema em que a página não carrega os dados dos documentos fiscais importados.
+    *   Adicionar campos para Estoque Inicial/Final para calcular o CMV/CPV.
+    *   Implementar um cálculo de Ponto de Equilíbrio para empresas do Lucro Real.
+    *   Criar um comparativo de tributação com o regime do Lucro Presumido.
+    *   Adicionar novos indicadores de negócio: Margem de Contribuição, Markup, valor total de entradas de insumo/revenda, valor total de vendas, e percentuais de impostos sobre o faturamento.
+4.  **UI/UX Dinâmica e Interativa:**
+    *   Tornar o Dashboard inicial dinâmico, mostrando apenas os cards de impostos aplicáveis à empresa selecionada.
+    *   Adicionar flags interativas na página de Apuração ICMS ( e ) que recalculam os impostos em tempo real.
+    *   Substituir as barras de progresso de upload por uma animação customizada de um contador tomando café.
 
 **User's preferred language**:
 Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-Uma aplicação fiscal completa com frontend em React e backend em FastAPI. Os módulos de apuração PIS/COFINS, ICMS, ISS e IPI foram implementados com páginas e endpoints dedicados. O trabalho recente focou em corrigir bugs relatados pelo usuário no formulário de edição de empresa, na página RET e na implementação de um menu de navegação dinâmico. O código para essas correções foi escrito, mas ainda não foi testado.
+A aplicação possui um frontend em React e backend em FastAPI. O agente implementou com sucesso a maioria das solicitações de UI e funcionalidade:
+*   **Cadastro de Empresa:** O formulário em  foi completamente restaurado e agora inclui todos os campos solicitados, com a lógica condicional para presunções e um campo para CNAEs secundários.
+*   **Backend:** O arquivo  foi atualizado para suportar os novos campos nos modelos Pydantic e a lógica de busca de CNPJ foi expandida para incluir CNAEs secundários.
+*   **Dashboard Dinâmico:** O Dashboard principal agora renderiza os cards de impostos condicionalmente, com base no perfil da empresa.
+*   **Apuração ICMS Interativa:** As flags de configuração de ICMS foram movidas para a página  e agora são interativas, permitindo ao usuário recalcular a apuração.
+*   **Animação de Progresso:** Uma nova componente, , foi criada e substituiu as barras de progresso nas páginas de upload.
+*   **Página RET:** A UI foi reescrita para incluir abas para CMV/CPV, Ponto de Equilíbrio, Comparativo de Regimes e, mais recentemente, uma aba de Indicadores. No entanto, a página inteira está quebrada pois não carrega dados.
 
 **Last working item**:
--   **Last item agent was working**: Correção de múltiplos bugs e requisitos de UI relatados pelo usuário.
-    1.  **Formulário de Empresa**: Modificação do arquivo  para adicionar os campos ausentes (, flags , ) no formulário de edição.
-    2.  **Página RET**: Sobrescrita completa do arquivo  para reintroduzir a lógica de análise de IA e os relatórios de produtos vilões e oportunidades que haviam sido perdidos.
-    3.  **Menu Dinâmico**: Modificação do arquivo  para filtrar os itens do menu de navegação com base nos flags de perfil da empresa selecionada.
+-   **Last item agent was working**: Implementação da aba Indicadores na página RET. O agente adicionou a aba e as funções de cálculo no frontend () para Margem de Contribuição, Markup e percentuais de impostos.
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: N
--   **Which testing method agent to use?**: frontend testing agent. É necessário validar se o formulário de empresa foi corrigido, se a página RET voltou a funcionar e se o menu de navegação é atualizado dinamicamente ao trocar de empresa.
+-   **Agent Testing Done**: N (As novas funções e a nova aba não foram testadas com dados reais, pois a página RET não consegue carregar nenhuma informação).
+-   **Which testing method agent to use?**: both. É crucial usar o agente de testes de backend para garantir que o endpoint da RET retorne os dados corretos após o upload de XMLs. Em seguida, o agente de frontend para validar que todas as abas da RET (Resumo, CMV/CPV, Ponto de Equilíbrio, Comparativo e os novos Indicadores) são preenchidas e calculadas corretamente.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0)**: Formulário de edição de empresa está incompleto.
--   **Issue 2 (P0)**: Página RET não exibe as análises de IA e produtos vilões/oportunidades.
--   **Issue 3 (P0)**: O menu de navegação não é dinâmico com base no perfil da empresa.
+-   **Issue 1 (P0)**: A página RET não carrega dados dos documentos importados.
+-   **Issue 2 (P1)**: Implementar backend e conectar frontend para os novos indicadores da RET (Margem de Contribuição, Markup, etc.).
 
 **Issues Detail**:
--   **Issue 1: Formulário de edição de empresa incompleto**
-    -   **Attempted fixes**: O agente modificou  para incluir os novos campos no estado do formulário, na função de edição e no JSX.
+-   **Issue 1: A página RET não carrega dados dos documentos importados**
+    -   **Attempted fixes**: O agente identificou que a empresa de teste não possuía documentos para a competência selecionada. No entanto, o problema central de garantir que a página efetivamente busque e processe os dados quando eles existem ainda não foi resolvido nem verificado.
     -   **Next debug checklist**:
-        1.  Verificar se o modal de edição de empresa exibe todos os novos campos (CNAEs, flags).
-        2.  Testar a edição e salvamento desses novos campos.
-        3.  Confirmar se os dados são persistidos corretamente ao reabrir o modal.
-    -   **Why fix this issue and what will be achieved with the fix?**: Corrigir este formulário é crucial, pois os flags configurados nele controlam a visibilidade do menu dinâmico (Issue 3).
+        1.  **Garantir a existência de dados**: Fazer upload de arquivos XML de teste para uma empresa/competência específica usando a funcionalidade de upload.
+        2.  **Verificar o backend**: Inspecionar o endpoint que alimenta a página RET em  (provavelmente  ou similar). Garantir que ele consulta corretamente os documentos (, , etc.) e retorna um payload com dados.
+        3.  **Rastrear o frontend**: No  de , depurar a chamada à API e o estado resultante para garantir que os dados recebidos do backend estão sendo corretamente armazenados e processados.
+    -   **Why fix this issue and what will be achieved with the fix?**: É a funcionalidade principal da página RET. Sem dados, todas as análises e indicadores são inúteis.
     -   **Status**: IN PROGRESS
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?**: Frontend
-    -   **Blocked on other issue**: None
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on other issue**: None. This is the main blocker.
 
--   **Issue 2: Página RET não exibe análises**
-    -   **Attempted fixes**: O agente reescreveu , mesclando a lógica da antiga página de análise de IA para exibir abas de vilões, oportunidades e insights.
+-   **Issue 2: Implementar backend para os novos indicadores da RET**
+    -   **Attempted fixes**: O agente preparou a UI e as funções de cálculo no frontend em .
     -   **Next debug checklist**:
-        1.  Navegar para a página RET e verificar se ela carrega sem erros.
-        2.  Confirmar que os dados da API  são carregados e exibidos corretamente nas respectivas abas.
-    -   **Why fix this issue and what will be achieved with the fix?**: A análise de IA é um recurso de alto valor para o usuário e o principal propósito da página RET.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?**: Frontend
-    -   **Blocked on other issue**: None
-
--   **Issue 3: Menu de navegação não é dinâmico**
-    -   **Attempted fixes**: O agente adicionou lógica de filtragem em  para exibir os menus de apuração condicionalmente com base nas propriedades do .
-    -   **Next debug checklist**:
-        1.  Após a correção da Issue 1, configurar empresas com perfis diferentes (ex: apenas serviço, comércio, indústria).
-        2.  Alternar entre as empresas e verificar se o menu de navegação lateral é atualizado corretamente, mostrando apenas os menus de apuração relevantes.
-    -   **Why fix this issue and what will be achieved with the fix?**: Atende a um requisito explícito do usuário para uma interface mais limpa e contextual.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?**: Frontend
-    -   **Blocked on other issue**: Issue 1: Formulário de edição de empresa incompleto
+        1.  Após resolver a Issue 1, verificar se o endpoint do backend já retorna todos os valores base necessários (ex: , ).
+        2.  Se não, modificar o endpoint em  para calcular e incluir esses valores no payload de resposta.
+        3.  Conectar esses novos campos de dados às funções de cálculo no frontend e garantir que os indicadores sejam exibidos corretamente.
+    -   **Why fix this issue and what will be achieved with the fix?**: Atende a um requisito explícito do usuário para análises de negócio mais profundas.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Both
+    -   **Blocked on other issue**: Issue 1: A página RET não carrega dados dos documentos importados
 
 **In progress Task List**:
 N/A
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P1) **Cadastro de Empresa: Certificado Digital**: Adicionar campos no cadastro da empresa para upload do arquivo de certificado digital e inserção da senha.
+    -   (P1) **Implementar upload do Certificado Digital**: A UI no formulário da empresa está pronta, mas o backend precisa ser implementado para lidar com o upload do arquivo  e o armazenamento seguro da senha.
 -   **Future Tasks:**
     -   Refatorar o monolito  para uma arquitetura baseada em routers.
     -   Implementar um sistema de licenças comerciais.
@@ -84,78 +74,85 @@ N/A
     -   Implementar funcionalidades para empresas do regime Simples Nacional.
 
 **Completed work in this session**
--   **Reestruturação do Menu de Apuração**: O antigo menu Apuração foi desmembrado com sucesso em páginas dedicadas para **ICMS**, **ISS**, **IPI**, e a nova página **RET**.
--   **Apuração ICMS ST**: Implementada uma nova aba para o cálculo de ICMS ST dentro da página de Apuração ICMS.
--   **Melhorias em PIS/COFINS**: Adicionados rankings **Top 10** (Produtos e NCMs) e um novo detalhamento agrupado por **CFOP + CST**.
+-   **Cadastro de Empresa Completo**: O formulário  foi totalmente reformulado, restaurando todos os campos perdidos e adicionando novas funcionalidades como presunções condicionais e CNAEs secundários.
+-   **Automação de CNAE Secundário**: O endpoint de busca de CNPJ agora preenche automaticamente os CNAEs secundários.
+-   **Dashboard Dinâmico**: A página  agora mostra cards de impostos com base no perfil da empresa selecionada.
+-   **Flags de ICMS Interativas**: As flags de configuração de ICMS foram movidas para a página  e se tornaram interativas e funcionais.
+-   **Animação de Progresso**: As barras de progresso foram substituídas pela animação customizada contador tomando café em toda a aplicação.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1**: O arquivo  é um monolito. Esta é uma dívida técnica conhecida e planejada para refatoração futura.
+-   **Issue 1**: O arquivo  é um monolito, o que representa uma dívida técnica a ser tratada futuramente.
 
 **Known issue recurrence from previous fork**
-- N/A
+- **Issue**: A página RET perde funcionalidades ou não carrega dados. Este é um problema recorrente que precisa de uma solução definitiva.
+- **Recurrence count**: 2
+- **Status**: IN PROGRESS
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend**: React, React Context API, TailwindCSS
--   **Backend**: FastAPI, Motor (MongoDB assíncrono)
--   **UI Dinâmica**: A aplicação agora possui lógica no frontend () para renderizar condicionalmente elementos de navegação com base no perfil do dado selecionado (neste caso, ).
+-   **Frontend**: React, React Context API, TailwindCSS. Uso intensivo de renderização condicional.
+-   **Backend**: FastAPI, Motor (MongoDB assíncrono), Pydantic.
+-   **UI Dinâmica**: Vários componentes (, ) reagem ao perfil da empresa selecionada para mostrar informações contextuais.
 
 **key DB schema**
--   ** collection**: O esquema foi estendido para incluir novos campos booleanos (, ) e uma lista  para controlar as funcionalidades visíveis por empresa.
-
-**changes in tech stack**
--   Nenhuma.
+-   ** collection**: Esquema estendido para incluir campos como , , , ,  (lista), , , e campos para classificação de produtos (, , etc.).
 
 **All files of reference**
 -   
 -   
 -   
 -   
+-   
 
 **Areas that need refactoring**:
--    precisa ser refatorado em múltiplos arquivos de roteador.
+-    é um monolito e deve ser dividido em roteadores.
+-   A lógica de persistência para as flags de ICMS na página  precisa ser revista. Atualmente, elas podem estar sendo gerenciadas apenas no estado local do frontend, o que significa que a configuração não será salva entre as sessões. É preciso garantir que o clique no botão Aplicar e Recalcular dispare uma chamada de API para salvar o estado dessas flags no objeto da empresa no banco de dados.
 
 **key api endpoints**
 -   : Endpoint principal para salvar as alterações do formulário de empresa.
--   : Endpoint que fornece os dados para a página RET.
+-   : Endpoint que fornece dados para o dashboard dinâmico.
+-   : Provável endpoint para a página RET, que precisa ser depurado.
+-   : Endpoint para buscar dados de empresa por CNPJ.
 
 **Critical Info for New Agent**
--   **Sua primeira ação deve ser testar as correções que o agente anterior implementou, mas não validou.** Os arquivos-chave são ,  e .
--   **Teste o fluxo completo:**
-    1.  Use o formulário em  para configurar uma empresa com um perfil específico (ex: marcar ).
-    2.  Verifique se o menu em  é atualizado dinamicamente para mostrar ICMS.
-    3.  Navegue até a página  e confirme se as análises de IA são carregadas corretamente.
--   Após a conclusão e validação dessas correções, a próxima tarefa prioritária é a implementação do upload do certificado digital no cadastro da empresa.
+-   **Sua prioridade máxima é consertar a página RET.** Comece garantindo que você pode fazer upload de documentos XML para uma empresa de teste. Em seguida, depure o fluxo de dados do backend para o frontend para fazer a página carregar as informações.
+-   Após a correção do carregamento de dados, finalize a implementação dos novos indicadores (Margem de Contribuição, Markup, etc.), garantindo que o backend forneça todos os dados necessários.
+-   Revise a persistência das flags de ICMS na página . Elas devem ser salvas no banco de dados para que a configuração seja mantida entre as sessões e afete corretamente outras partes do sistema, como o Dashboard e a própria RET.
 
 **documents and test reports created in this job**
 -   
--   
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **1. (Usuário)**: Reportou os bugs atuais: formulário de empresa incompleto, página RET sem funcionalidades de IA e a necessidade de um menu dinâmico.
--   **2. (Usuário)**: Deu sinal verde para o agente iniciar as correções e a implementação do menu dinâmico.
--   **3. (Usuário)**: Descreveu os próximos passos desejados: melhorias no cadastro da empresa (certificado digital, flags), criação da apuração de IPI e ICMS ST, e a regra para o menu dinâmico.
--   **4. (Usuário)**: Solicitou a continuação do desenvolvimento, fracionando o menu Apuração e adicionando mais detalhes (rankings, agrupamentos) aos novos módulos.
+1.  **Usuário**: Pediu para mover as flags de ICMS para a página de  e depois focar em corrigir a página RET. (Status: Flags movidas, RET pendente)
+2.  **Usuário**: Pediu para consertar as flags de ICMS que não eram clicáveis e para substituir as barras de progresso pela animação do café. (Status: Concluído)
+3.  **Usuário**: Reportou que a página RET não está carregando dados e solicitou novos indicadores (margem, markup), além de flags na apuração de ICMS e um dashboard dinâmico. (Status: Dashboard e flags concluídos; RET e indicadores pendentes)
+4.  **Usuário**: Solicitou que CNAEs secundários fossem preenchidos automaticamente na importação e pediu melhorias na RET (CMV/CPV, Ponto de Equilíbrio, Comparativo de Regimes). (Status: Automação de CNAE e UI da RET concluídos; carregamento de dados da RET pendente)
+5.  **Usuário**: Pediu para o formulário de empresa mostrar campos de presunção separados para atividade mista (Comércio + Serviço) e para exibir os CNAEs secundários. (Status: Concluído)
+6.  **Usuário**: Forneceu uma imagem e pediu para restaurar campos específicos no cadastro de empresa (presunção, classificação de produtos, inscrições). (Status: Concluído)
+7.  **Usuário**: Pediu para restaurar TODOS os campos antigos do cadastro da empresa. (Status: Concluído)
+8.  **Usuário**: Deu o OK para continuar.
+9.  **Agente**: Propôs um plano de ação inicial (não incluído, pois foi substituído).
+10. **Usuário**: (Primeira mensagem da sessão) Reportou os bugs iniciais no formulário da empresa, na página RET e no menu dinâmico. (Status: Concluído, exceto pela funcionalidade de dados da RET)
 
 **Project Health Check:**
 -   **Broken**:
-    -   **Formulário de Edição de Empresa**: Não exibe nem salva os novos campos de perfil.
-    -   **Página RET**: Não exibe as análises de IA e os relatórios de produtos.
-    -   **Menu Dinâmico**: A lógica está presente, mas não funciona devido ao bug no formulário da empresa.
--   **Mocked**: N/A
+    -   **Funcionalidade da Página RET**: A página inteira não funciona, pois não carrega dados. Isso impede a utilização de todas as suas funcionalidades (CMV/CPV, Ponto de Equilíbrio, Comparativo, Indicadores).
+-   **Mocked**:
+    -   **Upload de Certificado Digital**: A UI existe, mas o backend não processa o upload do arquivo.
 
 **3rd Party Integrations**
--    / : Usado para a funcionalidade de IA na página RET (via Emergent LLM Key).
+-    / : Usado para a funcionalidade de IA na página RET (via Emergent LLM Key). A funcionalidade atual também está quebrada devido à falta de dados na página.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, mas não para as últimas correções de bugs.
--   **Known regressions**: Sim, a página de edição da empresa () e a página de análise () perderam funcionalidades críticas que agora estão sendo corrigidas.
+-   **Testing agent used after significant changes**: YES, mas as últimas implementações (RET, Indicadores) não foram testadas devido à falta de dados.
+-   **Known regressions**: A funcionalidade da página RET, que o usuário relata ter sido perdida e ainda não foi restaurada.
 
 **Credentials to test flow:**
 -   **Email**: 
 -   **Senha**: 
 
 **What agent forgot to execute**
-O agente anterior implementou as correções para os bugs relatados pelo usuário, mas **não executou nenhum teste** para validar se as soluções funcionam. A próxima etapa é obrigatoriamente testar essas mudanças.</analysis>
+- O agente não validou o fluxo de ponta a ponta do carregamento de dados para a página RET. Apesar de ter construído uma UI complexa, a funcionalidade central de exibir dados de documentos importados permanece quebrada e não foi depurada.
+- A persistência das flags de ICMS na página  não foi totalmente implementada; elas provavelmente só funcionam no estado local do frontend.</analysis>
