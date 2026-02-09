@@ -5,12 +5,14 @@ import {
   FileText, Eye, Trash2, CheckCircle2, XCircle, Shield, X, ArrowUpDown, 
   ArrowUp, ArrowDown, Search, Download, FileSpreadsheet, AlertTriangle, 
   FileDown, Upload, ArrowLeft, ArrowDownCircle, ArrowUpCircle, Zap, 
-  Truck, Building2, Wifi, RefreshCw, Plus, FolderOpen, DollarSign, Cloud
+  Truck, Building2, Wifi, RefreshCw, Plus, FolderOpen, DollarSign, Cloud,
+  Filter, CheckCircle
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { useUpload } from '../context/UploadContext';
 import CoffeeProgress from '../components/CoffeeProgress';
+import DocumentDetailModal from '../components/DocumentDetailModal';
 import * as XLSX from 'xlsx';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
