@@ -1,157 +1,161 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou uma reestruturação completa do cálculo de PIS/COFINS, fornecendo manuais detalhados () com as regras de negócio. A tarefa principal é implementar este novo módulo, que deve substituir completamente a funcionalidade existente.
+O usuário solicitou uma reestruturação e expansão dos módulos de apuração fiscal da aplicação AURION.
 
-**Requisitos do Módulo PIS/COFINS:**
-1.  **Regimes e Atividades:**
-    *   Lógica separada para Comércio e Serviço, incluindo empresas híbridas.
-    *   Cálculos distintos para regimes Lucro Real e Lucro Presumido.
-2.  **Regras de Cálculo (Comércio):**
-    *   **Lucro Real**: Classificar CST de entrada/saída, calcular débitos e créditos conforme tabelas fornecidas.
-    *   **Lucro Presumido**: Sem apropriação de crédito, exceto para produtos com alíquota diferenciada.
-    *   **CFOPs sem crédito**: Devem ser classificados com CST 98 (não CST 70).
-3.  **Regras de Cálculo (Serviços):**
-    *   Aplicar alíquotas com base no CNAE da empresa e no código de serviço da nota.
-    *   Empresas de serviço no Lucro Real podem aproveitar créditos de despesas relacionadas à atividade fim.
-4.  **Funcionalidades Adicionais:**
-    *   **Dashboard Comparativo**: Exibir o cálculo para ambos os regimes (Real vs. Presumido) para indicar o mais econômico, mesmo que a empresa esteja em apenas um deles.
-    *   **Análise de Divergência**: Criar um relatório que compara os dados do XML (CST, alíquota, valor) com a classificação do sistema, agrupado por produto. O relatório deve destacar valores recolhidos a maior/menor e o saldo economizado.
-    *   **Alerta de Inconsistência**: Gerar um alerta se uma nota for emitida para uma atividade não prevista no CNAE da empresa.
-5.  **Interface:**
-    *   O menu PIS e COFINS atual deve ser completamente substituído pela nova interface.
+**Requisitos Iniciais e Implementados:**
+1.  **Módulo PIS/COFINS (Concluído):** Substituição completa do cálculo antigo, com lógica para diferentes regimes e atividades, dashboard comparativo, análise de divergências, rankings de Top 10 produtos/NCMs e agrupamento por CFOP+CST.
+2.  **Fracionamento do Menu Apuração (Concluído):**
+    *   **Apuração ICMS:** Página dedicada com apuração por CFOP, rankings Top 10 e saldo do imposto.
+    *   **Apuração ISS:** Página dedicada para apuração de serviços.
+    *   **Apuração IPI:** Página dedicada para apuração de IPI para indústrias.
+    *   **Apuração ICMS ST:** Aba dedicada dentro da apuração de ICMS.
+    *   **RET (Rota de Eficiência Tributária):** Nova página destinada a consolidar relatórios e análises de IA.
+
+**Requisitos Atuais (Em Andamento/Bugs):**
+1.  **Correção no Cadastro de Empresa:** O formulário de edição de empresa está incompleto e não exibe campos cruciais adicionados recentemente (CNAEs, flags como , ).
+2.  **Correção na Página RET:** A página perdeu suas funcionalidades principais, como a análise de IA (insights, alertas) e os relatórios de produtos vilões/oportunidades.
+3.  **Menu Dinâmico:** Os menus de apuração (ICMS, ISS, IPI) devem aparecer condicionalmente, com base nos flags de atividade da empresa selecionada.
 
 **User's preferred language**:
 Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-Uma aplicação de contabilidade fiscal (AURION) com frontend em React e backend em FastAPI. A aplicação foi recentemente aprimorada com um sistema robusto de gerenciamento de documentos na página , que inclui:
--   Navegação em três níveis (Operação > Tipo de Documento > Lista).
--   Filtros dinâmicos por tipo de operação e modelo de documento.
--   Contadores de documentos e totalizadores de valor (R$).
--   Layout com cabeçalho fixo e tabela rolável para melhor usabilidade.
--   Sistema de importação validada por tipo de documento (XML, PDF/Imagem com IA).
--   Funcionalidade de exclusão em massa com filtros detalhados (data, número, fornecedor, CFOP) e opções para apagar tudo.
--   Foram criados os arquivos e endpoints de base para o novo módulo de PIS/COFINS, mas a lógica de cálculo ainda não foi implementada.
+Uma aplicação fiscal completa com frontend em React e backend em FastAPI. Os módulos de apuração PIS/COFINS, ICMS, ISS e IPI foram implementados com páginas e endpoints dedicados. O trabalho recente focou em corrigir bugs relatados pelo usuário no formulário de edição de empresa, na página RET e na implementação de um menu de navegação dinâmico. O código para essas correções foi escrito, mas ainda não foi testado.
 
 **Last working item**:
--   **Last item agent was working**: Início da implementação do novo módulo de PIS/COFINS. O agente analisou os requisitos, leu os manuais fornecidos pelo usuário e criou a estrutura inicial no backend.
-    -   Criou o arquivo de serviço  (vazio).
-    -   Adicionou os endpoints placeholder em :  e .
--   **Status**: NOT STARTED (Apenas a estrutura foi criada; a lógica de negócio ainda precisa ser implementada).
+-   **Last item agent was working**: Correção de múltiplos bugs e requisitos de UI relatados pelo usuário.
+    1.  **Formulário de Empresa**: Modificação do arquivo  para adicionar os campos ausentes (, flags , ) no formulário de edição.
+    2.  **Página RET**: Sobrescrita completa do arquivo  para reintroduzir a lógica de análise de IA e os relatórios de produtos vilões e oportunidades que haviam sido perdidos.
+    3.  **Menu Dinâmico**: Modificação do arquivo  para filtrar os itens do menu de navegação com base nos flags de perfil da empresa selecionada.
+-   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: backend testing agent. Após implementar a lógica, o agente de teste deve ser usado para validar os cenários de cálculo (Lucro Real vs. Presumido, Comércio vs. Serviço, diferentes CSTs, etc.).
+-   **Which testing method agent to use?**: frontend testing agent. É necessário validar se o formulário de empresa foi corrigido, se a página RET voltou a funcionar e se o menu de navegação é atualizado dinamicamente ao trocar de empresa.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-Não há issues pendentes. O foco total está na implementação de uma nova feature.
+-   **Issue 1 (P0)**: Formulário de edição de empresa está incompleto.
+-   **Issue 2 (P0)**: Página RET não exibe as análises de IA e produtos vilões/oportunidades.
+-   **Issue 3 (P0)**: O menu de navegação não é dinâmico com base no perfil da empresa.
 
 **Issues Detail**:
-N/A
+-   **Issue 1: Formulário de edição de empresa incompleto**
+    -   **Attempted fixes**: O agente modificou  para incluir os novos campos no estado do formulário, na função de edição e no JSX.
+    -   **Next debug checklist**:
+        1.  Verificar se o modal de edição de empresa exibe todos os novos campos (CNAEs, flags).
+        2.  Testar a edição e salvamento desses novos campos.
+        3.  Confirmar se os dados são persistidos corretamente ao reabrir o modal.
+    -   **Why fix this issue and what will be achieved with the fix?**: Corrigir este formulário é crucial, pois os flags configurados nele controlam a visibilidade do menu dinâmico (Issue 3).
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on other issue**: None
+
+-   **Issue 2: Página RET não exibe análises**
+    -   **Attempted fixes**: O agente reescreveu , mesclando a lógica da antiga página de análise de IA para exibir abas de vilões, oportunidades e insights.
+    -   **Next debug checklist**:
+        1.  Navegar para a página RET e verificar se ela carrega sem erros.
+        2.  Confirmar que os dados da API  são carregados e exibidos corretamente nas respectivas abas.
+    -   **Why fix this issue and what will be achieved with the fix?**: A análise de IA é um recurso de alto valor para o usuário e o principal propósito da página RET.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on other issue**: None
+
+-   **Issue 3: Menu de navegação não é dinâmico**
+    -   **Attempted fixes**: O agente adicionou lógica de filtragem em  para exibir os menus de apuração condicionalmente com base nas propriedades do .
+    -   **Next debug checklist**:
+        1.  Após a correção da Issue 1, configurar empresas com perfis diferentes (ex: apenas serviço, comércio, indústria).
+        2.  Alternar entre as empresas e verificar se o menu de navegação lateral é atualizado corretamente, mostrando apenas os menus de apuração relevantes.
+    -   **Why fix this issue and what will be achieved with the fix?**: Atende a um requisito explícito do usuário para uma interface mais limpa e contextual.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on other issue**: Issue 1: Formulário de edição de empresa incompleto
 
 **In progress Task List**:
--   **Task 1 (P0)**: Implementar a lógica de cálculo do PIS/COFINS no backend.
-    -   **Where to resume**: Dentro do arquivo . A implementação deve seguir as regras detalhadas fornecidas pelo usuário nas mensagens de chat e nos manuais  extraídos.
-    -   **What will be achieved with this?**: Entregar o núcleo da nova funcionalidade de apuração fiscal, que é um requisito de alto valor para o usuário.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on something**: Não.
+N/A
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   (P0) Desenvolver a nova interface do frontend para o módulo PIS/COFINS, que substituirá a página existente e exibirá a apuração, a análise comparativa e o relatório de divergências.
-    -   (P1) Criar uma tela de configuração para permitir que o usuário gerencie a lista de CFOPs de devolução.
-    -   (P2) Adicionar um indicador visual na página de documentos para notas de mesma empresa.
+    -   (P1) **Cadastro de Empresa: Certificado Digital**: Adicionar campos no cadastro da empresa para upload do arquivo de certificado digital e inserção da senha.
 -   **Future Tasks:**
-    -   Refatorar o monolito  em uma arquitetura baseada em módulos (routers).
+    -   Refatorar o monolito  para uma arquitetura baseada em routers.
     -   Implementar um sistema de licenças comerciais.
-    -   Criar um dashboard de estatísticas do escritório para o perfil Master.
+    -   Criar um dashboard de estatísticas para o perfil Master.
+    -   Implementar funcionalidades para empresas do regime Simples Nacional.
 
 **Completed work in this session**
--   **Sistema de Exclusão em Massa**: Implementada funcionalidade completa para exclusão de documentos, com botões na tela principal (Entradas/Saídas) e um modal avançado na listagem, com filtros por data, número, fornecedor, CFOP e uma opção Apagar Tudo. A funcionalidade foi validada com testes.
--   **Sistema de Importação Validada**: Implementado um sistema que adapta o tipo de upload (XML, PDF/Imagem) com base no tipo de documento selecionado, com validação no backend.
--   **Melhorias de UI/UX em Documentos**: Implementado um layout com cabeçalho fixo e corpo da tabela rolável, melhorando a navegação.
--   **Consistência de Dados**: Corrigido um bug que impedia a filtragem de documentos pela competência selecionada, garantindo que a lista e as ações (como exclusão) atuem sobre o mesmo conjunto de dados.
--   **Totalizadores**: Adicionados contadores de documentos e a soma total de seus valores (R$) na tela de listagem.
+-   **Reestruturação do Menu de Apuração**: O antigo menu Apuração foi desmembrado com sucesso em páginas dedicadas para **ICMS**, **ISS**, **IPI**, e a nova página **RET**.
+-   **Apuração ICMS ST**: Implementada uma nova aba para o cálculo de ICMS ST dentro da página de Apuração ICMS.
+-   **Melhorias em PIS/COFINS**: Adicionados rankings **Top 10** (Produtos e NCMs) e um novo detalhamento agrupado por **CFOP + CST**.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1**: O arquivo  é um monolito. Esta é uma dívida técnica conhecida e está planejada para refatoração futura.
+-   **Issue 1**: O arquivo  é um monolito. Esta é uma dívida técnica conhecida e planejada para refatoração futura.
 
 **Known issue recurrence from previous fork**
--   **Issue**: Instabilidade do  que causava perda de estado.
--   **Status**: RESOLVED. O agente corrigiu um bug relacionado à não aplicação do filtro de competência, o que estabilizou o comportamento do componente.
+- N/A
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
 -   **Frontend**: React, React Context API, TailwindCSS
--   **Backend**: FastAPI, Motor (MongoDB assíncrono), Pydantic
--   **AI Integration**:  para processamento de documentos PDF/Imagem (planejado).
+-   **Backend**: FastAPI, Motor (MongoDB assíncrono)
+-   **UI Dinâmica**: A aplicação agora possui lógica no frontend () para renderizar condicionalmente elementos de navegação com base no perfil do dado selecionado (neste caso, ).
 
 **key DB schema**
--   Nenhuma alteração de esquema nesta sessão.
+-   ** collection**: O esquema foi estendido para incluir novos campos booleanos (, ) e uma lista  para controlar as funcionalidades visíveis por empresa.
 
 **changes in tech stack**
--   Adicionadas as dependências  e  no backend.
+-   Nenhuma.
 
 **All files of reference**
--   : Novo arquivo para a lógica de cálculo.
--   : Modificado para adicionar múltiplos endpoints (exclusão, upload validado) e placeholders para PIS/COFINS.
--   : Modificado extensivamente para adicionar as funcionalidades de exclusão, upload dinâmico e melhorias de UI.
--   Os dois manuais  fornecidos pelo usuário, cujo conteúdo foi extraído e está no histórico do chat, são a principal fonte de verdade para a próxima tarefa.
+-   
+-   
+-   
+-   
 
 **Areas that need refactoring**:
--   : Precisa urgentemente ser dividido em múltiplos arquivos de roteador para melhorar a manutenibilidade.
--   : O componente está muito grande e complexo; os modais e outras subseções poderiam ser extraídos para componentes filhos.
+-    precisa ser refatorado em múltiplos arquivos de roteador.
 
 **key api endpoints**
--   : Endpoint para exclusão em massa de documentos.
--   : Endpoint para upload de arquivos com validação de tipo.
--   : Endpoint para processamento de documentos via IA.
--   : Novo endpoint (placeholder).
--   : Novo endpoint (placeholder).
+-   : Endpoint principal para salvar as alterações do formulário de empresa.
+-   : Endpoint que fornece os dados para a página RET.
 
 **Critical Info for New Agent**
--   A prioridade máxima é implementar a lógica de cálculo de PIS/COFINS em .
--   As regras de negócio completas estão nas mensagens de chat do usuário (315, 322) e nos dois manuais  que foram analisados. É crucial usar essas fontes.
--   Recomenda-se uma abordagem incremental: implementar e testar a lógica para Comércio Lucro Real, depois Presumido, depois Serviços, e por último a análise comparativa.
--   Após a conclusão do backend, será necessário criar uma nova página no frontend para exibir os resultados.
+-   **Sua primeira ação deve ser testar as correções que o agente anterior implementou, mas não validou.** Os arquivos-chave são ,  e .
+-   **Teste o fluxo completo:**
+    1.  Use o formulário em  para configurar uma empresa com um perfil específico (ex: marcar ).
+    2.  Verifique se o menu em  é atualizado dinamicamente para mostrar ICMS.
+    3.  Navegue até a página  e confirme se as análises de IA são carregadas corretamente.
+-   Após a conclusão e validação dessas correções, a próxima tarefa prioritária é a implementação do upload do certificado digital no cadastro da empresa.
 
 **documents and test reports created in this job**
--    (e outros anteriores)
--    (atualizado)
 -   
 -   
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **(Usuário)** Solicitação detalhada para a nova funcionalidade de PIS/COFINS, anexando dois manuais. (Em andamento)
-9. **(Usuário)** Confirmação de requisitos adicionais para o módulo PIS/COFINS, incluindo análise de divergências e tratamento de CFOPs. (Em andamento)
-8. **(Agente)** Pedido de confirmação para o escopo do projeto PIS/COFINS.
-7. **(Usuário)** Solicita simplificação do modal de exclusão Apagar Tudo, removendo a etapa de visualização. (Concluído)
-6. **(Agente)** Demonstra a funcionalidade do modal de exclusão Apagar Todos com preview.
-5. **(Usuário)** Solicita a inclusão de uma opção Apagar Tudo dentro do modal de exclusão detalhado. (Concluído)
-4. **(Usuário)** Solicita a adição de botões Apagar Todas Entradas/Saídas na tela principal de documentos. (Concluído)
-3. **(Usuário)** Aprova a implementação da funcionalidade de exclusão em massa com filtros. (Concluído)
-2. **(Agente)** Pede confirmação sobre os filtros para a funcionalidade de exclusão.
-1. **(Usuário)** Solicita a criação de uma funcionalidade para apagar documentos em massa, com filtros. (Concluído)
+-   **1. (Usuário)**: Reportou os bugs atuais: formulário de empresa incompleto, página RET sem funcionalidades de IA e a necessidade de um menu dinâmico.
+-   **2. (Usuário)**: Deu sinal verde para o agente iniciar as correções e a implementação do menu dinâmico.
+-   **3. (Usuário)**: Descreveu os próximos passos desejados: melhorias no cadastro da empresa (certificado digital, flags), criação da apuração de IPI e ICMS ST, e a regra para o menu dinâmico.
+-   **4. (Usuário)**: Solicitou a continuação do desenvolvimento, fracionando o menu Apuração e adicionando mais detalhes (rankings, agrupamentos) aos novos módulos.
 
 **Project Health Check:**
--   **Broken**: Nenhuma funcionalidade está quebrada.
--   **Mocked**: Os endpoints para o novo módulo de PIS/COFINS e para o processamento de documentos com IA estão implementados como placeholders.
+-   **Broken**:
+    -   **Formulário de Edição de Empresa**: Não exibe nem salva os novos campos de perfil.
+    -   **Página RET**: Não exibe as análises de IA e os relatórios de produtos.
+    -   **Menu Dinâmico**: A lógica está presente, mas não funciona devido ao bug no formulário da empresa.
+-   **Mocked**: N/A
 
 **3rd Party Integrations**
--   : Para parsing de arquivos Excel no frontend.
--    / : Instalados para futura integração de IA (Gemini) via Emergent LLM Key.
+-    / : Usado para a funcionalidade de IA na página RET (via Emergent LLM Key).
 
 **Testing status**
--   **Testing agent used after significant changes**: YES
--   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: []
--   **Known regressions**: None
+-   **Testing agent used after significant changes**: YES, mas não para as últimas correções de bugs.
+-   **Known regressions**: Sim, a página de edição da empresa () e a página de análise () perderam funcionalidades críticas que agora estão sendo corrigidas.
 
 **Credentials to test flow:**
 -   **Email**: 
 -   **Senha**: 
 
 **What agent forgot to execute**
--   A implementação da lógica do PIS/COFINS não foi esquecida, mas sim iniciada. A tarefa agora é continuar e concluir essa implementação.
--   A refatoração do  continua sendo uma tarefa futura adiada em favor do desenvolvimento de novas funcionalidades.</analysis>
+O agente anterior implementou as correções para os bugs relatados pelo usuário, mas **não executou nenhum teste** para validar se as soluções funcionam. A próxima etapa é obrigatoriamente testar essas mudanças.</analysis>
