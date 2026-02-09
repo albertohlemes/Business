@@ -38,7 +38,7 @@ const RetSimples = ({ user, onLogout }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `${API}/dashboard/simples-nacional/ret`,
+        `${API}/simples-nacional/ret/comparativo`,
         { 
           company_id: selectedCompany.id, 
           ano: selectedAno
