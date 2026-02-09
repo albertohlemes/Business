@@ -11626,7 +11626,7 @@ async def get_ai_chat(session_id: str, system_message: str):
         api_key=emergent_key,
         session_id=session_id,
         system_message=system_message
-    )
+    ).with_model("gemini", "gemini-2.5-flash")
 
 # ============================================================================
 # CACHE DE CLASSIFICAÇÕES - Para acelerar uploads recorrentes
