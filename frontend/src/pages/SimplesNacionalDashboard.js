@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
@@ -6,7 +6,8 @@ import {
   TrendingUp, TrendingDown, AlertTriangle, AlertCircle, Info, 
   DollarSign, Target, Calculator, Percent, BarChart3, Calendar,
   ChevronDown, ChevronUp, RefreshCw, Edit2, Check, X, HelpCircle,
-  Building2, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight
+  Building2, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight,
+  Upload, FileText, CheckCircle, History
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -20,6 +21,14 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
   const [editingFolha, setEditingFolha] = useState(false);
   const [folhaValue, setFolhaValue] = useState('');
   const [savingFolha, setSavingFolha] = useState(false);
+  
+  // Estados para importação PGDAS
+  const [showPgdasModal, setShowPgdasModal] = useState(false);
+  const [uploadingPgdas, setUploadingPgdas] = useState(false);
+  const [pgdasResult, setPgdasResult] = useState(null);
+  const [historicoFaturamento, setHistoricoFaturamento] = useState(null);
+  const [showHistorico, setShowHistorico] = useState(false);
+  const fileInputRef = useRef(null);
   
   // Obter ano da competência selecionada
   const getAnoFromCompetencia = useCallback(() => {
