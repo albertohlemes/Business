@@ -538,7 +538,7 @@ const Indicadores = ({ user, onLogout }) => {
                       <span className="text-[#A1A1AA]">{isSimples() ? 'DAS a Pagar' : 'Total Impostos'}</span>
                     </div>
                     <p className="text-2xl font-bold text-red-400">
-                      {formatCurrency(isSimples() ? dados?.simples?.das_valor : totais.total_pagar)}
+                      {formatCurrency(isSimples() ? (dados?.simples?.das_mes_atual?.valor_das_final || dados?.simples?.impostos_mes?.das || 0) : totais.total_pagar)}
                     </p>
                   </div>
                   
@@ -549,7 +549,7 @@ const Indicadores = ({ user, onLogout }) => {
                     </div>
                     <p className="text-2xl font-bold text-[#C8A951]">
                       {isSimples() 
-                        ? formatPercentual(dados?.simples?.aliquota_efetiva || 0)
+                        ? formatPercentual(dados?.simples?.enquadramento?.aliquota_efetiva || 0)
                         : formatPercentual(percentuais.total.sobre_saidas)}
                     </p>
                   </div>
