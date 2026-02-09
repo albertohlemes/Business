@@ -14999,167 +14999,6 @@ async def process_document_with_ai(
 # INTELIGÊNCIA TRIBUTÁRIA - COMPARAÇÃO DE REGIMES
 # ===========================================
 
-# Função auxiliar para buscar dados de apuração ICMS
-async def get_icms_apuracao_rapida(company_id: str, competencia: str):
-    """Busca resumo rápido da apuração ICMS"""
-    try:
-        if not competencia:
-            return None
-            
-        company = await db.companies.find_one({"id": company_id}, {"_id": 0})
-        if not company:
-            return None
-        
-        # CFOPs de despesa que não geram crédito
-        CFOPS_SEM_CREDITO = ['1407', '2407', '1556', '2556', '1551', '2551', '1653', '2653', '1128', '2128', '1126', '2126']
-        desconsiderar_despesas = company.get('desconsiderar_icms_despesas', False)
-        
-        # Buscar documentos (sem misturar inclusão e exclusão)
-        filtro_ativas = get_filtro_notas_ativas()
-        query = {
-            "company_id": company_id,
-            "competencia": competencia
-        }
-        query.update(filtro_ativas)
-        
-        # Usar apenas inclusão na projeção
-        documentos = await db.xml_documents.find(query, {"produtos": 1, "tipo": 1}).to_list(10000)
-        
-        debito_total = 0
-        credito_total = 0
-        
-        for doc in documentos:
-            produtos = doc.get('produtos', [])
-            
-            for prod in produtos:
-                cfop = str(prod.get('cfop', ''))
-                valor_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
-                
-                # Determinar tipo pela CFOP
-                cfop_primeiro = cfop[0] if cfop else ''
-                if cfop_primeiro in ['5', '6', '7']:
-                    debito_total += valor_icms
-                elif cfop_primeiro in ['1', '2', '3']:
-                    if desconsiderar_despesas and cfop in CFOPS_SEM_CREDITO:
-                        continue
-                    credito_total += valor_icms
-        
-        saldo = debito_total - credito_total
-        
-        return {
-            "apuracao": {
-                "debitos": round(debito_total, 2),
-                "creditos": round(credito_total, 2),
-                "saldo": round(max(0, saldo), 2),
-                "situacao": "A_PAGAR" if saldo > 0 else "A_RECUPERAR"
-            }
-        }
-    except Exception as e:
-        print(f"Erro get_icms_apuracao_rapida: {e}")
-        return None
-
-# Função auxiliar para buscar dados de apuração PIS/COFINS
-async def get_pis_cofins_apuracao_rapida(company_id: str, competencia: str, company: dict):
-    """Busca resumo rápido da apuração PIS/COFINS usando a mesma lógica do endpoint principal"""
-    try:
-        if not competencia:
-            return None
-        
-        regime_tributario = company.get('regime_tributario', 'LUCRO_REAL')
-        perfis = company.get('perfis_comerciais', [])
-        if not perfis:
-            perfil = company.get('perfil_comercial', 'VAREJO')
-            perfis = [perfil] if perfil else ['VAREJO']
-        perfil_empresa = perfis[0] if perfis else 'VAREJO'
-        
-        # Buscar documentos
-        filtro_ativas = get_filtro_notas_ativas()
-        query = {
-            "company_id": company_id,
-            "competencia": competencia
-        }
-        query.update(filtro_ativas)
-        
-        documentos = await db.xml_documents.find(query, {"produtos": 1, "tipo": 1, "tipo_operacao": 1}).to_list(10000)
-        
-        # Totalizadores
-        totais_real = {
-            'debitos': {'pis': 0, 'cofins': 0},
-            'creditos': {'pis': 0, 'cofins': 0}
-        }
-        
-        for doc in documentos:
-            produtos = doc.get('produtos', [])
-            tipo_doc = doc.get('tipo_operacao') or doc.get('tipo', 'entrada')
-            
-            for prod in produtos:
-                cfop = str(prod.get('cfop', ''))
-                ncm = str(prod.get('ncm', ''))
-                valor_base = float(prod.get('valor_total', 0) or 0)
-                
-                # Determinar tipo pela CFOP
-                cfop_primeiro = cfop[0] if cfop else ''
-                if cfop_primeiro in ['5', '6', '7']:
-                    tipo_op = 'saida'
-                elif cfop_primeiro in ['1', '2', '3']:
-                    tipo_op = 'entrada'
-                else:
-                    tipo_op = tipo_doc
-                
-                # Calcular PIS/COFINS com parâmetros corretos
-                resultado = calcular_pis_cofins_produto(
-                    valor_base=valor_base,
-                    ncm=ncm,
-                    cfop=cfop,
-                    tipo_operacao=tipo_op,
-                    perfil_empresa=perfil_empresa,
-                    regime_tributario=regime_tributario
-                )
-                
-                pis_valor = float(resultado.get('pis_valor', 0) or 0)
-                cofins_valor = float(resultado.get('cofins_valor', 0) or 0)
-                
-                if tipo_op == 'saida':
-                    # Débito (saídas)
-                    if verificar_cfop_gera_debito(cfop):
-                        totais_real['debitos']['pis'] += pis_valor
-                        totais_real['debitos']['cofins'] += cofins_valor
-                else:
-                    # Crédito (entradas)
-                    if verificar_cfop_gera_credito(cfop):
-                        totais_real['creditos']['pis'] += pis_valor
-                        totais_real['creditos']['cofins'] += cofins_valor
-        
-        # Calcular saldos
-        pis_saldo = totais_real['debitos']['pis'] - totais_real['creditos']['pis']
-        cofins_saldo = totais_real['debitos']['cofins'] - totais_real['creditos']['cofins']
-        
-        return {
-            "lucro_real": {
-                "debitos": {
-                    "pis": round(totais_real['debitos']['pis'], 2),
-                    "cofins": round(totais_real['debitos']['cofins'], 2)
-                },
-                "creditos": {
-                    "pis": round(totais_real['creditos']['pis'], 2),
-                    "cofins": round(totais_real['creditos']['cofins'], 2)
-                },
-                "saldo": {
-                    "pis": round(pis_saldo, 2),
-                    "cofins": round(cofins_saldo, 2)
-                },
-                "imposto_a_pagar": {
-                    "pis": round(max(0, pis_saldo), 2),
-                    "cofins": round(max(0, cofins_saldo), 2)
-                }
-            }
-        }
-    except Exception as e:
-        print(f"Erro get_pis_cofins_apuracao_rapida: {e}")
-        import traceback
-        traceback.print_exc()
-        return None
-
 @api_router.get("/inteligencia-tributaria/{company_id}")
 async def inteligencia_tributaria(
     company_id: str,
@@ -15169,7 +15008,8 @@ async def inteligencia_tributaria(
 ):
     """
     Calcula e compara impostos nos três regimes tributários: Simples, Presumido e Real.
-    Usa os valores REAIS das apurações existentes para o regime atual.
+    Para Lucro Real: usa os valores REAIS das apurações existentes.
+    Para Presumido e Simples: calcula baseado nas regras específicas de cada regime.
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
@@ -15195,7 +15035,7 @@ async def inteligencia_tributaria(
         })
         meses_apurados = len(competencias_unicas) if competencias_unicas else 1
     
-    # Usar agregação para melhor performance
+    # Usar agregação para totais
     pipeline = [
         {"$match": {
             "company_id": company_id,
@@ -15205,9 +15045,6 @@ async def inteligencia_tributaria(
         {"$group": {
             "_id": "$tipo",
             "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$valor_total", 0]}}},
-            "icms_total": {"$sum": {"$toDouble": {"$ifNull": ["$icms_total", 0]}}},
-            "pis_total": {"$sum": {"$toDouble": {"$ifNull": ["$pis_total", 0]}}},
-            "cofins_total": {"$sum": {"$toDouble": {"$ifNull": ["$cofins_total", 0]}}},
         }}
     ]
     
@@ -15221,33 +15058,137 @@ async def inteligencia_tributaria(
     faturamento = float(saidas.get("valor_total", 0) or 0)
     compras = float(entradas.get("valor_total", 0) or 0)
     
-    # Percentuais de presunção da empresa
+    # Percentuais de presunção
     pres_irpj = float(company.get('percentual_presuncao_irpj', 8))
     pres_csll = float(company.get('percentual_presuncao_csll', 12))
     
-    # ============ BUSCAR VALORES REAIS DAS APURAÇÕES ============
-    # ICMS - valor real apurado
-    icms_real_a_pagar = 0
+    # ============ BUSCAR VALORES REAIS DAS APURAÇÕES (LUCRO REAL) ============
+    # Buscar apuração ICMS
+    icms_real = 0
     try:
-        icms_apuracao = await get_icms_apuracao_rapida(company_id, competencia if tipo == "periodo" else None)
-        if icms_apuracao and icms_apuracao.get('apuracao'):
-            ap = icms_apuracao['apuracao']
-            if ap.get('situacao') == 'A_PAGAR':
-                icms_real_a_pagar = float(ap.get('saldo', 0) or 0)
+        query_icms = {
+            "company_id": company_id,
+            "competencia": competencia if tipo == "periodo" else {"$regex": f"/{ano}$"},
+            **get_filtro_notas_ativas()
+        }
+        
+        # Pipeline para calcular ICMS igual ao endpoint de apuração
+        docs_icms = await db.xml_documents.find(query_icms, {"produtos": 1, "tipo": 1}).to_list(10000)
+        
+        debito_icms = 0
+        credito_icms = 0
+        
+        CFOPS_SEM_CREDITO = ['1407', '2407', '1556', '2556', '1551', '2551', '1653', '2653', '1128', '2128', '1126', '2126',
+                            '1403', '2403', '1409', '2409']  # Incluindo ST
+        desconsiderar_despesas = company.get('desconsiderar_icms_despesas', False)
+        desconsiderar_st = company.get('desconsiderar_icms_st', False)
+        
+        for doc in docs_icms:
+            for prod in doc.get('produtos', []):
+                cfop = str(prod.get('cfop', ''))
+                valor_icms = float(prod.get('v_icms', 0) or prod.get('valor_icms', 0) or 0)
+                
+                cfop_primeiro = cfop[0] if cfop else ''
+                if cfop_primeiro in ['5', '6', '7']:
+                    debito_icms += valor_icms
+                elif cfop_primeiro in ['1', '2', '3']:
+                    # Verificar se desconsiderar
+                    if desconsiderar_despesas and cfop in ['1407', '2407', '1556', '2556', '1551', '2551', '1653', '2653', '1128', '2128', '1126', '2126']:
+                        continue
+                    if desconsiderar_st and cfop in ['1403', '2403', '1409', '2409']:
+                        continue
+                    credito_icms += valor_icms
+        
+        icms_real = max(0, debito_icms - credito_icms)
     except Exception as e:
-        print(f"Erro ao buscar ICMS: {e}")
+        print(f"Erro ao calcular ICMS: {e}")
     
-    # PIS/COFINS - valores reais apurados
-    pis_real_a_pagar = 0
-    cofins_real_a_pagar = 0
+    # Buscar apuração PIS/COFINS do regime atual
+    pis_real = 0
+    cofins_real = 0
     try:
-        pis_cofins_apuracao = await get_pis_cofins_apuracao_rapida(company_id, competencia if tipo == "periodo" else f"01/{ano}", company)
-        if pis_cofins_apuracao:
-            lr = pis_cofins_apuracao.get('lucro_real', {})
-            pis_real_a_pagar = float(lr.get('imposto_a_pagar', {}).get('pis', 0) or 0)
-            cofins_real_a_pagar = float(lr.get('imposto_a_pagar', {}).get('cofins', 0) or 0)
+        regime = company.get('regime_tributario', 'LUCRO_REAL')
+        perfis = company.get('perfis_comerciais', []) or [company.get('perfil_comercial', 'VAREJO')]
+        perfil = perfis[0] if perfis else 'VAREJO'
+        
+        query_pis = {
+            "company_id": company_id,
+            "competencia": competencia if tipo == "periodo" else {"$regex": f"/{ano}$"},
+            **get_filtro_notas_ativas()
+        }
+        
+        docs_pis = await db.xml_documents.find(query_pis, {"produtos": 1, "tipo": 1}).to_list(10000)
+        
+        pis_debito = 0
+        pis_credito = 0
+        cofins_debito = 0
+        cofins_credito = 0
+        
+        for doc in docs_pis:
+            for prod in doc.get('produtos', []):
+                cfop = str(prod.get('cfop', ''))
+                ncm = str(prod.get('ncm', ''))
+                valor_base = float(prod.get('valor_total', 0) or 0)
+                
+                cfop_primeiro = cfop[0] if cfop else ''
+                tipo_op = 'saida' if cfop_primeiro in ['5', '6', '7'] else 'entrada'
+                
+                # Calcular PIS/COFINS
+                resultado = calcular_pis_cofins_produto(
+                    valor_base=valor_base,
+                    ncm=ncm,
+                    cfop=cfop,
+                    tipo_operacao=tipo_op,
+                    perfil_empresa=perfil,
+                    regime_tributario=regime
+                )
+                
+                pis_val = float(resultado.get('pis_valor', 0) or 0)
+                cofins_val = float(resultado.get('cofins_valor', 0) or 0)
+                
+                if tipo_op == 'saida' and verificar_cfop_gera_debito(cfop):
+                    pis_debito += pis_val
+                    cofins_debito += cofins_val
+                elif tipo_op == 'entrada' and verificar_cfop_gera_credito(cfop):
+                    pis_credito += pis_val
+                    cofins_credito += cofins_val
+        
+        pis_real = max(0, pis_debito - pis_credito)
+        cofins_real = max(0, cofins_debito - cofins_credito)
     except Exception as e:
-        print(f"Erro ao buscar PIS/COFINS: {e}")
+        print(f"Erro ao calcular PIS/COFINS: {e}")
+    
+    # IRPJ e CSLL do Lucro Real (baseado no lucro contábil)
+    estoque_inicial = float(company.get('estoque_inicial', 0) or 0)
+    estoque_final = float(company.get('estoque_final', 0) or 0)
+    despesa_real = float(company.get('despesa_real', 0) or 0)
+    
+    cmv = estoque_inicial + compras - estoque_final
+    lucro_bruto = faturamento - cmv
+    lucro_contabil = lucro_bruto - despesa_real if despesa_real > 0 else lucro_bruto
+    lucro_contabil = max(0, lucro_contabil)
+    
+    irpj_real = lucro_contabil * 0.15
+    if tipo == "periodo":
+        if lucro_contabil > 20000:
+            irpj_real += (lucro_contabil - 20000) * 0.10
+    else:
+        if lucro_contabil > (60000 * (meses_apurados / 3)):
+            irpj_real += (lucro_contabil - 60000 * (meses_apurados / 3)) * 0.10
+    csll_real = lucro_contabil * 0.09
+    
+    real = {
+        'icms': round(icms_real, 2),
+        'pis': round(pis_real, 2),
+        'cofins': round(cofins_real, 2),
+        'irpj': round(irpj_real, 2),
+        'csll': round(csll_real, 2),
+        'total': round(icms_real + pis_real + cofins_real + irpj_real + csll_real, 2),
+        'lucro_contabil': round(lucro_contabil, 2),
+        'lucro_bruto': round(lucro_bruto, 2),
+        'cmv': round(cmv, 2),
+        'despesa_informada': round(despesa_real, 2)
+    }
     
     # ============ SIMPLES NACIONAL ============
     fat_anual_estimado = faturamento * (12 / meses_apurados) if tipo == "periodo" else faturamento
@@ -15280,12 +15221,15 @@ async def inteligencia_tributaria(
     }
     
     # ============ LUCRO PRESUMIDO ============
-    # ICMS: mesmo valor real (débito-crédito é igual em qualquer regime)
-    presumido_icms = icms_real_a_pagar
-    # PIS: 0.65% sobre faturamento (cumulativo - sem crédito)
+    # ICMS: IGUAL ao Lucro Real (mesmo cálculo débito-crédito)
+    presumido_icms = icms_real
+    
+    # PIS: 0.65% sobre faturamento (CUMULATIVO - sem crédito)
     presumido_pis = faturamento * 0.0065
-    # COFINS: 3% sobre faturamento (cumulativo - sem crédito)
+    
+    # COFINS: 3% sobre faturamento (CUMULATIVO - sem crédito)
     presumido_cofins = faturamento * 0.03
+    
     # IRPJ: 15% sobre base presumida + adicional
     base_irpj = faturamento * (pres_irpj / 100)
     presumido_irpj = base_irpj * 0.15
@@ -15295,6 +15239,7 @@ async def inteligencia_tributaria(
     else:
         if base_irpj > (60000 * (meses_apurados / 3)):
             presumido_irpj += (base_irpj - 60000 * (meses_apurados / 3)) * 0.10
+    
     # CSLL: 9% sobre base presumida
     base_csll = faturamento * (pres_csll / 100)
     presumido_csll = base_csll * 0.09
@@ -15308,50 +15253,6 @@ async def inteligencia_tributaria(
         'total': round(presumido_icms + presumido_pis + presumido_cofins + presumido_irpj + presumido_csll, 2),
         'base_presuncao_irpj': round(base_irpj, 2),
         'base_presuncao_csll': round(base_csll, 2)
-    }
-    
-    # ============ LUCRO REAL ============
-    # ICMS: valor real apurado
-    real_icms = icms_real_a_pagar
-    # PIS/COFINS: valores reais apurados (não cumulativo com créditos)
-    real_pis = pis_real_a_pagar
-    real_cofins = cofins_real_a_pagar
-    
-    # IRPJ/CSLL baseado no lucro contábil
-    estoque_inicial = float(company.get('estoque_inicial', 0) or 0)
-    estoque_final = float(company.get('estoque_final', 0) or 0)
-    despesa_real = float(company.get('despesa_real', 0) or 0)
-    
-    cmv = estoque_inicial + compras - estoque_final
-    lucro_bruto = faturamento - cmv
-    
-    if despesa_real > 0:
-        lucro_contabil = lucro_bruto - despesa_real
-    else:
-        lucro_contabil = lucro_bruto
-    
-    lucro_contabil = max(0, lucro_contabil)
-    
-    real_irpj = lucro_contabil * 0.15
-    if tipo == "periodo":
-        if lucro_contabil > 20000:
-            real_irpj += (lucro_contabil - 20000) * 0.10
-    else:
-        if lucro_contabil > (60000 * (meses_apurados / 3)):
-            real_irpj += (lucro_contabil - 60000 * (meses_apurados / 3)) * 0.10
-    real_csll = lucro_contabil * 0.09
-    
-    real = {
-        'icms': round(real_icms, 2),
-        'pis': round(real_pis, 2),
-        'cofins': round(real_cofins, 2),
-        'irpj': round(real_irpj, 2),
-        'csll': round(real_csll, 2),
-        'total': round(real_icms + real_pis + real_cofins + real_irpj + real_csll, 2),
-        'lucro_contabil': round(lucro_contabil, 2),
-        'lucro_bruto': round(lucro_bruto, 2),
-        'cmv': round(cmv, 2),
-        'despesa_informada': round(despesa_real, 2)
     }
     
     # Arredondar valores do Simples
