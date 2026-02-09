@@ -1,620 +1,91 @@
 # AURION - Sistema de Fechamento Fiscal Premium
 
-## Problema Original
-Sistema de contabilidade fiscal para escritórios de contabilidade brasileiros, com funcionalidades de:
-- Upload e processamento de XMLs de notas fiscais (NF-e, NFC-e, NFS-e)
-- Classificação de produtos com IA
-- Apuração mensal de impostos (ICMS, PIS, COFINS)
-- Geração de arquivos SPED Fiscal
-- Análise tributária inteligente
+## Visão Geral
+Sistema completo de contabilidade fiscal brasileira para empresas de diferentes regimes tributários (Simples Nacional, Lucro Presumido, Lucro Real).
 
-## Rebranding (v2.0 - Fevereiro 2026)
-- **Nome**: AURION (significado: ouro/energia)
-- **Slogan**: "Seu Núcleo de Inteligência Operacional"
-- **Paleta de Cores Ultra Premium**:
-  - Base: #0C0C0C (Preto suave)
-  - Primária: #2A2A2A (Cinza quente)
-  - Acento: #C8A951 (Dourado fosco - uso mínimo)
+## Funcionalidades Principais
+
+### 1. Gestão de Empresas
+- Cadastro com busca automática na Receita Federal
+- Múltiplos regimes tributários
+- **Upload de logo da empresa** (novo)
+- Configuração de CNAE, tipo de atividade
+- Perfis comerciais (indústria, distribuidor, varejo)
+
+### 2. Importação de Documentos
+- Upload de XMLs (NF-e, NFC-e, CT-e, NFS-e)
+- Importação via IA (PDFs, imagens)
+- Integração com SIEG (BLOQUEADO - chave inválida)
+- **Barra de progresso com contador tomando café** (novo)
+- Validação automática de CFOP por operação
+
+### 3. Apurações Fiscais
+- ICMS, PIS/COFINS, ISS, IPI
+- DIFAL para Simples Nacional
+- Cálculo de Fator R
+- DAS (Simples Nacional)
+
+### 4. RET - Comparativo de Regimes
+- Comparação entre Simples, Presumido e Real
+- DRE para Lucro Real
+- **Aviso de dados incompletos** (novo)
+- Projeção anual
+
+### 5. Classificação Inteligente
+- Classificação de produtos por categoria
+- **Alertas de CFOP corrigidos** (novo)
+- Comandos de IA para classificação em lote
+
+### 6. Exportação
+- SPED Fiscal
+- Relatórios por alíquota (ICMS, PIS, COFINS)
+- CSV de entradas/saídas
 
 ## Arquitetura
 
 ### Backend (FastAPI)
-- `/app/backend/server.py` - Monolito principal
+- `/app/backend/server.py` - Monólito principal
 - `/app/backend/services/` - Serviços auxiliares
-- `/app/backend/sieg_service.py` - Integração SIEG
+  - `document_ai.py` - Processamento com IA
+  - `simples_nacional_calculator.py` - Cálculos Simples
 
 ### Frontend (React)
-- `/app/frontend/src/pages/` - Páginas da aplicação
+- `/app/frontend/src/pages/` - Páginas principais
 - `/app/frontend/src/components/` - Componentes reutilizáveis
-- `/app/frontend/src/context/` - Context providers
-
-## Funcionalidades Implementadas
-
-### Sistema de Usuários e Perfis ✅
-- **Super Admin**: Acesso total, gerencia todos os usuários
-- **Master**: Vê todas as empresas, pode filtrar por responsável
-- **Operacional**: Vê apenas empresas designadas
-
-### Cadastro de Empresa Completo ✅ (Restaurado v2.8.0)
-**Campos do Formulário:**
-- Código/ID da Empresa
-- CNPJ (com busca automática na Receita Federal)
-- Razão Social, Nome Fantasia
-- Regime Tributário (Simples, Presumido, Real)
-- Tipo de Atividade (Comércio, Indústria, Serviços, Mista)
-- Presunção IRPJ (%) e CSLL (%) - apenas para Lucro Presumido
-- CNAE Principal e Descrição
-- Classificação Inteligente (IA)
-- Flags de Contribuinte:
-  - Equiparado a Indústria
-  - Apura ICMS
-  - Apura ICMS ST
-- Usuários Responsáveis
-- Localização: Cidade, UF, CEP
-- **Inscrição Estadual (IE)**
-- **Inscrição Municipal (IM)**
-- **Classificação de Produtos (para IA):**
-  - Produtos Comercializados (REVENDA)
-  - Insumos de Produção (INSUMO)
-  - Produtos de Despesa (DESPESA)
-  - Ativo Imobilizado
-  - Combustível
-- **Certificado Digital:**
-  - Nome do Arquivo (.pfx)
-  - Senha do Certificado
-  - Data de Validade
-
-### Módulos de Apuração ✅
-- **PIS/COFINS** (`/pis-cofins`): Apuração completa com comparativo de regimes
-- **ICMS** (`/apuracao-icms`): Créditos e Débitos por CFOP
-- **ISS** (`/apuracao-iss`): Apuração para serviços
-- **IPI** (`/apuracao-ipi`): Apuração para indústrias
-- **ICMS ST**: Aba dentro de Apuração ICMS
-- **RET** (`/ret`): Rota de Eficiência Tributária - Comparativo de Simples Nacional, Lucro Presumido e Lucro Real
-- **Indicadores** (`/indicadores`): CMV/CPV, Margens, Ponto de Equilíbrio, DRE Simplificado
-
-### Menu Dinâmico ✅
-O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
-- PIS/COFINS: Sempre visível
-- ICMS: Comércio, Indústria, Mista ou flag `apura_icms`
-- ISS: Serviços ou Mista
-- IPI: Indústria ou flag `equiparado_industria`
-- RET: Sempre visível (Comparativo de Regimes)
-- Indicadores: Sempre visível (Indicadores Financeiros)
-
-### Nova Navegação de Documentos ✅
-- Nível 1: ENTRADAS (verde) / SAÍDAS (azul)
-- Nível 2: Tipos de documentos (NF-e, NFC-e, CT-e, Serviços)
-- Nível 3: Lista de documentos com upload integrado
-
-## Credenciais de Teste
-- **Email**: admin@test.com
-- **Senha**: 123456
-
-## Atualizações Recentes (09/02/2026)
-
-### Página PIS/COFINS - Melhorias na UI
-- ✅ **Cards separados para PIS e COFINS**: 
-  - Seção PIS (1,65%): Créditos, Débitos, Saldo, A Pagar
-  - Seção COFINS (7,6%): Créditos, Débitos, Saldo, A Pagar
-  - Total consolidado ao final
-- ✅ **Detalhamento por CFOP + CST**:
-  - Separação visual entre ENTRADAS (Créditos) e SAÍDAS (Débitos)
-  - Subtotal ao final de cada seção
-  - Badge com quantidade de CFOPs
-
-### Página RET - Comparativo de Regimes Tributários (CORRIGIDO)
-- ✅ **Lucro Real**: Agora usa os valores REAIS das apurações (ICMS, PIS, COFINS apurados)
-- ✅ **Lucro Presumido**: ICMS igual ao Real, PIS 0,65% e COFINS 3% cumulativo sobre faturamento
-- ✅ **IRPJ/CSLL Lucro Real**: Calculado sobre lucro contábil (Lucro Bruto - Despesa Real)
-- ✅ **Indicação do Melhor Regime**: Destaque visual do regime mais econômico
-- ✅ **Performance otimizada**: Uso de agregação MongoDB e queries eficientes
-
-### Renomeação de Páginas - RET e Indicadores
-- ✅ **RET** agora é a página de "Rota de Eficiência Tributária" (comparativo de regimes tributários)
-- ✅ **Indicadores** é a página de indicadores financeiros (antiga RET) - CMV/CPV, Margens, DRE
-- ✅ Rotas atualizadas: `/ret` (comparativo) e `/indicadores` (indicadores financeiros)
-- ✅ Menu lateral atualizado: **Indicadores** aparece ACIMA do **RET**
-
-### Página Indicadores - Refatoração Completa
-- ✅ **Aba Impostos**: Impostos individualizados (ICMS, PIS, COFINS, ISS, IPI, ICMS ST) com percentuais sobre Saídas e sobre Vendas
-- ✅ **Aba CMV/CPV e Ponto de Equilíbrio** (unificada): 
-  - Campos de Estoque Inicial e Final
-  - Cálculo do CMV automático
-  - Ponto de Equilíbrio (despesas para zerar lucro)
-  - **DRE Flutuante**: Campo para informar Despesa Real → calcula Lucro Contábil
-- ✅ **Aba Margens e Markup**: Indicadores de margem de contribuição, markup, entradas por tipo
-- ✅ **Abas Vilões, Oportunidades e Insights IA**: Mantidas
-
-### Backend - Integração Lucro Contábil com RET
-- ✅ Campo `despesa_real` adicionado ao modelo Company
-- ✅ Endpoint `/api/inteligencia-tributaria` atualizado para usar o lucro contábil calculado
-- ✅ IRPJ e CSLL no Lucro Real calculados com base no lucro contábil (Lucro Bruto - Despesa Real)
-
-### Correções e Melhorias - Documentos e Classificação
-- ✅ Criado endpoint `/api/classification/suggestions/{company_id}` para carregar produtos na página Classificação Inteligente
-- ✅ Adicionada **coluna de CFOPs** na tabela de Documentos (mostra até 3 CFOPs únicos por nota)
-- ✅ Adicionada **coluna de Classificações** na tabela de Documentos (badges de REV, INS, DES, ATI, CMB, PEN)
-- ✅ Restaurada **barra de validação de notas** - mostra quantas notas têm soma de produtos = valor total
-- ✅ Barra verde quando 100% validadas, âmbar quando há divergências
-
-### Classificação Inteligente - Agrupamento e Barra de IA
-- ✅ Produtos agrupados por classificação (Revenda, Insumo, Despesa, Ativo, Combustível, Pendente)
-- ✅ Cada grupo é expandível - clique para ver a lista de produtos
-- ✅ **Barra de Comando IA** restaurada - digite instruções em linguagem natural
-- ✅ Exemplos: "classificar etanol como combustível", "produtos limpeza são despesa"
-- ✅ Sugestões rápidas clicáveis na interface
-- ✅ Criado endpoint `/api/classification/ia-command/{company_id}` para processar comandos
-
-### PIS/COFINS - Relatório de Divergências Completo
-- ✅ Implementado endpoint `/api/pis-cofins/divergencias/{company_id}` com 3 agrupamentos
-- ✅ **Agrupamento por Notas Fiscais**: Lista NFs com produtos divergentes, expandível
-- ✅ **Agrupamento por NCMs**: Agrupa divergências por código NCM
-- ✅ **Agrupamento por Produtos**: Agrupa por descrição do produto
-- ✅ Verifica: CST, Alíquota e Valor de PIS e COFINS
-- ✅ Calcula automaticamente: Recolhido a Maior (crédito), Recolhido a Menor (passivo)
-- ✅ Frontend atualizado com seletor de agrupamento e cards de resumo
-
-### Tabelas de PIS/COFINS Implementadas
-- ✅ NCMs de Alíquota Zero (Hortifruti, Carnes, Laticínios, Mercearia Básica)
-- ✅ NCMs Monofásicos (Bebidas, Autopeças, Perfumaria, Farmácia)
-- ✅ Alíquotas por Perfil (Indústria, Distribuidor, Varejo)
-- ✅ CNAEs de Serviços (Cumulativo 3,65%, Financeiro 4,65%, Regra Geral 9,25%)
-
-### Tabelas de PIS/COFINS Atualizadas (09/02/2026)
-- ✅ NCMs Alíquota Zero expandidos: +83 NCMs (Tabela 4.3.13) - Carnes, Laticínios, Informática, Equipamentos Médicos, etc.
-- ✅ NCMs Monofásicos expandidos: +50 NCMs (Tabela 4.3.10) - Bebidas, Combustíveis, Autopeças, Perfumaria, Farmácia, Máquinas Agrícolas
-- ✅ Alíquotas por Perfil: INDÚSTRIA (concentrado), DISTRIBUIDOR (diferenciado), VAREJO (alíquota zero monofásicos)
-- ✅ Regras de CST:
-  - CST 50: Entradas tributadas com crédito
-  - CST 70: Monofásicos sem crédito (adquirente)
-  - CST 98: CFOPs sem crédito (bonificação, uso/consumo, ativo imob.)
-  - CST 49: CFOPs sem débito (remessas, demonstração, consignação)
-  - CST 04: Saídas monofásicas
-  - CST 01: Saídas tributadas
-
-### Perfis Comerciais (Múltipla Escolha)
-- ✅ Campo `perfis_comerciais` na empresa (array: ['industria', 'distribuidor', 'varejo'])
-- ✅ Formulário de cadastro com checkboxes para seleção múltipla
-- ✅ Alíquotas diferenciadas aplicadas automaticamente conforme perfil selecionado
-
-### Menus Condicionais
-- ✅ ICMS ST: Visível apenas para Indústria ou equiparado
-- ✅ IPI: Visível apenas para Indústria ou equiparado
-- ✅ ISS: Visível apenas para Serviços ou Mista
-
-### Layout e Ordenação
-- ✅ **Layout fixo com scroll apenas no conteúdo** - Menu e header fixos, rolagem só na área de conteúdo
-- ✅ **Colunas ordenáveis em Documents.js** - Número, Emitente/Destinatário, CNPJ, Data, Valor
-- ✅ **Colunas ordenáveis em Reports.js** - Todos os campos (Código, Descrição, NCM, Qtd, Valor, ICMS, PIS, COFINS)
-- ✅ **Colunas ordenáveis em PisCofins.js** (aba Detalhamento) - NCM, CFOP, CST, Classificação, Qtd, Valor, PIS, COFINS
-
-### Observação sobre Budget de IA
-- ✅ IA agora funcionando com nova chave atualizada
-- Modelo: `gemini-2.5-flash` via Emergent LLM Key
-
-## Próximas Tarefas (Backlog)
-
-### P1 - Alta Prioridade
-- [ ] Upload real de arquivo de certificado digital (.pfx)
-- [ ] Validação de certificado digital
-
-### P2 - Média Prioridade
-- [ ] Refatorar server.py em módulos (routers)
-- [ ] Implementar sistema de licenças
-- [ ] Dashboard de estatísticas do escritório
-
-### P3 - Futuro
-- [ ] Multi-tenancy completo
-- [ ] Relatórios customizáveis
-- [ ] Exportação em múltiplos formatos
-- [ ] Funcionalidades Simples Nacional
-
-## Integrações
-- **Gemini (IA)**: Classificação de produtos via Emergent LLM Key
-- **SIEG**: Cofre de XMLs
-- **Receita Federal**: Consulta CNPJ
-- **XLSX**: Importação em lote de empresas
+- `/app/frontend/src/context/` - Contextos (App, Upload)
 
 ## Changelog
 
-### v2.13.0 (09/02/2026) - Padronização de Critérios e Dashboard Dinâmico por Atividade
-
-**Critério Padronizado - Por Documento:**
-- Todas as páginas de apuração agora usam o mesmo critério do Dashboard: soma de `valor_total` por **documento**, não por item/produto
-- Adicionado filtro `get_filtro_notas_ativas()` na Apuração ICMS para excluir notas canceladas
-- Valores de entradas/saídas agora são consistentes entre Dashboard e Apuração ICMS
-
-**Dashboard Dinâmico por Tipo de Atividade:**
-- Seções ENTRADAS e SAÍDAS separadas com detalhamento por tipo de documento
-- **ENTRADAS**: NF-e, CT-e Entrada (Frete Tomado), NFS-e Tomados (Serviços Tomados)
-- **SAÍDAS**: NF-e, NFC-e (PDV), CT-e Saída (Frete Prestado), NFS-e Prestados
-- Documentos filtrados por `tipo_atividade` da empresa:
-  - Comércio: NF-e e NFC-e (sem NFS-e prestados)
-  - Serviços: NFS-e (sem NF-e de vendas de mercadorias)
-  - Indústria: NF-e
-  - Transporte: CT-e
-  - Mista: Todos os tipos
-- Card de Faturamento Total mostra o tipo de atividade da empresa
-
-**Novos Campos na API Dashboard:**
-- `quantidades.cte_entrada`, `quantidades.nfse_tomados`
-- `quantidades.cte_saida`, `quantidades.nfse_prestados`
-- `quantidades.total_entradas`, `quantidades.total_saidas`
-- `valores.entradas.nfe`, `valores.entradas.cte`, `valores.entradas.servicos_tomados`
-- `valores.saidas.nfe`, `valores.saidas.nfce`, `valores.saidas.cte`, `valores.saidas.servicos_prestados`
-
-**Novos Campos na API Apuração ICMS:**
-- `valores_por_documento.total_entradas` e `valores_por_documento.total_saidas`
-- `entradas.totais.valor_total_por_documento` e `saidas.totais.valor_total_por_documento`
-
-### v2.12.0 (09/02/2026) - Correção da Página RET, Nova Aba Indicadores e Flags de ICMS Funcionais
-
-**Correção Crítica - Página RET não carregava dados:**
-- Identificado que a competência padrão (data atual 12/2025) era diferente da competência com documentos (01/2026)
-- Corrigidas as funções de cálculo para usar os caminhos corretos dos dados do backend:
-  - `dados?.icms?.entradas?.totais?.valor_total` em vez de `dados?.icms?.entradas?.total_produtos`
-  - `dados?.icms?.saidas?.totais?.valor_total` em vez de `dados?.icms?.saidas?.total_produtos`
-  - CFOPs usando `valor_total` em vez de `total_produtos`
-
-**Nova Aba Indicadores na página RET:**
-- **Margem de Contribuição**: Valor absoluto e percentual sobre receita
-- **Markup**: Percentual sobre o custo
-- **Total de Vendas**: Receita bruta do período
-- **Total de Entradas**: Soma de Insumo + Revenda + Despesa
-- **Entradas por Tipo**:
-  - Revenda (CFOPs 1102, 2102, 1403, 2403, etc.)
-  - Insumo (CFOPs 1101, 2101, 1201, 2201)
-  - Despesa (CFOPs 1556, 2556, 1407, 2407, 1653, 2653)
-  - Ativo Imobilizado (CFOPs 1551, 2551)
-- **Percentual de Impostos sobre Faturamento**: ICMS, PIS, COFINS, ISS e Total
-- **DRE Simplificado**: Receita Bruta, Vendas, Serviços, CMV/CPV, Lucro Bruto
-
-**Flags de ICMS na página Apuração ICMS - FUNCIONALIDADE COMPLETA:**
-- **Backend atualizado** com listas de CFOPs:
-  - `CFOPS_DESPESA`: 1407, 2407, 1556, 2556, 1551, 2551, 1653, 2653, etc.
-  - `CFOPS_ST`: 1403, 2403, 1409, 2409, 1410, 2410, etc.
-- **Marcação visual** de CFOPs desconsiderados:
-  - Linha vermelha com texto riscado (line-through)
-  - Badge de status: ⛔ DESPESA, ⛔ ST, ⛔ DESCONSIDERADO
-  - Fundo vermelho/laranja na linha da tabela
-- **Card "Valores Desconsiderados na Apuração"**:
-  - ICMS Despesas (Zerado): valor e quantidade de itens
-  - ICMS ST (Zerado): valor e quantidade de itens
-  - Total ICMS Desconsiderado: soma dos valores
-- **Recálculo automático** dos totais de crédito ICMS
-- **Impacto real na apuração** (exemplo da empresa teste):
-  - Sem flags: Crédito R$ 2.072.412,90 → Saldo a recuperar
-  - Com flags: Crédito R$ 1.728.559,76 → Saldo a pagar
-
-**Troca de IA - Gemini 2.5 Flash (Gratuito):**
-- Substituído gpt-4o por gemini-2.5-flash em todas as chamadas de LlmChat
-- Mantém a mesma qualidade de análise tributária com custo zero
-
-### v2.11.0 (09/02/2026) - Animação Contador Tomando Café
-
-**Animação de Progresso - Contador Tomando Café:**
-- Novo componente `CoffeeProgress.js` com animação do contador
-- O café diminui conforme o progresso aumenta (100% = café acabou)
-- Vapor saindo da xícara enquanto tem café
-- Contador sorrindo quando termina
-- Substituiu barras de progresso em:
-  - Upload de XMLs (UploadXML.js)
-  - Importação de Empresas (Companies.js)
-  - Indicador flutuante minimizado (GlobalUploadProgress.js)
-
-**Correção das Flags de ICMS:**
-- Checkboxes maiores (5x5) com cores visíveis
-- Estilo `accent-color` para mostrar a cor quando marcado
-- Flags funcionando corretamente para marcar/desmarcar
-
-### v2.16.0 (12/12/2025) - Correções RET e Projeção Anual
-
-**Página RET (RetSimples.js) - Correções:**
-- ✅ Corrigido endpoint: `/api/simples-nacional/ret/comparativo?company_id=X&ano=Y`
-- ✅ Tratamento de erros de validação Pydantic que causavam "Objects are not valid as React child"
-- ✅ Página funcionando e exibindo comparativo completo entre regimes
-
-**Projeção Anual - Lógica corrigida:**
-- ✅ Agora usa o número de meses COM faturamento (não o mês de referência)
-- ✅ Fórmula: (faturamento acumulado do ano) / (meses com faturamento) * 12
-- ✅ Variável `meses_para_projecao` calculada corretamente
-
-**Endpoint RET - Parâmetro `ano` adicionado:**
-- ✅ Permite selecionar o ano para o comparativo
-- ✅ Usa mês 12 para anos anteriores, mês atual para ano corrente
-
-### v2.15.0 (12/12/2025) - Dashboard Principal Personalizado para Simples Nacional
-
-**Dashboard Principal - Seção de Impostos Condicional:**
-- ✅ **Para empresas do Simples Nacional:**
-  - Card "DAS do Mês" (valor + alíquota efetiva)
-  - Card "DIFAL do Mês" (valor + % sobre compras interestaduais)
-  - Card "Compras Interestaduais" (valor + qtd de notas)
-  - Card "Total Impostos" (DAS + DIFAL + % saídas + % vendas)
-  - Total de Impostos a Pagar consolidado
-- ✅ **Para outros regimes:** Mantém cards de ICMS, PIS, COFINS, ISS
-
-**Menu Lateral - RET como item de menu:**
-- ✅ Removido botão RET do Dashboard do Simples Nacional
-- ✅ Adicionado item "RET" no menu lateral para empresas do Simples
-- ✅ Criada página dedicada `/ret-simples` (RetSimples.js)
-
-**Dashboard Simples Nacional - Cards simplificados:**
-- ✅ Removidos cards: DIFAL, Total Impostos, Compras Interestaduais (já aparecem no Dashboard principal)
-- ✅ Mantidos: DAS do Mês, RBT12, Enquadramento, Vendas, Faturamento do Ano
-
-**Backend - Função auxiliar `_get_simples_nacional_stats()`:**
-- Retorna dados específicos para o Dashboard principal de empresas do Simples
-- Campos: das_valor, aliquota_efetiva, difal_valor, difal_percentual_compras, compras_interestaduais, total_impostos, percentual_sobre_vendas
-
-### v2.14.0 (12/12/2025) - Personalização Dashboard Simples Nacional e Fator R
-
-**Dashboard Simples Nacional - Cards Personalizados:**
-- ✅ **Removidos** cards antigos irrelevantes (ICMS, PIS, COFINS individuais)
-- ✅ **Cards da Linha 1 - Impostos do Mês:**
-  - DAS do Mês (valor e alíquota efetiva)
-  - DIFAL do Mês (valor e % sobre compras interestaduais)
-  - Total Impostos (DAS + DIFAL e % sobre vendas)
-  - Enquadramento (Faixa e Anexo)
-- ✅ **Cards da Linha 2 - Faturamento:**
-  - RBT12 (Últimos 12 meses) com média mensal
-  - Vendas do Mês
-  - Compras Interestaduais (com qtd de notas)
-  - Faturamento do Ano
-- ✅ **Barras de Progresso:** Limite Simples Nacional e Sublimite Estadual
-- ✅ **Correção de código malformado** nas linhas 440-443
-
-**Fator R - Sugestão de Folha Mínima (NOVO):**
-- ✅ Backend atualizado: `calcular_fator_r()` agora recebe `faturamento_competencia`
-- ✅ **Cálculo de RBT12 projetado:** RBT12 - média mensal + faturamento atual
-- ✅ **Folha Sugerida Projetada:** 28% do RBT12 projetado (para próximo período)
-- ✅ **Folha Mensal Sugerida:** Valor mensal para manter os 28%
-- ✅ **Novo card no Dashboard:** "💡 Folha Mensal Sugerida" com valor e contexto
-- ✅ Exibe mensagem contextual: "Considerando vendas de R$ X nesta competência"
-
-**Backend - Dados para os novos cards:**
-- `difal_mes`: total_difal, qtd_notas, percentual_sobre_compras, total_compras_interestaduais
-- `impostos_mes`: das, difal, total, percentual_sobre_vendas
-- `fator_r`: rbt12_projetado, faturamento_competencia, folha_sugerida_projetada, folha_mensal_sugerida
-
-### v2.12.0 (09/02/2026) - DIFAL e RET para Simples Nacional
-
-**DIFAL - Diferencial de Alíquota (NOVO):**
-- Menu exclusivo para empresas do Simples Nacional
-- Apuração de ICMS nas entradas interestaduais (compras de outros estados)
-- Duas abas: Apuração e Detalhamento por Produto
-
-**Aba Apuração:**
-- Cards resumo: Total DIFAL, Notas Interestaduais, Produtos com/sem DIFAL
-- Alíquota interna do estado da empresa (18 UFs configuradas)
-- Resumo por UF de origem com alíquota interestadual
-- Lista de notas fiscais com expansão para detalhes
-- Embasamento legal completo (LC 123/2006, Art. 13, §1º, XIII)
-
-**Aba Detalhamento:**
-- Tabela de produtos COM DIFAL: NF, NCM, descrição, UF, alíquotas, diferença, valor DIFAL
-- Tabela de produtos SEM DIFAL (ST): NF, NCM, CST, motivo isenção
-- Embasamento legal por seção
-
-**Alertas de Convênio ICMS:**
-- Alerta quando produto pode não ter convênio entre estados
-- Aviso sobre GNRE a recolher antes da entrada da mercadoria
-
-**Regras implementadas:**
-- Produtos com ST (CST 10, 30, 60, 70, 201, 202, 203, 500) = SEM DIFAL
-- Revenda, uso/consumo, ativo imobilizado = COM DIFAL
-- Alíquotas interestaduais: 7% (Sul/Sudeste → N/NE/CO/ES) ou 12% (demais)
-
-**RET - Comparativo de Regimes (NOVO):**
-- Botão "RET" no Dashboard Simples Nacional
-- Modal com comparativo: Simples Nacional vs Lucro Presumido vs Lucro Real
-- Ranking dos regimes por menor carga tributária
-- Detalhamento por tributo: ICMS, PIS, COFINS, IRPJ, CSLL, CPP
-- Análise comparativa com economia/prejuízo
-- Usa dados do PGDAS quando disponível
-- Alertas quando limite do Simples é excedido
-
-**Endpoints DIFAL:**
-- `POST /api/simples-nacional/difal/apuracao` - Apuração completa
-- `GET /api/simples-nacional/difal/detalhamento/{company_id}/{competencia}` - Detalhamento por produto
-- `GET /api/simples-nacional/difal/aliquotas` - Tabela de alíquotas internas
-
-**Endpoints RET:**
-- `POST /api/simples-nacional/ret/comparativo` - Comparativo de regimes
-
-**Serviço de Cálculo DIFAL (`difal_calculator.py`):**
-- Tabela de alíquotas internas por UF com embasamento legal
-- Cálculo de alíquota interestadual (Resolução SF 22/1989)
-- Verificação de ST e convênios
-- Processamento de documentos e produtos
-
-### v2.11.0 (09/02/2026) - Módulo Simples Nacional Completo
-
-**Dashboard Simples Nacional (NOVO):**
-- Nova página `/simples-nacional` exclusiva para empresas do Simples Nacional
-- Menu lateral condicional: quando empresa é Simples, mostra apenas "Simples Nacional" (remove PIS/COFINS, ICMS, ISS, Indicadores, RET)
-
-**Importação PGDAS (NOVO):**
-- Upload de PDF do PGDAS exportado do portal do Simples Nacional
-- Extração automática de faturamento mensal (histórico completo)
-- Comparação entre valores do PGDAS vs valores calculados pelo sistema (notas fiscais)
-- Alertas de divergência quando PGDAS ≠ Sistema
-- Histórico de faturamento com indicação de origem (PGDAS ou Sistema)
-- Valores do PGDAS são bloqueados e têm prioridade sobre valores do sistema
-- RBT12 calculado a partir do histórico importado
-
-**Cards Principais:**
-- RBT12 (Receita Bruta dos últimos 12 meses) - usa PGDAS quando disponível
-- Faturamento do ano corrente
-- Faixa atual e alíquota efetiva
-- DAS do mês atual
-
-**Limites com Barras de Progresso:**
-- Limite do Simples Nacional (R$ 4.800.000,00) com % consumido
-- Sublimite Estadual ICMS/ISS (R$ 3.600.000,00) com % consumido
-- Alertas automáticos quando próximo dos limites
-
-**Projeção Anual:**
-- Projeção baseada na média mensal
-- Margem disponível até sublimite e limite
-- Alertas inteligentes de situação
-
-**Enquadramento Tributário:**
-- Anexos sugeridos com base nos CNAEs
-- Faixa de faturamento atual (1ª a 6ª)
-- Alíquota nominal vs efetiva
-- Parcela a deduzir
-
-**Fator R (para Anexo V):**
-- Cálculo automático do Fator R (somente se flag `controla_fator_r` ativa)
-- Indicador se pode usar Anexo III (Fator R >= 28%)
-- Folha necessária para migrar de Anexo V para III
-- Economia potencial anual se aumentar folha
-
-**Detalhamento do DAS:**
-- Repartição por tributo (IRPJ, CSLL, COFINS, PIS, CPP, ICMS/ISS)
-- Descontos para produtos ST e monofásicos
-- Total a pagar
-
-**Histórico Mensal:**
-- Tabela com faturamento dos últimos 12 meses
-- Quantidade de notas por competência
-- Total RBT12
-
-**Cadastro de Empresa - Configuração Simples Nacional (NOVO):**
-- Seção de Anexos com seleção visual (I a V)
-- Sugestão automática de anexos baseada nos CNAEs do CNPJ
-- Descrição explicativa de cada anexo
-- Badge "Sugerido" para anexos recomendados
-- Modal de confirmação ao alterar anexos já confirmados
-- Flag **"Controla Fator R"** (habilita cálculo no Dashboard)
-- Campo de Folha de Pagamento (últimos 12 meses)
-- Indicador visual de anexos confirmados
-
-**Backend - Novos Endpoints:**
-- `POST /api/dashboard/simples-nacional` - Dados completos do dashboard
-- `POST /api/simples-nacional/{id}/importar-pgdas` - Importação de PDF PGDAS
-- `GET /api/simples-nacional/{id}/historico-faturamento` - Histórico de faturamento
-- `PUT /api/simples-nacional/{id}/historico-faturamento/{comp}` - Atualizar faturamento manual
-- `PUT /api/companies/{id}/simples-nacional/anexos` - Atualizar anexos confirmados
-- `PUT /api/companies/{id}/simples-nacional/folha` - Atualizar folha de pagamento
-- `GET /api/simples-nacional/sugerir-anexos/{cnpj}` - Sugestão de anexos por CNPJ
-
-**Backend - Novos Campos no Modelo Company:**
-- `anexos_simples`: Lista de anexos (I, II, III, IV, V)
-- `anexos_confirmados`: Boolean se usuário confirmou os anexos
-- `controla_fator_r`: Boolean se empresa controla Fator R
-- `folha_pagamento_12m`: Float com valor da folha dos últimos 12 meses
-- `historico_faturamento`: Dict com faturamento mensal (origem PGDAS ou Sistema)
-- `pgdas_ultima_importacao`: Data da última importação do PGDAS
-- `pgdas_rbt12`: RBT12 extraído do PGDAS
-
-**Serviço de Cálculo (`simples_nacional_calculator.py`):**
-- Tabelas oficiais de alíquotas por Anexo (I a V)
-- Cálculo de alíquota efetiva
-- Cálculo de Fator R
-- Repartição de tributos
-- Projeção anual e alertas
-
-**Serviço de Extração PGDAS (`pgdas_extractor.py`):**
-- Extração de texto do PDF via PyMuPDF
-- Parsing de valores em formato brasileiro (1.234,56)
-- Extração de RBT12, RBA, faturamento mensal
-- Comparação PGDAS vs Sistema
-- Geração de histórico para salvar
-
-### v2.10.0 (09/02/2026) - Dashboard Dinâmico e Flags ICMS
-
-**Dashboard Dinâmico:**
-- Impostos mostrados baseado no perfil da empresa:
-  - ICMS: comercio, industria, mista ou flag apura_icms
-  - ISS: servicos ou mista
-  - PIS/COFINS: sempre visível
-- Total de impostos mostra apenas impostos relevantes
-- Percentuais sobre faturamento e sobre vendas adicionados
-
-**Flags de Desconsiderar ICMS (Cadastro de Empresas):**
-- **Desconsiderar ICMS CFOPs Despesas**: Zera base e ICMS de CFOPs de despesa
-- **Desconsiderar ICMS sobre Operações ST**: Zera base e ICMS de CFOPs de mercadorias ST
-- Flags afetam: Apuração ICMS, Dashboard e RET
-- Ao desmarcar, valores voltam automaticamente
-
-**Apuração ICMS:**
-- Indicador visual das flags ativas
-- Link para configurar em Cadastro de Empresas
-
-### v2.9.0 (09/02/2026) - RET Completo e CNAEs Secundários Automáticos
-
-**CNAEs Secundários Automáticos:**
-- Ao buscar CNPJ no cadastro de empresa, os CNAEs secundários são importados automaticamente da Receita Federal
-- Backend atualizado para retornar `cnaes_secundarios` da BrasilAPI
-
-**RET - Rota de Eficiência Tributária (Reescrito):**
-- **Aba CMV/CPV (Nova)**:
-  - Campos de Estoque Inicial e Final com botão "Salvar Estoque"
-  - Cálculo automático: CMV = Estoque Inicial + Compras - Estoque Final
-  - Exibição do Lucro Bruto (Receita - CMV)
-
-- **Aba Ponto de Equilíbrio (Nova)**:
-  - Demonstrativo com Receita Total, CMV e Lucro Bruto
-  - **Despesas para Equilibrar**: Valor necessário para zerar lucro tributável
-  - **Economia Potencial em IRPJ+CSLL**: Economia se atingir o ponto de equilíbrio
-  - Dica para o empresário com sugestões de despesas dedutíveis
-
-- **Aba Comparativo Regimes (Nova)**:
-  - Simulação de Lucro Presumido com base nas receitas escrituradas
-  - Separação por atividade (Comércio/Indústria e Serviços) se empresa for mista
-  - Cálculo de IRPJ (15% + adicional 10%) e CSLL (9%)
-  - Total consolidado de IRPJ + CSLL
-
-- **Dashboard Dinâmico**:
-  - Cards de impostos só aparecem para contribuintes (baseado no cadastro da empresa)
-  - ICMS: apenas se tipo_atividade = comercio, industria, mista ou flag apura_icms
-  - ISS: apenas se tipo_atividade = servicos ou mista
-  - IPI: apenas se tipo_atividade = industria ou flag equiparado_industria
-  - ICMS ST: apenas se flag apura_icms_st
-  - PIS/COFINS: sempre visível
-
-### v2.8.0 (09/02/2026) - Restauração Completa do Cadastro de Empresa
-- **Campos de Presunção restaurados**: Presunção IRPJ (%) e CSLL (%) agora aparecem quando regime = Lucro Presumido
-- **Presunção por Atividade (NOVO)**: Quando tipo de atividade = "Mista", exibe campos separados:
-  - 📦 Atividade de Comércio: Presunção IRPJ Comércio (8%), CSLL Comércio (12%)
-  - 🛠️ Atividade de Serviços: Presunção IRPJ Serviços (32%), CSLL Serviços (32%)
-- **CNAEs Secundários (NOVO)**: Campo para adicionar múltiplos CNAEs secundários conforme cartão CNPJ
-- **Campos de Classificação de Produtos restaurados**:
-  - Produtos Comercializados (para classificação REVENDA) - cor azul
-  - Insumos de Produção (para classificação INSUMO) - cor verde
-  - Produtos de Despesa (sempre classificados como DESPESA) - cor vermelha
-  - Ativo Imobilizado - cor âmbar
-  - Combustível - cor roxa
-- **Campos de Inscrição melhorados**:
-  - Inscrição Estadual (IE) - campo completo
-  - Inscrição Municipal (IM) - campo completo
-  - CEP - campo adicionado
-- **Seção Localização e Inscrições reorganizada** em um card único
-- **Certificado Digital**: Campos para arquivo, senha e validade
-- **Backend atualizado**: Modelos Company, CompanyCreate e CompanyUpdate incluem todos os novos campos
-
-### v2.7.0 (08/02/2026) - RET, IPI e ICMS ST
-- Nova Página RET - Rota de Eficiência Tributária
-- Nova Página Apuração IPI
-- Nova Aba ICMS ST
-- Menu dinâmico baseado no perfil da empresa
-
-### v2.6.0 (08/02/2026) - Reestruturação do Menu de Apuração
-- Nova Página Apuração ICMS
-- Nova Página Apuração ISS
-- Melhorias em PIS/COFINS (Top 10, CFOP+CST)
-
-### v2.5.0 (08/02/2026)
-- Novo Módulo PIS/COFINS Completo
-- Comparativo de Regimes
-- Análise de Divergências
-
-### Versões Anteriores
-- v2.4.0: Exclusão em massa de documentos
-- v2.3.0: Validação de upload por tipo, IA para extração
-- v2.2.0: Nova navegação de documentos em 3 níveis
-- v2.1.0: Importação em lote de empresas
-- v2.0.0: Rebranding AURION
+### 2026-02-09
+- ✅ Adicionada barra de progresso com contador tomando café
+- ✅ Corrigido erro de exportação de relatórios (io not defined)
+- ✅ Refeito frontend dos Alertas de CFOP
+- ✅ Adicionado upload de logo da empresa
+- ✅ Adicionado aviso no RET para dados incompletos
+- ✅ Removidos arquivos obsoletos (AlertasCfop.js, ClassificacaoPage.js)
+
+### Sessões Anteriores
+- Unificação do módulo RET
+- Customização de dashboards para Simples Nacional
+- Melhoria no cálculo do Fator R
+- Realocação da integração SIEG para Documentos
+- Criação de relatórios por alíquota
+
+## Backlog
+
+### P1 - Alta Prioridade
+- [ ] Upload de Certificado Digital (.pfx) - backend
+- [ ] Integração SIEG - aguardando chave válida
+
+### P2 - Média Prioridade
+- [ ] Ordenação em todas as colunas das tabelas
+- [ ] Logo da empresa nos relatórios exportados
+
+### P3 - Baixa Prioridade
+- [ ] Refatorar server.py em routers
+- [ ] Sistema de licenças comerciais
+- [ ] Dashboard de estatísticas para Master
+
+## Credenciais de Teste
+- Email: admin@test.com
+- Senha: 123456
