@@ -77,17 +77,31 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-09 (Sessão 6 - FASE 1 Correções Críticas)
-- ✅ **Relatório de Importação corrigido** - Mapeamento de campos ajustado para exibir contagem e detalhes
-- ✅ **CFOP 5933 em NFS-e Prestadas** - Todas as notas de serviços prestados agora têm CFOP 5933
-- ✅ **CFOPs de natureza distinta** - Novo mapeamento com categorias automáticas:
+### 2026-02-09 (Sessão 6 - FASE 1 e FASE 2)
+
+**FASE 1 - Correções Críticas:**
+- ✅ **Relatório de Importação corrigido** - Mapeamento de campos ajustado
+- ✅ **CFOP 5933 em NFS-e Prestadas** - Todas notas de serviços prestados
+- ✅ **CFOPs de natureza distinta** - 50+ categorias automáticas:
   - 1910/2910 → Bonificação/Doação
-  - 1911/2911 → Amostra Grátis
+  - 1911/2911 → Amostra Grátis  
   - 1949/2949 → Outras Operações
-  - + 30 outros CFOPs mapeados para categorias específicas
-- ✅ **Contador de café restaurado** - Animação flutuante no canto inferior durante upload
-- ✅ **Documentos NFS-e existentes atualizados** - 27 docs VETCO com CFOP 5933
-- ⏳ Filtro de divergência - Verificando funcionamento
+- ✅ **Contador de café restaurado** - Animação flutuante durante upload
+- ✅ **Filtro de divergência corrigido** - Inclui `servicos` além de `produtos`
+
+**FASE 2 - Funcionais:**
+- ✅ **Cálculo Presumido RET por atividade**:
+  - Serviços: 32% IRPJ, 32% CSLL
+  - Comércio: 8% IRPJ, 12% CSLL
+  - Mista: Separa faturamento automaticamente
+  - Transportadora e Revenda Combustível: Presunções especiais
+- ✅ **Card ICMS nos Indicadores** - Mostra saldo credor em verde
+- ✅ **Classificação IA melhorada**:
+  - Analisa produtos de SAÍDA para entender o que a empresa vende
+  - Compara NCM e descrições para classificar como REVENDA
+  - Em caso de dúvida para comércio → REVENDA
+- ✅ **Categorias de classificação expandidas** - 14 categorias com ícones
+- ✅ **Barra de pesquisa na Classificação** - Já existia, verificada
 
 ### 2026-02-09 (Sessão 5)
 - ✅ **Nova Página de Apuração - Resumo do Movimento**
