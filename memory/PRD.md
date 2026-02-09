@@ -114,6 +114,33 @@ O menu lateral é atualizado dinamicamente baseado no perfil da empresa:
 
 ## Changelog
 
+### v2.12.0 (09/02/2026) - Correção da Página RET e Nova Aba Indicadores
+
+**Correção Crítica - Página RET não carregava dados:**
+- Identificado que a competência padrão (data atual 12/2025) era diferente da competência com documentos (01/2026)
+- Corrigidas as funções de cálculo para usar os caminhos corretos dos dados do backend:
+  - `dados?.icms?.entradas?.totais?.valor_total` em vez de `dados?.icms?.entradas?.total_produtos`
+  - `dados?.icms?.saidas?.totais?.valor_total` em vez de `dados?.icms?.saidas?.total_produtos`
+  - CFOPs usando `valor_total` em vez de `total_produtos`
+
+**Nova Aba Indicadores na página RET:**
+- **Margem de Contribuição**: Valor absoluto e percentual sobre receita
+- **Markup**: Percentual sobre o custo
+- **Total de Vendas**: Receita bruta do período
+- **Total de Entradas**: Soma de Insumo + Revenda + Despesa
+- **Entradas por Tipo**:
+  - Revenda (CFOPs 1102, 2102, 1403, 2403, etc.)
+  - Insumo (CFOPs 1101, 2101, 1201, 2201)
+  - Despesa (CFOPs 1556, 2556, 1407, 2407, 1653, 2653)
+  - Ativo Imobilizado (CFOPs 1551, 2551)
+- **Percentual de Impostos sobre Faturamento**: ICMS, PIS, COFINS, ISS e Total
+- **DRE Simplificado**: Receita Bruta, Vendas, Serviços, CMV/CPV, Lucro Bruto
+
+**Flags de ICMS na página Apuração ICMS:**
+- Confirmado que as flags são editáveis e persistem no banco de dados
+- Indicador visual "Não salvo" quando há mudanças pendentes
+- Botão "Aplicar e Recalcular" habilita quando há alterações
+
 ### v2.11.0 (09/02/2026) - Animação Contador Tomando Café
 
 **Animação de Progresso - Contador Tomando Café:**
