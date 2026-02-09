@@ -1,7 +1,36 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUpload } from '../context/UploadContext';
-import { X, ChevronUp, ChevronDown, CheckCircle2, AlertCircle, Loader2, FileText } from 'lucide-react';
+import { X, ChevronUp, ChevronDown, CheckCircle2, AlertCircle, Loader2, FileText, Upload, Coffee } from 'lucide-react';
+
+// Mini xícara de café animada para o progresso
+const MiniCoffee = ({ progress }) => {
+  const coffeeLevel = 100 - progress;
+  const isComplete = progress >= 100;
+  
+  return (
+    <div className="relative w-8 h-8 flex items-center justify-center">
+      {/* Xícara */}
+      <div className="relative w-6 h-5 bg-white rounded-b-md border-2 border-white/80 overflow-hidden">
+        {/* Café */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#3D2314] to-[#6B4423] transition-all duration-300"
+          style={{ height: `${coffeeLevel}%` }}
+        />
+      </div>
+      {/* Alça */}
+      <div className="absolute right-0 top-1.5 w-1.5 h-2.5 border-2 border-white/80 rounded-r-full" />
+      {/* Vapor */}
+      {!isComplete && coffeeLevel > 20 && (
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2 flex gap-0.5">
+          <div className="w-0.5 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-0.5 h-2.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="w-0.5 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
+      )}
+    </div>
+  );
+};
 
 const GlobalUploadProgress = () => {
   const location = useLocation();
