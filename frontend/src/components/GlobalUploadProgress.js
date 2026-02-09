@@ -206,16 +206,16 @@ const GlobalUploadProgress = () => {
 
   return (
     <>
-    <div className="fixed bottom-4 right-4 z-50 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
+    <div className="fixed bottom-4 right-4 z-50 w-96 bg-[#141414] rounded-xl shadow-2xl border border-[#2A2A2A] overflow-hidden">
       {/* Header */}
       <div className={`px-4 py-3 flex items-center justify-between ${
         uploadError ? 'bg-red-600' : 
         uploadResults ? 'bg-green-600' : 
-        'bg-gradient-to-r from-red-600 to-red-700'
+        'bg-[#0C0C0C] border-b border-[#2A2A2A]'
       } text-white`}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {isUploading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <MiniCoffee progress={progress.percent} />
           ) : uploadResults ? (
             <CheckCircle2 className="w-5 h-5" />
           ) : uploadError ? (
@@ -223,11 +223,16 @@ const GlobalUploadProgress = () => {
           ) : (
             <Upload className="w-5 h-5" />
           )}
-          <span className="font-semibold text-sm">
-            {isUploading ? 'Importando XMLs...' : 
-             uploadResults ? 'Importação Concluída' : 
-             'Erro na Importação'}
-          </span>
+          <div>
+            <span className="font-semibold text-sm">
+              {isUploading ? 'Contador importando...' : 
+               uploadResults ? 'Importação Concluída' : 
+               'Erro na Importação'}
+            </span>
+            {isUploading && (
+              <p className="text-xs text-[#C8A951]">{progress.percent}% - Café esfriando...</p>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1">
           {isUploading && (
