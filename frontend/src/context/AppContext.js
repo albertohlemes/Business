@@ -20,12 +20,9 @@ export const AppProvider = ({ children }) => {
   const [companies, setCompanies] = useState([]);
   const [showSelector, setShowSelector] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [initialLoadDone, setInitialLoadDone] = useState(false);
-  // Flag para controlar se o usuário já fez a seleção inicial nesta sessão
-  const [hasCompanySelection, setHasCompanySelection] = useState(() => {
-    return !!localStorage.getItem('selectedCompanyId');
-  });
+  const [companiesLoaded, setCompaniesLoaded] = useState(false);
 
+  // Efeito inicial: carregar empresas e competência salva
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -34,10 +31,8 @@ export const AppProvider = ({ children }) => {
       setLoading(false);
     }
     
-    // Carregar seleção salva
-    const savedCompany = localStorage.getItem('selectedCompanyId');
+    // Carregar competência salva ou usar atual
     const savedCompetencia = localStorage.getItem('selectedCompetencia');
-    
     if (savedCompetencia) {
       setSelectedCompetencia(savedCompetencia);
     } else {
@@ -46,40 +41,42 @@ export const AppProvider = ({ children }) => {
       const year = now.getFullYear();
       setSelectedCompetencia(`${month}/${year}`);
     }
-    
-    // Marcar que temos uma seleção prévia
-    if (savedCompany) {
-      setHasCompanySelection(true);
-    }
   }, []);
 
+  // Efeito para restaurar empresa salva quando empresas forem carregadas
   useEffect(() => {
-    // Este efeito só deve rodar na carga inicial, não quando o usuário abre o seletor manualmente
-    if (initialLoadDone) return;
+    if (companies.length === 0) return;
     
     const savedCompanyId = localStorage.getItem('selectedCompanyId');
     
-    if (companies.length > 0) {
-      if (savedCompanyId) {
-        const company = companies.find(c => c.id === savedCompanyId);
-        if (company) {
-          setSelectedCompany(company);
-          // IMPORTANTE: Fechar o seletor - já temos uma empresa válida salva
-          setShowSelector(false);
-          setHasCompanySelection(true);
-        } else {
-          // Se não encontrou a empresa salva, mostra seletor
-          setShowSelector(true);
-          setHasCompanySelection(false);
-        }
-      } else if (!hasCompanySelection) {
-        // Primeira vez com empresas E não tem seleção prévia, mostra seletor
+    // Se já temos uma empresa selecionada, não fazer nada
+    if (selectedCompany) {
+      setLoading(false);
+      setCompaniesLoaded(true);
+      return;
+    }
+    
+    if (savedCompanyId) {
+      // Tentar restaurar a empresa salva
+      const company = companies.find(c => c.id === savedCompanyId);
+      if (company) {
+        setSelectedCompany(company);
+        setShowSelector(false);
+      } else {
+        // Empresa salva não existe mais, limpar e mostrar seletor
+        localStorage.removeItem('selectedCompanyId');
         setShowSelector(true);
       }
-      setLoading(false);
-      setInitialLoadDone(true);
+    } else {
+      // Nenhuma empresa salva, mostrar seletor apenas se ainda não carregou
+      if (!companiesLoaded) {
+        setShowSelector(true);
+      }
     }
-  }, [companies, initialLoadDone, hasCompanySelection]);
+    
+    setLoading(false);
+    setCompaniesLoaded(true);
+  }, [companies, selectedCompany, companiesLoaded]);
 
   const fetchCompanies = async () => {
     try {
