@@ -7,6 +7,7 @@ import {
   Briefcase, Factory, Zap, Star, ArrowLeftRight, Package, LineChart, TrendingUp
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import CoffeeProgress from './CoffeeProgress';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -16,7 +17,7 @@ const Layout = ({ user, onLogout, children }) => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [menuMode, setMenuMode] = useState('vertical');
-  const { selectedCompany, selectedCompetencia, openSelector } = useAppContext();
+  const { selectedCompany, selectedCompetencia, openSelector, uploadProgress } = useAppContext();
 
   // Load menu preference from user
   useEffect(() => {
