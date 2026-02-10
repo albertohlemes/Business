@@ -5714,6 +5714,9 @@ async def upload_xml_with_progress(
         progress["status"] = "processing"
         progress["completed"] = False
     
+    # Persistir alterações no MongoDB
+    await save_upload_session(upload_id, progress)
+    
     return {"processed": len(files), "total_processed": processed_in_session, "total_expected": total_expected}
 
 
