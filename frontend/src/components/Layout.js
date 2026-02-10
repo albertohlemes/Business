@@ -207,9 +207,9 @@ const Layout = ({ user, onLogout, children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0C0C0C]">
-      {/* Header Principal - Logo e Controles */}
-      <header className="bg-[#0C0C0C] border-b border-[#2A2A2A] sticky top-0 z-50">
+    <div className="h-screen bg-[#0C0C0C] flex flex-col overflow-hidden">
+      {/* Header Principal - Logo e Controles - FIXO NO TOPO */}
+      <header className="bg-[#0C0C0C] border-b border-[#2A2A2A] z-50 flex-shrink-0">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -356,7 +356,7 @@ const Layout = ({ user, onLogout, children }) => {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#141414] border-b border-[#2A2A2A]">
+        <div className="md:hidden bg-[#141414] border-b border-[#2A2A2A] flex-shrink-0 max-h-[60vh] overflow-y-auto">
           {selectedCompany && (
             <button
               onClick={() => { openSelector(); setMobileMenuOpen(false); }}
@@ -419,14 +419,14 @@ const Layout = ({ user, onLogout, children }) => {
         </div>
       )}
 
-      {/* Main Content Area - Fixed height with scroll */}
-      <div className="h-[calc(100vh-64px)] overflow-hidden">
+      {/* Main Content Area - Flex grow para ocupar espaço restante */}
+      <div className="flex-1 overflow-hidden">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 h-full">
           <div className="flex gap-6 h-full py-4">
-            {/* Sidebar - Apenas em modo vertical */}
+            {/* Sidebar - Apenas em modo vertical - FIXA */}
             {menuMode === 'vertical' && (
-              <aside className="hidden md:block w-56 flex-shrink-0 h-full">
-                <nav className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-3 h-fit sticky top-4">
+              <aside className="hidden md:block w-56 flex-shrink-0 overflow-y-auto">
+                <nav className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-3">
                   <div className="space-y-1">
                     {navigation.map((item) => (
                       <NavItemVertical key={item.name} item={item} />
@@ -436,8 +436,8 @@ const Layout = ({ user, onLogout, children }) => {
               </aside>
             )}
 
-            {/* Main Content - Scrollable */}
-            <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden pr-2 scrollbar-thin scrollbar-thumb-[#2A2A2A] scrollbar-track-transparent">
+            {/* Main Content - ÚNICO ELEMENTO ROLÁVEL */}
+            <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-[#2A2A2A] scrollbar-track-transparent">
               {children}
             </main>
           </div>
