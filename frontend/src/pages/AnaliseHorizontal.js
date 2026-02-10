@@ -107,11 +107,13 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
       
       // Impostos individuais
       const icms = manuaisMes.icms ?? dadosMes.icms ?? 0;
+      const icms_st = manuaisMes.icms_st ?? dadosMes.icms_st ?? 0;
       const pis = manuaisMes.pis ?? dadosMes.pis ?? 0;
       const cofins = manuaisMes.cofins ?? dadosMes.cofins ?? 0;
       const ipi = manuaisMes.ipi ?? dadosMes.ipi ?? 0;
       const iss = manuaisMes.iss ?? dadosMes.iss ?? 0;
       const das = manuaisMes.das ?? dadosMes.das ?? 0;
+      const difal = manuaisMes.difal ?? dadosMes.difal ?? 0;
       
       // Valores do ano anterior
       const comprasAnterior = manuaisMesAnterior.compras ?? dadosMesAnterior.compras ?? 0;
@@ -131,11 +133,13 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
         vendas,
         impostos: saldoImpostos,
         icms: icms > 0 ? icms : -Math.abs(icms),
+        icms_st,
         pis: pis > 0 ? pis : -Math.abs(pis),
         cofins: cofins > 0 ? cofins : -Math.abs(cofins),
         ipi: ipi > 0 ? ipi : -Math.abs(ipi),
         iss,
         das,
+        difal,
         // Ano anterior
         compras_anterior: comprasAnterior,
         vendas_anterior: vendasAnterior,
