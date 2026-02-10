@@ -3003,10 +3003,15 @@ Responda APENAS o JSON, sem explicações."""
 
         from emergentintegrations.llm.chat import LlmChat
         
-        EMERGENT_API_KEY = os.environ.get("EMERGENT_API_KEY", "")
+        EMERGENT_API_KEY = os.environ.get("EMERGENT_LLM_KEY", "sk-emergent-bE6955669B918F9301")
         
-        chat = LlmChat(api_key=EMERGENT_API_KEY)
-        response = await chat.with_model("google", "gemini-2.5-flash").send_message(prompt)
+        chat = LlmChat(
+            api_key=EMERGENT_API_KEY,
+            session_id=f"keywords-{current_user.id}",
+            system_message="Você é um especialista em classificação fiscal de produtos. Responda sempre em JSON válido."
+        ).with_model("gemini", "gemini-2.5-flash")
+        
+        response = await chat.send_message(prompt)
         
         # Extrair JSON da resposta
         response_text = response.message.strip()
