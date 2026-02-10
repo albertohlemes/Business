@@ -303,6 +303,7 @@ export const AppProvider = ({ children }) => {
       uploadProgress,
       startUpload,
       updateUploadProgress,
+      setUploadError,
       finishUpload
     }}>
       {children}
