@@ -11560,7 +11560,13 @@ async def get_classification_suggestions(
         'classificado': False
     })
     
-    categorias_validas = ['revenda', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel']
+    categorias_validas = [
+        'revenda', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel',
+        'servico_aplicacao', 'servico', 'materia_prima', 'outras_entradas',
+        'uso_consumo', 'energia', 'comunicacao', 'transporte', 'bonificacao',
+        'amostra_gratis', 'devolucao', 'transferencia', 'remessa', 'retorno',
+        'conserto', 'garantia', 'locacao', 'comodato', 'demonstracao'
+    ]
     total_produtos = 0
     validados = 0
     pendentes = 0
