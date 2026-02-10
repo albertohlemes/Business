@@ -27,6 +27,7 @@ import DifaLPage from './pages/DifaLPage';
 import Apuracao from './pages/Apuracao';
 import ImpostosRetidos from './pages/ImpostosRetidos';
 import RelatorioUnificado from './pages/RelatorioUnificado';
+import AnaliseHorizontal from './pages/AnaliseHorizontal';
 import './App.css';
 
 function App() {
