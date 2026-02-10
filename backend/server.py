@@ -20555,6 +20555,232 @@ async def import_cancellation_from_report(
         raise HTTPException(status_code=400, detail=f"Erro ao processar arquivo: {str(e)}")
 
 
+# ============================================================
+# ANÁLISE HORIZONTAL (Evolução Fiscal) - Endpoints
+# ============================================================
+
+@api_router.get("/analise-horizontal/{company_id}")
+async def get_analise_horizontal(
+    company_id: str,
+    ano: int = Query(default=None),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna dados para análise horizontal (evolução de compras, vendas e impostos).
+    Compara ano atual com ano anterior.
+    """
+    try:
+        # Buscar empresa
+        company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+        if not company:
+            raise HTTPException(status_code=404, detail="Empresa não encontrada")
+        
+        # Definir ano de referência
+        ano_atual = ano if ano else datetime.now().year
+        ano_anterior = ano_atual - 1
+        
+        regime_tributario = company.get('regime_tributario', 'lucro_presumido')
+        
+        # Buscar documentos dos dois anos
+        filtro_base = {
+            "company_id": company_id,
+            **get_filtro_notas_ativas()
+        }
+        
+        # Estrutura para armazenar dados mensais
+        dados_mensal = {}
+        dados_mensal_anterior = {}
+        
+        # Processar 12 meses para ambos os anos
+        for mes in range(1, 13):
+            comp_atual = f"{str(mes).padStart(2, '0') if hasattr(str(mes), 'padStart') else str(mes).zfill(2)}/{ano_atual}"
+            comp_anterior = f"{str(mes).zfill(2)}/{ano_anterior}"
+            
+            # Inicializar estrutura
+            for comp, dados_dict in [(comp_atual, dados_mensal), (comp_anterior, dados_mensal_anterior)]:
+                dados_dict[comp] = {
+                    "compras": 0,
+                    "vendas": 0,
+                    "impostos_pagar": 0,
+                    "credito_acumulado": 0,
+                    "icms": 0,
+                    "icms_st": 0,
+                    "pis": 0,
+                    "cofins": 0,
+                    "ipi": 0,
+                    "iss": 0,
+                    "das": 0,
+                    "difal": 0
+                }
+            
+            # Buscar documentos do mês atual
+            for comp, dados_dict in [(comp_atual, dados_mensal), (comp_anterior, dados_mensal_anterior)]:
+                docs = await db.xml_documents.find({
+                    **filtro_base,
+                    "competencia": comp
+                }, {"_id": 0, "xml_content": 0}).to_list(length=None)
+                
+                total_compras = 0
+                total_vendas = 0
+                total_icms_debito = 0
+                total_icms_credito = 0
+                total_icms_st = 0
+                total_pis_debito = 0
+                total_pis_credito = 0
+                total_cofins_debito = 0
+                total_cofins_credito = 0
+                total_ipi = 0
+                total_iss = 0
+                
+                for doc in docs:
+                    tipo = doc.get('tipo', '')
+                    valor_total = doc.get('valor_total', 0) or 0
+                    produtos = doc.get('produtos', []) or []
+                    servicos = doc.get('servicos', []) or []
+                    
+                    if tipo == 'entrada':
+                        total_compras += valor_total
+                        # Somar créditos (entradas)
+                        for prod in produtos:
+                            total_icms_credito += float(prod.get('v_icms', 0) or 0)
+                            total_pis_credito += float(prod.get('v_pis', 0) or 0)
+                            total_cofins_credito += float(prod.get('v_cofins', 0) or 0)
+                            total_icms_st += float(prod.get('v_icms_st', 0) or 0)
+                    
+                    elif tipo == 'saida':
+                        total_vendas += valor_total
+                        # Somar débitos (saídas)
+                        for prod in produtos:
+                            total_icms_debito += float(prod.get('v_icms', 0) or 0)
+                            total_pis_debito += float(prod.get('v_pis', 0) or 0)
+                            total_cofins_debito += float(prod.get('v_cofins', 0) or 0)
+                            total_ipi += float(prod.get('v_ipi', 0) or 0)
+                        
+                        # ISS de serviços
+                        for serv in servicos:
+                            total_iss += float(serv.get('valor_iss', 0) or 0)
+                
+                # Calcular saldos
+                saldo_icms = total_icms_debito - total_icms_credito
+                saldo_pis = total_pis_debito - total_pis_credito
+                saldo_cofins = total_cofins_debito - total_cofins_credito
+                
+                # Atualizar dados do mês
+                dados_dict[comp]["compras"] = round(total_compras, 2)
+                dados_dict[comp]["vendas"] = round(total_vendas, 2)
+                dados_dict[comp]["icms"] = round(saldo_icms, 2)
+                dados_dict[comp]["icms_st"] = round(total_icms_st, 2)
+                dados_dict[comp]["pis"] = round(saldo_pis, 2)
+                dados_dict[comp]["cofins"] = round(saldo_cofins, 2)
+                dados_dict[comp]["ipi"] = round(total_ipi, 2)
+                dados_dict[comp]["iss"] = round(total_iss, 2)
+                
+                # Calcular impostos totais a pagar
+                if regime_tributario == 'simples_nacional':
+                    # Para Simples, usar DAS (precisa calcular baseado no faturamento)
+                    # Por simplicidade, somar ICMS + ISS como estimativa
+                    dados_dict[comp]["impostos_pagar"] = round(max(0, saldo_icms) + total_iss, 2)
+                    dados_dict[comp]["credito_acumulado"] = round(abs(min(0, saldo_icms)), 2)
+                else:
+                    # Lucro Presumido/Real
+                    impostos_pagar = max(0, saldo_icms) + max(0, saldo_pis) + max(0, saldo_cofins) + total_ipi + total_iss
+                    credito_acumulado = abs(min(0, saldo_icms)) + abs(min(0, saldo_pis)) + abs(min(0, saldo_cofins))
+                    dados_dict[comp]["impostos_pagar"] = round(impostos_pagar, 2)
+                    dados_dict[comp]["credito_acumulado"] = round(credito_acumulado, 2)
+        
+        return {
+            "company_id": company_id,
+            "ano_atual": ano_atual,
+            "ano_anterior": ano_anterior,
+            "regime_tributario": regime_tributario,
+            "mensal": dados_mensal,
+            "mensal_ano_anterior": dados_mensal_anterior
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro na análise horizontal: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao processar análise horizontal: {str(e)}")
+
+
+@api_router.post("/analise-horizontal/insights/{company_id}")
+async def gerar_insights_analise_horizontal(
+    company_id: str,
+    dados: dict = Body(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Gera insights com IA comparando dados de evolução fiscal.
+    """
+    try:
+        company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+        if not company:
+            raise HTTPException(status_code=404, detail="Empresa não encontrada")
+        
+        dados_grafico = dados.get('dados_grafico', [])
+        totais = dados.get('totais', {})
+        ano_atual = dados.get('ano_atual', datetime.now().year)
+        ano_anterior = dados.get('ano_anterior', ano_atual - 1)
+        
+        # Preparar contexto para IA
+        contexto = f"""
+        Você é um consultor fiscal especializado. Analise a evolução fiscal da empresa {company.get('razao_social', 'N/A')} ({company.get('regime_tributario', 'lucro_presumido')}).
+        
+        DADOS COMPARATIVOS {ano_atual} vs {ano_anterior}:
+        
+        TOTAIS ANO ATUAL ({ano_atual}):
+        - Compras: R$ {totais.get('atual', {}).get('compras', 0):,.2f}
+        - Vendas: R$ {totais.get('atual', {}).get('vendas', 0):,.2f}
+        - Impostos: R$ {totais.get('atual', {}).get('impostos', 0):,.2f}
+        
+        TOTAIS ANO ANTERIOR ({ano_anterior}):
+        - Compras: R$ {totais.get('anterior', {}).get('compras', 0):,.2f}
+        - Vendas: R$ {totais.get('anterior', {}).get('vendas', 0):,.2f}
+        - Impostos: R$ {totais.get('anterior', {}).get('impostos', 0):,.2f}
+        
+        EVOLUÇÃO MENSAL:
+        """
+        
+        for mes in dados_grafico[:12]:  # Limitar a 12 meses
+            var_vendas = mes.get('var_vendas', 0)
+            var_compras = mes.get('var_compras', 0)
+            contexto += f"\n{mes.get('mes', 'N/A')}: Vendas R$ {mes.get('vendas', 0):,.2f} ({'+' if var_vendas >= 0 else ''}{var_vendas:.1f}%) | Compras R$ {mes.get('compras', 0):,.2f} ({'+' if var_compras >= 0 else ''}{var_compras:.1f}%)"
+        
+        contexto += """
+        
+        Por favor, forneça:
+        1. RESUMO EXECUTIVO: Tendência geral da empresa (crescimento, estabilidade ou retração)
+        2. PONTOS POSITIVOS: Aspectos favoráveis identificados
+        3. PONTOS DE ATENÇÃO: Riscos ou oportunidades de melhoria
+        4. RECOMENDAÇÕES: Sugestões práticas para otimização fiscal
+        
+        Responda de forma clara e objetiva, em português.
+        """
+        
+        # Chamar IA
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        llm_key = os.environ.get('EMERGENT_LLM_KEY', '')
+        
+        if not llm_key:
+            return {"analise": "Chave LLM não configurada. Configure EMERGENT_LLM_KEY para habilitar análises com IA."}
+        
+        chat = LlmChat(
+            api_key=llm_key,
+            model="gemini-2.0-flash"
+        )
+        
+        response = await chat.send_async(user_message=UserMessage(text=contexto))
+        
+        return {"analise": response}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao gerar insights: {str(e)}")
+        return {"analise": f"Não foi possível gerar análise: {str(e)}"}
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
