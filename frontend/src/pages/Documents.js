@@ -715,40 +715,11 @@ const Documents = ({ user, onLogout }) => {
       );
     }
     
-    // Filtro por divergência
+    // Filtro por divergência - USANDO CRITÉRIO UNIFICADO
     if (filterDivergencia !== 'all') {
       filtered = filtered.filter(doc => {
-        const produtos = doc.produtos || [];
-        const servicos = doc.servicos || [];
-        const itens = [...produtos, ...servicos];
-        
-        // Verificar divergências nos itens (produtos/serviços)
-        const temDivergenciaItens = itens.some(p => 
-          p.cst_divergente || 
-          p.cfop_divergente ||
-          (p.cfop_original && p.cfop !== p.cfop_original) ||
-          p.status_validacao === 'divergente' ||
-          p.pendente_revisao_cfop
-        );
-        
-        // Verificar divergências no documento
-        const temDivergenciaDoc = (
-          doc.status_validacao === 'divergente' ||
-          doc.status_validacao === 'com_excecao' ||
-          doc.pendente_revisao ||
-          doc.tem_alerta ||
-          (doc.alertas && doc.alertas.length > 0) ||
-          // Para NFS-e, verificar se tem pendências específicas
-          (doc.modelo === 'nfse' && !doc.cfop && itens.length === 0)
-        );
-        
-        // Verificar se tem produtos/serviços pendentes de classificação
-        const temPendencias = itens.some(p => 
-          p.categoria_classificada === 'pendente' || 
-          !p.categoria_classificada
-        );
-        
-        const temDivergencia = temDivergenciaItens || temDivergenciaDoc || temPendencias;
+        // Usar a mesma lógica da barra de validação
+        const temDivergencia = verificarDivergenciaDoc(doc);
         
         if (filterDivergencia === 'divergente') return temDivergencia;
         if (filterDivergencia === 'ok') return !temDivergencia;
@@ -774,6 +745,26 @@ const Documents = ({ user, onLogout }) => {
     
     return filtered;
   }, [documents, searchTerm, sortField, sortDirection, filterDivergencia]);
+  
+  // Função de verificação de divergência - CRITÉRIO UNIFICADO
+  const verificarDivergenciaDoc = (doc) => {
+    if (doc.produtos && doc.produtos.length > 0) {
+      // Soma dos valores dos produtos
+      const somaProdutos = doc.produtos.reduce((sum, p) => {
+        const valorProd = parseFloat(p.valor_total) || parseFloat(p.valor_produto) || 0;
+        return sum + valorProd;
+      }, 0);
+      
+      // Valor total do documento
+      const valorDoc = parseFloat(doc.valor_total) || 0;
+      
+      // Considerar validado se diferença for menor que R$ 0.10 (tolerância)
+      const diferenca = Math.abs(valorDoc - somaProdutos);
+      return diferenca >= 0.10; // true = tem divergência
+    }
+    // Documento sem produtos = sem divergência
+    return false;
+  };
 
   // Calcular totais dos documentos filtrados
   const totais = useMemo(() => {
