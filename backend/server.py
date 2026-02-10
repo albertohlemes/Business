@@ -5580,7 +5580,10 @@ async def upload_xml_with_progress(
                     })
                     continue
             
-            if tipo == 'entrada':
+            # Se for CT-e, já foi validado acima - pular validações de NF-e
+            if modelo == '57' or xml_type == 'cte':
+                pass  # CT-e já validado, continua para o processamento
+            elif tipo == 'entrada':
                 # ==== VALIDAÇÃO SIMPLIFICADA PARA ENTRADA ====
                 # REGRA: Aceitar se:
                 # 1. Destinatário é a empresa (entrada normal) OU
