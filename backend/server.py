@@ -3011,10 +3011,11 @@ Responda APENAS o JSON, sem explicações."""
             system_message="Você é um especialista em classificação fiscal de produtos. Responda sempre em JSON válido."
         ).with_model("gemini", "gemini-2.5-flash")
         
-        response = await chat.send_message(prompt)
+        response = await chat.send_message(UserMessage(text=prompt))
         
-        # Extrair JSON da resposta
-        response_text = response.message.strip()
+        # Extrair texto da resposta
+        response_text = response if isinstance(response, str) else str(response)
+        response_text = response_text.strip()
         
         # Limpar markdown se presente
         if response_text.startswith("```"):
