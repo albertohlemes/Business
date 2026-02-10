@@ -1,0 +1,115 @@
+{
+  "summary": "Completed testing of Iteration 43 features. All 12 backend tests passed. Frontend testing verified: 1) Menu lateral sem títulos de seção - items displayed directly (Dashboard, Empresas, Documentos, etc.), 2) Menu dinâmico baseado no regime tributário - VETCO (Simples Nacional + Serviços) shows Apuração, Simples Nacional, Impostos Retidos but NOT PIS/COFINS, IPI, ICMS, ICMS ST, 3) Dashboard com card 'Outros Docs' nas entradas with 'Energia, Internet...' subtitle, 4) Importação de NFS-e (Serviços Tomados e Prestados) shows 'Importar XML ou PDF' button, 5) Saídas menu correctly filters by tipo_atividade - SERVICOS shows only 'Serviços Prestados', 6) APIs /api/relatorio-divergencias-saida and /api/relatorio-divergencias-entrada working correctly, 7) API /api/dashboard/stats returns 'outros_entrada' in quantidades and 'outros' in valores.entradas",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "GET /api/auth/login - Returns access_token successfully",
+    "GET /api/dashboard/stats - Returns 'outros_entrada' in quantidades",
+    "GET /api/dashboard/stats - Returns 'outros' in valores.entradas",
+    "GET /api/dashboard/stats - Returns empresa info with tipo_atividade and regime_tributario",
+    "GET /api/relatorio-divergencias-saida - Endpoint exists and returns data",
+    "GET /api/relatorio-divergencias-saida - Returns CST correto fields (cst_pis_correto, cst_cofins_correto)",
+    "GET /api/relatorio-divergencias-entrada - Endpoint exists and returns data",
+    "GET /api/relatorio-divergencias-entrada - Returns CST correto fields for entradas",
+    "GET /api/companies/{id} - Returns regime_tributario='simples_nacional' for VETCO",
+    "GET /api/companies/{id} - Returns tipo_atividade='servicos' for VETCO",
+    "GET /api/xml/documents - Endpoint exists and works",
+    "GET /api/xml/documents - Filtering by tipo_operacao works",
+    "UI: Menu lateral sem títulos de seção - items displayed directly",
+    "UI: Menu dinâmico - Simples Nacional company shows Apuração, Simples Nacional, Impostos Retidos",
+    "UI: Menu dinâmico - PIS/COFINS, ICMS ST correctly NOT shown for Simples Nacional",
+    "UI: Dashboard shows 'Outros Docs' card in ENTRADAS with 'Energia, Internet...' subtitle",
+    "UI: Dashboard shows 'Outros Documentos' in valores.entradas breakdown",
+    "UI: Serviços Tomados upload button shows 'Importar XML ou PDF'",
+    "UI: Serviços Prestados upload button shows 'Importar XML ou PDF'",
+    "UI: Saídas menu shows only 'Serviços Prestados' for SERVICOS company",
+    "UI: Message 'Exibindo opções para: SERVICOS' displayed correctly"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_iteration43_features.py",
+    "/app/test_reports/pytest/pytest_iteration43.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [],
+  
+  "updated_files": [
+    "/app/backend/tests/test_iteration43_features.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (12/12 passed)",
+    "frontend": "100%"
+  },
+  
+  "test_credentials": {
+    "email": "admin@test.com",
+    "password": "123456",
+    "company_tested": "VETCO CLINICA DE REABILITACAO ANIMAL LTDA (e83b4afd-49db-42fe-9929-b9c24ea49d0f)",
+    "competencia": "01/2026"
+  },
+  
+  "seed_data_creation": "None - used existing VETCO company data",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "All features from iteration 43 are working correctly: 1) Menu lateral reorganizado sem títulos de seção - apenas itens diretamente, 2) Menu dinâmico baseado no regime tributário da empresa (Simples Nacional vs Lucro Presumido), 3) Dashboard com card 'Outros Docs' nas entradas, 4) Importação de NFS-e via IA aceita XML ou PDF/Imagem com botão 'Importar XML ou PDF', 5) APIs de divergências retornam CST correto sugerido (01 para saídas tributadas, 50 para entradas com crédito no Lucro Real), 6) API dashboard/stats retorna campo 'outros_entrada' nas quantidades e valores",
+  
+  "features_verified": {
+    "menu_sem_titulos_secao": {
+      "status": "WORKING",
+      "description": "Menu lateral shows items directly without section titles",
+      "items_shown": ["Dashboard", "Empresas", "Documentos", "Classificação Inteligente", "Apuração", "Simples Nacional", "Impostos Retidos", "Indicadores", "RET", "Relatórios", "Exportação"]
+    },
+    "menu_dinamico_regime_tributario": {
+      "status": "WORKING",
+      "description": "Menu items filtered based on company regime_tributario",
+      "simples_nacional_shows": ["Apuração", "Simples Nacional", "Impostos Retidos"],
+      "simples_nacional_hides": ["PIS/COFINS", "IPI", "ICMS", "ICMS ST"]
+    },
+    "dashboard_outros_docs": {
+      "status": "WORKING",
+      "description": "Dashboard shows 'Outros Docs' card in ENTRADAS section",
+      "card_subtitle": "Energia, Internet...",
+      "api_field_quantidades": "outros_entrada",
+      "api_field_valores": "valores.entradas.outros"
+    },
+    "nfse_import_xml_ou_pdf": {
+      "status": "WORKING",
+      "description": "NFS-e import (Serviços Tomados and Prestados) accepts XML or PDF/Image",
+      "button_text": "Importar XML ou PDF",
+      "import_type": "both"
+    },
+    "saidas_filtro_atividade": {
+      "status": "WORKING",
+      "description": "Saídas document types filtered by company tipo_atividade",
+      "servicos_shows": ["Serviços Prestados"],
+      "servicos_hides": ["NF-e", "NFC-e", "CT-e"],
+      "ui_message": "Exibindo opções para: SERVICOS"
+    },
+    "api_divergencias_saida": {
+      "status": "WORKING",
+      "endpoint": "/api/relatorio-divergencias-saida/{company_id}",
+      "cst_sugerido_saidas_tributadas": "01"
+    },
+    "api_divergencias_entrada": {
+      "status": "WORKING",
+      "endpoint": "/api/relatorio-divergencias-entrada/{company_id}",
+      "cst_sugerido_entradas_credito_lucro_real": "50"
+    }
+  }
+}
