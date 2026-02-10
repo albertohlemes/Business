@@ -1046,6 +1046,43 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
           </div>
           
           <div className="p-4">
+            {/* Barra de Ações em Lote */}
+            {showBatchActions && selectedProducts.size > 0 && (
+              <div className="mb-4 p-4 bg-[#C8A951]/10 border border-[#C8A951]/30 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-[#C8A951] font-medium">
+                    {selectedProducts.size} produto(s) selecionado(s)
+                  </span>
+                  <button
+                    onClick={clearSelection}
+                    className="text-[#A1A1AA] hover:text-white text-sm underline"
+                  >
+                    Limpar seleção
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#A1A1AA] text-sm mr-2">Reclassificar como:</span>
+                  {[
+                    { key: 'revenda', label: 'Revenda', icon: '🛒' },
+                    { key: 'insumo', label: 'Insumo', icon: '⚙️' },
+                    { key: 'despesa', label: 'Despesa', icon: '📋' },
+                    { key: 'ativo_imobilizado', label: 'Ativo', icon: '🏭' },
+                    { key: 'combustivel', label: 'Combustível', icon: '⛽' }
+                  ].map(cat => (
+                    <button
+                      key={cat.key}
+                      onClick={() => reclassificarEmLote(cat.key)}
+                      disabled={processandoIA}
+                      className="px-3 py-1.5 bg-[#2A2A2A] hover:bg-[#333] text-white text-sm rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
+                    >
+                      <span>{cat.icon}</span>
+                      <span>{cat.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             {validacaoLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 text-[#C8A951] animate-spin" />
