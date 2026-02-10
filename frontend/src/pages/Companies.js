@@ -1695,37 +1695,84 @@ const Companies = ({ user, onLogout }) => {
                     <span className="text-sm font-medium text-white">Classificação de Produtos (para IA)</span>
                   </div>
                   
-                  {/* Produtos Comercializados */}
-                  <div className="mb-4">
-                    <label className="block text-xs text-[#A1A1AA] mb-2">Produtos Comercializados (para classificação REVENDA)</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={keywordInputs.produto}
-                        onChange={(e) => setKeywordInputs({ ...keywordInputs, produto: e.target.value })}
-                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword('produtos_comercializados', 'produto'))}
-                        placeholder="Ex: Calçados, Roupas, Eletrônicos..."
-                        className="flex-1 px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => addKeyword('produtos_comercializados', 'produto')}
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
-                      >
-                        Adicionar
-                      </button>
-                    </div>
-                    {formData.produtos_comercializados?.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {formData.produtos_comercializados.map((item, idx) => (
-                          <span key={idx} className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded flex items-center gap-1">
-                            {item}
-                            <button type="button" onClick={() => removeKeyword('produtos_comercializados', idx)} className="hover:text-red-400">×</button>
-                          </span>
-                        ))}
+                  {/* Produtos Comercializados - NÃO mostrar para empresas SOMENTE de serviços */}
+                  {formData.tipo_atividade !== 'servicos' && (
+                    <div className="mb-4">
+                      <label className="block text-xs text-[#A1A1AA] mb-2">Produtos Comercializados (para classificação REVENDA)</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={keywordInputs.produto}
+                          onChange={(e) => setKeywordInputs({ ...keywordInputs, produto: e.target.value })}
+                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword('produtos_comercializados', 'produto'))}
+                          placeholder="Ex: Calçados, Roupas, Eletrônicos..."
+                          className="flex-1 px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => addKeyword('produtos_comercializados', 'produto')}
+                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
+                        >
+                          Adicionar
+                        </button>
                       </div>
-                    )}
-                  </div>
+                      {formData.produtos_comercializados?.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {formData.produtos_comercializados.map((item, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded flex items-center gap-1">
+                              {item}
+                              <button type="button" onClick={() => removeKeyword('produtos_comercializados', idx)} className="hover:text-red-400">×</button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Aplicação em Serviços - Mostrar para empresas de serviços OU mistas */}
+                  {(formData.tipo_atividade === 'servicos' || formData.tipo_atividade === 'mista') && (
+                    <div className="mb-4">
+                      <label className="block text-xs text-[#A1A1AA] mb-2">
+                        {formData.tipo_atividade === 'servicos' 
+                          ? 'Materiais para Aplicação em Serviços (classificação principal para empresas de serviços)'
+                          : 'Materiais para Aplicação em Serviços (categoria adicional para empresas mistas)'
+                        }
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={keywordInputs.aplicacao_servico}
+                          onChange={(e) => setKeywordInputs({ ...keywordInputs, aplicacao_servico: e.target.value })}
+                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword('produtos_aplicacao_servico', 'aplicacao_servico'))}
+                          placeholder="Ex: Peças, Materiais de manutenção, Insumos de serviço..."
+                          className="flex-1 px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => addKeyword('produtos_aplicacao_servico', 'aplicacao_servico')}
+                          className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 font-medium"
+                        >
+                          Adicionar
+                        </button>
+                      </div>
+                      {formData.produtos_aplicacao_servico?.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {formData.produtos_aplicacao_servico.map((item, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded flex items-center gap-1">
+                              {item}
+                              <button type="button" onClick={() => removeKeyword('produtos_aplicacao_servico', idx)} className="hover:text-red-400">×</button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-xs text-[#666] mt-2">
+                        {formData.tipo_atividade === 'servicos' 
+                          ? '* Produtos que serão aplicados na prestação de serviços da empresa.'
+                          : '* Para empresas mistas: produtos que não são revenda, mas materiais aplicados em serviços.'
+                        }
+                      </p>
+                    </div>
+                  )}
 
                   {/* Insumos de Produção */}
                   <div className="mb-4">
