@@ -19,6 +19,9 @@ const UsersPage = ({ user, onLogout }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   
+  // Verificar permissão - apenas Master ou acima pode acessar
+  const isMasterOrAdmin = user?.role === 'admin' || user?.role === 'master' || user?.role === 'super_admin';
+  
   // Ordenação
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
