@@ -540,13 +540,18 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#2A2A2A]">
-                {dadosGrafico.map((row, idx) => (
+                {dadosGrafico.map((row, idx) => {
+                  const competenciaAnterior = `${String(idx + 1).padStart(2, '0')}/${anoAnterior}`;
+                  const editavelAtual = isPeriodoEditavel(row.competencia);
+                  const editavelAnterior = isPeriodoEditavel(competenciaAnterior);
+                  
+                  return (
                   <tr key={idx} className="hover:bg-white/5">
                     <td className="px-4 py-3 font-medium text-white">{row.mes}/{anoAtual}</td>
                     
                     {/* Compras */}
                     <td className="px-4 py-3 text-right">
-                      {editando === `${row.competencia}-compras` ? (
+                      {editando === `${row.competencia}-compras` && editavelAtual ? (
                         <input
                           type="number"
                           defaultValue={row.compras}
@@ -557,8 +562,9 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                         />
                       ) : (
                         <span 
-                          className="cursor-pointer text-blue-400 hover:underline"
-                          onClick={() => setEditando(`${row.competencia}-compras`)}
+                          className={editavelAtual ? "cursor-pointer text-blue-400 hover:underline" : "text-blue-400"}
+                          onClick={() => editavelAtual && setEditando(`${row.competencia}-compras`)}
+                          title={editavelAtual ? "Clique para editar" : "Período atual/futuro - não editável manualmente"}
                         >
                           {formatCurrency(row.compras)}
                         </span>
@@ -567,7 +573,7 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                     
                     {/* Vendas */}
                     <td className="px-4 py-3 text-right">
-                      {editando === `${row.competencia}-vendas` ? (
+                      {editando === `${row.competencia}-vendas` && editavelAtual ? (
                         <input
                           type="number"
                           defaultValue={row.vendas}
@@ -578,8 +584,9 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                         />
                       ) : (
                         <span 
-                          className="cursor-pointer text-emerald-400 hover:underline"
-                          onClick={() => setEditando(`${row.competencia}-vendas`)}
+                          className={editavelAtual ? "cursor-pointer text-emerald-400 hover:underline" : "text-emerald-400"}
+                          onClick={() => editavelAtual && setEditando(`${row.competencia}-vendas`)}
+                          title={editavelAtual ? "Clique para editar" : "Período atual/futuro - não editável manualmente"}
                         >
                           {formatCurrency(row.vendas)}
                         </span>
@@ -588,7 +595,7 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                     
                     {/* Impostos */}
                     <td className="px-4 py-3 text-right">
-                      {editando === `${row.competencia}-impostos` ? (
+                      {editando === `${row.competencia}-impostos` && editavelAtual ? (
                         <input
                           type="number"
                           defaultValue={row.impostos}
@@ -599,8 +606,9 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                         />
                       ) : (
                         <span 
-                          className={`cursor-pointer hover:underline ${row.impostos >= 0 ? 'text-red-400' : 'text-amber-400'}`}
-                          onClick={() => setEditando(`${row.competencia}-impostos`)}
+                          className={`${editavelAtual ? "cursor-pointer hover:underline" : ""} ${row.impostos >= 0 ? 'text-red-400' : 'text-amber-400'}`}
+                          onClick={() => editavelAtual && setEditando(`${row.competencia}-impostos`)}
+                          title={editavelAtual ? "Clique para editar" : "Período atual/futuro - não editável manualmente"}
                         >
                           {formatCurrency(row.impostos)}
                         </span>
@@ -624,7 +632,8 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                       </span>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
