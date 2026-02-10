@@ -11649,6 +11649,8 @@ async def analise_tributaria_ia(
             descricao = prod.get('descricao', '')[:50]
             cfop = str(prod.get('cfop', ''))
             v_icms = float(prod.get('v_icms', 0) or 0)
+            v_pis = float(prod.get('v_pis', 0) or 0)
+            v_cofins = float(prod.get('v_cofins', 0) or 0)
             valor = float(prod.get('valor_total', 0) or 0)
             cst = str(prod.get('cst_icms', '') or '')
             p_icms = float(prod.get('p_icms', 0) or 0)  # Alíquota real do XML
