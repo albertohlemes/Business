@@ -3,7 +3,8 @@ import axios from 'axios';
 import Layout from '../components/Layout';
 import { 
   Users, Plus, Search, Edit, Trash2, X, Check, Shield, 
-  UserCheck, UserX, RefreshCw, Building2, ArrowUp, ArrowDown 
+  UserCheck, UserX, RefreshCw, Building2, ArrowUp, ArrowDown,
+  Crown, UserMinus
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
