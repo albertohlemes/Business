@@ -286,7 +286,12 @@ export const AppProvider = ({ children }) => {
       siegStatus,
       siegSyncing,
       checkSiegCount,
-      syncFromSieg
+      syncFromSieg,
+      // Upload Progress
+      uploadProgress,
+      startUpload,
+      updateUploadProgress,
+      finishUpload
     }}>
       {children}
     </AppContext.Provider>
