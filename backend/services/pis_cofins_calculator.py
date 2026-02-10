@@ -152,15 +152,20 @@ NCMS_ALIQUOTA_ZERO = {
 }
 
 # NCMs Monofásicos - Tributação concentrada (Tabela 4.3.10)
+# IMPORTANTE: Bebidas ALCOÓLICAS (2204-2208) NÃO são monofásicas - são tributadas normalmente!
+# Somente bebidas NÃO alcoólicas (2201-2203) são monofásicas
 NCMS_MONOFASICOS = {
-    # Bebidas Frias
+    # Bebidas Frias NÃO ALCOÓLICAS (somente estas são monofásicas)
     '22011000': {'grupo': 'BEBIDAS', 'descricao': 'Águas Minerais e Gasosas'},
     '22021000': {'grupo': 'BEBIDAS', 'descricao': 'Refrigerantes'},
     '22029900': {'grupo': 'BEBIDAS', 'descricao': 'Energéticos, Isotônicos, Chás'},
     '22030000': {'grupo': 'BEBIDAS', 'descricao': 'Cervejas'},
-    '22071000': {'grupo': 'BEBIDAS', 'descricao': 'Álcool Etílico não Desnaturado'},
-    '22072010': {'grupo': 'BEBIDAS', 'descricao': 'Álcool Etílico Desnaturado'},
-    '22089000': {'grupo': 'BEBIDAS', 'descricao': 'Destilados/Licores'},
+    # REMOVIDOS: NCMs de bebidas ALCOÓLICAS (2204-2208) - são TRIBUTADAS normalmente:
+    # - 2204: Vinhos
+    # - 2205: Vermutes
+    # - 2206: Sidra, saquê, fermentados
+    # - 2207: Álcool etílico
+    # - 2208: Destilados (whisky, vodka, gin, rum, licores, etc.)
     # Combustíveis
     '27101159': {'grupo': 'COMBUSTIVEIS', 'descricao': 'Gasolina'},
     '27101259': {'grupo': 'COMBUSTIVEIS', 'descricao': 'Querosene'},
