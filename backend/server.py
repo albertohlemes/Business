@@ -12011,6 +12011,142 @@ async def analise_tributaria_ia(
                         'cfops_saida': list(saida['cfops']),
                         'explicacao': f"ICMS débito de apenas {percentual_debito:.1f}% do valor vendido (R$ {saida['total_valor']:,.2f}). Produto com carga tributária favorável."
                     })
+        
+        # ===== ANÁLISE DE PIS/COFINS =====
+        pis_credito = entrada.get('total_pis', 0)
+        pis_debito = saida.get('total_pis', 0)
+        cofins_credito = entrada.get('total_cofins', 0)
+        cofins_debito = saida.get('total_cofins', 0)
+        
+        pis_cofins_credito = pis_credito + cofins_credito
+        pis_cofins_debito = pis_debito + cofins_debito
+        impacto_pis_cofins = pis_cofins_debito - pis_cofins_credito
+        
+        # Vilão PIS/COFINS: Alto débito sem crédito proporcional
+        if pis_cofins_debito > 200 and pis_cofins_credito == 0:
+            if not any(v['ncm'] == ncm and v['tipo'] == 'PIS_COFINS_SEM_CREDITO' for v in viloes):
+                viloes.append({
+                    'tipo': 'PIS_COFINS_SEM_CREDITO',
+                    'ncm': ncm,
+                    'descricao': descricao_principal,
+                    'descricoes_entrada': descricoes_entrada,
+                    'descricoes_saida': descricoes_saida,
+                    'pis_credito': round(pis_credito, 2),
+                    'cofins_credito': round(cofins_credito, 2),
+                    'pis_debito': round(pis_debito, 2),
+                    'cofins_debito': round(cofins_debito, 2),
+                    'impacto_negativo': round(impacto_pis_cofins, 2),
+                    'qtd_entrada': entrada['qtd_itens'],
+                    'qtd_saida': saida['qtd_itens'],
+                    'valor_entrada': round(entrada['total_valor'], 2),
+                    'valor_saida': round(saida['total_valor'], 2),
+                    'cfops_entrada': list(entrada['cfops']),
+                    'cfops_saida': list(saida['cfops']),
+                    'explicacao': f"PIS/COFINS débito de R$ {pis_cofins_debito:,.2f} sem crédito na entrada. Avaliar fornecedores com destaque de PIS/COFINS."
+                })
+        
+        # Vilão PIS/COFINS: Diferença alta entre débito e crédito
+        elif impacto_pis_cofins > 300 and pis_cofins_credito > 0:
+            percentual_perda = (impacto_pis_cofins / pis_cofins_debito) * 100 if pis_cofins_debito > 0 else 0
+            if percentual_perda > 30 and not any(v['ncm'] == ncm and v['tipo'] == 'PIS_COFINS_DIFERENCA_ALTA' for v in viloes):
+                viloes.append({
+                    'tipo': 'PIS_COFINS_DIFERENCA_ALTA',
+                    'ncm': ncm,
+                    'descricao': descricao_principal,
+                    'descricoes_entrada': descricoes_entrada,
+                    'descricoes_saida': descricoes_saida,
+                    'pis_credito': round(pis_credito, 2),
+                    'cofins_credito': round(cofins_credito, 2),
+                    'pis_debito': round(pis_debito, 2),
+                    'cofins_debito': round(cofins_debito, 2),
+                    'impacto_negativo': round(impacto_pis_cofins, 2),
+                    'qtd_entrada': entrada['qtd_itens'],
+                    'qtd_saida': saida['qtd_itens'],
+                    'valor_entrada': round(entrada['total_valor'], 2),
+                    'valor_saida': round(saida['total_valor'], 2),
+                    'cfops_entrada': list(entrada['cfops']),
+                    'cfops_saida': list(saida['cfops']),
+                    'explicacao': f"Crédito PIS/COFINS de R$ {pis_cofins_credito:,.2f} vs Débito de R$ {pis_cofins_debito:,.2f}. Diferença de {percentual_perda:.0f}% gera saldo a pagar de R$ {impacto_pis_cofins:,.2f}."
+                })
+        
+        # Oportunidade PIS/COFINS: Crédito maior que débito
+        if pis_cofins_credito > pis_cofins_debito and pis_cofins_credito > 200:
+            beneficio_pis_cofins = pis_cofins_credito - pis_cofins_debito
+            if not any(o['ncm'] == ncm and o['tipo'] == 'PIS_COFINS_CREDITO_MAIOR' for o in oportunidades):
+                oportunidades.append({
+                    'tipo': 'PIS_COFINS_CREDITO_MAIOR',
+                    'ncm': ncm,
+                    'descricao': descricao_principal,
+                    'descricoes_entrada': descricoes_entrada,
+                    'descricoes_saida': descricoes_saida,
+                    'pis_credito': round(pis_credito, 2),
+                    'cofins_credito': round(cofins_credito, 2),
+                    'pis_debito': round(pis_debito, 2),
+                    'cofins_debito': round(cofins_debito, 2),
+                    'beneficio': round(beneficio_pis_cofins, 2),
+                    'qtd_entrada': entrada['qtd_itens'],
+                    'qtd_saida': saida['qtd_itens'],
+                    'valor_entrada': round(entrada['total_valor'], 2),
+                    'valor_saida': round(saida['total_valor'], 2),
+                    'cfops_entrada': list(entrada['cfops']),
+                    'cfops_saida': list(saida['cfops']),
+                    'explicacao': f"Crédito PIS/COFINS (R$ {pis_cofins_credito:,.2f}) maior que débito (R$ {pis_cofins_debito:,.2f}). Saldo credor de R$ {beneficio_pis_cofins:,.2f}."
+                })
+        
+        # ===== ANÁLISE COMBINADA ICMS + PIS/COFINS =====
+        imposto_total_credito = icms_credito + pis_cofins_credito
+        imposto_total_debito = icms_debito + pis_cofins_debito
+        impacto_total = imposto_total_debito - imposto_total_credito
+        
+        # Vilão: Produto com alta carga tributária total
+        if impacto_total > 1000 and not any(v['ncm'] == ncm and v['tipo'] == 'CARGA_TRIBUTARIA_TOTAL_ALTA' for v in viloes):
+            carga_percentual = (impacto_total / saida['total_valor']) * 100 if saida['total_valor'] > 0 else 0
+            if carga_percentual > 15:  # Carga > 15% do valor vendido
+                viloes.append({
+                    'tipo': 'CARGA_TRIBUTARIA_TOTAL_ALTA',
+                    'ncm': ncm,
+                    'descricao': descricao_principal,
+                    'descricoes_entrada': descricoes_entrada,
+                    'descricoes_saida': descricoes_saida,
+                    'icms_credito': round(icms_credito, 2),
+                    'icms_debito': round(icms_debito, 2),
+                    'pis_cofins_credito': round(pis_cofins_credito, 2),
+                    'pis_cofins_debito': round(pis_cofins_debito, 2),
+                    'impacto_negativo': round(impacto_total, 2),
+                    'carga_percentual': round(carga_percentual, 1),
+                    'qtd_entrada': entrada['qtd_itens'],
+                    'qtd_saida': saida['qtd_itens'],
+                    'valor_entrada': round(entrada['total_valor'], 2),
+                    'valor_saida': round(saida['total_valor'], 2),
+                    'cfops_entrada': list(entrada['cfops']),
+                    'cfops_saida': list(saida['cfops']),
+                    'explicacao': f"Carga tributária total de {carga_percentual:.1f}% ({formatCurrency(impacto_total)}). ICMS: {formatCurrency(icms_debito - icms_credito)}, PIS/COFINS: {formatCurrency(impacto_pis_cofins)}. Avaliar estratégia de fornecedores."
+                })
+        
+        # Oportunidade: Produto com baixa carga tributária total
+        if imposto_total_debito > 0 and saida['total_valor'] > 1000:
+            carga_percentual = (max(0, impacto_total) / saida['total_valor']) * 100
+            if carga_percentual <= 5 and not any(o['ncm'] == ncm and o['tipo'] == 'CARGA_TRIBUTARIA_BAIXA' for o in oportunidades):
+                oportunidades.append({
+                    'tipo': 'CARGA_TRIBUTARIA_BAIXA',
+                    'ncm': ncm,
+                    'descricao': descricao_principal,
+                    'descricoes_entrada': descricoes_entrada,
+                    'descricoes_saida': descricoes_saida,
+                    'icms_credito': round(icms_credito, 2),
+                    'icms_debito': round(icms_debito, 2),
+                    'pis_cofins_credito': round(pis_cofins_credito, 2),
+                    'pis_cofins_debito': round(pis_cofins_debito, 2),
+                    'beneficio': round(saida['total_valor'], 2),
+                    'carga_percentual': round(carga_percentual, 1),
+                    'qtd_entrada': entrada['qtd_itens'],
+                    'qtd_saida': saida['qtd_itens'],
+                    'valor_entrada': round(entrada['total_valor'], 2),
+                    'valor_saida': round(saida['total_valor'], 2),
+                    'cfops_entrada': list(entrada['cfops']),
+                    'cfops_saida': list(saida['cfops']),
+                    'explicacao': f"Carga tributária baixa de apenas {carga_percentual:.1f}% sobre R$ {saida['total_valor']:,.2f} em vendas. Produto rentável tributariamente."
+                })
     
     # Ordenar vilões pelo impacto (maior primeiro)
     viloes = sorted(viloes, key=lambda x: x.get('impacto_negativo', 0), reverse=True)
