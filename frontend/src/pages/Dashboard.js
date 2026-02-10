@@ -337,18 +337,28 @@ const Dashboard = ({ user, onLogout }) => {
                     </div>
                   </div>
                   
-                  {/* Indicador VENDAS */}
+                  {/* Indicador VENDAS ou SERVIÇOS PRESTADOS - Dinâmico */}
                   <div className="bg-gradient-to-r from-green-900/30 to-green-950/30 rounded-lg p-4 border border-green-500/30 h-[120px] flex items-center">
                     <div className="flex items-center justify-between w-full">
                       <div>
                         <h3 className="text-[#A1A1AA] text-sm flex items-center gap-2">
                           <TrendingUp className="w-4 h-4" />
-                          VENDAS (Líquidas)
+                          {stats.empresa.tipo_atividade === 'servicos' ? 'SERVIÇOS PRESTADOS' : 'VENDAS (Líquidas)'}
                         </h3>
-                        <p className="text-green-400 text-2xl font-bold">{formatCurrency(stats.valores.vendas_liquidas?.liquidas || 0)}</p>
-                        <p className="text-xs text-[#666] mt-1">Vendas − Devoluções de Clientes</p>
+                        <p className="text-green-400 text-2xl font-bold">
+                          {formatCurrency(
+                            stats.empresa.tipo_atividade === 'servicos' 
+                              ? (stats.valores.saidas?.servicos_prestados || 0)
+                              : (stats.valores.vendas_liquidas?.liquidas || 0)
+                          )}
+                        </p>
+                        <p className="text-xs text-[#666] mt-1">
+                          {stats.empresa.tipo_atividade === 'servicos' 
+                            ? 'Total de NFS-e emitidas' 
+                            : 'Vendas − Devoluções de Clientes'}
+                        </p>
                       </div>
-                      {stats.valores.vendas_liquidas?.devolucoes > 0 && (
+                      {stats.empresa.tipo_atividade !== 'servicos' && stats.valores.vendas_liquidas?.devolucoes > 0 && (
                         <div className="text-right">
                           <span className="text-xs text-red-400">Devoluções</span>
                           <p className="text-sm text-red-400 line-through">{formatCurrency(stats.valores.vendas_liquidas.devolucoes)}</p>
