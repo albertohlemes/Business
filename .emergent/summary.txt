@@ -1,370 +1,168 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou a construção de um módulo completo para empresas do Simples Nacional, que evoluiu para incluir: um dashboard customizado, melhorias no cadastro de empresas com sugestão de anexos e controle do Fator R, importação de histórico via PDF do PGDAS, um módulo de apuração de DIFAL e um comparativo de regimes tributários (RET).
+O usuário solicitou inicialmente a criação de um sistema de gestão fiscal para empresas do Simples Nacional, que evoluiu para uma plataforma completa com dashboards, cadastro de empresas, controle de Fator R, importação de PGDAS, cálculo de DIFAL e um comparativo de regimes tributários (RET).
 
-Durante as sessões, as solicitações foram refinadas para incluir:
-1.  **Barra de Progresso na Importação:** Adicionar uma barra de progresso visual (um contador tomando café) para todas as importações de documentos (XML, PDF), que funcione em segundo plano e permita ao usuário continuar navegando.
-2.  **Correção na Importação de NF-e:** Corrigir um suposto erro na importação de NF-e modelo 55. A investigação revelou que o sistema estava validando corretamente, rejeitando documentos de entrada importados como saída e vice-versa.
-3.  **Refatoração da Importação:** Mover a funcionalidade de upload de XML da página  para botões específicos dentro da página , fracionando por tipo de documento (NF-e, CT-e, Serviços, etc.).
-4.  **Relatório Pós-Importação:** O modal de resultado da importação estava quebrado (não exibia contagens). Foi solicitado que fosse corrigido e melhorado para ser um relatório profissional, com contagens claras e opção de download.
-5.  **Alertas de CFOP:** A tela de alertas de CFOP não mostrava o código do CFOP. O usuário solicitou a correção e, em seguida, uma refatoração completa para agrupar os alertas por CFOP (em vez de por produto), permitindo ações em lote (manter, converter para compra, definir manualmente) e classificação automática da categoria do produto após a resolução.
-6.  **Logo da Empresa:** Adicionar a funcionalidade de upload de logo no cadastro da empresa e exibir esse logo em locais estratégicos do sistema e nos relatórios exportados.
-7.  **Correção no Dashboard Simples Nacional:** O dashboard não estava respeitando a competência selecionada (ex: mostrava dados de 02/2026 quando 01/2026 estava selecionado) e não estava calculando o valor do DAS, mostrando R$ 0,00 apesar de haver faturamento.
+Ao longo do desenvolvimento, o usuário adicionou diversas listas de requisitos, correções e melhorias. A última grande solicitação do usuário, recebida no final da sessão anterior, incluiu uma lista extensa de mais de 15 pontos de melhoria, abrangendo:
+- **Bugs Críticos:** Correção no relatório de conclusão de importação, no filtro de documentos, no agrupamento automático da classificação inteligente e no cálculo do DIFAL para Simples Nacional.
+- **Melhorias de IA:** Aprimorar a classificação de notas de entrada, analisando as saídas da empresa para ter um contexto de revenda.
+- **Novas Funcionalidades:** Implementar um fluxo para cancelamento de notas de serviço (NFS-e), adicionar campos para saldo credor inicial no cadastro da empresa, carregar saldos credores para o mês seguinte, e criar uma lógica específica para empresas transportadoras (crédito presumido de ICMS).
+- **Melhorias de UI/UX:** Reintroduzir uma animação de carregamento, melhorar o dashboard do Fator R, e ajustar o cálculo de presunção no RET para ser baseado na atividade da empresa.
+- **Última Solicitação Específica:** O usuário pediu para que os cards de resumo de documentos no dashboard principal fossem exibidos condicionalmente, com base no tipo de atividade da empresa (ex: não mostrar card de Serviços para uma empresa que é apenas Comércio).
 
 **User's preferred language**:
 Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-A aplicação full-stack (React + FastAPI) está funcional. A importação de documentos foi refatorada para a página  e agora exibe uma barra de progresso durante o upload e um modal de relatório detalhado ao final. O sistema de Alertas CFOP foi completamente redesenhado para agrupar alertas por CFOP com ações em lote e classificação automática. O dashboard do Simples Nacional foi corrigido para respeitar a competência selecionada. A funcionalidade de upload de logo da empresa foi implementada no frontend e backend, mas o logo ainda não é exibido nos relatórios.
+A aplicação full-stack (React + FastAPI + MongoDB) está funcional e possui um conjunto robusto de funcionalidades fiscais. O agente anterior concluiu com sucesso a implementação de várias tarefas críticas:
+-   Corrigiu uma divergência de valores do Simples Nacional entre o relatório RET e o dashboard principal, unificando a lógica de cálculo.
+-   Criou uma nova página de Apuração para resumir os movimentos do período por CFOP.
+-   Implementou um parser para importar arquivos XML contendo múltiplas Notas Fiscais de Serviço (NFS-e), um requisito para a empresa VETCO.
+-   Corrigiu o endpoint de listagem de documentos para exibir corretamente os serviços prestados importados.
+-   Iniciou e completou parcialmente a FASE 1 e FASE 2 da longa lista de requisitos do usuário, corrigindo bugs no relatório de importação, no agrupamento de CFOPs, no cálculo do Lucro Presumido no RET e melhorando a UI dos Indicadores para exibir saldos credores.
 
 **Last working item**:
--   **Last item agent was working**: Corrigir o cálculo do DAS no Dashboard do Simples Nacional. O usuário reportou que, mesmo com faturamento, o valor do DAS aparecia como R$ 0,00. A solicitação é que o cálculo considere a alíquota efetiva correta, excluindo da base de cálculo as receitas de produtos com substituição tributária (ST), tributação monofásica e alíquota zero de PIS/COFINS.
--   **Status**: IN PROGRESS
+-   **Last item agent was working**: O agente estava prestes a iniciar a implementação da última solicitação do usuário: modificar o dashboard principal para exibir os cards de resumo de documentos (NFe, NFCe, NFSe) condicionalmente, com base no  da empresa selecionada (comércio, serviços ou mista).
+-   **Status**: NOT STARTED
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: backend testing agent. O teste deve focar no endpoint . É preciso criar um cenário com uma empresa do Simples Nacional que tenha notas fiscais de saída contendo produtos com e sem ST/monofásico/alíquota zero. A chamada à API para a competência correspondente deve retornar um valor de  maior que zero e uma  que corresponda ao faturamento total menos as receitas dos produtos isentos.
+-   **Which testing method agent to use?**: frontend testing agent ou screenshot tool. O agente deve verificar o dashboard para diferentes tipos de empresa para confirmar que apenas os cards relevantes são exibidos, mantendo a estética do layout.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0)**: Corrigir o cálculo do DAS no Dashboard do Simples Nacional.
--   **Issue 2 (P1)**: Finalizar a funcionalidade do logo da empresa, garantindo que ele apareça nos relatórios exportados.
--   **Issue 3 (P1)**: Corrigir o bug do modal de seleção de empresa que aparece desnecessariamente em páginas como , bloqueando a interação.
--   **Issue 4 (P2)**: Corrigir o relatório de exportação que não está sendo gerado (problema recorrente).
--   **Issue 5 (P3)**: Integração com SIEG não funciona devido a uma chave de API inválida.
--   **Issue 6 (P4)**: Adicionar uma mensagem de aviso no RET quando os dados para o cálculo do Lucro Real estiverem incompletos.
--   **Issue 7 (P4)**: Implementar ordenação em todas as colunas de todas as tabelas da aplicação.
+-   **Issue 1 (P0)**: O cálculo do DIFAL para empresas do Simples Nacional não está funcionando como esperado na página DIFAL. A página não está trazendo a relação de notas, produtos e os cálculos automáticos.
+-   **Issue 2 (P1)**: O filtro de documentos por  /  na página  não está funcionando corretamente, especialmente para as Notas Fiscais de Serviço (NFS-e).
+-   **Issue 3 (P2)**: Bug do modal de seleção de empresa que aparece indevidamente pode persistir. Embora corrigido anteriormente, é um bug recorrente que precisa de verificação completa.
 
 **Issues Detail**:
--   **Issue 1: Corrigir o cálculo do DAS no Dashboard do Simples Nacional**
-    -   **Attempted fixes**: O agente confirmou que as funções de cálculo (, ) existem em . A lógica para buscar produtos com ST/monofásico também existe em . O problema parece ser que o valor final não está sendo calculado corretamente ou os dados não estão sendo agregados da forma esperada antes de serem enviados ao frontend.
+-   **Issue 1: DIFAL para Simples Nacional não está funcionando.**
+    -   **Attempted fixes**: O agente verificou que os endpoints de backend existem (), mas o teste com uma empresa do Simples Nacional retornou zero documentos, possivelmente por falta de dados de entrada para teste.
     -   **Next debug checklist**:
-        1.  Revisar a lógica no endpoint  em  (a partir da linha ~16230).
-        2.  Verificar como as receitas de produtos com , , e  estão sendo subtraídas da base de cálculo.
-        3.  Usar um teste de API para injetar dados e depurar passo a passo a função  para entender por que o resultado é zero.
-        4.  Garantir que o frontend () está renderizando o campo correto ().
-    -   **Why fix this issue and what will be achieved with the fix?**: É uma funcionalidade central do módulo Simples Nacional. O dashboard é inútil sem o valor do imposto a pagar.
+        1.  Verificar  para garantir que está chamando o endpoint correto e processando a resposta adequadamente.
+        2.  Testar o endpoint  com uma empresa que tenha notas de compra interestaduais para garantir que o backend calcula o DIFAL corretamente.
+        3.  Garantir que a UI renderize a lista de notas, produtos e os valores calculados conforme a solicitação do usuário.
+    -   **Why fix this issue and what will be achieved with the fix?**: Atende a um requisito funcional chave para empresas do Simples Nacional que compram de outros estados.
     -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: both
 
--   **Issue 2: Finalizar a funcionalidade do logo da empresa**
-    -   **Attempted fixes**: O agente implementou o upload de logo no formulário de , criou o endpoint  para salvar o arquivo, e atualizou o  para exibir o logo no header.
+-   **Issue 2: Filtro de divergência em Documentos não funciona.**
+    -   **Attempted fixes**: O agente corrigiu a lógica em  para incluir a verificação do array  (para NFS-e) além de .
     -   **Next debug checklist**:
-        1.  Identificar os endpoints de exportação de relatórios (e.g., ) em .
-        2.  Modificar a lógica de geração de relatórios (XLSX, PDF) para buscar o caminho do logo da empresa no banco de dados.
-        3.  Incorporar a imagem do logo no cabeçalho dos arquivos exportados.
-    -   **Why fix this issue and what will be achieved with the fix?**: Atende a um requisito do usuário para profissionalizar os relatórios e fortalecer a identidade visual dentro do sistema.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: backend
-
--   **Issue 3: Corrigir bug do modal de seleção de empresa**
-    -   **Attempted fixes**: O agente encontrou o problema, onde o modal de seleção de empresa aparece sobre outras páginas (como ) mesmo depois que uma empresa já foi selecionada, impedindo o uso. As tentativas de contornar com  falharam.
-    -   **Next debug checklist**:
-        1.  Analisar o  e a lógica de estado em  e .
-        2.  Verificar como o estado  é gerenciado e por que ele é definido como  em rotas onde não deveria.
-        3.  A condição de exibição do modal precisa ser mais restritiva, provavelmente ligada a um estado global que confirme se a seleção inicial já foi feita na sessão.
-    -   **Why fix this issue and what will be achieved with the fix?**: É um bug de usabilidade que impede o acesso a funcionalidades importantes, como o cadastro e edição de empresas.
-    -   **Status**: NOT STARTED
+        1.  Testar manualmente na interface se o filtro (Com Divergência / Sem Divergência / Todos) funciona para notas de produto e serviço.
+        2.  Verificar se os documentos de serviço (NFS-e) possuem as informações necessárias (CFOP, etc.) para que a lógica de divergência funcione. O agente já adicionou o CFOP 5933, o que deve ajudar.
+    -   **Why fix this issue and what will be achieved with the fix?**: Melhora a usabilidade da tela de documentos, permitindo ao usuário focar rapidamente nas notas que precisam de atenção.
+    -   **Status**: TESTING PENDING
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: frontend
 
--   **Issue 4: Corrigir o relatório de exportação**
-    -   **Attempted fixes**: O agente corrigiu um  no backend que impedia a geração do arquivo. No entanto, o usuário relatou novamente que a exportação não funciona.
+-   **Issue 3: Bug do modal de seleção de empresa pode persistir.**
+    -   **Attempted fixes**: A lógica em  foi refatorada em uma sessão anterior para usar o  de forma mais direta.
     -   **Next debug checklist**:
-        1.  Re-testar o endpoint de exportação via , como feito anteriormente, para confirmar se o erro do servidor retornou.
-        2.  Verificar os logs do backend (==> /var/log/supervisor/backend.err.log <==
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 760178 - CFOPs: ['5401', '5401', '5401', '5401', '5401'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 297803 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 297803 - CFOPs: ['5405', '5102', '5102', '5102', '5403', '5403', '5403', '5102', '5405'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 69709 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 69709 - CFOPs: ['5102', '5102', '5102', '5102', '5102', '5102', '5102'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 237751 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 237751 - CFOPs: ['5405', '5405', '5405', '5405', '5405', '5405', '5405', '5405', '5102', '5405', '5405', '5405', '5102'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 237754 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 237754 - CFOPs: ['5949', '5949'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 283007 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 283007 - CFOPs: ['5102', '5102'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 457102 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 457102 - CFOPs: ['5102', '5102', '5102', '5102', '5102', '5102', '5102', '5102'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 14735 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 14735 - CFOPs: ['5101', '5101', '5401'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 7010616 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 7010616 - CFOPs: ['5102', '5405', '5102', '5405', '5405', '5405'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 186092 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 186092 - CFOPs: ['5405', '5405', '5405', '5405', '5405'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 52500 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 52500 - CFOPs: ['6101'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 1899259 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 1899259 - CFOPs: ['5101', '5101', '5101'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 752034 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 752034 - CFOPs: ['5102', '5405', '5102', '5102', '5102', '5102', '5102', '5102', '5102', '5102', '5102', '5102', '5405', '5405', '5405', '5102', '5405'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 681627 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 681627 - CFOPs: ['5401', '5401', '5401', '5401', '5401', '5401', '5401', '5403', '5403', '5403', '5403'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 9713 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 9713 - CFOPs: ['5104', '5104', '5104', '5104', '5104', '5104', '5104', '5104', '5104', '5104', '5104'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 147 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 147 - CFOPs: ['5405', '5405', '5102', '5102', '5102', '5102', '5102', '5102', '5102', '5102', '5102', '5102', '5102', '5102', '5102', '5102', '5405', '5405', '5405', '5102'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 69661 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 69661 - CFOPs: ['5102', '5102', '5102', '5102', '5102', '5102', '5102', '5102', '5102'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 73653 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 73653 - CFOPs: ['5104'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 9631 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 9631 - CFOPs: ['6101'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 271633 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 271633 - CFOPs: ['5403', '5910', '5403', '5403', '5910', '5403', '5910'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 12961 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 12961 - CFOPs: ['5102', '5102', '5102', '5102'], São entrada: False, É devolução: False
-INFO:server:VALIDAÇÃO ENTRADA: NF 69609 - Dest: 35438935000139, Empresa: 35438935000139, Válido: True
-INFO:server:UPLOAD-STREAM DEVOLUÇÃO CHECK: NF 69609 - CFOPs: ['5102', '5102', '5102', '5102', '5102', '5102', '5102'], São entrada: False, É devolução: False
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [80]
-INFO:     Started server process [347]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [347]
-INFO:     Started server process [377]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [377]
-INFO:     Stopping reloader process [42]
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [456] using WatchFiles
-INFO:     Started server process [458]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:server:DASHBOARD: Query = {'company_id': '3d3abe01-4dfe-4fbf-b6e2-04de4143e076', 'competencia': '02/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
-INFO:server:DASHBOARD: Documentos encontrados = 0
-INFO:server:DASHBOARD: NFe Entrada=0, NFe Saída=0, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
-INFO:server:DASHBOARD: Compras Brutas=0, Devoluções Compra=0, Compras Líquidas=0
-INFO:server:DASHBOARD: Vendas Brutas=0, Devoluções Venda=0, Vendas Líquidas=0
-INFO:server:DASHBOARD: Markup=0.00%
-INFO:server:DASHBOARD: Entradas(NFe=0, CTe=0, Serv.Tomados=0) = 0
-INFO:server:DASHBOARD: Saídas(NFe=0, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 0
-INFO:server:DASHBOARD: Query = {'company_id': 'e33af37a-38c3-41cb-a786-f8a685c860f6', 'competencia': '01/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
-INFO:server:DASHBOARD: Documentos encontrados = 4727
-INFO:server:DASHBOARD: NFe Entrada=166, NFe Saída=0, NFCe=4561, NFSe Prestados=0, CTe=0, NFSe Tomados=0
-INFO:server:DASHBOARD: Compras Brutas=90441.65999999997, Devoluções Compra=0, Compras Líquidas=90441.65999999997
-INFO:server:DASHBOARD: Vendas Brutas=101517.45999999795, Devoluções Venda=0, Vendas Líquidas=101517.45999999795
-INFO:server:DASHBOARD: Markup=12.25%
-INFO:server:DASHBOARD: Entradas(NFe=91675.42999999998, CTe=0, Serv.Tomados=0) = 91675.42999999998
-INFO:server:DASHBOARD: Saídas(NFe=0, NFCe=101517.45999999999, CTe=0, Serv.Prestados=0) = Faturamento 101517.45999999999
-INFO:server:DASHBOARD: Query = {'company_id': 'e33af37a-38c3-41cb-a786-f8a685c860f6', 'competencia': '01/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
-INFO:server:DASHBOARD: Documentos encontrados = 4727
-INFO:server:DASHBOARD: NFe Entrada=166, NFe Saída=0, NFCe=4561, NFSe Prestados=0, CTe=0, NFSe Tomados=0
-INFO:server:DASHBOARD: Compras Brutas=90441.65999999997, Devoluções Compra=0, Compras Líquidas=90441.65999999997
-INFO:server:DASHBOARD: Vendas Brutas=101517.45999999795, Devoluções Venda=0, Vendas Líquidas=101517.45999999795
-INFO:server:DASHBOARD: Markup=12.25%
-INFO:server:DASHBOARD: Entradas(NFe=91675.42999999998, CTe=0, Serv.Tomados=0) = 91675.42999999998
-INFO:server:DASHBOARD: Saídas(NFe=0, NFCe=101517.45999999999, CTe=0, Serv.Prestados=0) = Faturamento 101517.45999999999
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [46] using WatchFiles
-INFO:     Started server process [71]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-
-==> /var/log/supervisor/backend.out.log <==
-INFO:     10.64.128.135:43292 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.128.140:36156 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.130.130:52516 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.130.134:47172 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.132.44:54462 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.130.135:59376 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.128.136:43608 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.128.137:34002 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.130.135:59376 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.128.140:36156 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.130.136:49688 - "GET /api/xml/documents?company_id=fiscalium&competencia=01%2F2026&tipo_operacao=saida&modelo=65 HTTP/1.1" 200 OK
-INFO:     10.64.128.135:52012 - "GET /api/dashboard/stats/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01/2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.130:57006 - "GET /api/sieg/count/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
-INFO:     10.64.132.44:35018 - "GET /api/dashboard/stats/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01/2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.137:48840 - "GET /api/sieg/count/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
-INFO:     10.64.130.130:57006 - "GET /api/xml/documents?company_id=fiscalium&competencia=01%2F2026&tipo_operacao=entrada&modelo=55 HTTP/1.1" 200 OK
-INFO:     10.64.128.136:52560 - "POST /api/xml/upload-init HTTP/1.1" 200 OK
-INFO:     10.64.128.137:43718 - "GET /api/xml/upload-progress/6a8242c5-ea80-49f6-b44b-bbe2df098665 HTTP/1.1" 200 OK
-Erro na classificação LLM: Expecting ',' delimiter: line 8 column 9 (char 178)
-Erro na classificação LLM: Expecting ',' delimiter: line 8 column 10 (char 179)
-Erro na classificação LLM: Expecting ',' delimiter: line 8 column 10 (char 177)
-INFO:     10.64.128.136:52560 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.130.137:35682 - "POST /api/xml/upload-init HTTP/1.1" 200 OK
-INFO:     10.64.128.137:52916 - "GET /api/xml/upload-progress/f836b07d-0b1e-4459-baef-3570bed2a764 HTTP/1.1" 200 OK
-INFO:     10.64.132.44:55836 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-Erro na classificação LLM: Expecting ',' delimiter: line 8 column 9 (char 178)
-Erro na classificação LLM: Expecting ',' delimiter: line 8 column 9 (char 176)
-INFO:     10.64.128.140:34612 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.132.44:57208 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.130.136:35184 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.130.135:45986 - "GET /api/xml/documents?company_id=fiscalium&competencia=01%2F2026&tipo_operacao=entrada&modelo=55 HTTP/1.1" 200 OK
-INFO:     10.64.132.151:47068 - "GET /api/dashboard/stats/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01/2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.74:46022 - "GET /api/dashboard/stats/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01/2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.19:50294 - "GET /api/sieg/count/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
-INFO:     10.64.128.18:37334 - "GET /api/sieg/count/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
-INFO:     10.64.128.74:46022 - "POST /api/xml/documents/preview-delete HTTP/1.1" 200 OK
-INFO:     10.64.128.18:37334 - "POST /api/xml/documents/delete-bulk HTTP/1.1" 200 OK
-INFO:     10.64.132.151:46266 - "GET /api/xml/documents?company_id=fiscalium&competencia=01%2F2026&tipo_operacao=entrada&modelo=55 HTTP/1.1" 200 OK
-INFO:     10.64.128.9:40688 - "POST /api/xml/upload-init HTTP/1.1" 200 OK
-INFO:     10.64.132.151:49950 - "GET /api/xml/upload-progress/12999d69-fb40-4c9b-8bc1-5c7a5f22e172 HTTP/1.1" 200 OK
-Erro na classificação LLM: Expecting ',' delimiter: line 8 column 10 (char 179)
-INFO:     10.64.128.9:40688 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.128.74:43002 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.132.151:35024 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.128.74:43002 - "POST /api/xml/upload-stream HTTP/1.1" 200 OK
-INFO:     10.64.132.151:35024 - "GET /api/xml/documents?company_id=fiscalium&competencia=01%2F2026&tipo_operacao=entrada&modelo=55 HTTP/1.1" 200 OK
-INFO:     10.64.128.9:52516 - "GET /api/alertas-cfop/e33af37a-38c3-41cb-a786-f8a685c860f6/agrupado?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.136:60006 - "GET /api/classification/suggestions/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.74:44274 - "GET /api/alertas-cfop/e33af37a-38c3-41cb-a786-f8a685c860f6/agrupado?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.18:42224 - "GET /api/classification/suggestions/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.19:33924 - "POST /api/alertas-cfop/resolver-grupo?company_id=fiscalium&competencia=01%2F2026&cfop_atual=1910&novo_cfop=1910&salvar_regra=true HTTP/1.1" 200 OK
-INFO:     10.64.132.151:58656 - "GET /api/alertas-cfop/e33af37a-38c3-41cb-a786-f8a685c860f6/agrupado?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.130:60840 - "GET /api/classification/suggestions/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.74:44274 - "POST /api/alertas-cfop/resolver-grupo?company_id=fiscalium&competencia=01%2F2026&cfop_atual=1949&novo_cfop=1949&salvar_regra=true HTTP/1.1" 200 OK
-INFO:     10.64.132.151:58656 - "GET /api/alertas-cfop/e33af37a-38c3-41cb-a786-f8a685c860f6/agrupado?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.137:52068 - "GET /api/classification/suggestions/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.132.151:51670 - "POST /api/dashboard/simples-nacional HTTP/1.1" 200 OK
-INFO:     10.64.128.18:45610 - "POST /api/dashboard/simples-nacional HTTP/1.1" 200 OK
-INFO:     10.64.128.18:40742 - "GET /api/simples-nacional/e33af37a-38c3-41cb-a786-f8a685c860f6/historico-faturamento HTTP/1.1" 200 OK
-INFO:     10.64.128.9:42412 - "GET /api/simples-nacional/e33af37a-38c3-41cb-a786-f8a685c860f6/historico-faturamento HTTP/1.1" 200 OK
-INFO:     10.64.128.9:33392 - "POST /api/simples-nacional/e33af37a-38c3-41cb-a786-f8a685c860f6/importar-pgdas HTTP/1.1" 200 OK
-INFO:     10.64.128.18:52226 - "GET /api/simples-nacional/e33af37a-38c3-41cb-a786-f8a685c860f6/historico-faturamento HTTP/1.1" 200 OK
-INFO:     10.64.132.151:35842 - "POST /api/dashboard/simples-nacional HTTP/1.1" 200 OK
-INFO:     10.64.132.151:53554 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.18:49558 - "POST /api/dashboard/simples-nacional HTTP/1.1" 200 OK
-INFO:     10.64.130.134:37436 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.134:37436 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.140:49856 - "GET /api/dashboard/stats/3d3abe01-4dfe-4fbf-b6e2-04de4143e076?competencia=02/2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.134:37436 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.136:60374 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.135:39136 - "POST /api/dashboard/simples-nacional HTTP/1.1" 200 OK
-INFO:     10.64.128.18:35856 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.134:50220 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.134:55404 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.132.44:54608 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.136:48782 - "POST /api/dashboard/simples-nacional HTTP/1.1" 200 OK
-INFO:     10.64.128.136:33566 - "POST /api/dashboard/simples-nacional HTTP/1.1" 200 OK
-INFO:     10.64.130.135:49364 - "POST /api/dashboard/simples-nacional HTTP/1.1" 200 OK
-INFO:     10.64.130.137:58858 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.130:52760 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.135:51964 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.137:43488 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.130:58244 - "GET /api/dashboard/stats/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01/2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.135:58462 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.140:59762 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.130:58244 - "POST /api/dashboard/simples-nacional HTTP/1.1" 200 OK
-INFO:     10.64.128.19:49176 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.136:53322 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.19:49176 - "GET /api/dashboard/stats/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01/2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.74:51842 - "GET /api/sieg/count/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
-INFO:     10.64.128.74:51842 - "GET /api/sieg/count/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01%2F2026 HTTP/1.1" 500 Internal Server Error
-INFO:     10.64.128.137:52166 - "GET /api/alertas-cfop/e33af37a-38c3-41cb-a786-f8a685c860f6/agrupado?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.135:56808 - "GET /api/classification/suggestions/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.132.151:44028 - "GET /api/alertas-cfop/e33af37a-38c3-41cb-a786-f8a685c860f6/agrupado?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.140:58438 - "GET /api/classification/suggestions/e33af37a-38c3-41cb-a786-f8a685c860f6?competencia=01%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.18:49286 - "POST /api/dashboard/simples-nacional HTTP/1.1" 200 OK
-INFO:     10.64.130.130:47744 - "POST /api/dashboard/simples-nacional HTTP/1.1" 200 OK
-INFO:     10.64.132.44:58320 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.136:46320 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.132.44:58320 - "POST /api/dashboard/simples-nacional HTTP/1.1" 200 OK) imediatamente após uma tentativa de exportação falha.
-        3.  Analisar a chamada no frontend em  para garantir que os parâmetros corretos estão sendo enviados.
-    -   **Why fix this issue and what will be achieved with the fix?**: A exportação de dados é uma funcionalidade essencial para a análise fiscal do usuário.
-    -   **Status**: IN PROGRESS
+        1.  Realizar testes manuais completos: login, seleção de empresa, atualização de página (F5), navegação.
+        2.  Confirmar que a empresa selecionada persiste e o modal não reaparece inesperadamente.
+    -   **Why fix this issue and what will be achieved with the fix?**: Garante a estabilidade e usabilidade da aplicação.
+    -   **Status**: USER VERIFICATION PENDING
     -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: backend
-
--   **Issue 5: Integração com SIEG não funciona**
-    -   **Status**: BLOCKED (Aguardando ação do usuário para fornecer uma chave de API válida).
-
--   **Issue 6: Adicionar aviso no RET para cálculo impreciso do Lucro Real**
-    -   **Status**: NOT STARTED
-
--   **Issue 7: Implementar ordenação em todas as colunas**
-    -   **Status**: NOT STARTED
-
-**In progress Task List**:
-N/A
+    -   **Should Test frontend/backend/both after fix?**: frontend
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks:**
-    -   (P1) **Implementar upload do Certificado Digital**: A UI existe em , mas o backend para armazenar o arquivo  e a senha de forma segura ainda precisa ser implementado.
--   **Future Tasks:**
-    -   Refatorar o monolito  para uma arquitetura baseada em routers.
+-   **Upcoming Tasks (FASE 3 e 4):**
+    -   **(P0) Melhoria na Classificação IA:** Aprimorar a IA para que, ao classificar notas de entrada, ela primeiro analise as notas de saída da empresa para entender os produtos comercializados e classificar as compras como revenda com mais precisão. Se ainda houver dúvida, usar compra para revenda como padrão para empresas de comércio.
+    -   **(P1) Melhoria no Cadastro de Empresa:**
+        -   Para empresas de serviços, trocar o campo revenda por aplicacao em servicos.
+        -   Para empresas mistas, adicionar o campo aplicacao em servicos.
+    -   **(P1) Implementar Fluxo de Cancelamento de NFS-e:** Ao importar um XML de NFS-e, perguntar ao usuário se deseja indicar notas canceladas (manualmente por checkbox ou via upload de um relatório). Importar as notas marcadas como canceladas e com valor zerado.
+    -   **(P1) Melhorar Dashboard e RET para Fator R (Simples Nacional):** Tornar a interface mais visual, mostrando a comparação entre Anexo V e Anexo III, a economia potencial e a folha de pagamento necessária para a mudança de anexo.
+    -   **(P2) Implementar Saldo Credor Inicial:** Habilitar um campo no cadastro da empresa (Possui saldo credor?) que, se marcado, abre campos para inserir os saldos iniciais de ICMS, PIS e COFINS.
+    -   **(P2) Carregar Saldo Credor para Mês Seguinte:** Implementar a lógica para que qualquer saldo credor de um tributo seja automaticamente transportado como crédito para o mês seguinte.
+    -   **(P2) Identificação de Impostos Retidos:** Criar uma forma clara (possivelmente uma seção dedicada com relatórios) para identificar e gerenciar impostos retidos em serviços tomados e prestados, e gerar as guias correspondentes.
+    -   **(P2) Lógica para Transportadoras:** Ao cadastrar uma empresa com CNAE de transporte, perguntar se é uma transportadora. Se sim, habilitar a importação de CT-e (modelo 57) e calcular o crédito presumido de ICMS de 20% sobre o débito.
+    -   **(P3) Melhoria na Competência:** Na importação, sugerir o mês/ano do arquivo como competência, mas permitir que o usuário edite o campo.
+
+-   **Future Tasks (Backlog):**
+    -   Adicionar o logo da empresa aos relatórios exportados (Word/Excel).
+    -   Finalizar o Relatório Unificado com exportação para Word.
+    -   Implementar o upload do Certificado Digital.
+    -   Refatorar o arquivo monolítico  em uma arquitetura de routers.
     -   Implementar um sistema de licenças comerciais.
-    -   Criar um dashboard de estatísticas para o perfil Master.
+    -   Remover o arquivo obsoleto .
 
 **Completed work in this session**
--   **Correção do Dashboard Simples Nacional**: O dashboard agora respeita a competência (mês/ano) selecionada pelo usuário.
--   **Relatório Pós-Importação**: O modal de resultado foi totalmente redesenhado, agora mostrando contagens claras (total, aceitos, rejeitados), valor total, lista de documentos e um botão para download do relatório em CSV.
--   **Refatoração dos Alertas de CFOP**: A tela  foi refeita para agrupar alertas por CFOP, permitindo ações em lote (manter, converter) e edição manual. A resolução de um alerta agora também atribui automaticamente uma categoria ao produto (ex: Revenda, Despesa).
--   **Upload de Logo da Empresa**: Implementado frontend () e backend () para permitir o upload do logo. O logo agora aparece no header do layout.
--   **Barra de Progresso na Importação**: A página  foi integrada com  e  para mostrar uma barra de progresso durante o upload de documentos, permitindo navegação em segundo plano.
--   **Correção de Bug de Exportação**: Resolvido um  no backend.
--   **Remoção de Arquivos Obsoletos**: As páginas  e  foram removidas do projeto.
--   **Aviso no RET**: Adicionado um aviso na página  sobre a imprecisão do cálculo do Lucro Real quando dados de despesas e estoque estão ausentes.
+-   **Correção de Divergência do Simples Nacional:** Alinhou completamente o cálculo do Simples Nacional entre o RET e o Dashboard, corrigindo o cálculo do RBT12 e a aplicação dos descontos.
+-   **Implementação de Parser de Lista de NFS-e:** Adicionou ao  a função  e atualizou o endpoint de upload para processar arquivos XML no padrão ABRASF contendo múltiplas notas de serviço.
+-   **Correção do Dashboard para Serviços:** Resolveu o bug que impedia o dashboard de exibir os dados das NFS-e recém-importadas para a empresa VETCO.
+-   **FASE 1 - Correções de Bugs:**
+    -   **Relatório de Importação:** Corrigiu o  para mapear corretamente os resultados do backend e exibir o relatório de conclusão.
+    -   **Animação de Carregamento:** Reintroduziu o componente  na UI de upload de documentos.
+    -   **CFOP 5933 Automático:** Modificou os parsers de NFS-e em  para atribuir automaticamente o CFOP  aos serviços prestados.
+    -   **Agrupamento Automático de CFOPs:** Implementou um mapa  no backend para que CFOPs de natureza distinta (ex: bonificação, outros) criem seus próprios grupos na Classificação Inteligente em vez de irem para Pendentes.
+-   **FASE 2 - Melhorias e Correções:**
+    -   **Cálculo do Lucro Presumido (RET):** Corrigiu o  para usar as alíquotas de presunção corretas (ex: 32% para serviços) com base na atividade da empresa, em vez de uma alíquota genérica.
+    -   **Card de ICMS Credor:** Modificou o  em  para ser exibido mesmo quando o saldo é credor (valor <= 0).
+    -   **Melhoria na Classificação IA:** Adicionou uma função no backend para obter os produtos vendidos pela empresa, servindo como base para futuras melhorias na classificação de entradas.
+    -   **Barra de Pesquisa (Classificação Inteligente):** Verificou que a funcionalidade já existia e adicionou os novos nomes de categoria à configuração de exibição em .
+-   **Atualização dos Modelos de Empresa:** Adicionou novos campos (, , etc.) aos modelos Pydantic da empresa em .
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1:** O arquivo  é um monolito que precisa de refatoração.
+-   **Issue 1: Remoção do arquivo obsoleto **
+    -   **Debug checklist**: Executar . Verificar  para remover a rota, se houver.
+    -   **Why to solve this issue and what will be achieved with this?**: Melhora a higiene do código.
+    -   **Should Test frontend/backend/both after fix**: frontend (verificação rápida para garantir que a aplicação ainda carrega).
+    -   **Is recurring issue?**: Y
 
 **Code Architecture**
 
 
+**Key Technical Concepts**
+-   **Backend**: FastAPI, MongoDB (com ), Pydantic.
+-   **Frontend**: React, React Hooks, Context API, TailwindCSS, Axios.
+-   **Arquitetura**: SPA (Single Page Application) com um backend monolítico.
+
 **All files of reference**
-*   
-*   
-*   
-*   
-*   
-*   
-*   
-*   
-*   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
 
 **Critical Info for New Agent**
--   **Foco Principal (P0)**: A correção do cálculo do DAS no dashboard do Simples Nacional é a prioridade máxima. O usuário está bloqueado por isso.
--   **Bug de Usabilidade (P1)**: O modal de seleção de empresa que aparece indevidamente está impedindo o acesso a páginas importantes. Precisa ser resolvido logo após o P0.
--   **SIEG Bloqueado**: Não tente trabalhar na integração SIEG. Ela continua bloqueada aguardando uma chave de API válida do usuário.
--   **Estrutura de Importação**: A importação de documentos agora é centralizada na página , não mais em  (que deve ser considerado obsoleto ou removido se não for mais usado).
+-   **NÃO USE O TESTING AGENT.** O usuário pediu explicitamente para pular os testes automatizados e que ele mesmo testará as funcionalidades. Implemente e finalize.
+-   A prioridade é seguir a ordem de tarefas definidas pelo usuário, que o agente anterior organizou em Fases. O agente deve começar pelo Last working item e depois seguir para a FASE 3.
+-   O arquivo  é um monolito com mais de 18.000 linhas. Use busca () e navegação por funções para se localizar.
+-   A base de dados correta é , conforme definido na variável de ambiente . Houve confusão com outros bancos de dados na sessão anterior.
+
+**documents and test reports created in this job**
+-    (atualizado com as últimas implementações)
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **Usuário**: Pediu para corrigir o dashboard do Simples Nacional, que mostrava dados de um mês diferente do selecionado. (Status: CONCLUÍDO)
-9.  **Usuário**: Reportou que o relatório pós-importação não mostrava contagens nem opção de download. (Status: CONCLUÍDO)
-8.  **Usuário**: Pediu para a classificação de CFOP também atribuir uma categoria de produto automaticamente. (Status: CONCLUÍDO)
-7.  **Usuário**: Pediu para agrupar os alertas de CFOP por CFOP, com ações em lote e edição manual. (Status: CONCLUÍDO)
-6.  **Usuário**: Reportou que os alertas de CFOP não mostravam o código do CFOP, pediu correção e melhoria no cadastro de empresas para incluir o logo. (Status: EM ANDAMENTO - Logo em relatórios pendente)
-5.  **Usuário**: Pediu correções no relatório pós-exportação e nos alertas de CFOP. (Status: EM ANDAMENTO - Relatório de exportação ainda com problemas)
-4.  **Usuário**: Pediu para mover a lógica de upload da página  para botões na página , com barra de progresso. (Status: CONCLUÍDO)
-3.  **Usuário**: Pediu para refazer a interface de Alertas CFOP. (Status: CONCLUÍDO)
-2.  **Usuário**: Forneceu feedback sobre o progresso e pediu para continuar. (Status: CONCLUÍDO)
-1.  **Usuário**: Pediu para que o cálculo do DAS no dashboard do Simples Nacional seja corrigido para considerar a alíquota efetiva e as exclusões de base (ST, monofásico, etc.). (Status: EM ANDAMENTO)
-
-**Project Health Check:**
--   **Broken**:
-    -   Cálculo do DAS no Dashboard do Simples Nacional.
-    -   Modal de seleção de empresa que bloqueia a navegação.
-    -   Exportação de relatórios via .
-    -   Integração com SIEG (bloqueio externo).
--   **Mocked**:
-    -   Funcionalidade de upload do Certificado Digital ().
-    -   Exibição do logo da empresa nos relatórios exportados.
+10. **Usuário**: especificamente nesse card no dash principal, gostaria que aparecesse só os dcoumentos que sao compativeis com a empresa... (Pede para ocultar cards de documentos no dashboard com base na atividade da empresa). (Status: NOT STARTED)
+9.  **Usuário**: PODE SEGUIR SEM TESTING AGENT (Aprova o plano para a FASE 3). (Status: CONCLUDED)
+8.  **Agente**: Finaliza a FASE 2 e pergunta se pode continuar com a FASE 3. (Status: CONCLUDED)
+7.  **Usuário**: PODE CONTINUAR, SEM TESTING AGENT. CAPRICHA! (Aprova o plano para a FASE 2). (Status: CONCLUDED)
+6.  **Agente**: Finaliza a FASE 1 e pergunta se pode continuar com a FASE 2. (Status: CONCLUDED)
+5.  **Usuário**: SEGUE SUA ORDEM (Aprova o plano de fases proposto pelo agente). (Status: CONCLUDED)
+4.  **Agente**: Propõe um plano detalhado dividido em fases para resolver a longa lista de solicitações. (Status: CONCLUDED)
+3.  **Usuário**: Envia uma lista massiva de bugs, melhorias e novas funcionalidades. (Status: CONCLUDED)
+2.  **Usuário**: NAO ESTA APARECENDO NA LISTAGEM DE DOCUMENTOS SERVICOS PRESTADOS SAIDA. CORRIJA SEM TESTING AGENT (Reporta que as NFS-e importadas não aparecem na listagem). (Status: RESOLVED)
+1.  **Usuário**: A EMPRESA VETCO ESTA CADASTRADA. ID 0379. IMPORTEI POR ELA MAS DEU ERRO (Reporta um erro ao importar o arquivo XML para a empresa VETCO). (Status: RESOLVED)
 
 **Testing status**
--   **Testing agent used after significant changes**: YES (parcialmente, em funcionalidades anteriores)
+-   **Testing agent used after significant changes**: NO (Desabilitado por instrução do usuário)
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: A exportação de relatórios parece ser um problema recorrente. O modal de seleção de empresa é um novo bug de usabilidade introduzido recentemente.
+-   **Known regressions**: O bug do modal de seleção de empresa tem um histórico de recorrência.
 
 **Credentials to test flow:**
 -   **Email**: 
 -   **Senha**: 
--   **Empresa Simples (com dados)**: E. L. M. COMERCIO DE ALIMENTOS LTDA (usar competência 01/2026 para testes do dashboard) ou EMPRESA SIMPLES TESTE LTDA.
--   **Empresa Teste**: COMERCIAL RS LTDA
+-   **Empresa Serviços (Simples)**: VETCO CLINICA DE REABILITACAO ANIMAL LTDA (CNPJ: 40.941.664/0001-70)
+-   **Empresa Comércio (Simples)**: E. L. M. COMERCIO DE ALIMENTOS LTDA
+-   **Empresa Comércio (Presumido)**: TEKNOLINK SJC DISTRIBUIDORA DE SOLUCAO EM SEGURANCA ELETRONICA LTDA
+-   **Competência para testes**: 
 
 **What agent forgot to execute**
--   Implementar a ordenação em todas as colunas de todas as tabelas (tarefa pendente de longa data).
--   Remover a página , que agora é obsoleta após a refatoração da importação para a página .</analysis>
+-   A adição do logo da empresa aos relatórios **exportados** (Excel/Word) ainda não foi implementada.
+-   O arquivo obsoleto  ainda não foi removido do projeto.
+-   A implementação da ordenação em **TODAS** as colunas das tabelas ainda está incompleta. Páginas como  provavelmente não foram atualizadas.</analysis>
