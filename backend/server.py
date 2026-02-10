@@ -1701,8 +1701,12 @@ def is_lista_nfse(xml_content: str) -> bool:
     return '<listanotafiscal' in xml_lower or '<listanfse' in xml_lower
 
 def detect_xml_type(xml_content: str) -> str:
-    """Detecta o tipo de XML: nfe, nfce, nfse"""
+    """Detecta o tipo de XML: nfe, nfce, nfse, cte"""
     xml_lower = xml_content.lower()
+    
+    # CT-e tem tags específicas (modelo 57)
+    if '<cteproc' in xml_lower or '<infcte' in xml_lower or 'mod>57<' in xml_lower or '<mod>57</mod>' in xml_lower:
+        return 'cte'
     
     # NFS-e tem tags específicas
     if '<compnfse' in xml_lower or '<nfse' in xml_lower or '<infnfse' in xml_lower or '<prestadorservico' in xml_lower:
