@@ -221,7 +221,19 @@ const Companies = ({ user, onLogout }) => {
       // Certificado Digital
       certificado_digital_arquivo: company.certificado_digital_arquivo || '',
       certificado_digital_senha: company.certificado_digital_senha || '',
-      certificado_digital_validade: company.certificado_digital_validade || ''
+      certificado_digital_validade: company.certificado_digital_validade || '',
+      // Aplicação em Serviços
+      aplicacao_em_servicos: company.aplicacao_em_servicos || false,
+      // Saldo Credor
+      possui_saldo_credor: company.possui_saldo_credor || false,
+      saldo_credor_icms: company.saldo_credor_icms || 0,
+      saldo_credor_pis: company.saldo_credor_pis || 0,
+      saldo_credor_cofins: company.saldo_credor_cofins || 0,
+      competencia_saldo_inicial: company.competencia_saldo_inicial || '',
+      // Transportadora
+      is_transportadora: company.is_transportadora || false,
+      tipo_transporte: company.tipo_transporte || 'carga',
+      credito_presumido_icms_percent: company.credito_presumido_icms_percent ?? 20.0
     });
     setShowForm(true);
   };
