@@ -499,6 +499,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     energia_eletrica: { label: 'Energia Elétrica', color: 'amber', icon: '⚡' },
     servico_tomado: { label: 'Serviço Tomado', color: 'purple', icon: '🔧' },
     servico_aplicacao: { label: 'Aplicação em Serviços', color: 'purple', icon: '🛠️' },
+    aplicacao_servico: { label: 'Aplicação em Serviços', color: 'purple', icon: '🛠️' },
     servico_comunicacao: { label: 'Serviço de Comunicação', color: 'blue', icon: '📡' },
     servico_transporte: { label: 'Serviço de Transporte', color: 'blue', icon: '🚚' },
     servico_issqn: { label: 'Serviço (ISSQN)', color: 'purple', icon: '📄' },
@@ -514,7 +515,8 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     retorno_merc_remetida_consig: { label: 'Retorno de Consignação', color: 'gray', icon: '🔄' },
     devolucao: { label: 'Devolução', color: 'red', icon: '↩️' },
     operacao_distinta: { label: 'Operação Distinta', color: 'orange', icon: '⚠️' },
-    outros: { label: 'Outras Operações', color: 'gray', icon: '📦' },
+    outros: { label: 'Outras Entradas', color: 'gray', icon: '📦' },
+    outras_entradas: { label: 'Outras Entradas', color: 'gray', icon: '📦' },
     pendente: { label: 'Pendente de Classificação', color: 'gray', icon: '❓' }
   };
 
