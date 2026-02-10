@@ -28,6 +28,7 @@ import Apuracao from './pages/Apuracao';
 import ImpostosRetidos from './pages/ImpostosRetidos';
 import RelatorioUnificado from './pages/RelatorioUnificado';
 import AnaliseHorizontal from './pages/AnaliseHorizontal';
+import ViloesOportunidades from './pages/ViloesOportunidades';
 import './App.css';
 
 function App() {
