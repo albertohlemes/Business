@@ -49,7 +49,20 @@ const CATEGORIAS = {
 };
 
 const Documents = ({ user, onLogout }) => {
-  const { selectedCompany: ctxCompany, selectedCompetencia, openSelector, siegStatus, siegSyncing, checkSiegCount, syncFromSieg } = useAppContext();
+  const { 
+    selectedCompany: ctxCompany, 
+    selectedCompetencia, 
+    openSelector, 
+    siegStatus, 
+    siegSyncing, 
+    checkSiegCount, 
+    syncFromSieg,
+    // Upload global
+    startUpload: startGlobalUpload,
+    updateUploadProgress: updateGlobalProgress,
+    finishUpload: finishGlobalUpload,
+    uploadProgress: globalUploadProgress
+  } = useAppContext();
   const { startUpload, isUploading: globalUploading, progress: globalProgress, currentFile, uploadResults: globalResults, uploadError: globalError, clearResults } = useUpload();
   const [searchParams] = useSearchParams();
   const highlightDocId = searchParams.get('highlight');
