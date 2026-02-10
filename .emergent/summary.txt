@@ -1,619 +1,208 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou a criação de um sistema de gestão fiscal para empresas do Simples Nacional e Lucro Presumido. A aplicação evoluiu para uma plataforma completa com dashboards, cadastro de empresas, e importação de documentos fiscais.
+O usuário solicitou uma série de melhorias e correções críticas para o sistema de gestão fiscal. As principais demandas são:
 
-As solicitações mais recentes do usuário se concentram em uma vasta gama de melhorias e novas funcionalidades, incluindo:
-- **Novas Funcionalidades:**
-    - Criar uma nova página de Análise Horizontal / Evolução Fiscal com gráficos e digitação manual. (Implementado, mas com bugs que foram corrigidos ao longo da sessão).
-    - Implementar um sistema de permissões de usuário (Master vs. Operacional). (Parcialmente implementado).
-    - Melhorar a IA de classificação de produtos para usar palavras-chave e dados de vendas. (Implementado).
-    - Aprimorar a análise de vilões/oportunidades tributárias, incluindo PIS/COFINS e análise de volume. (Implementado).
-    - Permitir o cancelamento de NFS-e em massa via upload de um relatório, com marcação automática. (Funcionalidade confirmada).
-- **Melhorias de UI/UX:**
-    - Corrigir a exibição do gráfico na Evolução Fiscal para mostrar todas as linhas de dados (compras, vendas, impostos) e adicionar uma tabela com variações percentuais. (Implementado).
-- **Bugs e Regras de Negócio:**
-    - Corrigir bugs na Evolução Fiscal onde dados não eram exibidos ou o gráfico não atualizava. (Implementado).
-    - Corrigir o cálculo do DIFAL para Simples Nacional. (Implementado).
-    - Corrigir a importação de NFC-e (modelo 65). (Implementado).
-    - Permitir que usuários Operacional cadastrem empresas. (Implementado).
-    - Corrigir a IA da Evolução Fiscal que não estava funcionando. (Implementado).
-    - Investigar erro na importação de NF-e de entrada. (Pendente - tarefa atual).
-    - Corrigir o relatório de conclusão de importação que exibe contagem zerada (problema recorrente). (Pendente).
+1.  **[Bug Crítico] IA e Classificação:** A IA não deve **nunca** deixar produtos como pendente de classificação. Se houver dúvida, deve aplicar uma classificação padrão (ex: compra para revenda para comércio) baseada no cadastro da empresa.
+2.  **[Bug/Feature] Alertas de CFOP:** A tela de alertas de CFOPs precisa ser mais interativa. O usuário quer clicar em um alerta para ver os produtos e notas fiscais associados. Após classificar um grupo, ele deve aparecer imediatamente na listagem principal de classificação (ex: classificar CFOP 1949 como outras entradas deve criar o grupo Outras Entradas).
+3.  **[Feature] Vilões e Oportunidades:** Criar o relatório de vilões e oportunidades com análise de PIS/COFINS (além do ICMS), exibição mais compacta, agrupamento por palavra-chave/NCM e a capacidade de detalhar os produtos de cada grupo.
+4.  **[Bug] Validação de Documentos:** Na visualização de detalhes de uma nota fiscal, a validação deve focar **apenas em valores** (Total da NF, ICMS, etc.), ignorando divergências de CST. O usuário reportou um caso específico (NF ...251688...) onde o sistema aponta uma diferença de valor incorretamente.
+5.  **[Bug] Relatório de Upload e Rejeições:** O relatório de conclusão de importação continua com problemas (não aparece, dados zerados, impossibilidade de exportar). Além disso, os XMLs são rejeitados sem um motivo claro para o usuário.
+6.  **[Feature] Menus por Regime Tributário:** O menu Apuração deve ser visível apenas para empresas do Simples Nacional. Para estas, a visualização das notas não deve ter destaque de impostos (ICMS/PIS/COFINS).
+7.  **[Feature] Suporte a CT-e:** Implementar completamente a importação e processamento de CT-e (modelo 57).
 
 **User's preferred language**:
 Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-Uma aplicação full-stack (React + FastAPI + MongoDB) de gestão fiscal. Na sessão atual, o agente implementou uma grande quantidade de funcionalidades e correções, com foco principal na página Análise Horizontal (Evolução Fiscal). O agente corrigiu o endpoint do backend, a exibição dos gráficos (adicionando um eixo Y secundário para impostos), implementou a digitação manual de dados de anos anteriores com salvamento no , e adicionou cálculos de variação percentual à tabela. Além disso, corrigiu a importação de NFC-e, aprimorou as análises de IA, ajustou as permissões de usuário e corrigiu o endpoint da IA da Evolução Fiscal.
+Uma aplicação full-stack (React + FastAPI + MongoDB) de gestão fiscal. Na sessão atual, o agente implementou uma vasta quantidade de funcionalidades e correções, incluindo:
+- **Correção Crítica de Upload:** O bug Sessão de upload não encontrada foi resolvido ao migrar as sessões de upload de um dicionário em memória para uma coleção no MongoDB, garantindo persistência entre reinicializações do servidor.
+- **Melhoria na Barra de Progresso:** Foi implementado um sistema de polling como fallback para o SSE, garantindo que a barra de progresso de upload sempre seja exibida, mesmo que o streaming de eventos seja bloqueado.
+- **Melhorias de IA e UX:**
+    - A IA de classificação foi aprimorada para **nunca deixar produtos como pendente**, aplicando uma categoria padrão com base no CNAE da empresa.
+    - Na tela de cadastro de empresas, foi adicionada uma funcionalidade de IA que gera palavras-chave de produtos/insumos a partir de uma descrição em texto livre do negócio.
+    - A tabela de Classificação Inteligente foi totalmente redesenhada com colunas ordenáveis, seleção em massa e uma barra de ações em lote.
+- **Correção de Bugs:** A validação de documentos agora ignora divergências de CST e o cálculo do valor total da nota foi corrigido para incluir frete, seguro, etc., resolvendo o bug de divergência de valor incorreta.
+- **Ajustes de Layout e Permissões:** O layout geral da aplicação foi fixado (cabeçalho e menu lateral), permitindo apenas a rolagem da área de conteúdo. O menu Apuração agora é exibido apenas para empresas do Simples Nacional.
+- **Início da Implementação de CT-e:** O agente criou um parser para XML de CT-e () e atualizou a lógica de detecção de tipo de documento no backend.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava prestes a investigar um novo bug reportado pelo usuário: ao tentar importar uma NF-e de entrada, o sistema exibe o erro Sessão de upload não encontrada. O usuário forneceu uma imagem do erro.
--   **Status**: NOT STARTED
+-   **Last item agent was working**: O agente estava no meio da implementação do suporte completo para CT-e (Conhecimento de Transporte Eletrônico, modelo 57).
+-   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: backend testing agent. O agente deve iniciar investigando os logs do backend e o código do frontend que dispara o upload para o endpoint . O erro sugere um problema no início ou rastreamento da sessão de upload entre o cliente e o servidor. O uso de  para simular a requisição do frontend pode ajudar a isolar se o problema está no cliente ou no servidor.
+-   **Which testing method agent to use?**: backend testing agent. Após a conclusão, o agente de teste precisará de um arquivo XML de CT-e de exemplo para validar o fluxo de upload, parsing e armazenamento dos dados.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0): Importação de NF-e de entrada falha com erro Sessão de upload não encontrada.**
--   **Issue 2 (P1): Relatório de conclusão de importação com contagem zerada.**
+-   **Issue 1 (P1): Relatório de conclusão de importação com contagem zerada/ausente.** (recorrente)
+-   **Issue 2 (P2): Alertas de CFOP não criam grupo visualmente na tela de classificação.**
+-   **Issue 3 (P3): Dashboard principal com delay ou contagem incorreta.**
+-   **Issue 4 (P4): XMLs rejeitados sem motivo claro para o usuário.**
 
 **Issues Detail**:
--   **Issue 1: Importação de NF-e de entrada falha com erro Sessão de upload não encontrada.**
-    -   **Attempted fixes**: Nenhum ainda. O bug acabou de ser reportado.
+-   **Issue 1: Relatório de conclusão de importação com contagem zerada/ausente.**
+    -   **Attempted fixes**: O agente adicionou um loop de espera no frontend para aguardar a conclusão do processamento. No entanto, o usuário relatou o problema novamente, indicando que a causa raiz (provavelmente no backend, onde os totais são calculados/retornados) ainda não foi resolvida.
     -   **Next debug checklist**:
-        1.  Analisar a imagem  fornecida pelo usuário para obter contexto.
-        2.  Revisar o código do frontend que gerencia o upload de XML para o endpoint .
-        3.  Inspecionar a implementação do endpoint  em  para entender como as sessões de upload são tratadas.
-        4.  Verificar os logs do backend (==> /var/log/supervisor/backend.err.log <==
-  File "/usr/local/lib/python3.11/multiprocessing/process.py", line 108, in run
-    self._target(*self._args, **self._kwargs)
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/_subprocess.py", line 76, in subprocess_started
-    target(sockets=sockets)
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/server.py", line 61, in run
-    return asyncio.run(self.serve(sockets=sockets))
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/asyncio/runners.py", line 190, in run
-    return runner.run(main)
-           ^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/asyncio/runners.py", line 118, in run
-    return self._loop.run_until_complete(task)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
-    return future.result()
-           ^^^^^^^^^^^^^^^
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/server.py", line 68, in serve
-    config.load()
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/config.py", line 467, in load
-    self.loaded_app = import_from_string(self.app)
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/importer.py", line 21, in import_from_string
-    module = importlib.import_module(module_str)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-  File "<frozen importlib._bootstrap_external>", line 936, in exec_module
-  File "<frozen importlib._bootstrap_external>", line 1074, in get_code
-  File "<frozen importlib._bootstrap_external>", line 1004, in source_to_code
-  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "/app/backend/server.py", line 4141
-    is_mesma_empresa = False  # Flag para notas onde emitente = destinatário = empresa
-    ^^^^^^^^^^^^^^^^
-IndentationError: expected an indented block after 'else' statement on line 4140
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-Process SpawnProcess-3:
-Traceback (most recent call last):
-  File "/usr/local/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
-    self.run()
-  File "/usr/local/lib/python3.11/multiprocessing/process.py", line 108, in run
-    self._target(*self._args, **self._kwargs)
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/_subprocess.py", line 76, in subprocess_started
-    target(sockets=sockets)
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/server.py", line 61, in run
-    return asyncio.run(self.serve(sockets=sockets))
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/asyncio/runners.py", line 190, in run
-    return runner.run(main)
-           ^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/asyncio/runners.py", line 118, in run
-    return self._loop.run_until_complete(task)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
-    return future.result()
-           ^^^^^^^^^^^^^^^
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/server.py", line 68, in serve
-    config.load()
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/config.py", line 467, in load
-    self.loaded_app = import_from_string(self.app)
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/importer.py", line 21, in import_from_string
-    module = importlib.import_module(module_str)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-  File "<frozen importlib._bootstrap_external>", line 936, in exec_module
-  File "<frozen importlib._bootstrap_external>", line 1074, in get_code
-  File "<frozen importlib._bootstrap_external>", line 1004, in source_to_code
-  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "/app/backend/server.py", line 4178
-    results.append({
-    ^^^^^^^
-IndentationError: expected an indented block after 'if' statement on line 4176
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-Process SpawnProcess-4:
-Traceback (most recent call last):
-  File "/usr/local/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
-    self.run()
-  File "/usr/local/lib/python3.11/multiprocessing/process.py", line 108, in run
-    self._target(*self._args, **self._kwargs)
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/_subprocess.py", line 76, in subprocess_started
-    target(sockets=sockets)
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/server.py", line 61, in run
-    return asyncio.run(self.serve(sockets=sockets))
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/asyncio/runners.py", line 190, in run
-    return runner.run(main)
-           ^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/asyncio/runners.py", line 118, in run
-    return self._loop.run_until_complete(task)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
-    return future.result()
-           ^^^^^^^^^^^^^^^
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/server.py", line 68, in serve
-    config.load()
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/config.py", line 467, in load
-    self.loaded_app = import_from_string(self.app)
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/importer.py", line 21, in import_from_string
-    module = importlib.import_module(module_str)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-  File "<frozen importlib._bootstrap_external>", line 936, in exec_module
-  File "<frozen importlib._bootstrap_external>", line 1074, in get_code
-  File "<frozen importlib._bootstrap_external>", line 1004, in source_to_code
-  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "/app/backend/server.py", line 4195
-    cfops_xml_check = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
-    ^^^^^^^^^^^^^^^
-IndentationError: expected an indented block after 'if' statement on line 4189
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-Process SpawnProcess-5:
-Traceback (most recent call last):
-  File "/usr/local/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
-    self.run()
-  File "/usr/local/lib/python3.11/multiprocessing/process.py", line 108, in run
-    self._target(*self._args, **self._kwargs)
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/_subprocess.py", line 76, in subprocess_started
-    target(sockets=sockets)
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/server.py", line 61, in run
-    return asyncio.run(self.serve(sockets=sockets))
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/asyncio/runners.py", line 190, in run
-    return runner.run(main)
-           ^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/asyncio/runners.py", line 118, in run
-    return self._loop.run_until_complete(task)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
-    return future.result()
-           ^^^^^^^^^^^^^^^
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/server.py", line 68, in serve
-    config.load()
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/config.py", line 467, in load
-    self.loaded_app = import_from_string(self.app)
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/root/.venv/lib/python3.11/site-packages/uvicorn/importer.py", line 21, in import_from_string
-    module = importlib.import_module(module_str)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.11/importlib/__init__.py", line 126, in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
-  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
-  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
-  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
-  File "<frozen importlib._bootstrap_external>", line 936, in exec_module
-  File "<frozen importlib._bootstrap_external>", line 1074, in get_code
-  File "<frozen importlib._bootstrap_external>", line 1004, in source_to_code
-  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "/app/backend/server.py", line 4310
-    else:  # saida
-    ^^^^
-SyntaxError: invalid syntax
-WARNING:  WatchFiles detected changes in 'server.py'. Reloading...
-INFO:     Started server process [5513]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [5513]
-INFO:     Stopping reloader process [4193]
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [5563] using WatchFiles
-INFO:     Started server process [5565]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:server:DASHBOARD: Query = {'company_id': 'd7f30ea1-9df3-4124-a561-12984ffff64b', 'competencia': '02/2026', '$and': [{'$or': [{'cancelada': {'$exists': False}}, {'cancelada': False}]}, {'$or': [{'desconsiderada_devolucao': {'$exists': False}}, {'desconsiderada_devolucao': False}]}]}
-INFO:server:DASHBOARD: Documentos encontrados = 5
-INFO:server:DASHBOARD: NFe Entrada=0, NFe Saída=1, NFCe=0, NFSe Prestados=0, CTe=0, NFSe Tomados=0
-INFO:server:DASHBOARD: Compras Brutas=1000.0, Devoluções Compra=0, Compras Líquidas=1000.0
-INFO:server:DASHBOARD: Vendas Brutas=4000.0, Devoluções Venda=0, Vendas Líquidas=4000.0
-INFO:server:DASHBOARD: Markup=300.00%
-INFO:server:DASHBOARD: Entradas(NFe=0, CTe=0, Serv.Tomados=0) = 0
-INFO:server:DASHBOARD: Saídas(NFe=1000.0, NFCe=0, CTe=0, Serv.Prestados=0) = Faturamento 1000.0
-INFO:     Will watch for changes in these directories: ['/app/backend']
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [50] using WatchFiles
-INFO:     Started server process [86]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-
-==> /var/log/supervisor/backend.out.log <==
-INFO:     10.64.131.73:51914 - "GET /api/dashboard/stats/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=01/2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.19:45190 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.132.44:39660 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.19:45200 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.137:58470 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.128.18:35456 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.131.73:57518 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.140:57780 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.136:49116 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.135:56624 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.135:45214 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.135:55712 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.137:37642 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.137:56654 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.135:34548 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.130:55370 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.135:47824 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.136:53834 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.137:60608 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.135:49354 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.135:49542 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.136:41988 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.131.72:50958 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.131.73:37874 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.136:44480 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.131.73:37874 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.19:55038 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.9:47594 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.18:58262 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.18:58262 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.131.72:34532 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.131.72:34532 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.131.73:48596 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.132.44:60832 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.9:45352 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.18:38550 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.19:37756 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.18:38550 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.131.73:60812 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.132.44:56886 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.131.72:39862 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.132.44:56886 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.135:43178 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.135:53978 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.134:33110 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.135:43188 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.131.73:37022 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.132.44:41776 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.132.44:41776 - "GET /api/dashboard/stats/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=02/2026 HTTP/1.1" 200 OK
-INFO:     10.64.132.44:40500 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.132.44:40500 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.132.44:40500 - "GET /api/dashboard/stats/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=02/2026 HTTP/1.1" 200 OK
-INFO:     10.64.131.72:49550 - "GET /api/apuracao-movimento/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=02%2F2026 HTTP/1.1" 200 OK
-INFO:     10.64.131.73:53382 - "GET /api/apuracao-movimento/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=02%2F2026 HTTP/1.1" 200 OK
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.128.18:51660 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.19:32974 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.19:32974 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.19:32974 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.135:47338 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.136:47110 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.136:47110 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.135:36120 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.136:33090 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.134:60780 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.136:36276 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.135:52502 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.140:41898 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.130:44802 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.135:56350 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.135:50204 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.137:49926 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.137:49926 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.137:49926 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.134:46752 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.19:42122 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.19:42122 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.9:56294 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.9:56294 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.130.130:34522 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.137:47374 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.140:44360 - "GET /api/dashboard/stats/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=02/2026 HTTP/1.1" 200 OK
-INFO:     10.64.132.44:53918 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.131.72:57382 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.132.44:53918 - "GET /api/dashboard/stats/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=02/2026 HTTP/1.1" 200 OK
-INFO:     10.64.131.73:37418 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.132.44:53918 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.136:43644 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.136:53232 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.137:51110 - "GET /api/dashboard/stats/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=02/2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.136:47414 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.134:34388 - "GET /api/dashboard/stats/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=01/2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.140:36856 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.136:47414 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.136:36740 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.137:59442 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.18:59460 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.135:48934 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.130:39422 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.134:58632 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.137:49772 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.18:57020 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.18:56768 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.19:52356 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.137:42422 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.136:58626 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.19:48602 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.19:48602 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.9:44992 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.9:44992 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.135:35162 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.130:41016 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.137:39030 - "GET /api/dashboard/stats/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=02/2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.19:56790 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.9:47028 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.18:34464 - "GET /api/dashboard/stats/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=02/2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.9:47028 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.18:34464 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.134:43982 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.135:40088 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.134:43982 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.130:56344 - "GET /api/auth/users HTTP/1.1" 200 OK
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.130.136:41886 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.140:53348 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.137:33710 - "POST /api/analise-horizontal/insights/d7f30ea1-9df3-4124-a561-12984ffff64b HTTP/1.1" 200 OK
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.130.136:41238 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.140:51726 - "POST /api/analise-horizontal/insights/d7f30ea1-9df3-4124-a561-12984ffff64b HTTP/1.1" 500 Internal Server Error
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.128.140:58434 - "POST /api/auth/login HTTP/1.1" 200 OK
-
-[1;31mGive Feedback / Get Help: https://github.com/BerriAI/litellm/issues/new[0m
-LiteLLM.Info: If you need to debug this error, use `litellm._turn_on_debug()'.
-
-INFO:     10.64.130.136:59664 - "POST /api/analise-horizontal/insights/d7f30ea1-9df3-4124-a561-12984ffff64b HTTP/1.1" 200 OK
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.130.136:38446 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.135:53262 - "POST /api/analise-horizontal/insights/d7f30ea1-9df3-4124-a561-12984ffff64b HTTP/1.1" 200 OK
-INFO:     10.64.130.134:43870 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.135:51342 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.137:37200 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.136:51782 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.131.72:54662 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.131.72:54662 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.131.73:38808 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.132.44:38572 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.131.72:48532 - "POST /api/analise-horizontal/insights/d7f30ea1-9df3-4124-a561-12984ffff64b HTTP/1.1" 200 OK
-INFO:     10.64.128.9:52044 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.19:59034 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.9:52044 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.18:54986 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.9:36688 - "POST /api/analise-horizontal/insights/d7f30ea1-9df3-4124-a561-12984ffff64b HTTP/1.1" 200 OK
-INFO:     10.64.128.136:35578 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.134:41382 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.136:35578 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.137:57732 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.130.136:57258 - "POST /api/analise-horizontal/insights/d7f30ea1-9df3-4124-a561-12984ffff64b HTTP/1.1" 200 OK
-INFO:     10.64.128.140:34264 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.136:33564 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.130.137:49984 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.140:41334 - "GET /api/analise-horizontal/d7f30ea1-9df3-4124-a561-12984ffff64b?ano=2026 HTTP/1.1" 200 OK
-INFO:     10.64.128.137:38764 - "POST /api/analise-horizontal/insights/d7f30ea1-9df3-4124-a561-12984ffff64b HTTP/1.1" 200 OK
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-🔌 MongoDB conectado: mongodb://localhost:27017 / DB: test_database
-INFO:     10.64.128.136:60714 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.134:44188 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.131.73:59096 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.9:57098 - "POST /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.136:34472 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.131.73:46936 - "POST /api/xml/upload-batch HTTP/1.1" 404 Not Found
-INFO:     10.64.128.9:52008 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.130:49730 - "GET /api/documents/57fe07bd-35c0-4441-9a44-97e63113fc69?competencia=01/2026 HTTP/1.1" 405 Method Not Allowed
-INFO:     10.64.130.135:55710 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.136:47038 - "POST /api/xml/upload-batch HTTP/1.1" 404 Not Found
-INFO:     10.64.128.137:56218 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.19:49802 - "POST /api/xml/upload HTTP/1.1" 200 OK
-INFO:     10.64.130.134:41174 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.130.130:35730 - "GET /api/documents/57fe07bd-35c0-4441-9a44-97e63113fc69?competencia=01/2026&tipo=saida HTTP/1.1" 405 Method Not Allowed
-INFO:     10.64.128.136:59542 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.128.136:59542 - "GET /api/xml/documents?company_id=57fe07bd-35c0-4441-9a44-97e63113fc69&competencia=01/2026&tipo=saida HTTP/1.1" 200 OK
-INFO:     10.64.128.137:34820 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     10.64.131.72:46006 - "GET /api/xml/documents?company_id=57fe07bd-35c0-4441-9a44-97e63113fc69&competencia=01/2026&tipo=saida HTTP/1.1" 200 OK
-INFO:     10.64.128.136:33054 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.135:41700 - "GET /api/companies HTTP/1.1" 200 OK
-INFO:     10.64.128.140:34788 - "GET /api/dashboard/stats/d7f30ea1-9df3-4124-a561-12984ffff64b?competencia=02/2026 HTTP/1.1" 200 OK) no momento do erro para identificar a causa raiz.
-    -   **Why fix this issue and what will be achieved with the fix?**: A importação de notas de compra é uma funcionalidade central do sistema. A correção é crítica para o fluxo de trabalho do usuário.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on other issue**: Não. Esta é a principal prioridade.
-
--   **Issue 2: Relatório de conclusão de importação com contagem zerada.**
-    -   **Attempted fixes**: Nenhum nesta sessão. É um problema recorrente conhecido.
-    -   **Next debug checklist**:
-        1.  Analisar a função  em .
-        2.  Investigar a sincronia entre o processamento dos arquivos (que pode ocorrer em background) e a resposta enviada ao frontend. A contagem pode estar sendo retornada antes do término do processamento.
-    -   **Why fix this issue and what will be achieved with the fix?**: Fornece um feedback preciso ao usuário, aumentando a confiança na ferramenta.
-    -   **Status**: NOT STARTED
+        1.  Revisar a função  em .
+        2.  Analisar como a variável  é atualizada e finalizada, especialmente no final do processamento de todos os lotes.
+        3.  Adicionar logs detalhados para rastrear os contadores (, , ) durante um upload de múltiplos lotes.
+    -   **Why fix this issue and what will be achieved with the fix?**: É uma funcionalidade central. Sem um relatório de conclusão confiável, o usuário não tem segurança sobre o que foi importado.
+    -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: both
     -   **Blocked on other issue**: Não.
 
+-   **Issue 2: Alertas de CFOP não criam grupo visualmente na tela de classificação.**
+    -   **Attempted fixes**: O agente verificou que o frontend já chama a função para recarregar os dados () após a resolução. O problema parece estar na lógica do backend ou na forma como os dados são agrupados no frontend após a atualização.
+    -   **Next debug checklist**:
+        1.  No frontend, em , verificar o estado  antes e depois da chamada de .
+        2.  No backend, no endpoint , verificar se a  está sendo salva corretamente e se os produtos atualizados seriam corretamente agrupados pela requisição subsequente do .
+    -   **Why fix this issue and what will be achieved with the fix?**: Corrigirá um fluxo de trabalho quebrado na tela mais importante da aplicação, tornando a classificação mais rápida e intuitiva.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on other issue**: Não.
+
+-   **Issue 3: Dashboard principal com delay ou contagem incorreta.**
+    -   **Attempted fixes**: Nenhum.
+    -   **Next debug checklist**:
+        1.  Identificar os endpoints que alimentam o dashboard principal.
+        2.  Verificar se há um pipeline de agregação ou cache que pode estar desatualizado.
+        3.  Realizar uma importação e observar os logs e as queries ao banco de dados para ver como os totais do dashboard são atualizados.
+    -   **Why fix this issue and what will be achieved with the fix?**: O dashboard é o ponto de partida do usuário e deve refletir o estado atual do sistema com precisão.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on other issue**: Não.
+
+-   **Issue 4: XMLs rejeitados sem motivo claro para o usuário.**
+    -   **Attempted fixes**: O agente focou em fazer o relatório final aparecer. A exibição dos motivos específicos não foi abordada.
+    -   **Next debug checklist**:
+        1.  Revisar a estrutura de dados de  no frontend ().
+        2.  Garantir que a lista de  do backend (que contém o motivo) seja corretamente mapeada e exibida no modal de resultados.
+    -   **Why fix this issue and what will be achieved with the fix?**: Fornecer feedback claro ao usuário sobre por que um documento falhou é essencial para que ele possa corrigir o problema.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Blocked on other issue**: Não.
+
 **In progress Task List**:
--   Nenhuma.
+-   **Task 1: Finalizar implementação de CT-e (modelo 57). (P0)**
+    -   **Where to resume**: O agente já criou o parser  e atualizou a função . O próximo passo é garantir que a função  e outras funções de processamento em  chamem o  quando um CT-e for detectado, e salvem os dados corretamente no banco de dados.
+    -   **What will be achieved with this?**: O sistema será capaz de importar e processar Conhecimentos de Transporte.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on something**: Não.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P1) Notificar sobre vilões tributários na importação**: A lógica de backend () foi criada em , mas o frontend precisa ser atualizado para exibir esses alertas ao usuário após a importação de XMLs.
-    -   **(P2) Finalizar sistema de permissões (Master vs. Operacional)**: A lógica para permitir que operacionais criem empresas foi adicionada. É preciso garantir que TODOS os endpoints de listagem de dados (documentos, análises, etc.) restrinjam a visualização para que operacionais vejam apenas as empresas pelas quais são responsáveis.
-    -   **(P3) Implementar interface para transporte de saldo credor**: Os endpoints de backend já existem, mas a interface no frontend precisa ser criada para permitir que o usuário utilize essa funcionalidade.
+    -   **(P0) Criar UI para Vilões e Oportunidades**: O endpoint  foi criado. É preciso criar uma nova página ou seção no frontend para consumir esses dados e exibi-los de forma compacta, com análise de PIS/COFINS e agrupamento por NCM/palavra-chave.
+    -   **(P1) Melhorar Alertas de CFOP com Detalhamento**: Modificar o componente de Alertas de CFOP em  para incluir um botão que, ao ser clicado, exibe uma lista dos produtos e notas fiscais pertencentes àquele grupo de alerta.
+    -   **(P2) Ajustar Exibição para Simples Nacional**: Na visualização de documentos, remover o destaque visual (cores/tags) das colunas de impostos (ICMS, PIS, COFINS) para empresas do Simples Nacional, pois elas recolhem impostos de forma unificada.
 
 -   **Future Tasks:**
-    -   Implementar a importação de CT-e (modelo 57).
-    -   Permitir o upload do Certificado Digital.
     -   Refatorar o arquivo monolítico .
-    -   Adicionar o logo da empresa aos relatórios exportados.
-    -   Remover o arquivo obsoleto .
+    -   Finalizar o sistema de permissões (garantir que todos os endpoints restrinjam dados para usuários Operacional).
+    -   Permitir o upload do Certificado Digital.
+    -   Implementar interface para transporte de saldo credor.
     -   Implementar um sistema de licenças.
+    -   Remover o arquivo obsoleto .
 
 **Completed work in this session**
--   **Análise Horizontal / Evolução Fiscal**: A página foi extensivamente corrigida e aprimorada. O endpoint 404 foi corrigido; o gráfico agora exibe corretamente as linhas de compras, vendas e impostos (com eixo secundário); a digitação manual para anos anteriores foi implementada e corrigida para atualizar o gráfico em tempo real; a tabela de dados agora inclui colunas de variação mensal e anual; e a funcionalidade de Análise IA foi consertada.
--   **Importação de Documentos**: A lógica de importação foi corrigida para suportar NFC-e (modelo 65), que não possui um CNPJ de destinatário.
--   **Permissões e Administração**: Usuários com perfil operacional agora podem cadastrar novas empresas. Usuários e empresas de teste foram removidos do banco de dados a pedido.
--   **Melhorias de IA**: A análise de vilões/oportunidades foi enriquecida para incluir dados de PIS/COFINS. A IA de classificação de produtos foi aprimorada para analisar o histórico de vendas.
--   **Correções de Bugs**: Corrigido um item de menu duplicado e um problema de filtro no endpoint de detalhes do DIFAL.
+-   **Bug Crítico de Upload Corrigido**: Resolvido o erro Sessão de upload não encontrada ao migrar as sessões de upload para o MongoDB.
+-   **Barra de Progresso Corrigida**: Implementado um fallback de polling para garantir que a barra de progresso de upload sempre funcione.
+-   **IA de Classificação Aprimorada**: A IA não deixa mais produtos como pendente e usa um padrão inteligente.
+-   **Redesenho da Classificação Inteligente**: A tabela de produtos agora é moderna, com ordenação, seleção em massa e ações em lote.
+-   **Gerador de Palavras-Chave por IA**: Nova funcionalidade no cadastro de empresas para extrair palavras-chave de uma descrição do negócio.
+-   **Layout Fixo**: Todas as telas agora têm cabeçalho e menu lateral fixos, com rolagem apenas no conteúdo.
+-   **Correção de Validação de NF**: A validação de notas agora foca apenas em valores (ignorando CST) e o cálculo do valor total foi corrigido.
+-   **Visibilidade de Menus**: O menu Apuração agora só é visível para empresas do Simples Nacional.
+-   **Backend para CT-e e Vilões**: Criado o parser de XML para CT-e e o endpoint de análise de Vilões e Oportunidades.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Relatório de conclusão de importação com contagem zerada.**
-    -   **Debug checklist**: Analisar a sincronia entre o processamento em background na função  e a resposta enviada ao frontend.
-    -   **Why to solve this issue and what will be achieved with this?**: Para fornecer um feedback preciso ao usuário sobre o resultado da importação dos documentos.
+    -   **Debug checklist**: Analisar a lógica de finalização e contagem na função  em .
+    -   **Why to solve this issue and what will be achieved with this?**: Fornece feedback essencial e confiável ao usuário sobre o resultado da importação.
     -   **Should Test frontend/backend/both after fix**: both
     -   **Is recurring issue?**: Y
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Relatório de conclusão de importação com contagem zerada.
--   **Recurrence count**: 4
--   **Status**: NOT STARTED
+-   **Recurrence count**: 5
+-   **Status**: IN PROGRESS
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend**: React, , Recharts para gráficos, .
--   **Backend**: FastAPI, MongoDB (com ), Pydantic.
--   **AI**: Biblioteca  para chamadas a modelos de LLM (Gemini), usada em análises e classificações.
+-   **Persistência de Sessão**: Migração de estado em memória (dicionário Python) para uma coleção MongoDB para lidar com reinicializações de servidor.
+-   **SSE com Fallback de Polling**: Estratégia híbrida no frontend para garantir a exibição de progresso em tempo real, contornando possíveis problemas de buffering de proxy com Server-Sent Events.
+-   **React**: Uso intensivo de hooks (, , ) e renderização condicional para criar interfaces dinâmicas e reativas.
+-   **FastAPI**: Uso de  para injeção de dependência (autenticação) e  para processamento assíncrono.
+-   **LLM Prompting**: Criação de prompts detalhados para a IA, instruindo-a a se comportar de maneira específica (ex: nunca retornar pendente, extrair keywords em formato JSON).
 
 **key DB schema**
--   **users**:  (valores: master, operacional, admin)
--   **companies**: 
--   **xml_documents**: armazena dados de documentos fiscais.
+-   **upload_sessions**:  (Nova coleção)
+-   **users**: , 
+-   **companies**: , 
+-   **xml_documents**: , onde cada produto agora possui o campo .
 
 **changes in tech stack**
--   Nenhuma mudança na stack principal.
+- Nenhuma.
 
 **All files of reference**
--   : Arquivo central do backend, modificado para corrigir a importação de NFC-e, a IA da Evolução Fiscal e as permissões de usuário.
--   : Arquivo central do frontend para a funcionalidade de Evolução Fiscal, modificado para corrigir a exibição de dados, gráficos e implementar a digitação manual.
--   : Modificado para adicionar controles de promoção/remoção de usuários.
--   : Atualizado com o progresso das tarefas.
+-   : Modificado extensivamente para corrigir bugs, adicionar novos endpoints (polling, keywords, vilões), implementar o parser de CT-e e a lógica de classificação padrão.
+-   : Passou por uma grande refatoração visual e funcional.
+-   : Modificado para implementar o fallback de polling e a lógica de espera pelo relatório de conclusão.
+-   : Modificado para adicionar a nova funcionalidade de geração de keywords por IA.
+-   : Modificado para implementar o layout fixo.
+-   : Modificado para corrigir a lógica de validação de valores.
+-   : Modificado para suportar o layout de conteúdo com rolagem.
 
 **Areas that need refactoring**:
--   O arquivo  é um monólito com mais de 21.000 linhas e precisa urgentemente de refatoração para ser dividido em módulos (rotas, serviços, modelos), conforme já planejado como uma tarefa futura.
+-   O arquivo  continua sendo um grande monólito e sua refatoração é uma tarefa futura de alta prioridade para a manutenibilidade do projeto.
 
 **key api endpoints**
--   : Endpoint para upload de documentos XML. Atualmente apresenta o bug Sessão de upload não encontrada.
--   : Busca dados para a página de Evolução Fiscal.
--   : Gera a análise de IA para a Evolução Fiscal.
--   : Lista empresas, com lógica de filtro para usuários operacionais.
--   : Promove o papel de um usuário.
+-   : Inicia uma sessão de upload, agora salva no MongoDB.
+-   : **(Novo)** Endpoint de polling para o frontend obter o progresso do upload.
+-   : **(Novo)** Gera palavras-chave a partir de uma descrição de negócio usando IA.
+-   : **(Novo)** Retorna uma análise de otimizações fiscais, incluindo PIS/COFINS.
+-   : Resolve um grupo de alertas de CFOP, classificando os produtos associados.
 
 **Critical Info for New Agent**
--   **A prioridade máxima é corrigir o erro Sessão de upload não encontrada na importação de NF-e de entrada.** Este é um bug crítico que impede uma funcionalidade central do sistema.
--   O arquivo  é extremamente grande. Navegue com cuidado usando  e visualização de seções. A refatoração é um objetivo de longo prazo.
--   A biblioteca  tem uma sintaxe específica para chamadas de LLM que foi corrigida nesta sessão: . Lembre-se deste padrão.
--   O bug recorrente do relatório de importação com contagem zerada permanece sem solução e é uma fonte de frustração para o usuário. Se houver oportunidade, investigue a fundo o fluxo assíncrono do processamento de uploads.
+-   **A prioridade máxima é seguir a ordem de tarefas definida pelo usuário em sua última mensagem.** Comece finalizando a implementação do CT-e, depois corrija o relatório de upload e os outros bugs/features listados.
+-   O problema do **relatório de upload com contagem zerada é recorrente e uma grande fonte de frustração para o usuário.** A correção do frontend (espera ativa) foi um passo, mas a causa raiz provavelmente ainda reside no backend. A investigação deve ser profunda.
+-   A implementação do CT-e foi iniciada, mas não concluída. O parser foi criado, mas precisa ser integrado em todos os fluxos de processamento de documentos em .
+-   Para o novo relatório de Vilões e Oportunidades, o backend está pronto, mas o frontend precisa ser criado do zero.
 
 **documents and test reports created in this job**
 -   
--   
--   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Usuário:** Reportou o erro Sessão de upload não encontrada na importação de NF-e de entrada, anexando uma imagem. (Status: **Pendente - Tarefa Atual**)
-2.  **Usuário:** Especificou que as linhas de Vendas e Impostos não estavam aparecendo no gráfico da Evolução Fiscal e pediu uma análise de variação percentual. (Status: **Resolvido**)
-3.  **Usuário:** Reportou que o gráfico da Evolução Fiscal não estava atualizando com os dados digitados manualmente. (Status: **Resolvido**)
-4.  **Usuário:** Gostou da sugestão de notificar sobre vilões e pediu para investigar por que a Evolução Fiscal não estava puxando vendas/impostos e onde digitar dados de períodos anteriores. (Status: **Resolvido**)
-5.  **Usuário:** Solicitou melhorias na IA de classificação e na análise de vilões/oportunidades, pediu para criar o sistema de permissões e confirmar a conversão de CFOP. (Status: **Resolvido**)
-6.  **Usuário:** Pediu para permitir que usuários operacionais cadastrem empresas, deletar dados de teste e corrigir a IA da Evolução Fiscal que não estava funcionando. (Status: **Resolvido**)
-7.  **Usuário:** Reportou que a importação de NFC-e não estava funcionando e forneceu um arquivo XML de exemplo. (Status: **Resolvido**)
-8.  **Usuário:** Pediu para seguir com as tarefas com atenção ao DIFAL e deu mais detalhes sobre a lógica de cancelamento de NFS-e e a digitação na Evolução Fiscal. (Status: **Resolvido**)
+1.  **Usuário (Msg 431):** Enviou uma lista massiva e detalhada de bugs críticos e novas funcionalidades, com imagens. Prioridades incluem: eliminar pendente da IA, melhorar alertas de CFOP, criar relatório de vilões, corrigir validação de NF, corrigir menu Apuração e implementar CT-e. **(Status: Em progresso)**
+2.  **Usuário (Msg 412):** Pediu para congelar todas as telas do sistema, deixando apenas a área de conteúdo rolável. **(Status: Concluído)**
+3.  **Usuário (Msg 266):** Reportou múltiplos problemas: relatório de upload não aparece, XMLs rejeitados sem motivo, e solicitou um grande redesenho da tela de Classificação Inteligente e uma nova funcionalidade de IA para cadastro de empresas. **(Status: Concluído/Parcialmente Concluído)**
+4.  **Usuário (Msg 195):** Reportou vários problemas na Classificação Inteligente: necessidade de barra de progresso para IA, bug na conversão de CFOP de ST, produtos ainda pendentes e grupos não sendo criados. **(Status: Concluído)**
+5.  **Usuário (Msg 120):** Reportou que a barra de progresso do upload estava congelada. **(Status: Concluído)**
+6.  **Usuário (Msg 104):** Pediu uma melhoria de UX no campo de competência para autocompletar o ano ao pressionar Enter. **(Status: Concluído)**
 
 **Project Health Check:**
--   **Broken**: A funcionalidade de importação de NF-e de entrada está quebrada, apresentando o erro Sessão de upload não encontrada.
+-   **Broken**: A funcionalidade de relatório de upload continua não confiável. O fluxo de classificação de alertas de CFOP está quebrado do ponto de vista do usuário. A importação de CT-e está incompleta.
 -   **Mocked**: N/A
 
 **3rd Party Integrations**
--   **Emergent LLM Key**: Utilizado para as funcionalidades de IA (análise de evolução fiscal, classificação de produtos, análise de vilões/oportunidades) através da biblioteca  com modelos Gemini.
+-   **Emergent LLM Key**: Usado para todas as funcionalidades de IA (classificação de produtos, análise de vilões, geração de keywords) através da biblioteca  com modelos Gemini.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES
+-   **Testing agent used after significant changes**: YES (Para o bug da sessão de upload).
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: Sim, testes ============================= test session starts ==============================
-platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
-rootdir: /app
-plugins: anyio-4.12.1
-collected 393 items / 1 error
-
-==================================== ERRORS ====================================
-__________________ ERROR collecting test_ai_classification.py __________________
-import file mismatch:
-imported module 'test_ai_classification' has this __file__ attribute:
-  /app/backend/tests/test_ai_classification.py
-which is not the same as the test file we want to collect:
-  /app/test_ai_classification.py
-HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules
-=============================== warnings summary ===============================
-../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
-  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
-    import multipart
-
-../root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
-  /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
-    from crypt import crypt as _crypt
-
-backend/server.py:21171
-  /app/backend/server.py:21171: DeprecationWarning: 
-          on_event is deprecated, use lifespan event handlers instead.
-  
-          Read more about it in the
-          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-          
-    @app.on_event("shutdown")
-
-../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
-  /root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
-          on_event is deprecated, use lifespan event handlers instead.
-  
-          Read more about it in the
-          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-          
-    return self.router.on_event(event_type)
-
--- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=========================== short test summary info ============================
-ERROR test_ai_classification.py
-!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-========================= 4 warnings, 1 error in 4.41s ========================= foram gerados pelo subagente de teste em .
--   **Known regressions**: O relatório de conclusão de importação que mostra uma contagem zerada é uma regressão conhecida e recorrente.
+-   **Test files created**: Não nesta sessão, mas o agente usou testes  e um XML de teste para validar o fluxo de upload.
+-   **Known regressions**: O relatório de conclusão de importação com contagem zerada.
 
 **Credentials to test flow:**
 -   **Email**: 
 -   **Senha**: 
 
 **What agent forgot to execute**
--   O agente não implementou a exibição no frontend dos alertas de NCMs vilões durante a importação, apesar de ter criado a lógica no backend.
--   O agente não resolveu o bug recorrente do relatório de importação com contagem zerada, que foi mencionado no handover anterior e persiste.</analysis>
+- O agente não implementou a parte do frontend do relatório de Vilões e Oportunidades.
+- O agente não corrigiu o bug visual onde os grupos de CFOP não aparecem na lista após a classificação.
+- O agente não investigou o bug de delay/contagem incorreta no dashboard principal.
+- O agente não implementou a melhoria na exibição de XMLs rejeitados para mostrar o motivo do erro de forma clara.</analysis>
