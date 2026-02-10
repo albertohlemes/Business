@@ -1482,6 +1482,135 @@ const Companies = ({ user, onLogout }) => {
                   </p>
                 </div>
 
+                {/* Saldo Credor Inicial - para Lucro Presumido e Lucro Real */}
+                {(formData.regime_tributario === 'lucro_presumido' || formData.regime_tributario === 'lucro_real') && (
+                  <div className="pt-4 border-t border-[#2A2A2A]">
+                    <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20 mb-4">
+                      <input
+                        type="checkbox"
+                        checked={formData.possui_saldo_credor || false}
+                        onChange={(e) => setFormData({ ...formData, possui_saldo_credor: e.target.checked })}
+                        className="mt-1 w-4 h-4 text-blue-500 bg-[#141414] border-[#2A2A2A] rounded focus:ring-blue-500 focus:ring-2"
+                      />
+                      <div>
+                        <span className="text-white font-medium">Possui Saldo Credor Inicial?</span>
+                        <p className="text-xs text-[#A1A1AA] mt-0.5">
+                          Marque se a empresa possui saldo credor de períodos anteriores para ser utilizado na primeira apuração.
+                        </p>
+                      </div>
+                    </label>
+                    
+                    {formData.possui_saldo_credor && (
+                      <div className="bg-[#0C0C0C] rounded-lg p-4 space-y-4 border border-blue-500/30">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs text-[#A1A1AA] mb-2">Competência Inicial (MM/AAAA)</label>
+                            <input
+                              type="text"
+                              value={formData.competencia_saldo_inicial || ''}
+                              onChange={(e) => setFormData({ ...formData, competencia_saldo_inicial: e.target.value })}
+                              placeholder="01/2026"
+                              className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                            <p className="text-xs text-[#666] mt-1">Primeira competência a ser apurada no sistema</p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-xs text-[#A1A1AA] mb-2">Saldo Credor ICMS (R$)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.saldo_credor_icms || 0}
+                              onChange={(e) => setFormData({ ...formData, saldo_credor_icms: parseFloat(e.target.value) || 0 })}
+                              className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-[#A1A1AA] mb-2">Saldo Credor PIS (R$)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.saldo_credor_pis || 0}
+                              onChange={(e) => setFormData({ ...formData, saldo_credor_pis: parseFloat(e.target.value) || 0 })}
+                              className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-[#A1A1AA] mb-2">Saldo Credor COFINS (R$)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.saldo_credor_cofins || 0}
+                              onChange={(e) => setFormData({ ...formData, saldo_credor_cofins: parseFloat(e.target.value) || 0 })}
+                              className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-xs text-[#666]">
+                          * Os saldos serão utilizados na primeira apuração e, se houver saldo remanescente, será automaticamente transportado para o mês seguinte.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Transportadora - Atividades Especiais */}
+                <div className="pt-4 border-t border-[#2A2A2A]">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Truck className="w-4 h-4 text-cyan-400" />
+                    <span className="text-sm font-medium text-white">Atividades Especiais</span>
+                  </div>
+                  
+                  <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all bg-cyan-500/10 border-cyan-500/30 hover:bg-cyan-500/20 mb-4">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_transportadora || false}
+                      onChange={(e) => setFormData({ ...formData, is_transportadora: e.target.checked })}
+                      className="mt-1 w-4 h-4 text-cyan-500 bg-[#141414] border-[#2A2A2A] rounded focus:ring-cyan-500 focus:ring-2"
+                    />
+                    <div>
+                      <span className="text-white font-medium">É Transportadora?</span>
+                      <p className="text-xs text-[#A1A1AA] mt-0.5">
+                        Habilita importação de CT-e (modelo 57) e cálculo de crédito presumido de ICMS conforme RICMS/SP.
+                      </p>
+                    </div>
+                  </label>
+                  
+                  {formData.is_transportadora && (
+                    <div className="bg-[#0C0C0C] rounded-lg p-4 space-y-4 border border-cyan-500/30">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs text-[#A1A1AA] mb-2">Tipo de Transporte</label>
+                          <select
+                            value={formData.tipo_transporte || 'carga'}
+                            onChange={(e) => setFormData({ ...formData, tipo_transporte: e.target.value })}
+                            className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                          >
+                            <option value="carga">Transporte de Carga</option>
+                            <option value="passageiros">Transporte de Passageiros</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-[#A1A1AA] mb-2">Crédito Presumido ICMS (%)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={formData.credito_presumido_icms_percent || 20}
+                            onChange={(e) => setFormData({ ...formData, credito_presumido_icms_percent: parseFloat(e.target.value) || 20 })}
+                            className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                          />
+                          <p className="text-xs text-[#666] mt-1">Padrão RICMS/SP: 20% sobre o débito</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-[#A1A1AA]">
+                        * O crédito presumido de ICMS será calculado automaticamente sobre o débito do ICMS da prestação de serviço de transporte.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Responsáveis */}
                 {allUsers.length > 0 && (
                   <div>
