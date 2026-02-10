@@ -184,6 +184,8 @@ class Company(BaseModel):
     classificacao_inteligente: Optional[str] = None
     # Responsáveis pela empresa
     responsavel_ids: List[str] = []
+    # Usuário que criou a empresa
+    created_by: Optional[str] = None  # ID do usuário que criou esta empresa
     # Certificado Digital
     certificado_digital_arquivo: Optional[str] = None  # Nome/path do arquivo .pfx
     certificado_digital_senha: Optional[str] = None  # Senha do certificado
