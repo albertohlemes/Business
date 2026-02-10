@@ -19081,11 +19081,15 @@ async def detalhamento_difal(company_id: str, competencia: str, current_user: Us
     uf_empresa = company.get('uf', 'SP').upper()
     
     # Buscar documentos
+    # O campo pode estar como 'emitente_uf' ou 'uf_emitente' dependendo da versão da importação
     filtro = {
         "company_id": company_id,
         "tipo": "entrada",
         "competencia": competencia,
-        "uf_emitente": {"$ne": uf_empresa, "$exists": True, "$ne": ""},
+        "$or": [
+            {"emitente_uf": {"$ne": uf_empresa, "$exists": True, "$nin": ["", None]}},
+            {"uf_emitente": {"$ne": uf_empresa, "$exists": True, "$nin": ["", None]}}
+        ],
         **get_filtro_notas_ativas()
     }
     
