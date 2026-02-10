@@ -4919,12 +4919,23 @@ async def stream_upload_progress(upload_id: str):
     
     async def event_generator():
         last_progress = -1
+        retry_count = 0
+        max_retries = 10  # Aguardar até 3 segundos para a sessão aparecer
+        
         while True:
-            if upload_id not in upload_progress_store:
-                yield f"data: {json.dumps({'error': 'Upload não encontrado'})}\n\n"
-                break
+            # Usar a função que busca em memória e MongoDB
+            progress = await get_upload_session(upload_id)
             
-            progress = upload_progress_store[upload_id]
+            if progress is None:
+                retry_count += 1
+                if retry_count <= max_retries:
+                    # Aguardar um pouco e tentar novamente (race condition com upload-init)
+                    await asyncio.sleep(0.3)
+                    continue
+                else:
+                    yield f"data: {json.dumps({'error': 'Upload não encontrado'})}\n\n"
+                    break
+            
             current_progress = progress.get("progress_percent", 0)
             
             # Enviar atualização apenas se houver mudança
@@ -4944,8 +4955,7 @@ async def stream_upload_progress(upload_id: str):
                     yield f"data: {json.dumps(event_data)}\n\n"
                     # Limpar dados após enviar resultados
                     await asyncio.sleep(1)
-                    if upload_id in upload_progress_store:
-                        del upload_progress_store[upload_id]
+                    await delete_upload_session(upload_id)
                     break
                 
                 yield f"data: {json.dumps(event_data)}\n\n"
