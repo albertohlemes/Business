@@ -1772,6 +1772,112 @@ const Companies = ({ user, onLogout }) => {
                     <span className="text-sm font-medium text-white">Classificação de Produtos (para IA)</span>
                   </div>
                   
+                  {/* NOVO: Descrição do Negócio com IA */}
+                  <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-lg">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="w-4 h-4 text-purple-400" />
+                      <span className="text-sm font-medium text-white">Gerador de Palavras-Chave com IA</span>
+                    </div>
+                    <p className="text-xs text-[#A1A1AA] mb-3">
+                      Descreva o negócio da empresa em linguagem natural e a IA irá sugerir palavras-chave para classificação automática de produtos.
+                    </p>
+                    <textarea
+                      value={descricaoNegocio}
+                      onChange={(e) => setDescricaoNegocio(e.target.value)}
+                      placeholder="Ex: Loja de materiais de construção que vende cimento, areia, tijolos, ferramentas e materiais elétricos. Também faz entregas e presta serviços de pequenos reparos..."
+                      className="w-full px-4 py-3 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/30 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 min-h-[80px] resize-none"
+                      rows={3}
+                    />
+                    <div className="flex justify-end mt-3">
+                      <button
+                        type="button"
+                        onClick={gerarKeywordsComIA}
+                        disabled={gerandoKeywords || !descricaoNegocio.trim()}
+                        className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {gerandoKeywords ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Analisando...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4" />
+                            Gerar Palavras-Chave
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    
+                    {/* Exibir sugestões da IA */}
+                    {keywordsSugeridas && (
+                      <div className="mt-4 p-4 bg-[#0C0C0C] border border-green-500/30 rounded-lg">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-medium text-green-400">✓ Sugestões da IA</span>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setKeywordsSugeridas(null)}
+                              className="px-3 py-1 text-xs text-[#A1A1AA] hover:text-white border border-[#2A2A2A] rounded"
+                            >
+                              Descartar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={aplicarKeywordsSugeridas}
+                              className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                            >
+                              Aplicar Todas
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-3 text-sm">
+                          {keywordsSugeridas.produtos_comercializados?.length > 0 && (
+                            <div>
+                              <span className="text-blue-400 text-xs">Produtos para Revenda:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {keywordsSugeridas.produtos_comercializados.map((item, idx) => (
+                                  <span key={idx} className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs rounded">{item}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {keywordsSugeridas.insumos_producao?.length > 0 && (
+                            <div>
+                              <span className="text-green-400 text-xs">Insumos de Produção:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {keywordsSugeridas.insumos_producao.map((item, idx) => (
+                                  <span key={idx} className="px-2 py-0.5 bg-green-500/20 text-green-300 text-xs rounded">{item}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {keywordsSugeridas.produtos_despesa?.length > 0 && (
+                            <div>
+                              <span className="text-red-400 text-xs">Uso e Consumo (Despesa):</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {keywordsSugeridas.produtos_despesa.map((item, idx) => (
+                                  <span key={idx} className="px-2 py-0.5 bg-red-500/20 text-red-300 text-xs rounded">{item}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {keywordsSugeridas.produtos_aplicacao_servico?.length > 0 && (
+                            <div>
+                              <span className="text-purple-400 text-xs">Aplicação em Serviços:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {keywordsSugeridas.produtos_aplicacao_servico.map((item, idx) => (
+                                  <span key={idx} className="px-2 py-0.5 bg-purple-500/20 text-purple-300 text-xs rounded">{item}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
                   {/* Produtos Comercializados - NÃO mostrar para empresas SOMENTE de serviços */}
                   {formData.tipo_atividade !== 'servicos' && (
                     <div className="mb-4">
