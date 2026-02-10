@@ -143,6 +143,7 @@ const Layout = ({ user, onLogout, children }) => {
     
     // === ANÁLISES ===
     nav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
+    nav.push({ name: 'Evolução Fiscal', href: '/analise-horizontal', icon: TrendingUp, testId: 'nav-analise-horizontal' });
     nav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
     
     // === EXPORTAÇÕES (sempre no final) ===
