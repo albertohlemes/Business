@@ -18142,9 +18142,7 @@ async def upload_xml_validated(
             elif xml_type == 'nfce':
                 parsed_data = parse_xml_nfce(xml_str)
             elif xml_type == 'cte':
-                # Parser de CT-e (simplificado - usar parser existente ou adaptar)
-                parsed_data = parse_xml_nfe(xml_str)  # Adaptar para CT-e se necessário
-                parsed_data['modelo'] = '57'
+                parsed_data = parse_xml_cte(xml_str)
             else:
                 parsed_data = parse_xml_nfe(xml_str)
             
