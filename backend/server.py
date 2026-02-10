@@ -557,7 +557,9 @@ def is_ncm_monofasico(ncm: str) -> bool:
     """
     Verifica se NCM é de produto monofásico (tributação concentrada).
     Monofásicos são produtos onde PIS/COFINS é recolhido na fonte (fabricante/importador).
-    Inclui: Combustíveis, medicamentos, cosméticos, bebidas frias, veículos, etc.
+    Inclui: Combustíveis, medicamentos, cosméticos, bebidas frias NÃO ALCOÓLICAS, veículos, etc.
+    
+    IMPORTANTE: Bebidas alcoólicas (2204-2208) NÃO são monofásicas - são tributadas normalmente.
     """
     if not ncm:
         return False
@@ -566,6 +568,29 @@ def is_ncm_monofasico(ncm: str) -> bool:
     # Verificar prefixo de 4 dígitos nos monofásicos
     if len(ncm_str) >= 4 and ncm_str[:4] in NCMS_MONOFASICOS:
         return True
+    
+    return False
+
+
+def is_ncm_bebida_alcoolica(ncm: str) -> bool:
+    """
+    Verifica se NCM é de bebida alcoólica (TRIBUTADA normalmente).
+    Inclui: Vinhos (2204), Vermutes (2205), Fermentados (2206), Álcool (2207), Destilados (2208)
+    
+    ESTAS BEBIDAS NÃO SÃO MONOFÁSICAS - PIS/COFINS tributado normalmente:
+    - Lucro Real: PIS 1.65% / COFINS 7.60%
+    - Lucro Presumido: PIS 0.65% / COFINS 3.00%
+    """
+    if not ncm:
+        return False
+    ncm_str = str(ncm).replace('.', '').strip()
+    
+    # Verificar prefixo de 4 dígitos
+    if len(ncm_str) >= 4:
+        prefixo = ncm_str[:4]
+        # Bebidas alcoólicas: 2204, 2205, 2206, 2207, 2208
+        if prefixo in ['2204', '2205', '2206', '2207', '2208']:
+            return True
     
     return False
 
