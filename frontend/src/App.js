@@ -172,6 +172,16 @@ function App() {
             <Route path="/divergencias-saida" element={<Navigate to="/analise-pis-cofins" />} />
             <Route path="/apuracao" element={<Navigate to="/apuracao-mensal" />} />
             <Route path="/apuracao-pis-cofins" element={<Navigate to="/apuracao-mensal" />} />
+            
+            {/* Novas rotas */}
+            <Route
+              path="/impostos-retidos"
+              element={user ? <ImpostosRetidos user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/relatorio-unificado"
+              element={user ? <RelatorioUnificado user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
           </Routes>
           </UploadProvider>
         </AppProvider>
