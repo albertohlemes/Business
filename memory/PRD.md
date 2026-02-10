@@ -335,6 +335,8 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [x] ~~Visualização detalhada de NF~~ ✅
 - [x] ~~Classificação IA atualizando CFOP~~ ✅
 - [x] ~~Barra de progresso não bloqueante~~ ✅
+- [x] ~~CST PIS/COFINS nas divergências~~ ✅ (CST 01 saída, CST 50 entrada)
+- [x] ~~NCMs bebidas alcoólicas tributadas~~ ✅
 
 ### P1 - Alta Prioridade (MAIORIA CONCLUÍDA)
 - [x] ~~Modal de edição de produtos clicável~~ ✅
@@ -347,6 +349,11 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [x] ~~Relatório exportação por agrupamento de produtos~~ ✅
 - [x] ~~Botão Memória IA na Classificação~~ ✅
 - [x] ~~Classificação baseada no regime da empresa~~ ✅
+- [x] ~~Importação de NFS-e via IA~~ ✅ (Serviços Tomados e Prestados)
+- [x] ~~Menu dinâmico por regime tributário~~ ✅
+- [x] ~~Card Outros Documentos nas Entradas~~ ✅
+- [ ] Sistema de permissões de usuário (Master vs. Operacional) - **EM ANDAMENTO**
+- [ ] Lógica de transporte de saldo credor (UI)
 - [ ] Modal de seleção de empresa (bug de usabilidade - afeta apenas testes automatizados)
 
 ### P2 - Média Prioridade (MAIORIA CONCLUÍDA)
@@ -356,6 +363,8 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [x] ~~Ordenação em Companies~~ ✅
 - [x] ~~Filtrar modelos fiscais por atividade da empresa~~ ✅
 - [x] ~~Classificação padrão "compra para revenda" quando IA falhar~~ ✅
+- [ ] DIFAL para Simples Nacional (BLOQUEADO - precisa de dados de teste)
+- [ ] Importação de CT-e para transportadoras
 - [ ] Ordenação nas páginas restantes (ISS, DIFAL, SimplesNacionalDashboard)
 - [ ] Logo nos relatórios exportados
 - [ ] Upload de Certificado Digital (.pfx)
