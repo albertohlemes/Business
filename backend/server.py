@@ -21077,19 +21077,27 @@ async def gerar_insights_analise_horizontal(
         
         # Chamar IA
         from emergentintegrations.llm.chat import LlmChat, UserMessage
+        import uuid
+        
         llm_key = os.environ.get('EMERGENT_LLM_KEY', '')
         
         if not llm_key:
             return {"analise": "Chave LLM não configurada. Configure EMERGENT_LLM_KEY para habilitar análises com IA."}
         
-        chat = LlmChat(
-            api_key=llm_key,
-            model="gemini-2.0-flash"
-        )
-        
-        response = await chat.send_async(user_message=UserMessage(text=contexto))
-        
-        return {"analise": response}
+        try:
+            session_id = str(uuid.uuid4())
+            chat = LlmChat(
+                api_key=llm_key,
+                session_id=session_id,
+                system_message="Você é um consultor fiscal especializado em análise de evolução tributária de empresas brasileiras. Responda sempre em português."
+            ).with_model("google", "gemini-2.0-flash")
+            
+            response = chat.send_message(user_message=UserMessage(text=contexto))
+            
+            return {"analise": response}
+        except Exception as llm_error:
+            logger.error(f"Erro na chamada LLM: {str(llm_error)}")
+            return {"analise": f"Erro ao gerar análise com IA: {str(llm_error)}"}
         
     except HTTPException:
         raise
