@@ -6174,7 +6174,8 @@ async def get_dashboard_stats(
     total_nfe_entrada = sum(float(d.get('valor_total', 0) or 0) for d in nfe_entrada)
     total_cte_entrada = sum(float(d.get('valor_total', 0) or 0) for d in cte_entrada)
     total_nfse_tomados = sum(float(d.get('valor_total', 0) or 0) for d in nfse_tomados)
-    total_entradas = total_nfe_entrada + total_cte_entrada + total_nfse_tomados
+    total_outros_entrada = sum(float(d.get('valor_total', 0) or 0) for d in outros_entrada)
+    total_entradas = total_nfe_entrada + total_cte_entrada + total_nfse_tomados + total_outros_entrada
     
     # === SAÍDAS ===
     total_nfe_saida = sum(float(d.get('valor_total', 0) or 0) for d in nfe_saida)
