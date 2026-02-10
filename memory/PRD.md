@@ -77,6 +77,43 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-10 (Sessão 8 - Melhorias de Menu e CST)
+
+**Menu Lateral Reorganizado:**
+- ✅ **Menu sem títulos de seção** - Itens exibidos diretamente (Dashboard, Empresas, Documentos, etc.)
+- ✅ **Menu dinâmico por regime tributário:**
+  - Simples Nacional: Apuração, Simples Nacional, DIFAL, Impostos Retidos, Indicadores, RET
+  - Lucro Presumido/Real: Apuração, PIS/COFINS, IPI, ICMS, ICMS ST, ISS, Impostos Retidos, Indicadores, RET
+- ✅ **Impostos Retidos** movido para seção de Apurações
+
+**Dashboard Melhorado:**
+- ✅ **Card "Outros Docs"** nas entradas - Exibe documentos de Energia, Internet, etc.
+- ✅ **Campo `outros_entrada`** adicionado nas quantidades e valores do dashboard
+- ✅ **Total de entradas** agora inclui "Outros Documentos"
+
+**Importação de NFS-e via IA:**
+- ✅ **Serviços Tomados e Prestados** - Aceita XML ou PDF/Imagem
+- ✅ **Botão "Importar XML ou PDF"** - Exibido para tipos com importType: 'both'
+- ✅ **Processamento via IA** - Extrai dados de PDFs/imagens de NFS-e automaticamente
+
+**NCMs de Bebidas Alcoólicas (Completo):**
+- ✅ **Posição 2204** - Vinhos de uvas frescas (espumantes, <= 2L, > 2L)
+- ✅ **Posição 2205** - Vermutes e vinhos aromatizados
+- ✅ **Posição 2206** - Sidra, saquê, cooler, catuaba (fermentados)
+- ✅ **Posição 2207** - Álcool etílico
+- ✅ **Posição 2208** - Destilados (whisky, vodka, rum, cachaça, gin, licores, tequila)
+
+**Análise de Divergências CST PIS/COFINS:**
+- ✅ **Endpoint `/api/relatorio-divergencias-saida`** - Sugere CST 01 para saídas tributadas com CFOP de débito
+- ✅ **Endpoint `/api/relatorio-divergencias-entrada`** (NOVO) - Sugere CST 50 para entradas com direito a crédito (Lucro Real)
+- ✅ **Lógica de bebidas alcoólicas** - Não são mais classificadas como monofásicas (erro corrigido)
+- ✅ **CSTs corretos:**
+  - Saídas tributadas: CST 01 (débito)
+  - Entradas com crédito (Lucro Real): CST 50
+  - Monofásicos: CST 04
+  - Alíquota zero saída: CST 06
+  - Alíquota zero entrada: CST 73
+
 ### 2026-02-10 (Sessão 7 - Cancelamento NFS-e e Melhorias)
 
 **Fluxo de Cancelamento de NFS-e (NOVO):**
