@@ -82,8 +82,10 @@ api_router = APIRouter(prefix="/api")
 
 tasks_store = {}
 class UserRole:
-    ADMIN = "admin"
-    CLIENT = "client"
+    ADMIN = "admin"           # Super administrador (acesso total)
+    MASTER = "master"         # Usuário master (vê todas as empresas, pode atribuir responsáveis)
+    OPERACIONAL = "operacional"  # Usuário operacional (só vê empresas que cadastrou)
+    CLIENT = "client"         # Cliente legado (compatibilidade)
 
 class User(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -91,19 +93,25 @@ class User(BaseModel):
     email: str
     name: str
     role: str
-    company_ids: List[str] = []
+    company_ids: List[str] = []        # CNPJs das empresas que o usuário tem acesso
+    created_by: Optional[str] = None   # ID do usuário que criou este usuário
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class UserCreate(BaseModel):
     email: str
     password: str
     name: str
-    role: str = UserRole.CLIENT
+    role: str = UserRole.OPERACIONAL   # Novos usuários são operacionais por padrão
     company_ids: List[str] = []
 
 class UserLogin(BaseModel):
     email: str
     password: str
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
+    company_ids: Optional[List[str]] = None
 
 class Token(BaseModel):
     access_token: str
