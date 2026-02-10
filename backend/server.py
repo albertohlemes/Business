@@ -31,7 +31,7 @@ import json
 from sieg_service import count_xmls_sieg, download_xmls_sieg, sync_from_sieg
 
 # Document AI Service
-from services.document_ai import validate_xml_type, extract_nfse_from_file, extract_outros_docs_from_file, get_mime_type
+from services.document_ai import validate_xml_type, extract_nfse_from_file, extract_outros_docs_from_file, extract_fatura_recibo_from_file, get_mime_type
 
 # PIS/COFINS Calculator Service
 from services.pis_cofins_calculator import (
