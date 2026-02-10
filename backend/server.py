@@ -10356,6 +10356,9 @@ CATEGORIA_NOMES = {
     'servico_issqn': 'Serviço (ISSQN)',
     'devolucao': 'Devolução',
     'outros': 'Outras Operações',
+    'aplicacao_servico': 'Aplicação em Serviços',
+    'bonificacao': 'Bonificação',
+    'amostra_gratis': 'Amostra Grátis',
 }
 
 def obter_categoria_por_cfop(cfop: str) -> str:
