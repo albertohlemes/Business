@@ -1139,9 +1139,13 @@ const Documents = ({ user, onLogout }) => {
     
     // Filtrar tipos de documento pela atividade da empresa
     const atividadeEmpresa = ctxCompany?.tipo_atividade || 'comercio';
+    const temLocacao = ctxCompany?.atividade_locacao || false;
+    
     const tiposFiltrados = categoria.tipos.filter(tipo => {
       // Se não tem filtro de atividade, mostra sempre
       if (!tipo.atividades) return true;
+      // Verificar se é tipo de locação e empresa tem atividade de locação
+      if (tipo.atividades.includes('locacao') && temLocacao) return true;
       // Mostra se a atividade da empresa está na lista de atividades do tipo
       return tipo.atividades.includes(atividadeEmpresa);
     });
