@@ -2992,13 +2992,21 @@ async def update_company(
     current_user: User = Depends(get_current_user)
 ):
     """Atualizar empresa existente"""
-    allowed_roles = ["super_admin", "master", "admin"]
-    if current_user.role not in allowed_roles:
-        raise HTTPException(status_code=403, detail="Apenas administradores podem editar empresas")
-    
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Verificar permissões: Admin/Master podem editar todas, operacional só pode editar as que criou
+    allowed_roles = ["super_admin", "master", "admin"]
+    if current_user.role not in allowed_roles:
+        # Operacional pode editar se criou a empresa ou se é responsável
+        has_access = (
+            company.get('created_by') == current_user.id or
+            current_user.id in company.get('responsavel_ids', []) or
+            company['cnpj'] in current_user.company_ids
+        )
+        if not has_access:
+            raise HTTPException(status_code=403, detail="Você não tem permissão para editar esta empresa")
     
     # Atualizar apenas campos fornecidos
     update_data = {k: v for k, v in company_data.model_dump().items() if v is not None}
