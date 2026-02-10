@@ -77,6 +77,30 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-10 (Sessão 15 - Finalização CT-e, Permissões e Barra de Progresso)
+
+**Implementação Completa de CT-e (Conhecimento de Transporte Eletrônico):**
+- ✅ **Parser XML de CT-e** - Função `parse_xml_cte` criada para extrair dados do modelo 57
+- ✅ **Validação de CNPJ específica para CT-e:**
+  - Entrada: Empresa deve ser remetente ou destinatário (quem paga o frete)
+  - Saída: Empresa deve ser a transportadora (emitente)
+- ✅ **Integração no fluxo de upload** - `upload_xml_with_progress` agora processa CT-e corretamente
+- ✅ **Tela de CT-e na interface** - Disponível em Documentos > Entradas > CT-e
+
+**Sistema de Permissões Finalizado:**
+- ✅ **Menu de Usuários restrito** - Apenas Master/Admin/Super Admin podem ver
+- ✅ **Proteção em Layout.js** - Ícone de usuários oculto no menu desktop e mobile
+- ✅ **Proteção em UsersPage.js** - Acesso direto à URL `/usuarios` é bloqueado
+- ✅ **Mensagem de acesso negado** - Exibida para usuários operacionais
+
+**Correção da Barra de Progresso de Upload:**
+- ✅ **Layout melhorado** - Barra centralizada com contador de café
+- ✅ **Design moderno** - Card fixo no canto inferior direito
+- ✅ **Informações claras** - Porcentagem, nome da empresa, arquivos processados
+
+**Correção de Bug - Criação de Usuário:**
+- ✅ **Campo de senha corrigido** - `password_hash` → `hashed_password` para consistência
+
 ### 2026-02-10 (Sessão 14 - Melhorias Extensivas na Classificação e Cadastro)
 
 **Correção do Relatório de Upload:**
