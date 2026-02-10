@@ -4830,7 +4830,39 @@ async def identificar_ncms_viloes_importacao(company_id: str, notas_importadas: 
 
 
 # ============== UPLOAD COM PROGRESSO (SSE) ==============
+# Cache em memória para performance, com fallback para MongoDB
 upload_progress_store: Dict[str, Dict] = {}
+
+async def get_upload_session(upload_id: str) -> Optional[Dict]:
+    """Busca sessão de upload primeiro em memória, depois no MongoDB"""
+    # Tentar memória primeiro (mais rápido)
+    if upload_id in upload_progress_store:
+        return upload_progress_store[upload_id]
+    
+    # Fallback para MongoDB (persistente)
+    session = await db.upload_sessions.find_one({"upload_id": upload_id}, {"_id": 0})
+    if session:
+        # Restaurar para memória para operações subsequentes
+        upload_progress_store[upload_id] = session
+        return session
+    
+    return None
+
+async def save_upload_session(upload_id: str, session_data: Dict):
+    """Salva sessão de upload em memória e MongoDB"""
+    upload_progress_store[upload_id] = session_data
+    # Persistir no MongoDB de forma assíncrona
+    await db.upload_sessions.update_one(
+        {"upload_id": upload_id},
+        {"$set": {**session_data, "upload_id": upload_id, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+
+async def delete_upload_session(upload_id: str):
+    """Remove sessão de upload da memória e do MongoDB"""
+    if upload_id in upload_progress_store:
+        del upload_progress_store[upload_id]
+    await db.upload_sessions.delete_one({"upload_id": upload_id})
 
 @api_router.post("/xml/upload-init")
 async def init_upload(
@@ -4849,7 +4881,7 @@ async def init_upload(
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     upload_id = str(uuid.uuid4())
-    upload_progress_store[upload_id] = {
+    session_data = {
         "status": "initialized",
         "total_files": total_files,
         "processed_files": 0,
@@ -4863,6 +4895,7 @@ async def init_upload(
         "user_id": current_user.id,
         "results": None,
         "completed": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "all_results": {  # Acumula resultados de todos os lotes
             "success": [],
             "errors": [],
@@ -4873,6 +4906,9 @@ async def init_upload(
             "notas_desconsideradas_devolucao": []
         }
     }
+    
+    # Salvar em memória e MongoDB
+    await save_upload_session(upload_id, session_data)
     
     return {"upload_id": upload_id}
 
