@@ -466,15 +466,18 @@ const Indicadores = ({ user, onLogout }) => {
               <DollarSign className="w-4 h-4" />
               Impostos
             </button>
-            <button
-              onClick={() => setActiveTab('cmv_equilibrio')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'cmv_equilibrio' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
-              }`}
-            >
-              <Scale className="w-4 h-4" />
-              CMV/CPV e Ponto de Equilíbrio
-            </button>
+            {/* CMV/CPV apenas para empresas que não são só de serviços */}
+            {selectedCompany?.tipo_atividade !== 'servicos' && (
+              <button
+                onClick={() => setActiveTab('cmv_equilibrio')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'cmv_equilibrio' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
+                }`}
+              >
+                <Scale className="w-4 h-4" />
+                CMV/CPV e Ponto de Equilíbrio
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('indicadores')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
