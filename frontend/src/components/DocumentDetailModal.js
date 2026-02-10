@@ -416,7 +416,7 @@ const DocumentDetailModal = ({ document, onClose }) => {
                 </h4>
                 {divergenciasProd.cstDivergentes > 0 && (
                   <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">
-                    {divergenciasProd.cstDivergentes} CST divergente(s)
+                    
                   </span>
                 )}
               </div>
