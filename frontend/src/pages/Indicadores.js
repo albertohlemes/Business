@@ -568,22 +568,14 @@ const Indicadores = ({ user, onLogout }) => {
                     <p className="text-2xl font-bold text-blue-400">{formatCurrency(receitas.total)}</p>
                   </div>
                   
-                  <div className="bg-gradient-to-br from-green-900/30 to-green-950/30 border border-green-500/30 rounded-xl p-5">
-                    <div className="flex items-center gap-3 mb-2">
-                      <DollarSign className="w-6 h-6 text-green-400" />
-                      <span className="text-[#A1A1AA]">Total Saídas</span>
-                    </div>
-                    <p className="text-2xl font-bold text-green-400">{formatCurrency(receitas.total)}</p>
-                  </div>
-                  
                   {/* Card Vendas Mercadorias - Oculto para empresas de serviços */}
                   {selectedCompany?.tipo_atividade !== 'servicos' && (
-                    <div className="bg-gradient-to-br from-emerald-900/30 to-emerald-950/30 border border-emerald-500/30 rounded-xl p-5">
+                    <div className="bg-gradient-to-br from-green-900/30 to-green-950/30 border border-green-500/30 rounded-xl p-5">
                       <div className="flex items-center gap-3 mb-2">
-                        <TrendingUp className="w-6 h-6 text-emerald-400" />
+                        <DollarSign className="w-6 h-6 text-green-400" />
                         <span className="text-[#A1A1AA]">Vendas Merc.</span>
                       </div>
-                      <p className="text-2xl font-bold text-emerald-400">{formatCurrency(receitas.comercio)}</p>
+                      <p className="text-2xl font-bold text-green-400">{formatCurrency(receitas.comercio)}</p>
                     </div>
                   )}
                   
