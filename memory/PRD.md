@@ -77,6 +77,29 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-10 (Sessão 14 - Melhorias Extensivas na Classificação e Cadastro)
+
+**Correção do Relatório de Upload:**
+- ✅ **Problema:** Relatório pós-importação não aparecia
+- ✅ **Solução:** Adicionado fallback manual que busca o status após 2 segundos se SSE/polling não retornar
+- ✅ **Garantia:** Resultado sempre exibido mesmo com problemas de conexão
+
+**Redesign da Classificação Inteligente:**
+- ✅ **Tabela estruturada com ordenação** por colunas (Descrição, NCM, CFOP, Qtd, Valor)
+- ✅ **Filtros clicáveis** (↑↓) em cada coluna para ordenação crescente/decrescente
+- ✅ **Checkbox de seleção** em cada produto e cabeçalho (selecionar todos)
+- ✅ **Barra de ações em lote** aparece quando produtos são selecionados
+- ✅ **Reclassificação em lote** para múltiplos produtos de uma vez
+- ✅ **Coluna de NFs** mostrando onde cada produto aparece
+- ✅ **Botão de ação individual** (ícone de lápis) para reclassificar produto específico
+
+**Gerador de Palavras-Chave com IA (Cadastro de Empresas):**
+- ✅ **Campo de descrição livre** para descrever o negócio em linguagem natural
+- ✅ **IA analisa e sugere** palavras-chave automaticamente
+- ✅ **Categorias geradas:** produtos comercializados, insumos, despesas, aplicação em serviços
+- ✅ **Revisão e edição** antes de aplicar as sugestões
+- ✅ **Novo endpoint:** `POST /api/companies/gerar-keywords-ia`
+
 ### 2026-02-10 (Sessão 13 - Melhorias Classificação Inteligente)
 
 **Barra de Progresso da IA na Classificação:**
