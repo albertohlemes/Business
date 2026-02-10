@@ -646,6 +646,160 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
           </div>
         </div>
 
+        {/* Botão para Digitar Dados do Ano Anterior */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => {
+              setShowFormularioAnterior(!showFormularioAnterior);
+              setAnoDigitacao(anoAnterior);
+            }}
+            className="px-4 py-2 bg-amber-600/20 hover:bg-amber-600/30 border border-amber-600/30 rounded-lg text-amber-400 flex items-center gap-2 transition-colors"
+          >
+            <Edit2 className="w-4 h-4" />
+            {showFormularioAnterior ? 'Fechar Digitação Manual' : `Digitar Dados de ${anoAnterior}`}
+          </button>
+          <span className="text-xs text-[#666]">
+            Insira dados históricos para comparativos mais precisos
+          </span>
+        </div>
+
+        {/* Formulário de Digitação do Ano Anterior */}
+        {showFormularioAnterior && (
+          <div className="bg-gradient-to-br from-amber-900/20 to-orange-900/20 rounded-xl p-6 border border-amber-500/30">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Dados Manuais - {anoDigitacao}</h3>
+                  <p className="text-xs text-amber-300">Preencha os valores mensais do ano anterior</p>
+                </div>
+              </div>
+              <select
+                value={anoDigitacao}
+                onChange={(e) => setAnoDigitacao(parseInt(e.target.value))}
+                className="px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white"
+              >
+                {[...Array(5)].map((_, i) => {
+                  const ano = new Date().getFullYear() - i - 1;
+                  return <option key={ano} value={ano}>{ano}</option>;
+                })}
+              </select>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-amber-500/20">
+                    <th className="text-left px-3 py-2 text-amber-400 font-medium">Mês</th>
+                    <th className="text-right px-3 py-2 text-amber-400 font-medium">Compras</th>
+                    <th className="text-right px-3 py-2 text-amber-400 font-medium">Vendas</th>
+                    <th className="text-right px-3 py-2 text-amber-400 font-medium">ICMS</th>
+                    <th className="text-right px-3 py-2 text-amber-400 font-medium">PIS</th>
+                    <th className="text-right px-3 py-2 text-amber-400 font-medium">COFINS</th>
+                    <th className="text-right px-3 py-2 text-amber-400 font-medium">ISS</th>
+                    <th className="text-right px-3 py-2 text-amber-400 font-medium">DAS</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-amber-500/10">
+                  {meses.map((mes, idx) => {
+                    const competencia = `${String(idx + 1).padStart(2, '0')}/${anoDigitacao}`;
+                    const dadosMes = dadosManuais[competencia] || {};
+                    
+                    return (
+                      <tr key={competencia} className="hover:bg-white/5">
+                        <td className="px-3 py-2 text-white font-medium">{mes}/{anoDigitacao}</td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            placeholder="0,00"
+                            defaultValue={dadosMes.compras || ''}
+                            onBlur={(e) => salvarValorManual(competencia, 'compras', e.target.value)}
+                            className="w-24 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white placeholder:text-[#444]"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            placeholder="0,00"
+                            defaultValue={dadosMes.vendas || ''}
+                            onBlur={(e) => salvarValorManual(competencia, 'vendas', e.target.value)}
+                            className="w-24 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white placeholder:text-[#444]"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            placeholder="0,00"
+                            defaultValue={dadosMes.icms || ''}
+                            onBlur={(e) => salvarValorManual(competencia, 'icms', e.target.value)}
+                            className="w-20 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white placeholder:text-[#444]"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            placeholder="0,00"
+                            defaultValue={dadosMes.pis || ''}
+                            onBlur={(e) => salvarValorManual(competencia, 'pis', e.target.value)}
+                            className="w-20 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white placeholder:text-[#444]"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            placeholder="0,00"
+                            defaultValue={dadosMes.cofins || ''}
+                            onBlur={(e) => salvarValorManual(competencia, 'cofins', e.target.value)}
+                            className="w-20 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white placeholder:text-[#444]"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            placeholder="0,00"
+                            defaultValue={dadosMes.iss || ''}
+                            onBlur={(e) => salvarValorManual(competencia, 'iss', e.target.value)}
+                            className="w-20 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white placeholder:text-[#444]"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            placeholder="0,00"
+                            defaultValue={dadosMes.das || ''}
+                            onBlur={(e) => salvarValorManual(competencia, 'das', e.target.value)}
+                            className="w-20 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white placeholder:text-[#444]"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="mt-4 flex items-center justify-between">
+              <p className="text-xs text-amber-300/70">
+                * Os valores digitados são aplicados automaticamente ao gráfico
+              </p>
+              <button
+                onClick={() => {
+                  // Salvar os dados manuais no localStorage para persistência
+                  const key = `evolucao_manual_${selectedCompany?.id}`;
+                  localStorage.setItem(key, JSON.stringify(dadosManuais));
+                  alert('Dados salvos com sucesso!');
+                }}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 rounded-lg text-white flex items-center gap-2 transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                Salvar Dados
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Análise IA */}
         {analiseIA && (
           <div className="bg-gradient-to-br from-indigo-900/30 to-purple-900/30 rounded-xl p-6 border border-indigo-500/30">
