@@ -11920,6 +11920,57 @@ async def analise_tributaria_ia(
                     'cfops_saida': list(saida['cfops']),
                     'explicacao': f"Entra a {aliq_creditavel}% e sai a {aliq_saida}%. Crédito maior que débito gera benefício de R$ {round(beneficio, 2):,.2f}."
                 })
+        
+        # ===== NOVA: Oportunidade 4: Crédito próximo do débito (baixo imposto) =====
+        # Produto com crédito próximo ao débito = pouco imposto a pagar
+        if icms_credito > 0 and icms_debito > 0:
+            diferenca = abs(icms_debito - icms_credito)
+            percentual_diferenca = (diferenca / max(icms_debito, icms_credito)) * 100 if max(icms_debito, icms_credito) > 0 else 0
+            
+            if percentual_diferenca <= 10 and icms_credito >= 100:  # Diferença <= 10%
+                if not any(o['ncm'] == ncm for o in oportunidades):
+                    oportunidades.append({
+                        'tipo': 'CREDITO_PROXIMO_DEBITO',
+                        'ncm': ncm,
+                        'descricao': descricao_principal,
+                        'descricoes_entrada': descricoes_entrada,
+                        'descricoes_saida': descricoes_saida,
+                        'aliq_entrada': aliq_creditavel,
+                        'aliq_saida': aliq_saida,
+                        'icms_credito': round(icms_credito, 2),
+                        'icms_debito': round(icms_debito, 2),
+                        'beneficio': round(icms_credito, 2),  # O benefício é o crédito que compensa
+                        'qtd_entrada': entrada['qtd_itens'],
+                        'qtd_saida': saida['qtd_itens'],
+                        'cfops_entrada': list(entrada['cfops']),
+                        'cfops_saida': list(saida['cfops']),
+                        'explicacao': f"Crédito ({formatCurrency(icms_credito)}) muito próximo do débito ({formatCurrency(icms_debito)}). Imposto líquido de apenas {formatCurrency(diferenca)}."
+                    })
+        
+        # ===== NOVA: Oportunidade 5: Débito baixo =====
+        # Produto com débito baixo em relação ao valor vendido
+        if saida['total_valor'] > 1000 and icms_debito > 0:
+            percentual_debito = (icms_debito / saida['total_valor']) * 100
+            if percentual_debito <= 5:  # Débito <= 5% do valor vendido
+                if not any(o['ncm'] == ncm for o in oportunidades):
+                    oportunidades.append({
+                        'tipo': 'DEBITO_BAIXO',
+                        'ncm': ncm,
+                        'descricao': descricao_principal,
+                        'descricoes_entrada': descricoes_entrada,
+                        'descricoes_saida': descricoes_saida,
+                        'aliq_entrada': aliq_creditavel,
+                        'aliq_saida': aliq_saida,
+                        'icms_credito': round(icms_credito, 2),
+                        'icms_debito': round(icms_debito, 2),
+                        'beneficio': round(saida['total_valor'] - icms_debito, 2),
+                        'qtd_entrada': entrada['qtd_itens'],
+                        'qtd_saida': saida['qtd_itens'],
+                        'valor_venda': round(saida['total_valor'], 2),
+                        'cfops_entrada': list(entrada['cfops']),
+                        'cfops_saida': list(saida['cfops']),
+                        'explicacao': f"ICMS débito de apenas {percentual_debito:.1f}% do valor vendido (R$ {saida['total_valor']:,.2f}). Produto com carga tributária favorável."
+                    })
     
     # Ordenar vilões pelo impacto (maior primeiro)
     viloes = sorted(viloes, key=lambda x: x.get('impacto_negativo', 0), reverse=True)
