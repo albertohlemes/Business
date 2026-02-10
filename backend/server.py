@@ -10868,7 +10868,7 @@ def obter_categoria_por_cfop(cfop: str) -> str:
 
 def obter_nome_categoria(categoria: str) -> str:
     """Retorna o nome amigável de uma categoria - NUNCA retorna Pendente"""
-    if not categoria:
+    if not categoria or categoria.lower() in ['pendente', 'none', 'null', '']:
         return 'Compra p/ Revenda'  # Padrão é revenda, nunca pendente
     return CATEGORIA_NOMES.get(categoria, categoria.replace('_', ' ').title())
 
