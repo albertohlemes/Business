@@ -77,6 +77,30 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-10 (Sessão 7 - Cancelamento NFS-e e Melhorias)
+
+**Fluxo de Cancelamento de NFS-e (NOVO):**
+- ✅ **Modal de Cancelamento de NFS-e** - Ao importar NFS-e prestadas:
+  - Preview de todas as notas antes de importar
+  - Marcação manual de notas canceladas (checkbox)
+  - Upload de relatório (Excel/CSV/TXT) com números cancelados
+  - Notas canceladas importadas com valor zerado e status "cancelada"
+  - Relatório de conclusão mostra notas ativas vs canceladas
+- ✅ **Endpoints novos no backend:**
+  - `POST /api/nfse/preview` - Pré-visualiza NFS-e para marcação
+  - `POST /api/nfse/import-with-cancellations` - Importa com cancelamentos
+  - `POST /api/nfse/import-cancellation-report` - Processa relatório de cancelados
+
+**Correções e Melhorias:**
+- ✅ **Arquivo UploadXML.js removido** - Rota `/upload` agora redireciona para `/documents`
+- ✅ **Agrupamento automático de CFOPs** - Produtos com CFOPs especiais agora recebem categoria específica:
+  - 1910/2910 → `bonificacao`
+  - 1911/2911 → `amostra_gratis`
+  - 1912/2912 → `conserto_reparo`
+  - etc. (30+ categorias específicas)
+- ✅ **Categorias de Classificação Inteligente expandidas** - 28 categorias com ícones e cores distintas
+- ✅ **Função `obter_categoria_por_cfop`** - Agora é chamada durante importação para classificar automaticamente
+
 ### 2026-02-09 (Sessão 6 - FASE 1 e FASE 2)
 
 **FASE 1 - Correções Críticas:**
