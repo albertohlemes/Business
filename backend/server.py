@@ -2961,6 +2961,91 @@ async def create_company(company_data: CompanyCreate, current_user: User = Depen
     await db.companies.insert_one(doc)
     return company
 
+
+class GerarKeywordsRequest(BaseModel):
+    descricao: str
+    tipo_atividade: str = "comercio"
+
+
+@api_router.post("/companies/gerar-keywords-ia")
+async def gerar_keywords_com_ia(request: GerarKeywordsRequest, current_user: User = Depends(get_current_user)):
+    """
+    Usa IA para analisar a descrição do negócio e gerar palavras-chave
+    para classificação de produtos (revenda, insumo, despesa, etc.)
+    """
+    try:
+        prompt = f"""Analise a descrição do negócio abaixo e gere palavras-chave para classificação de produtos fiscais.
+
+DESCRIÇÃO DO NEGÓCIO:
+{request.descricao}
+
+TIPO DE ATIVIDADE: {request.tipo_atividade}
+
+Responda APENAS em formato JSON válido com as seguintes categorias:
+{{
+  "produtos_comercializados": ["lista de produtos que a empresa REVENDE ou COMERCIALIZA"],
+  "insumos_producao": ["lista de insumos/matérias-primas usados na PRODUÇÃO/INDUSTRIALIZAÇÃO"],
+  "produtos_despesa": ["lista de produtos de USO E CONSUMO (limpeza, escritório, manutenção)"],
+  "produtos_aplicacao_servico": ["lista de materiais APLICADOS em serviços prestados"]
+}}
+
+REGRAS:
+1. Use termos genéricos e palavras-chave que aparecem em descrições de notas fiscais
+2. Para produtos_comercializados: foque nos produtos que a empresa VENDE
+3. Para insumos_producao: foque em matérias-primas que ENTRAM na produção
+4. Para produtos_despesa: use termos como "papel", "limpeza", "escritório", "manutenção"
+5. Para produtos_aplicacao_servico: só preencha se for empresa de SERVIÇOS
+6. Cada lista deve ter entre 3 e 10 itens relevantes
+7. Use letras minúsculas
+8. Não repita itens entre categorias
+
+Responda APENAS o JSON, sem explicações."""
+
+        from emergentintegrations.llm import LlmChat
+        
+        EMERGENT_API_KEY = os.environ.get("EMERGENT_API_KEY", "")
+        
+        chat = LlmChat(api_key=EMERGENT_API_KEY)
+        response = await chat.with_model("google", "gemini-2.5-flash").send_message(prompt)
+        
+        # Extrair JSON da resposta
+        response_text = response.message.strip()
+        
+        # Limpar markdown se presente
+        if response_text.startswith("```"):
+            lines = response_text.split("\n")
+            json_lines = []
+            in_json = False
+            for line in lines:
+                if line.startswith("```json"):
+                    in_json = True
+                    continue
+                elif line.startswith("```"):
+                    in_json = False
+                    continue
+                if in_json:
+                    json_lines.append(line)
+            response_text = "\n".join(json_lines)
+        
+        keywords = json.loads(response_text)
+        
+        # Garantir que todas as chaves existam
+        result = {
+            "produtos_comercializados": keywords.get("produtos_comercializados", []),
+            "insumos_producao": keywords.get("insumos_producao", []),
+            "produtos_despesa": keywords.get("produtos_despesa", []),
+            "produtos_aplicacao_servico": keywords.get("produtos_aplicacao_servico", [])
+        }
+        
+        return result
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"Erro ao parsear JSON da IA: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao processar resposta da IA")
+    except Exception as e:
+        logger.error(f"Erro ao gerar keywords: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar palavras-chave: {str(e)}")
+
 @api_router.get("/companies", response_model=List[Company])
 async def list_companies(
     current_user: User = Depends(get_current_user),
