@@ -14428,10 +14428,12 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
     
     return results, stats
 
-async def classify_products_batch_llm(products: List[Dict[str, Any]], company_data: Dict[str, Any], batch_size: int = 20) -> Dict[str, Any]:
+async def classify_products_batch_llm(products: List[Dict[str, Any]], company_data: Dict[str, Any], batch_size: int = 20, produtos_vendidos: List[str] = None) -> Dict[str, Any]:
     """
     Classifica uma lista de produtos usando LLM com base nas regras da empresa.
-    PRIORIDADE: Palavras-chave cadastradas na empresa têm MÁXIMA prioridade.
+    PRIORIDADE: 
+    1. Palavras-chave cadastradas na empresa têm MÁXIMA prioridade.
+    2. Análise de produtos vendidos (saídas) para inferir o que a empresa comercializa.
     """
     if not products:
         return {}
@@ -14444,6 +14446,18 @@ async def classify_products_batch_llm(products: List[Dict[str, Any]], company_da
     despesa_keywords = company_data.get('produtos_despesa', [])
     ativo_keywords = company_data.get('ativo_imobilizado', [])
     combustivel_keywords = company_data.get('combustivel', [])
+    
+    # Seção de produtos vendidos (inferência)
+    produtos_vendidos_section = ""
+    if produtos_vendidos and len(produtos_vendidos) > 0:
+        produtos_vendidos_section = f"""
+=== PRODUTOS QUE A EMPRESA JÁ VENDE (ANÁLISE DE SAÍDAS) ===
+Com base nas notas de saída da empresa, estes são os produtos que ela comercializa:
+{', '.join(produtos_vendidos[:50])}
+
+REGRA: Se o produto sendo classificado é SIMILAR ou RELACIONADO aos produtos vendidos, provavelmente é REVENDA.
+Por exemplo: se a empresa vende "ESPONJA DE AÇO" e está comprando "ESPONJA MULTIUSO", classifique como REVENDA.
+"""
     
     # Construir contexto da empresa com ênfase nas palavras-chave
     context = f"""Você é um especialista em classificação fiscal de produtos.
@@ -14472,8 +14486,8 @@ Use correspondência SEMÂNTICA - não precisa ser exata, produtos relacionados 
 
 ⛽ COMBUSTÍVEL: 
 {', '.join(combustivel_keywords) if combustivel_keywords else '(nenhum cadastrado)'}
-
-=== REGRAS GERAIS (se não houver match com palavras-chave) ===
+{produtos_vendidos_section}
+=== REGRAS GERAIS (se não houver match com palavras-chave ou produtos vendidos) ===
 - DESPESA: materiais de limpeza, escritório, manutenção, uso interno
 - ATIVO_IMOBILIZADO: máquinas, equipamentos, veículos, móveis, computadores
 - COMBUSTIVEL: gasolina, diesel, etanol, GNV
@@ -14482,9 +14496,10 @@ Use correspondência SEMÂNTICA - não precisa ser exata, produtos relacionados 
 
 === IMPORTANTE ===
 1. Se o produto tem QUALQUER relação com as palavras-chave cadastradas, USE essa classificação
-2. Use busca SEMÂNTICA (sinônimos, variações, termos relacionados)
-3. Exemplo: se "esponja" está em REVENDA, então "esponja de aço", "bucha", "esponja multiuso" também são REVENDA
-4. Na justificativa, indique qual palavra-chave você usou como referência
+2. Se não houver palavra-chave mas houver SIMILARIDADE com produtos vendidos, classifique como REVENDA
+3. Use busca SEMÂNTICA (sinônimos, variações, termos relacionados)
+4. Exemplo: se "construção" está em REVENDA, então "cimento", "argamassa", "tijolo" também são REVENDA
+5. Na justificativa, indique qual palavra-chave ou produto vendido você usou como referência
 
 Responda APENAS um JSON válido:
 {{
@@ -14492,7 +14507,7 @@ Responda APENAS um JSON válido:
         {{
             "id": "id_do_produto",
             "categoria": "revenda|insumo|despesa|ativo_imobilizado|combustivel",
-            "justificativa": "Baseado em [palavra-chave] cadastrada como [categoria]" ou "Regra geral: [motivo]"
+            "justificativa": "Baseado em [palavra-chave/produto vendido] cadastrada como [categoria]" ou "Regra geral: [motivo]"
         }}
     ]
 }}"""
