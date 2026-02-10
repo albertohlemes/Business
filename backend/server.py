@@ -145,6 +145,8 @@ class Company(BaseModel):
     tipos_servico: List[str] = []  # transporte, ti, consultoria, etc
     # Perfis de atividade comercial (múltipla escolha)
     perfis_comerciais: List[str] = []  # ['industria', 'distribuidor', 'varejo']
+    # Aplicação em serviços (para classificação de entradas em empresas de serviços)
+    aplicacao_em_servicos: bool = False
     # Flags de contribuinte
     equiparado_industria: bool = False  # Comércio equiparado a indústria (contribuinte IPI)
     apura_icms: bool = False  # Empresa de serviços que também apura ICMS
@@ -228,6 +230,8 @@ class CompanyCreate(BaseModel):
     tipos_servico: List[str] = []
     # Perfis de atividade comercial (múltipla escolha)
     perfis_comerciais: List[str] = []  # ['industria', 'distribuidor', 'varejo']
+    # Aplicação em serviços (para classificação de entradas em empresas de serviços)
+    aplicacao_em_servicos: bool = False
     # Flags de contribuinte
     equiparado_industria: bool = False
     apura_icms: bool = False
