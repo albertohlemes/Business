@@ -18907,6 +18907,365 @@ async def update_faturamento_competencia(
     return {"message": f"Faturamento de {competencia} atualizado para R$ {valor:,.2f}"}
 
 
+# ========== ENDPOINTS PARA CANCELAMENTO DE NFS-e ==========
+
+@api_router.post("/nfse/preview")
+async def preview_nfse_for_cancellation(
+    company_id: str = Form(...),
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Pré-visualiza NFS-e de um arquivo XML para permitir marcação de notas canceladas.
+    Retorna lista de notas com número, data, valor e tomador para seleção.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+    
+    all_nfse = []
+    
+    for file in files:
+        try:
+            content = await file.read()
+            xml_str = content.decode('utf-8')
+            
+            # Verificar se é uma lista de NFS-e
+            if is_lista_nfse(xml_str):
+                lista_nfse = parse_xml_lista_nfse(xml_str)
+                
+                for idx, nfse in enumerate(lista_nfse):
+                    cnpj_emitente = nfse.get('emitente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+                    
+                    # Só incluir se pertencer à empresa
+                    if cnpj_emitente == cnpj_empresa:
+                        # Verificar se já existe no banco
+                        existing = await db.xml_documents.find_one({
+                            "chave_nfe": nfse.get('chave_nfe', ''),
+                            "company_id": company_id
+                        })
+                        
+                        all_nfse.append({
+                            "numero": nfse.get('numero_nfe', ''),
+                            "data_emissao": nfse.get('data_emissao', ''),
+                            "valor": nfse.get('valor_total', 0),
+                            "tomador_nome": nfse.get('destinatario_nome', ''),
+                            "tomador_cnpj": nfse.get('destinatario_cnpj', ''),
+                            "competencia": nfse.get('competencia_nfse', ''),
+                            "chave": nfse.get('chave_nfe', ''),
+                            "arquivo": file.filename,
+                            "indice": idx,
+                            "ja_importada": existing is not None
+                        })
+            else:
+                # Arquivo único de NFS-e
+                parsed = parse_xml_nfse(xml_str)
+                cnpj_emitente = parsed.get('emitente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+                
+                if cnpj_emitente == cnpj_empresa:
+                    existing = await db.xml_documents.find_one({
+                        "chave_nfe": parsed.get('chave_nfe', ''),
+                        "company_id": company_id
+                    })
+                    
+                    all_nfse.append({
+                        "numero": parsed.get('numero_nfe', ''),
+                        "data_emissao": parsed.get('data_emissao', ''),
+                        "valor": parsed.get('valor_total', 0),
+                        "tomador_nome": parsed.get('destinatario_nome', ''),
+                        "tomador_cnpj": parsed.get('destinatario_cnpj', ''),
+                        "competencia": parsed.get('competencia_nfse', ''),
+                        "chave": parsed.get('chave_nfe', ''),
+                        "arquivo": file.filename,
+                        "indice": 0,
+                        "ja_importada": existing is not None
+                    })
+        except Exception as e:
+            print(f"Erro ao processar arquivo {file.filename}: {str(e)}")
+            continue
+    
+    # Ordenar por número
+    all_nfse.sort(key=lambda x: int(x['numero']) if x['numero'].isdigit() else 0)
+    
+    return {
+        "total": len(all_nfse),
+        "notas": all_nfse,
+        "empresa": {
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', '')
+        }
+    }
+
+
+@api_router.post("/nfse/import-with-cancellations")
+async def import_nfse_with_cancellations(
+    company_id: str = Form(...),
+    competencia: str = Form(...),
+    tipo: str = Form(...),
+    notas_canceladas: str = Form(default=""),  # JSON array de números de notas canceladas
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Importa NFS-e com suporte a marcação de notas canceladas.
+    As notas marcadas como canceladas são importadas com status 'cancelada' e valor zerado.
+    """
+    import json
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+    
+    # Parse da lista de notas canceladas
+    try:
+        numeros_cancelados = json.loads(notas_canceladas) if notas_canceladas else []
+    except:
+        numeros_cancelados = []
+    
+    numeros_cancelados_set = set(str(n) for n in numeros_cancelados)
+    
+    results = []
+    errors = []
+    duplicadas = []
+    rejeitadas_cnpj = []
+    canceladas_importadas = []
+    
+    for file in files:
+        try:
+            content = await file.read()
+            xml_str = content.decode('utf-8')
+            
+            notas_para_processar = []
+            
+            if is_lista_nfse(xml_str):
+                notas_para_processar = parse_xml_lista_nfse(xml_str)
+            else:
+                parsed = parse_xml_nfse(xml_str)
+                if parsed:
+                    notas_para_processar = [parsed]
+            
+            for idx, parsed_data in enumerate(notas_para_processar):
+                try:
+                    chave_nfe = parsed_data.get('chave_nfe', '')
+                    numero_nota = str(parsed_data.get('numero_nfe', ''))
+                    
+                    # Verificar se é nota cancelada
+                    is_cancelada = numero_nota in numeros_cancelados_set
+                    
+                    # Validar CNPJ
+                    cnpj_emitente = parsed_data.get('emitente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+                    cnpj_destinatario = parsed_data.get('destinatario_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+                    
+                    cnpj_valido = False
+                    if tipo == 'saida':
+                        cnpj_valido = cnpj_emitente == cnpj_empresa
+                    else:
+                        cnpj_valido = cnpj_destinatario == cnpj_empresa
+                    
+                    if not cnpj_valido:
+                        rejeitadas_cnpj.append({
+                            "arquivo": f"{file.filename} (nota {numero_nota})",
+                            "numero": numero_nota,
+                            "motivo": "CNPJ não corresponde à empresa"
+                        })
+                        continue
+                    
+                    # Verificar duplicidade
+                    existing = await db.xml_documents.find_one({
+                        "chave_nfe": chave_nfe,
+                        "company_id": company_id
+                    })
+                    
+                    if existing:
+                        duplicadas.append({
+                            "arquivo": f"{file.filename} (nota {numero_nota})",
+                            "numero": numero_nota
+                        })
+                        continue
+                    
+                    # Extrair competência
+                    competencia_nfse = parsed_data.get('competencia_nfse', '')
+                    if competencia_nfse:
+                        try:
+                            comp_date = competencia_nfse.split('T')[0]
+                            ano, mes, _ = comp_date.split('-')
+                            competencia_doc = f"{mes}/{ano}"
+                        except:
+                            competencia_doc = competencia
+                    else:
+                        competencia_doc = competencia
+                    
+                    # Valores - zerar se cancelada
+                    valor_original = parsed_data.get('valor_total', 0)
+                    valor_final = 0 if is_cancelada else valor_original
+                    valor_servicos = 0 if is_cancelada else parsed_data.get('valor_servicos', 0)
+                    
+                    # Preparar documento
+                    document = {
+                        "id": str(uuid.uuid4()),
+                        "company_id": company_id,
+                        "chave_nfe": chave_nfe,
+                        "numero_nfe": numero_nota,
+                        "serie": parsed_data.get('serie', '1'),
+                        "modelo": 'nfse',
+                        "data_emissao": parsed_data.get('data_emissao', ''),
+                        "valor_total": valor_final,
+                        "valor_servicos": valor_servicos,
+                        "valor_original": valor_original,  # Guardar valor original para referência
+                        "emitente_cnpj": cnpj_emitente,
+                        "emitente_nome": parsed_data.get('emitente_nome', ''),
+                        "emitente_ie": parsed_data.get('emitente_ie', ''),
+                        "emitente_uf": parsed_data.get('emitente_uf', ''),
+                        "emitente_endereco": parsed_data.get('emitente_endereco', {}),
+                        "destinatario_cnpj": cnpj_destinatario,
+                        "destinatario_nome": parsed_data.get('destinatario_nome', ''),
+                        "destinatario_ie": parsed_data.get('destinatario_ie', ''),
+                        "destinatario_uf": parsed_data.get('destinatario_uf', ''),
+                        "destinatario_endereco": parsed_data.get('destinatario_endereco', {}),
+                        "produtos": [],
+                        "servicos": parsed_data.get('servicos', []) if not is_cancelada else [],
+                        "tipo": tipo,
+                        "tipo_operacao": "prestado" if tipo == "saida" else "tomado",
+                        "competencia": competencia_doc,
+                        "imported_at": datetime.now(timezone.utc).isoformat(),
+                        "status": "cancelada" if is_cancelada else "active"
+                    }
+                    
+                    await db.xml_documents.insert_one(document)
+                    
+                    result_item = {
+                        "arquivo": f"{file.filename} (nota {numero_nota})",
+                        "numero": numero_nota,
+                        "valor": valor_final,
+                        "valor_original": valor_original,
+                        "emitente": parsed_data.get('emitente_nome', ''),
+                        "tomador": parsed_data.get('destinatario_nome', ''),
+                        "status": "cancelada" if is_cancelada else "ativa",
+                        "competencia": competencia_doc
+                    }
+                    
+                    results.append(result_item)
+                    
+                    if is_cancelada:
+                        canceladas_importadas.append(result_item)
+                    
+                except Exception as e:
+                    errors.append({
+                        "arquivo": f"{file.filename} (nota {idx + 1})",
+                        "erro": str(e)
+                    })
+        
+        except Exception as e:
+            errors.append({
+                "arquivo": file.filename,
+                "erro": str(e)
+            })
+    
+    # Calcular resumo
+    total_ativas = len([r for r in results if r['status'] == 'ativa'])
+    total_canceladas = len([r for r in results if r['status'] == 'cancelada'])
+    valor_total_importado = sum(r['valor'] for r in results)
+    
+    return {
+        "sucesso": True,
+        "resumo": {
+            "total_arquivos": len(files),
+            "total_notas": len(results),
+            "ativas": total_ativas,
+            "canceladas": total_canceladas,
+            "duplicadas": len(duplicadas),
+            "rejeitadas": len(rejeitadas_cnpj),
+            "erros": len(errors),
+            "valor_total": valor_total_importado
+        },
+        "notas_importadas": results,
+        "notas_canceladas": canceladas_importadas,
+        "duplicadas": duplicadas,
+        "rejeitadas_cnpj": rejeitadas_cnpj,
+        "errors": errors
+    }
+
+
+@api_router.post("/nfse/import-cancellation-report")
+async def import_cancellation_from_report(
+    company_id: str = Form(...),
+    report_file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Processa um arquivo de relatório (Excel, TXT, CSV) contendo números de notas canceladas.
+    Retorna lista de números para ser usada na importação.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    content = await report_file.read()
+    filename = report_file.filename.lower()
+    
+    numeros_cancelados = []
+    
+    try:
+        if filename.endswith('.csv') or filename.endswith('.txt'):
+            # Processar CSV/TXT
+            text = content.decode('utf-8', errors='ignore')
+            lines = text.strip().split('\n')
+            
+            for line in lines:
+                # Tentar extrair números de cada linha
+                parts = line.replace(';', ',').split(',')
+                for part in parts:
+                    clean = ''.join(filter(str.isdigit, part.strip()))
+                    if clean and len(clean) <= 15:  # Número de NF razoável
+                        numeros_cancelados.append(clean)
+        
+        elif filename.endswith('.xlsx') or filename.endswith('.xls'):
+            # Processar Excel
+            import io
+            import openpyxl
+            
+            wb = openpyxl.load_workbook(io.BytesIO(content))
+            ws = wb.active
+            
+            for row in ws.iter_rows():
+                for cell in row:
+                    if cell.value:
+                        valor = str(cell.value).strip()
+                        clean = ''.join(filter(str.isdigit, valor))
+                        if clean and len(clean) <= 15:
+                            numeros_cancelados.append(clean)
+        
+        # Remover duplicatas mantendo ordem
+        seen = set()
+        numeros_unicos = []
+        for num in numeros_cancelados:
+            if num not in seen:
+                seen.add(num)
+                numeros_unicos.append(num)
+        
+        return {
+            "sucesso": True,
+            "total_encontrados": len(numeros_unicos),
+            "numeros_cancelados": numeros_unicos
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao processar arquivo: {str(e)}")
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
