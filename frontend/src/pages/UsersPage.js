@@ -150,6 +150,38 @@ const UsersPage = ({ user, onLogout }) => {
     }
   };
 
+  const handlePromoteToMaster = async (userId, userName) => {
+    if (window.confirm(`Deseja promover "${userName}" para Master?\n\nUsuários Master podem ver todas as empresas e gerenciar responsáveis.`)) {
+      try {
+        const token = localStorage.getItem('token');
+        await axios.post(`${API}/auth/users/${userId}/promote-master`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Usuário promovido para Master com sucesso!');
+        fetchUsers();
+      } catch (err) {
+        console.error('Erro ao promover:', err);
+        alert(err.response?.data?.detail || 'Erro ao promover usuário');
+      }
+    }
+  };
+
+  const handleDemoteToOperacional = async (userId, userName) => {
+    if (window.confirm(`Deseja rebaixar "${userName}" para Operacional?\n\nUsuários Operacionais só podem ver empresas às quais foram atribuídos.`)) {
+      try {
+        const token = localStorage.getItem('token');
+        await axios.post(`${API}/auth/users/${userId}/demote-operacional`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Usuário rebaixado para Operacional com sucesso!');
+        fetchUsers();
+      } catch (err) {
+        console.error('Erro ao rebaixar:', err);
+        alert(err.response?.data?.detail || 'Erro ao rebaixar usuário');
+      }
+    }
+  };
+
   const toggleCompany = (companyId) => {
     const current = formData.company_ids || [];
     if (current.includes(companyId)) {
