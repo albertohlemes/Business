@@ -583,6 +583,16 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                 className="w-full px-4 py-3 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white placeholder-[#666] focus:border-[#C8A951] focus:outline-none focus:ring-1 focus:ring-[#C8A951]/50"
                 disabled={processandoIA}
               />
+              {processandoIA && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#2A2A2A] rounded-b-lg overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-[#C8A951] via-[#D4B962] to-[#C8A951] animate-pulse" 
+                       style={{ 
+                         width: '100%',
+                         animation: 'progressPulse 1.5s ease-in-out infinite'
+                       }} 
+                  />
+                </div>
+              )}
             </div>
             <button
               onClick={enviarComandoIA}
@@ -602,6 +612,38 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
               )}
             </button>
           </div>
+          
+          {/* Barra de progresso detalhada quando IA está processando */}
+          {processandoIA && (
+            <div className="mt-4 p-4 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A]">
+              <div className="flex items-center gap-3 mb-2">
+                <Loader2 className="w-5 h-5 text-[#C8A951] animate-spin" />
+                <span className="text-white font-medium">Analisando produtos com IA...</span>
+              </div>
+              <div className="w-full bg-[#0C0C0C] rounded-full h-2 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-[#C8A951] to-[#D4B962] rounded-full transition-all duration-300"
+                  style={{ 
+                    width: '100%',
+                    animation: 'progressWave 2s ease-in-out infinite'
+                  }}
+                />
+              </div>
+              <p className="text-xs text-[#A1A1AA] mt-2">
+                A IA está analisando os produtos e aplicando a classificação. Isso pode levar alguns segundos...
+              </p>
+              <style>{`
+                @keyframes progressWave {
+                  0% { transform: translateX(-100%); }
+                  100% { transform: translateX(100%); }
+                }
+                @keyframes progressPulse {
+                  0%, 100% { opacity: 0.5; }
+                  50% { opacity: 1; }
+                }
+              `}</style>
+            </div>
+          )}
           
           <div className="flex flex-wrap gap-2 mt-3">
             <span className="text-xs text-[#666]">Sugestões:</span>
