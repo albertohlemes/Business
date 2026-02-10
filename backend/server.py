@@ -8441,6 +8441,23 @@ async def relatorio_divergencias_saida(
             return True
         return False
     
+    # CFOPs que geram DÉBITO de PIS/COFINS (vendas tributadas)
+    # SAÍDAS - Produto tributado deve ter CST 01 (débito)
+    CFOPS_VENDA_TRIBUTADA = [
+        '5101', '5102', '5103', '5104', '5105', '5106', '5109', '5110', '5111', '5112', '5113', '5114', '5115', '5116', '5117', '5118', '5119', '5120', '5122', '5123', '5124', '5125',
+        '5401', '5402', '5403', '5405',
+        '6101', '6102', '6103', '6104', '6105', '6106', '6107', '6108', '6109', '6110', '6111', '6112', '6113', '6114', '6115', '6116', '6117', '6118', '6119', '6120', '6122', '6123', '6124', '6125',
+        '6401', '6402', '6403', '6404'
+    ]
+    
+    # Verificar se NCM é de bebida alcoólica (tributada normalmente, NÃO é monofásica)
+    def is_ncm_bebida_alcoolica_local(ncm_str):
+        if not ncm_str or len(ncm_str) < 4:
+            return False
+        prefixo = ncm_str[:4]
+        # 2204=Vinhos, 2205=Vermutes, 2206=Sidra/Saquê, 2207=Álcool, 2208=Destilados
+        return prefixo in ['2204', '2205', '2206', '2207', '2208']
+    
     divergencias = []
     total_valor_divergente = 0
     
@@ -8449,37 +8466,110 @@ async def relatorio_divergencias_saida(
         
         for prod in doc.get('produtos', []):
             ncm = str(prod.get('ncm', '')).replace('.', '').strip()
-            cst_pis = str(prod.get('cst_pis', ''))
-            cst_cofins = str(prod.get('cst_cofins', ''))
+            cfop = str(prod.get('cfop', '')).strip()
+            cst_pis = str(prod.get('cst_pis', '') or prod.get('cst_pis_xml', '')).strip().zfill(2) if prod.get('cst_pis') or prod.get('cst_pis_xml') else ''
+            cst_cofins = str(prod.get('cst_cofins', '') or prod.get('cst_cofins_xml', '')).strip().zfill(2) if prod.get('cst_cofins') or prod.get('cst_cofins_xml') else ''
             v_pis = float(prod.get('v_pis', 0) or 0)
             v_cofins = float(prod.get('v_cofins', 0) or 0)
             valor = float(prod.get('valor_total', 0) or 0)
             
             deveria_ser_aliq_zero = is_ncm_aliq_zero(ncm)
+            eh_monofasico = ncm[:4] in NCMS_MONOFASICOS if len(ncm) >= 4 else False
+            eh_bebida_alcoolica = is_ncm_bebida_alcoolica_local(ncm)
+            cfop_gera_debito = cfop in CFOPS_VENDA_TRIBUTADA
             
             # CSTs de alíquota zero/isento: 04, 05, 06, 07, 08, 09
             csts_aliq_zero = ['04', '05', '06', '07', '08', '09']
-            esta_tributado = cst_pis not in csts_aliq_zero or cst_cofins not in csts_aliq_zero
             tem_valor_imposto = v_pis > 0 or v_cofins > 0
             
-    # Divergência: NCM é alíquota zero mas está tributado (com valor > 0)
-            if deveria_ser_aliq_zero and tem_valor_imposto:
-                doc_divergencias.append({
-                    'produto': prod.get('descricao', ''),
-                    'codigo': prod.get('codigo', ''),
-                    'ncm': ncm,
-                    'valor': valor,
-                    'cst_pis_atual': cst_pis or '-',
-                    'cst_cofins_atual': cst_cofins or '-',
-                    'cst_pis_correto': '06',
-                    'cst_cofins_correto': '06',
-                    'v_pis_cobrado': v_pis,
-                    'v_cofins_cobrado': v_cofins,
-                    'tipo_divergencia': 'NCM é alíquota zero mas está sendo tributado',
-                    'impacto_pis': v_pis,
-                    'impacto_cofins': v_cofins
-                })
-                total_valor_divergente += valor
+            # === LÓGICA DE DIVERGÊNCIAS PARA SAÍDAS ===
+            
+            # 1. Bebidas alcoólicas DEVEM ser tributadas (CST 01)
+            #    Se estiver com CST de monofásico (04) ou alíquota zero (06), está ERRADO
+            if eh_bebida_alcoolica and cfop_gera_debito:
+                if cst_pis in ['04', '06'] or cst_cofins in ['04', '06']:
+                    doc_divergencias.append({
+                        'produto': prod.get('descricao', ''),
+                        'codigo': prod.get('codigo', ''),
+                        'ncm': ncm,
+                        'cfop': cfop,
+                        'valor': valor,
+                        'cst_pis_atual': cst_pis or '-',
+                        'cst_cofins_atual': cst_cofins or '-',
+                        'cst_pis_correto': '01',
+                        'cst_cofins_correto': '01',
+                        'v_pis_cobrado': v_pis,
+                        'v_cofins_cobrado': v_cofins,
+                        'tipo_divergencia': 'Bebida alcoólica tributada incorretamente como monofásica/alíquota zero - usar CST 01',
+                        'impacto_pis': 0,  # Deveria ter cobrado mais
+                        'impacto_cofins': 0
+                    })
+                    total_valor_divergente += valor
+            
+            # 2. Produtos monofásicos (exceto bebidas alcoólicas) DEVEM ter CST 04
+            elif eh_monofasico and not eh_bebida_alcoolica:
+                if cst_pis not in ['04'] or cst_cofins not in ['04']:
+                    if tem_valor_imposto:
+                        doc_divergencias.append({
+                            'produto': prod.get('descricao', ''),
+                            'codigo': prod.get('codigo', ''),
+                            'ncm': ncm,
+                            'cfop': cfop,
+                            'valor': valor,
+                            'cst_pis_atual': cst_pis or '-',
+                            'cst_cofins_atual': cst_cofins or '-',
+                            'cst_pis_correto': '04',
+                            'cst_cofins_correto': '04',
+                            'v_pis_cobrado': v_pis,
+                            'v_cofins_cobrado': v_cofins,
+                            'tipo_divergencia': 'Produto monofásico sendo tributado - usar CST 04',
+                            'impacto_pis': v_pis,
+                            'impacto_cofins': v_cofins
+                        })
+                        total_valor_divergente += valor
+            
+            # 3. Produtos com alíquota zero pelo NCM DEVEM ter CST 06
+            elif deveria_ser_aliq_zero and not eh_bebida_alcoolica and not eh_monofasico:
+                if tem_valor_imposto:
+                    doc_divergencias.append({
+                        'produto': prod.get('descricao', ''),
+                        'codigo': prod.get('codigo', ''),
+                        'ncm': ncm,
+                        'cfop': cfop,
+                        'valor': valor,
+                        'cst_pis_atual': cst_pis or '-',
+                        'cst_cofins_atual': cst_cofins or '-',
+                        'cst_pis_correto': '06',
+                        'cst_cofins_correto': '06',
+                        'v_pis_cobrado': v_pis,
+                        'v_cofins_cobrado': v_cofins,
+                        'tipo_divergencia': 'NCM é alíquota zero mas está sendo tributado - usar CST 06',
+                        'impacto_pis': v_pis,
+                        'impacto_cofins': v_cofins
+                    })
+                    total_valor_divergente += valor
+            
+            # 4. Produtos tributados normalmente com CFOP de venda DEVEM ter CST 01
+            elif cfop_gera_debito and not deveria_ser_aliq_zero and not eh_monofasico:
+                # Verificar se CST está incorreto (deveria ser 01)
+                if cst_pis and cst_pis not in ['01', ''] and cst_pis in ['04', '06', '07', '08', '09']:
+                    doc_divergencias.append({
+                        'produto': prod.get('descricao', ''),
+                        'codigo': prod.get('codigo', ''),
+                        'ncm': ncm,
+                        'cfop': cfop,
+                        'valor': valor,
+                        'cst_pis_atual': cst_pis or '-',
+                        'cst_cofins_atual': cst_cofins or '-',
+                        'cst_pis_correto': '01',
+                        'cst_cofins_correto': '01',
+                        'v_pis_cobrado': v_pis,
+                        'v_cofins_cobrado': v_cofins,
+                        'tipo_divergencia': f'Produto tributado com CST incorreto ({cst_pis}) - CFOP {cfop} gera débito, usar CST 01',
+                        'impacto_pis': 0,
+                        'impacto_cofins': 0
+                    })
+                    total_valor_divergente += valor
         
         if doc_divergencias:
             divergencias.append({
