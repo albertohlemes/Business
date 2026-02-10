@@ -20,16 +20,18 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 // Categorias de documentos com configurações de importação
+// ENTRADAS: todos os tipos disponíveis para qualquer empresa
+// SAÍDAS: filtrados pela atividade da empresa
 const CATEGORIAS = {
   entrada: {
     label: 'Entradas',
     icon: ArrowDownCircle,
     color: 'emerald',
     tipos: [
-      { id: 'nfe', label: 'NF-e', icon: FileText, modelo: '55', importType: 'xml', accept: '.xml', atividades: ['comercio', 'industria', 'mista'] },
-      { id: 'servicos_tomados', label: 'Serviços Tomados', icon: Building2, modelo: 'nfse_tomado', importType: 'both', accept: '.xml,.pdf,.png,.jpg,.jpeg', atividades: ['comercio', 'industria', 'servicos', 'mista'] },
-      { id: 'cte', label: 'CT-e', icon: Truck, modelo: '57', importType: 'xml', accept: '.xml', atividades: ['comercio', 'industria', 'mista', 'transporte'] },
-      { id: 'outros', label: 'Demais Documentos', icon: Zap, modelo: 'outros', hint: 'Energia, Internet, etc.', importType: 'ai', accept: '.pdf,.png,.jpg,.jpeg', atividades: ['comercio', 'industria', 'servicos', 'mista', 'transporte'] }
+      { id: 'nfe', label: 'NF-e', icon: FileText, modelo: '55', importType: 'xml', accept: '.xml' },
+      { id: 'servicos_tomados', label: 'Serviços Tomados', icon: Building2, modelo: 'nfse_tomado', importType: 'both', accept: '.xml,.pdf,.png,.jpg,.jpeg' },
+      { id: 'cte', label: 'CT-e', icon: Truck, modelo: '57', importType: 'xml', accept: '.xml' },
+      { id: 'outros', label: 'Demais Documentos', icon: Zap, modelo: 'outros', hint: 'Energia, Internet, etc.', importType: 'ai', accept: '.pdf,.png,.jpg,.jpeg' }
     ]
   },
   saida: {

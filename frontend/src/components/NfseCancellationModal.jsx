@@ -295,7 +295,7 @@ const NfseCancellationModal = ({
                     )}
                     <input
                       type="file"
-                      accept=".xlsx,.xls,.csv,.txt"
+                      accept=".xlsx,.xls,.csv,.txt,.xml"
                       onChange={handleReportUpload}
                       disabled={uploadingReport}
                       className="hidden"
