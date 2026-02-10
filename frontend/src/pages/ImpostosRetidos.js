@@ -605,15 +605,124 @@ const ImpostosRetidos = ({ user, onLogout }) => {
 
                 {activeTab === 'prestados' && temAtividadeServicos && dados.servicos_prestados && (
                   <>
-                    <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
-                      <ImpostoCard label="ISS" valor={dados.servicos_prestados.retencoes?.iss} color="blue" />
-                      <ImpostoCard label="IR" valor={dados.servicos_prestados.retencoes?.ir} color="green" />
-                      <ImpostoCard label="PIS" valor={dados.servicos_prestados.retencoes?.pis} color="purple" />
-                      <ImpostoCard label="COFINS" valor={dados.servicos_prestados.retencoes?.cofins} color="amber" />
-                      <ImpostoCard label="CSLL" valor={dados.servicos_prestados.retencoes?.csll} color="cyan" />
-                      <ImpostoCard label="INSS" valor={dados.servicos_prestados.retencoes?.inss} color="red" />
+                    {/* Totalizadores por Grupo - Prestados */}
+                    {(() => {
+                      const totais = calcularTotaisPorGrupo(dados.servicos_prestados.detalhes);
+                      return (
+                        <div className="space-y-4 mb-6">
+                          {/* ISS com sub-lista por município */}
+                          <GrupoImpostoCard 
+                            titulo="ISS Retido pelo Tomador" 
+                            valor={totais.iss.valor}
+                            cor="blue"
+                            icone={Landmark}
+                            detalhes={totais.iss.detalhes}
+                            expanded={expandedGroups.issP}
+                            onToggle={() => toggleGroup('issP')}
+                          >
+                            {Object.keys(totais.issPorMunicipio).length > 0 && (
+                              <div className="space-y-2">
+                                <p className="text-sm text-[#A1A1AA] flex items-center gap-2 mb-3">
+                                  <MapPin className="w-4 h-4" />
+                                  ISS retido por Município do Tomador
+                                </p>
+                                {Object.entries(totais.issPorMunicipio)
+                                  .sort((a, b) => b[1].valor - a[1].valor)
+                                  .map(([municipio, dados]) => (
+                                    <div key={municipio} className="flex items-center justify-between bg-blue-500/5 rounded-lg px-4 py-2">
+                                      <div className="flex items-center gap-2">
+                                        <MapPin className="w-4 h-4 text-blue-400" />
+                                        <span className="text-white">{municipio}</span>
+                                        <span className="text-xs text-[#666]">({dados.qtd} doc{dados.qtd > 1 ? 's' : ''})</span>
+                                      </div>
+                                      <span className="text-blue-400 font-bold">{formatCurrency(dados.valor)}</span>
+                                    </div>
+                                  ))
+                                }
+                              </div>
+                            )}
+                          </GrupoImpostoCard>
+                          
+                          {/* IR */}
+                          <GrupoImpostoCard 
+                            titulo="IR Retido pelo Tomador" 
+                            valor={totais.ir.valor}
+                            cor="green"
+                            icone={Receipt}
+                            detalhes={totais.ir.detalhes}
+                            expanded={expandedGroups.irP}
+                            onToggle={() => toggleGroup('irP')}
+                          >
+                            <p className="text-sm text-[#A1A1AA]">
+                              Valor já retido na fonte - pode ser compensado na apuração do IR.
+                            </p>
+                          </GrupoImpostoCard>
+                          
+                          {/* CSLL + PIS + COFINS */}
+                          <GrupoImpostoCard 
+                            titulo="Contribuições Retidas (CSLL + PIS + COFINS)" 
+                            valor={totais.contribuicoes.valor}
+                            cor="purple"
+                            icone={Percent}
+                            detalhes={totais.contribuicoes.detalhes}
+                            expanded={expandedGroups.contribP}
+                            onToggle={() => toggleGroup('contribP')}
+                          >
+                            <div className="grid grid-cols-3 gap-4">
+                              <div className="bg-purple-500/10 rounded-lg p-3 text-center">
+                                <p className="text-xs text-[#A1A1AA]">CSLL</p>
+                                <p className="text-lg font-bold text-purple-400">{formatCurrency(totais.contribuicoes.csll)}</p>
+                              </div>
+                              <div className="bg-purple-500/10 rounded-lg p-3 text-center">
+                                <p className="text-xs text-[#A1A1AA]">PIS</p>
+                                <p className="text-lg font-bold text-purple-400">{formatCurrency(totais.contribuicoes.pis)}</p>
+                              </div>
+                              <div className="bg-purple-500/10 rounded-lg p-3 text-center">
+                                <p className="text-xs text-[#A1A1AA]">COFINS</p>
+                                <p className="text-lg font-bold text-purple-400">{formatCurrency(totais.contribuicoes.cofins)}</p>
+                              </div>
+                            </div>
+                          </GrupoImpostoCard>
+                          
+                          {/* INSS */}
+                          <GrupoImpostoCard 
+                            titulo="INSS Retido pelo Tomador" 
+                            valor={totais.inss.valor}
+                            cor="red"
+                            icone={Users}
+                            detalhes={totais.inss.detalhes}
+                            expanded={expandedGroups.inssP}
+                            onToggle={() => toggleGroup('inssP')}
+                          >
+                            <p className="text-sm text-[#A1A1AA]">
+                              Valor já retido - compensável na guia GPS.
+                            </p>
+                          </GrupoImpostoCard>
+                          
+                          {/* Total Geral */}
+                          <div className="bg-blue-500/10 border-2 border-blue-500/50 rounded-xl p-5 mt-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                                  <DollarSign className="w-6 h-6 text-blue-400" />
+                                </div>
+                                <div>
+                                  <h3 className="text-white font-semibold">Total Retido na Fonte</h3>
+                                  <p className="text-xs text-[#A1A1AA]">Valores já recolhidos pelo tomador</p>
+                                </div>
+                              </div>
+                              <p className="text-3xl font-bold text-blue-400">{formatCurrency(totais.total)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    
+                    {/* Tabela de Detalhes */}
+                    <div className="mt-6 pt-6 border-t border-[#2A2A2A]">
+                      <h3 className="text-white font-medium mb-4">Detalhamento por Documento</h3>
+                      <TabelaDetalhes detalhes={dados.servicos_prestados.detalhes} tipo="prestados" />
                     </div>
-                    <TabelaDetalhes detalhes={dados.servicos_prestados.detalhes} tipo="prestados" />
                   </>
                 )}
               </div>
