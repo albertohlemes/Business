@@ -2806,7 +2806,7 @@ async def create_user(
         "name": user_data.name,
         "role": user_data.role,
         "company_ids": user_data.company_ids,
-        "password_hash": get_password_hash(user_data.password),
+        "hashed_password": get_password_hash(user_data.password),
         "created_by": current_user.id,
         "is_active": True,
         "preferences": {"menu_mode": "vertical"},
