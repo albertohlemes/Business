@@ -1054,6 +1054,30 @@ const Companies = ({ user, onLogout }) => {
                       </select>
                     </div>
                   </div>
+                  
+                  {/* Flag de Atividade de Locação */}
+                  <div className="pt-4 border-t border-[#2A2A2A]">
+                    <label
+                      className={`flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                        formData.atividade_locacao
+                          ? 'bg-amber-500/10 border-amber-500/50'
+                          : 'bg-[#0C0C0C] border-[#2A2A2A] hover:border-[#3A3A3A]'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.atividade_locacao || false}
+                        onChange={(e) => setFormData({ ...formData, atividade_locacao: e.target.checked })}
+                        className="mt-1 h-4 w-4 rounded border-[#2A2A2A] bg-[#141414] text-amber-500 focus:ring-amber-500/50"
+                      />
+                      <div>
+                        <span className="text-white font-medium">Empresa possui atividade de Locação</span>
+                        <p className="text-xs text-[#666] mt-1">
+                          Locação de bens móveis/imóveis não possui incidência de ISS. Habilita importação de Faturas/Recibos via IA.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
 
                   {/* Perfis de Atividade Comercial - NÃO mostrar para empresas SOMENTE de serviços */}
                   {(formData.tipo_atividade === 'comercio' || formData.tipo_atividade === 'industria' || formData.tipo_atividade === 'mista') && (
