@@ -448,6 +448,8 @@ const Documents = ({ user, onLogout }) => {
       // Função de polling como fallback
       const pollProgress = async () => {
         try {
+          updateLastProgress(); // Atualizar timestamp ao receber resposta
+          
           const pollResponse = await axios.get(`${API}/xml/upload-status/${uploadId}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
@@ -455,7 +457,9 @@ const Documents = ({ user, onLogout }) => {
           
           if (data.completed === true && data.results) {
             if (pollingInterval) clearInterval(pollingInterval);
+            if (globalTimeoutId) clearInterval(globalTimeoutId); // Limpar timeout global
             setUploadProgress({ current: files.length, total: files.length, percent: 100 });
+            finishGlobalUpload(); // Finalizar progresso global
             
             const resumo = data.results.resumo || {};
             const successList = data.results.success || [];
@@ -491,6 +495,8 @@ const Documents = ({ user, onLogout }) => {
             fetchDocuments();
           } else if (data.error) {
             if (pollingInterval) clearInterval(pollingInterval);
+            if (globalTimeoutId) clearInterval(globalTimeoutId); // Limpar timeout global
+            setUploadError(data.error); // Atualizar erro global
             setUploadResult({
               tipo: 'erro',
               total: files.length,
