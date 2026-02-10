@@ -455,6 +455,52 @@ const Companies = ({ user, onLogout }) => {
     setFormData({ ...formData, [field]: formData[field].filter((_, i) => i !== index) });
   };
 
+  // NOVO: Função para gerar palavras-chave com IA a partir da descrição do negócio
+  const gerarKeywordsComIA = async () => {
+    if (!descricaoNegocio.trim()) {
+      toast.error('Digite uma descrição do negócio');
+      return;
+    }
+    
+    setGerandoKeywords(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${API}/companies/gerar-keywords-ia`,
+        { 
+          descricao: descricaoNegocio,
+          tipo_atividade: formData.tipo_atividade
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      setKeywordsSugeridas(response.data);
+      toast.success('Palavras-chave geradas! Revise e confirme.');
+    } catch (err) {
+      console.error('Erro ao gerar keywords:', err);
+      toast.error('Erro ao gerar palavras-chave');
+    } finally {
+      setGerandoKeywords(false);
+    }
+  };
+
+  // NOVO: Aplicar keywords sugeridas pela IA
+  const aplicarKeywordsSugeridas = () => {
+    if (!keywordsSugeridas) return;
+    
+    setFormData(prev => ({
+      ...prev,
+      produtos_comercializados: [...new Set([...(prev.produtos_comercializados || []), ...(keywordsSugeridas.produtos_comercializados || [])])],
+      insumos_producao: [...new Set([...(prev.insumos_producao || []), ...(keywordsSugeridas.insumos_producao || [])])],
+      produtos_despesa: [...new Set([...(prev.produtos_despesa || []), ...(keywordsSugeridas.produtos_despesa || [])])],
+      produtos_aplicacao_servico: [...new Set([...(prev.produtos_aplicacao_servico || []), ...(keywordsSugeridas.produtos_aplicacao_servico || [])])]
+    }));
+    
+    setKeywordsSugeridas(null);
+    setDescricaoNegocio('');
+    toast.success('Palavras-chave aplicadas com sucesso!');
+  };
+
   const toggleResponsavel = (userId) => {
     const current = formData.responsavel_ids || [];
     if (current.includes(userId)) {
