@@ -398,22 +398,64 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
               </div>
             </div>
 
-            {/* Cards Linha 2: Faturamento */}
+            {/* Cards Linha 2: Faturamento - Dinâmico por Tipo de Atividade */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Vendas do Mês */}
-              <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[#A1A1AA] text-sm">Vendas {data.competencia_atual}</span>
-                  <TrendingUp className="w-5 h-5 text-emerald-400" />
+              {/* Card 1: Serviços Prestados (só para servicos/mista) */}
+              {['servicos', 'mista'].includes(selectedCompany?.tipo_atividade) && (
+                <div className="bg-[#141414] rounded-lg border border-amber-500/30 p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-amber-400 text-sm font-medium">Serviços Prestados</span>
+                    <FileText className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <p className="text-2xl font-bold text-white">
+                    {formatCurrency(data.faturamento?.servicos_prestados || 0)}
+                  </p>
+                  <p className="text-xs text-[#666] mt-1">
+                    NFS-e emitidas no período
+                  </p>
                 </div>
-                <p className="text-2xl font-bold text-white">
-                  {formatCurrency(data.faturamento?.mes_atual)}
-                </p>
-                <p className="text-xs text-[#666] mt-1">
-                  Faturamento do mês atual
-                </p>
-              </div>
-
+              )}
+              
+              {/* Card 2: Saídas (só para comercio/industria/mista) */}
+              {['comercio', 'industria', 'mista'].includes(selectedCompany?.tipo_atividade) && (
+                <div className="bg-[#141414] rounded-lg border border-green-500/30 p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-green-400 text-sm font-medium">
+                      {selectedCompany?.tipo_atividade === 'mista' ? 'Total Saídas' : 'Saídas'} {data.competencia_atual}
+                    </span>
+                    <ArrowUpCircle className="w-5 h-5 text-green-400" />
+                  </div>
+                  <p className="text-2xl font-bold text-white">
+                    {formatCurrency(
+                      selectedCompany?.tipo_atividade === 'mista'
+                        ? (data.faturamento?.mes_atual || 0) + (data.faturamento?.servicos_prestados || 0)
+                        : data.faturamento?.mes_atual || 0
+                    )}
+                  </p>
+                  <p className="text-xs text-[#666] mt-1">
+                    {selectedCompany?.tipo_atividade === 'mista' 
+                      ? 'NF-e + NFC-e + NFS-e' 
+                      : 'Todas as notas de saída'}
+                  </p>
+                </div>
+              )}
+              
+              {/* Card 3: Vendas (só para comercio/industria/mista - CFOPs de venda) */}
+              {['comercio', 'industria', 'mista'].includes(selectedCompany?.tipo_atividade) && (
+                <div className="bg-[#141414] rounded-lg border border-emerald-500/30 p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-emerald-400 text-sm font-medium">Vendas {data.competencia_atual}</span>
+                    <TrendingUp className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <p className="text-2xl font-bold text-white">
+                    {formatCurrency(data.faturamento?.vendas_cfop || data.faturamento?.mes_atual)}
+                  </p>
+                  <p className="text-xs text-[#666] mt-1">
+                    Apenas CFOPs de venda (5101, 5102, 6101, 6102, 6108, etc.)
+                  </p>
+                </div>
+              )}
+              
               {/* Faturamento Ano */}
               <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
                 <div className="flex items-center justify-between mb-3">
@@ -428,72 +470,74 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                 </p>
               </div>
               
-              {/* Composição das Vendas */}
-              <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[#A1A1AA] text-sm">Composição das Vendas</span>
-                  <Scale className="w-5 h-5 text-purple-400" />
+              {/* Composição das Vendas (apenas para comercio/industria) */}
+              {selectedCompany?.tipo_atividade !== 'servicos' && (
+                <div className="bg-[#141414] rounded-lg border border-[#2A2A2A] p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[#A1A1AA] text-sm">Composição das Vendas</span>
+                    <Scale className="w-5 h-5 text-purple-400" />
+                  </div>
+                  {(() => {
+                    const descontos = data.das_mes_atual?.descontos || {};
+                    const st = descontos.produtos_st || 0;
+                    const mono = descontos.produtos_monofasicos || 0;
+                    const zero = descontos.produtos_aliquota_zero || 0;
+                    const total = data.faturamento?.mes_atual || 1;
+                    const tributado = Math.max(0, total - st - mono - zero);
+                    
+                    const pctST = (st / total * 100).toFixed(1);
+                    const pctMono = (mono / total * 100).toFixed(1);
+                    const pctZero = (zero / total * 100).toFixed(1);
+                    const pctTrib = (tributado / total * 100).toFixed(1);
+                    
+                    return (
+                      <>
+                        {/* Barra de proporção */}
+                        <div className="flex h-4 rounded-full overflow-hidden bg-[#2A2A2A]">
+                          <div style={{width: `${pctTrib}%`}} className="bg-emerald-500" title={`Tributado: ${pctTrib}%`} />
+                          <div style={{width: `${pctST}%`}} className="bg-amber-500" title={`ST: ${pctST}%`} />
+                          <div style={{width: `${pctMono}%`}} className="bg-blue-500" title={`Monofásico: ${pctMono}%`} />
+                          <div style={{width: `${pctZero}%`}} className="bg-purple-500" title={`Alíquota Zero: ${pctZero}%`} />
+                        </div>
+                        
+                        {/* Legenda */}
+                        <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <span className="text-[#A1A1AA]">Tributado</span>
+                            <span className="text-white font-medium ml-auto">{pctTrib}%</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-amber-500" />
+                            <span className="text-[#A1A1AA]">ICMS-ST</span>
+                            <span className="text-white font-medium ml-auto">{pctST}%</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                            <span className="text-[#A1A1AA]">Monofásico</span>
+                            <span className="text-white font-medium ml-auto">{pctMono}%</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-purple-500" />
+                            <span className="text-[#A1A1AA]">Alíq. Zero</span>
+                            <span className="text-white font-medium ml-auto">{pctZero}%</span>
+                          </div>
+                        </div>
+                        
+                        {/* Botão Exportar */}
+                        <button
+                          onClick={exportarProdutosAgrupados}
+                          disabled={exportingProdutos}
+                          className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-[#C8A951] bg-[#C8A951]/10 hover:bg-[#C8A951]/20 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          {exportingProdutos ? 'Exportando...' : 'Exportar Relatório'}
+                        </button>
+                      </>
+                    );
+                  })()}
                 </div>
-                {(() => {
-                  const descontos = data.das_mes_atual?.descontos || {};
-                  const st = descontos.produtos_st || 0;
-                  const mono = descontos.produtos_monofasicos || 0;
-                  const zero = descontos.produtos_aliquota_zero || 0;
-                  const total = data.faturamento?.mes_atual || 1;
-                  const tributado = Math.max(0, total - st - mono - zero);
-                  
-                  const pctST = (st / total * 100).toFixed(1);
-                  const pctMono = (mono / total * 100).toFixed(1);
-                  const pctZero = (zero / total * 100).toFixed(1);
-                  const pctTrib = (tributado / total * 100).toFixed(1);
-                  
-                  return (
-                    <>
-                      {/* Barra de proporção */}
-                      <div className="flex h-4 rounded-full overflow-hidden bg-[#2A2A2A]">
-                        <div style={{width: `${pctTrib}%`}} className="bg-emerald-500" title={`Tributado: ${pctTrib}%`} />
-                        <div style={{width: `${pctST}%`}} className="bg-amber-500" title={`ST: ${pctST}%`} />
-                        <div style={{width: `${pctMono}%`}} className="bg-blue-500" title={`Monofásico: ${pctMono}%`} />
-                        <div style={{width: `${pctZero}%`}} className="bg-purple-500" title={`Alíquota Zero: ${pctZero}%`} />
-                      </div>
-                      
-                      {/* Legenda */}
-                      <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                          <span className="text-[#A1A1AA]">Tributado</span>
-                          <span className="text-white font-medium ml-auto">{pctTrib}%</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-amber-500" />
-                          <span className="text-[#A1A1AA]">ICMS-ST</span>
-                          <span className="text-white font-medium ml-auto">{pctST}%</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-blue-500" />
-                          <span className="text-[#A1A1AA]">Monofásico</span>
-                          <span className="text-white font-medium ml-auto">{pctMono}%</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-purple-500" />
-                          <span className="text-[#A1A1AA]">Alíq. Zero</span>
-                          <span className="text-white font-medium ml-auto">{pctZero}%</span>
-                        </div>
-                      </div>
-                      
-                      {/* Botão Exportar */}
-                      <button
-                        onClick={exportarProdutosAgrupados}
-                        disabled={exportingProdutos}
-                        className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-[#C8A951] bg-[#C8A951]/10 hover:bg-[#C8A951]/20 rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        {exportingProdutos ? 'Exportando...' : 'Exportar Relatório'}
-                      </button>
-                    </>
-                  );
-                })()}
-              </div>
+              )}
             </div>
 
             {/* Barras de Progresso - Limites */}
