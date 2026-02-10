@@ -77,6 +77,28 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-10 (Sessão 9 - Correções de Evolução Fiscal e DIFAL)
+
+**Correção do Endpoint de Análise Horizontal (P0 - RESOLVIDO):**
+- ✅ **Endpoint `/api/analise-horizontal/{company_id}`** - Criado e funcionando
+- ✅ **Retorna dados mensais** - Compras, vendas, impostos (ICMS, PIS, COFINS, IPI, ISS)
+- ✅ **Comparativo ano atual vs anterior** - mensal e mensal_ano_anterior
+- ✅ **Endpoint de insights IA** - `/api/analise-horizontal/insights/{company_id}`
+
+**Correção do DIFAL para Simples Nacional:**
+- ✅ **Filtro de documentos corrigido** - Usa ambos campos `emitente_uf` e `uf_emitente`
+- ✅ **Endpoint de apuração** - `POST /api/simples-nacional/difal/apuracao` funcionando
+- ✅ **Cálculo correto** - Alíquota interna (SP: 18%) menos alíquota interestadual (7% ou 12%)
+- ✅ **Fundamentação legal** - LC 123/2006, Art. 13, §1º, XIII
+
+**Digitação Manual na Evolução Fiscal:**
+- ✅ **Restrição de edição** - Apenas períodos anteriores ao mês atual podem ser editados
+- ✅ **Tooltip informativo** - "Período atual/futuro - não editável manualmente"
+- ✅ **Texto de ajuda atualizado** - "Edição manual disponível apenas para períodos anteriores"
+
+**Bug Fix - Menu Duplicado:**
+- ✅ **Removida duplicação** - "Impostos Retidos" aparecia duas vezes para Lucro Presumido
+
 ### 2026-02-10 (Sessão 8 - Melhorias de Menu, CST e Análise Horizontal)
 
 **Modal de Visualização de Notas (Reorganizado):**
