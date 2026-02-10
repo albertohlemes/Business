@@ -188,6 +188,10 @@ function App() {
               path="/relatorio-unificado"
               element={user ? <RelatorioUnificado user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/viloes-oportunidades"
+              element={user ? <ViloesOportunidades user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
           </Routes>
           </UploadProvider>
         </AppProvider>
