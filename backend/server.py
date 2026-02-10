@@ -14685,8 +14685,9 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
         if is_strong_match:
             # Prefixo baseado em UF
             cfop_prefix = '2' if (emitente_uf and emitente_uf != company_uf) else '1'
-            cst = product.get('cst', '')
-            is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+            cst = str(product.get('cst', ''))
+            # ST: verifica tanto pelo CST quanto pelo CFOP original
+            is_st = is_st_by_cfop or cst in ['10', '30', '60', '70', '201', '202', '203', '500']
             
             if categoria == 'revenda':
                 cfop = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
@@ -14707,7 +14708,8 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
             stats["from_rules"] += 1
             continue
         
-        # 3. Enviar para IA
+        # 3. Enviar para IA (guarda is_st_by_cfop para uso posterior)
+        product['_is_st_by_cfop'] = is_st_by_cfop
         products_for_ai.append(product)
     
     # Classificar com IA os produtos restantes (inclui produtos vendidos para inferência)
@@ -14722,8 +14724,9 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
                 
                 # Calcular CFOP
                 cfop_prefix = '2' if (emitente_uf and emitente_uf != company_uf) else '1'
-                cst = product.get('cst', '')
-                is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+                cst = str(product.get('cst', ''))
+                # ST: verifica tanto pelo CST quanto pelo CFOP original
+                is_st = product.get('_is_st_by_cfop', False) or cst in ['10', '30', '60', '70', '201', '202', '203', '500']
                 
                 if categoria == 'revenda':
                     cfop = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
