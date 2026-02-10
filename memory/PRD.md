@@ -77,6 +77,23 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-10 (Sessão 13 - Melhorias Classificação Inteligente)
+
+**Barra de Progresso da IA na Classificação:**
+- ✅ **Adicionada barra de progresso animada** quando a IA está processando comandos
+- ✅ **Feedback visual** com ícone de loading e mensagem explicativa
+
+**Correção CFOP de ST (Substituição Tributária):**
+- ✅ **Problema:** Produtos ST estavam recebendo CFOP de tributados (ex: 1102 ao invés de 1403)
+- ✅ **Solução:** Lógica agora detecta ST tanto pelo CST quanto pelo CFOP original do XML
+- ✅ **CFOPs ST detectados:** 5403, 5405, 6403, 6404, 1403, 2403, etc.
+- ✅ **Aplicado em:** cache, regras e classificação por IA
+
+**Correção da Classificação ao Resolver Grupos de CFOP:**
+- ✅ **Problema:** Ao resolver grupo de CFOP, produtos ficavam "pendentes" em vez de classificados
+- ✅ **Causa:** Campo `categoria_classificada` não era atualizado, apenas `categoria`
+- ✅ **Solução:** Ambos os campos agora são atualizados em `resolver-grupo` e `resolver-individual`
+
 ### 2026-02-10 (Sessão 12 - Barra de Progresso e Permissões)
 
 **Correção da Barra de Progresso de Upload:**
