@@ -38,6 +38,25 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
   
   const anoAtual = selectedCompetencia ? parseInt(selectedCompetencia.split('/')[1]) : new Date().getFullYear();
   const anoAnterior = anoAtual - 1;
+  
+  // Função para verificar se a competência permite edição manual
+  // Apenas períodos anteriores ao mês atual podem ser editados manualmente
+  const isPeriodoEditavel = (competencia) => {
+    if (!competencia) return false;
+    const [mesStr, anoStr] = competencia.split('/');
+    const mesComp = parseInt(mesStr);
+    const anoComp = parseInt(anoStr);
+    const now = new Date();
+    const mesAtual = now.getMonth() + 1; // JavaScript meses são 0-indexed
+    const anoAtualReal = now.getFullYear();
+    
+    // Permite edição se:
+    // 1. O ano da competência é anterior ao ano atual
+    // 2. O ano é o atual, mas o mês é anterior ao mês atual
+    if (anoComp < anoAtualReal) return true;
+    if (anoComp === anoAtualReal && mesComp < mesAtual) return true;
+    return false;
+  };
 
   const formatCurrency = (value) => {
     if (value === null || value === undefined) return 'R$ 0,00';
