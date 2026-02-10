@@ -340,44 +340,46 @@ const AnalisePisCofins = ({ user, onLogout }) => {
 
   return (
     <Layout user={user} onLogout={onLogout}>
-      <div data-testid="analise-pis-cofins-page" className="space-y-4">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-red-700 to-red-800 rounded-lg p-5 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold flex items-center gap-2">
-                <DollarSign className="w-6 h-6" /> Auditoria de PIS/COFINS
-              </h1>
-              <p className="text-[#A1A1AA] text-sm mt-1">
-                Competência {selectedCompetencia} • Regime: {dados?.regime_tributario || '-'}
-                {dados?.aliquotas_regime && ` (PIS ${dados.aliquotas_regime.pis}% / COFINS ${dados.aliquotas_regime.cofins}%)`}
-              </p>
+      <div data-testid="analise-pis-cofins-page" className="flex flex-col h-[calc(100vh-80px)]">
+        {/* Header Fixo */}
+        <div className="flex-shrink-0 space-y-4 pb-4">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-red-700 to-red-800 rounded-lg p-5 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-bold flex items-center gap-2">
+                  <DollarSign className="w-6 h-6" /> Auditoria de PIS/COFINS
+                </h1>
+                <p className="text-[#A1A1AA] text-sm mt-1">
+                  Competência {selectedCompetencia} • Regime: {dados?.regime_tributario || '-'}
+                  {dados?.aliquotas_regime && ` (PIS ${dados.aliquotas_regime.pis}% / COFINS ${dados.aliquotas_regime.cofins}%)`}
+                </p>
+              </div>
+              <button onClick={fetchData} disabled={loading} className="px-3 py-2 bg-[#141414]/20 hover:bg-[#141414]/30 rounded-lg flex items-center gap-2 text-sm">
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar
+              </button>
             </div>
-            <button onClick={fetchData} disabled={loading} className="px-3 py-2 bg-[#141414]/20 hover:bg-[#141414]/30 rounded-lg flex items-center gap-2 text-sm">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar
-            </button>
           </div>
-        </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <RefreshCw className="w-8 h-8 animate-spin text-[#C8A951]" />
-          </div>
-        ) : dados ? (
-          <>
-            {/* Cards de Resumo */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-[#141414] rounded-lg p-4 border shadow-sm">
-                <p className="text-xs text-[#A1A1AA] uppercase font-medium">Total Analisado</p>
-                <p className="text-2xl font-bold text-white">{formatCurrency(dados.resumo?.total_valor_saidas)}</p>
-                <p className="text-xs text-[#666666] mt-1">{dados.total_documentos} NFs • {dados.total_produtos} itens</p>
-              </div>
-              
-              <div className="bg-[#141414] rounded-lg p-4 border shadow-sm">
-                <p className="text-xs text-[#A1A1AA] uppercase font-medium">Divergências</p>
-                <p className="text-2xl font-bold text-amber-600">{dados.total_divergentes}</p>
-                <p className="text-xs text-[#666666] mt-1">itens com problema</p>
-              </div>
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <RefreshCw className="w-8 h-8 animate-spin text-[#C8A951]" />
+            </div>
+          ) : dados ? (
+            <>
+              {/* Cards de Resumo */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-[#141414] rounded-lg p-4 border shadow-sm">
+                  <p className="text-xs text-[#A1A1AA] uppercase font-medium">Total Analisado</p>
+                  <p className="text-2xl font-bold text-white">{formatCurrency(dados.resumo?.total_valor_saidas)}</p>
+                  <p className="text-xs text-[#666666] mt-1">{dados.total_documentos} NFs • {dados.total_produtos} itens</p>
+                </div>
+                
+                <div className="bg-[#141414] rounded-lg p-4 border shadow-sm">
+                  <p className="text-xs text-[#A1A1AA] uppercase font-medium">Divergências</p>
+                  <p className="text-2xl font-bold text-amber-600">{dados.total_divergentes}</p>
+                  <p className="text-xs text-[#666666] mt-1">itens com problema</p>
+                </div>
               
               <div className={`rounded-lg p-4 border shadow-sm ${pagoAMais > 0 ? 'bg-green-50 border-green-200' : 'bg-[#141414]'}`}>
                 <p className="text-xs text-green-700 uppercase font-medium flex items-center gap-1">
