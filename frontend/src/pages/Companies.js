@@ -118,6 +118,11 @@ const Companies = ({ user, onLogout }) => {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef(null);
   
+  // NOVO: Estado para IA de descrição do negócio
+  const [descricaoNegocio, setDescricaoNegocio] = useState('');
+  const [gerandoKeywords, setGerandoKeywords] = useState(false);
+  const [keywordsSugeridas, setKeywordsSugeridas] = useState(null);
+  
   // Estado para anexos do Simples Nacional
   const [anexosSugeridos, setAnexosSugeridos] = useState([]);
   const [showAnexoConfirmModal, setShowAnexoConfirmModal] = useState(false);
