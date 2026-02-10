@@ -232,11 +232,12 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
 
   // Salvar valor manual
   const salvarValorManual = (competencia, campo, valor) => {
+    const valorNumerico = valor === '' ? '' : parseFloat(valor) || 0;
     setDadosManuais(prev => ({
       ...prev,
       [competencia]: {
         ...prev[competencia],
-        [campo]: parseFloat(valor) || 0
+        [campo]: valorNumerico
       }
     }));
     setEditando(null);
