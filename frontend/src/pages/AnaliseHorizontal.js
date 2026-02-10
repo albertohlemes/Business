@@ -105,6 +105,17 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
   useEffect(() => {
     if (selectedCompany?.id) {
       fetchDados();
+      
+      // Carregar dados manuais salvos do localStorage
+      const key = `evolucao_manual_${selectedCompany.id}`;
+      const savedData = localStorage.getItem(key);
+      if (savedData) {
+        try {
+          setDadosManuais(JSON.parse(savedData));
+        } catch (e) {
+          console.error('Erro ao carregar dados manuais:', e);
+        }
+      }
     }
   }, [selectedCompany?.id, anoAtual]);
 
