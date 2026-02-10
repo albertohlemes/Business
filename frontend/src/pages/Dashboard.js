@@ -285,13 +285,11 @@ const Dashboard = ({ user, onLogout }) => {
                         <span className="text-[#A1A1AA]">NFS-e (Serviços Tomados)</span>
                         <span className="text-white font-medium">{formatCurrency(stats.valores.entradas?.servicos_tomados || 0)}</span>
                       </div>
-                      {/* Outros Documentos - totalizado */}
-                      {(stats.valores.entradas?.outros || 0) > 0 && (
-                        <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
-                          <span className="text-[#A1A1AA]">Outros Documentos</span>
-                          <span className="text-white font-medium">{formatCurrency(stats.valores.entradas?.outros || 0)}</span>
-                        </div>
-                      )}
+                      {/* Outros Documentos - sempre exibido */}
+                      <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
+                        <span className="text-[#A1A1AA]">Outros Documentos</span>
+                        <span className="text-white font-medium">{formatCurrency(stats.valores.entradas?.outros || 0)}</span>
+                      </div>
                     </div>
                   </div>
                   
