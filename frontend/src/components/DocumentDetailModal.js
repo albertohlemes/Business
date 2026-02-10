@@ -196,14 +196,14 @@ const DocumentDetailModal = ({ document, onClose }) => {
             </div>
           </div>
 
-          {/* Comparativo Capa vs Produtos */}
-          <div className="bg-[#0C0C0C] rounded-lg p-4 border border-[#2A2A2A]">
-            <div className="flex items-center justify-between mb-4">
+          {/* === TOTALIZADORES REORGANIZADOS EM 3 LINHAS === */}
+          <div className="bg-[#0C0C0C] rounded-lg p-4 border border-[#2A2A2A] space-y-4">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-[#C8A951]" />
-                <h4 className="text-sm font-medium text-white">Comparativo: Capa NF × Produtos</h4>
+                <h4 className="text-sm font-medium text-white">Análise: Capa da NF × Produtos</h4>
               </div>
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex items-center gap-3 text-xs">
                 <span className="flex items-center gap-1 text-emerald-400">
                   <CheckCircle className="w-3 h-3" /> OK
                 </span>
@@ -213,134 +213,197 @@ const DocumentDetailModal = ({ document, onClose }) => {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {/* Valor Total */}
-              <div className="bg-[#1A1A1A] rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-[#666]">Valor Total</span>
-                  {getDivergenceIcon(valorCapaNF.valor_total, totaisProdutos.valor_total)}
-                </div>
-                <p className={`text-sm font-bold ${getDivergenceClass(valorCapaNF.valor_total, totaisProdutos.valor_total)}`}>
-                  {formatCurrency(valorCapaNF.valor_total)}
-                </p>
-                <p className="text-xs text-[#666] mt-0.5">
-                  Prod: {formatCurrency(totaisProdutos.valor_total)}
-                </p>
+            {/* LINHA 1: Totalizadores da CAPA da NF */}
+            <div className="bg-[#1A1A1A] rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="w-4 h-4 text-blue-400" />
+                <span className="text-xs font-semibold text-blue-400 uppercase tracking-wide">Capa da Nota Fiscal</span>
               </div>
+              <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Valor Total</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(valorCapaNF.valor_total)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">ICMS</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(valorCapaNF.icms_total)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">ICMS-ST</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(valorCapaNF.total_icms_st)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">IPI</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(valorCapaNF.total_ipi)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Frete</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(valorCapaNF.total_frete)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Seguro</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(valorCapaNF.total_seguro)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Outras Desp.</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(valorCapaNF.total_outras_despesas)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Desconto</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(valorCapaNF.total_desconto)}</p>
+                </div>
+              </div>
+            </div>
 
-              {/* ICMS */}
-              <div className="bg-[#1A1A1A] rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-[#666]">ICMS</span>
-                  {getDivergenceIcon(valorCapaNF.icms_total, totaisProdutos.v_icms)}
-                </div>
-                <p className={`text-sm font-bold ${getDivergenceClass(valorCapaNF.icms_total, totaisProdutos.v_icms)}`}>
-                  {formatCurrency(valorCapaNF.icms_total)}
-                </p>
-                <p className="text-xs text-[#666] mt-0.5">
-                  Prod: {formatCurrency(totaisProdutos.v_icms)}
-                </p>
+            {/* LINHA 2: Totalizadores da SOMA dos PRODUTOS */}
+            <div className="bg-[#1A1A1A] rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-3">
+                <Package className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Soma dos Produtos ({produtos.length} itens)</span>
               </div>
+              <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Valor Total</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.valor_total)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">ICMS</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.v_icms)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">ICMS-ST</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.v_icms_st)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">IPI</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.v_ipi)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Frete</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.v_frete)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Seguro</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.v_seguro)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Outras Desp.</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.v_outras_despesas)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Desconto</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(totaisProdutos.v_desconto)}</p>
+                </div>
+              </div>
+              {/* PIS/COFINS extras (só dos produtos) */}
+              <div className="mt-3 pt-3 border-t border-[#2A2A2A] grid grid-cols-4 gap-2">
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">BC PIS</p>
+                  <p className="text-xs font-medium text-[#A1A1AA]">{formatCurrency(totaisProdutos.v_bc_pis)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">PIS</p>
+                  <p className="text-xs font-medium text-[#A1A1AA]">{formatCurrency(totaisProdutos.v_pis)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">BC COFINS</p>
+                  <p className="text-xs font-medium text-[#A1A1AA]">{formatCurrency(totaisProdutos.v_bc_cofins)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">COFINS</p>
+                  <p className="text-xs font-medium text-[#A1A1AA]">{formatCurrency(totaisProdutos.v_cofins)}</p>
+                </div>
+              </div>
+            </div>
 
-              {/* ICMS-ST */}
-              <div className="bg-[#1A1A1A] rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-[#666]">ICMS-ST</span>
-                  {getDivergenceIcon(valorCapaNF.total_icms_st, totaisProdutos.v_icms_st)}
-                </div>
-                <p className={`text-sm font-bold ${getDivergenceClass(valorCapaNF.total_icms_st, totaisProdutos.v_icms_st)}`}>
-                  {formatCurrency(valorCapaNF.total_icms_st)}
-                </p>
-                <p className="text-xs text-[#666] mt-0.5">
-                  Prod: {formatCurrency(totaisProdutos.v_icms_st)}
-                </p>
+            {/* LINHA 3: DIFERENÇAS (Capa - Produtos) */}
+            <div className={`rounded-lg p-3 ${Math.abs(valorCapaNF.valor_total - totaisProdutos.valor_total) >= 0.10 ? 'bg-red-500/10 border border-red-500/30' : 'bg-emerald-500/10 border border-emerald-500/30'}`}>
+              <div className="flex items-center gap-2 mb-3">
+                {Math.abs(valorCapaNF.valor_total - totaisProdutos.valor_total) >= 0.10 ? (
+                  <>
+                    <AlertTriangle className="w-4 h-4 text-red-400" />
+                    <span className="text-xs font-semibold text-red-400 uppercase tracking-wide">Diferenças Identificadas (Capa − Produtos)</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Validação OK - Sem Divergências</span>
+                  </>
+                )}
               </div>
+              <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Valor Total</p>
+                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.valor_total - totaisProdutos.valor_total) >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {formatCurrency(valorCapaNF.valor_total - totaisProdutos.valor_total)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">ICMS</p>
+                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.icms_total - totaisProdutos.v_icms) >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {formatCurrency(valorCapaNF.icms_total - totaisProdutos.v_icms)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">ICMS-ST</p>
+                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.total_icms_st - totaisProdutos.v_icms_st) >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {formatCurrency(valorCapaNF.total_icms_st - totaisProdutos.v_icms_st)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">IPI</p>
+                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.total_ipi - totaisProdutos.v_ipi) >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {formatCurrency(valorCapaNF.total_ipi - totaisProdutos.v_ipi)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Frete</p>
+                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.total_frete - totaisProdutos.v_frete) >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {formatCurrency(valorCapaNF.total_frete - totaisProdutos.v_frete)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Seguro</p>
+                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.total_seguro - totaisProdutos.v_seguro) >= 0.10 ? 'text-emerald-400' : 'text-emerald-400'}`}>
+                    {formatCurrency(valorCapaNF.total_seguro - totaisProdutos.v_seguro)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Outras Desp.</p>
+                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.total_outras_despesas - totaisProdutos.v_outras_despesas) >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {formatCurrency(valorCapaNF.total_outras_despesas - totaisProdutos.v_outras_despesas)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Desconto</p>
+                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.total_desconto - totaisProdutos.v_desconto) >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {formatCurrency(valorCapaNF.total_desconto - totaisProdutos.v_desconto)}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-              {/* IPI */}
-              <div className="bg-[#1A1A1A] rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-[#666]">IPI</span>
-                  {getDivergenceIcon(valorCapaNF.total_ipi, totaisProdutos.v_ipi)}
+            {/* Info adicional: Data e Qtd Produtos */}
+            <div className="flex items-center justify-between pt-2 border-t border-[#2A2A2A]">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1 text-sm">
+                  <Calendar className="w-4 h-4 text-[#666]" />
+                  <span className="text-[#A1A1AA]">Emissão:</span>
+                  <span className="text-white font-medium">{formatDate(document.data_emissao)}</span>
                 </div>
-                <p className={`text-sm font-bold ${getDivergenceClass(valorCapaNF.total_ipi, totaisProdutos.v_ipi)}`}>
-                  {formatCurrency(valorCapaNF.total_ipi)}
-                </p>
-                <p className="text-xs text-[#666] mt-0.5">
-                  Prod: {formatCurrency(totaisProdutos.v_ipi)}
-                </p>
-              </div>
-
-              {/* PIS */}
-              <div className="bg-[#1A1A1A] rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-[#666]">PIS</span>
-                  <span className="text-[#A1A1AA]">-</span>
+                <div className="flex items-center gap-1 text-sm">
+                  <Package className="w-4 h-4 text-[#666]" />
+                  <span className="text-[#A1A1AA]">Produtos:</span>
+                  <span className="text-white font-medium">{produtos.length}</span>
                 </div>
-                <p className="text-sm font-bold text-white">
-                  {formatCurrency(totaisProdutos.v_pis)}
-                </p>
-                <p className="text-xs text-[#666] mt-0.5">
-                  Base: {formatCurrency(totaisProdutos.v_bc_pis)}
-                </p>
               </div>
-
-              {/* COFINS */}
-              <div className="bg-[#1A1A1A] rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-[#666]">COFINS</span>
-                  <span className="text-[#A1A1AA]">-</span>
+              {divergenciasProd.total > 0 && (
+                <div className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400">
+                  {divergenciasProd.cstDivergentes > 0 && `${divergenciasProd.cstDivergentes} CST divergente(s)`}
+                  {divergenciasProd.cstDivergentes > 0 && divergenciasProd.cfopDivergentes > 0 && ' • '}
+                  {divergenciasProd.cfopDivergentes > 0 && `${divergenciasProd.cfopDivergentes} CFOP alterado(s)`}
                 </div>
-                <p className="text-sm font-bold text-white">
-                  {formatCurrency(totaisProdutos.v_cofins)}
-                </p>
-                <p className="text-xs text-[#666] mt-0.5">
-                  Base: {formatCurrency(totaisProdutos.v_bc_cofins)}
-                </p>
-              </div>
-
-              {/* Frete */}
-              <div className="bg-[#1A1A1A] rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-[#666]">Frete</span>
-                  {getDivergenceIcon(valorCapaNF.total_frete, totaisProdutos.v_frete)}
-                </div>
-                <p className={`text-sm font-bold ${getDivergenceClass(valorCapaNF.total_frete, totaisProdutos.v_frete)}`}>
-                  {formatCurrency(valorCapaNF.total_frete)}
-                </p>
-              </div>
-
-              {/* Desconto */}
-              <div className="bg-[#1A1A1A] rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-[#666]">Desconto</span>
-                  {getDivergenceIcon(valorCapaNF.total_desconto, totaisProdutos.v_desconto)}
-                </div>
-                <p className={`text-sm font-bold ${getDivergenceClass(valorCapaNF.total_desconto, totaisProdutos.v_desconto)}`}>
-                  {formatCurrency(valorCapaNF.total_desconto)}
-                </p>
-              </div>
-
-              {/* Data Emissão */}
-              <div className="bg-[#1A1A1A] rounded-lg p-3">
-                <div className="flex items-center gap-1 mb-1">
-                  <Calendar className="w-3 h-3 text-[#666]" />
-                  <span className="text-xs text-[#666]">Data Emissão</span>
-                </div>
-                <p className="text-sm font-bold text-white">
-                  {formatDate(document.data_emissao)}
-                </p>
-              </div>
-
-              {/* Qtd Produtos */}
-              <div className="bg-[#1A1A1A] rounded-lg p-3">
-                <div className="flex items-center gap-1 mb-1">
-                  <Package className="w-3 h-3 text-[#666]" />
-                  <span className="text-xs text-[#666]">Produtos</span>
-                </div>
-                <p className="text-sm font-bold text-white">
-                  {produtos.length}
-                </p>
-              </div>
+              )}
             </div>
           </div>
 
