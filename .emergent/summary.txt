@@ -1,172 +1,157 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou a criação de um sistema de gestão fiscal para empresas do Simples Nacional e Lucro Presumido. A aplicação evoluiu para uma plataforma completa com dashboards, cadastro de empresas, controle de Fator R, importação de PGDAS, cálculo de DIFAL e um comparativo de regimes tributários (RET).
+O usuário solicitou a criação de um sistema de gestão fiscal para empresas do Simples Nacional e Lucro Presumido. A aplicação evoluiu para uma plataforma completa com dashboards, cadastro de empresas, controle de Fator R, importação de documentos fiscais (NFe, NFCe, NFSe), cálculo de impostos (DIFAL, PIS/COFINS, ICMS) e um comparativo de regimes tributários (RET).
 
-As solicitações mais recentes do usuário incluem uma lista extensa de mais de 15 pontos de melhoria, focando em:
-- **Bugs Críticos:** Correção no filtro de  no menu Documentos, correção no relatório de conclusão de importação (que exibe contagens zeradas).
+As solicitações mais recentes do usuário se concentram em uma vasta gama de melhorias e novas funcionalidades, incluindo:
 - **Novas Funcionalidades:**
-    - Criar uma página para visualização e gestão de **Impostos Retidos** (Tomador/Prestador).
-    - Criar uma página de **Relatório Unificado** com opção de exportação para Word/PDF/Excel.
-    - Implementar a lógica de transporte de **saldo credor** para o mês seguinte.
-    - Finalizar a lógica para empresas **transportadoras** (importação de CT-e e cálculo de crédito presumido de ICMS).
-- **Melhorias de IA:** Aprimorar a classificação de notas de entrada, analisando as notas de saída da empresa para ter um contexto de revenda.
-- **Melhorias de UI/UX:** Tornar o dashboard do Fator R mais visual e comparativo, e ajustar o cadastro de empresa para lidar com o campo Aplicação em Serviços de forma condicional.
+    - Importação de faturas/recibos de locação via IA (PDF/Imagem).
+    - Implementação de um sistema de permissões de usuário (Master vs. Operacional).
+- **Melhorias de UI/UX:**
+    - Reorganização do menu lateral para uma ordem mais lógica.
+    - Ajustes nos dashboards (principal e Simples Nacional) para exibir cards dinâmicos com base no tipo de atividade da empresa.
+    - Melhoria na página de Impostos Retidos para agrupar totais por tipo de imposto.
+    - Implementação de um simulador de Fator R interativo e mais visual no dashboard do Simples Nacional.
+- **Bugs e Regras de Negócio:**
+    - Corrigir a classificação de CST PIS/COFINS nas divergências (Saídas tributáveis devem ser CST 01, Entradas com crédito CST 50).
+    - Assegurar que os NCMs de bebidas alcoólicas sejam tributados corretamente.
+    - Confirmar o funcionamento das barras de progresso e do relatório de conclusão de importação.
 
 **User's preferred language**:
 Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-A aplicação full-stack (React + FastAPI + MongoDB) está funcional. Na última sessão, o agente implementou com sucesso o fluxo de cancelamento de Notas Fiscais de Serviço (NFS-e), que inclui um novo modal no frontend para o usuário selecionar as notas a serem canceladas durante a importação e novos endpoints no backend para processar essa informação. Também foram realizadas melhorias no agrupamento automático de CFOPs, correções no formulário de cadastro de empresas para posicionar corretamente o campo Aplicação em Serviços, e a criação dos arquivos e rotas para as novas páginas de Impostos Retidos e Relatório Unificado.
+Uma aplicação full-stack (React + FastAPI + MongoDB) funcional. Na sessão atual, o agente implementou um grande número de solicitações do usuário. As principais mudanças foram:
+- **Reorganização do Menu:** O menu lateral foi completamente reestruturado para ter uma ordem lógica (Cadastros, Apurações, Análises, Exportações) e se tornou totalmente dinâmico, exibindo itens com base no regime tributário e tipo de atividade da empresa selecionada.
+- **Dashboards Dinâmicos:** Tanto o dashboard principal quanto o do Simples Nacional foram atualizados para exibir cards de Faturamento, Vendas e Serviços de forma condicional, de acordo com o perfil da empresa (comércio, serviços ou mista).
+- **Simulador de Fator R:** Foi implementado no dashboard do Simples Nacional um simulador interativo onde o usuário pode inserir um valor de folha de pagamento para ver o impacto no Fator R, a economia gerada e o valor que falta para atingir a meta de 28%.
+- **Melhoria nos Indicadores e Impostos Retidos:** A página de Indicadores agora oculta abas como Markup para empresas de serviços, focando em Ponto de Equilíbrio. A página Impostos Retidos foi redesenhada para agrupar os valores por tipo de imposto (ISS, IRRF, etc.) com totalizadores.
+- **Regras de Negócio:** Foram atualizadas as listas de CFOPs de venda e NCMs para garantir que bebidas alcoólicas sejam tratadas como tributadas. O prompt da IA para gerar insights também foi aprimorado.
+- **Novos Recursos (Em Andamento):** Foi adicionado um campo Atividade de Locação no cadastro de empresas, que habilita uma nova opção de importação (Faturas / Recibos) via IA (PDF/Imagem) na tela de Documentos. O backend foi preparado com um novo endpoint e um prompt de IA específico para extrair dados desses documentos.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava finalizando a criação das novas páginas  e . Foram criados os arquivos (, ), adicionadas as rotas em  e os links no menu lateral em . Foi instalada a biblioteca  para a futura funcionalidade de exportação. No entanto, um teste com screenshot revelou que os novos links não estavam aparecendo no menu lateral.
+-   **Last item agent was working**: O agente estava finalizando a implementação do conjunto de melhorias solicitadas pelo usuário. As últimas ações foram focadas em:
+    1.  **Reorganizar o menu lateral**, removendo os títulos das seções.
+    2.  **Atualizar a lista de NCMs de bebidas alcoólicas** para incluir vinhos ().
+    3.  **Investigar a lógica de CST PIS/COFINS** para divergências, com o objetivo de usar CST 01 para saídas tributáveis e 50 para entradas com crédito.
+    4.  **Implementar a importação de NFS-e (prestado/tomado) via IA**, confirmando que a estrutura para isso já existia e adicionando a nova opção de importação de Faturas / Recibos para empresas com atividade de locação, incluindo a criação de um novo prompt e função de extração no backend ().
 -   **Status**: IN PROGRESS
--   **Agent Testing Done**: Y (Screenshot test failed to show new menu items)
--   **Which testing method agent to use?**: frontend testing agent ou screenshot tool. O agente precisa depurar por que os links não aparecem em  e depois verificar se as novas páginas (atualmente vazias) carregam corretamente.
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: both. É necessário um teste completo de frontend e backend.
+    -   **Frontend:** Testar a nova ordem do menu, todos os dashboards dinâmicos (principal e SN), o simulador de Fator R, a página de Impostos Retidos e o novo fluxo de importação para Faturas / Recibos.
+    -   **Backend:** Testar o endpoint  com um PDF de fatura de locação. Validar a lógica de CST PIS/COFINS e implementar o novo sistema de permissões de usuário.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0)**: O filtro por  /  no menu Documentos não está funcionando corretamente.
--   **Issue 2 (P1)**: A página de apuração do DIFAL para empresas do Simples Nacional não está trazendo as notas e os cálculos.
--   **Issue 3 (P1)**: O relatório de conclusão de importação, por vezes, exibe a contagem de documentos zerada.
--   **Issue 4 (P2)**: Os links para as novas páginas Impostos Retidos e Relatório Unificado não estão aparecendo no menu lateral.
--   **Issue 5 (P3)**: Bug recorrente do modal de seleção de empresa pode persistir e precisa de verificação completa.
+-   **Issue 1 (P0): Filtro de divergência em Documentos (CST PIS/COFINS).**
+    -   **Description**: O usuário relatou que a análise de divergências classifica incorretamente produtos tributáveis como monofásicos (CST 04). A meta é que saídas tributáveis sejam classificadas como CST 01 e entradas com direito a crédito como CST 50.
+    -   **Status**: IN PROGRESS
+
+-   **Issue 2 (P1): DIFAL para Simples Nacional não está funcionando.**
+    -   **Description**: A página de apuração do DIFAL não exibe as notas e os cálculos.
+    -   **Status**: BLOCKED (por falta de dados de teste: um XML de NFe de compra interestadual para uma empresa do SN).
+
+-   **Issue 3 (P1): Relatório de conclusão de importação com contagem zerada.**
+    -   **Description**: Em alguns casos, o modal de resumo após a importação mostra contagens zeradas, mesmo que os documentos tenham sido processados.
+    -   **Status**: TESTING PENDING
+
+-   **Issue 4 (P2): Confirmação do funcionamento das barras de progresso.**
+    -   **Description**: O usuário pediu para confirmar se as barras de progresso e o contador tomando café estão funcionando corretamente em todas as importações. A funcionalidade existe, mas precisa de um teste ponta a ponta para validação.
+    -   **Status**: USER VERIFICATION PENDING
 
 **Issues Detail**:
--   **Issue 1: Filtro de divergência em Documentos não funciona.**
-    -   **Attempted fixes**: O agente reescreveu a lógica de filtragem em  para ser mais robusta, baseando-se no campo  do documento e na presença de itens com  ou outras inconsistências.
+-   **Issue 1: Filtro de divergência em Documentos (CST PIS/COFINS).**
+    -   **Attempted fixes**: O agente verificou que as bebidas alcoólicas não estão sendo erroneamente classificadas como monofásicas. A investigação mostrou que a função de análise de divergência () atualmente foca em saídas.
     -   **Next debug checklist**:
-        1.  Verificar no backend (durante a importação e validação) se o campo  está sendo definido corretamente para os documentos.
-        2.  Testar na UI, com uma empresa e competência que contenham documentos com e sem divergências, para garantir que os três estados do filtro ('todos', 'ok', 'divergente') funcionam como esperado para os totais e a lista de documentos.
-    -   **Why fix this issue and what will be achieved with the fix?**: É um requisito principal do usuário para identificar rapidamente documentos que necessitam de atenção fiscal.
+        1.  Modificar a função  no  para garantir que, para saídas tributáveis (não monofásicas e não alíquota zero), o CST correto sugerido seja sempre '01'.
+        2.  Implementar uma lógica similar para **entradas**, que verifique se a compra é de um produto que a empresa revende (e, portanto, passível de crédito) e sugira o CST '50'.
+    -   **Why fix this issue and what will be achieved with the fix?**: Garante que a empresa apure corretamente os débitos e créditos de PIS/COFINS, evitando problemas fiscais.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: both
-
--   **Issue 2: DIFAL para Simples Nacional não está funcionando.**
-    -   **Attempted fixes**: O agente corrigiu no backend ( e ) a inconsistência nos nomes dos campos ( vs. ). O teste do endpoint retornou uma resposta vazia por falta de dados de teste (notas de compra interestaduais).
-    -   **Next debug checklist**:
-        1.  Obter ou criar um arquivo XML de NFe de compra de outro estado.
-        2.  Importar este XML para uma empresa do Simples Nacional.
-        3.  Acessar a página  e verificar se a nota e os cálculos de DIFAL são exibidos corretamente.
-    -   **Why fix this issue and what will be achieved with the fix?**: Atende a um requisito funcional chave para empresas do Simples Nacional.
-    -   **Status**: BLOCKED (on test data)
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: both
-
--   **Issue 3: Relatório de conclusão de importação com contagem zerada.**
-    -   **Attempted fixes**: O agente adicionou um fallback no frontend () para exibir  caso  não esteja disponível, como uma medida paliativa.
-    -   **Next debug checklist**: Realizar uma importação de múltiplos arquivos e inspecionar o objeto  no console do navegador para confirmar a estrutura de dados que o backend está retornando, tanto para upload normal quanto para SSE (streaming).
-    -   **Why fix this issue and what will be achieved with the fix?**: Fornece feedback essencial e confirmação ao usuário após a operação de importação.
-    -   **Status**: TESTING PENDING
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: frontend
-
--   **Issue 4: Links de novas páginas não aparecem no menu.**
-    -   **Attempted fixes**: O agente adicionou os links ao array  em .
-    -   **Next debug checklist**:
-        1.  Analisar a lógica de renderização do menu em . A causa provável é que o menu é construído com base na , que pode ser  no carregamento inicial da página, antes que as novas rotas sejam adicionadas à lógica condicional.
-        2.  Ajustar a lógica para que os links que não dependem de uma empresa/regime específico (como Relatório Unificado) apareçam sempre.
-    -   **Why fix this issue and what will be achieved with the fix?**: Permite o acesso às novas funcionalidades implementadas.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: frontend
+    -   **Should Test frontend/backend/both after fix?**: backend
 
 **In progress Task List**:
--   **Task 1: (P0) Implementar página de Impostos Retidos.**
-    -   **Where to resume**: O arquivo  existe, mas está vazio. O backend endpoint  está pronto.
-    -   **What will be achieved with this?**: Criar a interface que chama o endpoint e exibe os dados. A UI deve ter abas Tomador e Prestador, visíveis condicionalmente com base no  da empresa selecionada ( ou  mostram ambas; outras, apenas Tomador).
+-   **Task 1: (P1) Implementar sistema de permissões (Master vs. Operacional).**
+    -   **Where to resume**: Este é um novo requisito. É preciso começar no backend, modificando o modelo  para incluir um campo . Depois, ajustar todos os endpoints que listam empresas (, etc.) para filtrar com base no  e no  do usuário. O frontend precisará de uma interface para o usuário Master gerenciar permissões.
+    -   **What will be achieved with this?**: Cria uma hierarquia de usuários, onde usuários Master têm acesso a todas as empresas e podem gerenciar permissões, enquanto usuários Operacionais só podem ver as empresas que eles mesmos cadastraram.
     -   **Status**: NOT STARTED
     -   **Should Test frontend/backend/both after fix?**: both
 
--   **Task 2: (P1) Implementar página de Relatório Unificado.**
-    -   **Where to resume**: O arquivo  existe, mas está vazio. A biblioteca  está instalada.
-    -   **What will be achieved with this?**: Criar a interface para o relatório, que deve consolidar várias informações fiscais e permitir a exportação para Word, PDF e Excel.
-    -   **Status**: NOT STARTED
-    -   **Should Test frontend/backend/both after fix?**: frontend
+-   **Task 2: (P1) Finalizar e testar importação de Faturas/Recibos via IA.**
+    -   **Where to resume**: A UI no  e a lógica no  e  estão prontas. O próximo passo é realizar um teste de ponta a ponta.
+    -   **What will be achieved with this?**: Permitir que empresas com atividade de locação importem seus documentos de receita (que não são notas fiscais eletrônicas) de forma automatizada.
+    -   **Status**: TESTING PENDING
+    -   **Should Test frontend/backend/both after fix?**: both
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P1) Melhoria na Classificação IA:** Embora a lógica base tenha sido implementada (analisar saídas para classificar entradas), ela precisa de validação e refinamento para garantir a precisão.
-    -   **(P2) Lógica de Transporte de Saldo Credor:** Os endpoints do backend foram criados. É preciso criar a interface e a lógica no frontend para que o saldo credor de ICMS/PIS/COFINS seja transportado para o mês seguinte.
-    -   **(P2) Finalizar Lógica para Transportadoras:** Integrar a importação de CT-e (modelo 57) e validar o cálculo do crédito presumido de ICMS de ponta a ponta.
-    -   **(P2) Melhorar Dashboard Fator R:** Os ajustes na UI foram feitos, mas é preciso validar com o usuário se atende à necessidade de uma simulação mais visual.
+    -   **(P1) Lógica de transporte de saldo credor:** Criar a interface e a lógica no frontend para utilizar os endpoints de backend que já existem, permitindo que o saldo credor de um mês seja utilizado no próximo.
+    -   **(P2) Finalizar Lógica para Transportadoras:** Implementar a importação de CT-e (modelo 57) e validar de ponta a ponta o cálculo do crédito presumido de ICMS.
 -   **Future Tasks (Backlog):**
     -   Implementar o upload do Certificado Digital.
     -   Refatorar o arquivo monolítico .
     -   Adicionar o logo da empresa aos relatórios exportados.
-    -   Remover o arquivo obsoleto  (apenas a referência foi removida).
+    -   Remover o arquivo obsoleto .
     -   Implementar sistema de licenças.
 
 **Completed work in this session**
--   **Fluxo de Cancelamento de NFS-e**: Implementado de ponta a ponta, com modal no frontend () e endpoints de preview e upload no backend.
--   **Cadastro de Empresa (Aplicação em Serviços)**: Corrigida a UI em  para que o campo Aplicação em Serviços apareça na seção Classificação Inteligente, substituindo Revenda para empresas de serviço e sendo adicionado para empresas mistas. Modelos do backend e prompt da IA foram atualizados.
--   **Filtro Dinâmico de Documentos**: Ajustado  para que as opções de  sejam dinâmicas com base na atividade da empresa, enquanto as  são sempre visíveis.
--   **Melhora no Agrupamento de CFOP**: O backend agora usa um mapa () para criar agrupamentos corretos (ex: Bonificação) em vez de jogar tudo em Pendentes.
--   **Correção de Crash na Inicialização**: Removida a importação e rota do arquivo inexistente  em .
--   **UI do Dashboard Fator R**: Melhorada a visualização comparativa em .
--   **UI de Saldo Credor e Transportadora**: Adicionados os campos no formulário de .
--   **Backend para Crédito Presumido (Transportadora)**: Integrado o cálculo na apuração de ICMS ().
--   **Backend para Saldo Credor e Impostos Retidos**: Criados novos endpoints em  para dar suporte a essas funcionalidades.
--   **Criação de Novas Páginas**: Criados os arquivos e rotas para  e .
+-   **Reorganização do Menu Lateral:** Menu reordenado (Cadastros, Apurações, Análises, Exportações), títulos de seção removidos e lógica de exibição 100% dinâmica com base na empresa selecionada.
+-   **Melhorias no Dashboard Principal:** Removidos cards desnecessários; cards de Entradas e Saídas agora são dinâmicos e mostram Outros Documentos e tipos de notas relevantes.
+-   **Melhorias no Dashboard Simples Nacional:** Cards de Vendas e Faturamento unificados e agora dinâmicos (Serviços, Vendas, Saídas).
+-   **Simulador de Fator R Interativo:** Implementado no dashboard do SN, permitindo ao usuário simular a folha de pagamento e ver o impacto fiscal.
+-   **Página Impostos Retidos redesenhada:** UI atualizada para agrupar e totalizar impostos por tipo.
+-   **Página Indicadores ajustada:** Ocultadas as abas Markup e card Vendas para empresas de serviços, com foco na nova aba Ponto de Equilíbrio.
+-   **Flag de Atividade de Locação:** Adicionado o checkbox no cadastro de empresas e o campo no backend.
+-   **Relatório de Importação:** Adicionada a funcionalidade de exportar o relatório de conclusão de importação para Word.
+-   **Correções de Regras de Negócio:** Atualizados NCMs de bebidas, CFOPs de venda e aprimorado o prompt da IA de análise tributária.
 
-**Earlier issues found/mentioned but not fixed**
--   **Issue 1: Remoção do arquivo obsoleto **
-    -   **Debug checklist**: Verificar se o arquivo  existe e, se existir, removê-lo com .
-    -   **Why to solve this issue and what will be achieved with this?**: Higiene e organização do código.
-    -   **Should Test frontend/backend/both after fix**: frontend (apenas para garantir que a remoção não causou problemas).
-    -   **Is recurring issue?**: Y
+**Known issue recurrence from previous fork**
+-   **Issue recurrence in previous fork**: Relatório de conclusão de importação com contagem zerada.
+-   **Recurrence count**: 2
+-   **Status**: TESTING PENDING
 
 **Code Architecture**
 
 
-**Key Technical Concepts**
--   **Backend**: FastAPI, MongoDB (com ), Pydantic.
--   **Frontend**: React, React Hooks, Context API, TailwindCSS, Axios, Shadcn UI.
--   **Arquitetura**: SPA (Single Page Application) com um backend monolítico.
+**key DB schema**
+-   **companies**:
+    -   :  (NOVO) - Indica se a empresa tem atividade de locação.
 
 **All files of reference**
--    (Filtro de divergência, Relatório de conclusão)
--    (Nova página a ser implementada)
--    (Nova página a ser implementada)
--    (Menu lateral que precisa de correção)
--    (Onde as novas rotas foram adicionadas)
--    (Onde a lógica do backend reside)
--    (Página de DIFAL)
--    (Lógica de cálculo do DIFAL)
--   
+-   **Arquivos Centrais Modificados:**
+    -   : Lógica de reorganização e renderização dinâmica do menu.
+    -   : Contém a maior parte das novas lógicas de backend (endpoints de dashboard, permissões de usuário, CST, etc.).
+    -   : Lógica dos cards dinâmicos do dashboard principal.
+    -   : Lógica dos cards dinâmicos e do novo simulador de Fator R.
+    -   : Lógica para a nova opção de importação Faturas / Recibos e exportação para Word.
+    -   : Lógica para o novo campo Atividade de Locação.
+    -   : Contém o novo prompt de IA e a função para extrair dados de faturas de locação.
+-   **Arquivo de Referência para Próximos Passos:**
+    -   
 
 **Critical Info for New Agent**
--   **A prioridade atual definida pelo usuário é**: 1. Corrigir o filtro de divergências. 2. Implementar a página de Impostos Retidos. 3. Implementar a página de Relatório Unificado.
--   **NÃO USE O TESTING AGENT.** O usuário pediu explicitamente para pular os testes automatizados e que ele mesmo testará as funcionalidades. Implemente e finalize.
--   O problema dos links do menu que não aparecem em  provavelmente se deve à forma como o array  é construído condicionalmente com base na . A lógica precisa ser revista para que links globais apareçam independentemente da seleção de uma empresa.
+-   O usuário é muito ativo e fornece feedback detalhado e em múltiplos pontos. É crucial abordar cada item solicitado.
+-   O próximo grande recurso a ser implementado do zero é o sistema de permissões de usuário (Master vs. Operacional). Isso exigirá modificações em vários endpoints do backend e na UI.
+-   O problema do Fator R que não aparecia foi depurado com sucesso. A causa era uma combinação de uma rota de API incorreta sendo chamada no frontend e uma lógica no backend que não tratava o caso de faturamento zero. Isso serve como um bom lembrete para verificar as chamadas de rede e tratar casos de borda.
+-   A estrutura para importação de documentos via IA já existe. A nova funcionalidade de Faturas / Recibos foi construída sobre essa estrutura, adicionando um novo  e uma função de extração específica no backend.
 
 **documents and test reports created in this job**
--    (Atualizado com o progresso da sessão)
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **Usuário**: Pede para corrigir o filtro de , criar a página de  (com lógica de abas condicional) e a página de  com exportação. (Status: NOT STARTED)
-9.  **Usuário**: Esclarece que o campo  deve ser uma categoria dentro da Classificação Inteligente no cadastro da empresa, e não um campo separado. (Status: RESOLVED)
-8.  **Agente**: Finaliza a sessão com um resumo e pergunta sobre os próximos passos. (Status: CONCLUDED)
-7.  **Usuário**: seguir com o que estava fazendo. (Aprova a continuação do trabalho). (Status: CONCLUDED)
-6.  **Agente**: Faz um screenshot para verificar a UI do cadastro de empresas. (Status: CONCLUDED)
-5.  **Usuário**: Fornece uma longa lista de melhorias e correções (DIFAL, Fator R, saldo credor, etc.). (Status: PARTIALLY RESOLVED/IN PROGRESS)
-4.  **Agente**: Confirma o plano de trabalho para a lista de melhorias. (Status: CONCLUDED)
-3.  **Usuário**: Aprova o plano de trabalho e pede para iniciar o fluxo de cancelamento de NFS-e. (Status: CONCLUDED)
-2.  **Agente**: Propõe um plano de trabalho para a longa lista de solicitações. (Status: CONCLUDED)
-1.  **Usuário**: Pode seguir (Aprova o plano do agente após uma série de correções). (Status: CONCLUDED)
+1.  **Usuário (msg 428):** Pede para implementar as permissões de usuário (Master/Operacional), importação via IA para NFS-e, mover Impostos Retidos para apurações, remover títulos do menu, adicionar outros documentos ao card de entradas, e corrige a lógica de CST para divergências de PIS/COFINS. (Status: Em andamento)
+2.  **Usuário (msg 305):** Pede para remover o card Vendas dos Indicadores para empresas de serviço, reclama que não vê os cards do Fator R e pede para reorganizar o menu lateral. (Status: Implementado)
+3.  **Usuário (msg 240):** Pergunta se a melhoria na classificação IA foi feita, pede para redesenhar a página de Impostos Retidos, ajustar os dashboards, adicionar flag de locação com importação via IA, e confirmar funcionamento das barras de progresso e exportação do relatório para Word. (Status: Maioria implementada)
+4.  **Usuário (msg 127):** Pede importação de NFS-e tomados, ajuste nos dashboards (remover/ajustar cards), e um simulador de Fator R dinâmico. (Status: Implementado)
+5.  **Usuário (msg 26):** Pede várias regras para o menu (Apuração, CMV/CPV, IPI), melhoria nos insights da IA e atualização de NCMs de bebidas. (Status: Implementado)
+6.  **Usuário (msg 5):** Pede para focar na correção do menu e do filtro de divergências, e entende que Relatório Unificado era apenas uma atualização do menu existente. (Status: Implementado)
 
 **Testing status**
--   **Testing agent used after significant changes**: NO (Desabilitado por instrução do usuário)
+-   **Testing agent used after significant changes**: NO
+-   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: Bug do modal de seleção de empresa tem histórico de recorrência.
+-   **Known regressions**: O bug do relatório de conclusão de importação (contagem zerada) é recorrente e ainda precisa de uma solução definitiva.
 
 **Credentials to test flow:**
 -   **Email**: 
 -   **Senha**: 
--   **Empresa Serviços (Simples)**: VETCO CLINICA DE REABILITACAO ANIMAL LTDA (ID: )
--   **Competência para testes**: 
-
-**What agent forgot to execute**
--   O agente não resolveu a causa raiz do porquê os novos links de menu não apareceram no .
--   O arquivo obsoleto  foi ignorado no , mas o arquivo em si não foi deletado do sistema de arquivos (se existir).
--   A implementação da ordenação em **TODAS** as colunas das tabelas ainda está incompleta.</analysis>
+-   **Empresa Serviços SN (para Fator R)**: VETCO CLINICA DE REABILITACAO ANIMAL LTDA (ID: )
+-   **Competência para testes**: </analysis>
