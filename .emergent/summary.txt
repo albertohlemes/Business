@@ -1,91 +1,88 @@
 <analysis>**original_problem_statement:**
-O usuário solicitou a criação de um sistema de gestão fiscal para empresas do Simples Nacional e Lucro Presumido. A aplicação evoluiu para uma plataforma completa com dashboards, cadastro de empresas, controle de Fator R, importação de documentos fiscais (NFe, NFCe, NFSe), cálculo de impostos (DIFAL, PIS/COFINS, ICMS) e um comparativo de regimes tributários (RET).
+O usuário solicitou a criação de um sistema de gestão fiscal para empresas do Simples Nacional e Lucro Presumido. A aplicação evoluiu para uma plataforma completa com dashboards, cadastro de empresas, e importação de documentos fiscais.
 
 As solicitações mais recentes do usuário se concentram em uma vasta gama de melhorias e novas funcionalidades, incluindo:
 - **Novas Funcionalidades:**
-    - Importação de faturas/recibos de locação via IA (PDF/Imagem).
-    - Implementação de um sistema de permissões de usuário (Master vs. Operacional).
+    - Criar uma nova página de Análise Horizontal / Evolução Fiscal com gráficos comparativos de compras, vendas e impostos entre o ano corrente e o anterior.
+    - Implementar um sistema de permissões de usuário (Master vs. Operacional).
+    - Melhorar a IA de classificação de produtos para usar palavras-chave do cadastro da empresa.
+    - Aprimorar a análise de vilões/oportunidades tributárias com lógicas mais ricas.
+    - Permitir o cancelamento de NFS-e em massa via upload de um relatório (CSV, TXT, XLSX, XML).
 - **Melhorias de UI/UX:**
-    - Reorganização do menu lateral para uma ordem mais lógica.
-    - Ajustes nos dashboards (principal e Simples Nacional) para exibir cards dinâmicos com base no tipo de atividade da empresa.
-    - Melhoria na página de Impostos Retidos para agrupar totais por tipo de imposto.
-    - Implementação de um simulador de Fator R interativo e mais visual no dashboard do Simples Nacional.
+    - Melhorar a visualização do modal de detalhes do documento, organizando os totalizadores em 3 linhas distintas (Capa, Produtos, Diferenças).
+    - Adicionar um contador Exibindo X de Y na tela de documentos quando um filtro está ativo.
+    - Congelar o cabeçalho da tabela na tela de divergências de PIS/COFINS, permitindo o scroll apenas na lista de itens.
+    - Reordenar o menu para empresas do Simples Nacional, colocando Impostos Retidos acima de Indicadores.
 - **Bugs e Regras de Negócio:**
-    - Corrigir a classificação de CST PIS/COFINS nas divergências (Saídas tributáveis devem ser CST 01, Entradas com crédito CST 50).
-    - Assegurar que os NCMs de bebidas alcoólicas sejam tributados corretamente.
-    - Confirmar o funcionamento das barras de progresso e do relatório de conclusão de importação.
+    - Corrigir o filtro de Divergência na tela de documentos, que não estava filtrando corretamente.
+    - Assegurar que a conversão de CFOPs de entrada respeite a Substituição Tributária (ex: 5403 vira 1403).
+    - Fazer com que a nova tela de Evolução Fiscal busque e exiba os dados já existentes no sistema.
 
 **User's preferred language**:
 Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-Uma aplicação full-stack (React + FastAPI + MongoDB) funcional. Na sessão atual, o agente implementou um grande número de solicitações do usuário. As principais mudanças foram:
-- **Reorganização do Menu:** O menu lateral foi completamente reestruturado para ter uma ordem lógica (Cadastros, Apurações, Análises, Exportações) e se tornou totalmente dinâmico, exibindo itens com base no regime tributário e tipo de atividade da empresa selecionada.
-- **Dashboards Dinâmicos:** Tanto o dashboard principal quanto o do Simples Nacional foram atualizados para exibir cards de Faturamento, Vendas e Serviços de forma condicional, de acordo com o perfil da empresa (comércio, serviços ou mista).
-- **Simulador de Fator R:** Foi implementado no dashboard do Simples Nacional um simulador interativo onde o usuário pode inserir um valor de folha de pagamento para ver o impacto no Fator R, a economia gerada e o valor que falta para atingir a meta de 28%.
-- **Melhoria nos Indicadores e Impostos Retidos:** A página de Indicadores agora oculta abas como Markup para empresas de serviços, focando em Ponto de Equilíbrio. A página Impostos Retidos foi redesenhada para agrupar os valores por tipo de imposto (ISS, IRRF, etc.) com totalizadores.
-- **Regras de Negócio:** Foram atualizadas as listas de CFOPs de venda e NCMs para garantir que bebidas alcoólicas sejam tratadas como tributadas. O prompt da IA para gerar insights também foi aprimorado.
-- **Novos Recursos (Em Andamento):** Foi adicionado um campo Atividade de Locação no cadastro de empresas, que habilita uma nova opção de importação (Faturas / Recibos) via IA (PDF/Imagem) na tela de Documentos. O backend foi preparado com um novo endpoint e um prompt de IA específico para extrair dados desses documentos.
+Uma aplicação full-stack (React + FastAPI + MongoDB) com funcionalidades de gestão fiscal. Na sessão atual, o agente implementou uma série de melhorias significativas e correções solicitadas pelo usuário:
+- **Filtros e Contadores:** Corrigiu o filtro de divergências na tela de documentos para usar um critério unificado e adicionou um contador dinâmico (X de Y) que reflete a filtragem.
+- **Cancelamento de Notas:** Melhorou a funcionalidade de cancelamento de NFS-e, adicionando suporte para upload de relatórios em XML para identificar as notas a serem canceladas.
+- **UI/UX:**
+    - Implementou um cabeçalho fixo com lista rolável na página de análise de PIS/COFINS.
+    - Redesenhou o modal de detalhes do documento com 3 linhas de resumo (Capa, Produtos, Diferenças).
+    - Adicionou a nova página Evolução Fiscal () com um novo item de menu, cards de resumo e um gráfico de linhas (usando Recharts), juntamente com um endpoint de backend inicial.
+    - Reordenou o menu para empresas do Simples Nacional.
+- **Regras de Negócio:**
+    - Corrigiu a lógica de conversão de CFOPs para respeitar a Substituição Tributária.
+    - Aprimorou os prompts de IA para classificação de produtos e a lógica da análise de vilões/oportunidades no backend.
+- **Sistema de Permissões:** Iniciou a implementação do sistema de permissões expandindo o modelo de  no backend com novos  (Master, Operacional) e adicionando endpoints para gerenciar responsáveis e promover usuários.
 
 **Last working item**:
--   **Last item agent was working**: O agente estava finalizando a implementação do conjunto de melhorias solicitadas pelo usuário. As últimas ações foram focadas em:
-    1.  **Reorganizar o menu lateral**, removendo os títulos das seções.
-    2.  **Atualizar a lista de NCMs de bebidas alcoólicas** para incluir vinhos ().
-    3.  **Investigar a lógica de CST PIS/COFINS** para divergências, com o objetivo de usar CST 01 para saídas tributáveis e 50 para entradas com crédito.
-    4.  **Implementar a importação de NFS-e (prestado/tomado) via IA**, confirmando que a estrutura para isso já existia e adicionando a nova opção de importação de Faturas / Recibos para empresas com atividade de locação, incluindo a criação de um novo prompt e função de extração no backend ().
+-   **Last item agent was working**: O agente estava depurando um erro HTTP 404 Not Found no novo endpoint . A investigação revelou que a definição da rota no arquivo  estava localizada *após* a chamada , o que impedia o registro correto da nova rota no FastAPI.
 -   **Status**: IN PROGRESS
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: both. É necessário um teste completo de frontend e backend.
-    -   **Frontend:** Testar a nova ordem do menu, todos os dashboards dinâmicos (principal e SN), o simulador de Fator R, a página de Impostos Retidos e o novo fluxo de importação para Faturas / Recibos.
-    -   **Backend:** Testar o endpoint  com um PDF de fatura de locação. Validar a lógica de CST PIS/COFINS e implementar o novo sistema de permissões de usuário.
+-   **Which testing method agent to use?**: backend testing agent. O agente deve primeiro usar  para confirmar que o erro 404 foi resolvido após mover o bloco de código. Depois de confirmar que o endpoint responde com 200 OK, pode prosseguir para testar a funcionalidade completa.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0): Filtro de divergência em Documentos (CST PIS/COFINS).**
-    -   **Description**: O usuário relatou que a análise de divergências classifica incorretamente produtos tributáveis como monofásicos (CST 04). A meta é que saídas tributáveis sejam classificadas como CST 01 e entradas com direito a crédito como CST 50.
-    -   **Status**: IN PROGRESS
-
--   **Issue 2 (P1): DIFAL para Simples Nacional não está funcionando.**
-    -   **Description**: A página de apuração do DIFAL não exibe as notas e os cálculos.
-    -   **Status**: BLOCKED (por falta de dados de teste: um XML de NFe de compra interestadual para uma empresa do SN).
-
--   **Issue 3 (P1): Relatório de conclusão de importação com contagem zerada.**
-    -   **Description**: Em alguns casos, o modal de resumo após a importação mostra contagens zeradas, mesmo que os documentos tenham sido processados.
-    -   **Status**: TESTING PENDING
-
--   **Issue 4 (P2): Confirmação do funcionamento das barras de progresso.**
-    -   **Description**: O usuário pediu para confirmar se as barras de progresso e o contador tomando café estão funcionando corretamente em todas as importações. A funcionalidade existe, mas precisa de um teste ponta a ponta para validação.
-    -   **Status**: USER VERIFICATION PENDING
+-   **Issue 1 (P0): Endpoint de Análise Horizontal retorna 404.**
+-   **Issue 2 (P1): Página Evolução Fiscal não exibe dados.**
+-   **Issue 3 (P2): DIFAL para Simples Nacional não está funcionando.**
+-   **Issue 4 (P2): Relatório de conclusão de importação com contagem zerada.**
 
 **Issues Detail**:
--   **Issue 1: Filtro de divergência em Documentos (CST PIS/COFINS).**
-    -   **Attempted fixes**: O agente verificou que as bebidas alcoólicas não estão sendo erroneamente classificadas como monofásicas. A investigação mostrou que a função de análise de divergência () atualmente foca em saídas.
+-   **Issue 1: Endpoint de Análise Horizontal retorna 404.**
+    -   **Attempted fixes**: O agente identificou corretamente a causa raiz: a definição da rota está depois da inclusão do router no . Ele iniciou o processo de mover o bloco de código para um local válido (antes de ).
     -   **Next debug checklist**:
-        1.  Modificar a função  no  para garantir que, para saídas tributáveis (não monofásicas e não alíquota zero), o CST correto sugerido seja sempre '01'.
-        2.  Implementar uma lógica similar para **entradas**, que verifique se a compra é de um produto que a empresa revende (e, portanto, passível de crédito) e sugira o CST '50'.
-    -   **Why fix this issue and what will be achieved with the fix?**: Garante que a empresa apure corretamente os débitos e créditos de PIS/COFINS, evitando problemas fiscais.
+        1.  Finalizar a movimentação do bloco de código da rota  no  para um local antes da linha .
+        2.  Reiniciar o serviço do backend.
+        3.  Testar o endpoint com  para confirmar que ele responde com status 200.
+    -   **Why fix this issue and what will be achieved with the fix?**: A correção habilitará a nova página Evolução Fiscal, permitindo que ela busque dados e exiba os gráficos para o usuário.
     -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y
+    -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: backend
+    -   **Blocked on other issue**: Não. Este é o principal bloqueador.
+
+-   **Issue 2: Página Evolução Fiscal não exibe dados.**
+    -   **Attempted fixes**: O agente reescreveu a lógica de busca de dados no endpoint para simplificá-la, mas não pôde testar devido ao erro 404.
+    -   **Next debug checklist**:
+        1.  Após resolver o Issue 1, testar novamente a chamada da API a partir do frontend.
+        2.  Verificar os logs do backend para garantir que a consulta ao banco de dados e a agregação dos valores de compras, vendas e impostos estão ocorrendo como esperado para a empresa e o ano selecionados.
+    -   **Why fix this issue and what will be achieved with the fix?**: A página se tornará funcional, exibindo a análise comparativa solicitada pelo usuário.
+    -   **Status**: BLOCKED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: both
+    -   **Blocked on other issue**: Issue 1: Endpoint de Análise Horizontal retorna 404.
 
 **In progress Task List**:
--   **Task 1: (P1) Implementar sistema de permissões (Master vs. Operacional).**
-    -   **Where to resume**: Este é um novo requisito. É preciso começar no backend, modificando o modelo  para incluir um campo . Depois, ajustar todos os endpoints que listam empresas (, etc.) para filtrar com base no  e no  do usuário. O frontend precisará de uma interface para o usuário Master gerenciar permissões.
-    -   **What will be achieved with this?**: Cria uma hierarquia de usuários, onde usuários Master têm acesso a todas as empresas e podem gerenciar permissões, enquanto usuários Operacionais só podem ver as empresas que eles mesmos cadastraram.
-    -   **Status**: NOT STARTED
-    -   **Should Test frontend/backend/both after fix?**: both
-
--   **Task 2: (P1) Finalizar e testar importação de Faturas/Recibos via IA.**
-    -   **Where to resume**: A UI no  e a lógica no  e  estão prontas. O próximo passo é realizar um teste de ponta a ponta.
-    -   **What will be achieved with this?**: Permitir que empresas com atividade de locação importem seus documentos de receita (que não são notas fiscais eletrônicas) de forma automatizada.
-    -   **Status**: TESTING PENDING
-    -   **Should Test frontend/backend/both after fix?**: both
+-   Nenhum. As tarefas em andamento estão listadas como issues.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P1) Lógica de transporte de saldo credor:** Criar a interface e a lógica no frontend para utilizar os endpoints de backend que já existem, permitindo que o saldo credor de um mês seja utilizado no próximo.
-    -   **(P2) Finalizar Lógica para Transportadoras:** Implementar a importação de CT-e (modelo 57) e validar de ponta a ponta o cálculo do crédito presumido de ICMS.
--   **Future Tasks (Backlog):**
+    -   **(P0) Implementar sistema de permissões (Master vs. Operacional)**: Finalizar a lógica no backend para que usuários  vejam apenas as empresas que cadastraram () ou às quais foram atribuídos, enquanto  veem todas. Criar a interface no frontend para um usuário  atribuir responsáveis e promover outros usuários.
+    -   **(P1) Lógica de transporte de saldo credor**: Criar a interface e a lógica no frontend para utilizar os endpoints de backend que já existem, permitindo que o saldo credor de um mês seja utilizado no próximo.
+    -   **(P2) Ajustar edição manual na Evolução Fiscal**: Na interface de digitação manual de valores, exibir os campos de impostos desmembrados de acordo com o regime tributário da empresa (ex: para Simples Nacional, mostrar campos para os impostos dentro do DAS e para o DIFAL).
+
+-   **Future Tasks:**
+    -   Implementar a importação de CT-e (modelo 57) e validar o cálculo do crédito presumido de ICMS para transportadoras.
     -   Implementar o upload do Certificado Digital.
     -   Refatorar o arquivo monolítico .
     -   Adicionar o logo da empresa aos relatórios exportados.
@@ -93,65 +90,81 @@ Uma aplicação full-stack (React + FastAPI + MongoDB) funcional. Na sessão atu
     -   Implementar sistema de licenças.
 
 **Completed work in this session**
--   **Reorganização do Menu Lateral:** Menu reordenado (Cadastros, Apurações, Análises, Exportações), títulos de seção removidos e lógica de exibição 100% dinâmica com base na empresa selecionada.
--   **Melhorias no Dashboard Principal:** Removidos cards desnecessários; cards de Entradas e Saídas agora são dinâmicos e mostram Outros Documentos e tipos de notas relevantes.
--   **Melhorias no Dashboard Simples Nacional:** Cards de Vendas e Faturamento unificados e agora dinâmicos (Serviços, Vendas, Saídas).
--   **Simulador de Fator R Interativo:** Implementado no dashboard do SN, permitindo ao usuário simular a folha de pagamento e ver o impacto fiscal.
--   **Página Impostos Retidos redesenhada:** UI atualizada para agrupar e totalizar impostos por tipo.
--   **Página Indicadores ajustada:** Ocultadas as abas Markup e card Vendas para empresas de serviços, com foco na nova aba Ponto de Equilíbrio.
--   **Flag de Atividade de Locação:** Adicionado o checkbox no cadastro de empresas e o campo no backend.
--   **Relatório de Importação:** Adicionada a funcionalidade de exportar o relatório de conclusão de importação para Word.
--   **Correções de Regras de Negócio:** Atualizados NCMs de bebidas, CFOPs de venda e aprimorado o prompt da IA de análise tributária.
+-   **Filtro de Divergências:** Corrigido para alinhar com o critério da barra de validação e adicionado o contador X de Y.
+-   **Modal de Detalhes do Documento:** UI redesenhada com 3 linhas de resumo claras (Capa, Produtos, Diferenças).
+-   **Nova Página Evolução Fiscal:** Criada a página  e o item de menu. O endpoint de backend e a lógica inicial foram implementados (atualmente com bug).
+-   **UI/UX:** Congelado o cabeçalho na tabela de Análise PIS/COFINS e reordenado o menu do Simples Nacional.
+-   **Regras de Negócio:** Corrigida a conversão de CFOP de ST (ex: 5403 -> 1403), aprimorada a IA de classificação de produtos e a análise de Vilões/Oportunidades.
+-   **Sistema de Permissões:** Estrutura inicial criada no backend com novos  de usuário e endpoints de gerenciamento.
+-   **Importação de Cancelados:** Adicionado suporte para upload de arquivos XML na funcionalidade de cancelamento de NFS-e.
+
+**Earlier issues found/mentioned but not fixed**
+-   **Issue 1: DIFAL para Simples Nacional não está funcionando.**
+    -   **Debug checklist**: Requer um XML de teste de compra interestadual para uma empresa do Simples Nacional para depuração.
+    -   **Why to solve this issue and what will be achieved with this?**: Permitirá a apuração correta do Diferencial de Alíquota para empresas do SN.
+    -   **Should Test frontend/backend/both after fix**: both
+    -   **Is recurring issue?**: Y
+
+-   **Issue 2: Relatório de conclusão de importação com contagem zerada.**
+    -   **Debug checklist**: Analisar a sincronia entre o processamento em background dos documentos e a resposta enviada ao frontend que gera o modal de resumo.
+    -   **Why to solve this issue and what will be achieved with this?**: Fornecerá um feedback preciso ao usuário sobre o resultado da importação dos documentos.
+    -   **Should Test frontend/backend/both after fix**: both
+    -   **Is recurring issue?**: Y
 
 **Known issue recurrence from previous fork**
 -   **Issue recurrence in previous fork**: Relatório de conclusão de importação com contagem zerada.
--   **Recurrence count**: 2
+-   **Recurrence count**: 3
 -   **Status**: TESTING PENDING
 
 **Code Architecture**
 
 
 **key DB schema**
+-   **users**:
+    -   :  (Valores agora incluem master, operacional)
 -   **companies**:
-    -   :  (NOVO) - Indica se a empresa tem atividade de locação.
+    -   :  (IDs de usuários responsáveis pela empresa)
 
 **All files of reference**
--   **Arquivos Centrais Modificados:**
-    -   : Lógica de reorganização e renderização dinâmica do menu.
-    -   : Contém a maior parte das novas lógicas de backend (endpoints de dashboard, permissões de usuário, CST, etc.).
-    -   : Lógica dos cards dinâmicos do dashboard principal.
-    -   : Lógica dos cards dinâmicos e do novo simulador de Fator R.
-    -   : Lógica para a nova opção de importação Faturas / Recibos e exportação para Word.
-    -   : Lógica para o novo campo Atividade de Locação.
-    -   : Contém o novo prompt de IA e a função para extrair dados de faturas de locação.
--   **Arquivo de Referência para Próximos Passos:**
-    -   
+-   : Arquivo central para a correção do bug da rota 404, implementação das permissões, regras de negócio de CFOP e melhorias na IA.
+-   : Página da nova funcionalidade de Evolução Fiscal que precisa ter seu backend corrigido.
+-   : Contém as correções do filtro de divergência e do contador X de Y.
+-   : Contém a nova UI do modal de detalhes do documento.
+-   : Contém as atualizações de ordem do menu e a adição do novo item Evolução Fiscal.
+-   : Contém a implementação do cabeçalho fixo.
+-   : Documento de requisitos do produto.
 
 **Critical Info for New Agent**
--   O usuário é muito ativo e fornece feedback detalhado e em múltiplos pontos. É crucial abordar cada item solicitado.
--   O próximo grande recurso a ser implementado do zero é o sistema de permissões de usuário (Master vs. Operacional). Isso exigirá modificações em vários endpoints do backend e na UI.
--   O problema do Fator R que não aparecia foi depurado com sucesso. A causa era uma combinação de uma rota de API incorreta sendo chamada no frontend e uma lógica no backend que não tratava o caso de faturamento zero. Isso serve como um bom lembrete para verificar as chamadas de rede e tratar casos de borda.
--   A estrutura para importação de documentos via IA já existe. A nova funcionalidade de Faturas / Recibos foi construída sobre essa estrutura, adicionando um novo  e uma função de extração específica no backend.
+-   **A prioridade máxima é corrigir o erro 404 no endpoint **. O agente anterior já identificou a causa (definição da rota após a inclusão do router) e planejou a solução (mover o bloco de código). O novo agente deve executar essa correção, reiniciar e testar.
+-   Após corrigir o 404, a segunda prioridade é garantir que a página **Evolução Fiscal** exiba os dados corretamente, depurando a lógica de busca de dados no backend, se necessário.
+-   O usuário é muito detalhista e fornece feedback em múltiplos pontos. É crucial revisar a última mensagem do usuário e abordar todas as solicitações pendentes (Permissões, Saldo Credor, etc.) após corrigir os bugs atuais.
 
 **documents and test reports created in this job**
 -   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Usuário (msg 428):** Pede para implementar as permissões de usuário (Master/Operacional), importação via IA para NFS-e, mover Impostos Retidos para apurações, remover títulos do menu, adicionar outros documentos ao card de entradas, e corrige a lógica de CST para divergências de PIS/COFINS. (Status: Em andamento)
-2.  **Usuário (msg 305):** Pede para remover o card Vendas dos Indicadores para empresas de serviço, reclama que não vê os cards do Fator R e pede para reorganizar o menu lateral. (Status: Implementado)
-3.  **Usuário (msg 240):** Pergunta se a melhoria na classificação IA foi feita, pede para redesenhar a página de Impostos Retidos, ajustar os dashboards, adicionar flag de locação com importação via IA, e confirmar funcionamento das barras de progresso e exportação do relatório para Word. (Status: Maioria implementada)
-4.  **Usuário (msg 127):** Pede importação de NFS-e tomados, ajuste nos dashboards (remover/ajustar cards), e um simulador de Fator R dinâmico. (Status: Implementado)
-5.  **Usuário (msg 26):** Pede várias regras para o menu (Apuração, CMV/CPV, IPI), melhoria nos insights da IA e atualização de NCMs de bebidas. (Status: Implementado)
-6.  **Usuário (msg 5):** Pede para focar na correção do menu e do filtro de divergências, e entende que Relatório Unificado era apenas uma atualização do menu existente. (Status: Implementado)
+1.  **Usuário (msg 299):** Reportou que a conversão de CFOP ST não estava correta, que a Evolução Fiscal não trazia dados, pediu melhorias na edição manual de impostos, solicitou reordenação do menu do SN, pediu melhorias na IA de classificação e na análise de vilões/oportunidades, e finalmente solicitou a criação do sistema de permissões. (Status: Em andamento)
+2.  **Usuário (msg 221):** Elogiou o layout do modal de visualização de nota, pediu a reorganização dos totalizadores em 3 linhas, e listou as próximas tarefas prioritárias: sistema de permissões, transporte de saldo credor, correção do DIFAL e a criação da nova análise horizontal. (Status: Implementado parcialmente)
+3.  **Usuário (msg 142):** Reportou que o filtro de Divergente não funcionava, pediu um contador X de Y na lista de documentos, solicitou a funcionalidade de cancelar NFS-e via upload de relatório e pediu para congelar o cabeçalho na tela de divergências PIS/COFINS. (Status: Implementado)
+4.  **Usuário (msg 5):** Pediu para focar na correção do menu e do filtro de divergências. (Status: Implementado)
+
+**Project Health Check:**
+-   **Broken**: A funcionalidade Evolução Fiscal está quebrada devido ao erro 404 no seu endpoint de backend.
+-   **Mocked**: N/A
+
+**3rd Party Integrations**
+-   **Emergent LLM Key**: Utilizado para as funcionalidades de IA, como a extração de dados de documentos (NFS-e, faturas) e a classificação de produtos.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
+-   **Testing agent used after significant changes**: YES (para um conjunto anterior de funcionalidades)
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: []
--   **Known regressions**: O bug do relatório de conclusão de importação (contagem zerada) é recorrente e ainda precisa de uma solução definitiva.
+-   **Known regressions**: O bug do relatório de importação com contagem zerada é recorrente.
 
 **Credentials to test flow:**
 -   **Email**: 
 -   **Senha**: 
--   **Empresa Serviços SN (para Fator R)**: VETCO CLINICA DE REABILITACAO ANIMAL LTDA (ID: )
--   **Competência para testes**: </analysis>
+
+**What agent forgot to execute**
+O agente anterior não finalizou a correção do erro 404. Ele planejou a movimentação do código no  mas não executou a ação de  ou  para aplicar a mudança e testá-la.</analysis>
