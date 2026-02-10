@@ -14640,10 +14640,29 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
     for idx, product in enumerate(products):
         product['_temp_id'] = str(idx)
         descricao = product.get('descricao', '')
+        cfop_original = str(product.get('cfop_original_emissor', product.get('cfop', '')))
+        
+        # Detectar ST pelo CFOP original (mais confiável que CST)
+        is_st_by_cfop = cfop_original in ['5403', '5405', '5408', '5409', '5410', '5411', '5412', '5413', '5414', '5415',
+                                          '6403', '6404', '6405', '6408', '6409', '6410', '6411', '6412', '6413', '6414', '6415',
+                                          '1403', '1405', '1408', '1409', '1410', '1411', '1412', '1413', '1414', '1415',
+                                          '2403', '2404', '2405', '2408', '2409', '2410', '2411', '2412', '2413', '2414', '2415']
         
         # 1. Verificar cache primeiro
         cached = await get_cached_classification(company_id, descricao)
         if cached:
+            # Se é ST pelo CFOP original, ajustar o CFOP sugerido
+            if is_st_by_cfop and cached.get('cfop', '').endswith(('102', '101', '551', '556')):
+                cfop_prefix = cached['cfop'][0]
+                categoria = cached.get('categoria', 'revenda')
+                if categoria == 'revenda':
+                    cached['cfop'] = cfop_prefix + '403'
+                elif categoria == 'insumo':
+                    cached['cfop'] = cfop_prefix + '401'
+                elif categoria == 'despesa':
+                    cached['cfop'] = cfop_prefix + '407'
+                elif categoria == 'ativo_imobilizado':
+                    cached['cfop'] = cfop_prefix + '406'
             results[str(idx)] = cached
             stats["from_cache"] += 1
             continue
