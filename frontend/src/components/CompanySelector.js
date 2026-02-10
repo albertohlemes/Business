@@ -44,10 +44,53 @@ const CompanySelector = () => {
     setTempCompetencia(value);
   };
 
+  // Formata e completa a competência: se só tem o mês, adiciona o ano atual
+  const formatCompetencia = (value) => {
+    const digits = value.replace(/\D/g, '');
+    const currentYear = new Date().getFullYear();
+    
+    if (digits.length === 1) {
+      // Um dígito: assume mês de 1 dígito (ex: "1" -> "01/2026")
+      const month = digits.padStart(2, '0');
+      return `${month}/${currentYear}`;
+    } else if (digits.length === 2) {
+      // Dois dígitos: assume mês (ex: "01" ou "12" -> "01/2026" ou "12/2026")
+      const month = parseInt(digits) > 12 ? '12' : digits.padStart(2, '0');
+      return `${month}/${currentYear}`;
+    } else if (digits.length >= 3 && digits.length <= 4) {
+      // 3-4 dígitos: mês + ano abreviado (ex: "124" -> "12/2024", "0125" -> "01/2025")
+      const month = digits.slice(0, 2);
+      const yearPart = digits.slice(2);
+      const year = yearPart.length === 2 ? `20${yearPart}` : `202${yearPart}`;
+      return `${month}/${year}`;
+    } else if (digits.length >= 5) {
+      // 5-6 dígitos: mês + ano completo (ex: "012026" -> "01/2026")
+      const month = digits.slice(0, 2);
+      const year = digits.slice(2, 6);
+      return `${month}/${year}`;
+    }
+    return value;
+  };
+
+  const handleCompetenciaKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const formattedCompetencia = formatCompetencia(tempCompetencia);
+      setTempCompetencia(formattedCompetencia);
+      
+      // Se tem empresa selecionada, confirma automaticamente
+      if (tempCompany) {
+        selectCompany(tempCompany);
+        selectCompetencia(formattedCompetencia);
+      }
+    }
+  };
+
   const handleConfirm = async () => {
     if (tempCompany) {
+      const formattedCompetencia = formatCompetencia(tempCompetencia);
       selectCompany(tempCompany);
-      selectCompetencia(tempCompetencia);
+      selectCompetencia(formattedCompetencia);
     }
   };
 
