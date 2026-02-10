@@ -6580,7 +6580,8 @@ async def get_dashboard_stats(
             "nfe_entrada": len(nfe_entrada),
             "cte_entrada": len(cte_entrada),
             "nfse_tomados": len(nfse_tomados),
-            "total_entradas": len(nfe_entrada) + len(cte_entrada) + len(nfse_tomados),
+            "outros_entrada": len(outros_entrada),
+            "total_entradas": len(nfe_entrada) + len(cte_entrada) + len(nfse_tomados) + len(outros_entrada),
             # Saídas
             "nfe_saida": len(nfe_saida),
             "nfce": len(nfce),
@@ -6603,6 +6604,7 @@ async def get_dashboard_stats(
                 "nfe": round(total_nfe_entrada, 2),
                 "cte": round(total_cte_entrada, 2),
                 "servicos_tomados": round(total_nfse_tomados, 2),
+                "outros": round(total_outros_entrada, 2),
                 "total": round(total_entradas, 2)
             },
             # Detalhamento de Saídas (por documento)
