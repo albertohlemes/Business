@@ -260,6 +260,23 @@ const UsersPage = ({ user, onLogout }) => {
       : <ArrowDown className="w-3 h-3 inline ml-1" />;
   };
 
+  // Se não for Master/Admin, mostrar mensagem de acesso negado
+  if (!isMasterOrAdmin) {
+    return (
+      <Layout user={user} onLogout={onLogout}>
+        <div data-testid="users-page-denied" className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <Shield className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-white mb-2">Acesso Restrito</h2>
+            <p className="text-[#A1A1AA] mb-6">
+              Apenas usuários Master ou Super Admin podem acessar a gestão de usuários.
+            </p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout user={user} onLogout={onLogout}>
       <div data-testid="users-page" className="space-y-6">
