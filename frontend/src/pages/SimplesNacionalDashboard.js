@@ -24,6 +24,10 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
   const [savingFolha, setSavingFolha] = useState(false);
   const [exportingProdutos, setExportingProdutos] = useState(false);
   
+  // Estados para simulador de Fator R
+  const [folhaSimulada, setFolhaSimulada] = useState(0);
+  const [showSimulador, setShowSimulador] = useState(false);
+  
   // Estados para importação PGDAS
   const [showPgdasModal, setShowPgdasModal] = useState(false);
   const [uploadingPgdas, setUploadingPgdas] = useState(false);
