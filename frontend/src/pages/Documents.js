@@ -42,7 +42,8 @@ const CATEGORIAS = {
       { id: 'nfe', label: 'NF-e', icon: FileText, modelo: '55', importType: 'xml', accept: '.xml', atividades: ['comercio', 'industria', 'mista'] },
       { id: 'nfce', label: 'NFC-e', icon: FileText, modelo: '65', importType: 'xml', accept: '.xml', atividades: ['comercio', 'mista'] },
       { id: 'cte', label: 'CT-e', icon: Truck, modelo: '57', importType: 'xml', accept: '.xml', atividades: ['transporte'] },
-      { id: 'servicos_prestados', label: 'Serviços Prestados', icon: Building2, modelo: 'nfse_prestado', importType: 'both', accept: '.xml,.pdf,.png,.jpg,.jpeg', atividades: ['servicos', 'mista'] }
+      { id: 'servicos_prestados', label: 'Serviços Prestados', icon: Building2, modelo: 'nfse_prestado', importType: 'both', accept: '.xml,.pdf,.png,.jpg,.jpeg', atividades: ['servicos', 'mista'] },
+      { id: 'faturas_recibos', label: 'Faturas / Recibos', icon: Receipt, modelo: 'fatura_recibo', hint: 'Locação de bens', importType: 'ai', accept: '.pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx', atividades: ['locacao'] }
     ]
   }
 };
