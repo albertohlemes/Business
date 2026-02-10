@@ -743,8 +743,16 @@ const Documents = ({ user, onLogout }) => {
         }
       }
       
+      // Limpar timeout global ao final do processo
+      if (globalTimeoutId) clearInterval(globalTimeoutId);
+      
     } catch (err) {
       console.error('Erro no upload:', err);
+      if (globalTimeoutId) clearInterval(globalTimeoutId); // Limpar timeout global
+      
+      const errorMsg = err.response?.data?.detail || err.message || 'Erro de conexão';
+      setUploadError(errorMsg); // Atualizar erro global
+      
       setUploadResult({
         tipo: 'erro',
         total: files.length,
@@ -753,12 +761,12 @@ const Documents = ({ user, onLogout }) => {
         processados: [],
         rejeitados: [{
           arquivo: 'Todos os arquivos',
-          motivo: err.response?.data?.detail || err.message || 'Erro de conexão'
+          motivo: errorMsg
         }]
       });
       setShowUploadResult(true);
       setUploading(false);
-      finishGlobalUpload(); // Finalizar progresso global em caso de erro
+      // Não chamar finishGlobalUpload para manter o erro visível
     }
   };
 
