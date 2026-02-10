@@ -8608,6 +8608,172 @@ async def relatorio_divergencias_saida(
     }
 
 
+@api_router.get("/relatorio-divergencias-entrada/{company_id}")
+async def relatorio_divergencias_entrada(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Gera relatório de divergências nas ENTRADAS:
+    - Produtos com CFOPs que dão direito a crédito devem ter CST 50 (com crédito)
+    - Produtos monofásicos devem ter CST 04 (mesmo nas entradas)
+    - Produtos alíquota zero devem ter CST 73
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Verificar regime tributário (crédito só existe no Lucro Real)
+    regime = company.get('regime_tributario', 'lucro_presumido')
+    
+    # Buscar documentos de entrada
+    documents = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "entrada",
+        **get_filtro_notas_ativas()
+    }, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    # CFOPs de ENTRADA que dão direito a crédito (Lucro Real)
+    CFOPS_COM_CREDITO = [
+        '1101', '1102', '1111', '1113', '1116', '1117', '1118', '1120', '1121', '1122',
+        '1124', '1125', '1126', '1128', '1401', '1403', '1501', '1651', '1652', '1653',
+        '2101', '2102', '2111', '2113', '2116', '2117', '2118', '2120', '2121', '2122',
+        '2124', '2125', '2126', '2128', '2401', '2403', '2501', '2651', '2652', '2653',
+        '3101', '3102', '3126', '3127'
+    ]
+    
+    def is_ncm_aliq_zero_local(ncm):
+        if not ncm:
+            return False
+        ncm_str = str(ncm).replace('.', '').strip()
+        if len(ncm_str) >= 4 and ncm_str[:4] in NCMS_ALIQUOTA_ZERO_PREFIXOS:
+            return True
+        return False
+    
+    def is_ncm_bebida_alcoolica_local(ncm_str):
+        if not ncm_str or len(ncm_str) < 4:
+            return False
+        prefixo = ncm_str[:4]
+        return prefixo in ['2204', '2205', '2206', '2207', '2208']
+    
+    divergencias = []
+    total_valor_divergente = 0
+    
+    for doc in documents:
+        doc_divergencias = []
+        
+        for prod in doc.get('produtos', []):
+            ncm = str(prod.get('ncm', '')).replace('.', '').strip()
+            cfop = str(prod.get('cfop', '')).strip()
+            cst_pis = str(prod.get('cst_pis', '') or prod.get('cst_pis_xml', '')).strip().zfill(2) if prod.get('cst_pis') or prod.get('cst_pis_xml') else ''
+            cst_cofins = str(prod.get('cst_cofins', '') or prod.get('cst_cofins_xml', '')).strip().zfill(2) if prod.get('cst_cofins') or prod.get('cst_cofins_xml') else ''
+            valor = float(prod.get('valor_total', 0) or 0)
+            
+            deveria_ser_aliq_zero = is_ncm_aliq_zero_local(ncm)
+            eh_monofasico = ncm[:4] in NCMS_MONOFASICOS if len(ncm) >= 4 else False
+            eh_bebida_alcoolica = is_ncm_bebida_alcoolica_local(ncm)
+            cfop_da_credito = cfop in CFOPS_COM_CREDITO
+            
+            # === LÓGICA DE DIVERGÊNCIAS PARA ENTRADAS ===
+            
+            # 1. Produtos monofásicos (exceto bebidas alcoólicas) devem ter CST 04
+            if eh_monofasico and not eh_bebida_alcoolica:
+                if cst_pis not in ['04', '']:
+                    doc_divergencias.append({
+                        'produto': prod.get('descricao', ''),
+                        'codigo': prod.get('codigo', ''),
+                        'ncm': ncm,
+                        'cfop': cfop,
+                        'valor': valor,
+                        'cst_pis_atual': cst_pis or '-',
+                        'cst_cofins_atual': cst_cofins or '-',
+                        'cst_pis_correto': '04',
+                        'cst_cofins_correto': '04',
+                        'tipo_divergencia': 'Produto monofásico na entrada - usar CST 04',
+                    })
+                    total_valor_divergente += valor
+            
+            # 2. Produtos alíquota zero devem ter CST 73 na entrada
+            elif deveria_ser_aliq_zero and not eh_bebida_alcoolica and not eh_monofasico:
+                if cst_pis not in ['73', '']:
+                    doc_divergencias.append({
+                        'produto': prod.get('descricao', ''),
+                        'codigo': prod.get('codigo', ''),
+                        'ncm': ncm,
+                        'cfop': cfop,
+                        'valor': valor,
+                        'cst_pis_atual': cst_pis or '-',
+                        'cst_cofins_atual': cst_cofins or '-',
+                        'cst_pis_correto': '73',
+                        'cst_cofins_correto': '73',
+                        'tipo_divergencia': 'NCM é alíquota zero na entrada - usar CST 73',
+                    })
+                    total_valor_divergente += valor
+            
+            # 3. CFOP com direito a crédito (Lucro Real) deve ter CST 50
+            elif cfop_da_credito and regime == 'lucro_real' and not deveria_ser_aliq_zero and not eh_monofasico:
+                # Produtos normais com CFOP de crédito devem ter CST 50
+                if cst_pis and cst_pis not in ['50', ''] and cst_pis in ['70', '71', '72', '98', '99']:
+                    doc_divergencias.append({
+                        'produto': prod.get('descricao', ''),
+                        'codigo': prod.get('codigo', ''),
+                        'ncm': ncm,
+                        'cfop': cfop,
+                        'valor': valor,
+                        'cst_pis_atual': cst_pis or '-',
+                        'cst_cofins_atual': cst_cofins or '-',
+                        'cst_pis_correto': '50',
+                        'cst_cofins_correto': '50',
+                        'tipo_divergencia': f'CFOP {cfop} dá direito a crédito (Lucro Real) - usar CST 50',
+                    })
+                    total_valor_divergente += valor
+            
+            # 4. Bebidas alcoólicas com CFOP de crédito devem ter CST 50 (Lucro Real)
+            elif eh_bebida_alcoolica and cfop_da_credito and regime == 'lucro_real':
+                if cst_pis and cst_pis not in ['50', '']:
+                    doc_divergencias.append({
+                        'produto': prod.get('descricao', ''),
+                        'codigo': prod.get('codigo', ''),
+                        'ncm': ncm,
+                        'cfop': cfop,
+                        'valor': valor,
+                        'cst_pis_atual': cst_pis or '-',
+                        'cst_cofins_atual': cst_cofins or '-',
+                        'cst_pis_correto': '50',
+                        'cst_cofins_correto': '50',
+                        'tipo_divergencia': f'Bebida alcoólica com CFOP {cfop} dá direito a crédito - usar CST 50',
+                    })
+                    total_valor_divergente += valor
+        
+        if doc_divergencias:
+            divergencias.append({
+                'documento_id': doc.get('id', ''),
+                'numero_nfe': doc.get('numero_nfe', ''),
+                'fornecedor': doc.get('emitente_nome', ''),
+                'data_emissao': doc.get('data_emissao', ''),
+                'valor_total': doc.get('valor_total', 0),
+                'qtd_divergencias': len(doc_divergencias),
+                'produtos': doc_divergencias
+            })
+    
+    return {
+        "empresa": company['razao_social'],
+        "competencia": competencia,
+        "regime_tributario": regime,
+        "total_documentos_entrada": len(documents),
+        "documentos_com_divergencia": len(divergencias),
+        "total_produtos_divergentes": sum(len(d['produtos']) for d in divergencias),
+        "valor_total_divergente": round(total_valor_divergente, 2),
+        "divergencias": divergencias,
+        "info": "CST 50 = Com crédito (Lucro Real), CST 70 = Sem crédito, CST 73 = Alíquota zero, CST 04 = Monofásico"
+    }
+
+
 # ============== RELATÓRIO AGRUPADO POR ALÍQUOTA ==============
 
 @api_router.get("/relatorio-agrupado-aliquota/{company_id}")
