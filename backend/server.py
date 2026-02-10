@@ -20094,7 +20094,7 @@ async def import_cancellation_from_report(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Processa um arquivo de relatório (Excel, TXT, CSV) contendo números de notas canceladas.
+    Processa um arquivo de relatório (Excel, TXT, CSV, XML, PDF) contendo números de notas canceladas.
     Retorna lista de números para ser usada na importação.
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
@@ -20139,6 +20139,88 @@ async def import_cancellation_from_report(
                         if clean and len(clean) <= 15:
                             numeros_cancelados.append(clean)
         
+        elif filename.endswith('.xml'):
+            # Processar XML - pode ser relatório de cancelamento ou NFS-e cancelada
+            import xml.etree.ElementTree as ET
+            import re
+            
+            try:
+                text = content.decode('utf-8', errors='ignore')
+                # Remover declaração XML se houver problema
+                text = re.sub(r'<\?xml[^>]+\?>', '', text)
+                
+                root = ET.fromstring(text)
+                
+                # Procurar por tags comuns que contêm número de nota
+                tags_numero = ['NumeroNfse', 'Numero', 'numero', 'InfNfse', 'IdentificacaoNfse', 
+                              'NumeroNota', 'nNFe', 'nNF', 'NumeroRps', 'Rps']
+                
+                for tag in tags_numero:
+                    for elem in root.iter(tag):
+                        if elem.text:
+                            clean = ''.join(filter(str.isdigit, elem.text.strip()))
+                            if clean and len(clean) <= 15:
+                                numeros_cancelados.append(clean)
+                        # Verificar atributos também
+                        for attr_name, attr_val in elem.attrib.items():
+                            if 'numero' in attr_name.lower():
+                                clean = ''.join(filter(str.isdigit, attr_val))
+                                if clean and len(clean) <= 15:
+                                    numeros_cancelados.append(clean)
+                
+            except ET.ParseError:
+                # Se falhar parsing XML, tentar extrair números via regex
+                text = content.decode('utf-8', errors='ignore')
+                # Procurar padrões como <Numero>123</Numero> ou numero="123"
+                matches = re.findall(r'[Nn]umero[^>]*>(\d+)<|numero\s*=\s*["\'](\d+)["\']', text)
+                for match in matches:
+                    num = match[0] or match[1]
+                    if num and len(num) <= 15:
+                        numeros_cancelados.append(num)
+        
+        elif filename.endswith('.pdf'):
+            # Processar PDF - extrair texto e buscar números
+            import io
+            try:
+                import PyPDF2
+                
+                pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
+                text = ""
+                for page in pdf_reader.pages:
+                    text += page.extract_text() or ""
+                
+                # Procurar por padrões de número de nota (geralmente após "Nota" ou "NFS-e")
+                import re
+                # Padrões comuns: "Nota: 123", "NFS-e nº 123", "Número: 123"
+                patterns = [
+                    r'[Nn]ota[:\s]+(\d+)',
+                    r'[Nn]FS-e[:\s#nº]+(\d+)',
+                    r'[Nn]úmero[:\s]+(\d+)',
+                    r'^\s*(\d{1,10})\s*$'  # Linhas com apenas números
+                ]
+                
+                for pattern in patterns:
+                    matches = re.findall(pattern, text, re.MULTILINE)
+                    for match in matches:
+                        if len(match) <= 15:
+                            numeros_cancelados.append(match)
+                            
+            except Exception as pdf_err:
+                logger.warning(f"Erro ao processar PDF: {pdf_err}")
+                raise HTTPException(status_code=400, detail="Não foi possível extrair dados do PDF. Tente CSV ou Excel.")
+        
+        else:
+            # Tentar processar como texto genérico
+            text = content.decode('utf-8', errors='ignore')
+            lines = text.strip().split('\n')
+            
+            for line in lines:
+                parts = line.replace(';', ',').replace('\t', ',').split(',')
+                for part in parts:
+                    clean = ''.join(filter(str.isdigit, part.strip()))
+                    if clean and len(clean) <= 15:
+                        numeros_cancelados.append(clean)
+        
         # Remover duplicatas mantendo ordem
         seen = set()
         numeros_unicos = []
@@ -20153,6 +20235,8 @@ async def import_cancellation_from_report(
             "numeros_cancelados": numeros_unicos
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Erro ao processar arquivo: {str(e)}")
 
