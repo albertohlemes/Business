@@ -40,11 +40,6 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
   const anoAtual = selectedCompetencia ? parseInt(selectedCompetencia.split('/')[1]) : new Date().getFullYear();
   const anoAnterior = anoAtual - 1;
   const [anoDigitacao, setAnoDigitacao] = useState(anoAnterior);
-
-  const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-  
-  const anoAtual = selectedCompetencia ? parseInt(selectedCompetencia.split('/')[1]) : new Date().getFullYear();
-  const anoAnterior = anoAtual - 1;
   
   // Função para verificar se a competência permite edição manual
   // Apenas períodos anteriores ao mês atual podem ser editados manualmente
