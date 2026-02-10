@@ -1684,15 +1684,21 @@ const Documents = ({ user, onLogout }) => {
               
               {/* Resumo com números grandes */}
               <div className="p-4 border-b border-[#2A2A2A]">
-                <div className="grid grid-cols-3 gap-4">
+                <div className={`grid ${uploadResult.canceladas ? 'grid-cols-4' : 'grid-cols-3'} gap-4`}>
                   <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
                     <p className="text-3xl font-bold text-white">{uploadResult.total || 0}</p>
-                    <p className="text-sm text-[#A1A1AA] mt-1">Total de Arquivos</p>
+                    <p className="text-sm text-[#A1A1AA] mt-1">Total</p>
                   </div>
                   <div className="bg-emerald-500/10 rounded-lg p-4 text-center border border-emerald-500/20">
                     <p className="text-3xl font-bold text-emerald-400">{uploadResult.sucesso || 0}</p>
                     <p className="text-sm text-emerald-400 mt-1">Aceitos</p>
                   </div>
+                  {uploadResult.canceladas > 0 && (
+                    <div className="bg-amber-500/10 rounded-lg p-4 text-center border border-amber-500/20">
+                      <p className="text-3xl font-bold text-amber-400">{uploadResult.canceladas}</p>
+                      <p className="text-sm text-amber-400 mt-1">Canceladas</p>
+                    </div>
+                  )}
                   <div className="bg-red-500/10 rounded-lg p-4 text-center border border-red-500/20">
                     <p className="text-3xl font-bold text-red-400">{uploadResult.erros || 0}</p>
                     <p className="text-sm text-red-400 mt-1">Rejeitados</p>
@@ -1720,9 +1726,20 @@ const Documents = ({ user, onLogout }) => {
                     </h3>
                     <div className="space-y-1 max-h-[150px] overflow-y-auto">
                       {uploadResult.processados.map((item, idx) => (
-                        <div key={idx} className="flex items-center justify-between py-2 px-3 bg-emerald-500/5 rounded border border-emerald-500/20">
+                        <div key={idx} className={`flex items-center justify-between py-2 px-3 rounded border ${
+                          item.status === 'cancelada' 
+                            ? 'bg-amber-500/5 border-amber-500/20' 
+                            : 'bg-emerald-500/5 border-emerald-500/20'
+                        }`}>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white truncate">{item.arquivo || `Documento ${idx + 1}`}</p>
+                            <p className="text-sm text-white truncate flex items-center gap-2">
+                              {item.arquivo || `Documento ${idx + 1}`}
+                              {item.status === 'cancelada' && (
+                                <span className="px-1.5 py-0.5 text-xs bg-amber-500/20 text-amber-400 rounded">
+                                  Cancelada
+                                </span>
+                              )}
+                            </p>
                             <p className="text-xs text-[#A1A1AA]">
                               {item.emitente && `${item.emitente} • `}
                               {item.numero && `NF-e Nº ${item.numero}`}
