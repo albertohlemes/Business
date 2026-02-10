@@ -498,6 +498,9 @@ def classificar_ncm_comercio(ncm: str, perfil_empresa: str = 'VAREJO') -> Dict[s
     """
     Classifica um NCM de acordo com as regras de comércio.
     
+    IMPORTANTE: Bebidas ALCOÓLICAS (2204-2208) são TRIBUTADAS normalmente,
+    não são monofásicas! Apenas bebidas NÃO alcoólicas (2201-2203) são monofásicas.
+    
     Args:
         ncm: Código NCM do produto (8 dígitos)
         perfil_empresa: INDUSTRIA, DISTRIBUIDOR ou VAREJO
@@ -507,7 +510,31 @@ def classificar_ncm_comercio(ncm: str, perfil_empresa: str = 'VAREJO') -> Dict[s
     """
     ncm_limpo = ncm.replace('.', '').replace('-', '').strip()
     
-    # Verificar Alíquota Zero primeiro
+    # ===== 1) BEBIDAS ALCOÓLICAS - TRIBUTADAS NORMALMENTE (NÃO são monofásicas!) =====
+    # DEVE vir ANTES da verificação de monofásicos!
+    if is_ncm_bebida_alcoolica(ncm_limpo):
+        aliquotas = ALIQUOTAS_COMERCIO.get(perfil_empresa, ALIQUOTAS_COMERCIO['VAREJO'])
+        aliq = aliquotas['REGRA_GERAL']  # Sempre regra geral para bebidas alcoólicas
+        
+        # Buscar descrição específica
+        descricao = 'Bebida alcoólica tributada'
+        for prefix, info in NCMS_BEBIDAS_ALCOOLICAS.items():
+            if ncm_limpo.startswith(prefix):
+                descricao = info['descricao']
+                break
+        
+        return {
+            'grupo': 'BEBIDA_ALCOOLICA',
+            'descricao': descricao,
+            'cst_entrada': CST_ENTRADA['CREDITO'],  # 50 - gera crédito
+            'cst_saida': '01',  # SEMPRE 01 (tributado) para bebidas alcoólicas!
+            'aliquota_pis': aliq['pis'],  # 1.65% no Lucro Real
+            'aliquota_cofins': aliq['cofins'],  # 7.60% no Lucro Real
+            'gera_credito': True,
+            'tipo': 'BEBIDA_ALCOOLICA'
+        }
+    
+    # ===== 2) Verificar Alíquota Zero =====
     for prefix, descricao in NCMS_ALIQUOTA_ZERO.items():
         if ncm_limpo.startswith(prefix.replace('.', '')):
             return {
@@ -521,7 +548,7 @@ def classificar_ncm_comercio(ncm: str, perfil_empresa: str = 'VAREJO') -> Dict[s
                 'tipo': 'ALIQUOTA_ZERO'
             }
     
-    # Verificar Monofásicos
+    # ===== 3) Verificar Monofásicos (somente bebidas NÃO alcoólicas chegam aqui) =====
     for prefix, info in NCMS_MONOFASICOS.items():
         if ncm_limpo.startswith(prefix.replace('.', '')):
             grupo = info['grupo']
@@ -547,7 +574,7 @@ def classificar_ncm_comercio(ncm: str, perfil_empresa: str = 'VAREJO') -> Dict[s
                 'tipo': 'MONOFASICO'
             }
     
-    # Regra Geral
+    # ===== 4) Regra Geral =====
     aliquotas = ALIQUOTAS_COMERCIO.get(perfil_empresa, ALIQUOTAS_COMERCIO['VAREJO'])
     aliq = aliquotas['REGRA_GERAL']
     
@@ -558,6 +585,9 @@ def classificar_ncm_comercio(ncm: str, perfil_empresa: str = 'VAREJO') -> Dict[s
         'cst_saida': aliq['cst_saida'],
         'aliquota_pis': aliq['pis'],
         'aliquota_cofins': aliq['cofins'],
+        'gera_credito': True,
+        'tipo': 'REGRA_GERAL'
+    }
         'gera_credito': True,
         'tipo': 'REGRA_GERAL'
     }
