@@ -85,7 +85,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
   - Entrada: Empresa deve ser remetente ou destinatário (quem paga o frete)
   - Saída: Empresa deve ser a transportadora (emitente)
 - ✅ **Integração no fluxo de upload** - `upload_xml_with_progress` agora processa CT-e corretamente
-- ✅ **Tela de CT-e na interface** - Disponível em Documentos > Entradas > CT-e
+- ✅ **Tela de CT-e na interface** - Disponível em Entradas > CT-e
 
 **Sistema de Permissões Finalizado:**
 - ✅ **Menu de Usuários restrito** - Apenas Master/Admin/Super Admin podem ver
