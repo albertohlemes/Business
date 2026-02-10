@@ -1051,22 +1051,22 @@ const Companies = ({ user, onLogout }) => {
                     </div>
                   </div>
 
-                  {/* Perfis Comerciais - apenas para Comércio, Indústria ou Mista */}
+                  {/* Perfis de Atividade Comercial - NÃO mostrar para empresas SOMENTE de serviços */}
                   {(formData.tipo_atividade === 'comercio' || formData.tipo_atividade === 'industria' || formData.tipo_atividade === 'mista') && (
                     <div className="pt-4 border-t border-[#2A2A2A]">
                       <label className="block text-xs text-[#A1A1AA] mb-3">Perfis de Atividade Comercial (pode selecionar múltiplos)</label>
-                      <div className="flex flex-wrap gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {[
                           { key: 'industria', label: 'Indústria', desc: 'Fabricante (alíquotas concentradas PIS/COFINS)' },
                           { key: 'distribuidor', label: 'Distribuidor/Atacadista', desc: 'Alíquotas diferenciadas monofásicos' },
                           { key: 'varejo', label: 'Varejo', desc: 'Alíquota zero para revendedor final' }
-                        ].map(perfil => (
+                        ].map((perfil) => (
                           <label
                             key={perfil.key}
                             className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
                               formData.perfis_comerciais?.includes(perfil.key)
-                                ? 'bg-[#C8A951]/10 border-[#C8A951]'
-                                : 'bg-[#141414] border-[#2A2A2A] hover:border-[#444]'
+                                ? 'bg-blue-500/10 border-blue-500/50'
+                                : 'bg-[#0C0C0C] border-[#2A2A2A] hover:border-[#3A3A3A]'
                             }`}
                           >
                             <input
@@ -1080,11 +1080,11 @@ const Companies = ({ user, onLogout }) => {
                                   setFormData({ ...formData, perfis_comerciais: current.filter(p => p !== perfil.key) });
                                 }
                               }}
-                              className="mt-1 w-4 h-4 text-[#C8A951] bg-[#141414] border-[#2A2A2A] rounded focus:ring-[#C8A951] focus:ring-2"
+                              className="mt-1 w-4 h-4 text-blue-500 bg-[#141414] border-[#2A2A2A] rounded focus:ring-blue-500 focus:ring-2"
                             />
                             <div>
                               <span className="text-white font-medium">{perfil.label}</span>
-                              <p className="text-xs text-[#666] mt-0.5">{perfil.desc}</p>
+                              <p className="text-xs text-[#A1A1AA] mt-0.5">{perfil.desc}</p>
                             </div>
                           </label>
                         ))}
@@ -1095,8 +1095,36 @@ const Companies = ({ user, onLogout }) => {
                     </div>
                   )}
 
-                  {/* Aplicação em Serviços - para empresas de serviços ou mistas */}
-                  {(formData.tipo_atividade === 'servicos' || formData.tipo_atividade === 'mista') && (
+                  {/* Aplicação em Serviços */}
+                  {/* Para empresas SÓ de serviços: é o campo principal (substitui revenda) */}
+                  {/* Para empresas mistas: campo adicional */}
+                  {formData.tipo_atividade === 'servicos' && (
+                    <div className="pt-4 border-t border-[#2A2A2A]">
+                      <label className="block text-xs text-[#A1A1AA] mb-3">Classificação de Entradas</label>
+                      <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center flex-shrink-0">
+                            <Settings className="w-5 h-5 text-purple-400" />
+                          </div>
+                          <div>
+                            <span className="text-white font-medium">Aplicação em Serviços</span>
+                            <p className="text-sm text-[#A1A1AA] mt-1">
+                              Como empresa exclusivamente de serviços, suas compras de entrada serão automaticamente 
+                              classificadas como <span className="text-purple-300 font-medium">"Aplicação em Serviços"</span> (materiais 
+                              aplicados na prestação de serviços).
+                            </p>
+                            <p className="text-xs text-[#666] mt-2">
+                              * Esta é a configuração padrão para empresas de serviços. Não há opção de "Revenda" pois a 
+                              atividade principal não envolve comercialização de mercadorias.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Para empresas MISTAS: mostrar opção adicional de Aplicação em Serviços */}
+                  {formData.tipo_atividade === 'mista' && (
                     <div className="pt-4 border-t border-[#2A2A2A]">
                       <label className="block text-xs text-[#A1A1AA] mb-3">Classificação de Entradas para Serviços</label>
                       <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/20">
@@ -1107,16 +1135,16 @@ const Companies = ({ user, onLogout }) => {
                           className="mt-1 w-4 h-4 text-purple-500 bg-[#141414] border-[#2A2A2A] rounded focus:ring-purple-500 focus:ring-2"
                         />
                         <div>
-                          <span className="text-white font-medium">Aplicação em Serviços</span>
+                          <span className="text-white font-medium">Habilitar Aplicação em Serviços</span>
                           <p className="text-xs text-[#A1A1AA] mt-0.5">
-                            Ao marcar, as compras de entrada serão classificadas como "Aplicação em Serviços" em vez de "Revenda". 
-                            Ideal para empresas que compram insumos para aplicar na prestação de serviços.
+                            Ao marcar, a classificação inteligente também considerará "Aplicação em Serviços" como 
+                            categoria para produtos que não sejam claramente de revenda.
                           </p>
                         </div>
                       </label>
                       <p className="text-xs text-[#666] mt-2">
-                        * Esta configuração afeta a classificação automática de notas de entrada na importação.
-                        {formData.tipo_atividade === 'mista' && ' Para empresas mistas, produtos de revenda continuam sendo classificados normalmente.'}
+                        * Para empresas mistas, produtos identificados como revenda continuam sendo classificados normalmente.
+                        Esta opção adiciona uma categoria extra para materiais aplicados em serviços.
                       </p>
                     </div>
                   )}
