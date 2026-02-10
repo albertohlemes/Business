@@ -271,6 +271,8 @@ class CompanyCreate(BaseModel):
     classificacao_inteligente: Optional[str] = None
     # Responsáveis
     responsavel_ids: List[str] = []
+    # Usuário que criou a empresa (será preenchido automaticamente)
+    created_by: Optional[str] = None
     # Certificado Digital
     certificado_digital_arquivo: Optional[str] = None
     certificado_digital_senha: Optional[str] = None
