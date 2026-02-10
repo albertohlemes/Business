@@ -10827,7 +10827,7 @@ CATEGORIA_NOMES = {
 def obter_categoria_por_cfop(cfop: str) -> str:
     """
     Retorna a categoria de classificação baseada no CFOP.
-    NUNCA retorna None - sempre classifica (padrão é revenda/produto).
+    NUNCA retorna None - sempre classifica (padrão é revenda).
     """
     cfop = str(cfop).strip()
     
@@ -10837,7 +10837,7 @@ def obter_categoria_por_cfop(cfop: str) -> str:
     
     # Regras genéricas baseadas no padrão do CFOP
     if cfop.startswith(('1102', '2102', '1403', '2403')):
-        return 'produto'
+        return 'revenda'
     if cfop.startswith(('1101', '2101', '1401', '2401')):
         return 'insumo'
     if cfop.startswith(('1551', '2551', '1406', '2406')):
@@ -10853,16 +10853,16 @@ def obter_categoria_por_cfop(cfop: str) -> str:
     if cfop in ('1911', '2911'):
         return 'amostra_gratis'
     
-    # 1949/2949 são "Outras Operações"
+    # 1949/2949 são "Outras Entradas"
     if cfop in ('1949', '2949'):
-        return 'outros'
+        return 'outras_entradas'
     
     # 1128/2128 são aplicação em serviços
     if cfop in ('1128', '2128'):
-        return 'aplicacao_servico'
+        return 'servico_aplicacao'
     
     # PADRÃO: Se não identificar, assume como compra para revenda (nunca pendente)
-    return 'produto'
+    return 'revenda'
 
 
 def obter_nome_categoria(categoria: str) -> str:
