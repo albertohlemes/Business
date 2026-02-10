@@ -89,7 +89,7 @@ function App() {
             />
             <Route
               path="/upload"
-              element={user ? <UploadXML user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+              element={<Navigate to="/documents" />}
             />
             <Route
               path="/documents"
