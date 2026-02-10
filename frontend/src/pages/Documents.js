@@ -587,8 +587,9 @@ const Documents = ({ user, onLogout }) => {
       }
       
       // 4. Aguardar o polling/SSE detectar a conclusão (fallback de segurança)
-      // Se após 5 segundos ainda não tiver resultado, buscar manualmente
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Esperar mais tempo para uploads grandes
+      const waitTime = Math.min(10000, Math.max(3000, files.length * 2));
+      await new Promise(resolve => setTimeout(resolve, waitTime));
       
       // Verificar se o resultado já foi processado pelo SSE/polling
       if (!showUploadResult) {
