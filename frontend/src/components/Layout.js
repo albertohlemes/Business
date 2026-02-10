@@ -113,9 +113,7 @@ const Layout = ({ user, onLogout, children }) => {
       nav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
     } else {
       // Lucro Presumido / Lucro Real
-      
-      // Apuração de Movimento (primeiro item de apuração)
-      nav.push({ name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' });
+      // NÃO tem menu de Apuração tradicional - apenas indicadores e análises
       
       // FEDERAIS (PIS/COFINS, IPI)
       nav.push({ name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' });
