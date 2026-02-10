@@ -311,6 +311,8 @@ class CompanyUpdate(BaseModel):
     folha_pagamento_12m: Optional[float] = None
     tipo_atividade: Optional[str] = None
     tipos_servico: Optional[List[str]] = None
+    # Atividade de locação (sem incidência de ISS)
+    atividade_locacao: Optional[bool] = None
     # Perfis de atividade comercial (múltipla escolha)
     perfis_comerciais: Optional[List[str]] = None
     # Aplicação em serviços (para classificação de entradas em empresas de serviços)
