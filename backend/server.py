@@ -4982,10 +4982,11 @@ async def upload_xml_with_progress(
 ):
     """Upload de XMLs com progresso em tempo real"""
     
-    if upload_id not in upload_progress_store:
-        raise HTTPException(status_code=404, detail="Sessão de upload não encontrada")
+    # Usar a função que busca em memória e MongoDB
+    progress = await get_upload_session(upload_id)
+    if progress is None:
+        raise HTTPException(status_code=404, detail="Sessão de upload não encontrada. Por favor, reinicie o upload.")
     
-    progress = upload_progress_store[upload_id]
     company_id = progress["company_id"]
     competencia = progress["competencia"]
     tipo = progress["tipo"]
