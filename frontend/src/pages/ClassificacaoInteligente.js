@@ -393,6 +393,99 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     }
   };
 
+  // NOVO: Função para ordenar por coluna
+  const handleColumnSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // NOVO: Função para selecionar/deselecionar produto
+  const toggleProductSelection = (productKey) => {
+    const newSelected = new Set(selectedProducts);
+    if (newSelected.has(productKey)) {
+      newSelected.delete(productKey);
+    } else {
+      newSelected.add(productKey);
+    }
+    setSelectedProducts(newSelected);
+    setShowBatchActions(newSelected.size > 0);
+  };
+
+  // NOVO: Selecionar todos os produtos de uma categoria
+  const selectAllInCategory = (categoria, produtos) => {
+    const newSelected = new Set(selectedProducts);
+    produtos.forEach(p => {
+      const key = `${categoria}_${p.codigo}_${p.descricao}`;
+      newSelected.add(key);
+    });
+    setSelectedProducts(newSelected);
+    setShowBatchActions(newSelected.size > 0);
+  };
+
+  // NOVO: Desselecionar todos
+  const clearSelection = () => {
+    setSelectedProducts(new Set());
+    setShowBatchActions(false);
+  };
+
+  // NOVO: Reclassificar em lote
+  const reclassificarEmLote = async (novaCategoria) => {
+    if (selectedProducts.size === 0) return;
+    
+    setProcessandoIA(true);
+    const token = localStorage.getItem('token');
+    let sucessos = 0;
+    let erros = 0;
+
+    // Encontrar os produtos selecionados
+    const produtosParaReclassificar = [];
+    Object.entries(produtosAgrupados).forEach(([categoria, grupo]) => {
+      grupo.produtos.forEach(prod => {
+        const key = `${categoria}_${prod.codigo}_${prod.descricao}`;
+        if (selectedProducts.has(key)) {
+          produtosParaReclassificar.push({ ...prod, categoriaOriginal: categoria });
+        }
+      });
+    });
+
+    for (const prod of produtosParaReclassificar) {
+      try {
+        if (prod.ocorrencias && prod.ocorrencias.length > 0) {
+          for (const ocorrencia of prod.ocorrencias) {
+            await axios.post(
+              `${API}/products/classify-single`,
+              {
+                document_id: ocorrencia.doc_id,
+                product_idx: ocorrencia.produto_idx,
+                nova_categoria: novaCategoria,
+                salvar_regra: false
+              },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          }
+          sucessos++;
+        }
+      } catch (err) {
+        erros++;
+      }
+    }
+
+    setProcessandoIA(false);
+    clearSelection();
+    
+    if (sucessos > 0) {
+      toast.success(`${sucessos} produto(s) reclassificado(s) como ${categoriasConfig[novaCategoria]?.label || novaCategoria}`);
+      fetchValidacao();
+    }
+    if (erros > 0) {
+      toast.error(`${erros} produto(s) não puderam ser reclassificados`);
+    }
+  };
+
   // Configuração das categorias de classificação
   const categoriasConfig = {
     revenda: { label: 'Compra para Revenda', color: 'blue', icon: '🛒' },
