@@ -1108,6 +1108,17 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                   <div className="bg-[#141414] rounded-lg p-4 border border-amber-500/30">
                     <div className="text-2xl font-bold text-amber-400">{validacaoData?.resumo?.pendentes || 0}</div>
                     <div className="text-sm text-[#A1A1AA]">Pendentes</div>
+                    {validacaoData?.resumo?.pendentes > 0 && (
+                      <button
+                        onClick={() => {
+                          setComandoIA('classificar todos os produtos pendentes como compra para revenda');
+                          setTimeout(() => document.querySelector('#btn-processar-comando')?.click(), 100);
+                        }}
+                        className="mt-2 text-xs px-2 py-1 bg-amber-500/20 text-amber-400 rounded hover:bg-amber-500/30 transition-colors w-full"
+                      >
+                        Resolver todos
+                      </button>
+                    )}
                   </div>
                   <div className="bg-[#141414] rounded-lg p-4 border border-[#C8A951]/30">
                     <div className="text-2xl font-bold text-[#C8A951]">{formatCurrency(validacaoData?.resumo?.valor_total)}</div>
