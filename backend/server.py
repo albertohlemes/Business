@@ -16608,6 +16608,8 @@ async def process_document_with_ai(
                 # Processar com IA baseado no tipo
                 if tipo_documento in ['nfse_tomado', 'nfse_prestado']:
                     extraction_result = await extract_nfse_from_file(tmp_path, mime_type)
+                elif tipo_documento == 'fatura_recibo':
+                    extraction_result = await extract_fatura_recibo_from_file(tmp_path, mime_type)
                 else:  # 'outros' - energia, internet, etc.
                     extraction_result = await extract_outros_docs_from_file(tmp_path, mime_type)
                 
