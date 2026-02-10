@@ -50,7 +50,7 @@ const Layout = ({ user, onLogout, children }) => {
 
   // Determinar quais apurações mostrar baseado nos flags da empresa
   const getVisibleNavigation = () => {
-    // === CADASTROS E NAVEGAÇÃO PRINCIPAL (sempre no topo) ===
+    // === CADASTROS E NAVEGAÇÃO PRINCIPAL ===
     const nav = [
       { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
       { name: 'Empresas', href: '/companies', icon: Building2, testId: 'nav-companies' },
@@ -62,26 +62,20 @@ const Layout = ({ user, onLogout, children }) => {
     if (!selectedCompany) {
       return [
         ...nav,
-        // --- Separador visual: Apurações ---
-        { name: 'divider', label: 'Apurações' },
+        // Apurações
         { name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' },
-        // Federais
         { name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
         { name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' },
-        // Estaduais
         { name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' },
         { name: 'ICMS ST', href: '/apuracao-icms-st', icon: Calculator, testId: 'nav-apuracao-icms-st' },
         { name: 'DIFAL', href: '/difal', icon: ArrowLeftRight, testId: 'nav-difal' },
-        // Municipais
         { name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' },
-        // --- Separador visual: Análises ---
-        { name: 'divider', label: 'Análises' },
+        { name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' },
+        // Análises
         { name: 'Simples Nacional', href: '/simples-nacional', icon: Star, testId: 'nav-simples-nacional' },
         { name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' },
         { name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' },
-        { name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' },
-        // --- Separador visual: Exportações ---
-        { name: 'divider', label: 'Exportações' },
+        // Exportações
         { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
         { name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' },
       ];
@@ -98,7 +92,6 @@ const Layout = ({ user, onLogout, children }) => {
     const ehIndustria = tipoAtividade === 'industria' || perfisComerciais.includes('industria') || equiparadoIndustria;
     
     // === APURAÇÕES ===
-    nav.push({ name: 'divider', label: 'Apurações' });
     
     // Simples Nacional tem estrutura diferente
     if (regimeTributario === 'simples_nacional') {
@@ -114,6 +107,9 @@ const Layout = ({ user, onLogout, children }) => {
       if (ehIndustria) {
         nav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
       }
+      
+      // Impostos Retidos (apuração)
+      nav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
     } else {
       // Lucro Presumido / Lucro Real
       
@@ -137,16 +133,16 @@ const Layout = ({ user, onLogout, children }) => {
       if (['servicos', 'mista'].includes(tipoAtividade)) {
         nav.push({ name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' });
       }
+      
+      // Impostos Retidos (apuração)
+      nav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
     }
     
     // === ANÁLISES ===
-    nav.push({ name: 'divider', label: 'Análises' });
     nav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
     nav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
-    nav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
     
     // === EXPORTAÇÕES (sempre no final) ===
-    nav.push({ name: 'divider', label: 'Exportações' });
     nav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
     nav.push({ name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' });
     
