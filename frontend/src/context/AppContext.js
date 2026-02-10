@@ -98,6 +98,50 @@ export const AppProvider = ({ children }) => {
   const [siegStatus, setSiegStatus] = useState({ loading: false, count: null, error: null });
   const [siegSyncing, setSiegSyncing] = useState(false);
 
+  // Upload Progress - Global para ficar visível em todas as telas
+  const [uploadProgress, setUploadProgress] = useState({
+    isUploading: false,
+    uploadId: null,
+    percent: 0,
+    current: 0,
+    total: 0,
+    companyName: '',
+    tipo: ''
+  });
+
+  const startUpload = (uploadId, total, companyName, tipo = 'entrada') => {
+    setUploadProgress({
+      isUploading: true,
+      uploadId,
+      percent: 0,
+      current: 0,
+      total,
+      companyName,
+      tipo
+    });
+  };
+
+  const updateUploadProgress = (percent, current, total) => {
+    setUploadProgress(prev => ({
+      ...prev,
+      percent,
+      current,
+      total: total || prev.total
+    }));
+  };
+
+  const finishUpload = () => {
+    setUploadProgress({
+      isUploading: false,
+      uploadId: null,
+      percent: 100,
+      current: 0,
+      total: 0,
+      companyName: '',
+      tipo: ''
+    });
+  };
+
   const checkSiegCount = async (companyId, competencia) => {
     if (!companyId || !competencia) return;
     
