@@ -10836,6 +10836,16 @@ def obter_categoria_por_cfop(cfop: str) -> str:
     if cfop in CFOP_PARA_CATEGORIA:
         return CFOP_PARA_CATEGORIA[cfop]
     
+    # CFOPs de DEVOLUÇÃO (natureza devolução)
+    cfops_devolucao = [
+        '1201', '1202', '1203', '1204', '1205', '1206', '1207', '1208', '1209', '1210',
+        '1411', '1410', '1503', '1504', '1553', '1660', '1661', '1662',
+        '2201', '2202', '2203', '2204', '2205', '2206', '2207', '2208', '2209', '2210',
+        '2411', '2410', '2503', '2504', '2553', '2660', '2661', '2662'
+    ]
+    if cfop in cfops_devolucao:
+        return 'devolucao'
+    
     # Regras genéricas baseadas no padrão do CFOP
     if cfop.startswith(('1102', '2102', '1403', '2403')):
         return 'revenda'
