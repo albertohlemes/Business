@@ -164,6 +164,17 @@ const Layout = ({ user, onLogout, children }) => {
 
   // Render navigation item for vertical menu
   const NavItemVertical = ({ item }) => {
+    // Divisor de seção
+    if (item.name === 'divider') {
+      return (
+        <div className="pt-4 pb-2 px-4">
+          <span className="text-xs font-medium text-[#666] uppercase tracking-wider">
+            {item.label}
+          </span>
+        </div>
+      );
+    }
+    
     const Icon = item.icon;
     const active = isActive(item.href);
     
@@ -186,6 +197,9 @@ const Layout = ({ user, onLogout, children }) => {
 
   // Render navigation item for horizontal menu
   const NavItemHorizontal = ({ item }) => {
+    // Ignorar divisores no menu horizontal
+    if (item.name === 'divider') return null;
+    
     const Icon = item.icon;
     const active = isActive(item.href);
     
