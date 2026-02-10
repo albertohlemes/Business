@@ -232,6 +232,8 @@ class CompanyCreate(BaseModel):
     folha_pagamento_12m: float = 0.0
     tipo_atividade: str = "comercio"
     tipos_servico: List[str] = []
+    # Atividade de locação (sem incidência de ISS)
+    atividade_locacao: bool = False
     # Perfis de atividade comercial (múltipla escolha)
     perfis_comerciais: List[str] = []  # ['industria', 'distribuidor', 'varejo']
     # Aplicação em serviços (para classificação de entradas em empresas de serviços)
