@@ -972,6 +972,193 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                     </div>
                   </div>
                 )}
+                
+                {/* SIMULADOR DINÂMICO DE FATOR R */}
+                <div className="mt-4 bg-gradient-to-br from-[#1a1a1a] to-[#141414] rounded-xl border-2 border-[#C8A951]/30 p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#C8A951]/20 flex items-center justify-center">
+                        <Calculator className="w-5 h-5 text-[#C8A951]" />
+                      </div>
+                      <div>
+                        <h4 className="text-white font-semibold">Simulador de Fator R</h4>
+                        <p className="text-xs text-[#666]">Informe a folha do mês para simular</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowSimulador(!showSimulador)}
+                      className="px-3 py-1.5 bg-[#C8A951]/20 hover:bg-[#C8A951]/30 text-[#C8A951] rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {showSimulador ? 'Fechar' : 'Simular'}
+                    </button>
+                  </div>
+                  
+                  {showSimulador && (() => {
+                    // Calcular Fator R com folha simulada
+                    const rbt12 = data.faturamento?.rbt12 || 0;
+                    const folhaAtual12m = data.fator_r?.folha_12_meses || 0;
+                    const folhaMesSimulado = folhaSimulada || 0;
+                    // Adiciona a folha simulada aos últimos 12 meses (substituindo o mês mais antigo)
+                    const folha12mSimulada = folhaAtual12m + (folhaMesSimulado * 12 - folhaAtual12m) * (folhaMesSimulado > 0 ? 1 : 0);
+                    const fatorRSimulado = rbt12 > 0 && folhaMesSimulado > 0 
+                      ? ((folhaMesSimulado * 12) / rbt12 * 100) 
+                      : data.fator_r?.fator_r_valor || 0;
+                    const atingiuMeta = fatorRSimulado >= 28;
+                    const faltaParaMeta = Math.max(0, (rbt12 * 0.28 / 12) - folhaMesSimulado);
+                    
+                    // Cálculo de economia estimada
+                    const aliquotaAnexoV = data.fator_r?.aliquota_anexo_v || 0;
+                    const aliquotaAnexoIII = data.fator_r?.aliquota_anexo_iii || 0;
+                    const faturamentoMes = data.faturamento?.mes_atual || 0;
+                    const impostoAnexoV = faturamentoMes * (aliquotaAnexoV / 100);
+                    const impostoAnexoIII = faturamentoMes * (aliquotaAnexoIII / 100);
+                    const economiaMensal = impostoAnexoV - impostoAnexoIII;
+                    
+                    return (
+                      <div className="space-y-4">
+                        {/* Input de Folha */}
+                        <div className="bg-[#0C0C0C] rounded-lg p-4">
+                          <label className="text-sm text-[#A1A1AA] block mb-2">
+                            Valor da Folha de Pagamento (Mensal)
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[#666]">R$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={folhaSimulada}
+                              onChange={(e) => setFolhaSimulada(parseFloat(e.target.value) || 0)}
+                              className="flex-1 px-4 py-3 bg-[#141414] border-2 border-[#2A2A2A] focus:border-[#C8A951] rounded-lg text-white text-lg font-bold transition-colors"
+                              placeholder="0,00"
+                            />
+                          </div>
+                          <p className="text-xs text-[#666] mt-2">
+                            Meta mensal para Anexo III: {formatCurrency(rbt12 * 0.28 / 12)}
+                          </p>
+                        </div>
+                        
+                        {/* Resultado da Simulação */}
+                        {folhaMesSimulado > 0 && (
+                          <>
+                            {/* Barra de Progresso */}
+                            <div className="bg-[#0C0C0C] rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm text-[#A1A1AA]">Fator R Simulado</span>
+                                <span className={`text-xl font-bold ${atingiuMeta ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                  {fatorRSimulado.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="relative h-4 bg-[#2A2A2A] rounded-full overflow-hidden">
+                                {/* Marcador da meta (28%) */}
+                                <div 
+                                  className="absolute top-0 bottom-0 w-0.5 bg-white/50 z-10"
+                                  style={{ left: '70%' }}
+                                />
+                                {/* Barra de progresso */}
+                                <div 
+                                  className={`h-full transition-all duration-500 ${
+                                    atingiuMeta ? 'bg-gradient-to-r from-emerald-600 to-emerald-400' : 'bg-gradient-to-r from-amber-600 to-amber-400'
+                                  }`}
+                                  style={{ width: `${Math.min(fatorRSimulado / 40 * 100, 100)}%` }}
+                                />
+                              </div>
+                              <div className="flex justify-between mt-1 text-xs text-[#666]">
+                                <span>0%</span>
+                                <span className={atingiuMeta ? 'text-emerald-400' : 'text-white'}>Meta: 28%</span>
+                                <span>40%</span>
+                              </div>
+                            </div>
+                            
+                            {/* Cards de Resultado */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {/* Card Anexo V */}
+                              <div className={`rounded-xl p-4 border-2 transition-all ${
+                                !atingiuMeta 
+                                  ? 'bg-amber-500/20 border-amber-500/50 scale-100' 
+                                  : 'bg-[#0C0C0C] border-[#2A2A2A] opacity-50 scale-95'
+                              }`}>
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-amber-400 font-medium">Anexo V</span>
+                                  {!atingiuMeta && (
+                                    <span className="px-2 py-0.5 bg-amber-500/30 text-amber-300 text-xs rounded animate-pulse">
+                                      ATUAL
+                                    </span>
+                                  )}
+                                </div>
+                                <p className={`text-2xl font-bold ${!atingiuMeta ? 'text-white' : 'text-[#666]'}`}>
+                                  {formatCurrency(impostoAnexoV)}
+                                </p>
+                                <p className="text-xs text-[#666] mt-1">
+                                  Alíquota: {aliquotaAnexoV.toFixed(2)}%
+                                </p>
+                              </div>
+                              
+                              {/* Card Anexo III */}
+                              <div className={`rounded-xl p-4 border-2 transition-all ${
+                                atingiuMeta 
+                                  ? 'bg-emerald-500/20 border-emerald-500/50 scale-100' 
+                                  : 'bg-[#0C0C0C] border-[#2A2A2A] opacity-50 scale-95'
+                              }`}>
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-emerald-400 font-medium">Anexo III</span>
+                                  {atingiuMeta && (
+                                    <span className="px-2 py-0.5 bg-emerald-500/30 text-emerald-300 text-xs rounded animate-pulse">
+                                      DISPONÍVEL
+                                    </span>
+                                  )}
+                                </div>
+                                <p className={`text-2xl font-bold ${atingiuMeta ? 'text-white' : 'text-[#666]'}`}>
+                                  {formatCurrency(impostoAnexoIII)}
+                                </p>
+                                <p className="text-xs text-[#666] mt-1">
+                                  Alíquota: {aliquotaAnexoIII.toFixed(2)}%
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {/* Resultado Final */}
+                            {atingiuMeta ? (
+                              <div className="bg-emerald-500/20 border border-emerald-500/50 rounded-xl p-4">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-12 h-12 rounded-full bg-emerald-500/30 flex items-center justify-center">
+                                    <Award className="w-6 h-6 text-emerald-400" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-emerald-300 font-medium">🎉 Parabéns! Você atingiu o Fator R!</p>
+                                    <p className="text-2xl font-bold text-emerald-400">
+                                      Economia: {formatCurrency(economiaMensal)}/mês
+                                    </p>
+                                    <p className="text-xs text-[#A1A1AA]">
+                                      Total anual: {formatCurrency(economiaMensal * 12)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-12 h-12 rounded-full bg-amber-500/30 flex items-center justify-center">
+                                    <Target className="w-6 h-6 text-amber-400" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-amber-300 font-medium">Quase lá! Aumente a folha para atingir o Anexo III</p>
+                                    <p className="text-lg text-white">
+                                      Falta: <span className="text-amber-400 font-bold">{formatCurrency(faltaParaMeta)}</span>/mês
+                                    </p>
+                                    <p className="text-xs text-[#A1A1AA]">
+                                      Economia potencial: {formatCurrency(economiaMensal * 12)}/ano
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             )}
 
