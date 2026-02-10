@@ -17560,9 +17560,6 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     controla_fator_r = company.get('controla_fator_r', False)
     tipo_atividade = company.get('tipo_atividade', 'comercio')
     
-    # DEBUG
-    logger.info(f"FATOR_R DEBUG: anexos_confirmados={anexos_confirmados}, controla_fator_r={controla_fator_r}, tipo_atividade={tipo_atividade}, folha_12m={folha_12m}, rbt12={rbt12}")
-    
     # Calcular Fator R se:
     # 1. Anexo V confirmado E controla Fator R OU
     # 2. Empresa de serviços/mista e controla Fator R (mesmo sem faturamento, para simulação)
@@ -17570,18 +17567,37 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     if controla_fator_r:
         if 'V' in anexos_confirmados:
             calcular_fator = True
-            logger.info("FATOR_R: Calculando porque Anexo V")
         elif tipo_atividade in ['servicos', 'mista']:
             calcular_fator = True
-            logger.info("FATOR_R: Calculando porque tipo_atividade é serviços/mista")
-    else:
-        logger.info("FATOR_R: NÃO calculando porque controla_fator_r=False")
     
     if calcular_fator:
-        # Usar rbt12 se tiver, senão usar 1 para evitar divisão por zero
-        rbt12_calc = max(rbt12, 1)
-        fator_r_info = calcular_fator_r(folha_12m, rbt12_calc, faturamento_mes_atual)
-        logger.info(f"FATOR_R: Calculado! fator_r_info={fator_r_info}")
+        # Se não tem faturamento, criar dados básicos para o simulador
+        if rbt12 > 0:
+            fator_r_info = calcular_fator_r(folha_12m, rbt12, faturamento_mes_atual)
+        else:
+            # Sem faturamento - criar estrutura básica para o simulador funcionar
+            # Anexo sugerido com base na configuração
+            anexo_atual = 'III' if 'III' in anexos_confirmados else ('V' if 'V' in anexos_confirmados else 'V')
+            fator_r_info = {
+                'fator_r': 0,
+                'fator_r_percentual': '0.00%',
+                'fator_r_valor': 0,  # Para compatibilidade com frontend
+                'pode_usar_anexo_iii': False,  # Não há dados para calcular
+                'anexo_atual': anexo_atual,
+                'folha_atual': folha_12m,
+                'folha_12_meses': folha_12m,
+                'folha_necessaria_anexo_iii': 0,
+                'folha_faltando': 0,
+                'rbt12_projetado': 0,
+                'faturamento_competencia': 0,
+                'folha_sugerida_projetada': 0,
+                'folha_mensal_sugerida': 0,
+                'economia_potencial_mensal': 0,
+                'economia_potencial_anual': 0,
+                'aliquota_anexo_v': TABELA_SIMPLES_NACIONAL['V'][0][2],  # Primeira faixa
+                'aliquota_anexo_iii': TABELA_SIMPLES_NACIONAL['III'][0][2],  # Primeira faixa
+                'sem_faturamento': True  # Flag para o frontend saber que não há faturamento
+            }
     
     # Calcular limites disponíveis
     limite_disponivel = max(0, LIMITE_SIMPLES - rbt12)
