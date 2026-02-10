@@ -89,7 +89,10 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
       
       if (response.ok) {
         const data = await response.json();
+        console.log('Dados recebidos:', data);
         setDados(data);
+      } else {
+        console.error('Erro na resposta:', response.status);
       }
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
@@ -98,8 +101,10 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
   };
 
   useEffect(() => {
-    fetchDados();
-  }, [selectedCompany, anoAtual]);
+    if (selectedCompany?.id) {
+      fetchDados();
+    }
+  }, [selectedCompany?.id, anoAtual]);
 
   // Preparar dados para o gráfico
   const dadosGrafico = useMemo(() => {
