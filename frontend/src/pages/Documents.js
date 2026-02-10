@@ -700,6 +700,27 @@ const Documents = ({ user, onLogout }) => {
     setDeletingAll(null);
   };
 
+  // Função de verificação de divergência - CRITÉRIO UNIFICADO
+  // Definida antes do useMemo que a utiliza
+  const verificarDivergenciaDoc = (doc) => {
+    if (doc.produtos && doc.produtos.length > 0) {
+      // Soma dos valores dos produtos
+      const somaProdutos = doc.produtos.reduce((sum, p) => {
+        const valorProd = parseFloat(p.valor_total) || parseFloat(p.valor_produto) || 0;
+        return sum + valorProd;
+      }, 0);
+      
+      // Valor total do documento
+      const valorDoc = parseFloat(doc.valor_total) || 0;
+      
+      // Considerar validado se diferença for menor que R$ 0.10 (tolerância)
+      const diferenca = Math.abs(valorDoc - somaProdutos);
+      return diferenca >= 0.10; // true = tem divergência
+    }
+    // Documento sem produtos = sem divergência
+    return false;
+  };
+
   // Filtrar e ordenar documentos
   const filteredDocuments = useMemo(() => {
     let filtered = [...documents];
@@ -745,26 +766,6 @@ const Documents = ({ user, onLogout }) => {
     
     return filtered;
   }, [documents, searchTerm, sortField, sortDirection, filterDivergencia]);
-  
-  // Função de verificação de divergência - CRITÉRIO UNIFICADO
-  const verificarDivergenciaDoc = (doc) => {
-    if (doc.produtos && doc.produtos.length > 0) {
-      // Soma dos valores dos produtos
-      const somaProdutos = doc.produtos.reduce((sum, p) => {
-        const valorProd = parseFloat(p.valor_total) || parseFloat(p.valor_produto) || 0;
-        return sum + valorProd;
-      }, 0);
-      
-      // Valor total do documento
-      const valorDoc = parseFloat(doc.valor_total) || 0;
-      
-      // Considerar validado se diferença for menor que R$ 0.10 (tolerância)
-      const diferenca = Math.abs(valorDoc - somaProdutos);
-      return diferenca >= 0.10; // true = tem divergência
-    }
-    // Documento sem produtos = sem divergência
-    return false;
-  };
 
   // Calcular totais dos documentos filtrados
   const totais = useMemo(() => {
