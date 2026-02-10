@@ -21092,7 +21092,8 @@ async def gerar_insights_analise_horizontal(
                 system_message="Você é um consultor fiscal especializado em análise de evolução tributária de empresas brasileiras. Responda sempre em português."
             ).with_model("google", "gemini-2.0-flash")
             
-            response = chat.send_message(user_message=UserMessage(text=contexto))
+            # send_message é assíncrono, precisa de await
+            response = await chat.send_message(user_message=UserMessage(text=contexto))
             
             return {"analise": response}
         except Exception as llm_error:
