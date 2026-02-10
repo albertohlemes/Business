@@ -4173,19 +4173,20 @@ async def upload_xml_batch(
                             logger.info(f"MESMA EMPRESA: DESCONSIDERANDO na saída - {motivo_desconsideracao_mesma_empresa}")
                     
                     # Se for desconsiderada, pular para o próximo arquivo
+                    # Se for desconsiderada, pular para o próximo arquivo
                     if is_mesma_empresa:
-                    # Registrar como nota desconsiderada (não erro, apenas informativo)
-                    results.append({
-                        "filename": file.filename,
-                        "status": "desconsiderada_mesma_empresa",
-                        "numero_nfe": parsed_data.get('numero_nfe', ''),
-                        "chave": chave_nfe,
-                        "motivo": motivo_desconsideracao_mesma_empresa,
-                        "cfops": cfops_saida if cfops_saida else cfops_entrada
-                    })
-                    continue
-            
-            if tipo == 'entrada':
+                        # Registrar como nota desconsiderada (não erro, apenas informativo)
+                        results.append({
+                            "filename": file.filename,
+                            "status": "desconsiderada_mesma_empresa",
+                            "numero_nfe": parsed_data.get('numero_nfe', ''),
+                            "chave": chave_nfe,
+                            "motivo": motivo_desconsideracao_mesma_empresa,
+                            "cfops": cfops_saida if cfops_saida else cfops_entrada
+                        })
+                        continue
+                
+                if tipo == 'entrada':
                 # ==== VALIDAÇÃO SIMPLIFICADA PARA ENTRADA ====
                 # REGRA: Aceitar se:
                 # 1. Destinatário é a empresa (entrada normal) OU
