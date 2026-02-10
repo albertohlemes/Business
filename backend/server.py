@@ -306,6 +306,8 @@ class CompanyUpdate(BaseModel):
     tipos_servico: Optional[List[str]] = None
     # Perfis de atividade comercial (múltipla escolha)
     perfis_comerciais: Optional[List[str]] = None
+    # Aplicação em serviços (para classificação de entradas em empresas de serviços)
+    aplicacao_em_servicos: Optional[bool] = None
     # Flags de contribuinte
     equiparado_industria: Optional[bool] = None
     apura_icms: Optional[bool] = None
