@@ -139,10 +139,8 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
       // Valores do ano atual
       const compras = manuaisMes.compras ?? dadosMes.compras ?? 0;
       const vendas = manuaisMes.vendas ?? dadosMes.vendas ?? 0;
-      const impostosPagar = manuaisMes.impostos_pagar ?? dadosMes.impostos_pagar ?? 0;
-      const creditoAcumulado = manuaisMes.credito_acumulado ?? dadosMes.credito_acumulado ?? 0;
       
-      // Impostos individuais
+      // Impostos individuais - primeiro dados manuais, depois sistema
       const icms = manuaisMes.icms ?? dadosMes.icms ?? 0;
       const icms_st = manuaisMes.icms_st ?? dadosMes.icms_st ?? 0;
       const pis = manuaisMes.pis ?? dadosMes.pis ?? 0;
@@ -152,15 +150,39 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
       const das = manuaisMes.das ?? dadosMes.das ?? 0;
       const difal = manuaisMes.difal ?? dadosMes.difal ?? 0;
       
-      // Valores do ano anterior
+      // Calcular impostos a pagar: se tem dados manuais, somar os impostos individuais
+      // Caso contrário, usar o valor do sistema
+      const temDadosManuais = Object.keys(manuaisMes).length > 0;
+      const impostosPagar = temDadosManuais 
+        ? (Math.max(0, icms) + Math.max(0, pis) + Math.max(0, cofins) + ipi + iss + das + difal)
+        : (manuaisMes.impostos_pagar ?? dadosMes.impostos_pagar ?? 0);
+      const creditoAcumulado = temDadosManuais
+        ? (Math.abs(Math.min(0, icms)) + Math.abs(Math.min(0, pis)) + Math.abs(Math.min(0, cofins)))
+        : (manuaisMes.credito_acumulado ?? dadosMes.credito_acumulado ?? 0);
+      
+      // Valores do ano anterior - mesma lógica
+      const temDadosManuaisAnterior = Object.keys(manuaisMesAnterior).length > 0;
       const comprasAnterior = manuaisMesAnterior.compras ?? dadosMesAnterior.compras ?? 0;
       const vendasAnterior = manuaisMesAnterior.vendas ?? dadosMesAnterior.vendas ?? 0;
-      const impostosAnterior = manuaisMesAnterior.impostos_pagar ?? dadosMesAnterior.impostos_pagar ?? 0;
+      
+      const icmsAnterior = manuaisMesAnterior.icms ?? dadosMesAnterior.icms ?? 0;
+      const pisAnterior = manuaisMesAnterior.pis ?? dadosMesAnterior.pis ?? 0;
+      const cofinsAnterior = manuaisMesAnterior.cofins ?? dadosMesAnterior.cofins ?? 0;
+      const ipiAnterior = manuaisMesAnterior.ipi ?? dadosMesAnterior.ipi ?? 0;
+      const issAnterior = manuaisMesAnterior.iss ?? dadosMesAnterior.iss ?? 0;
+      const dasAnterior = manuaisMesAnterior.das ?? dadosMesAnterior.das ?? 0;
+      const difalAnterior = manuaisMesAnterior.difal ?? dadosMesAnterior.difal ?? 0;
+      
+      const impostosAnterior = temDadosManuaisAnterior
+        ? (Math.max(0, icmsAnterior) + Math.max(0, pisAnterior) + Math.max(0, cofinsAnterior) + ipiAnterior + issAnterior + dasAnterior + difalAnterior)
+        : (manuaisMesAnterior.impostos_pagar ?? dadosMesAnterior.impostos_pagar ?? 0);
       
       // Saldo de impostos: positivo = a pagar, negativo = crédito
       const saldoImpostos = impostosPagar - creditoAcumulado;
-      const saldoImpostosAnterior = (manuaisMesAnterior.impostos_pagar ?? dadosMesAnterior.impostos_pagar ?? 0) - 
-                                    (manuaisMesAnterior.credito_acumulado ?? dadosMesAnterior.credito_acumulado ?? 0);
+      const creditoAnterior = temDadosManuaisAnterior
+        ? (Math.abs(Math.min(0, icmsAnterior)) + Math.abs(Math.min(0, pisAnterior)) + Math.abs(Math.min(0, cofinsAnterior)))
+        : (dadosMesAnterior.credito_acumulado ?? 0);
+      const saldoImpostosAnterior = impostosAnterior - creditoAnterior;
       
       result.push({
         mes,
