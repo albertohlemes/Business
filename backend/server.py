@@ -10791,11 +10791,14 @@ CFOP_PARA_CATEGORIA = {
 # Nomes amigáveis para cada categoria
 CATEGORIA_NOMES = {
     'produto': 'Compra para Revenda',
+    'revenda': 'Compra para Revenda',
     'insumo': 'Compra para Industrialização',
     'despesa': 'Uso e Consumo',
     'ativo_imobilizado': 'Ativo Imobilizado',
     'combustivel': 'Combustível',
     'servico_tomado': 'Serviço Tomado',
+    'servico_aplicacao': 'Aplicação em Serviços',
+    'aplicacao_servico': 'Aplicação em Serviços',
     'bonificacao': 'Bonificação/Doação',
     'amostra_gratis': 'Amostra Grátis',
     'conserto_reparo': 'Conserto/Reparo',
@@ -10818,10 +10821,8 @@ CATEGORIA_NOMES = {
     'servico_transporte': 'Serviço de Transporte',
     'servico_issqn': 'Serviço (ISSQN)',
     'devolucao': 'Devolução',
-    'outros': 'Outras Operações',
-    'aplicacao_servico': 'Aplicação em Serviços',
-    'bonificacao': 'Bonificação',
-    'amostra_gratis': 'Amostra Grátis',
+    'outros': 'Outras Entradas',
+    'outras_entradas': 'Outras Entradas',
 }
 
 def obter_categoria_por_cfop(cfop: str) -> str:
