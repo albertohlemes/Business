@@ -11713,6 +11713,10 @@ async def analise_tributaria_ia(
     viloes = []
     oportunidades = []
     
+    # Função auxiliar para formatar moeda
+    def formatCurrency(value):
+        return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    
     # Cruzar produtos entrada x saída por NCM
     ncms_comuns = set(produtos_entrada.keys()) & set(produtos_saida.keys())
     
