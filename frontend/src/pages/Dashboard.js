@@ -309,7 +309,7 @@ const Dashboard = ({ user, onLogout }) => {
                   </div>
                 </div>
 
-                {/* Card de Saídas */}
+                {/* Card de Saídas - Dinâmico por tipo de atividade */}
                 <div className="flex flex-col gap-4">
                   <div className="bg-[#141414] rounded-lg p-5 border border-green-500/30 flex-1">
                     <div className="flex items-center gap-3 mb-4">
@@ -317,23 +317,41 @@ const Dashboard = ({ user, onLogout }) => {
                         <ArrowUpCircle className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold">Total Saídas</h3>
+                        <h3 className="text-white font-semibold">
+                          {stats.empresa.tipo_atividade === 'servicos' ? 'Serviços Prestados' : 'Total Saídas'}
+                        </h3>
                         <p className="text-green-400 text-xl font-bold">{formatCurrency(stats.valores.saidas?.total || (stats.valores.total_vendas + stats.valores.total_cupons + stats.valores.total_servicos))}</p>
                       </div>
                     </div>
                     <div className="space-y-2 text-sm">
-                      <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
-                        <span className="text-[#A1A1AA]">NF-e (Vendas)</span>
-                        <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.nfe || stats.valores.total_vendas)}</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
-                        <span className="text-[#A1A1AA]">NFC-e (Cupons)</span>
-                        <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.nfce || stats.valores.total_cupons)}</span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
-                        <span className="text-[#A1A1AA]">NFS-e (Serviços)</span>
-                        <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.servicos_prestados || 0)}</span>
-                      </div>
+                      {/* NF-e (Vendas) - apenas para comércio/indústria/mista */}
+                      {stats.empresa.tipo_atividade !== 'servicos' && (
+                        <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">NF-e (Vendas)</span>
+                          <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.nfe || stats.valores.total_vendas)}</span>
+                        </div>
+                      )}
+                      {/* NFC-e (Cupons) - apenas para comércio/mista */}
+                      {['comercio', 'mista'].includes(stats.empresa.tipo_atividade) && (
+                        <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">NFC-e (Cupons)</span>
+                          <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.nfce || stats.valores.total_cupons)}</span>
+                        </div>
+                      )}
+                      {/* NFS-e (Serviços) - sempre mostra para serviços/mista */}
+                      {['servicos', 'mista'].includes(stats.empresa.tipo_atividade) && (
+                        <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">NFS-e (Serviços Prestados)</span>
+                          <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.servicos_prestados || 0)}</span>
+                        </div>
+                      )}
+                      {/* CT-e (Frete Prestado) - se houver */}
+                      {(stats.valores.saidas?.cte || 0) > 0 && (
+                        <div className="flex justify-between py-1 border-b border-[#2A2A2A]">
+                          <span className="text-[#A1A1AA]">CT-e (Frete Prestado)</span>
+                          <span className="text-white font-medium">{formatCurrency(stats.valores.saidas?.cte || 0)}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
