@@ -94,7 +94,17 @@ const Companies = ({ user, onLogout }) => {
     certificado_digital_senha: '',
     certificado_digital_validade: '',
     // Logo da empresa
-    logo_url: ''
+    logo_url: '',
+    // Saldo Credor Inicial
+    possui_saldo_credor: false,
+    saldo_credor_icms: 0,
+    saldo_credor_pis: 0,
+    saldo_credor_cofins: 0,
+    competencia_saldo_inicial: '',
+    // Transportadora
+    is_transportadora: false,
+    tipo_transporte: 'carga',
+    credito_presumido_icms_percent: 20.0
   };
   
   const [formData, setFormData] = useState(emptyFormData);
