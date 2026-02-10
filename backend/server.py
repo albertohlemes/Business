@@ -4669,6 +4669,104 @@ async def upload_xml_batch(
     }
 
 
+# ============== IDENTIFICADOR DE NCMs VILÕES NA IMPORTAÇÃO ==============
+
+async def identificar_ncms_viloes_importacao(company_id: str, notas_importadas: List[Dict]) -> List[Dict]:
+    """
+    Identifica NCMs de risco tributário nas notas recém importadas.
+    Verifica se os NCMs têm histórico de alta carga tributária.
+    """
+    try:
+        # Buscar vilões já identificados da empresa
+        company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+        if not company:
+            return []
+        
+        # Buscar vilões tributários calculados anteriormente
+        # Primeiro tentar buscar do cache de indicadores
+        cache_key = f"viloes_ncm_{company_id}"
+        viloes_conhecidos = {}
+        
+        # Buscar documentos de saída da empresa para calcular vilões em tempo real
+        saidas = await db.xml_documents.find({
+            "company_id": company_id,
+            "tipo": "saida",
+            **get_filtro_notas_ativas()
+        }, {"_id": 0, "produtos": 1}).to_list(length=500)
+        
+        # Agregar débitos por NCM
+        debitos_por_ncm = {}
+        for doc in saidas:
+            for prod in doc.get('produtos', []):
+                ncm = str(prod.get('ncm', ''))[:8]
+                if not ncm:
+                    continue
+                    
+                v_icms = float(prod.get('v_icms', 0) or 0)
+                v_pis = float(prod.get('v_pis', 0) or 0)
+                v_cofins = float(prod.get('v_cofins', 0) or 0)
+                valor = float(prod.get('valor_total', 0) or 0)
+                
+                if ncm not in debitos_por_ncm:
+                    debitos_por_ncm[ncm] = {
+                        'total_debito': 0,
+                        'total_valor': 0,
+                        'descricoes': set()
+                    }
+                
+                debitos_por_ncm[ncm]['total_debito'] += v_icms + v_pis + v_cofins
+                debitos_por_ncm[ncm]['total_valor'] += valor
+                debitos_por_ncm[ncm]['descricoes'].add(prod.get('descricao', '')[:40])
+        
+        # Calcular NCMs com alta carga tributária (> 15% do valor)
+        for ncm, dados in debitos_por_ncm.items():
+            if dados['total_valor'] > 1000:
+                carga = (dados['total_debito'] / dados['total_valor']) * 100
+                if carga > 15:
+                    viloes_conhecidos[ncm] = {
+                        'carga_percentual': round(carga, 1),
+                        'total_debito': round(dados['total_debito'], 2),
+                        'descricao': list(dados['descricoes'])[0] if dados['descricoes'] else ncm
+                    }
+        
+        # Verificar produtos nas notas importadas
+        alertas = []
+        ncms_alertados = set()
+        
+        for nota in notas_importadas:
+            if isinstance(nota, dict):
+                nota_id = nota.get('id', '')
+                numero_nf = nota.get('numero_nfe', nota.get('numero', ''))
+                
+                # Buscar a nota completa do banco para ter os produtos
+                doc = await db.xml_documents.find_one({"id": nota_id}, {"_id": 0})
+                if not doc:
+                    continue
+                    
+                for prod in doc.get('produtos', []):
+                    ncm = str(prod.get('ncm', ''))[:8]
+                    
+                    if ncm in viloes_conhecidos and ncm not in ncms_alertados:
+                        vilao = viloes_conhecidos[ncm]
+                        alertas.append({
+                            'ncm': ncm,
+                            'descricao_produto': prod.get('descricao', '')[:50],
+                            'nota_fiscal': numero_nf,
+                            'carga_historica': vilao['carga_percentual'],
+                            'debito_acumulado': vilao['total_debito'],
+                            'descricao_historico': vilao['descricao'],
+                            'severidade': 'alta' if vilao['carga_percentual'] > 20 else 'media',
+                            'mensagem': f"NCM {ncm} tem carga tributária histórica de {vilao['carga_percentual']:.1f}%. Total de débitos: R$ {vilao['total_debito']:,.2f}"
+                        })
+                        ncms_alertados.add(ncm)
+        
+        return alertas[:10]  # Limitar a 10 alertas
+        
+    except Exception as e:
+        logger.error(f"Erro ao identificar NCMs vilões: {str(e)}")
+        return []
+
+
 # ============== UPLOAD COM PROGRESSO (SSE) ==============
 upload_progress_store: Dict[str, Dict] = {}
 
