@@ -70,6 +70,17 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortOrder, setSortOrder] = useState('desc');
   
+  // NOVO: Estados para ordenação por coluna
+  const [sortColumn, setSortColumn] = useState('descricao'); // descricao, ncm, cfop, valor, quantidade
+  const [sortDirection, setSortDirection] = useState('asc');
+  
+  // NOVO: Estados para seleção em lote
+  const [selectedProducts, setSelectedProducts] = useState(new Set());
+  const [showBatchActions, setShowBatchActions] = useState(false);
+  
+  // NOVO: Estado para visualização (agrupado ou lista)
+  const [viewMode, setViewMode] = useState('grouped'); // 'grouped' ou 'list'
+  
   // Estados compartilhados
   const [comandoIA, setComandoIA] = useState('');
   const [processandoIA, setProcessandoIA] = useState(false);
