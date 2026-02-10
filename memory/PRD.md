@@ -118,6 +118,16 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **Novas categorias adicionadas** - `outras_entradas`, `servico_aplicacao`, `aplicacao_servico`
 - ✅ **Select de categoria manual expandido** - Mais opções no dropdown de CFOP
 
+**Correção no Upload de XML (Network Error):**
+- ✅ **Batch size aumentado** - De 50 para 100 arquivos por lote
+- ✅ **Timeout aumentado** - 2 minutos por lote
+- ✅ **Retry automático** - 3 tentativas para buscar resultado final
+- ✅ **Tolerância a erros de lote** - Continua processando mesmo com falhas individuais
+
+**Remoção de Abas Duplicadas:**
+- ✅ **Indicadores** - Removidas abas "Vilões" e "Oportunidades" 
+- ✅ **Menu separado** - "Vilões e Oportunidades" agora é item próprio no menu lateral
+
 ### 2026-02-10 (Sessão 14 - Melhorias Extensivas na Classificação e Cadastro)
 
 **Correção do Relatório de Upload:**
