@@ -469,25 +469,43 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
 
   // Ordem de exibição das categorias (com as novas categorias)
   const ordemCategorias = [
-    'revenda', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel',
-    'bonificacao', 'amostra_gratis', 'energia_eletrica', 'servico_tomado',
-    'servico_aplicacao', 'outros', 'pendente'
+    'revenda', 'produto', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel',
+    'bonificacao', 'amostra_gratis', 'conserto_reparo', 'retorno_demonstracao',
+    'retorno_exposicao', 'entrada_mercadoria_devolucao', 'retorno_industrializacao',
+    'devolucao_simples_remessa', 'entrada_embalagem', 'retorno_merc_remetida_consig',
+    'devolucao', 'energia_eletrica', 'servico_tomado', 'servico_aplicacao', 
+    'servico_comunicacao', 'servico_transporte', 'servico_issqn',
+    'operacao_distinta', 'outros', 'pendente'
   ];
   
   // Nomes amigáveis para exibição
   const nomesCategoria = {
     'revenda': 'Compra para Revenda',
+    'produto': 'Compra para Revenda',
     'insumo': 'Compra para Industrialização',
     'despesa': 'Uso e Consumo',
     'ativo_imobilizado': 'Ativo Imobilizado',
     'combustivel': 'Combustível',
     'bonificacao': 'Bonificação/Doação',
     'amostra_gratis': 'Amostra Grátis',
+    'conserto_reparo': 'Conserto/Reparo',
+    'retorno_demonstracao': 'Retorno de Demonstração',
+    'retorno_exposicao': 'Retorno de Exposição',
+    'entrada_mercadoria_devolucao': 'Devolução de Mercadoria',
+    'retorno_industrializacao': 'Retorno de Industrialização',
+    'compra_industrializacao_futura': 'Industrialização Futura',
+    'devolucao_simples_remessa': 'Devolução Simples Remessa',
+    'entrada_embalagem': 'Embalagem/Vasilhame',
+    'entrada_armazem_deposito': 'Armazém/Depósito',
+    'retorno_merc_remetida_consig': 'Retorno de Consignação',
+    'devolucao': 'Devolução',
+    'operacao_distinta': 'Operação Distinta',
     'energia_eletrica': 'Energia Elétrica',
     'servico_tomado': 'Serviço Tomado',
     'servico_aplicacao': 'Aplicação em Serviços',
     'servico_comunicacao': 'Serviço de Comunicação',
     'servico_transporte': 'Serviço de Transporte',
+    'servico_issqn': 'Serviço (ISSQN)',
     'outros': 'Outras Operações',
     'pendente': 'Pendente de Classificação'
   };
