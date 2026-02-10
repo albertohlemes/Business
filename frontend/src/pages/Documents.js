@@ -828,41 +828,46 @@ const Documents = ({ user, onLogout }) => {
   };
 
   // Validação de notas - verificar se soma dos produtos bate com valor total
+  // CRITÉRIO UNIFICADO: usado tanto para barra de validação quanto para filtro
+  const verificarDivergencia = (doc) => {
+    if (doc.produtos && doc.produtos.length > 0) {
+      // Soma dos valores dos produtos
+      const somaProdutos = doc.produtos.reduce((sum, p) => {
+        const valorProd = parseFloat(p.valor_total) || parseFloat(p.valor_produto) || 0;
+        return sum + valorProd;
+      }, 0);
+      
+      // Valor total do documento
+      const valorDoc = parseFloat(doc.valor_total) || 0;
+      
+      // Considerar validado se diferença for menor que R$ 0.10 (tolerância)
+      const diferenca = Math.abs(valorDoc - somaProdutos);
+      return diferenca >= 0.10; // true = tem divergência
+    }
+    // Documento sem produtos = sem divergência
+    return false;
+  };
+
   const validacaoNotas = useMemo(() => {
     let validadas = 0;
     let comDivergencia = 0;
     
-    filteredDocuments.forEach(doc => {
-      if (doc.produtos && doc.produtos.length > 0) {
-        // Soma dos valores dos produtos
-        const somaProdutos = doc.produtos.reduce((sum, p) => {
-          const valorProd = parseFloat(p.valor_total) || parseFloat(p.valor_produto) || 0;
-          return sum + valorProd;
-        }, 0);
-        
-        // Valor total do documento
-        const valorDoc = parseFloat(doc.valor_total) || 0;
-        
-        // Considerar validado se diferença for menor que R$ 0.10 (tolerância)
-        const diferenca = Math.abs(valorDoc - somaProdutos);
-        if (diferenca < 0.10) {
-          validadas++;
-        } else {
-          comDivergencia++;
-        }
+    // Usar TODOS os documentos para o cálculo total da barra
+    documents.forEach(doc => {
+      if (verificarDivergencia(doc)) {
+        comDivergencia++;
       } else {
-        // Documento sem produtos = validado
         validadas++;
       }
     });
     
     return {
-      total: filteredDocuments.length,
+      total: documents.length,
       validadas,
       comDivergencia,
-      percentual: filteredDocuments.length > 0 ? Math.round((validadas / filteredDocuments.length) * 100) : 0
+      percentual: documents.length > 0 ? Math.round((validadas / documents.length) * 100) : 0
     };
-  }, [filteredDocuments]);
+  }, [documents]);
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
