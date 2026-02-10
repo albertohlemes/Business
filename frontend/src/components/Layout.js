@@ -276,14 +276,16 @@ const Layout = ({ user, onLogout, children }) => {
                   >
                     <Building2 className="w-5 h-5" />
                   </Link>
-                  <Link
-                    to="/usuarios"
-                    data-testid="nav-users"
-                    className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
-                    title="Usuários"
-                  >
-                    <Users className="w-5 h-5" />
-                  </Link>
+                  {isMasterOrAdmin && (
+                    <Link
+                      to="/usuarios"
+                      data-testid="nav-users"
+                      className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
+                      title="Usuários"
+                    >
+                      <Users className="w-5 h-5" />
+                    </Link>
+                  )}
                 </div>
               )}
 
