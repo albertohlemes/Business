@@ -98,9 +98,12 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **DIFAL corrigido** - Campo `emitente_uf`/`uf_emitente` agora suportados ambos
 - ✅ **Entradas sem filtro de atividade** - Todas empresas veem todos os tipos de entrada
 - ✅ **Saídas dinâmicas** - Filtradas por atividade da empresa (comércio, serviços, mista)
+- ✅ **Relatório de conclusão** - Fallback para calcular totais quando campos zerados
 
 **Cadastro de Empresa (NOVOS CAMPOS):**
-- ✅ **Campo "Aplicação em Serviços"** - Para empresas de serviços e mistas classificarem entradas
+- ✅ **Campo "Aplicação em Serviços"**:
+  - Empresas SÓ de serviços: informativo (substitui conceito de revenda)
+  - Empresas mistas: toggle adicional junto com perfis comerciais
 - ✅ **Saldo Credor Inicial:**
   - Flag "Possui saldo credor?"
   - Campos para ICMS, PIS, COFINS
@@ -108,13 +111,33 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **Transportadora (Atividades Especiais):**
   - Flag "É transportadora?"
   - Tipo de transporte (carga/passageiros)
-  - Crédito presumido ICMS (padrão 20% RICMS/SP)
+  - Crédito presumido ICMS configurável (padrão 20% RICMS/SP)
 
 **Dashboard Fator R (Melhorado):**
-- ✅ **Comparativo Visual Anexo V vs Anexo III** - Cards lado a lado
-- ✅ **Economia Real/Potencial** - Destaque visual com valor anual e mensal
+- ✅ **Comparativo Visual Anexo V vs Anexo III** - Cards lado a lado com destaque visual
+- ✅ **Economia Real/Potencial** - Card destacado com valor anual e mensal
 - ✅ **Barra de progresso do Fator R** - Visualização percentual até 28%
 - ✅ **Dica de Otimização** - Orientação para aumentar folha e migrar de anexo
+
+**Transportadoras - CT-e e Crédito Presumido:**
+- ✅ **Cálculo de Crédito Presumido ICMS** - Integrado à apuração de ICMS
+- ✅ **Demonstrativo atualizado** - Mostra crédito presumido quando aplicável
+- ✅ **Base legal** - Art. 70, XI do RICMS/SP (20% sobre débito)
+
+**Saldo Credor - Transporte Automático:**
+- ✅ **Endpoints para gerenciamento:**
+  - `GET /api/saldo-credor/{company_id}` - Retorna saldos disponíveis
+  - `POST /api/saldo-credor/{company_id}/fechar-competencia` - Fecha e transporta saldos
+  - `GET /api/saldo-credor/{company_id}/historico` - Histórico de saldos
+- ✅ **Lógica de transporte**: Saldos negativos (credores) são automaticamente transportados
+
+**Impostos Retidos:**
+- ✅ **Endpoint de Apuração:**
+  - `GET /api/impostos-retidos/{company_id}` - Retorna impostos retidos
+- ✅ **Impostos identificados**: ISS, IR, PIS, COFINS, CSLL, INSS
+- ✅ **Separa por tipo**: Serviços tomados vs prestados
+- ✅ **Detalhes por documento**: NF, prestador/tomador, valores retidos
+- ✅ **Resumo com orientação**: Obrigações de recolhimento identificadas
 
 ### 2026-02-09 (Sessão 6 - FASE 1 e FASE 2)
 
