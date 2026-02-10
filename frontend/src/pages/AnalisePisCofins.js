@@ -499,11 +499,16 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                 </button>
               </div>
             )}
+            </>
+          ) : null}
+        </div>
 
-            {/* Lista de Problemas */}
+        {/* Lista de Problemas - Área com Scroll */}
+        {!loading && dados && (
+          <div className="flex-1 overflow-y-auto min-h-0">
             {problemas.length > 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm text-[#A1A1AA]">
+              <div className="space-y-3 pr-2">
+                <p className="text-sm text-[#A1A1AA] sticky top-0 bg-[#0C0C0C] py-2 z-10">
                   Mostrando {problemas.length} {problemas.length === 1 ? 'problema' : 'problemas'}
                   {filtroProblema !== 'todos' && ' (filtrado)'}
                   . Clique para expandir e ver detalhes.
@@ -525,8 +530,8 @@ const AnalisePisCofins = ({ user, onLogout }) => {
                 <p className="text-[#A1A1AA] mt-2">Tente alterar os filtros ou a busca.</p>
               </div>
             )}
-          </>
-        ) : null}
+          </div>
+        )}
       </div>
     </Layout>
   );
