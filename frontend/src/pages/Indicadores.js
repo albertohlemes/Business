@@ -992,6 +992,131 @@ const Indicadores = ({ user, onLogout }) => {
               </div>
             )}
 
+            {/* Tab Ponto de Equilíbrio para Serviços */}
+            {activeTab === 'ponto_equilibrio_servicos' && (
+              <div className="space-y-6">
+                <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Target className="w-6 h-6 text-[#C8A951]" />
+                    <h3 className="text-lg font-semibold text-white">Ponto de Equilíbrio - Viabilidade Lucro Real</h3>
+                  </div>
+                  
+                  <p className="text-[#A1A1AA] text-sm mb-6">
+                    Para empresas de serviços no Lucro Real, o ponto de equilíbrio é calculado com base nas receitas e despesas informadas.
+                    Este indicador ajuda a validar a viabilidade do regime tributário.
+                  </p>
+                  
+                  {/* Receitas do período */}
+                  <div className="bg-[#0C0C0C] rounded-lg p-4 mb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-emerald-400 font-medium">Receitas de Serviços (NFS-e)</span>
+                      <span className="text-emerald-400 text-xl font-bold">
+                        {formatCurrency(dados?.resumo?.valor_saidas || 0)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#666]">Total de notas de serviços prestados no período</p>
+                  </div>
+                  
+                  {/* Despesas do período */}
+                  <div className="bg-[#0C0C0C] rounded-lg p-4 mb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-blue-400 font-medium">Despesas (Entradas)</span>
+                      <span className="text-blue-400 text-xl font-bold">
+                        {formatCurrency(dados?.resumo?.valor_entradas || 0)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#666]">Total de notas de entrada/despesas no período</p>
+                  </div>
+                  
+                  {/* Despesa Real Informada */}
+                  <div className="bg-[#0C0C0C] rounded-lg p-4 mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-amber-400 font-medium">Despesa Real Informada</span>
+                      <span className="text-amber-400 text-xl font-bold">{formatCurrency(despesaReal)}</span>
+                    </div>
+                    <p className="text-xs text-[#666] mb-3">Despesas operacionais reais (folha, aluguel, etc.)</p>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={despesaReal}
+                      onChange={(e) => setDespesaReal(parseFloat(e.target.value) || 0)}
+                      className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951]"
+                      placeholder="Informe a despesa real do período"
+                    />
+                  </div>
+                  
+                  {/* Cálculo do Ponto de Equilíbrio */}
+                  {(() => {
+                    const receitas = dados?.resumo?.valor_saidas || 0;
+                    const despesasNotas = dados?.resumo?.valor_entradas || 0;
+                    const despesasTotal = despesasNotas + despesaReal;
+                    const resultado = receitas - despesasTotal;
+                    const pontoEquilibrio = despesasTotal; // Receita necessária para cobrir despesas
+                    const faltaParaEquilibrio = Math.max(0, pontoEquilibrio - receitas);
+                    const percentualCobertura = receitas > 0 ? (despesasTotal / receitas * 100) : 0;
+                    const lucroOuPrejuizo = resultado >= 0 ? 'LUCRO' : 'PREJUÍZO';
+                    
+                    return (
+                      <div className="space-y-4">
+                        {/* Resultado */}
+                        <div className={`rounded-xl p-5 border-2 ${resultado >= 0 ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className={`text-sm font-medium ${resultado >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                Resultado do Período
+                              </span>
+                              <p className={`text-3xl font-bold ${resultado >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {formatCurrency(Math.abs(resultado))}
+                              </p>
+                            </div>
+                            <span className={`px-4 py-2 rounded-lg font-bold ${resultado >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                              {lucroOuPrejuizo}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Análise */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="bg-[#0C0C0C] rounded-lg p-4">
+                            <span className="text-xs text-[#666]">Ponto de Equilíbrio</span>
+                            <p className="text-lg font-bold text-white">{formatCurrency(pontoEquilibrio)}</p>
+                            <p className="text-xs text-[#A1A1AA]">Receita mínima necessária</p>
+                          </div>
+                          
+                          <div className="bg-[#0C0C0C] rounded-lg p-4">
+                            <span className="text-xs text-[#666]">% Despesas/Receita</span>
+                            <p className={`text-lg font-bold ${percentualCobertura > 100 ? 'text-red-400' : 'text-emerald-400'}`}>
+                              {percentualCobertura.toFixed(1)}%
+                            </p>
+                            <p className="text-xs text-[#A1A1AA]">{percentualCobertura <= 100 ? 'Viável' : 'Inviável'} para Lucro Real</p>
+                          </div>
+                          
+                          {faltaParaEquilibrio > 0 && (
+                            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                              <span className="text-xs text-red-400">Falta para Equilíbrio</span>
+                              <p className="text-lg font-bold text-red-400">{formatCurrency(faltaParaEquilibrio)}</p>
+                              <p className="text-xs text-[#A1A1AA]">Aumente receitas ou reduza despesas</p>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Recomendação */}
+                        <div className={`rounded-lg p-4 ${percentualCobertura <= 80 ? 'bg-emerald-500/10 border border-emerald-500/30' : percentualCobertura <= 100 ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+                          <p className={`text-sm font-medium ${percentualCobertura <= 80 ? 'text-emerald-400' : percentualCobertura <= 100 ? 'text-amber-400' : 'text-red-400'}`}>
+                            {percentualCobertura <= 80 
+                              ? '✅ Empresa saudável - Regime Lucro Real pode ser vantajoso'
+                              : percentualCobertura <= 100 
+                                ? '⚠️ Margem apertada - Avalie com cuidado a escolha do regime'
+                                : '❌ Despesas maiores que receitas - Lucro Real pode não ser ideal'}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
             {/* Tab Indicadores (Margens e Markup) */}
             {activeTab === 'indicadores' && (
               <div className="space-y-6">
