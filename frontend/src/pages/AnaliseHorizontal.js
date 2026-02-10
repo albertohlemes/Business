@@ -614,13 +614,11 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                   <th className="text-right px-4 py-3 text-[#A1A1AA] font-medium">Compras</th>
                   <th className="text-right px-4 py-3 text-[#A1A1AA] font-medium">Vendas</th>
                   <th className="text-right px-4 py-3 text-[#A1A1AA] font-medium">Impostos</th>
-                  <th className="text-center px-4 py-3 text-[#A1A1AA] font-medium">Var. Compras</th>
-                  <th className="text-center px-4 py-3 text-[#A1A1AA] font-medium">Var. Vendas</th>
-                  <th className="text-center px-4 py-3 text-[#A1A1AA] font-medium">Var. Impostos</th>
+                  <th className="text-center px-4 py-3 text-[#A1A1AA] font-medium" title="Variação vs mês anterior">Δ Mês</th>
+                  <th className="text-center px-4 py-3 text-[#A1A1AA] font-medium" title="Variação vs mesmo mês ano anterior">Vs Ano Ant.</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#2A2A2A]">
-                {dadosGrafico.map((row, idx) => {
+              <tbody className="divide-y divide-[#2A2A2A]">{dadosGrafico.map((row, idx) => {
                   const competenciaAnterior = `${String(idx + 1).padStart(2, '0')}/${anoAnterior}`;
                   const editavelAtual = isPeriodoEditavel(row.competencia);
                   const editavelAnterior = isPeriodoEditavel(competenciaAnterior);
