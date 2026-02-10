@@ -17,7 +17,7 @@ const Layout = ({ user, onLogout, children }) => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [menuMode, setMenuMode] = useState('vertical');
-  const { selectedCompany, selectedCompetencia, openSelector, uploadProgress } = useAppContext();
+  const { selectedCompany, selectedCompetencia, openSelector, uploadProgress, finishUpload } = useAppContext();
 
   // Load menu preference from user
   useEffect(() => {
