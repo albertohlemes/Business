@@ -10960,6 +10960,27 @@ async def classificar_produtos_ia(
         palavras_chave_texto += f"\n- INSUMO: {', '.join(insumos_producao)}"
     if produtos_despesa:
         palavras_chave_texto += f"\n- DESPESA: {', '.join(produtos_despesa)}"
+    if palavras_chave_personalizadas:
+        palavras_chave_texto += f"\n- PALAVRAS-CHAVE PERSONALIZADAS: {', '.join(palavras_chave_personalizadas)}"
+    
+    # NOVO: Palavras-chave por setor da empresa (ex: construção, tecnologia, etc.)
+    descricao_atividade = company.get('descricao_atividade', '') or company.get('objeto_social', '') or ''
+    setores_detectados = []
+    
+    # Detectar setor baseado na descrição da atividade
+    if any(palavra in descricao_atividade.lower() for palavra in ['construção', 'construcao', 'obra', 'edificação', 'reforma']):
+        setores_detectados.append('construção')
+    if any(palavra in descricao_atividade.lower() for palavra in ['tecnologia', 'software', 'informática', 'informatica', 'ti', 'desenvolvimento']):
+        setores_detectados.append('tecnologia')
+    if any(palavra in descricao_atividade.lower() for palavra in ['alimentação', 'alimentacao', 'restaurante', 'lanchonete', 'bar', 'padaria']):
+        setores_detectados.append('alimentação')
+    if any(palavra in descricao_atividade.lower() for palavra in ['saúde', 'saude', 'clínica', 'clinica', 'hospital', 'médico', 'medico', 'dentista']):
+        setores_detectados.append('saúde')
+    if any(palavra in descricao_atividade.lower() for palavra in ['veículo', 'veiculo', 'automóvel', 'automovel', 'peças', 'pecas', 'auto peças']):
+        setores_detectados.append('automotivo')
+    
+    if setores_detectados:
+        palavras_chave_texto += f"\n- SETOR DA EMPRESA: {', '.join(setores_detectados)}"
     
     # Definir categoria padrão baseada na atividade e configuração da empresa
     if tipo_atividade == 'servicos':
