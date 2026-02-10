@@ -1118,6 +1118,17 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
+                            {/* Botão Selecionar Todos */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                selectAllInCategory(categoria, grupo.produtos);
+                              }}
+                              className="px-2 py-1 text-xs bg-[#2A2A2A] text-[#A1A1AA] rounded hover:bg-[#333] hover:text-white transition-colors"
+                              title="Selecionar todos desta categoria"
+                            >
+                              Selecionar
+                            </button>
                             <span className="text-white font-bold text-lg">
                               {formatCurrency(grupo.valor_total)}
                             </span>
@@ -1129,59 +1140,186 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                           <div className="border-t border-[#2A2A2A]">
                             <div className="max-h-96 overflow-y-auto">
                               <table className="w-full">
-                                <thead className="bg-[#0C0C0C] sticky top-0">
+                                <thead className="bg-[#0C0C0C] sticky top-0 z-10">
                                   <tr>
-                                    <th className="text-left px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase">Produto</th>
-                                    <th className="text-left px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-28">NCM</th>
-                                    <th className="text-left px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-20">CFOP</th>
-                                    <th className="text-right px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-20">Qtd</th>
-                                    <th className="text-right px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-28">Valor</th>
-                                    <th className="text-center px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-16">NFs</th>
+                                    <th className="w-8 px-2 py-2">
+                                      <input
+                                        type="checkbox"
+                                        className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951] focus:ring-[#C8A951]"
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            selectAllInCategory(categoria, grupo.produtos);
+                                          } else {
+                                            grupo.produtos.forEach(p => {
+                                              const key = `${categoria}_${p.codigo}_${p.descricao}`;
+                                              selectedProducts.delete(key);
+                                            });
+                                            setSelectedProducts(new Set(selectedProducts));
+                                          }
+                                        }}
+                                      />
+                                    </th>
+                                    <th 
+                                      className="text-left px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase cursor-pointer hover:text-white transition-colors"
+                                      onClick={() => handleColumnSort('descricao')}
+                                    >
+                                      <div className="flex items-center gap-1">
+                                        Produto
+                                        {sortColumn === 'descricao' && (
+                                          sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                                        )}
+                                      </div>
+                                    </th>
+                                    <th 
+                                      className="text-left px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-28 cursor-pointer hover:text-white transition-colors"
+                                      onClick={() => handleColumnSort('ncm')}
+                                    >
+                                      <div className="flex items-center gap-1">
+                                        NCM
+                                        {sortColumn === 'ncm' && (
+                                          sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                                        )}
+                                      </div>
+                                    </th>
+                                    <th 
+                                      className="text-left px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-20 cursor-pointer hover:text-white transition-colors"
+                                      onClick={() => handleColumnSort('cfop')}
+                                    >
+                                      <div className="flex items-center gap-1">
+                                        CFOP
+                                        {sortColumn === 'cfop' && (
+                                          sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                                        )}
+                                      </div>
+                                    </th>
+                                    <th 
+                                      className="text-right px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-20 cursor-pointer hover:text-white transition-colors"
+                                      onClick={() => handleColumnSort('quantidade')}
+                                    >
+                                      <div className="flex items-center justify-end gap-1">
+                                        Qtd
+                                        {sortColumn === 'quantidade' && (
+                                          sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                                        )}
+                                      </div>
+                                    </th>
+                                    <th 
+                                      className="text-right px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-28 cursor-pointer hover:text-white transition-colors"
+                                      onClick={() => handleColumnSort('valor')}
+                                    >
+                                      <div className="flex items-center justify-end gap-1">
+                                        Valor
+                                        {sortColumn === 'valor' && (
+                                          sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                                        )}
+                                      </div>
+                                    </th>
+                                    <th className="text-center px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-24">NFs</th>
+                                    <th className="text-center px-4 py-2 text-xs font-medium text-[#A1A1AA] uppercase w-20">Ações</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#2A2A2A]">
-                                  {grupo.produtos.map((prod, idx) => (
-                                    <tr 
-                                      key={idx} 
-                                      className="hover:bg-white/5 cursor-pointer group"
-                                      onClick={() => {
-                                        // Permitir edição do produto
-                                        setEditingProduct({ 
-                                          categoria, 
-                                          idx, 
-                                          prod,
-                                          novaCategoria: categoria 
-                                        });
-                                      }}
-                                    >
-                                      <td className="px-4 py-3">
-                                        <p className="text-white text-sm truncate max-w-[300px] group-hover:text-[#C8A951]" title={prod.descricao}>
-                                          {prod.descricao}
-                                        </p>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <span className="text-[#A1A1AA] font-mono text-xs">{prod.ncm || '-'}</span>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <span className="px-2 py-0.5 bg-[#2A2A2A] text-[#A1A1AA] rounded text-xs font-mono">
-                                          {prod.cfop_atual || '-'}
-                                        </span>
-                                      </td>
-                                      <td className="px-4 py-3 text-right">
-                                        <span className="text-[#A1A1AA] text-sm">{prod.quantidade?.toFixed(0) || 0}</span>
-                                      </td>
-                                      <td className="px-4 py-3 text-right">
-                                        <span className="text-[#C8A951] font-medium text-sm">{formatCurrency(prod.valor_total)}</span>
-                                      </td>
-                                      <td className="px-4 py-3 text-center">
-                                        {prod.ocorrencias && prod.ocorrencias.length > 0 ? (
-                                          <NFsList ocorrencias={prod.ocorrencias} maxVisible={3} />
-                                        ) : (
-                                          <span className="text-[#666] text-xs">0</span>
-                                        )}
-                                      </td>
-                                    </tr>
-                                  ))}
+                                  {[...grupo.produtos]
+                                    .sort((a, b) => {
+                                      let aVal, bVal;
+                                      switch (sortColumn) {
+                                        case 'descricao':
+                                          aVal = (a.descricao || '').toLowerCase();
+                                          bVal = (b.descricao || '').toLowerCase();
+                                          break;
+                                        case 'ncm':
+                                          aVal = a.ncm || '';
+                                          bVal = b.ncm || '';
+                                          break;
+                                        case 'cfop':
+                                          aVal = a.cfop_atual || '';
+                                          bVal = b.cfop_atual || '';
+                                          break;
+                                        case 'quantidade':
+                                          aVal = a.quantidade || 0;
+                                          bVal = b.quantidade || 0;
+                                          break;
+                                        case 'valor':
+                                          aVal = a.valor_total || 0;
+                                          bVal = b.valor_total || 0;
+                                          break;
+                                        default:
+                                          aVal = (a.descricao || '').toLowerCase();
+                                          bVal = (b.descricao || '').toLowerCase();
+                                      }
+                                      if (sortDirection === 'asc') {
+                                        return aVal > bVal ? 1 : -1;
+                                      } else {
+                                        return aVal < bVal ? 1 : -1;
+                                      }
+                                    })
+                                    .map((prod, idx) => {
+                                      const productKey = `${categoria}_${prod.codigo}_${prod.descricao}`;
+                                      const isSelected = selectedProducts.has(productKey);
+                                      
+                                      return (
+                                        <tr 
+                                          key={idx} 
+                                          className={`hover:bg-white/5 group ${isSelected ? 'bg-[#C8A951]/10' : ''}`}
+                                        >
+                                          <td className="px-2 py-3">
+                                            <input
+                                              type="checkbox"
+                                              checked={isSelected}
+                                              onChange={() => toggleProductSelection(productKey)}
+                                              className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951] focus:ring-[#C8A951]"
+                                              onClick={(e) => e.stopPropagation()}
+                                            />
+                                          </td>
+                                          <td className="px-4 py-3">
+                                            <p className="text-white text-sm truncate max-w-[300px] group-hover:text-[#C8A951]" title={prod.descricao}>
+                                              {prod.descricao}
+                                            </p>
+                                            {prod.codigo && (
+                                              <p className="text-[#666] text-xs mt-0.5">Cód: {prod.codigo}</p>
+                                            )}
+                                          </td>
+                                          <td className="px-4 py-3">
+                                            <span className="text-[#A1A1AA] font-mono text-xs">{prod.ncm || '-'}</span>
+                                          </td>
+                                          <td className="px-4 py-3">
+                                            <span className="px-2 py-0.5 bg-[#2A2A2A] text-[#A1A1AA] rounded text-xs font-mono">
+                                              {prod.cfop_atual || '-'}
+                                            </span>
+                                          </td>
+                                          <td className="px-4 py-3 text-right">
+                                            <span className="text-[#A1A1AA] text-sm">{prod.quantidade?.toFixed(0) || 0}</span>
+                                          </td>
+                                          <td className="px-4 py-3 text-right">
+                                            <span className="text-[#C8A951] font-medium text-sm">{formatCurrency(prod.valor_total)}</span>
+                                          </td>
+                                          <td className="px-4 py-3 text-center">
+                                            {prod.ocorrencias && prod.ocorrencias.length > 0 ? (
+                                              <NFsList ocorrencias={prod.ocorrencias} maxVisible={2} />
+                                            ) : (
+                                              <span className="text-[#666] text-xs">0</span>
+                                            )}
+                                          </td>
+                                          <td className="px-4 py-3 text-center">
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditingProduct({ 
+                                                  categoria, 
+                                                  idx, 
+                                                  prod,
+                                                  novaCategoria: categoria 
+                                                });
+                                              }}
+                                              className="p-1.5 text-[#666] hover:text-[#C8A951] hover:bg-[#C8A951]/10 rounded transition-colors"
+                                              title="Reclassificar produto"
+                                            >
+                                              <Edit2 className="w-4 h-4" />
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
                                 </tbody>
                               </table>
                             </div>
