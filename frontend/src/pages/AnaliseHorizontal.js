@@ -456,45 +456,59 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
           
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={dadosGrafico} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <ComposedChart data={dadosGrafico} margin={{ top: 20, right: 60, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" />
                 <XAxis dataKey="mes" tick={{ fill: '#A1A1AA', fontSize: 12 }} />
                 <YAxis 
+                  yAxisId="left"
                   tick={{ fill: '#A1A1AA', fontSize: 12 }} 
+                  tickFormatter={formatShortCurrency}
+                />
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fill: '#f59e0b', fontSize: 12 }} 
                   tickFormatter={formatShortCurrency}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
-                <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
+                <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" yAxisId="left" />
                 
-                {/* Área para Vendas */}
-                <Area 
-                  type="monotone" 
-                  dataKey="vendas" 
-                  name="Vendas"
-                  fill="#10b981" 
-                  fillOpacity={0.1}
-                  stroke="#10b981"
-                  strokeWidth={2}
-                />
-                
-                {/* Linha para Compras */}
+                {/* Linha para Compras - eixo esquerdo */}
                 <Line 
                   type="monotone" 
                   dataKey="compras" 
                   name="Compras"
                   stroke="#3b82f6" 
-                  strokeWidth={2}
-                  dot={{ fill: '#3b82f6', r: 4 }}
+                  strokeWidth={3}
+                  dot={{ fill: '#3b82f6', r: 5, strokeWidth: 2 }}
+                  yAxisId="left"
+                  connectNulls
+                />
+                
+                {/* Linha para Vendas - eixo esquerdo */}
+                <Line 
+                  type="monotone" 
+                  dataKey="vendas" 
+                  name="Vendas"
+                  stroke="#10b981"
+                  strokeWidth={3}
+                  dot={{ fill: '#10b981', r: 5, strokeWidth: 2 }}
+                  yAxisId="left"
+                  connectNulls
                 />
                 
                 {viewMode === 'unificado' ? (
-                  /* Barras para Impostos Unificados */
-                  <Bar 
+                  /* Linha para Impostos Unificados - eixo direito para melhor visualização */
+                  <Line 
+                    type="monotone"
                     dataKey="impostos" 
                     name="Impostos"
-                    fill="#f59e0b"
-                    radius={[4, 4, 0, 0]}
+                    stroke="#f59e0b"
+                    strokeWidth={3}
+                    dot={{ fill: '#f59e0b', r: 5, strokeWidth: 2 }}
+                    yAxisId="right"
+                    connectNulls
                   />
                 ) : (
                   /* Linhas para Impostos Desmembrados - baseado no regime */
