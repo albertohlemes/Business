@@ -5485,6 +5485,9 @@ async def upload_xml_with_progress(
             cnpj_emitente = parsed_data.get('emitente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
             cnpj_destinatario = parsed_data.get('destinatario_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
             
+            # Para CT-e, também precisamos do remetente (quem envia a carga)
+            cnpj_remetente = parsed_data.get('remetente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+            
             cnpj_valido = False
             is_devolucao_fornecedor = False
             motivo_devolucao = ""
@@ -5492,7 +5495,48 @@ async def upload_xml_with_progress(
             is_mesma_empresa = False  # Flag para notas onde emitente = destinatário = empresa
             motivo_desconsideracao_mesma_empresa = ""
             
-            # ==== DETECTAR NOTA DA PRÓPRIA EMPRESA (EMITENTE = DESTINATÁRIO) ====
+            # ==== VALIDAÇÃO ESPECIAL PARA CT-e (Conhecimento de Transporte) ====
+            # No CT-e:
+            # - EMITENTE = Transportadora
+            # - REMETENTE = Quem envia a carga
+            # - DESTINATÁRIO = Quem recebe a carga
+            # 
+            # Para ENTRADA de CT-e: A empresa é o remetente ou destinatário (está pagando o frete)
+            # Para SAÍDA de CT-e: A empresa é a transportadora (emitente)
+            if modelo == '57' or xml_type == 'cte':
+                if tipo == 'entrada':
+                    # CT-e de entrada: empresa está pagando pelo frete (é remetente ou destinatário)
+                    cnpj_valido = (cnpj_remetente == cnpj_empresa or cnpj_destinatario == cnpj_empresa)
+                    logger.info(f"CT-e ENTRADA: CT {parsed_data.get('numero_nfe')} - Remetente: {cnpj_remetente}, Dest: {cnpj_destinatario}, Empresa: {cnpj_empresa}, Válido: {cnpj_valido}")
+                    
+                    if not cnpj_valido:
+                        rejeitadas_cnpj.append({
+                            "filename": file.filename,
+                            "numero_nfe": parsed_data.get('numero_nfe', ''),
+                            "motivo": f"CT-e não pertence à empresa. Remetente ({cnpj_remetente}) ou Destinatário ({cnpj_destinatario}) deveria ser a empresa ({cnpj_empresa})",
+                            "emitente": parsed_data.get('emitente_nome', ''),
+                            "destinatario": parsed_data.get('destinatario_nome', '')
+                        })
+                        continue
+                else:
+                    # CT-e de saída: empresa é a transportadora (emitente)
+                    cnpj_valido = (cnpj_emitente == cnpj_empresa)
+                    logger.info(f"CT-e SAÍDA: CT {parsed_data.get('numero_nfe')} - Emitente: {cnpj_emitente}, Empresa: {cnpj_empresa}, Válido: {cnpj_valido}")
+                    
+                    if not cnpj_valido:
+                        rejeitadas_cnpj.append({
+                            "filename": file.filename,
+                            "numero_nfe": parsed_data.get('numero_nfe', ''),
+                            "motivo": f"CT-e não foi emitido pela empresa. Emitente ({cnpj_emitente}) deveria ser a empresa ({cnpj_empresa})",
+                            "emitente": parsed_data.get('emitente_nome', ''),
+                            "destinatario": parsed_data.get('destinatario_nome', '')
+                        })
+                        continue
+                
+                # CT-e validado, pular para o processamento normal
+                # (não passa pelas validações de NF-e abaixo)
+            
+            # ==== DETECTAR NOTA DA PRÓPRIA EMPRESA (EMITENTE = DESTINATÁRIO) ==== (apenas para NF-e/NFC-e)
             # Quando a empresa é emitente E destinatária, devemos:
             # - Preservar o CFOP original (sem conversão)
             # - Importar apenas no tipo correspondente ao CFOP
