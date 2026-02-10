@@ -17594,8 +17594,8 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
                 'folha_mensal_sugerida': 0,
                 'economia_potencial_mensal': 0,
                 'economia_potencial_anual': 0,
-                'aliquota_anexo_v': TABELA_SIMPLES_NACIONAL['V'][0][2],  # Primeira faixa
-                'aliquota_anexo_iii': TABELA_SIMPLES_NACIONAL['III'][0][2],  # Primeira faixa
+                'aliquota_anexo_v': 15.5,  # Primeira faixa do Anexo V
+                'aliquota_anexo_iii': 6.0,  # Primeira faixa do Anexo III
                 'sem_faturamento': True  # Flag para o frontend saber que não há faturamento
             }
     
