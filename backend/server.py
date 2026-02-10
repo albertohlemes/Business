@@ -8804,10 +8804,16 @@ NCMS_MONOFASICOS = {
     '3305': {'tipo': 'COSMÉTICOS', 'motivo': 'Preparações capilares'},
     '3306': {'tipo': 'HIGIENE', 'motivo': 'Preparações para higiene bucal'},
     '3307': {'tipo': 'COSMÉTICOS', 'motivo': 'Preparações para barbear, desodorantes'},
-    # Bebidas frias
+    # Bebidas frias - SOMENTE NÃO ALCOÓLICAS
     '2201': {'tipo': 'BEBIDA FRIA', 'motivo': 'Águas minerais e gaseificadas'},
     '2202': {'tipo': 'BEBIDA FRIA', 'motivo': 'Refrigerantes, refrescos'},
     '2203': {'tipo': 'BEBIDA FRIA', 'motivo': 'Cervejas de malte'},
+    # IMPORTANTE: Os NCMs abaixo são TRIBUTADOS (NÃO são monofásicos):
+    # 2204 - Vinhos de uvas frescas
+    # 2205 - Vermutes e outros vinhos aromatizados
+    # 2206 - Sidra, saquê e outras bebidas fermentadas
+    # 2207 - Álcool etílico
+    # 2208 - Aguardentes, licores, vodka, whisky, rum, gin, etc.
     # Veículos e autopeças (alguns)
     '8702': {'tipo': 'VEÍCULO', 'motivo': 'Veículos para transporte de pessoas'},
     '8703': {'tipo': 'VEÍCULO', 'motivo': 'Automóveis de passageiros'},
@@ -8816,6 +8822,29 @@ NCMS_MONOFASICOS = {
     # Máquinas e equipamentos
     '8443': {'tipo': 'EQUIPAMENTO', 'motivo': 'Máquinas de impressão'},
     '8471': {'tipo': 'EQUIPAMENTO', 'motivo': 'Computadores e processadores de dados'},
+}
+
+# NCMs de BEBIDAS ALCOÓLICAS - TODOS TRIBUTADOS (PIS 1.65% / COFINS 7.6% no Lucro Real)
+# NÃO incluir nas listas de monofásico, alíquota zero ou isenção
+NCMS_BEBIDAS_ALCOOLICAS_TRIBUTADAS = {
+    # 2204 - Vinhos de uvas frescas
+    '2204': {'tipo': 'VINHO', 'motivo': 'Vinhos - Tributação normal PIS/COFINS'},
+    # 2205 - Vermutes e outros vinhos aromatizados (podem conter álcool adicionado)
+    '2205': {'tipo': 'VERMUTE', 'motivo': 'Vermutes e vinhos aromatizados - Tributação normal'},
+    # 2206 - Outras bebidas fermentadas (sidra, saquê, hidromel, etc.)
+    '2206': {'tipo': 'FERMENTADO', 'motivo': 'Sidra, saquê, coquetéis fermentados - Tributação normal'},
+    # 2207 - Álcool etílico não desnaturado
+    '2207': {'tipo': 'ALCOOL', 'motivo': 'Álcool etílico - Tributação normal'},
+    # 2208 - Aguardentes e destilados diversos
+    '2208': {'tipo': 'DESTILADO', 'motivo': 'Aguardentes, whisky, vodka, rum, gin, licores - Tributação normal'},
+    # Subclassificações detalhadas do 2208:
+    # 2208.20.00 - Aguardentes de vinho (Conhaque, Brandy, Grappa, Pisco)
+    # 2208.30 - Uísques (Bourbon, Scotch, outros)
+    # 2208.40.00 - Rum, cachaça, aguardente de cana
+    # 2208.50.00 - Gim (Gin) e Genebra
+    # 2208.60.00 - Vodca (Vodka)
+    # 2208.70.00 - Licores e similares
+    # 2208.90.00 - Outras (Tequila, Steinhaeger, derivados, coquetéis prontos)
 }
 
 # NCMs específicos de alíquota zero (não monofásicos, mas zerados por lei específica)
