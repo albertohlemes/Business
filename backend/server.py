@@ -11442,60 +11442,118 @@ async def analise_tributaria_ia(
     # ===== GERAR INSIGHTS COM IA =====
     insights_ia = None
     try:
-        # Preparar contexto para a IA
-        contexto = {
-            'empresa': company.get('razao_social'),
-            'regime_tributario': company.get('regime_tributario', 'lucro_real'),
-            'atividade': company.get('tipo_atividade', 'comercio'),
-            'uf': company.get('uf', 'SP'),
-            'competencia': competencia,
-            'resumo': resumo,
-            'viloes_top5': viloes[:5],
-            'oportunidades_top5': oportunidades[:5],
-            'ncm_mais_impacto': analise_ncm_list[:5]
-        }
+        # Calcular métricas adicionais para análise
+        margem_bruta = ((resumo['valor_saidas'] - resumo['valor_entradas']) / resumo['valor_saidas'] * 100) if resumo['valor_saidas'] > 0 else 0
+        carga_tributaria_efetiva = ((resumo['debito_icms'] + resumo.get('pis_saida', 0) + resumo.get('cofins_saida', 0)) / resumo['valor_saidas'] * 100) if resumo['valor_saidas'] > 0 else 0
+        aproveitamento_creditos = ((resumo['credito_icms']) / resumo['debito_icms'] * 100) if resumo['debito_icms'] > 0 else 0
         
-        prompt = f"""Você é um especialista em tributação brasileira (ICMS, PIS, COFINS).
-Analise os dados tributários da empresa e forneça insights estratégicos.
+        # Identificar compras interestaduais
+        compras_interestaduais = await db.xml_documents.aggregate([
+            {"$match": {"company_id": company_id, "competencia": competencia, "tipo": "entrada", **get_filtro_notas_ativas()}},
+            {"$match": {"$expr": {"$ne": [{"$ifNull": ["$emitente_uf", ""]}, company.get("uf", "SP")]}}},
+            {"$group": {
+                "_id": "$emitente_uf",
+                "valor": {"$sum": {"$toDouble": {"$ifNull": ["$valor_total", 0]}}},
+                "docs": {"$sum": 1}
+            }},
+            {"$sort": {"valor": -1}}
+        ]).to_list(10)
+        
+        total_interestadual = sum(c['valor'] for c in compras_interestaduais)
+        pct_interestadual = (total_interestadual / resumo['valor_entradas'] * 100) if resumo['valor_entradas'] > 0 else 0
+        
+        # Identificar principais fornecedores
+        top_fornecedores = await db.xml_documents.aggregate([
+            {"$match": {"company_id": company_id, "competencia": competencia, "tipo": "entrada", **get_filtro_notas_ativas()}},
+            {"$group": {
+                "_id": {"cnpj": "$emitente_cnpj", "nome": "$emitente_nome"},
+                "valor": {"$sum": {"$toDouble": {"$ifNull": ["$valor_total", 0]}}},
+                "icms": {"$sum": {"$toDouble": {"$ifNull": ["$icms_total", 0]}}}
+            }},
+            {"$sort": {"valor": -1}},
+            {"$limit": 5}
+        ]).to_list(5)
+        
+        prompt = f"""Você é um consultor tributário sênior especializado em planejamento tributário brasileiro.
+Faça uma análise DIRETA, OBJETIVA e ACIONÁVEL dos dados abaixo. Evite explicações genéricas.
 
-DADOS DA EMPRESA:
-- Razão Social: {contexto['empresa']}
-- Regime Tributário: {contexto['regime_tributario']}
-- Atividade: {contexto['atividade']}
-- UF: {contexto['uf']}
-- Competência: {contexto['competencia']}
+═══════════════════════════════════════════════════════════════
+                    DADOS DA EMPRESA
+═══════════════════════════════════════════════════════════════
+Empresa: {company.get('razao_social')}
+CNPJ: {company.get('cnpj')}
+Regime: {company.get('regime_tributario', 'lucro_real').upper()}
+Atividade: {company.get('tipo_atividade', 'comercio').upper()}
+UF: {company.get('uf', 'SP')}
+Competência: {competencia}
 
-RESUMO TRIBUTÁRIO:
-- Valor total de entradas: R$ {resumo['valor_entradas']:,.2f}
-- Valor total de saídas: R$ {resumo['valor_saidas']:,.2f}
-- Crédito de ICMS: R$ {resumo['credito_icms']:,.2f}
-- Débito de ICMS: R$ {resumo['debito_icms']:,.2f}
-- Saldo ICMS (a pagar): R$ {resumo['saldo_icms']:,.2f}
-- Quantidade de "vilões tributários" identificados: {resumo['total_viloes']}
-- Impacto negativo total dos vilões: R$ {resumo['impacto_viloes']:,.2f}
+═══════════════════════════════════════════════════════════════
+                    MÉTRICAS PRINCIPAIS
+═══════════════════════════════════════════════════════════════
+• FATURAMENTO (Saídas): R$ {resumo['valor_saidas']:,.2f}
+• COMPRAS (Entradas): R$ {resumo['valor_entradas']:,.2f}
+• Margem Bruta Aparente: {margem_bruta:.1f}%
+• Carga Tributária Efetiva: {carga_tributaria_efetiva:.1f}% sobre vendas
 
-TOP 5 VILÕES TRIBUTÁRIOS (produtos com prejuízo tributário):
-{json.dumps(contexto['viloes_top5'], ensure_ascii=False, indent=2)}
+═══════════════════════════════════════════════════════════════
+                    APURAÇÃO ICMS
+═══════════════════════════════════════════════════════════════
+• Débito ICMS (vendas): R$ {resumo['debito_icms']:,.2f}
+• Crédito ICMS (compras): R$ {resumo['credito_icms']:,.2f}
+• SALDO: R$ {resumo['saldo_icms']:,.2f} {'A PAGAR' if resumo['saldo_icms'] > 0 else 'CREDOR'}
+• Aproveitamento de Créditos: {aproveitamento_creditos:.1f}%
 
-TOP 5 OPORTUNIDADES (produtos com situação favorável):
-{json.dumps(contexto['oportunidades_top5'], ensure_ascii=False, indent=2)}
+═══════════════════════════════════════════════════════════════
+                    COMPRAS INTERESTADUAIS
+═══════════════════════════════════════════════════════════════
+• % do total de compras: {pct_interestadual:.1f}%
+• Valor: R$ {total_interestadual:,.2f}
+• Origem principal: {compras_interestaduais[0]['_id'] if compras_interestaduais else 'N/A'} (R$ {compras_interestaduais[0]['valor']:,.2f} if compras_interestaduais else 0)
+• ⚠️ ALERTA DIFAL: Compras de fora do estado geram diferencial de alíquota
 
-NCMs COM MAIOR IMPACTO NO ICMS:
-{json.dumps(contexto['ncm_mais_impacto'], ensure_ascii=False, indent=2)}
+═══════════════════════════════════════════════════════════════
+                    TOP 5 FORNECEDORES
+═══════════════════════════════════════════════════════════════
+{chr(10).join([f"• {f['_id']['nome'][:40]} - R$ {f['valor']:,.2f}" for f in top_fornecedores])}
 
-Por favor, forneça:
-1. PONTOS POSITIVOS (2-3 itens): Aspectos favoráveis da tributação da empresa
-2. PONTOS DE ATENÇÃO (2-3 itens): Riscos ou problemas identificados
-3. RECOMENDAÇÕES ESTRATÉGICAS (3-4 itens): Ações concretas para otimização tributária
-4. ANÁLISE DE PRECIFICAÇÃO: Considerando os vilões tributários, sugira ajustes de markup/preço
-5. OPORTUNIDADES LEGAIS: Benefícios fiscais ou regimes especiais que a empresa pode aproveitar
+═══════════════════════════════════════════════════════════════
+                    VILÕES TRIBUTÁRIOS
+═══════════════════════════════════════════════════════════════
+Total identificados: {resumo['total_viloes']}
+Impacto negativo: R$ {resumo['impacto_viloes']:,.2f}
+{chr(10).join([f"• {v.get('descricao', 'N/A')[:50]} | Impacto: R$ {v.get('impacto', 0):,.2f}" for v in viloes[:5]])}
 
-Seja direto, prático e específico para o perfil desta empresa. Use linguagem técnica mas acessível."""
+═══════════════════════════════════════════════════════════════
+                    SUA ANÁLISE (SEJA DIRETO)
+═══════════════════════════════════════════════════════════════
+Forneça EXATAMENTE neste formato, com BULLETS CURTOS:
+
+## 🔴 PROBLEMAS IDENTIFICADOS
+(Liste 3-4 problemas ESPECÍFICOS com valores)
+
+## ✅ AÇÕES IMEDIATAS
+(Liste 3-4 ações CONCRETAS com impacto estimado em R$)
+
+## 💰 PRECIFICAÇÃO
+(Analise se a margem cobre a carga tributária. Sugira markup mínimo)
+
+## ⚠️ RISCOS FISCAIS
+(Liste riscos de multa/autuação que precisam atenção)
+
+## 📈 OPORTUNIDADES
+(Benefícios fiscais, regimes especiais, planejamento)
+
+REGRAS:
+- Seja DIRETO. Nada de "é importante considerar" ou "recomenda-se avaliar"
+- Use NÚMEROS. Mostre valores em R$ sempre que possível
+- Foque em AÇÃO. O que fazer, não teoria tributária
+- Máximo 3-4 bullets por seção
+- Se a empresa tem saldo CREDOR de ICMS, isso é POSITIVO (vendas com ST ou isentas)"""
 
         llm = LlmChat(
             api_key=os.environ.get('EMERGENT_LLM_KEY'),
             session_id=f"analise_tributaria_{company_id}_{competencia}_{datetime.now().timestamp()}",
-            system_message="Você é um consultor tributário especialista em legislação brasileira (ICMS, PIS, COFINS). Analise os dados e forneça insights estratégicos."
+            system_message="Você é um consultor tributário objetivo e direto. Forneça análises acionáveis, sem rodeios."
         ).with_model("gemini", "gemini-2.5-flash")
         
         response = await llm.send_message(UserMessage(text=prompt))
