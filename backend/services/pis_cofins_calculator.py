@@ -434,6 +434,63 @@ ALIQUOTAS_PRESUMIDO = {
 
 
 # =============================================================================
+# NCMs de BEBIDAS ALCOÓLICAS - TRIBUTADAS normalmente (NÃO são monofásicas!)
+# =============================================================================
+NCMS_BEBIDAS_ALCOOLICAS = {
+    # 2204 - Vinhos de uvas frescas
+    '2204': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Vinhos de uvas frescas'},
+    '220410': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Vinhos espumantes'},
+    '220421': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Vinhos em garrafas até 2 litros'},
+    '220429': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Outros vinhos'},
+    # 2205 - Vermutes e outros vinhos aromatizados
+    '2205': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Vermutes e vinhos aromatizados'},
+    '220510': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Vermutes em recipientes até 2 litros'},
+    '220590': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Outros vermutes'},
+    # 2206 - Outras bebidas fermentadas (sidra, saquê, hidromel)
+    '2206': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Sidra, saquê, hidromel e outros fermentados'},
+    '220600': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Outras bebidas fermentadas'},
+    # 2207 - Álcool etílico não desnaturado
+    '2207': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Álcool etílico não desnaturado'},
+    '220710': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Álcool etílico >= 80% vol'},
+    '220720': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Álcool etílico desnaturado'},
+    # 2208 - Destilados e licores
+    '2208': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Destilados e licores'},
+    '220820': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Conhaque, Brandy'},
+    '220830': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Whisky'},
+    '220840': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Rum e aguardentes de cana'},
+    '220850': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Gin e Genebra'},
+    '220860': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Vodka'},
+    '220870': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Licores'},
+    '220890': {'grupo': 'BEBIDA_ALCOOLICA', 'descricao': 'Outras bebidas espirituosas (tequila, coquetéis, etc.)'},
+}
+
+
+def is_ncm_bebida_alcoolica(ncm: str) -> bool:
+    """
+    Verifica se NCM é de bebida alcoólica (TRIBUTADA normalmente).
+    Bebidas alcoólicas NÃO são monofásicas!
+    
+    Inclui: 
+    - 2204: Vinhos
+    - 2205: Vermutes
+    - 2206: Sidra, saquê, fermentados
+    - 2207: Álcool etílico
+    - 2208: Destilados (whisky, vodka, gin, rum, licores, etc.)
+    """
+    if not ncm:
+        return False
+    ncm_limpo = str(ncm).replace('.', '').replace('-', '').strip()
+    
+    # Verificar prefixo de 4 dígitos
+    if len(ncm_limpo) >= 4:
+        prefixo = ncm_limpo[:4]
+        # Bebidas alcoólicas: 2204, 2205, 2206, 2207, 2208
+        if prefixo in ['2204', '2205', '2206', '2207', '2208']:
+            return True
+    return False
+
+
+# =============================================================================
 # FUNÇÕES DE CLASSIFICAÇÃO
 # =============================================================================
 
