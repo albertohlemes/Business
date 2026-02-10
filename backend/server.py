@@ -5680,7 +5680,8 @@ async def upload_xml_with_progress(
                                 "nfe_referenciada": nfe_ref_devolucao,
                                 "motivo": motivo_devolucao
                             })
-            else:
+            elif tipo == 'saida' and modelo != '57' and xml_type != 'cte':
+                # Validação de saída apenas para NF-e/NFC-e (CT-e já foi validado acima)
                 cnpj_valido = cnpj_emitente == cnpj_empresa
                 logger.info(f"VALIDAÇÃO SAÍDA: NF {parsed_data.get('numero_nfe')} - Emitente: {cnpj_emitente}, Empresa: {cnpj_empresa}, Válido: {cnpj_valido}")
                 if not cnpj_valido:
