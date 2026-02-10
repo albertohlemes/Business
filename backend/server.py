@@ -17554,14 +17554,26 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     # Calcular projeção anual usando o número de meses com dados reais
     projecao = calcular_projecao_anual(faturamento_ano, meses_para_projecao)
     
-    # Calcular Fator R (se Anexo V E flag controla_fator_r ativa)
+    # Calcular Fator R (se Anexo V OU empresa de serviços E flag controla_fator_r ativa)
     fator_r_info = None
     folha_12m = company.get('folha_pagamento_12m', 0)
     controla_fator_r = company.get('controla_fator_r', False)
+    tipo_atividade = company.get('tipo_atividade', 'comercio')
     
-    if 'V' in anexos_confirmados and rbt12 > 0 and controla_fator_r:
-        # Passar o faturamento da competência atual para calcular a sugestão de folha projetada
-        fator_r_info = calcular_fator_r(folha_12m, rbt12, faturamento_mes_atual)
+    # Calcular Fator R se:
+    # 1. Anexo V confirmado E controla Fator R E tem faturamento OU
+    # 2. Empresa de serviços/mista e controla Fator R (mesmo sem faturamento, para simulação)
+    calcular_fator = False
+    if controla_fator_r:
+        if 'V' in anexos_confirmados:
+            calcular_fator = True
+        elif tipo_atividade in ['servicos', 'mista']:
+            calcular_fator = True
+    
+    if calcular_fator:
+        # Usar rbt12 se tiver, senão usar 1 para evitar divisão por zero
+        rbt12_calc = max(rbt12, 1)
+        fator_r_info = calcular_fator_r(folha_12m, rbt12_calc, faturamento_mes_atual)
     
     # Calcular limites disponíveis
     limite_disponivel = max(0, LIMITE_SIMPLES - rbt12)
