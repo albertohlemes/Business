@@ -2926,10 +2926,11 @@ async def list_companies(
             query["responsavel_ids"] = responsavel_id
         companies = await db.companies.find(query, {"_id": 0}).to_list(1000)
     else:
-        # Operacional só vê empresas onde é responsável
+        # Operacional só vê empresas onde é responsável OU que ele criou
         companies = await db.companies.find(
             {"$or": [
                 {"responsavel_ids": current_user.id},
+                {"created_by": current_user.id},  # Empresas que o usuário criou
                 {"cnpj": {"$in": current_user.company_ids}}  # Fallback para compatibilidade
             ]}, 
             {"_id": 0}
