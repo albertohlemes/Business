@@ -11583,6 +11583,10 @@ async def analise_tributaria_ia(
             is_simples = cst in CSOSN_SIMPLES or is_fornecedor_simples
             sem_credito = is_st or is_despesa or is_simples or v_icms == 0
             
+            # Extrair PIS/COFINS do produto
+            v_pis = float(prod.get('v_pis', 0) or 0)
+            v_cofins = float(prod.get('v_cofins', 0) or 0)
+            
             # Agrupar por NCM para cruzamento
             if ncm not in produtos_entrada:
                 produtos_entrada[ncm] = {
@@ -11590,6 +11594,8 @@ async def analise_tributaria_ia(
                     'descricoes': set(),
                     'total_icms': 0,
                     'total_icms_creditavel': 0,
+                    'total_pis': 0,
+                    'total_cofins': 0,
                     'total_valor': 0,
                     'total_valor_tributado': 0,  # Apenas itens tributados
                     'qtd_itens': 0,
