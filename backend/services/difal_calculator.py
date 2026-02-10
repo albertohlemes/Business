@@ -384,12 +384,12 @@ def processar_documento_difal(
             })
     
     return {
-        "numero_nf": documento.get("numero", ""),
+        "numero_nf": documento.get("numero_nfe", "") or documento.get("numero", ""),
         "serie": documento.get("serie", ""),
-        "chave": documento.get("chave_acesso", ""),
+        "chave": documento.get("chave_nfe", "") or documento.get("chave_acesso", ""),
         "data_emissao": documento.get("data_emissao", ""),
-        "emitente": documento.get("emitente", ""),
-        "cnpj_emitente": documento.get("cnpj_emitente", ""),
+        "emitente": documento.get("emitente_nome", "") or documento.get("emitente", ""),
+        "cnpj_emitente": documento.get("emitente_cnpj", "") or documento.get("cnpj_emitente", ""),
         "uf_origem": uf_origem,
         "uf_destino": uf_destino,
         "valor_total_nf": documento.get("valor_total", 0),
