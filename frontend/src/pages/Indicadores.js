@@ -503,34 +503,6 @@ const Indicadores = ({ user, onLogout }) => {
               </button>
             )}
             <button
-              onClick={() => setActiveTab('viloes')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'viloes' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
-              }`}
-            >
-              <AlertTriangle className="w-4 h-4" />
-              Vilões
-              {analiseIA?.viloes_tributarios?.length > 0 && (
-                <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                  {analiseIA.viloes_tributarios.length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('oportunidades')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'oportunidades' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
-              }`}
-            >
-              <Lightbulb className="w-4 h-4" />
-              Oportunidades
-              {analiseIA?.oportunidades_economia?.length > 0 && (
-                <span className="bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                  {analiseIA.oportunidades_economia.length}
-                </span>
-              )}
-            </button>
-            <button
               onClick={() => setActiveTab('insights')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
                 activeTab === 'insights' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
