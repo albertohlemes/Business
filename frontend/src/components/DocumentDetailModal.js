@@ -446,7 +446,7 @@ const DocumentDetailModal = ({ document, onClose }) => {
                 </thead>
                 <tbody className="divide-y divide-[#2A2A2A]">
                   {produtosVisiveis.map((prod, idx) => {
-                    const hasDivergence = prod.cst_divergente || (prod.cfop_original && prod.cfop !== prod.cfop_original);
+                    const hasDivergence = (prod.cfop_original && prod.cfop !== prod.cfop_original);
                     const rowClass = hasDivergence ? 'bg-red-500/5' : '';
                     
                     return (
