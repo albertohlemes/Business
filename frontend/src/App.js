@@ -140,6 +140,10 @@ function App() {
               element={user ? <Indicadores user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
+              path="/analise-horizontal"
+              element={user ? <AnaliseHorizontal user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            <Route
               path="/analise-saidas"
               element={user ? <AnaliseSaidas user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
