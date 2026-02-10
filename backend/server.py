@@ -5542,7 +5542,8 @@ async def upload_xml_with_progress(
             # - Importar apenas no tipo correspondente ao CFOP
             # - CFOP 5xxx/6xxx → apenas SAÍDA (desconsiderar entrada)
             # - CFOP 1xxx/2xxx → apenas ENTRADA (desconsiderar saída)
-            if cnpj_emitente == cnpj_empresa and cnpj_destinatario == cnpj_empresa:
+            # NOTA: CT-e já foi validado acima, pular esta seção
+            if modelo != '57' and xml_type != 'cte' and cnpj_emitente == cnpj_empresa and cnpj_destinatario == cnpj_empresa:
                 cfops_xml = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
                 cfops_saida = [c for c in cfops_xml if c and len(c) >= 1 and c[0] in ['5', '6', '7']]
                 cfops_entrada = [c for c in cfops_xml if c and len(c) >= 1 and c[0] in ['1', '2', '3']]
