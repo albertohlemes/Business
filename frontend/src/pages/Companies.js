@@ -66,6 +66,8 @@ const Companies = ({ user, onLogout }) => {
     folha_pagamento_12m: 0,
     tipo_atividade: 'comercio',
     tipos_servico: [],
+    // Atividade de locação (sem incidência de ISS)
+    atividade_locacao: false,
     // Perfis comerciais (múltipla escolha)
     perfis_comerciais: ['varejo'],  // industria, distribuidor, varejo
     // Aplicação em serviços (para classificação de entradas em empresas de serviços)
