@@ -10949,6 +10949,7 @@ async def classificar_produtos_ia(
     produtos_aplicacao_servico = company.get('produtos_aplicacao_servico', [])
     insumos_producao = company.get('insumos_producao', [])
     produtos_despesa = company.get('produtos_despesa', [])
+    palavras_chave_personalizadas = company.get('palavras_chave_classificacao', [])  # NOVO: Palavras-chave genéricas
     
     palavras_chave_texto = ""
     if produtos_comercializados:
