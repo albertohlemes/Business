@@ -546,7 +546,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     // Agrupar por categoria
     const grupos = {};
     filtered.forEach(prod => {
-      const categoria = prod.categoria_atual || 'pendente';
+      const categoria = prod.categoria_atual || 'revenda';
       if (!grupos[categoria]) {
         grupos[categoria] = {
           produtos: [],
