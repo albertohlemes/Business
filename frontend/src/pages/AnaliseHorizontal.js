@@ -783,8 +783,8 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                           <input
                             type="number"
                             placeholder="0,00"
-                            defaultValue={dadosMes.cofins || ''}
-                            onBlur={(e) => salvarValorManual(competencia, 'cofins', e.target.value)}
+                            value={dadosMes.cofins || ''}
+                            onChange={(e) => salvarValorManual(competencia, 'cofins', e.target.value)}
                             className="w-20 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white placeholder:text-[#444]"
                           />
                         </td>
@@ -792,8 +792,8 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                           <input
                             type="number"
                             placeholder="0,00"
-                            defaultValue={dadosMes.iss || ''}
-                            onBlur={(e) => salvarValorManual(competencia, 'iss', e.target.value)}
+                            value={dadosMes.iss || ''}
+                            onChange={(e) => salvarValorManual(competencia, 'iss', e.target.value)}
                             className="w-20 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white placeholder:text-[#444]"
                           />
                         </td>
@@ -801,8 +801,8 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                           <input
                             type="number"
                             placeholder="0,00"
-                            defaultValue={dadosMes.das || ''}
-                            onBlur={(e) => salvarValorManual(competencia, 'das', e.target.value)}
+                            value={dadosMes.das || ''}
+                            onChange={(e) => salvarValorManual(competencia, 'das', e.target.value)}
                             className="w-20 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white placeholder:text-[#444]"
                           />
                         </td>
