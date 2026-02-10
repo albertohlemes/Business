@@ -588,9 +588,6 @@ def classificar_ncm_comercio(ncm: str, perfil_empresa: str = 'VAREJO') -> Dict[s
         'gera_credito': True,
         'tipo': 'REGRA_GERAL'
     }
-        'gera_credito': True,
-        'tipo': 'REGRA_GERAL'
-    }
 
 
 def verificar_cfop_gera_credito(cfop: str) -> bool:
