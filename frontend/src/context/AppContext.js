@@ -106,7 +106,8 @@ export const AppProvider = ({ children }) => {
     current: 0,
     total: 0,
     companyName: '',
-    tipo: ''
+    tipo: '',
+    error: null
   });
 
   const startUpload = (uploadId, total, companyName, tipo = 'entrada') => {
@@ -117,7 +118,8 @@ export const AppProvider = ({ children }) => {
       current: 0,
       total,
       companyName,
-      tipo
+      tipo,
+      error: null
     });
   };
 
@@ -126,7 +128,16 @@ export const AppProvider = ({ children }) => {
       ...prev,
       percent,
       current,
-      total: total || prev.total
+      total: total || prev.total,
+      error: null
+    }));
+  };
+
+  const setUploadError = (errorMessage) => {
+    setUploadProgress(prev => ({
+      ...prev,
+      error: errorMessage,
+      percent: 0
     }));
   };
 
@@ -138,7 +149,8 @@ export const AppProvider = ({ children }) => {
       current: 0,
       total: 0,
       companyName: '',
-      tipo: ''
+      tipo: '',
+      error: null
     });
   };
 
