@@ -694,20 +694,28 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                     </td>
                     
                     {/* Variações */}
+                    {/* Variação vs Mês Anterior - mostra evolução compras/vendas/impostos vs mês anterior */}
                     <td className="px-4 py-3 text-center">
-                      <span className={`text-xs font-medium ${row.var_compras > 0 ? 'text-emerald-400' : row.var_compras < 0 ? 'text-red-400' : 'text-[#666]'}`}>
-                        {row.var_compras > 0 ? '+' : ''}{row.var_compras.toFixed(1)}%
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`text-xs font-medium ${row.var_vendas_mes > 0 ? 'text-emerald-400' : row.var_vendas_mes < 0 ? 'text-red-400' : 'text-[#666]'}`} title="Vendas vs mês anterior">
+                          V: {row.var_vendas_mes > 0 ? '+' : ''}{(row.var_vendas_mes || 0).toFixed(1)}%
+                        </span>
+                        <span className={`text-xs font-medium ${row.var_impostos_mes < 0 ? 'text-emerald-400' : row.var_impostos_mes > 0 ? 'text-red-400' : 'text-[#666]'}`} title="Impostos vs mês anterior">
+                          I: {row.var_impostos_mes > 0 ? '+' : ''}{(row.var_impostos_mes || 0).toFixed(1)}%
+                        </span>
+                      </div>
                     </td>
+                    
+                    {/* Variação vs Mesmo Mês Ano Anterior */}
                     <td className="px-4 py-3 text-center">
-                      <span className={`text-xs font-medium ${row.var_vendas > 0 ? 'text-emerald-400' : row.var_vendas < 0 ? 'text-red-400' : 'text-[#666]'}`}>
-                        {row.var_vendas > 0 ? '+' : ''}{row.var_vendas.toFixed(1)}%
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`text-xs font-medium ${row.var_impostos < 0 ? 'text-emerald-400' : row.var_impostos > 0 ? 'text-red-400' : 'text-[#666]'}`}>
-                        {row.var_impostos > 0 ? '+' : ''}{row.var_impostos.toFixed(1)}%
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`text-xs font-medium ${row.var_vendas > 0 ? 'text-emerald-400' : row.var_vendas < 0 ? 'text-red-400' : 'text-[#666]'}`} title="Vendas vs ano anterior">
+                          V: {row.var_vendas > 0 ? '+' : ''}{row.var_vendas.toFixed(1)}%
+                        </span>
+                        <span className={`text-xs font-medium ${row.var_impostos < 0 ? 'text-emerald-400' : row.var_impostos > 0 ? 'text-red-400' : 'text-[#666]'}`} title="Impostos vs ano anterior">
+                          I: {row.var_impostos > 0 ? '+' : ''}{row.var_impostos.toFixed(1)}%
+                        </span>
+                      </div>
                     </td>
                   </tr>
                   );
