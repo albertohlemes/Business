@@ -359,28 +359,30 @@ const Dashboard = ({ user, onLogout }) => {
                 </div>
               </div>
 
-              {/* Markup */}
-              <div className="mt-4 bg-gradient-to-r from-[#C8A951]/20 to-[#C8A951]/10 rounded-lg p-5 border border-[#C8A951]/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Percent className="w-8 h-8 text-[#C8A951]" />
-                    <div>
-                      <h3 className="text-[#A1A1AA] text-sm">Markup (Vendas / Compras)</h3>
-                      <p className={`text-2xl font-bold ${(stats.valores.markup || 0) >= 0 ? 'text-[#C8A951]' : 'text-red-400'}`}>
-                        {formatPercent(stats.valores.markup || 0)}
-                      </p>
+              {/* Markup - Apenas para comércio/indústria/mista (não para serviços puros) */}
+              {stats.empresa.tipo_atividade !== 'servicos' && (
+                <div className="mt-4 bg-gradient-to-r from-[#C8A951]/20 to-[#C8A951]/10 rounded-lg p-5 border border-[#C8A951]/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Percent className="w-8 h-8 text-[#C8A951]" />
+                      <div>
+                        <h3 className="text-[#A1A1AA] text-sm">Markup (Vendas / Compras)</h3>
+                        <p className={`text-2xl font-bold ${(stats.valores.markup || 0) >= 0 ? 'text-[#C8A951]' : 'text-red-400'}`}>
+                          {formatPercent(stats.valores.markup || 0)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right text-sm">
-                    <div className="text-[#A1A1AA]">
-                      Atividade: <span className="text-white font-medium capitalize">{stats.empresa.tipo_atividade}</span>
-                    </div>
-                    <div className="text-xs text-[#666] mt-1">
-                      ({formatCurrency(stats.valores.vendas_liquidas?.liquidas || 0)} - {formatCurrency(stats.valores.compras?.liquidas || 0)}) / {formatCurrency(stats.valores.compras?.liquidas || 0)}
+                    <div className="text-right text-sm">
+                      <div className="text-[#A1A1AA]">
+                        Atividade: <span className="text-white font-medium capitalize">{stats.empresa.tipo_atividade}</span>
+                      </div>
+                      <div className="text-xs text-[#666] mt-1">
+                        ({formatCurrency(stats.valores.vendas_liquidas?.liquidas || 0)} - {formatCurrency(stats.valores.compras?.liquidas || 0)}) / {formatCurrency(stats.valores.compras?.liquidas || 0)}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Impostos - Diferenciado por regime tributário */}
