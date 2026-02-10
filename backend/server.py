@@ -11806,6 +11806,57 @@ async def analise_tributaria_ia(
                     'explicacao': f"Compra de fornecedor SIMPLES NACIONAL (sem crédito) mas sai tributado a {aliq_saida}%. Todo débito é prejuízo."
                 })
         
+        # ===== NOVO: Vilão 4: Alíquotas próximas mas alto imposto a recolher =====
+        # Mesmo com alíquotas similares, diferença de volume gera muito imposto
+        if aliq_creditavel > 0 and aliq_saida > 0 and abs(aliq_creditavel - aliq_saida) <= 2:  # Alíquotas próximas (até 2pp de diferença)
+            diferenca_icms = icms_debito - icms_credito
+            if diferenca_icms > 500:  # Diferença significativa > R$ 500
+                if not any(v['ncm'] == ncm for v in viloes):
+                    viloes.append({
+                        'tipo': 'VOLUME_DESFAVORAVEL',
+                        'ncm': ncm,
+                        'descricao': descricao_principal,
+                        'descricoes_entrada': descricoes_entrada,
+                        'descricoes_saida': descricoes_saida,
+                        'aliq_entrada': aliq_creditavel,
+                        'aliq_saida': aliq_saida,
+                        'diferenca_aliquota': round(aliq_saida - aliq_creditavel, 2),
+                        'icms_credito': round(icms_credito, 2),
+                        'icms_debito': round(icms_debito, 2),
+                        'impacto_negativo': round(diferenca_icms, 2),
+                        'qtd_entrada': entrada['qtd_itens'],
+                        'qtd_saida': saida['qtd_itens'],
+                        'valor_entrada': round(entrada['total_valor'], 2),
+                        'valor_saida': round(saida['total_valor'], 2),
+                        'cfops_entrada': list(entrada['cfops']),
+                        'cfops_saida': list(saida['cfops']),
+                        'explicacao': f"Alíquotas próximas ({aliq_creditavel}% vs {aliq_saida}%) mas diferença de volume: vende mais do que compra. Imposto: R$ {diferenca_icms:,.2f}."
+                    })
+        
+        # ===== NOVO: Vilão 5: Débito alto (para Lucro Presumido, onde não há crédito) =====
+        if icms_credito == 0 and icms_debito > 500:  # Sem crédito e muito débito
+            if not any(v['ncm'] == ncm for v in viloes):
+                viloes.append({
+                    'tipo': 'DEBITO_ALTO_SEM_CREDITO',
+                    'ncm': ncm,
+                    'descricao': descricao_principal,
+                    'descricoes_entrada': descricoes_entrada,
+                    'descricoes_saida': descricoes_saida,
+                    'aliq_entrada': 0,
+                    'aliq_saida': aliq_saida,
+                    'diferenca_aliquota': aliq_saida,
+                    'icms_credito': 0,
+                    'icms_debito': round(icms_debito, 2),
+                    'impacto_negativo': round(icms_debito, 2),
+                    'qtd_entrada': entrada['qtd_itens'],
+                    'qtd_saida': saida['qtd_itens'],
+                    'valor_entrada': round(entrada['total_valor'], 2),
+                    'valor_saida': round(saida['total_valor'], 2),
+                    'cfops_entrada': list(entrada['cfops']),
+                    'cfops_saida': list(saida['cfops']),
+                    'explicacao': f"Produto gera R$ {icms_debito:,.2f} de ICMS débito sem crédito na entrada. Avaliar fornecedores que gerem crédito."
+                })
+        
         # Oportunidade 1: Entrada tributada → Saída ST (favorável)
         if entrada['tem_tributado'] and saida['tem_st'] and not saida['tem_tributado'] and icms_credito > 100:
             oportunidades.append({
