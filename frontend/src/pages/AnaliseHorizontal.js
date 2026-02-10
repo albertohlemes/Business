@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/Layout';
-import { useApp } from '../context/AppContext';
+import { useAppContext } from '../context/AppContext';
 import { 
   TrendingUp, TrendingDown, DollarSign, RefreshCw, 
   BarChart3, LineChart, Save, Edit2, Sparkles,
