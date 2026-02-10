@@ -99,6 +99,10 @@ const Documents = ({ user, onLogout }) => {
   const [availableEmitentes, setAvailableEmitentes] = useState([]);
   const [emitenteSearch, setEmitenteSearch] = useState('');
 
+  // Modal de cancelamento de NFS-e
+  const [showNfseCancellation, setShowNfseCancellation] = useState(false);
+  const [nfseFilesForCancellation, setNfseFilesForCancellation] = useState([]);
+
   // Carregar documentos quando selecionar tipo
   useEffect(() => {
     if (ctxCompany && operacao && tipoDoc) {
