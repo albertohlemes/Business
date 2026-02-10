@@ -2860,19 +2860,7 @@ async def remove_responsavel_from_company(
     )
     
     return {"status": "ok", "message": "Responsável removido com sucesso"}
-    """Reactivate a deactivated user (only for Master/Admin)"""
-    check_master_or_admin(current_user)
-    
-    existing = await db.users.find_one({"id": user_id})
-    if not existing:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    
-    await db.users.update_one(
-        {"id": user_id},
-        {"$set": {"is_active": True}}
-    )
-    
-    return {"status": "ok", "message": "Usuário reativado com sucesso"}
+
 
 @api_router.delete("/companies/{company_id}")
 async def delete_company(company_id: str, current_user: User = Depends(get_current_user)):
