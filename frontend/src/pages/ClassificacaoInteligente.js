@@ -576,10 +576,10 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
   // Ordem de exibição das categorias (com as novas categorias)
   const ordemCategorias = [
     'revenda', 'produto', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel',
-    'bonificacao', 'amostra_gratis', 'conserto_reparo', 'retorno_demonstracao',
+    'devolucao', 'bonificacao', 'amostra_gratis', 'conserto_reparo', 'retorno_demonstracao',
     'retorno_exposicao', 'entrada_mercadoria_devolucao', 'retorno_industrializacao',
     'devolucao_simples_remessa', 'entrada_embalagem', 'retorno_merc_remetida_consig',
-    'devolucao', 'energia_eletrica', 'servico_tomado', 'servico_aplicacao', 
+    'energia_eletrica', 'servico_tomado', 'servico_aplicacao', 
     'aplicacao_servico', 'servico_comunicacao', 'servico_transporte', 'servico_issqn',
     'operacao_distinta', 'outros', 'outras_entradas', 'pendente'
   ];
