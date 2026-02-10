@@ -2915,7 +2915,7 @@ async def list_companies(
     """
     List companies based on user role:
     - Admin/Master: all companies (can filter by responsavel_id)
-    - Operacional: only companies where user is responsible
+    - Operacional: only companies where user is responsible OR companies they created
     """
     allowed_roles = ["super_admin", "master", "admin"]
     
