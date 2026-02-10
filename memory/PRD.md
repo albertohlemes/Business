@@ -128,6 +128,15 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **Indicadores** - Removidas abas "Vilões" e "Oportunidades" 
 - ✅ **Menu separado** - "Vilões e Oportunidades" agora é item próprio no menu lateral
 
+**Categoria Devolução Adicionada:**
+- ✅ **CFOPs de devolução mapeados** - 1201-1210, 1411, 2201-2210, 2411, etc.
+- ✅ **Categoria no frontend** - "Devolução" com ícone ↩️ e cor laranja
+
+**Barra de Progresso Global:**
+- ✅ **Movida para Layout.js** - Visível em todas as telas durante upload
+- ✅ **Estado no AppContext** - `uploadProgress`, `startUpload`, `updateUploadProgress`, `finishUpload`
+- ✅ **Documents.js atualizado** - Usa funções globais de progresso
+
 ### 2026-02-10 (Sessão 14 - Melhorias Extensivas na Classificação e Cadastro)
 
 **Correção do Relatório de Upload:**
