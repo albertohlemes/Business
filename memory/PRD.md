@@ -111,6 +111,13 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **Campo de busca** - Filtrar por NCM ou categoria
 - ✅ **Menu lateral atualizado** - Link "Vilões e Oportunidades" adicionado
 
+**Correções na Classificação Inteligente:**
+- ✅ **Eliminação de Pendentes** - Lista de categorias válidas expandida
+- ✅ **Botão "Resolver todos"** - Classifica todos os pendentes como revenda
+- ✅ **Fix: button dentro de button** - Corrigido erro de aninhamento HTML
+- ✅ **Novas categorias adicionadas** - `outras_entradas`, `servico_aplicacao`, `aplicacao_servico`
+- ✅ **Select de categoria manual expandido** - Mais opções no dropdown de CFOP
+
 ### 2026-02-10 (Sessão 14 - Melhorias Extensivas na Classificação e Cadastro)
 
 **Correção do Relatório de Upload:**
