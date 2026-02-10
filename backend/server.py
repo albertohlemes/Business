@@ -11560,12 +11560,14 @@ async def get_classification_suggestions(
         'classificado': False
     })
     
-    categorias_validas = [
+    # Lista de categorias conhecidas como classificadas (expandida)
+    categorias_classificadas = [
         'revenda', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel',
         'servico_aplicacao', 'servico', 'materia_prima', 'outras_entradas',
         'uso_consumo', 'energia', 'comunicacao', 'transporte', 'bonificacao',
         'amostra_gratis', 'devolucao', 'transferencia', 'remessa', 'retorno',
-        'conserto', 'garantia', 'locacao', 'comodato', 'demonstracao'
+        'conserto', 'garantia', 'locacao', 'comodato', 'demonstracao',
+        'aplicacao_servico', 'compra_revenda', 'imobilizado'
     ]
     total_produtos = 0
     validados = 0
@@ -11583,9 +11585,9 @@ async def get_classification_suggestions(
             grupo['ncm'] = prod.get('ncm', '')
             grupo['cfop_atual'] = prod.get('cfop', '')
             
-            # Verificar categoria classificada
+            # Verificar categoria classificada - aceita qualquer valor não vazio
             categoria = prod.get('categoria_classificada', '')
-            if categoria in categorias_validas:
+            if categoria and categoria.strip() and categoria.lower() not in ['', 'pendente', 'pendente_classificacao', 'none', 'null']:
                 grupo['categoria_atual'] = categoria
                 grupo['classificado'] = True
             else:
