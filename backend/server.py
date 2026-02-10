@@ -1399,6 +1399,131 @@ def parse_xml_nfce(xml_content: str) -> Dict[str, Any]:
     except Exception as e:
         raise ValueError(f"Erro ao processar XML NFC-e: {str(e)}")
 
+
+def parse_xml_cte(xml_content: str) -> Dict[str, Any]:
+    """Parser para CT-e (Conhecimento de Transporte Eletrônico) - Modelo 57"""
+    try:
+        data = xmltodict.parse(xml_content)
+        
+        # CT-e pode vir como cteProc ou CTe
+        cte_proc = data.get('cteProc', data.get('CTeProc', data))
+        cte = cte_proc.get('CTe', cte_proc.get('cte', cte_proc))
+        inf_cte = cte.get('infCte', {})
+        
+        # Identificação
+        ide = inf_cte.get('ide', {})
+        emit = inf_cte.get('emit', {})
+        rem = inf_cte.get('rem', {})  # Remetente
+        dest = inf_cte.get('dest', {})  # Destinatário
+        receb = inf_cte.get('receb', {})  # Recebedor
+        v_prest = inf_cte.get('vPrest', {})  # Valores da prestação
+        imp = inf_cte.get('imp', {})  # Impostos
+        inf_cte_norm = inf_cte.get('infCTeNorm', {})
+        
+        # Dados da carga
+        inf_carga = inf_cte_norm.get('infCarga', {})
+        valor_carga = float(inf_carga.get('vCarga', 0) or 0)
+        
+        # Componentes do valor da prestação
+        v_tprest = float(v_prest.get('vTPrest', 0) or 0)
+        v_rec = float(v_prest.get('vRec', 0) or 0)
+        
+        # ICMS do CT-e
+        icms_data = imp.get('ICMS', {})
+        # CT-e pode ter diferentes tipos de ICMS (ICMS00, ICMS20, ICMS45, ICMS60, ICMS90, etc.)
+        icms_info = {}
+        for key in ['ICMS00', 'ICMS20', 'ICMS45', 'ICMS60', 'ICMS90', 'ICMSOutraUF', 'ICMSSN']:
+            if key in icms_data:
+                icms_info = icms_data[key]
+                break
+        
+        v_bc_icms = float(icms_info.get('vBC', 0) or 0)
+        p_icms = float(icms_info.get('pICMS', 0) or 0)
+        v_icms = float(icms_info.get('vICMS', 0) or 0)
+        cst_icms = icms_info.get('CST', '')
+        
+        # Protocolo de autorização
+        prot_cte = cte_proc.get('protCTe', {})
+        inf_prot = prot_cte.get('infProt', {})
+        chave_cte = inf_prot.get('chCTe', ide.get('chCTe', ''))
+        numero_cte = ide.get('nCT', '')
+        serie = ide.get('serie', '')
+        dt_emissao = ide.get('dhEmi', '')[:10] if ide.get('dhEmi') else ''
+        
+        # Emitente (Transportadora)
+        emit_cnpj = emit.get('CNPJ', '')
+        emit_nome = emit.get('xNome', '')
+        emit_uf = emit.get('enderEmit', {}).get('UF', '')
+        
+        # Remetente (quem enviou a carga)
+        rem_cnpj = rem.get('CNPJ', rem.get('CPF', ''))
+        rem_nome = rem.get('xNome', '')
+        rem_uf = rem.get('enderReme', {}).get('UF', '') if rem.get('enderReme') else ''
+        
+        # Destinatário (quem recebe a carga)
+        dest_cnpj = dest.get('CNPJ', dest.get('CPF', ''))
+        dest_nome = dest.get('xNome', '')
+        dest_uf = dest.get('enderDest', {}).get('UF', '') if dest.get('enderDest') else ''
+        
+        # Tipo de CT-e (0=Normal, 1=Complemento, 2=Anulação, 3=Substituto)
+        tipo_cte = ide.get('tpCTe', '0')
+        
+        # Modal (01=Rodoviário, 02=Aéreo, 03=Aquaviário, 04=Ferroviário, 05=Dutoviário, 06=Multimodal)
+        modal = ide.get('modal', '01')
+        modal_nomes = {'01': 'Rodoviário', '02': 'Aéreo', '03': 'Aquaviário', '04': 'Ferroviário', '05': 'Dutoviário', '06': 'Multimodal'}
+        
+        # CFOP do CT-e
+        cfop = ide.get('CFOP', '')
+        
+        # Criar um "produto" para o CT-e (o próprio serviço de transporte)
+        produtos = [{
+            'codigo': 'FRETE',
+            'descricao': f'SERVIÇO DE TRANSPORTE - {modal_nomes.get(modal, "RODOVIÁRIO")}',
+            'ncm': '00000000',
+            'cfop': cfop,
+            'quantidade': 1,
+            'unidade': 'SV',
+            'valor_unitario': v_tprest,
+            'valor_total': v_tprest,
+            'v_bc_icms': v_bc_icms,
+            'p_icms': p_icms,
+            'v_icms': v_icms,
+            'cst': cst_icms,
+            'valor_carga': valor_carga,
+        }]
+        
+        return {
+            'modelo': '57',
+            'chave_nfe': chave_cte,
+            'numero_nfe': numero_cte,
+            'serie': serie,
+            'data_emissao': dt_emissao,
+            'emitente_cnpj': emit_cnpj,
+            'emitente_nome': emit_nome,
+            'emitente_uf': emit_uf,
+            'remetente_cnpj': rem_cnpj,
+            'remetente_nome': rem_nome,
+            'remetente_uf': rem_uf,
+            'destinatario_cnpj': dest_cnpj,
+            'destinatario_nome': dest_nome,
+            'destinatario_uf': dest_uf,
+            'cfop': cfop,
+            'valor_total': v_tprest,
+            'valor_recebido': v_rec,
+            'valor_carga': valor_carga,
+            'icms_total': v_icms,
+            'v_bc_icms': v_bc_icms,
+            'p_icms': p_icms,
+            'tipo_cte': tipo_cte,
+            'modal': modal,
+            'modal_nome': modal_nomes.get(modal, 'Rodoviário'),
+            'produtos': produtos,
+            'natureza_operacao': ide.get('natOp', 'PRESTAÇÃO DE SERVIÇO DE TRANSPORTE')
+        }
+    except Exception as e:
+        raise ValueError(f"Erro ao processar XML CT-e: {str(e)}")
+
+
 def parse_xml_nfse(xml_content: str) -> Dict[str, Any]:
     """Parser para NFS-e (Nota Fiscal de Serviço Eletrônica)"""
     try:
