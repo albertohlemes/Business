@@ -212,6 +212,14 @@ const Documents = ({ user, onLogout }) => {
     const isXmlUpload = tipoConfig.importType === 'xml' || 
       (tipoConfig.importType === 'both' && files[0].name.toLowerCase().endsWith('.xml'));
     
+    // Se for NFS-e prestados (saída de serviços), abrir modal de cancelamento
+    if (tipoDoc === 'servicos_prestados' && isXmlUpload) {
+      setNfseFilesForCancellation(files);
+      setShowNfseCancellation(true);
+      e.target.value = '';
+      return;
+    }
+    
     // Para poucos arquivos XML ou arquivos não-XML, usar upload direto
     if (!isXmlUpload || files.length <= 10) {
       await handleDirectUpload(files, tipoConfig, token);
@@ -221,6 +229,33 @@ const Documents = ({ user, onLogout }) => {
     }
     
     e.target.value = '';
+  };
+
+  // Callback quando importação de NFS-e com cancelamentos é concluída
+  const handleNfseImportComplete = (result) => {
+    // Mapear resultado para o formato do modal de upload
+    setUploadResult({
+      tipo: 'nfse',
+      total: result.resumo?.total_notas || 0,
+      sucesso: (result.resumo?.ativas || 0) + (result.resumo?.canceladas || 0),
+      erros: (result.resumo?.duplicadas || 0) + (result.resumo?.rejeitadas || 0) + (result.resumo?.erros || 0),
+      canceladas: result.resumo?.canceladas || 0,
+      processados: (result.notas_importadas || []).map(n => ({
+        arquivo: n.arquivo,
+        numero: n.numero,
+        valor: n.valor,
+        emitente: n.emitente,
+        status: n.status
+      })),
+      rejeitados: [
+        ...(result.duplicadas || []).map(d => ({ arquivo: d.arquivo, motivo: 'Nota duplicada' })),
+        ...(result.rejeitadas_cnpj || []).map(r => ({ arquivo: r.arquivo, motivo: r.motivo || 'CNPJ não corresponde' })),
+        ...(result.errors || []).map(e => ({ arquivo: e.arquivo, motivo: e.erro }))
+      ],
+      notas_canceladas: result.notas_canceladas || []
+    });
+    setShowUploadResult(true);
+    fetchDocuments();
   };
 
   // Upload direto (para poucos arquivos ou não-XML)
