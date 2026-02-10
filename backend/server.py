@@ -11690,6 +11690,8 @@ async def analise_tributaria_ia(
             
             produtos_saida[ncm]['descricoes'].add(descricao)
             produtos_saida[ncm]['total_icms'] += v_icms
+            produtos_saida[ncm]['total_pis'] += v_pis
+            produtos_saida[ncm]['total_cofins'] += v_cofins
             produtos_saida[ncm]['total_valor'] += valor
             produtos_saida[ncm]['qtd_itens'] += 1
             produtos_saida[ncm]['cfops'].add(cfop)
