@@ -4099,10 +4099,45 @@ async def upload_xml_batch(
             # VALIDAR CNPJ - Verificar se a NF-e pertence à empresa selecionada
             # Para ENTRADA: o destinatário deve ser a empresa
             # Para SAÍDA: o emitente deve ser a empresa
+            # Para NFC-e (modelo 65): emitente deve ser a empresa (NFC-e é sempre saída, consumidor final)
             cnpj_emitente = parsed_data.get('emitente_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
             cnpj_destinatario = parsed_data.get('destinatario_cnpj', '').replace('.', '').replace('/', '').replace('-', '')
             
             cnpj_valido = False
+            
+            # ==== TRATAMENTO ESPECIAL PARA NFC-e (MODELO 65) ====
+            # NFC-e é sempre venda para consumidor final, então:
+            # - Emitente deve ser a empresa
+            # - Tipo deve ser SAÍDA (NFC-e não tem entrada)
+            if modelo in ['nfce', 'NFCE', 'NFC-e', '65']:
+                if tipo == 'entrada':
+                    # NFC-e não pode ser importada como entrada
+                    rejeitadas_cnpj.append({
+                        "filename": file.filename,
+                        "numero_nfe": parsed_data.get('numero_nfe', ''),
+                        "motivo": f"NFC-e (cupom fiscal) só pode ser importada como SAÍDA. Selecione o tipo 'Saída' para importar.",
+                        "emitente": parsed_data.get('emitente_razao_social', parsed_data.get('emitente_nome', '')),
+                        "destinatario": "Consumidor Final"
+                    })
+                    continue
+                
+                # Para saída, validar se o emitente é a empresa
+                cnpj_valido = cnpj_emitente == cnpj_empresa
+                if not cnpj_valido:
+                    rejeitadas_cnpj.append({
+                        "filename": file.filename,
+                        "numero_nfe": parsed_data.get('numero_nfe', ''),
+                        "motivo": f"CNPJ do emitente da NFC-e ({cnpj_emitente}) não corresponde à empresa selecionada ({cnpj_empresa})",
+                        "emitente": parsed_data.get('emitente_razao_social', parsed_data.get('emitente_nome', '')),
+                        "destinatario": "Consumidor Final"
+                    })
+                    continue
+                
+                # NFC-e validada - pular para processamento (não precisa das validações de NF-e)
+                is_devolucao_fornecedor = False
+                motivo_devolucao = ""
+                nfe_ref_devolucao = ""
+            else:
             is_mesma_empresa = False  # Flag para notas onde emitente = destinatário = empresa
             motivo_desconsideracao_mesma_empresa = ""
             
