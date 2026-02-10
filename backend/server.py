@@ -17480,11 +17480,40 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
         "tipo": "saida",
         "competencia": competencia_atual,
         **get_filtro_notas_ativas()
-    }, {"_id": 0, "produtos": 1, "valor_total": 1})
+    }, {"_id": 0, "produtos": 1, "valor_total": 1, "modelo": 1, "cfop_principal": 1})
     
     faturamento_mes_atual = 0
+    servicos_prestados_mes = 0
+    vendas_cfop_mes = 0
+    
+    # CFOPs de VENDA (mercadorias)
+    CFOPS_VENDA_SIMPLES = [
+        '5101', '5102', '5103', '5104', '5105', '5106', '5109', '5110', '5111', '5112', '5113', '5114', '5115', '5116', '5117', '5118', '5119', '5120', '5122', '5123', '5124', '5125',
+        '5401', '5402', '5403', '5405',
+        '6101', '6102', '6103', '6104', '6105', '6106', '6107', '6108', '6109', '6110', '6111', '6112', '6113', '6114', '6115', '6116', '6117', '6118', '6119', '6120', '6122', '6123', '6124', '6125',
+        '6401', '6402', '6403', '6404'
+    ]
+    
     async for doc in docs_mes_cursor:
-        faturamento_mes_atual += doc.get("valor_total", 0)
+        valor_doc = doc.get("valor_total", 0) or 0
+        faturamento_mes_atual += valor_doc
+        modelo = str(doc.get("modelo", "")).lower()
+        
+        # Serviços prestados (NFS-e)
+        if modelo in ['nfse_prestado', 'nfse', 'nfs-e', 'nfse_prestada']:
+            servicos_prestados_mes += valor_doc
+        else:
+            # Verificar CFOPs de venda nos produtos
+            cfop_principal = str(doc.get("cfop_principal", ""))
+            if cfop_principal in CFOPS_VENDA_SIMPLES:
+                vendas_cfop_mes += valor_doc
+            else:
+                # Verificar nos produtos
+                for prod in doc.get("produtos", []):
+                    cfop_prod = str(prod.get("cfop", ""))
+                    if cfop_prod in CFOPS_VENDA_SIMPLES:
+                        vendas_cfop_mes += float(prod.get("valor_total", 0) or prod.get("valor_produto", 0) or 0)
+        
         for prod in doc.get("produtos", []):
             cst = prod.get("cst", "")
             ncm = prod.get("ncm", "")
