@@ -19137,6 +19137,160 @@ async def get_historico_saldos_credores(
     }
 
 
+# ========== IMPOSTOS RETIDOS ==========
+
+@api_router.get("/impostos-retidos/{company_id}")
+async def get_impostos_retidos(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna a apuração de impostos retidos para serviços tomados e prestados.
+    Inclui ISS, IR, PIS, COFINS, CSLL e INSS.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar documentos de serviços da competência
+    documentos = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "$or": [
+            {"modelo": "nfse"},
+            {"modelo": {"$in": ["nfse_tomado", "nfse_prestado"]}},
+            {"tipo_operacao": {"$in": ["tomado", "prestado"]}}
+        ],
+        **get_filtro_notas_ativas()
+    }, {"_id": 0}).to_list(10000)
+    
+    # Estrutura para acumular dados
+    retencoes_tomados = {
+        "iss": 0, "ir": 0, "pis": 0, "cofins": 0, "csll": 0, "inss": 0,
+        "total_servicos": 0, "qtd_docs": 0, "detalhes": []
+    }
+    retencoes_prestados = {
+        "iss": 0, "ir": 0, "pis": 0, "cofins": 0, "csll": 0, "inss": 0,
+        "total_servicos": 0, "qtd_docs": 0, "detalhes": []
+    }
+    
+    # Processar documentos
+    for doc in documentos:
+        tipo = doc.get('tipo_operacao', doc.get('tipo', 'tomado'))
+        if tipo in ['saida', 'prestado']:
+            estrutura = retencoes_prestados
+        else:
+            estrutura = retencoes_tomados
+        
+        estrutura["qtd_docs"] += 1
+        
+        # Valores do documento
+        valor_servicos = float(doc.get('valor_servicos', 0) or doc.get('valor_total', 0) or 0)
+        estrutura["total_servicos"] += valor_servicos
+        
+        # Impostos retidos (podem estar no documento ou nos serviços)
+        iss_retido = float(doc.get('iss_retido', 0) or 0)
+        ir_retido = float(doc.get('ir_retido', 0) or doc.get('irrf_retido', 0) or 0)
+        pis_retido = float(doc.get('pis_retido', 0) or 0)
+        cofins_retido = float(doc.get('cofins_retido', 0) or 0)
+        csll_retido = float(doc.get('csll_retido', 0) or 0)
+        inss_retido = float(doc.get('inss_retido', 0) or 0)
+        
+        # Verificar também nos serviços
+        for servico in doc.get('servicos', []):
+            iss_retido += float(servico.get('iss_retido', 0) or 0)
+            ir_retido += float(servico.get('ir_retido', 0) or servico.get('irrf', 0) or 0)
+            pis_retido += float(servico.get('pis_retido', 0) or 0)
+            cofins_retido += float(servico.get('cofins_retido', 0) or 0)
+            csll_retido += float(servico.get('csll_retido', 0) or 0)
+            inss_retido += float(servico.get('inss_retido', 0) or 0)
+        
+        # Acumular
+        estrutura["iss"] += iss_retido
+        estrutura["ir"] += ir_retido
+        estrutura["pis"] += pis_retido
+        estrutura["cofins"] += cofins_retido
+        estrutura["csll"] += csll_retido
+        estrutura["inss"] += inss_retido
+        
+        # Adicionar aos detalhes se tiver alguma retenção
+        total_retido = iss_retido + ir_retido + pis_retido + cofins_retido + csll_retido + inss_retido
+        if total_retido > 0:
+            estrutura["detalhes"].append({
+                "numero_nf": doc.get('numero_nfe', ''),
+                "data_emissao": doc.get('data_emissao', ''),
+                "prestador" if tipo in ['entrada', 'tomado'] else "tomador": doc.get('emitente_nome', '') if tipo in ['entrada', 'tomado'] else doc.get('destinatario_nome', ''),
+                "cnpj": doc.get('emitente_cnpj', '') if tipo in ['entrada', 'tomado'] else doc.get('destinatario_cnpj', ''),
+                "valor_servicos": round(valor_servicos, 2),
+                "retencoes": {
+                    "iss": round(iss_retido, 2),
+                    "ir": round(ir_retido, 2),
+                    "pis": round(pis_retido, 2),
+                    "cofins": round(cofins_retido, 2),
+                    "csll": round(csll_retido, 2),
+                    "inss": round(inss_retido, 2)
+                },
+                "total_retido": round(total_retido, 2)
+            })
+    
+    # Calcular totais
+    total_retido_tomados = sum([
+        retencoes_tomados["iss"], retencoes_tomados["ir"], 
+        retencoes_tomados["pis"], retencoes_tomados["cofins"],
+        retencoes_tomados["csll"], retencoes_tomados["inss"]
+    ])
+    
+    total_retido_prestados = sum([
+        retencoes_prestados["iss"], retencoes_prestados["ir"], 
+        retencoes_prestados["pis"], retencoes_prestados["cofins"],
+        retencoes_prestados["csll"], retencoes_prestados["inss"]
+    ])
+    
+    return {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "cnpj": company.get('cnpj', '')
+        },
+        "competencia": competencia,
+        "servicos_tomados": {
+            "total_servicos": round(retencoes_tomados["total_servicos"], 2),
+            "qtd_documentos": retencoes_tomados["qtd_docs"],
+            "retencoes": {
+                "iss": round(retencoes_tomados["iss"], 2),
+                "ir": round(retencoes_tomados["ir"], 2),
+                "pis": round(retencoes_tomados["pis"], 2),
+                "cofins": round(retencoes_tomados["cofins"], 2),
+                "csll": round(retencoes_tomados["csll"], 2),
+                "inss": round(retencoes_tomados["inss"], 2)
+            },
+            "total_retido": round(total_retido_tomados, 2),
+            "detalhes": sorted(retencoes_tomados["detalhes"], key=lambda x: -x["total_retido"])
+        },
+        "servicos_prestados": {
+            "total_servicos": round(retencoes_prestados["total_servicos"], 2),
+            "qtd_documentos": retencoes_prestados["qtd_docs"],
+            "retencoes": {
+                "iss": round(retencoes_prestados["iss"], 2),
+                "ir": round(retencoes_prestados["ir"], 2),
+                "pis": round(retencoes_prestados["pis"], 2),
+                "cofins": round(retencoes_prestados["cofins"], 2),
+                "csll": round(retencoes_prestados["csll"], 2),
+                "inss": round(retencoes_prestados["inss"], 2)
+            },
+            "total_retido": round(total_retido_prestados, 2),
+            "detalhes": sorted(retencoes_prestados["detalhes"], key=lambda x: -x["total_retido"])
+        },
+        "resumo": {
+            "total_retido_como_tomador": round(total_retido_tomados, 2),
+            "total_retido_como_prestador": round(total_retido_prestados, 2),
+            "liquido": round(total_retido_tomados - total_retido_prestados, 2),
+            "orientacao": "A empresa reteve impostos de prestadores (tem obrigação de recolher)" if total_retido_tomados > 0 else "A empresa não possui obrigações de recolhimento de impostos retidos de terceiros"
+        }
+    }
+
+
 # ========== ENDPOINTS PARA CANCELAMENTO DE NFS-e ==========
 
 @api_router.post("/nfse/preview")
