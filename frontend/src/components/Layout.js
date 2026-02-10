@@ -68,6 +68,7 @@ const Layout = ({ user, onLogout, children }) => {
         { name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' },
         { name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' },
         { name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' },
+        { name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' },
         { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
         { name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' },
       ];
