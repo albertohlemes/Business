@@ -25,7 +25,7 @@ import {
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const AnaliseHorizontal = ({ user, onLogout }) => {
-  const { selectedCompany, selectedCompetencia } = useApp();
+  const { selectedCompany, selectedCompetencia } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [dados, setDados] = useState(null);
   const [dadosManuais, setDadosManuais] = useState({});
