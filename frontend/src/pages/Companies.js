@@ -54,6 +54,7 @@ const Companies = ({ user, onLogout }) => {
     cnaes: [],
     atividade_principal: '',
     produtos_comercializados: [],
+    produtos_aplicacao_servico: [],  // Para classificação "Aplicação em Serviços"
     insumos_producao: [],
     produtos_despesa: [],
     ativo_imobilizado: [],
