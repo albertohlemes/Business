@@ -16,7 +16,9 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - Upload de XMLs (NF-e, NFC-e, CT-e, NFS-e)
 - Importação via IA (PDFs, imagens)
 - Integração com SIEG (BLOQUEADO - chave inválida)
-- **Barra de progresso flutuante** ✅ (não bloqueia navegação)
+- **Barra de progresso flutuante global** ✅ (visível em todas as telas)
+- **Botão X para fechar barra de progresso** ✅
+- **Timeout automático de 60 segundos** ✅ (notifica erro se travada)
 - Validação automática de CFOP por operação
 - **Filtro de divergências** ✅ (Todos/Divergente/OK)
 
@@ -54,6 +56,8 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ### 8. Divergências PIS/COFINS
 - **Filtra apenas notas de SAÍDA** ✅
+- **Bebidas alcoólicas (NCMs 2204-2208) tratadas como TRIBUTADAS** ✅
+- CST correto: 01 (saída) / 50 (entrada) para bebidas alcoólicas
 
 ### 9. Exportação
 - SPED Fiscal
@@ -67,6 +71,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - `/app/backend/services/` - Serviços auxiliares
   - `document_ai.py` - Processamento com IA
   - `simples_nacional_calculator.py` - Cálculos Simples
+  - `pis_cofins_calculator.py` - Cálculos PIS/COFINS (CORRIGIDO!)
 
 ### Frontend (React)
 - `/app/frontend/src/pages/` - Páginas principais
@@ -76,6 +81,30 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - `/app/frontend/src/context/` - Contextos (App, Upload)
 
 ## Changelog
+
+### 2026-02-11 (Sessão 16 - Correção CST Bebidas Alcoólicas e Timeout Upload)
+
+**CORREÇÃO CRÍTICA: CST de PIS/COFINS para Bebidas Alcoólicas:**
+- ✅ **Problema identificado:** NCMs de bebidas alcoólicas (2204-2208) estavam sendo classificados como monofásicos (CST 04)
+- ✅ **Causa raiz:** Lista `NCMS_MONOFASICOS` no `pis_cofins_calculator.py` continha NCMs 22071000, 22072010, 22089000 incorretamente
+- ✅ **Solução implementada:**
+  - Removidos NCMs de bebidas alcoólicas da lista de monofásicos
+  - Criada lista `NCMS_BEBIDAS_ALCOOLICAS` com todos os NCMs 2204-2208
+  - Função `is_ncm_bebida_alcoolica()` criada para identificar bebidas alcoólicas
+  - Função `classificar_ncm_comercio()` modificada para verificar bebidas alcoólicas ANTES de monofásicos
+- ✅ **Resultado:**
+  - NCMs 2204 (Vinhos): CST 01 (saída) / 50 (entrada)
+  - NCMs 2205 (Vermutes): CST 01 (saída) / 50 (entrada)
+  - NCMs 2206 (Sidra, Saquê, Fermentados): CST 01 (saída) / 50 (entrada)
+  - NCMs 2207 (Álcool Etílico): CST 01 (saída) / 50 (entrada)
+  - NCMs 2208 (Destilados - Whisky, Vodka, Gin, Rum, etc.): CST 01 (saída) / 50 (entrada)
+  - NCMs 2201-2203 (Água, Refrigerantes, Cerveja): Continuam CST 04 (monofásico)
+
+**Barra de Progresso Global com Timeout:**
+- ✅ **Timeout de 60 segundos:** Se não houver progresso por 60s, o upload é marcado como erro
+- ✅ **Botão X funcional:** Permite fechar a barra de progresso a qualquer momento
+- ✅ **Erro visível globalmente:** `setUploadError()` atualiza estado global para mostrar erro em todas as telas
+- ✅ **Limpeza automática:** Timeouts e intervalos são limpos corretamente ao finalizar ou em caso de erro
 
 ### 2026-02-10 (Sessão 15 - Finalização CT-e, Permissões e Barra de Progresso)
 
