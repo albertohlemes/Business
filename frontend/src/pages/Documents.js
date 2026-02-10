@@ -1811,41 +1811,133 @@ const Documents = ({ user, onLogout }) => {
               </div>
               
               <div className="p-4 border-t border-[#2A2A2A] flex gap-3">
-                {/* Botão de Download do Relatório */}
+                {/* Botão de Download do Relatório - CSV */}
                 {((uploadResult.processados && uploadResult.processados.length > 0) || 
                   (uploadResult.rejeitados && uploadResult.rejeitados.length > 0)) && (
-                  <button
-                    onClick={() => {
-                      // Gerar CSV do relatório
-                      let csv = 'Status,Arquivo,Número,Emitente,Valor,Motivo\n';
-                      
-                      if (uploadResult.processados) {
-                        uploadResult.processados.forEach(item => {
-                          csv += `Aceito,"${item.arquivo || ''}","${item.numero || ''}","${item.emitente || ''}",${item.valor || 0},""\n`;
-                        });
-                      }
-                      
-                      if (uploadResult.rejeitados) {
-                        uploadResult.rejeitados.forEach(item => {
-                          csv += `Rejeitado,"${item.arquivo || ''}","","","","${(item.motivo || '').replace(/"/g, '""')}"\n`;
-                        });
-                      }
-                      
-                      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                      const url = window.URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `relatorio_importacao_${new Date().toISOString().slice(0,10)}.csv`;
-                      document.body.appendChild(a);
-                      a.click();
-                      window.URL.revokeObjectURL(url);
-                      document.body.removeChild(a);
-                    }}
-                    className="flex-1 py-2.5 bg-[#2A2A2A] text-white rounded-lg font-medium hover:bg-[#333] transition-all flex items-center justify-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Baixar Relatório CSV
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        // Gerar CSV do relatório
+                        let csv = 'Status,Arquivo,Número,Emitente,Valor,Motivo\n';
+                        
+                        if (uploadResult.processados) {
+                          uploadResult.processados.forEach(item => {
+                            csv += `Aceito,"${item.arquivo || ''}","${item.numero || ''}","${item.emitente || ''}",${item.valor || 0},""\n`;
+                          });
+                        }
+                        
+                        if (uploadResult.rejeitados) {
+                          uploadResult.rejeitados.forEach(item => {
+                            csv += `Rejeitado,"${item.arquivo || ''}","","","","${(item.motivo || '').replace(/"/g, '""')}"\n`;
+                          });
+                        }
+                        
+                        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `relatorio_importacao_${new Date().toISOString().slice(0,10)}.csv`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                      }}
+                      className="py-2.5 px-4 bg-[#2A2A2A] text-white rounded-lg font-medium hover:bg-[#333] transition-all flex items-center justify-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      CSV
+                    </button>
+                    
+                    {/* Botão de Download Word */}
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { Document, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle } = await import('docx');
+                          const { saveAs } = await import('file-saver');
+                          
+                          const rows = [];
+                          
+                          // Header
+                          rows.push(new TableRow({
+                            children: ['Status', 'Arquivo', 'Número', 'Emitente', 'Valor', 'Motivo'].map(text => 
+                              new TableCell({
+                                children: [new Paragraph({ children: [new TextRun({ text, bold: true })] })],
+                                shading: { fill: 'C8A951' }
+                              })
+                            )
+                          }));
+                          
+                          // Aceitos
+                          if (uploadResult.processados) {
+                            uploadResult.processados.forEach(item => {
+                              rows.push(new TableRow({
+                                children: [
+                                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Aceito', color: '22C55E' })] })] }),
+                                  new TableCell({ children: [new Paragraph(item.arquivo || '')] }),
+                                  new TableCell({ children: [new Paragraph(item.numero || '')] }),
+                                  new TableCell({ children: [new Paragraph(item.emitente || '')] }),
+                                  new TableCell({ children: [new Paragraph(formatCurrency(item.valor || 0))] }),
+                                  new TableCell({ children: [new Paragraph('')] })
+                                ]
+                              }));
+                            });
+                          }
+                          
+                          // Rejeitados
+                          if (uploadResult.rejeitados) {
+                            uploadResult.rejeitados.forEach(item => {
+                              rows.push(new TableRow({
+                                children: [
+                                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Rejeitado', color: 'EF4444' })] })] }),
+                                  new TableCell({ children: [new Paragraph(item.arquivo || '')] }),
+                                  new TableCell({ children: [new Paragraph('')] }),
+                                  new TableCell({ children: [new Paragraph('')] }),
+                                  new TableCell({ children: [new Paragraph('')] }),
+                                  new TableCell({ children: [new Paragraph(item.motivo || '')] })
+                                ]
+                              }));
+                            });
+                          }
+                          
+                          const doc = new Document({
+                            sections: [{
+                              children: [
+                                new Paragraph({
+                                  children: [new TextRun({ text: 'Relatório de Importação', bold: true, size: 32 })],
+                                  alignment: AlignmentType.CENTER
+                                }),
+                                new Paragraph({
+                                  children: [new TextRun({ text: `Empresa: ${ctxCompany?.razao_social || ''} | Competência: ${selectedCompetencia}`, size: 20 })],
+                                  alignment: AlignmentType.CENTER
+                                }),
+                                new Paragraph({ children: [] }),
+                                new Paragraph({
+                                  children: [
+                                    new TextRun({ text: `Total: ${uploadResult.total || 0}  |  ` }),
+                                    new TextRun({ text: `Aceitos: ${uploadResult.sucesso || uploadResult.processados?.length || 0}`, color: '22C55E' }),
+                                    new TextRun({ text: `  |  Rejeitados: ${uploadResult.erros || 0}`, color: 'EF4444' })
+                                  ]
+                                }),
+                                new Paragraph({ children: [] }),
+                                new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } })
+                              ]
+                            }]
+                          });
+                          
+                          const { Packer } = await import('docx');
+                          const blob = await Packer.toBlob(doc);
+                          saveAs(blob, `relatorio_importacao_${new Date().toISOString().slice(0,10)}.docx`);
+                        } catch (err) {
+                          console.error('Erro ao gerar Word:', err);
+                          alert('Erro ao gerar documento Word');
+                        }
+                      }}
+                      className="py-2.5 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Word
+                    </button>
+                  </>
                 )}
                 
                 <button
