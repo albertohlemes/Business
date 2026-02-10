@@ -478,15 +478,30 @@ const Indicadores = ({ user, onLogout }) => {
                 CMV/CPV e Ponto de Equilíbrio
               </button>
             )}
-            <button
-              onClick={() => setActiveTab('indicadores')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'indicadores' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
-              }`}
-            >
-              <Percent className="w-4 h-4" />
-              Margens e Markup
-            </button>
+            {/* Ponto de Equilíbrio para empresas de serviços */}
+            {selectedCompany?.tipo_atividade === 'servicos' && (
+              <button
+                onClick={() => setActiveTab('ponto_equilibrio_servicos')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'ponto_equilibrio_servicos' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
+                }`}
+              >
+                <Target className="w-4 h-4" />
+                Ponto de Equilíbrio
+              </button>
+            )}
+            {/* Margens e Markup - APENAS para comércio/indústria */}
+            {selectedCompany?.tipo_atividade !== 'servicos' && (
+              <button
+                onClick={() => setActiveTab('indicadores')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'indicadores' ? 'bg-[#C8A951] text-black' : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
+                }`}
+              >
+                <Percent className="w-4 h-4" />
+                Margens e Markup
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('viloes')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${
