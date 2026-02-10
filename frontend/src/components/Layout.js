@@ -113,6 +113,9 @@ const Layout = ({ user, onLogout, children }) => {
     } else {
       // Lucro Presumido / Lucro Real
       
+      // Apuração de Movimento (primeiro item de apuração)
+      nav.push({ name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' });
+      
       // FEDERAIS (PIS/COFINS, IPI)
       nav.push({ name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' });
       
