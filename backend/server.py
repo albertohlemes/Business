@@ -144,6 +144,8 @@ class Company(BaseModel):
     faturamento_mensal: dict = {}  # {"01/2026": 100000, "02/2026": 150000, ...}
     tipo_atividade: str = "comercio"  # comercio, industria, servicos, mista
     tipos_servico: List[str] = []  # transporte, ti, consultoria, etc
+    # Atividade de locação (sem incidência de ISS)
+    atividade_locacao: bool = False
     # Perfis de atividade comercial (múltipla escolha)
     perfis_comerciais: List[str] = []  # ['industria', 'distribuidor', 'varejo']
     # Aplicação em serviços (para classificação de entradas em empresas de serviços)
