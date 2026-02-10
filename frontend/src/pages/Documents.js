@@ -376,6 +376,53 @@ const Documents = ({ user, onLogout }) => {
     // Iniciar progresso global (visível em todas as telas)
     startGlobalUpload(null, files.length, ctxCompany?.razao_social || 'Empresa', operacao);
     
+    // Variáveis para controle de timeout global
+    let lastProgressTime = Date.now();
+    let globalTimeoutId = null;
+    const GLOBAL_TIMEOUT_MS = 60000; // 60 segundos sem progresso = timeout
+    
+    // Função para verificar e disparar timeout
+    const checkGlobalTimeout = () => {
+      const elapsed = Date.now() - lastProgressTime;
+      if (elapsed >= GLOBAL_TIMEOUT_MS) {
+        console.error('Upload timeout: sem progresso por 60 segundos');
+        handleUploadTimeout();
+      }
+    };
+    
+    // Função para lidar com timeout
+    const handleUploadTimeout = () => {
+      if (globalTimeoutId) clearInterval(globalTimeoutId);
+      if (eventSourceRef.current) eventSourceRef.current.close();
+      
+      const errorMsg = `Importação travou - sem resposta do servidor por ${GLOBAL_TIMEOUT_MS / 1000} segundos. Clique no X para fechar.`;
+      
+      // Atualizar estado global com erro
+      setUploadError(errorMsg);
+      
+      setUploadResult({
+        tipo: 'erro',
+        total: files.length,
+        sucesso: 0,
+        erros: files.length,
+        processados: [],
+        rejeitados: [{
+          arquivo: 'Timeout de importação',
+          motivo: errorMsg
+        }]
+      });
+      setShowUploadResult(true);
+      setUploading(false);
+    };
+    
+    // Iniciar verificação periódica de timeout
+    globalTimeoutId = setInterval(checkGlobalTimeout, 5000);
+    
+    // Função para atualizar timestamp de último progresso
+    const updateLastProgress = () => {
+      lastProgressTime = Date.now();
+    };
+    
     try {
       // 1. Iniciar upload
       const initFormData = new FormData();
@@ -385,8 +432,11 @@ const Documents = ({ user, onLogout }) => {
       initFormData.append('total_files', files.length);
       
       const initResponse = await axios.post(`${API}/xml/upload-init`, initFormData, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 30000 // 30s timeout para inicialização
       });
+      
+      updateLastProgress(); // Atualizar timestamp
       
       const uploadId = initResponse.data.upload_id;
       
