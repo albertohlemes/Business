@@ -332,65 +332,65 @@ const DocumentDetailModal = ({ document, onClose }) => {
             {/* LINHA 3: DIFERENÇAS (Capa - Produtos) */}
             <div className={`rounded-lg p-3 ${Math.abs(valorCapaNF.valor_total - totaisProdutos.valor_total) >= 0.10 ? 'bg-red-500/10 border border-red-500/30' : 'bg-emerald-500/10 border border-emerald-500/30'}`}>
               <div className="flex items-center gap-2 mb-3">
-                {Math.abs(valorCapaNF.valor_total - totaisProdutos.valor_total) >= 0.10 ? (
+                {diferencaValorTotal >= 0.10 ? (
                   <>
                     <AlertTriangle className="w-4 h-4 text-red-400" />
-                    <span className="text-xs font-semibold text-red-400 uppercase tracking-wide">Diferenças Identificadas (Capa − Produtos)</span>
+                    <span className="text-xs font-semibold text-red-400 uppercase tracking-wide">Diferenças Identificadas (Valores)</span>
                   </>
                 ) : (
                   <>
                     <CheckCircle className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Validação OK - Sem Divergências</span>
+                    <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Validação OK - Valores Corretos</span>
                   </>
                 )}
               </div>
               <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
                 <div className="text-center">
-                  <p className="text-[10px] text-[#666] uppercase">Valor Total</p>
-                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.valor_total - totaisProdutos.valor_total) >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {formatCurrency(valorCapaNF.valor_total - totaisProdutos.valor_total)}
+                  <p className="text-[10px] text-[#666] uppercase">Valor NF</p>
+                  <p className={`text-sm font-bold ${diferencaValorTotal >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {formatCurrency(valorCapaNF.valor_total)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Valor Prod.</p>
+                  <p className="text-sm font-bold text-white">
+                    {formatCurrency(totaisProdutos.valor_total)}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">ICMS</p>
-                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.icms_total - totaisProdutos.v_icms) >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {formatCurrency(valorCapaNF.icms_total - totaisProdutos.v_icms)}
+                  <p className="text-sm font-bold text-white">
+                    {formatCurrency(totaisProdutos.v_icms)}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">ICMS-ST</p>
-                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.total_icms_st - totaisProdutos.v_icms_st) >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {formatCurrency(valorCapaNF.total_icms_st - totaisProdutos.v_icms_st)}
+                  <p className="text-sm font-bold text-white">
+                    {formatCurrency(valorCapaNF.total_icms_st)}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">IPI</p>
-                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.total_ipi - totaisProdutos.v_ipi) >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {formatCurrency(valorCapaNF.total_ipi - totaisProdutos.v_ipi)}
+                  <p className="text-sm font-bold text-white">
+                    {formatCurrency(valorCapaNF.total_ipi)}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">Frete</p>
-                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.total_frete - totaisProdutos.v_frete) >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {formatCurrency(valorCapaNF.total_frete - totaisProdutos.v_frete)}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] text-[#666] uppercase">Seguro</p>
-                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.total_seguro - totaisProdutos.v_seguro) >= 0.10 ? 'text-emerald-400' : 'text-emerald-400'}`}>
-                    {formatCurrency(valorCapaNF.total_seguro - totaisProdutos.v_seguro)}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] text-[#666] uppercase">Outras Desp.</p>
-                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.total_outras_despesas - totaisProdutos.v_outras_despesas) >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {formatCurrency(valorCapaNF.total_outras_despesas - totaisProdutos.v_outras_despesas)}
+                  <p className="text-sm font-bold text-white">
+                    {formatCurrency(valorCapaNF.total_frete)}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">Desconto</p>
-                  <p className={`text-sm font-bold ${Math.abs(valorCapaNF.total_desconto - totaisProdutos.v_desconto) >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {formatCurrency(valorCapaNF.total_desconto - totaisProdutos.v_desconto)}
+                  <p className="text-sm font-bold text-white">
+                    {formatCurrency(valorCapaNF.total_desconto)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Diferença</p>
+                  <p className={`text-sm font-bold ${diferencaValorTotal >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    {formatCurrency(diferencaValorTotal)}
                   </p>
                 </div>
               </div>
