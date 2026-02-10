@@ -11674,6 +11674,8 @@ async def analise_tributaria_ia(
                     'ncm': ncm,
                     'descricoes': set(),
                     'total_icms': 0,
+                    'total_pis': 0,
+                    'total_cofins': 0,
                     'total_valor': 0,
                     'total_valor_tributado': 0,  # Apenas itens tributados
                     'qtd_itens': 0,
