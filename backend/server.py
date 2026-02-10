@@ -18940,7 +18940,201 @@ async def update_faturamento_competencia(
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    return {"message": f"Faturamento de {competencia} atualizado para R$ {valor:,.2f}"}
+    return {"success": True, "message": f"Faturamento da competência {competencia} atualizado para {valor}"}
+
+
+# ========== SALDO CREDOR - TRANSPORTE AUTOMÁTICO ==========
+
+@api_router.get("/saldo-credor/{company_id}")
+async def get_saldo_credor(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna os saldos credores disponíveis para uma competência.
+    Considera o saldo inicial da empresa + saldos acumulados de competências anteriores.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar saldo credor da competência anterior
+    try:
+        mes, ano = competencia.split('/')
+        mes_int = int(mes)
+        ano_int = int(ano)
+        
+        if mes_int == 1:
+            comp_anterior = f"12/{ano_int - 1}"
+        else:
+            comp_anterior = f"{mes_int - 1:02d}/{ano_int}"
+    except:
+        comp_anterior = None
+    
+    # Buscar saldo da competência anterior
+    saldo_anterior = await db.saldos_credores.find_one({
+        "company_id": company_id,
+        "competencia": comp_anterior
+    })
+    
+    # Saldos iniciais (da primeira competência)
+    competencia_inicial = company.get('competencia_saldo_inicial', '')
+    if competencia == competencia_inicial:
+        # Usar saldos iniciais cadastrados na empresa
+        saldo_inicial_icms = company.get('saldo_credor_icms', 0) if company.get('possui_saldo_credor', False) else 0
+        saldo_inicial_pis = company.get('saldo_credor_pis', 0) if company.get('possui_saldo_credor', False) else 0
+        saldo_inicial_cofins = company.get('saldo_credor_cofins', 0) if company.get('possui_saldo_credor', False) else 0
+    else:
+        saldo_inicial_icms = 0
+        saldo_inicial_pis = 0
+        saldo_inicial_cofins = 0
+    
+    # Saldo transportado da competência anterior
+    saldo_transportado = {
+        "icms": saldo_anterior.get('saldo_a_transportar', {}).get('icms', 0) if saldo_anterior else 0,
+        "pis": saldo_anterior.get('saldo_a_transportar', {}).get('pis', 0) if saldo_anterior else 0,
+        "cofins": saldo_anterior.get('saldo_a_transportar', {}).get('cofins', 0) if saldo_anterior else 0
+    }
+    
+    # Saldo disponível = inicial + transportado
+    saldo_disponivel = {
+        "icms": saldo_inicial_icms + saldo_transportado["icms"],
+        "pis": saldo_inicial_pis + saldo_transportado["pis"],
+        "cofins": saldo_inicial_cofins + saldo_transportado["cofins"]
+    }
+    
+    return {
+        "competencia": competencia,
+        "competencia_anterior": comp_anterior,
+        "saldo_inicial": {
+            "icms": saldo_inicial_icms,
+            "pis": saldo_inicial_pis,
+            "cofins": saldo_inicial_cofins
+        },
+        "saldo_transportado": saldo_transportado,
+        "saldo_disponivel": saldo_disponivel
+    }
+
+
+@api_router.post("/saldo-credor/{company_id}/fechar-competencia")
+async def fechar_competencia_saldo_credor(
+    company_id: str,
+    competencia: str,
+    saldo_icms: float = 0,
+    saldo_pis: float = 0,
+    saldo_cofins: float = 0,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Fecha a competência e registra os saldos credores para transporte.
+    Saldos negativos (credores) serão transportados para a próxima competência.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Calcular próxima competência
+    try:
+        mes, ano = competencia.split('/')
+        mes_int = int(mes)
+        ano_int = int(ano)
+        
+        if mes_int == 12:
+            prox_comp = f"01/{ano_int + 1}"
+        else:
+            prox_comp = f"{mes_int + 1:02d}/{ano_int}"
+    except:
+        raise HTTPException(status_code=400, detail="Formato de competência inválido")
+    
+    # Buscar saldo disponível (inclui transportado de competências anteriores)
+    saldo_resp = await get_saldo_credor(company_id, competencia, current_user)
+    saldo_disponivel = saldo_resp["saldo_disponivel"]
+    
+    # Calcular saldo final da competência
+    # Saldo positivo = a pagar, Saldo negativo = credor
+    saldo_final_icms = saldo_icms - saldo_disponivel["icms"]
+    saldo_final_pis = saldo_pis - saldo_disponivel["pis"]
+    saldo_final_cofins = saldo_cofins - saldo_disponivel["cofins"]
+    
+    # Saldo a transportar (apenas valores negativos/credores)
+    saldo_a_transportar = {
+        "icms": abs(saldo_final_icms) if saldo_final_icms < 0 else 0,
+        "pis": abs(saldo_final_pis) if saldo_final_pis < 0 else 0,
+        "cofins": abs(saldo_final_cofins) if saldo_final_cofins < 0 else 0
+    }
+    
+    # Salvar ou atualizar registro da competência
+    await db.saldos_credores.update_one(
+        {"company_id": company_id, "competencia": competencia},
+        {"$set": {
+            "company_id": company_id,
+            "competencia": competencia,
+            "saldo_disponivel_utilizado": saldo_disponivel,
+            "saldo_apurado": {
+                "icms": saldo_icms,
+                "pis": saldo_pis,
+                "cofins": saldo_cofins
+            },
+            "saldo_final": {
+                "icms": saldo_final_icms,
+                "pis": saldo_final_pis,
+                "cofins": saldo_final_cofins
+            },
+            "saldo_a_transportar": saldo_a_transportar,
+            "proxima_competencia": prox_comp,
+            "data_fechamento": datetime.now(timezone.utc).isoformat(),
+            "usuario": current_user.email
+        }},
+        upsert=True
+    )
+    
+    return {
+        "success": True,
+        "competencia": competencia,
+        "proxima_competencia": prox_comp,
+        "saldo_utilizado": saldo_disponivel,
+        "saldo_apurado": {
+            "icms": saldo_icms,
+            "pis": saldo_pis,
+            "cofins": saldo_cofins
+        },
+        "saldo_final": {
+            "icms": round(saldo_final_icms, 2),
+            "pis": round(saldo_final_pis, 2),
+            "cofins": round(saldo_final_cofins, 2)
+        },
+        "saldo_transportado_proxima": saldo_a_transportar,
+        "mensagem": "Competência fechada. Saldos credores transportados para a próxima competência."
+    }
+
+
+@api_router.get("/saldo-credor/{company_id}/historico")
+async def get_historico_saldos_credores(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna o histórico de saldos credores de todas as competências da empresa.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    historico = await db.saldos_credores.find(
+        {"company_id": company_id},
+        {"_id": 0}
+    ).sort("competencia", 1).to_list(100)
+    
+    return {
+        "empresa": {
+            "id": company_id,
+            "razao_social": company.get('razao_social', ''),
+            "possui_saldo_credor_inicial": company.get('possui_saldo_credor', False),
+            "competencia_inicial": company.get('competencia_saldo_inicial', '')
+        },
+        "historico": historico
+    }
 
 
 # ========== ENDPOINTS PARA CANCELAMENTO DE NFS-e ==========
