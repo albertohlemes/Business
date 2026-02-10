@@ -1138,9 +1138,9 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                     return (
                       <div key={categoria} className="bg-[#141414] border border-[#2A2A2A] rounded-lg overflow-hidden">
                         {/* Cabeçalho do Grupo - Clicável */}
-                        <button
+                        <div
                           onClick={() => toggleGroup(categoria)}
-                          className={`w-full p-4 flex items-center justify-between hover:bg-[#1A1A1A] transition-colors ${headerColor.split(' ')[0]}`}
+                          className={`w-full p-4 flex items-center justify-between hover:bg-[#1A1A1A] transition-colors cursor-pointer ${headerColor.split(' ')[0]}`}
                         >
                           <div className="flex items-center gap-3">
                             {isExpanded ? (
@@ -1174,7 +1174,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                               {formatCurrency(grupo.valor_total)}
                             </span>
                           </div>
-                        </button>
+                        </div>
                         
                         {/* Lista de Produtos Expandida */}
                         {isExpanded && (
