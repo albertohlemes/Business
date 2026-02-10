@@ -193,6 +193,7 @@ const Companies = ({ user, onLogout }) => {
       cnae_principal_descricao: company.cnae_principal_descricao || '',
       cnaes: company.cnaes || [],
       produtos_comercializados: company.produtos_comercializados || [],
+      produtos_aplicacao_servico: company.produtos_aplicacao_servico || [],
       insumos_producao: company.insumos_producao || [],
       produtos_despesa: company.produtos_despesa || [],
       ativo_imobilizado: company.ativo_imobilizado || [],
