@@ -295,6 +295,7 @@ class CompanyUpdate(BaseModel):
     cnaes: Optional[List[str]] = None  # CNAEs secundários
     atividade_principal: Optional[str] = None
     produtos_comercializados: Optional[List[str]] = None
+    produtos_aplicacao_servico: Optional[List[str]] = None  # Materiais para aplicação em serviços
     insumos_producao: Optional[List[str]] = None
     produtos_despesa: Optional[List[str]] = None
     ativo_imobilizado: Optional[List[str]] = None
