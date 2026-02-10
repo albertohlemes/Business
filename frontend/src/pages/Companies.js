@@ -110,7 +110,7 @@ const Companies = ({ user, onLogout }) => {
   
   const [formData, setFormData] = useState(emptyFormData);
   const [keywordInputs, setKeywordInputs] = useState({
-    produto: '', insumo: '', despesa: '', ativo: '', combustivel: '', servico: '', cnae: ''
+    produto: '', aplicacao_servico: '', insumo: '', despesa: '', ativo: '', combustivel: '', servico: '', cnae: ''
   });
   const [showCertificadoSenha, setShowCertificadoSenha] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
