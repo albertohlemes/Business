@@ -1819,6 +1819,20 @@ const Documents = ({ user, onLogout }) => {
           </div>
         )}
 
+        {/* Modal de Cancelamento de NFS-e */}
+        <NfseCancellationModal
+          isOpen={showNfseCancellation}
+          onClose={() => {
+            setShowNfseCancellation(false);
+            setNfseFilesForCancellation([]);
+          }}
+          files={nfseFilesForCancellation}
+          companyId={ctxCompany?.id}
+          competencia={selectedCompetencia}
+          tipo={operacao}
+          onImportComplete={handleNfseImportComplete}
+        />
+
         {/* Modal de Exclusão em Massa */}
         {showDeleteModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
