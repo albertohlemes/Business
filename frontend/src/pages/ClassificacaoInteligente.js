@@ -701,6 +701,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
               )}
             </div>
             <button
+              id="btn-processar-comando"
               onClick={enviarComandoIA}
               disabled={!comandoIA.trim() || processandoIA}
               className="px-6 py-3 bg-[#C8A951] hover:bg-[#D4B962] text-black font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
