@@ -3001,7 +3001,7 @@ REGRAS:
 
 Responda APENAS o JSON, sem explicações."""
 
-        from emergentintegrations.llm import LlmChat
+        from emergentintegrations.llm.chat import LlmChat
         
         EMERGENT_API_KEY = os.environ.get("EMERGENT_API_KEY", "")
         
