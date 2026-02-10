@@ -83,7 +83,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **Modal de Cancelamento de NFS-e** - Ao importar NFS-e prestadas:
   - Preview de todas as notas antes de importar
   - Marcação manual de notas canceladas (checkbox)
-  - Upload de relatório (Excel/CSV/TXT) com números cancelados
+  - Upload de relatório (Excel/CSV/TXT/**XML**) com números cancelados
   - Notas canceladas importadas com valor zerado e status "cancelada"
   - Relatório de conclusão mostra notas ativas vs canceladas
 - ✅ **Endpoints novos no backend:**
@@ -93,13 +93,28 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 **Correções e Melhorias:**
 - ✅ **Arquivo UploadXML.js removido** - Rota `/upload` agora redireciona para `/documents`
-- ✅ **Agrupamento automático de CFOPs** - Produtos com CFOPs especiais agora recebem categoria específica:
-  - 1910/2910 → `bonificacao`
-  - 1911/2911 → `amostra_gratis`
-  - 1912/2912 → `conserto_reparo`
-  - etc. (30+ categorias específicas)
+- ✅ **Agrupamento automático de CFOPs** - Produtos com CFOPs especiais recebem categoria específica
 - ✅ **Categorias de Classificação Inteligente expandidas** - 28 categorias com ícones e cores distintas
-- ✅ **Função `obter_categoria_por_cfop`** - Agora é chamada durante importação para classificar automaticamente
+- ✅ **DIFAL corrigido** - Campo `emitente_uf`/`uf_emitente` agora suportados ambos
+- ✅ **Entradas sem filtro de atividade** - Todas empresas veem todos os tipos de entrada
+- ✅ **Saídas dinâmicas** - Filtradas por atividade da empresa (comércio, serviços, mista)
+
+**Cadastro de Empresa (NOVOS CAMPOS):**
+- ✅ **Campo "Aplicação em Serviços"** - Para empresas de serviços e mistas classificarem entradas
+- ✅ **Saldo Credor Inicial:**
+  - Flag "Possui saldo credor?"
+  - Campos para ICMS, PIS, COFINS
+  - Competência inicial definida
+- ✅ **Transportadora (Atividades Especiais):**
+  - Flag "É transportadora?"
+  - Tipo de transporte (carga/passageiros)
+  - Crédito presumido ICMS (padrão 20% RICMS/SP)
+
+**Dashboard Fator R (Melhorado):**
+- ✅ **Comparativo Visual Anexo V vs Anexo III** - Cards lado a lado
+- ✅ **Economia Real/Potencial** - Destaque visual com valor anual e mensal
+- ✅ **Barra de progresso do Fator R** - Visualização percentual até 28%
+- ✅ **Dica de Otimização** - Orientação para aumentar folha e migrar de anexo
 
 ### 2026-02-09 (Sessão 6 - FASE 1 e FASE 2)
 
