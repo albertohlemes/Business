@@ -77,19 +77,30 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-10 (Sessão 8 - Melhorias de Menu e CST)
+### 2026-02-10 (Sessão 8 - Melhorias de Menu, CST e Análise Horizontal)
+
+**Modal de Visualização de Notas (Reorganizado):**
+- ✅ **Linha 1 - CAPA DA NOTA FISCAL** - Totalizadores da capa do XML
+- ✅ **Linha 2 - SOMA DOS PRODUTOS** - Totalizadores calculados dos produtos + BC PIS/COFINS
+- ✅ **Linha 3 - DIFERENÇAS** - Validação OK (verde) ou Divergências (vermelho)
+- ✅ **Rodapé** - Data emissão, qtd produtos, alertas de CST/CFOP divergentes
+
+**Nova Funcionalidade - Análise Horizontal (Evolução Fiscal):**
+- ✅ **Menu dedicado** - "Evolução Fiscal" no menu lateral
+- ✅ **Gráfico de evolução** - Compras, Vendas, Impostos (ano atual vs ano anterior)
+- ✅ **Saldo credor negativo** - Crédito aparece como valor negativo no gráfico
+- ✅ **Impostos unificados/desmembrados** - Seletor para alternar visualização
+- ✅ **Comparativo ano a ano** - Linhas do ano atual vs tracejadas do ano anterior
+- ✅ **Edição manual** - Clique nos valores para inserir dados manualmente
+- ✅ **Análise IA** - Botão para gerar insights comparativos com Gemini
+- ✅ **Variação percentual** - Mostra crescimento ou retração por campo
 
 **Menu Lateral Reorganizado:**
 - ✅ **Menu sem títulos de seção** - Itens exibidos diretamente (Dashboard, Empresas, Documentos, etc.)
 - ✅ **Menu dinâmico por regime tributário:**
-  - Simples Nacional: Apuração, Simples Nacional, DIFAL, Impostos Retidos, Indicadores, RET
-  - Lucro Presumido/Real: Apuração, PIS/COFINS, IPI, ICMS, ICMS ST, ISS, Impostos Retidos, Indicadores, RET
+  - Simples Nacional: Apuração, Simples Nacional, DIFAL, Impostos Retidos, Indicadores, Evolução Fiscal, RET
+  - Lucro Presumido/Real: Apuração, PIS/COFINS, IPI, ICMS, ICMS ST, ISS, Impostos Retidos, Indicadores, Evolução Fiscal, RET
 - ✅ **Impostos Retidos** movido para seção de Apurações
-
-**Dashboard Melhorado:**
-- ✅ **Card "Outros Docs"** nas entradas - Exibe documentos de Energia, Internet, etc.
-- ✅ **Campo `outros_entrada`** adicionado nas quantidades e valores do dashboard
-- ✅ **Total de entradas** agora inclui "Outros Documentos"
 
 **Filtro de Divergência Corrigido:**
 - ✅ **Critério unificado** - Mesmo critério da barra de validação (soma produtos vs valor total)
@@ -116,7 +127,6 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 **Análise de Divergências CST PIS/COFINS:**
 - ✅ **Endpoint `/api/relatorio-divergencias-saida`** - Sugere CST 01 para saídas tributadas com CFOP de débito
 - ✅ **Endpoint `/api/relatorio-divergencias-entrada`** (NOVO) - Sugere CST 50 para entradas com direito a crédito (Lucro Real)
-- ✅ **Lógica de bebidas alcoólicas** - Não são mais classificadas como monofásicas (erro corrigido)
 - ✅ **CSTs corretos:**
   - Saídas tributadas: CST 01 (débito)
   - Entradas com crédito (Lucro Real): CST 50
