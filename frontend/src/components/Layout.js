@@ -53,7 +53,6 @@ const Layout = ({ user, onLogout, children }) => {
     const baseNav = [
       { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
       { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
-      { name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' },
       { name: 'Classificação Inteligente', href: '/classificacao-inteligente', icon: Brain, testId: 'nav-classificacao-inteligente' },
     ];
     
@@ -61,6 +60,7 @@ const Layout = ({ user, onLogout, children }) => {
     if (!selectedCompany) {
       return [
         ...baseNav,
+        { name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' },
         { name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
         { name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' },
         { name: 'ICMS ST', href: '/apuracao-icms-st', icon: Calculator, testId: 'nav-apuracao-icms-st' },
@@ -84,10 +84,18 @@ const Layout = ({ user, onLogout, children }) => {
     // Verificar se é indústria (pelo tipo ou pelo perfil)
     const ehIndustria = tipoAtividade === 'industria' || perfisComerciais.includes('industria') || equiparadoIndustria;
     
-    // Se for Simples Nacional, adicionar Dashboard exclusivo
+    // Se for Simples Nacional, adicionar menus específicos
     if (regimeTributario === 'simples_nacional') {
+      // Apuração - APENAS para Simples Nacional
+      baseNav.push({ name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' });
       baseNav.push({ name: 'Simples Nacional', href: '/simples-nacional', icon: Star, testId: 'nav-simples-nacional' });
       baseNav.push({ name: 'DIFAL', href: '/difal', icon: ArrowLeftRight, testId: 'nav-difal' });
+      
+      // IPI - Apenas Indústria no Simples Nacional
+      if (ehIndustria) {
+        baseNav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
+      }
+      
       baseNav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
       baseNav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
     }
@@ -112,7 +120,7 @@ const Layout = ({ user, onLogout, children }) => {
       baseNav.push({ name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' });
     }
     
-    // IPI - Apenas Indústria (ou equiparado) - exceto Simples
+    // IPI - Apenas Indústria (ou equiparado) - para Lucro Presumido e Real
     if (regimeTributario !== 'simples_nacional' && ehIndustria) {
       baseNav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
     }
@@ -131,7 +139,6 @@ const Layout = ({ user, onLogout, children }) => {
     baseNav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
     
     // Relatórios e Exportação - sempre
-    baseNav.push({ name: 'Relatório Unificado', href: '/relatorio-unificado', icon: ClipboardList, testId: 'nav-relatorio-unificado' });
     baseNav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
     baseNav.push({ name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' });
     
