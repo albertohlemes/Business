@@ -3880,6 +3880,8 @@ async def sieg_sync_execute(
                     parsed_data = parse_xml_nfse(xml_content)
                 elif xml_type == 'nfce':
                     parsed_data = parse_xml_nfce(xml_content)
+                elif xml_type == 'cte':
+                    parsed_data = parse_xml_cte(xml_content)
                 else:
                     parsed_data = parse_xml_nfe(xml_content)
                 
