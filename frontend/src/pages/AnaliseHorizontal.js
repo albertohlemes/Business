@@ -33,6 +33,8 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
   const [viewMode, setViewMode] = useState('unificado'); // unificado ou desmembrado
   const [analiseIA, setAnaliseIA] = useState(null);
   const [loadingIA, setLoadingIA] = useState(false);
+  const [showFormularioAnterior, setShowFormularioAnterior] = useState(false);
+  const [anoDigitacao, setAnoDigitacao] = useState(null);
 
   const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   
