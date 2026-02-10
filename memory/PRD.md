@@ -408,7 +408,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [x] ~~Ordenação em Companies~~ ✅
 - [x] ~~Filtrar modelos fiscais por atividade da empresa~~ ✅
 - [x] ~~Classificação padrão "compra para revenda" quando IA falhar~~ ✅
-- [ ] DIFAL para Simples Nacional (BLOQUEADO - precisa de dados de teste)
+- [x] ~~DIFAL para Simples Nacional~~ ✅ (endpoint e página funcionando)
 - [ ] Importação de CT-e para transportadoras
 - [ ] Ordenação nas páginas restantes (ISS, DIFAL, SimplesNacionalDashboard)
 - [ ] Logo nos relatórios exportados
