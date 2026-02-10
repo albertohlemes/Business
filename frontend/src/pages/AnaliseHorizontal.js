@@ -516,20 +516,20 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                     {dados?.regime_tributario === 'simples_nacional' ? (
                       <>
                         {/* Simples Nacional: DAS e DIFAL */}
-                        <Line type="monotone" dataKey="das" name="DAS" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} />
-                        <Line type="monotone" dataKey="difal" name="DIFAL" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
-                        <Line type="monotone" dataKey="icms" name="ICMS (DAS)" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} strokeDasharray="5 5" />
-                        <Line type="monotone" dataKey="iss" name="ISS (DAS)" stroke="#84cc16" strokeWidth={2} dot={{ r: 3 }} strokeDasharray="5 5" />
+                        <Line type="monotone" dataKey="das" name="DAS" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} yAxisId="right" connectNulls />
+                        <Line type="monotone" dataKey="difal" name="DIFAL" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} yAxisId="right" connectNulls />
+                        <Line type="monotone" dataKey="icms" name="ICMS (DAS)" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} strokeDasharray="5 5" yAxisId="right" connectNulls />
+                        <Line type="monotone" dataKey="iss" name="ISS (DAS)" stroke="#84cc16" strokeWidth={2} dot={{ r: 3 }} strokeDasharray="5 5" yAxisId="right" connectNulls />
                       </>
                     ) : (
                       <>
                         {/* Lucro Presumido/Real: todos os impostos */}
-                        <Line type="monotone" dataKey="icms" name="ICMS" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
-                        <Line type="monotone" dataKey="icms_st" name="ICMS-ST" stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }} />
-                        <Line type="monotone" dataKey="pis" name="PIS" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} />
-                        <Line type="monotone" dataKey="cofins" name="COFINS" stroke="#ec4899" strokeWidth={2} dot={{ r: 3 }} />
-                        <Line type="monotone" dataKey="ipi" name="IPI" stroke="#06b6d4" strokeWidth={2} dot={{ r: 3 }} />
-                        <Line type="monotone" dataKey="iss" name="ISS" stroke="#84cc16" strokeWidth={2} dot={{ r: 3 }} />
+                        <Line type="monotone" dataKey="icms" name="ICMS" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} yAxisId="right" connectNulls />
+                        <Line type="monotone" dataKey="icms_st" name="ICMS-ST" stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }} yAxisId="right" connectNulls />
+                        <Line type="monotone" dataKey="pis" name="PIS" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} yAxisId="right" connectNulls />
+                        <Line type="monotone" dataKey="cofins" name="COFINS" stroke="#ec4899" strokeWidth={2} dot={{ r: 3 }} yAxisId="right" connectNulls />
+                        <Line type="monotone" dataKey="ipi" name="IPI" stroke="#06b6d4" strokeWidth={2} dot={{ r: 3 }} yAxisId="right" connectNulls />
+                        <Line type="monotone" dataKey="iss" name="ISS" stroke="#84cc16" strokeWidth={2} dot={{ r: 3 }} yAxisId="right" connectNulls />
                       </>
                     )}
                   </>
