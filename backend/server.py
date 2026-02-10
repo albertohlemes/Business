@@ -20847,8 +20847,12 @@ Seja objetivo e direto, focando em insights acionáveis."""
     try:
         from emergentintegrations.llm.chat import chat, LlmModel
         
+        emergent_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not emergent_key:
+            return {"analise": "Chave LLM não configurada. Configure EMERGENT_LLM_KEY no ambiente."}
+        
         response = await chat(
-            api_key=EMERGENT_API_KEY,
+            api_key=emergent_key,
             model=LlmModel.GEMINI_2_FLASH,
             system_prompt="Você é um consultor tributário especialista em análise fiscal de empresas brasileiras.",
             user_message=prompt
