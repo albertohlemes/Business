@@ -2732,6 +2732,148 @@ async def reactivate_user(
     
     return {"status": "ok", "message": "Usuário reativado com sucesso"}
 
+
+@api_router.post("/auth/users/{user_id}/promote-master")
+async def promote_to_master(
+    user_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Promote a user to Master role.
+    Only Master or Admin can do this.
+    """
+    allowed_roles = ["super_admin", "master", "admin"]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Apenas Master ou Admin pode promover usuários")
+    
+    existing = await db.users.find_one({"id": user_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    if existing.get("role") == "super_admin":
+        raise HTTPException(status_code=400, detail="Super Admin não pode ser alterado")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"role": UserRole.MASTER}}
+    )
+    
+    return {"status": "ok", "message": f"Usuário {existing['name']} promovido para Master"}
+
+
+@api_router.post("/auth/users/{user_id}/demote-operacional")
+async def demote_to_operacional(
+    user_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Demote a user to Operacional role.
+    Only Master or Admin can do this.
+    """
+    allowed_roles = ["super_admin", "master", "admin"]
+    if current_user.role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Apenas Master ou Admin pode rebaixar usuários")
+    
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Você não pode rebaixar a si mesmo")
+    
+    existing = await db.users.find_one({"id": user_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    if existing.get("role") == "super_admin":
+        raise HTTPException(status_code=400, detail="Super Admin não pode ser alterado")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"role": UserRole.OPERACIONAL}}
+    )
+    
+    return {"status": "ok", "message": f"Usuário {existing['name']} alterado para Operacional"}
+
+
+@api_router.post("/companies/{company_id}/responsaveis")
+async def add_responsavel_to_company(
+    company_id: str,
+    data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Add a user as responsible for a company.
+    Only Master or Admin can do this.
+    """
+    check_master_or_admin(current_user)
+    
+    user_id = data.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id é obrigatório")
+    
+    company = await db.companies.find_one({"id": company_id})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    # Adicionar usuário aos responsáveis da empresa
+    await db.companies.update_one(
+        {"id": company_id},
+        {"$addToSet": {"responsavel_ids": user_id}}
+    )
+    
+    # Adicionar CNPJ da empresa aos company_ids do usuário
+    await db.users.update_one(
+        {"id": user_id},
+        {"$addToSet": {"company_ids": company.get("cnpj")}}
+    )
+    
+    return {"status": "ok", "message": f"Usuário {user['name']} adicionado como responsável"}
+
+
+@api_router.delete("/companies/{company_id}/responsaveis/{user_id}")
+async def remove_responsavel_from_company(
+    company_id: str,
+    user_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Remove a user from company responsáveis.
+    Only Master or Admin can do this.
+    """
+    check_master_or_admin(current_user)
+    
+    company = await db.companies.find_one({"id": company_id})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Remover usuário dos responsáveis da empresa
+    await db.companies.update_one(
+        {"id": company_id},
+        {"$pull": {"responsavel_ids": user_id}}
+    )
+    
+    # Remover CNPJ da empresa dos company_ids do usuário
+    await db.users.update_one(
+        {"id": user_id},
+        {"$pull": {"company_ids": company.get("cnpj")}}
+    )
+    
+    return {"status": "ok", "message": "Responsável removido com sucesso"}
+    """Reactivate a deactivated user (only for Master/Admin)"""
+    check_master_or_admin(current_user)
+    
+    existing = await db.users.find_one({"id": user_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"is_active": True}}
+    )
+    
+    return {"status": "ok", "message": "Usuário reativado com sucesso"}
+
 @api_router.delete("/companies/{company_id}")
 async def delete_company(company_id: str, current_user: User = Depends(get_current_user)):
     allowed_roles = ["super_admin", "master", "admin"]
