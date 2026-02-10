@@ -6148,6 +6148,10 @@ async def get_dashboard_stats(
     cte_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', '').lower() in ['cte', 'ct-e']]
     nfse_tomados = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', '').lower() in ['nfse', 'nfs-e']]
     
+    # Outros documentos de entrada (energia, internet, faturas, etc.)
+    modelos_conhecidos_entrada = ['nfe', 'NFe', 'NF-e', 'cte', 'ct-e', 'CTE', 'CT-e', 'nfse', 'nfs-e', 'NFSE', 'NFS-e']
+    outros_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', '').upper() not in [m.upper() for m in modelos_conhecidos_entrada]]
+    
     # SAÍDAS - filtrar por atividade
     nfe_saida = [d for d in documents if d.get('tipo') == 'saida' and d.get('modelo', 'nfe') in ['nfe', 'NFe', 'NF-e']]
     nfce = [d for d in documents if d.get('modelo', '').lower() in ['nfce', 'nfc-e']]
