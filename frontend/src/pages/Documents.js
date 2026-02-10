@@ -374,6 +374,9 @@ const Documents = ({ user, onLogout }) => {
     setUploading(true);
     setUploadProgress({ current: 0, total: files.length, percent: 0 });
     
+    // Iniciar progresso global (visível em todas as telas)
+    startGlobalUpload(null, files.length, ctxCompany?.razao_social || 'Empresa', operacao);
+    
     try {
       // 1. Iniciar upload
       const initFormData = new FormData();
