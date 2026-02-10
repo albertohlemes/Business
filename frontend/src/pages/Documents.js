@@ -1275,12 +1275,20 @@ const Documents = ({ user, onLogout }) => {
           {/* Totalizador, Filtros e Busca em linha */}
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div className="flex items-center gap-4">
-              {/* Totalizador */}
+              {/* Totalizador - mostra "X de Y" quando há filtro */}
               <div className="flex items-center gap-4 py-2 px-3 bg-[#141414] rounded-lg border border-[#2A2A2A]">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-[#A1A1AA]" />
                   <span className="text-sm text-[#A1A1AA]">Docs:</span>
-                  <span className="text-sm font-semibold text-white">{totais.quantidade}</span>
+                  {(filterDivergencia !== 'all' || searchTerm) ? (
+                    <span className="text-sm font-semibold">
+                      <span className="text-[#C8A951]">{totais.quantidade}</span>
+                      <span className="text-[#A1A1AA]"> de </span>
+                      <span className="text-white">{documents.length}</span>
+                    </span>
+                  ) : (
+                    <span className="text-sm font-semibold text-white">{totais.quantidade}</span>
+                  )}
                 </div>
                 <div className="w-px h-4 bg-[#2A2A2A]" />
                 <div className="flex items-center gap-2">
