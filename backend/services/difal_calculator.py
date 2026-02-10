@@ -305,7 +305,8 @@ def processar_documento_difal(
     Returns:
         Dict com dados do documento e cálculos de DIFAL
     """
-    uf_origem = documento.get("uf_emitente", "").upper()
+    # Suporta ambos os nomes de campo (compatibilidade)
+    uf_origem = (documento.get("emitente_uf", "") or documento.get("uf_emitente", "") or "").upper()
     uf_destino = uf_empresa.upper()
     
     # Verificar se é operação interestadual
