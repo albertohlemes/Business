@@ -418,3 +418,163 @@ def validate_xml_type(xml_content: str, expected_type: str, expected_operacao: s
             "detected_type": None,
             "detected_operacao": None
         }
+
+
+# Prompt para extração de faturas/recibos de locação
+FATURA_RECIBO_EXTRACTION_PROMPT = """Você é um especialista em escrituração fiscal brasileira. Analise esta imagem/PDF de uma FATURA ou RECIBO de LOCAÇÃO (aluguel de bens móveis, imóveis, veículos, máquinas, equipamentos) e extraia TODOS os dados necessários para escrituração.
+
+IMPORTANTE: 
+1. Locação de bens móveis/imóveis NÃO tem incidência de ISS (não é serviço)
+2. Retorne APENAS um JSON válido, sem texto adicional
+
+Estrutura esperada:
+{
+    "tipo_documento": "fatura_recibo",
+    "subtipo": "locacao_imovel|locacao_veiculo|locacao_maquinas|locacao_equipamentos|outro",
+    "numero_documento": "número da fatura/recibo",
+    "data_emissao": "YYYY-MM-DD",
+    "data_vencimento": "YYYY-MM-DD ou null",
+    "competencia": "MM/YYYY",
+    
+    "locador": {
+        "cnpj": "apenas números (ou cpf)",
+        "razao_social": "nome do locador/proprietário",
+        "endereco": {
+            "logradouro": "string",
+            "numero": "string",
+            "cidade": "string",
+            "uf": "XX",
+            "cep": "apenas números"
+        }
+    },
+    
+    "locatario": {
+        "cnpj": "apenas números (ou cpf)",
+        "razao_social": "nome do locatário",
+        "endereco": {
+            "logradouro": "string",
+            "numero": "string",
+            "cidade": "string",
+            "uf": "XX",
+            "cep": "apenas números"
+        }
+    },
+    
+    "bem_locado": {
+        "descricao": "descrição do bem locado",
+        "tipo": "imovel|veiculo|maquina|equipamento|outro",
+        "endereco_imovel": "endereço completo se for imóvel, null se não for",
+        "identificacao": "placa do veículo, número de série, matrícula do imóvel, etc."
+    },
+    
+    "valores": {
+        "valor_locacao": 0.00,
+        "valor_condominio": 0.00,
+        "valor_iptu": 0.00,
+        "outros_encargos": 0.00,
+        "valor_total": 0.00,
+        "valor_ir_retido": 0.00,
+        "valor_liquido": 0.00
+    },
+    
+    "retencao_ir": true ou false,
+    "periodo_locacao": "descrição do período (ex: 01/01/2026 a 31/01/2026)",
+    "observacoes": "texto ou null"
+}
+
+REGRAS IMPORTANTES:
+- Locação NÃO tem ISS, PIS, COFINS sobre o valor da locação em si
+- Pode haver retenção de IR na fonte (15% para PJ, tabela progressiva para PF)
+- Se for imóvel, pode haver IPTU e condomínio inclusos na fatura
+- Valores de condomínio e IPTU quando pagos pelo locatário são despesas operacionais
+
+Se algum campo não estiver visível, use null para strings ou 0.00 para valores numéricos.
+"""
+
+
+async def extract_fatura_recibo_from_file(file_path: str, mime_type: str) -> Dict[str, Any]:
+    """
+    Extrai dados de uma fatura/recibo de locação a partir de imagem ou PDF usando IA
+    """
+    if not EMERGENT_LLM_KEY:
+        raise ValueError("EMERGENT_LLM_KEY não configurada")
+    
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=f"fatura-recibo-extraction-{uuid.uuid4()}",
+        system_message="Você é um assistente especializado em extrair dados de documentos fiscais brasileiros, especialmente faturas de locação."
+    ).with_model("gemini", "gemini-2.5-flash")
+    
+    file_content = FileContentWithMimeType(
+        file_path=file_path,
+        mime_type=mime_type
+    )
+    
+    try:
+        response = await chat.send_message(
+            UserMessage(
+                text=FATURA_RECIBO_EXTRACTION_PROMPT,
+                files=[file_content]
+            )
+        )
+        
+        # Limpar a resposta e extrair JSON
+        response_text = str(response).strip()
+        
+        # Remover marcadores de código markdown se existirem
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        elif response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+        
+        response_text = response_text.strip()
+        
+        # Tentar fazer parse do JSON
+        try:
+            extracted_data = json.loads(response_text)
+        except json.JSONDecodeError:
+            # Tentar encontrar JSON válido na resposta
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', response_text)
+            if json_match:
+                extracted_data = json.loads(json_match.group())
+            else:
+                return {
+                    "success": False,
+                    "error": "Não foi possível extrair JSON válido da resposta",
+                    "raw_response": response_text
+                }
+        
+        # Validar campos obrigatórios
+        if not extracted_data.get("valores", {}).get("valor_total") and not extracted_data.get("valores", {}).get("valor_locacao"):
+            return {
+                "success": False,
+                "error": "Não foi possível identificar o valor da locação no documento",
+                "raw_response": response_text
+            }
+        
+        # Garantir valor_total preenchido
+        if not extracted_data.get("valores", {}).get("valor_total"):
+            valores = extracted_data.get("valores", {})
+            total = sum([
+                valores.get("valor_locacao", 0) or 0,
+                valores.get("valor_condominio", 0) or 0,
+                valores.get("valor_iptu", 0) or 0,
+                valores.get("outros_encargos", 0) or 0
+            ])
+            extracted_data["valores"]["valor_total"] = total
+        
+        return {
+            "success": True,
+            "data": extracted_data,
+            "raw_response": response_text
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Erro ao processar com IA: {str(e)}",
+            "raw_response": ""
+        }
