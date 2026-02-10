@@ -721,12 +721,33 @@ const Documents = ({ user, onLogout }) => {
         const servicos = doc.servicos || [];
         const itens = [...produtos, ...servicos];
         
-        const temDivergencia = itens.some(p => 
+        // Verificar divergências nos itens (produtos/serviços)
+        const temDivergenciaItens = itens.some(p => 
           p.cst_divergente || 
           p.cfop_divergente ||
           (p.cfop_original && p.cfop !== p.cfop_original) ||
-          p.status_validacao === 'divergente'
+          p.status_validacao === 'divergente' ||
+          p.pendente_revisao_cfop
         );
+        
+        // Verificar divergências no documento
+        const temDivergenciaDoc = (
+          doc.status_validacao === 'divergente' ||
+          doc.status_validacao === 'com_excecao' ||
+          doc.pendente_revisao ||
+          doc.tem_alerta ||
+          (doc.alertas && doc.alertas.length > 0) ||
+          // Para NFS-e, verificar se tem pendências específicas
+          (doc.modelo === 'nfse' && !doc.cfop && itens.length === 0)
+        );
+        
+        // Verificar se tem produtos/serviços pendentes de classificação
+        const temPendencias = itens.some(p => 
+          p.categoria_classificada === 'pendente' || 
+          !p.categoria_classificada
+        );
+        
+        const temDivergencia = temDivergenciaItens || temDivergenciaDoc || temPendencias;
         
         if (filterDivergencia === 'divergente') return temDivergencia;
         if (filterDivergencia === 'ok') return !temDivergencia;
