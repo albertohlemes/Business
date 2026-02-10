@@ -453,41 +453,63 @@ const Layout = ({ user, onLogout, children }) => {
       {uploadProgress.isUploading && (
         <div className="fixed bottom-6 right-6 z-[9999] w-80 bg-[#141414] rounded-xl border border-[#2A2A2A] shadow-2xl">
           <div className="p-4">
-            {/* Header com título e porcentagem */}
+            {/* Header com título, porcentagem e botão fechar */}
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-sm font-medium text-white">Importando documentos</p>
-                <p className="text-xs text-[#666] truncate max-w-[180px]">{uploadProgress.companyName}</p>
+                <p className="text-sm font-medium text-white">
+                  {uploadProgress.error ? '❌ Erro na importação' : 'Importando documentos'}
+                </p>
+                <p className="text-xs text-[#666] truncate max-w-[150px]">{uploadProgress.companyName}</p>
               </div>
-              <span className="text-2xl font-bold text-[#C8A951]">{uploadProgress.percent}%</span>
+              <div className="flex items-center gap-2">
+                {!uploadProgress.error && (
+                  <span className="text-2xl font-bold text-[#C8A951]">{uploadProgress.percent}%</span>
+                )}
+                <button
+                  onClick={() => finishUpload()}
+                  className="p-1 hover:bg-[#2A2A2A] rounded transition-colors"
+                  title="Fechar"
+                >
+                  <X className="w-4 h-4 text-[#666] hover:text-white" />
+                </button>
+              </div>
             </div>
             
-            {/* Barra de progresso */}
-            <div className="h-2.5 bg-[#2A2A2A] rounded-full overflow-hidden mb-3">
-              <div 
-                className="h-full bg-gradient-to-r from-[#C8A951] to-[#D4B85C] rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress.percent}%` }}
-              />
-            </div>
-            
-            {/* Contador de café centralizado */}
-            <div className="flex justify-center">
-              <CoffeeProgress 
-                progress={uploadProgress.percent} 
-                message=""
-                showPercentage={false}
-              />
-            </div>
+            {uploadProgress.error ? (
+              // Exibir erro
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-3">
+                <p className="text-xs text-red-400">{uploadProgress.error}</p>
+              </div>
+            ) : (
+              <>
+                {/* Barra de progresso */}
+                <div className="h-2.5 bg-[#2A2A2A] rounded-full overflow-hidden mb-3">
+                  <div 
+                    className="h-full bg-gradient-to-r from-[#C8A951] to-[#D4B85C] rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress.percent}%` }}
+                  />
+                </div>
+                
+                {/* Contador de café centralizado */}
+                <div className="flex justify-center">
+                  <CoffeeProgress 
+                    progress={uploadProgress.percent} 
+                    message=""
+                    showPercentage={false}
+                  />
+                </div>
+              </>
+            )}
             
             {/* Info de arquivos */}
-            {uploadProgress.total > 0 && (
+            {uploadProgress.total > 0 && !uploadProgress.error && (
               <p className="text-xs text-[#A1A1AA] text-center mt-2">
                 {uploadProgress.current} de {uploadProgress.total} arquivos processados
               </p>
             )}
             
             <p className="text-xs text-[#666] text-center mt-1 italic">
-              ☕ Continue navegando enquanto processamos...
+              {uploadProgress.error ? 'Clique no X para fechar' : '☕ Continue navegando enquanto processamos...'}
             </p>
           </div>
         </div>
