@@ -2900,6 +2900,7 @@ async def create_company(company_data: CompanyCreate, current_user: User = Depen
         raise HTTPException(status_code=400, detail="CNPJ já cadastrado")
     
     company = Company(**company_data.model_dump())
+    company.created_by = current_user.id  # Definir quem criou a empresa
     doc = company.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
     
