@@ -10109,7 +10109,6 @@ async def get_viloes_oportunidades(
 
 @api_router.get("/analise-pis-cofins-completa/{company_id}")
 async def analise_pis_cofins_completa(
-async def analise_pis_cofins_completa(
     company_id: str,
     competencia: str,
     current_user: User = Depends(get_current_user)
