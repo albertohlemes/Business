@@ -126,7 +126,11 @@ const Layout = ({ user, onLogout, children }) => {
       baseNav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
     }
     
+    // Impostos Retidos - sempre disponível
+    baseNav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
+    
     // Relatórios e Exportação - sempre
+    baseNav.push({ name: 'Relatório Unificado', href: '/relatorio-unificado', icon: ClipboardList, testId: 'nav-relatorio-unificado' });
     baseNav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
     baseNav.push({ name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' });
     
