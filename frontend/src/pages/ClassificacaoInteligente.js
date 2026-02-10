@@ -1117,7 +1117,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                     const grupo = produtosAgrupados[categoria];
                     if (!grupo || grupo.produtos.length === 0) return null;
                     
-                    const config = categoriasConfig[categoria] || categoriasConfig.pendente;
+                    const config = categoriasConfig[categoria] || categoriasConfig.revenda;
                     const isExpanded = expandedGroups[categoria];
                     
                     const colorClasses = {
