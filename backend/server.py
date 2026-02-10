@@ -4194,6 +4194,10 @@ async def upload_xml_batch(
                 product['pendente_revisao_cfop'] = True
                 product['natureza_operacao_original'] = CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original]
                 
+                # Usar a categoria específica baseada no CFOP convertido
+                categoria_especifica = obter_categoria_por_cfop(cfop_convertido) or 'operacao_distinta'
+                product['categoria_classificada'] = categoria_especifica
+                
                 file_alertas_cfop.append({
                     'produto': product.get('descricao', ''),
                     'codigo': product.get('codigo', ''),
@@ -4201,7 +4205,8 @@ async def upload_xml_batch(
                     'cfop_convertido': cfop_convertido,
                     'descricao_cfop': CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original],
                     'valor': product.get('valor_total', 0),
-                    'acao_tomada': f'Convertido para {cfop_convertido} (pendente revisão)'
+                    'acao_tomada': f'Convertido para {cfop_convertido} (pendente revisão)',
+                    'categoria': categoria_especifica
                 })
                 
                 file_conversions.append({
@@ -4209,7 +4214,7 @@ async def upload_xml_batch(
                     'codigo': product.get('codigo', ''),
                     'cfop_original': cfop_original,
                     'cfop_convertido': cfop_convertido,
-                    'categoria': 'operacao_distinta',
+                    'categoria': categoria_especifica,
                     'motivo': f"CFOP {cfop_original} ({CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original]}) → {cfop_convertido}"
                 })
             
