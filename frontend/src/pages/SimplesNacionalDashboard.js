@@ -710,15 +710,111 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                   
                   {/* Status do Fator R */}
                   {data.fator_r.pode_usar_anexo_iii ? (
-                    <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded text-sm font-medium">
+                    <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded text-sm font-medium flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4" />
                       Anexo III Disponível
                     </span>
                   ) : (
-                    <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded text-sm font-medium">
+                    <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded text-sm font-medium flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
                       Anexo V Obrigatório
                     </span>
                   )}
                 </div>
+                
+                {/* NOVO: Comparativo Visual Anexo V vs Anexo III */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  {/* Card Anexo V */}
+                  <div className={`rounded-lg p-4 border-2 ${
+                    !data.fator_r.pode_usar_anexo_iii 
+                      ? 'bg-amber-500/10 border-amber-500/50' 
+                      : 'bg-[#0C0C0C] border-[#2A2A2A]'
+                  }`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-amber-400 font-medium">📋 Anexo V</h4>
+                      {!data.fator_r.pode_usar_anexo_iii && (
+                        <span className="px-2 py-0.5 bg-amber-500/30 text-amber-300 text-xs rounded">ATUAL</span>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-[#A1A1AA] text-sm">Alíquota Efetiva:</span>
+                        <span className="text-amber-400 font-bold">{formatPercent(data.fator_r.aliquota_anexo_v)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#A1A1AA] text-sm">Imposto Estimado:</span>
+                        <span className="text-white font-medium">{formatCurrency(data.fator_r.imposto_anexo_v || (data.das_mes_atual?.valor_das || 0))}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#A1A1AA] text-sm">Fator R Mínimo:</span>
+                        <span className="text-[#666]">Não se aplica</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Card Anexo III */}
+                  <div className={`rounded-lg p-4 border-2 ${
+                    data.fator_r.pode_usar_anexo_iii 
+                      ? 'bg-emerald-500/10 border-emerald-500/50' 
+                      : 'bg-[#0C0C0C] border-[#2A2A2A]'
+                  }`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-emerald-400 font-medium">📋 Anexo III</h4>
+                      {data.fator_r.pode_usar_anexo_iii && (
+                        <span className="px-2 py-0.5 bg-emerald-500/30 text-emerald-300 text-xs rounded">DISPONÍVEL</span>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-[#A1A1AA] text-sm">Alíquota Efetiva:</span>
+                        <span className="text-emerald-400 font-bold">{formatPercent(data.fator_r.aliquota_anexo_iii)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#A1A1AA] text-sm">Imposto Estimado:</span>
+                        <span className="text-white font-medium">{formatCurrency(data.fator_r.imposto_anexo_iii || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#A1A1AA] text-sm">Fator R Mínimo:</span>
+                        <span className="text-emerald-300">≥ 28%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Economia Real ou Potencial */}
+                {data.fator_r.economia_potencial_anual > 0 && (
+                  <div className={`rounded-lg p-4 mb-4 ${
+                    data.fator_r.pode_usar_anexo_iii 
+                      ? 'bg-emerald-500/20 border border-emerald-500/50' 
+                      : 'bg-blue-500/10 border border-blue-500/30'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                        data.fator_r.pode_usar_anexo_iii ? 'bg-emerald-500/30' : 'bg-blue-500/30'
+                      }`}>
+                        <PiggyBank className={`w-6 h-6 ${data.fator_r.pode_usar_anexo_iii ? 'text-emerald-400' : 'text-blue-400'}`} />
+                      </div>
+                      <div className="flex-1">
+                        <p className={`text-sm ${data.fator_r.pode_usar_anexo_iii ? 'text-emerald-300' : 'text-blue-300'}`}>
+                          {data.fator_r.pode_usar_anexo_iii ? '🎉 Economia Real Anual' : '💡 Economia Potencial Anual'}
+                        </p>
+                        <p className={`text-2xl font-bold ${data.fator_r.pode_usar_anexo_iii ? 'text-emerald-400' : 'text-blue-400'}`}>
+                          {formatCurrency(data.fator_r.economia_potencial_anual)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-[#A1A1AA]">
+                          {data.fator_r.pode_usar_anexo_iii 
+                            ? 'Você já está economizando!' 
+                            : 'Se aumentar a folha para 28%'}
+                        </p>
+                        <p className="text-sm text-[#666]">
+                          {formatCurrency(data.fator_r.economia_potencial_anual / 12)}/mês
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                   {/* Fator R Atual */}
@@ -729,7 +825,15 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                     }`}>
                       {data.fator_r.fator_r_percentual}
                     </p>
-                    <p className="text-xs text-[#666] mt-1">Mínimo: 28%</p>
+                    <div className="mt-2 h-2 bg-[#2A2A2A] rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full transition-all ${
+                          data.fator_r.pode_usar_anexo_iii ? 'bg-emerald-500' : 'bg-amber-500'
+                        }`}
+                        style={{ width: `${Math.min(parseFloat(data.fator_r.fator_r_percentual) / 40 * 100, 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-[#666] mt-1">Meta: 28%</p>
                   </div>
                   
                   {/* Folha Atual */}
@@ -786,7 +890,7 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                     )}
                   </div>
                   
-                  {/* NOVO: Sugestão de Folha Mensal Projetada */}
+                  {/* Sugestão de Folha Mensal Projetada */}
                   {data.fator_r.folha_mensal_sugerida > 0 && (
                     <div className="bg-[#C8A951]/10 border border-[#C8A951]/30 rounded p-4">
                       <p className="text-xs text-[#C8A951] mb-1">💡 Folha Mensal Sugerida</p>
@@ -794,45 +898,32 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                         {formatCurrency(data.fator_r.folha_mensal_sugerida)}
                       </p>
                       <p className="text-xs text-[#666] mt-1">
-                        Para manter 28% no próximo período
+                        Média mensal para manter 28%
                       </p>
-                      {data.fator_r.faturamento_competencia > 0 && (
-                        <p className="text-xs text-[#A1A1AA] mt-2">
-                          Considerando vendas de {formatCurrency(data.fator_r.faturamento_competencia)} nesta competência
+                    </div>
+                  )}
+                </div>
+
+                {/* Dica de Otimização */}
+                {!data.fator_r.pode_usar_anexo_iii && data.fator_r.folha_faltando > 0 && (
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center flex-shrink-0">
+                        <TrendingUp className="w-4 h-4 text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-blue-300 font-medium text-sm">Dica de Otimização</p>
+                        <p className="text-[#A1A1AA] text-sm mt-1">
+                          Aumentando sua folha de pagamento em <span className="text-blue-400 font-medium">{formatCurrency(data.fator_r.folha_faltando)}</span> nos 
+                          próximos 12 meses, você pode migrar para o Anexo III e economizar até <span className="text-emerald-400 font-medium">{formatCurrency(data.fator_r.economia_potencial_anual)}</span> por ano.
                         </p>
-                      )}
+                        <p className="text-[#666] text-xs mt-2">
+                          Isso equivale a um aumento mensal médio de {formatCurrency(data.fator_r.folha_faltando / 12)} na folha.
+                        </p>
+                      </div>
                     </div>
-                  )}
-                  
-                  {/* Economia Potencial */}
-                  {!data.fator_r.pode_usar_anexo_iii && data.fator_r.economia_potencial_anual > 0 && (
-                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded p-4">
-                      <p className="text-xs text-emerald-400 mb-1">Economia Potencial/Ano</p>
-                      <p className="text-xl font-bold text-emerald-400">
-                        {formatCurrency(data.fator_r.economia_potencial_anual)}
-                      </p>
-                      <p className="text-xs text-[#666] mt-1">
-                        Se aumentar a folha para atingir o Anexo III
-                      </p>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Comparativo de Alíquotas */}
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#2A2A2A]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#A1A1AA] text-sm">Alíquota Anexo V</span>
-                    <span className="text-white font-medium">
-                      {formatPercent(data.fator_r.aliquota_anexo_v)}
-                    </span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#A1A1AA] text-sm">Alíquota Anexo III</span>
-                    <span className="text-emerald-400 font-medium">
-                      {formatPercent(data.fator_r.aliquota_anexo_iii)}
-                    </span>
-                  </div>
-                </div>
+                )}
               </div>
             )}
 
