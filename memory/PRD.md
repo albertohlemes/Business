@@ -101,6 +101,16 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 **Correção de Bug - Criação de Usuário:**
 - ✅ **Campo de senha corrigido** - `password_hash` → `hashed_password` para consistência
 
+**Nova Funcionalidade: Vilões e Oportunidades (UI Completa):**
+- ✅ **Página `/viloes-oportunidades`** - Nova página criada
+- ✅ **Cards de resumo** - Total de vilões/oportunidades e valores de impacto/benefício
+- ✅ **Duas abas de agrupamento** - "Por NCM" e "Por Categoria"
+- ✅ **Filtros dinâmicos** - Botões para alternar entre "Vilões" e "Oportunidades"
+- ✅ **Exibição compacta em linha única** - Mostra ICMS, PIS, COFINS e impacto total
+- ✅ **Expansão com detalhes** - Ao clicar, exibe entradas, saídas, diferenças e lista de produtos
+- ✅ **Campo de busca** - Filtrar por NCM ou categoria
+- ✅ **Menu lateral atualizado** - Link "Vilões e Oportunidades" adicionado
+
 ### 2026-02-10 (Sessão 14 - Melhorias Extensivas na Classificação e Cadastro)
 
 **Correção do Relatório de Upload:**
