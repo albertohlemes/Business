@@ -747,8 +747,8 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                           <input
                             type="number"
                             placeholder="0,00"
-                            defaultValue={dadosMes.compras || ''}
-                            onBlur={(e) => salvarValorManual(competencia, 'compras', e.target.value)}
+                            value={dadosMes.compras || ''}
+                            onChange={(e) => salvarValorManual(competencia, 'compras', e.target.value)}
                             className="w-24 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white placeholder:text-[#444]"
                           />
                         </td>
@@ -756,8 +756,8 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                           <input
                             type="number"
                             placeholder="0,00"
-                            defaultValue={dadosMes.vendas || ''}
-                            onBlur={(e) => salvarValorManual(competencia, 'vendas', e.target.value)}
+                            value={dadosMes.vendas || ''}
+                            onChange={(e) => salvarValorManual(competencia, 'vendas', e.target.value)}
                             className="w-24 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white placeholder:text-[#444]"
                           />
                         </td>
@@ -765,8 +765,8 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                           <input
                             type="number"
                             placeholder="0,00"
-                            defaultValue={dadosMes.icms || ''}
-                            onBlur={(e) => salvarValorManual(competencia, 'icms', e.target.value)}
+                            value={dadosMes.icms || ''}
+                            onChange={(e) => salvarValorManual(competencia, 'icms', e.target.value)}
                             className="w-20 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white placeholder:text-[#444]"
                           />
                         </td>
@@ -774,8 +774,8 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                           <input
                             type="number"
                             placeholder="0,00"
-                            defaultValue={dadosMes.pis || ''}
-                            onBlur={(e) => salvarValorManual(competencia, 'pis', e.target.value)}
+                            value={dadosMes.pis || ''}
+                            onChange={(e) => salvarValorManual(competencia, 'pis', e.target.value)}
                             className="w-20 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white placeholder:text-[#444]"
                           />
                         </td>
