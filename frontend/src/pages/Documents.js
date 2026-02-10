@@ -559,7 +559,9 @@ const Documents = ({ user, onLogout }) => {
       }
       
       // 3. Enviar arquivos em lotes
-      const BATCH_SIZE = 50;
+      const BATCH_SIZE = 100; // Aumentado para reduzir número de requisições
+      let batchErrors = 0;
+      
       for (let i = 0; i < files.length; i += BATCH_SIZE) {
         const batch = files.slice(i, i + BATCH_SIZE);
         const formData = new FormData();
@@ -569,12 +571,19 @@ const Documents = ({ user, onLogout }) => {
           formData.append('files', file);
         });
         
-        await axios.post(`${API}/xml/upload-stream`, formData, {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        });
+        try {
+          await axios.post(`${API}/xml/upload-stream`, formData, {
+            headers: { 
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data'
+            },
+            timeout: 120000 // 2 minutos por lote
+          });
+        } catch (batchErr) {
+          console.warn(`Erro no lote ${Math.floor(i / BATCH_SIZE) + 1}:`, batchErr.message);
+          batchErrors++;
+          // Continuar com o próximo lote mesmo com erro
+        }
       }
       
       // 4. Aguardar o polling/SSE detectar a conclusão (fallback de segurança)
