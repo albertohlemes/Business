@@ -4664,7 +4664,8 @@ async def upload_xml_batch(
             "desconsideradas_devolucao": len(notas_devolucao_fornecedor),
             "erros": len(errors),
             "alertas_cfop": len(alertas_cfop)
-        }
+        },
+        "alertas_viloes_ncm": await identificar_ncms_viloes_importacao(company_id, results)
     }
 
 
