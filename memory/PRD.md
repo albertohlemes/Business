@@ -77,12 +77,12 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-10 (Sessão 10 - Melhorias IA, Vilões/Oportunidades e Permissões)
+### 2026-02-10 (Sessão 10 - Melhorias IA, Vilões/Oportunidades, Permissões e Alertas NCM)
 
 **Melhorias na IA de Classificação:**
-- ✅ **Análise de produtos vendidos** - A IA agora busca produtos das notas de saída para inferir o que a empresa comercializa
-- ✅ **Palavras-chave expandidas** - Correspondência semântica (ex: "construção" → cimento, argamassa, tijolo)
-- ✅ **Contexto enriquecido** - Prompt da IA inclui lista de até 50 produtos vendidos
+- ✅ **Análise de produtos vendidos** - A IA busca até 50 produtos das notas de saída para inferir padrões de comercialização
+- ✅ **Palavras-chave semânticas** - "construção" → classifica cimento, argamassa, tijolo como revenda
+- ✅ **Prompt enriquecido** - Inclui contexto de produtos vendidos + keywords cadastradas
 
 **Análise de Vilões/Oportunidades com PIS/COFINS:**
 - ✅ **Novos tipos de vilões:**
@@ -98,6 +98,19 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **Rebaixar para Operacional** - Botão na página de usuários
 - ✅ **Filtro de empresas por role** - Operacional só vê empresas atribuídas
 - ✅ **Endpoints backend funcionando** - `/auth/users/{id}/promote-master` e `/demote-operacional`
+
+**Alertas Automáticos de NCMs Vilões na Importação:**
+- ✅ **Função `identificar_ncms_viloes_importacao`** - Verifica NCMs com histórico de alta carga tributária
+- ✅ **Retorno na importação** - Campo `alertas_viloes_ncm` no resultado do upload
+- ✅ **Severidade** - Alta (>20%) ou Média (>15%)
+- ✅ **Informações detalhadas** - NCM, descrição, NF, carga histórica, débito acumulado
+
+**Evolução Fiscal - Melhorias:**
+- ✅ **Dados corretos exibidos** - Compras, Vendas, Impostos funcionando
+- ✅ **Formulário de digitação manual** - Permite inserir dados de anos anteriores (2025, 2024, etc.)
+- ✅ **Campos desmembrados** - Compras, Vendas, ICMS, PIS, COFINS, ISS, DAS
+- ✅ **Seletor de ano** - Dropdown para escolher qual ano digitar
+- ✅ **Persistência local** - Dados salvos no localStorage
 
 **Verificação de CFOPs de Substituição Tributária:**
 - ✅ **Conversão correta** - 5403 → 1403, 6403 → 2403 (ST interna e interestadual)
