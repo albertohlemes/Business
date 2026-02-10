@@ -14858,7 +14858,17 @@ async def apurar_icms(
     # Calcular saldo
     credito_icms = totais["entradas"]["valor_icms"]
     debito_icms = totais["saidas"]["valor_icms"]
-    saldo = debito_icms - credito_icms
+    
+    # NOVO: Verificar se é transportadora e calcular crédito presumido
+    is_transportadora = company.get('is_transportadora', False)
+    credito_presumido_percent = company.get('credito_presumido_icms_percent', 20.0)
+    credito_presumido_icms = 0
+    
+    if is_transportadora and debito_icms > 0:
+        credito_presumido_icms = calcular_credito_presumido_icms_transportadora(debito_icms, credito_presumido_percent)
+    
+    # Saldo final = Débito - Crédito - Crédito Presumido (transportadora)
+    saldo = debito_icms - credito_icms - credito_presumido_icms
     
     # Arredondar valores
     def arredondar_dict(d):
