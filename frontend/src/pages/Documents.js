@@ -593,54 +593,69 @@ const Documents = ({ user, onLogout }) => {
       
       // Verificar se o resultado já foi processado pelo SSE/polling
       if (!showUploadResult) {
-        // Buscar resultado manualmente como fallback
-        try {
-          const statusResponse = await axios.get(`${API}/xml/upload-status/${uploadId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const data = statusResponse.data;
-          
-          if (data.completed && data.results) {
-            const resumo = data.results.resumo || {};
-            const successList = data.results.success || [];
-            const errorsList = [
-              ...(data.results.errors || []),
-              ...(data.results.duplicadas || []).map(d => ({ arquivo: d.arquivo || d.filename, motivo: 'Documento duplicado', numero: d.numero })),
-              ...(data.results.rejeitadas_cnpj || []).map(d => ({ arquivo: d.arquivo || d.filename, motivo: `CNPJ não corresponde à empresa (encontrado: ${d.cnpj_encontrado})` }))
-            ];
-            
-            setUploadResult({
-              tipo: 'xml',
-              total: resumo.total_arquivos || files.length,
-              sucesso: resumo.importados || successList.length,
-              erros: (resumo.erros || 0) + (resumo.duplicados || 0) + (resumo.rejeitados_cnpj || 0),
-              processados: successList.map(s => ({
-                arquivo: s.arquivo || s.filename,
-                numero: s.numero || s.numero_nfe,
-                valor: s.valor || 0,
-                emitente: s.emitente || s.emitente_nome,
-                modelo: s.modelo
-              })),
-              rejeitados: errorsList.map(e => ({
-                arquivo: e.arquivo || e.filename,
-                motivo: e.motivo || e.erro || e.error || 'Erro desconhecido'
-              })),
-              alertas_cfop: data.results.alertas_cfop || [],
-              duplicadas: data.results.duplicadas || [],
-              rejeitadas_cnpj: data.results.rejeitadas_cnpj || [],
-              performance: data.results.performance || {}
+        // Buscar resultado manualmente como fallback (com retry)
+        let retries = 3;
+        let resultFound = false;
+        
+        while (retries > 0 && !resultFound) {
+          try {
+            const statusResponse = await axios.get(`${API}/xml/upload-status/${uploadId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+              timeout: 30000
             });
-            setShowUploadResult(true);
-            setUploading(false);
+            const data = statusResponse.data;
             
-            // Limpar SSE/polling
-            if (eventSource) eventSource.close();
-            if (pollingInterval) clearInterval(pollingInterval);
-            
-            fetchDocuments();
+            if (data.completed && data.results) {
+              const resumo = data.results.resumo || {};
+              const successList = data.results.success || [];
+              const errorsList = [
+                ...(data.results.errors || []),
+                ...(data.results.duplicadas || []).map(d => ({ arquivo: d.arquivo || d.filename, motivo: 'Documento duplicado', numero: d.numero })),
+                ...(data.results.rejeitadas_cnpj || []).map(d => ({ arquivo: d.arquivo || d.filename, motivo: `CNPJ não corresponde à empresa (encontrado: ${d.cnpj_encontrado})` }))
+              ];
+              
+              setUploadResult({
+                tipo: 'xml',
+                total: resumo.total_arquivos || files.length,
+                sucesso: resumo.importados || successList.length,
+                erros: (resumo.erros || 0) + (resumo.duplicados || 0) + (resumo.rejeitados_cnpj || 0),
+                processados: successList.map(s => ({
+                  arquivo: s.arquivo || s.filename,
+                  numero: s.numero || s.numero_nfe,
+                  valor: s.valor || 0,
+                  emitente: s.emitente || s.emitente_nome,
+                  modelo: s.modelo
+                })),
+                rejeitados: errorsList.map(e => ({
+                  arquivo: e.arquivo || e.filename,
+                  motivo: e.motivo || e.erro || e.error || 'Erro desconhecido'
+                })),
+                alertas_cfop: data.results.alertas_cfop || [],
+                duplicadas: data.results.duplicadas || [],
+                rejeitadas_cnpj: data.results.rejeitadas_cnpj || [],
+                performance: data.results.performance || {}
+              });
+              setShowUploadResult(true);
+              setUploading(false);
+              resultFound = true;
+              
+              // Limpar SSE/polling
+              if (eventSource) eventSource.close();
+              if (pollingInterval) clearInterval(pollingInterval);
+              
+              fetchDocuments();
+            } else if (!data.completed) {
+              // Ainda processando, aguardar mais
+              await new Promise(resolve => setTimeout(resolve, 3000));
+              retries--;
+            }
+          } catch (fallbackErr) {
+            console.error(`Erro ao buscar resultado (tentativa ${4 - retries}/3):`, fallbackErr);
+            retries--;
+            if (retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
           }
-        } catch (fallbackErr) {
-          console.error('Erro ao buscar resultado manualmente:', fallbackErr);
         }
       }
       
