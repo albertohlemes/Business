@@ -461,6 +461,9 @@ const Documents = ({ user, onLogout }) => {
               total: total,
               percent: percent
             });
+            
+            // Atualizar progresso global
+            updateGlobalProgress(percent, processed, total);
           }
         } catch (pollError) {
           console.error('Erro no polling:', pollError);
