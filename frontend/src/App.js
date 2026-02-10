@@ -25,6 +25,8 @@ import AnaliseTributariaIA from './pages/AnaliseTributariaIA';
 import SimplesNacionalDashboard from './pages/SimplesNacionalDashboard';
 import DifaLPage from './pages/DifaLPage';
 import Apuracao from './pages/Apuracao';
+import ImpostosRetidos from './pages/ImpostosRetidos';
+import RelatorioUnificado from './pages/RelatorioUnificado';
 import './App.css';
 
 function App() {
