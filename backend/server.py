@@ -14849,13 +14849,53 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
                 
                 stats["from_ai"] += 1
             else:
-                # Fallback
+                # Fallback baseado no tipo de atividade da empresa
+                tipo_atividade = company_data.get('tipo_atividade', 'comercio')
                 cfop_prefix = '2' if (emitente_uf and emitente_uf != company_uf) else '1'
+                is_st = product.get('_is_st_by_cfop', False) or str(product.get('cst', '')) in ['10', '30', '60', '70', '201', '202', '203', '500']
+                
+                # Determinar categoria padrão baseado no tipo de atividade
+                if tipo_atividade == 'servicos':
+                    categoria_padrao = 'aplicacao_servico'
+                    cfop_padrao = cfop_prefix + '128' if not is_st else cfop_prefix + '401'
+                    justificativa_padrao = "Classificado automaticamente como APLICAÇÃO EM SERVIÇOS (empresa de serviços)"
+                else:
+                    # Comercio, industria ou mista → padrão é revenda
+                    categoria_padrao = 'revenda'
+                    cfop_padrao = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
+                    justificativa_padrao = "Classificado automaticamente como COMPRA P/ REVENDA (padrão comercial)"
+                
+                results[p_id] = {
+                    "categoria": categoria_padrao,
+                    "cfop": cfop_padrao,
+                    "justificativa": justificativa_padrao
+                }
+                stats["from_rules"] += 1  # Conta como regra automática
+    
+    # GARANTIR que TODOS os produtos tenham classificação (eliminar pendentes)
+    for idx, product in enumerate(products):
+        p_id = str(idx)
+        if p_id not in results:
+            tipo_atividade = company_data.get('tipo_atividade', 'comercio')
+            cfop_prefix = '2' if (emitente_uf and emitente_uf != company_uf) else '1'
+            is_st_by_cfop = str(product.get('cfop_original_emissor', product.get('cfop', ''))) in [
+                '5403', '5405', '6403', '6404', '1403', '2403', '2404', '2405'
+            ]
+            is_st = is_st_by_cfop or str(product.get('cst', '')) in ['10', '30', '60', '70', '201', '202', '203', '500']
+            
+            if tipo_atividade == 'servicos':
+                results[p_id] = {
+                    "categoria": "aplicacao_servico",
+                    "cfop": cfop_prefix + '128' if not is_st else cfop_prefix + '401',
+                    "justificativa": "Auto: Aplicação em serviços (empresa de serviços)"
+                }
+            else:
                 results[p_id] = {
                     "categoria": "revenda",
-                    "cfop": cfop_prefix + '102',
-                    "justificativa": "Classificação padrão (revenda)"
+                    "cfop": (cfop_prefix + '403') if is_st else (cfop_prefix + '102'),
+                    "justificativa": "Auto: Compra para revenda (padrão comercial)"
                 }
+            stats["from_rules"] += 1
     
     return results, stats
 
