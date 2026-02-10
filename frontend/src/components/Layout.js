@@ -50,25 +50,38 @@ const Layout = ({ user, onLogout, children }) => {
 
   // Determinar quais apurações mostrar baseado nos flags da empresa
   const getVisibleNavigation = () => {
-    const baseNav = [
+    // === CADASTROS E NAVEGAÇÃO PRINCIPAL (sempre no topo) ===
+    const nav = [
       { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
+      { name: 'Empresas', href: '/companies', icon: Building2, testId: 'nav-companies' },
       { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
       { name: 'Classificação Inteligente', href: '/classificacao-inteligente', icon: Brain, testId: 'nav-classificacao-inteligente' },
     ];
     
-    // Se não tem empresa selecionada, mostra todos os menus
+    // Se não tem empresa selecionada, mostra menu completo padrão
     if (!selectedCompany) {
       return [
-        ...baseNav,
+        ...nav,
+        // --- Separador visual: Apurações ---
+        { name: 'divider', label: 'Apurações' },
         { name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' },
+        // Federais
         { name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' },
+        { name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' },
+        // Estaduais
         { name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' },
         { name: 'ICMS ST', href: '/apuracao-icms-st', icon: Calculator, testId: 'nav-apuracao-icms-st' },
+        { name: 'DIFAL', href: '/difal', icon: ArrowLeftRight, testId: 'nav-difal' },
+        // Municipais
         { name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' },
-        { name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' },
+        // --- Separador visual: Análises ---
+        { name: 'divider', label: 'Análises' },
+        { name: 'Simples Nacional', href: '/simples-nacional', icon: Star, testId: 'nav-simples-nacional' },
         { name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' },
         { name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' },
         { name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' },
+        // --- Separador visual: Exportações ---
+        { name: 'divider', label: 'Exportações' },
         { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
         { name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' },
       ];
@@ -81,68 +94,63 @@ const Layout = ({ user, onLogout, children }) => {
     const apuraIcmsSt = selectedCompany.apura_icms_st || false;
     const regimeTributario = selectedCompany.regime_tributario || 'lucro_presumido';
     
-    // Verificar se é indústria (pelo tipo ou pelo perfil)
+    // Verificar se é indústria
     const ehIndustria = tipoAtividade === 'industria' || perfisComerciais.includes('industria') || equiparadoIndustria;
     
-    // Se for Simples Nacional, adicionar menus específicos
+    // === APURAÇÕES ===
+    nav.push({ name: 'divider', label: 'Apurações' });
+    
+    // Simples Nacional tem estrutura diferente
     if (regimeTributario === 'simples_nacional') {
-      // Apuração - APENAS para Simples Nacional
-      baseNav.push({ name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' });
-      baseNav.push({ name: 'Simples Nacional', href: '/simples-nacional', icon: Star, testId: 'nav-simples-nacional' });
-      baseNav.push({ name: 'DIFAL', href: '/difal', icon: ArrowLeftRight, testId: 'nav-difal' });
+      nav.push({ name: 'Apuração', href: '/apuracao-movimento', icon: Package, testId: 'nav-apuracao-movimento' });
+      nav.push({ name: 'Simples Nacional', href: '/simples-nacional', icon: Star, testId: 'nav-simples-nacional' });
       
-      // IPI - Apenas Indústria no Simples Nacional
-      if (ehIndustria) {
-        baseNav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
+      // DIFAL para compras interestaduais
+      if (['comercio', 'industria', 'mista'].includes(tipoAtividade)) {
+        nav.push({ name: 'DIFAL', href: '/difal', icon: ArrowLeftRight, testId: 'nav-difal' });
       }
       
-      baseNav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
-      baseNav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
+      // IPI apenas para indústria no Simples
+      if (ehIndustria) {
+        nav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
+      }
+    } else {
+      // Lucro Presumido / Lucro Real
+      
+      // FEDERAIS (PIS/COFINS, IPI)
+      nav.push({ name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' });
+      
+      if (ehIndustria) {
+        nav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
+      }
+      
+      // ESTADUAIS (ICMS, ICMS ST)
+      if (['comercio', 'industria', 'mista'].includes(tipoAtividade) || apuraIcms) {
+        nav.push({ name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' });
+      }
+      
+      if (ehIndustria || apuraIcmsSt) {
+        nav.push({ name: 'ICMS ST', href: '/apuracao-icms-st', icon: Calculator, testId: 'nav-apuracao-icms-st' });
+      }
+      
+      // MUNICIPAIS (ISS)
+      if (['servicos', 'mista'].includes(tipoAtividade)) {
+        nav.push({ name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' });
+      }
     }
     
-    // PIS/COFINS - sempre mostra (todas empresas pagam) - exceto Simples
-    if (regimeTributario !== 'simples_nacional') {
-      baseNav.push({ name: 'PIS/COFINS', href: '/pis-cofins', icon: DollarSign, testId: 'nav-pis-cofins' });
-    }
+    // === ANÁLISES ===
+    nav.push({ name: 'divider', label: 'Análises' });
+    nav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
+    nav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
+    nav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
     
-    // ICMS - Comércio, Indústria, Mista OU flag apura_icms - exceto Simples
-    if (regimeTributario !== 'simples_nacional' && (['comercio', 'industria', 'mista'].includes(tipoAtividade) || apuraIcms)) {
-      baseNav.push({ name: 'ICMS', href: '/apuracao-icms', icon: Calculator, testId: 'nav-apuracao-icms' });
-    }
+    // === EXPORTAÇÕES (sempre no final) ===
+    nav.push({ name: 'divider', label: 'Exportações' });
+    nav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
+    nav.push({ name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' });
     
-    // ICMS ST - Apenas Indústria (ou equiparado) OU flag explícita - exceto Simples
-    if (regimeTributario !== 'simples_nacional' && (ehIndustria || apuraIcmsSt)) {
-      baseNav.push({ name: 'ICMS ST', href: '/apuracao-icms-st', icon: Calculator, testId: 'nav-apuracao-icms-st' });
-    }
-    
-    // ISS - Serviços ou Mista - exceto Simples
-    if (regimeTributario !== 'simples_nacional' && ['servicos', 'mista'].includes(tipoAtividade)) {
-      baseNav.push({ name: 'ISS', href: '/apuracao-iss', icon: Briefcase, testId: 'nav-apuracao-iss' });
-    }
-    
-    // IPI - Apenas Indústria (ou equiparado) - para Lucro Presumido e Real
-    if (regimeTributario !== 'simples_nacional' && ehIndustria) {
-      baseNav.push({ name: 'IPI', href: '/apuracao-ipi', icon: Factory, testId: 'nav-apuracao-ipi' });
-    }
-    
-    // Indicadores - sempre mostra (acima do RET) - exceto Simples
-    if (regimeTributario !== 'simples_nacional') {
-      baseNav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
-    }
-    
-    // RET - sempre mostra - exceto Simples
-    if (regimeTributario !== 'simples_nacional') {
-      baseNav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
-    }
-    
-    // Impostos Retidos - sempre disponível
-    baseNav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
-    
-    // Relatórios e Exportação - sempre
-    baseNav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
-    baseNav.push({ name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' });
-    
-    return baseNav;
+    return nav;
   };
   
   const navigation = getVisibleNavigation();
