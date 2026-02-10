@@ -620,6 +620,19 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                   <p className="text-red-400 text-2xl font-bold">{formatCurrency(dados.apuracao?.debito_icms)}</p>
                   <p className="text-[#A1A1AA] text-sm">Débito (Saídas)</p>
                 </div>
+                
+                {/* Crédito Presumido - Transportadoras */}
+                {dados.apuracao?.is_transportadora && dados.apuracao?.credito_presumido_icms > 0 && (
+                  <>
+                    <Minus className="w-6 h-6 text-[#666]" />
+                    <div className="text-center p-4 bg-cyan-500/10 rounded-lg border border-cyan-500/30 min-w-[180px]">
+                      <p className="text-cyan-400 text-2xl font-bold">{formatCurrency(dados.apuracao?.credito_presumido_icms)}</p>
+                      <p className="text-[#A1A1AA] text-sm">Crédito Presumido</p>
+                      <p className="text-xs text-cyan-300 mt-1">{dados.apuracao?.credito_presumido_percent}% s/ débito</p>
+                    </div>
+                  </>
+                )}
+                
                 <ArrowRight className="w-6 h-6 text-[#C8A951]" />
                 <div className={`text-center p-4 rounded-lg border min-w-[180px] ${
                   dados.apuracao?.situacao === 'A_PAGAR' 
@@ -642,6 +655,17 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                   </p>
                 </div>
               </div>
+              
+              {/* Info Transportadora */}
+              {dados.apuracao?.is_transportadora && (
+                <div className="mt-4 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg flex items-center gap-2">
+                  <Truck className="w-5 h-5 text-cyan-400" />
+                  <p className="text-sm text-cyan-300">
+                    <strong>Transportadora:</strong> Crédito presumido de {dados.apuracao?.credito_presumido_percent}% aplicado sobre o débito 
+                    conforme Art. 70, XI do RICMS/SP
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Seção de Entradas */}
