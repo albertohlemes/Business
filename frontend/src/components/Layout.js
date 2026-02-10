@@ -386,14 +386,16 @@ const Layout = ({ user, onLogout, children }) => {
                   <Building2 className="w-4 h-4" />
                   <span>Empresas</span>
                 </Link>
-                <Link
-                  to="/usuarios"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg"
-                >
-                  <Users className="w-4 h-4" />
-                  <span>Usuários</span>
-                </Link>
+                {isMasterOrAdmin && (
+                  <Link
+                    to="/usuarios"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>Usuários</span>
+                  </Link>
+                )}
               </>
             )}
             
