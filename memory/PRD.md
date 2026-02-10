@@ -77,6 +77,31 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-10 (Sessão 10 - Melhorias IA, Vilões/Oportunidades e Permissões)
+
+**Melhorias na IA de Classificação:**
+- ✅ **Análise de produtos vendidos** - A IA agora busca produtos das notas de saída para inferir o que a empresa comercializa
+- ✅ **Palavras-chave expandidas** - Correspondência semântica (ex: "construção" → cimento, argamassa, tijolo)
+- ✅ **Contexto enriquecido** - Prompt da IA inclui lista de até 50 produtos vendidos
+
+**Análise de Vilões/Oportunidades com PIS/COFINS:**
+- ✅ **Novos tipos de vilões:**
+  - `PIS_COFINS_SEM_CREDITO` - Débito PIS/COFINS alto sem crédito na entrada
+  - `PIS_COFINS_DIFERENCA_ALTA` - Grande diferença entre débito e crédito
+  - `CARGA_TRIBUTARIA_TOTAL_ALTA` - Carga total (ICMS + PIS/COFINS) > 15%
+- ✅ **Novas oportunidades:**
+  - `PIS_COFINS_CREDITO_MAIOR` - Crédito maior que débito
+  - `CARGA_TRIBUTARIA_BAIXA` - Carga total < 5%
+
+**Sistema de Permissões (Master vs. Operacional):**
+- ✅ **Promover para Master** - Botão na página de usuários (coroa)
+- ✅ **Rebaixar para Operacional** - Botão na página de usuários
+- ✅ **Filtro de empresas por role** - Operacional só vê empresas atribuídas
+- ✅ **Endpoints backend funcionando** - `/auth/users/{id}/promote-master` e `/demote-operacional`
+
+**Verificação de CFOPs de Substituição Tributária:**
+- ✅ **Conversão correta** - 5403 → 1403, 6403 → 2403 (ST interna e interestadual)
+
 ### 2026-02-10 (Sessão 9 - Correções de Evolução Fiscal e DIFAL)
 
 **Correção do Endpoint de Análise Horizontal (P0 - RESOLVIDO):**
