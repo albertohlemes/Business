@@ -10405,10 +10405,27 @@ async def classificar_produtos_ia(
     produtos_vendidos_texto = "\n".join([f"- {p}" for p in list(produtos_vendidos)[:50]]) if produtos_vendidos else "Nenhum produto de saída encontrado"
     ncms_vendidos_texto = ", ".join(list(ncms_vendidos)[:20]) if ncms_vendidos else "N/A"
     
+    # Palavras-chave cadastradas pela empresa
+    produtos_comercializados = company.get('produtos_comercializados', [])
+    produtos_aplicacao_servico = company.get('produtos_aplicacao_servico', [])
+    insumos_producao = company.get('insumos_producao', [])
+    produtos_despesa = company.get('produtos_despesa', [])
+    
+    palavras_chave_texto = ""
+    if produtos_comercializados:
+        palavras_chave_texto += f"\n- REVENDA: {', '.join(produtos_comercializados)}"
+    if produtos_aplicacao_servico:
+        palavras_chave_texto += f"\n- APLICAÇÃO EM SERVIÇOS: {', '.join(produtos_aplicacao_servico)}"
+    if insumos_producao:
+        palavras_chave_texto += f"\n- INSUMO: {', '.join(insumos_producao)}"
+    if produtos_despesa:
+        palavras_chave_texto += f"\n- DESPESA: {', '.join(produtos_despesa)}"
+    
     # Definir categoria padrão baseada na atividade e configuração da empresa
-    aplicacao_em_servicos = company.get('aplicacao_em_servicos', False)
-    if tipo_atividade == 'servicos' or (tipo_atividade == 'mista' and aplicacao_em_servicos):
+    if tipo_atividade == 'servicos':
         categoria_padrao = "servico_aplicacao"
+    elif tipo_atividade == 'mista' and len(produtos_aplicacao_servico) > len(produtos_comercializados):
+        categoria_padrao = "servico_aplicacao"  # Se tem mais palavras-chave de serviço
     elif tipo_atividade in ['comercio', 'mista']:
         categoria_padrao = "revenda"
     elif tipo_atividade == 'industria':
@@ -10423,18 +10440,23 @@ Comando do usuário: "{comando}"
 **CONTEXTO DA EMPRESA:**
 - Tipo de atividade: {tipo_atividade.upper()}
 - Categoria padrão para dúvidas: {categoria_padrao}
+{f'- Palavras-chave cadastradas:{palavras_chave_texto}' if palavras_chave_texto else ''}
 
 **PRODUTOS QUE A EMPRESA VENDE (referência para classificar como REVENDA):**
 {produtos_vendidos_texto}
 
 **NCMs dos produtos vendidos:** {ncms_vendidos_texto}
 
-**REGRA IMPORTANTE:** 
-Se um produto de ENTRADA tiver descrição ou NCM similar aos produtos de SAÍDA, ele é para REVENDA.
-Em caso de DÚVIDA para empresas de comércio, classificar como REVENDA.
+**REGRAS IMPORTANTES:** 
+1. Se um produto de ENTRADA tiver descrição ou NCM similar aos produtos de SAÍDA, ele é para REVENDA.
+2. Se a empresa for de SERVIÇOS, classificar materiais de entrada como SERVICO_APLICACAO.
+3. Se houver palavras-chave cadastradas, priorizar a categoria correspondente.
+4. Em caso de DÚVIDA para empresas de comércio, classificar como REVENDA.
+5. Em caso de DÚVIDA para empresas de serviços, classificar como SERVICO_APLICACAO.
 
 Categorias válidas:
 - revenda: Mercadorias compradas para revenda (PRIORIZAR para empresas de comércio)
+- servico_aplicacao: Materiais aplicados na prestação de serviços (PRIORIZAR para empresas de serviços)
 - insumo: Matérias-primas e insumos de produção industrial
 - despesa: Material de uso e consumo, limpeza, escritório, manutenção
 - ativo_imobilizado: Máquinas, equipamentos, móveis, veículos
