@@ -694,6 +694,7 @@ const Documents = ({ user, onLogout }) => {
       });
       setShowUploadResult(true);
       setUploading(false);
+      finishGlobalUpload(); // Finalizar progresso global em caso de erro
     }
   };
 
