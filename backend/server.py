@@ -6186,9 +6186,15 @@ async def get_dashboard_stats(
     # CFOPs de DEVOLUÇÃO de compra (empresa devolvendo para fornecedor)
     CFOPS_DEVOLUCAO_COMPRA = ['5201', '5202', '5410', '5411', '6201', '6202', '6410', '6411']
     
-    # CFOPs de VENDA
-    CFOPS_VENDA = ['5102', '5103', '5104', '5105', '5106', '5401', '5403', '5405',
-                   '6102', '6103', '6104', '6105', '6106', '6401', '6403', '6404']
+    # CFOPs de VENDA (inclui todas as operações de venda mercantil)
+    CFOPS_VENDA = [
+        # Vendas internas (dentro do estado)
+        '5101', '5102', '5103', '5104', '5105', '5106', '5109', '5110', '5111', '5112', '5113', '5114', '5115', '5116', '5117', '5118', '5119', '5120', '5122', '5123', '5124', '5125',
+        '5401', '5402', '5403', '5405',
+        # Vendas interestaduais
+        '6101', '6102', '6103', '6104', '6105', '6106', '6107', '6108', '6109', '6110', '6111', '6112', '6113', '6114', '6115', '6116', '6117', '6118', '6119', '6120', '6122', '6123', '6124', '6125',
+        '6401', '6402', '6403', '6404'
+    ]
     
     # CFOPs de DEVOLUÇÃO de venda (cliente devolvendo para empresa)
     CFOPS_DEVOLUCAO_VENDA = ['1202', '1410', '1411', '2202', '2410', '2411']
