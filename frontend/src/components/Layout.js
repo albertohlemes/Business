@@ -143,12 +143,6 @@ const Layout = ({ user, onLogout, children }) => {
     }
     
     // === ANÁLISES ===
-    // Para Simples Nacional, Impostos Retidos já foi adicionado acima (nas Apurações)
-    // Para outros regimes, adicionar aqui como último item de apuração
-    if (regimeTributario !== 'simples_nacional') {
-      nav.push({ name: 'Impostos Retidos', href: '/impostos-retidos', icon: DollarSign, testId: 'nav-impostos-retidos' });
-    }
-    
     nav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
     nav.push({ name: 'Evolução Fiscal', href: '/analise-horizontal', icon: TrendingUp, testId: 'nav-analise-horizontal' });
     nav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
