@@ -131,23 +131,113 @@ const ImpostosRetidos = ({ user, onLogout }) => {
     XLSX.writeFile(wb, `impostos_retidos_${ctxCompany?.razao_social?.substring(0, 20)}_${selectedCompetencia?.replace('/', '-')}.xlsx`);
   };
 
-  // Componente de Card de Imposto
-  const ImpostoCard = ({ label, valor, color = 'blue' }) => {
-    if (!valor || valor === 0) return null;
-    const colors = {
-      blue: 'bg-blue-500/10 border-blue-500/30 text-blue-400',
-      green: 'bg-green-500/10 border-green-500/30 text-green-400',
-      amber: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-      purple: 'bg-purple-500/10 border-purple-500/30 text-purple-400',
-      cyan: 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400',
-      red: 'bg-red-500/10 border-red-500/30 text-red-400'
+  // Calcular totalizadores por grupo de imposto
+  const calcularTotaisPorGrupo = (detalhes) => {
+    const totais = {
+      iss: { valor: 0, detalhes: [] },
+      ir: { valor: 0, detalhes: [] },
+      contribuicoes: { valor: 0, detalhes: [], pis: 0, cofins: 0, csll: 0 },
+      inss: { valor: 0, detalhes: [] }
     };
+    
+    // ISS por município
+    const issPorMunicipio = {};
+    
+    (detalhes || []).forEach(item => {
+      const ret = item.retencoes || {};
+      const municipio = item.municipio_prestador || item.municipio || 'Não informado';
+      
+      // ISS
+      if (ret.iss > 0) {
+        totais.iss.valor += ret.iss;
+        totais.iss.detalhes.push(item);
+        
+        if (!issPorMunicipio[municipio]) {
+          issPorMunicipio[municipio] = { valor: 0, qtd: 0 };
+        }
+        issPorMunicipio[municipio].valor += ret.iss;
+        issPorMunicipio[municipio].qtd += 1;
+      }
+      
+      // IR
+      if (ret.ir > 0) {
+        totais.ir.valor += ret.ir;
+        totais.ir.detalhes.push(item);
+      }
+      
+      // PIS + COFINS + CSLL
+      const pisVal = ret.pis || 0;
+      const cofinsVal = ret.cofins || 0;
+      const csllVal = ret.csll || 0;
+      if (pisVal > 0 || cofinsVal > 0 || csllVal > 0) {
+        totais.contribuicoes.pis += pisVal;
+        totais.contribuicoes.cofins += cofinsVal;
+        totais.contribuicoes.csll += csllVal;
+        totais.contribuicoes.valor += pisVal + cofinsVal + csllVal;
+        totais.contribuicoes.detalhes.push(item);
+      }
+      
+      // INSS
+      if (ret.inss > 0) {
+        totais.inss.valor += ret.inss;
+        totais.inss.detalhes.push(item);
+      }
+    });
+    
+    totais.issPorMunicipio = issPorMunicipio;
+    totais.total = totais.iss.valor + totais.ir.valor + totais.contribuicoes.valor + totais.inss.valor;
+    
+    return totais;
+  };
+
+  // Componente de Card de Grupo de Imposto
+  const GrupoImpostoCard = ({ titulo, valor, cor, icone: Icone, detalhes, expanded, onToggle, children }) => {
+    if (valor <= 0) return null;
+    
+    const cores = {
+      blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400', accent: 'bg-blue-500/20' },
+      green: { bg: 'bg-green-500/10', border: 'border-green-500/30', text: 'text-green-400', accent: 'bg-green-500/20' },
+      purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', accent: 'bg-purple-500/20' },
+      red: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-400', accent: 'bg-red-500/20' },
+      amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400', accent: 'bg-amber-500/20' }
+    };
+    
+    const c = cores[cor] || cores.blue;
+    
     return (
-      <div className={`rounded-lg p-3 border ${colors[color]}`}>
-        <p className="text-xs text-[#A1A1AA]">{label}</p>
-        <p className={`text-lg font-bold ${colors[color].split(' ')[2]}`}>{formatCurrency(valor)}</p>
+      <div className={`rounded-xl ${c.bg} border ${c.border} overflow-hidden`}>
+        <button 
+          onClick={onToggle}
+          className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-xl ${c.accent} flex items-center justify-center`}>
+              <Icone className={`w-6 h-6 ${c.text}`} />
+            </div>
+            <div className="text-left">
+              <h3 className="text-white font-semibold">{titulo}</h3>
+              <p className="text-xs text-[#A1A1AA]">{detalhes?.length || 0} documento(s)</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <p className={`text-2xl font-bold ${c.text}`}>{formatCurrency(valor)}</p>
+            <ArrowRight className={`w-5 h-5 ${c.text} transition-transform ${expanded ? 'rotate-90' : ''}`} />
+          </div>
+        </button>
+        
+        {expanded && children && (
+          <div className="border-t border-[#2A2A2A] p-4 bg-black/20">
+            {children}
+          </div>
+        )}
       </div>
     );
+  };
+
+  // Estado para controlar expansão dos grupos
+  const [expandedGroups, setExpandedGroups] = React.useState({});
+  const toggleGroup = (group) => {
+    setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
   };
 
   // Componente de Tabela de Detalhes
