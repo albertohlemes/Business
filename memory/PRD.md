@@ -91,10 +91,20 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **Campo `outros_entrada`** adicionado nas quantidades e valores do dashboard
 - ✅ **Total de entradas** agora inclui "Outros Documentos"
 
+**Filtro de Divergência Corrigido:**
+- ✅ **Critério unificado** - Mesmo critério da barra de validação (soma produtos vs valor total)
+- ✅ **Contador "X de Y"** - Exibe "9 de 166" quando filtro está ativo
+- ✅ **Funcionamento correto** - Clicando em "Divergente" mostra apenas notas com divergência
+
 **Importação de NFS-e via IA:**
 - ✅ **Serviços Tomados e Prestados** - Aceita XML ou PDF/Imagem
 - ✅ **Botão "Importar XML ou PDF"** - Exibido para tipos com importType: 'both'
 - ✅ **Processamento via IA** - Extrai dados de PDFs/imagens de NFS-e automaticamente
+
+**Importação de Relatório de Canceladas (Aprimorado):**
+- ✅ **Suporta múltiplos formatos** - CSV, TXT, XLSX, XML, PDF
+- ✅ **Extração automática de números** - Identifica números de notas canceladas
+- ✅ **Marcação automática** - Flega notas com base no relatório enviado
 
 **NCMs de Bebidas Alcoólicas (Completo):**
 - ✅ **Posição 2204** - Vinhos de uvas frescas (espumantes, <= 2L, > 2L)
@@ -113,6 +123,9 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
   - Monofásicos: CST 04
   - Alíquota zero saída: CST 06
   - Alíquota zero entrada: CST 73
+
+**UI/UX Melhorias:**
+- ✅ **Header fixo na Auditoria PIS/COFINS** - Cards e filtros fixos, lista com scroll independente
 
 ### 2026-02-10 (Sessão 7 - Cancelamento NFS-e e Melhorias)
 
