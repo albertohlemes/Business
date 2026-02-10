@@ -9828,7 +9828,287 @@ ALIQUOTAS_PADRAO = {
 }
 
 
+@api_router.get("/viloes-oportunidades/{company_id}")
+async def get_viloes_oportunidades(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Endpoint dedicado para Vilões e Oportunidades Tributárias.
+    Inclui análise completa de ICMS, PIS e COFINS.
+    Agrupa por NCM e por palavra-chave.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    regime = company.get('regime_tributario', 'lucro_presumido').lower().replace(' ', '_')
+    
+    # Buscar documentos de entrada e saída
+    docs_entrada = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "entrada"
+    }, {"_id": 0}).to_list(10000)
+    
+    docs_saida = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "saida"
+    }, {"_id": 0}).to_list(10000)
+    
+    # Agrupar por NCM
+    produtos_por_ncm = {}
+    produtos_por_keyword = {}
+    
+    # Função para extrair palavra-chave da descrição
+    def extrair_keyword(descricao):
+        if not descricao:
+            return "outros"
+        desc_lower = descricao.lower()
+        
+        keywords_map = {
+            'cerveja': ['cerveja', 'beer', 'pilsen', 'lager', 'ipa'],
+            'refrigerante': ['refrigerante', 'coca', 'pepsi', 'fanta', 'guarana', 'sprite'],
+            'suco': ['suco', 'nectar', 'juice'],
+            'agua': ['agua', 'mineral', 'h2o'],
+            'bebida': ['energetico', 'isotônico', 'energético', 'gatorade', 'red bull'],
+            'destilado': ['whisky', 'vodka', 'gin', 'rum', 'cachaça', 'tequila', 'conhaque'],
+            'vinho': ['vinho', 'wine', 'espumante', 'champagne'],
+            'cigarro': ['cigarro', 'tabaco', 'fumo'],
+            'combustivel': ['gasolina', 'diesel', 'etanol', 'alcool', 'gnv'],
+            'alimento': ['arroz', 'feijão', 'macarrão', 'farinha', 'açucar', 'oleo', 'leite'],
+            'limpeza': ['detergente', 'sabão', 'desinfetante', 'limpa', 'alvejante'],
+            'higiene': ['papel', 'sabonete', 'shampoo', 'creme', 'desodorante'],
+        }
+        
+        for keyword, termos in keywords_map.items():
+            for termo in termos:
+                if termo in desc_lower:
+                    return keyword
+        
+        return "outros"
+    
+    # Processar entradas
+    for doc in docs_entrada:
+        for prod in doc.get('produtos', []):
+            ncm = prod.get('ncm', '00000000')[:8]
+            descricao = prod.get('descricao', '')
+            valor = prod.get('valor_total', 0) or 0
+            icms = prod.get('v_icms', 0) or 0
+            pis = prod.get('v_pis', 0) or 0
+            cofins = prod.get('v_cofins', 0) or 0
+            cfop = prod.get('cfop', '')
+            keyword = extrair_keyword(descricao)
+            
+            # Por NCM
+            if ncm not in produtos_por_ncm:
+                produtos_por_ncm[ncm] = {
+                    'ncm': ncm,
+                    'descricao': descricao[:50],
+                    'entrada': {'valor': 0, 'icms': 0, 'pis': 0, 'cofins': 0, 'qtd': 0, 'produtos': []},
+                    'saida': {'valor': 0, 'icms': 0, 'pis': 0, 'cofins': 0, 'qtd': 0, 'produtos': []}
+                }
+            produtos_por_ncm[ncm]['entrada']['valor'] += valor
+            produtos_por_ncm[ncm]['entrada']['icms'] += icms
+            produtos_por_ncm[ncm]['entrada']['pis'] += pis
+            produtos_por_ncm[ncm]['entrada']['cofins'] += cofins
+            produtos_por_ncm[ncm]['entrada']['qtd'] += 1
+            produtos_por_ncm[ncm]['entrada']['produtos'].append({
+                'descricao': descricao, 'valor': valor, 'icms': icms, 'pis': pis, 'cofins': cofins,
+                'cfop': cfop, 'nota': doc.get('numero_nfe', ''), 'emitente': doc.get('emitente_nome', '')
+            })
+            
+            # Por Keyword
+            if keyword not in produtos_por_keyword:
+                produtos_por_keyword[keyword] = {
+                    'keyword': keyword,
+                    'entrada': {'valor': 0, 'icms': 0, 'pis': 0, 'cofins': 0, 'qtd': 0, 'produtos': []},
+                    'saida': {'valor': 0, 'icms': 0, 'pis': 0, 'cofins': 0, 'qtd': 0, 'produtos': []}
+                }
+            produtos_por_keyword[keyword]['entrada']['valor'] += valor
+            produtos_por_keyword[keyword]['entrada']['icms'] += icms
+            produtos_por_keyword[keyword]['entrada']['pis'] += pis
+            produtos_por_keyword[keyword]['entrada']['cofins'] += cofins
+            produtos_por_keyword[keyword]['entrada']['qtd'] += 1
+            produtos_por_keyword[keyword]['entrada']['produtos'].append({
+                'descricao': descricao, 'valor': valor, 'ncm': ncm, 'icms': icms, 'pis': pis, 'cofins': cofins
+            })
+    
+    # Processar saídas
+    for doc in docs_saida:
+        for prod in doc.get('produtos', []):
+            ncm = prod.get('ncm', '00000000')[:8]
+            descricao = prod.get('descricao', '')
+            valor = prod.get('valor_total', 0) or 0
+            icms = prod.get('v_icms', 0) or 0
+            pis = prod.get('v_pis', 0) or 0
+            cofins = prod.get('v_cofins', 0) or 0
+            cfop = prod.get('cfop', '')
+            keyword = extrair_keyword(descricao)
+            
+            # Por NCM
+            if ncm not in produtos_por_ncm:
+                produtos_por_ncm[ncm] = {
+                    'ncm': ncm,
+                    'descricao': descricao[:50],
+                    'entrada': {'valor': 0, 'icms': 0, 'pis': 0, 'cofins': 0, 'qtd': 0, 'produtos': []},
+                    'saida': {'valor': 0, 'icms': 0, 'pis': 0, 'cofins': 0, 'qtd': 0, 'produtos': []}
+                }
+            produtos_por_ncm[ncm]['saida']['valor'] += valor
+            produtos_por_ncm[ncm]['saida']['icms'] += icms
+            produtos_por_ncm[ncm]['saida']['pis'] += pis
+            produtos_por_ncm[ncm]['saida']['cofins'] += cofins
+            produtos_por_ncm[ncm]['saida']['qtd'] += 1
+            produtos_por_ncm[ncm]['saida']['produtos'].append({
+                'descricao': descricao, 'valor': valor, 'icms': icms, 'pis': pis, 'cofins': cofins,
+                'cfop': cfop, 'nota': doc.get('numero_nfe', ''), 'cliente': doc.get('destinatario_nome', '')
+            })
+            
+            # Por Keyword
+            if keyword not in produtos_por_keyword:
+                produtos_por_keyword[keyword] = {
+                    'keyword': keyword,
+                    'entrada': {'valor': 0, 'icms': 0, 'pis': 0, 'cofins': 0, 'qtd': 0, 'produtos': []},
+                    'saida': {'valor': 0, 'icms': 0, 'pis': 0, 'cofins': 0, 'qtd': 0, 'produtos': []}
+                }
+            produtos_por_keyword[keyword]['saida']['valor'] += valor
+            produtos_por_keyword[keyword]['saida']['icms'] += icms
+            produtos_por_keyword[keyword]['saida']['pis'] += pis
+            produtos_por_keyword[keyword]['saida']['cofins'] += cofins
+            produtos_por_keyword[keyword]['saida']['qtd'] += 1
+            produtos_por_keyword[keyword]['saida']['produtos'].append({
+                'descricao': descricao, 'valor': valor, 'ncm': ncm, 'icms': icms, 'pis': pis, 'cofins': cofins
+            })
+    
+    # Identificar vilões e oportunidades
+    viloes = []
+    oportunidades = []
+    
+    for ncm, dados in produtos_por_ncm.items():
+        entrada = dados['entrada']
+        saida = dados['saida']
+        
+        if entrada['qtd'] == 0 or saida['qtd'] == 0:
+            continue
+        
+        # Impacto total de impostos
+        icms_credito = entrada['icms']
+        icms_debito = saida['icms']
+        pis_credito = entrada['pis']
+        pis_debito = saida['pis']
+        cofins_credito = entrada['cofins']
+        cofins_debito = saida['cofins']
+        
+        impacto_icms = icms_debito - icms_credito
+        impacto_pis = pis_debito - pis_credito
+        impacto_cofins = cofins_debito - cofins_credito
+        impacto_total = impacto_icms + impacto_pis + impacto_cofins
+        
+        # Vilão: impacto negativo alto
+        if impacto_total > 100:
+            viloes.append({
+                'tipo': 'IMPACTO_NEGATIVO',
+                'ncm': ncm,
+                'descricao': dados['descricao'],
+                'entrada_valor': round(entrada['valor'], 2),
+                'saida_valor': round(saida['valor'], 2),
+                'icms': {'credito': round(icms_credito, 2), 'debito': round(icms_debito, 2), 'impacto': round(impacto_icms, 2)},
+                'pis': {'credito': round(pis_credito, 2), 'debito': round(pis_debito, 2), 'impacto': round(impacto_pis, 2)},
+                'cofins': {'credito': round(cofins_credito, 2), 'debito': round(cofins_debito, 2), 'impacto': round(impacto_cofins, 2)},
+                'impacto_total': round(impacto_total, 2),
+                'qtd_entrada': entrada['qtd'],
+                'qtd_saida': saida['qtd'],
+                'produtos_entrada': entrada['produtos'][:5],
+                'produtos_saida': saida['produtos'][:5],
+                'explicacao': f"Débito maior que crédito: ICMS {impacto_icms:+.2f} | PIS {impacto_pis:+.2f} | COFINS {impacto_cofins:+.2f}"
+            })
+        
+        # Oportunidade: crédito maior que débito
+        elif impacto_total < -100:
+            oportunidades.append({
+                'tipo': 'CREDITO_EXCEDENTE',
+                'ncm': ncm,
+                'descricao': dados['descricao'],
+                'entrada_valor': round(entrada['valor'], 2),
+                'saida_valor': round(saida['valor'], 2),
+                'icms': {'credito': round(icms_credito, 2), 'debito': round(icms_debito, 2), 'beneficio': round(-impacto_icms, 2)},
+                'pis': {'credito': round(pis_credito, 2), 'debito': round(pis_debito, 2), 'beneficio': round(-impacto_pis, 2)},
+                'cofins': {'credito': round(cofins_credito, 2), 'debito': round(cofins_debito, 2), 'beneficio': round(-impacto_cofins, 2)},
+                'beneficio_total': round(-impacto_total, 2),
+                'qtd_entrada': entrada['qtd'],
+                'qtd_saida': saida['qtd'],
+                'produtos_entrada': entrada['produtos'][:5],
+                'produtos_saida': saida['produtos'][:5],
+                'explicacao': f"Crédito maior que débito: ICMS {-impacto_icms:+.2f} | PIS {-impacto_pis:+.2f} | COFINS {-impacto_cofins:+.2f}"
+            })
+    
+    # Ordenar por impacto
+    viloes.sort(key=lambda x: x['impacto_total'], reverse=True)
+    oportunidades.sort(key=lambda x: x['beneficio_total'], reverse=True)
+    
+    # Agrupar por keyword
+    viloes_por_keyword = []
+    oportunidades_por_keyword = []
+    
+    for keyword, dados in produtos_por_keyword.items():
+        entrada = dados['entrada']
+        saida = dados['saida']
+        
+        if entrada['qtd'] == 0 and saida['qtd'] == 0:
+            continue
+        
+        impacto_icms = saida['icms'] - entrada['icms']
+        impacto_pis = saida['pis'] - entrada['pis']
+        impacto_cofins = saida['cofins'] - entrada['cofins']
+        impacto_total = impacto_icms + impacto_pis + impacto_cofins
+        
+        item = {
+            'keyword': keyword,
+            'entrada_valor': round(entrada['valor'], 2),
+            'saida_valor': round(saida['valor'], 2),
+            'icms': {'credito': round(entrada['icms'], 2), 'debito': round(saida['icms'], 2)},
+            'pis': {'credito': round(entrada['pis'], 2), 'debito': round(saida['pis'], 2)},
+            'cofins': {'credito': round(entrada['cofins'], 2), 'debito': round(saida['cofins'], 2)},
+            'impacto_total': round(impacto_total, 2),
+            'qtd_entrada': entrada['qtd'],
+            'qtd_saida': saida['qtd'],
+            'produtos': entrada['produtos'][:10] + saida['produtos'][:10]
+        }
+        
+        if impacto_total > 50:
+            viloes_por_keyword.append(item)
+        elif impacto_total < -50:
+            item['beneficio_total'] = round(-impacto_total, 2)
+            oportunidades_por_keyword.append(item)
+    
+    viloes_por_keyword.sort(key=lambda x: x['impacto_total'], reverse=True)
+    oportunidades_por_keyword.sort(key=lambda x: x.get('beneficio_total', 0), reverse=True)
+    
+    return {
+        "empresa": company.get('razao_social', ''),
+        "competencia": competencia,
+        "regime_tributario": regime,
+        "resumo": {
+            "total_viloes": len(viloes),
+            "total_oportunidades": len(oportunidades),
+            "impacto_total_viloes": round(sum(v['impacto_total'] for v in viloes), 2),
+            "beneficio_total_oportunidades": round(sum(o['beneficio_total'] for o in oportunidades), 2)
+        },
+        "por_ncm": {
+            "viloes": viloes[:20],
+            "oportunidades": oportunidades[:20]
+        },
+        "por_keyword": {
+            "viloes": viloes_por_keyword[:15],
+            "oportunidades": oportunidades_por_keyword[:15]
+        }
+    }
+
+
 @api_router.get("/analise-pis-cofins-completa/{company_id}")
+async def analise_pis_cofins_completa(
 async def analise_pis_cofins_completa(
     company_id: str,
     competencia: str,
