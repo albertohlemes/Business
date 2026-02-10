@@ -10611,6 +10611,7 @@ async def resolver_alerta_cfop_individual(
     # CLASSIFICAR AUTOMATICAMENTE baseado no CFOP
     if categoria_final:
         produtos[produto_idx]['categoria'] = categoria_final
+        produtos[produto_idx]['categoria_classificada'] = categoria_final  # Campo correto para classificação
         produtos[produto_idx]['categoria_origem'] = 'cfop_auto'
         produtos[produto_idx]['categoria_classificada_em'] = datetime.now(timezone.utc).isoformat()
     
