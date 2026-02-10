@@ -21090,7 +21090,7 @@ async def gerar_insights_analise_horizontal(
                 api_key=llm_key,
                 session_id=session_id,
                 system_message="Você é um consultor fiscal especializado em análise de evolução tributária de empresas brasileiras. Responda sempre em português."
-            ).with_model("google", "gemini-2.0-flash")
+            ).with_model("gemini", "gemini-2.5-flash")
             
             # send_message é assíncrono, precisa de await
             response = await chat.send_message(user_message=UserMessage(text=contexto))
