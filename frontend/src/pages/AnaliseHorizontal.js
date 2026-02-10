@@ -519,10 +519,10 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
           <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
               <Edit2 className="w-5 h-5 text-amber-400" />
-              Dados Mensais (Clique para editar)
+              Dados Mensais
             </h3>
             <p className="text-xs text-[#666]">
-              Crédito: valor negativo • Débito/Pagar: valor positivo
+              Edição manual disponível apenas para períodos anteriores ao mês atual
             </p>
           </div>
           
