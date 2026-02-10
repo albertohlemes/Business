@@ -398,7 +398,7 @@ const DocumentDetailModal = ({ document, onClose }) => {
               </div>
               {divergenciasProd.total > 0 && (
                 <div className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400">
-                  {divergenciasProd.cstDivergentes > 0 && `${divergenciasProd.cstDivergentes} CST divergente(s)`}
+                  
                   {divergenciasProd.cstDivergentes > 0 && divergenciasProd.cfopDivergentes > 0 && ' • '}
                   {divergenciasProd.cfopDivergentes > 0 && `${divergenciasProd.cfopDivergentes} CFOP alterado(s)`}
                 </div>
