@@ -85,6 +85,20 @@ const DocumentDetailModal = ({ document, onClose }) => {
     total_desconto: document.total_desconto || 0,
   };
 
+  // Calcular valor total correto considerando todos os componentes
+  // Valor Total NF = Valor Produtos + IPI + ST + Frete + Seguro + Outras Despesas - Desconto
+  const valorTotalCalculado = 
+    totaisProdutos.valor_total + 
+    (valorCapaNF.total_ipi || 0) + 
+    (valorCapaNF.total_icms_st || 0) + 
+    (valorCapaNF.total_frete || 0) + 
+    (valorCapaNF.total_seguro || 0) + 
+    (valorCapaNF.total_outras_despesas || 0) - 
+    (valorCapaNF.total_desconto || 0);
+
+  // A diferença real é entre o valor da capa e o valor calculado
+  const diferencaValorTotal = Math.abs(valorCapaNF.valor_total - valorTotalCalculado);
+
   // Classe CSS baseada na divergência
   const getDivergenceClass = (valorCapa, valorProdutos) => {
     const status = verificarDivergencia(valorCapa, valorProdutos);
