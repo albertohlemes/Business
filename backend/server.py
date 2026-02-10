@@ -8866,22 +8866,27 @@ NCMS_MONOFASICOS = {
 NCMS_BEBIDAS_ALCOOLICAS_TRIBUTADAS = {
     # 2204 - Vinhos de uvas frescas
     '2204': {'tipo': 'VINHO', 'motivo': 'Vinhos - Tributação normal PIS/COFINS'},
+    '220410': {'tipo': 'VINHO ESPUMANTE', 'motivo': 'Vinhos espumantes - Tributação normal'},
+    '22042100': {'tipo': 'VINHO', 'motivo': 'Vinhos em recipientes <= 2L - Tributação normal'},
+    '22042910': {'tipo': 'VINHO', 'motivo': 'Vinhos tinto/branco/rose > 2L - Tributação normal'},
+    '22042990': {'tipo': 'VINHO', 'motivo': 'Outros vinhos, mostos - Tributação normal'},
     # 2205 - Vermutes e outros vinhos aromatizados (podem conter álcool adicionado)
     '2205': {'tipo': 'VERMUTE', 'motivo': 'Vermutes e vinhos aromatizados - Tributação normal'},
     # 2206 - Outras bebidas fermentadas (sidra, saquê, hidromel, etc.)
     '2206': {'tipo': 'FERMENTADO', 'motivo': 'Sidra, saquê, coquetéis fermentados - Tributação normal'},
+    '22060010': {'tipo': 'SIDRA', 'motivo': 'Sidra e similares - Tributação normal'},
+    '22060090': {'tipo': 'FERMENTADO', 'motivo': 'Cooler, saquê, catuaba - Tributação normal'},
     # 2207 - Álcool etílico não desnaturado
     '2207': {'tipo': 'ALCOOL', 'motivo': 'Álcool etílico - Tributação normal'},
     # 2208 - Aguardentes e destilados diversos
     '2208': {'tipo': 'DESTILADO', 'motivo': 'Aguardentes, whisky, vodka, rum, gin, licores - Tributação normal'},
-    # Subclassificações detalhadas do 2208:
-    # 2208.20.00 - Aguardentes de vinho (Conhaque, Brandy, Grappa, Pisco)
-    # 2208.30 - Uísques (Bourbon, Scotch, outros)
-    # 2208.40.00 - Rum, cachaça, aguardente de cana
-    # 2208.50.00 - Gim (Gin) e Genebra
-    # 2208.60.00 - Vodca (Vodka)
-    # 2208.70.00 - Licores e similares
-    # 2208.90.00 - Outras (Tequila, Steinhaeger, derivados, coquetéis prontos)
+    '22082000': {'tipo': 'AGUARDENTE VINHO', 'motivo': 'Conhaque, Brandy, Pisco, Grappa - Tributação normal'},
+    '220830': {'tipo': 'WHISKY', 'motivo': 'Uísques (Bourbon, Scotch, etc.) - Tributação normal'},
+    '22084000': {'tipo': 'RUM/CACHACA', 'motivo': 'Cachaça, rum, aguardente de cana - Tributação normal'},
+    '22085000': {'tipo': 'GIN', 'motivo': 'Gim (Gin) e Genebra - Tributação normal'},
+    '22086000': {'tipo': 'VODKA', 'motivo': 'Vodca (Vodka) - Tributação normal'},
+    '22087000': {'tipo': 'LICOR', 'motivo': 'Licores e similares - Tributação normal'},
+    '22089000': {'tipo': 'OUTRO DESTILADO', 'motivo': 'Tequila, Steinhaeger, ice, coquetéis - Tributação normal'},
 }
 
 # NCMs específicos de alíquota zero (não monofásicos, mas zerados por lei específica)
