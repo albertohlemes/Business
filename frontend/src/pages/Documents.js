@@ -577,6 +577,63 @@ const Documents = ({ user, onLogout }) => {
         });
       }
       
+      // 4. Aguardar o polling/SSE detectar a conclusão (fallback de segurança)
+      // Se após 5 segundos ainda não tiver resultado, buscar manualmente
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Verificar se o resultado já foi processado pelo SSE/polling
+      if (!showUploadResult) {
+        // Buscar resultado manualmente como fallback
+        try {
+          const statusResponse = await axios.get(`${API}/xml/upload-status/${uploadId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = statusResponse.data;
+          
+          if (data.completed && data.results) {
+            const resumo = data.results.resumo || {};
+            const successList = data.results.success || [];
+            const errorsList = [
+              ...(data.results.errors || []),
+              ...(data.results.duplicadas || []).map(d => ({ arquivo: d.arquivo || d.filename, motivo: 'Documento duplicado', numero: d.numero })),
+              ...(data.results.rejeitadas_cnpj || []).map(d => ({ arquivo: d.arquivo || d.filename, motivo: `CNPJ não corresponde à empresa (encontrado: ${d.cnpj_encontrado})` }))
+            ];
+            
+            setUploadResult({
+              tipo: 'xml',
+              total: resumo.total_arquivos || files.length,
+              sucesso: resumo.importados || successList.length,
+              erros: (resumo.erros || 0) + (resumo.duplicados || 0) + (resumo.rejeitados_cnpj || 0),
+              processados: successList.map(s => ({
+                arquivo: s.arquivo || s.filename,
+                numero: s.numero || s.numero_nfe,
+                valor: s.valor || 0,
+                emitente: s.emitente || s.emitente_nome,
+                modelo: s.modelo
+              })),
+              rejeitados: errorsList.map(e => ({
+                arquivo: e.arquivo || e.filename,
+                motivo: e.motivo || e.erro || e.error || 'Erro desconhecido'
+              })),
+              alertas_cfop: data.results.alertas_cfop || [],
+              duplicadas: data.results.duplicadas || [],
+              rejeitadas_cnpj: data.results.rejeitadas_cnpj || [],
+              performance: data.results.performance || {}
+            });
+            setShowUploadResult(true);
+            setUploading(false);
+            
+            // Limpar SSE/polling
+            if (eventSource) eventSource.close();
+            if (pollingInterval) clearInterval(pollingInterval);
+            
+            fetchDocuments();
+          }
+        } catch (fallbackErr) {
+          console.error('Erro ao buscar resultado manualmente:', fallbackErr);
+        }
+      }
+      
     } catch (err) {
       console.error('Erro no upload:', err);
       setUploadResult({
