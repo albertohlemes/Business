@@ -422,7 +422,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [x] ~~Importação de NFS-e via IA~~ ✅ (Serviços Tomados e Prestados)
 - [x] ~~Menu dinâmico por regime tributário~~ ✅
 - [x] ~~Card Outros Documentos nas Entradas~~ ✅
-- [ ] Sistema de permissões de usuário (Master vs. Operacional) - **EM ANDAMENTO**
+- [x] ~~Sistema de permissões de usuário (Master vs. Operacional)~~ ✅ (promover/demover + filtro de empresas)
 - [ ] Lógica de transporte de saldo credor (UI)
 - [ ] Modal de seleção de empresa (bug de usabilidade - afeta apenas testes automatizados)
 
@@ -434,6 +434,8 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [x] ~~Filtrar modelos fiscais por atividade da empresa~~ ✅
 - [x] ~~Classificação padrão "compra para revenda" quando IA falhar~~ ✅
 - [x] ~~DIFAL para Simples Nacional~~ ✅ (endpoint e página funcionando)
+- [x] ~~Melhorar análise de vilões/oportunidades com PIS/COFINS~~ ✅
+- [x] ~~Melhorar IA de classificação com análise de saídas~~ ✅
 - [ ] Importação de CT-e para transportadoras
 - [ ] Ordenação nas páginas restantes (ISS, DIFAL, SimplesNacionalDashboard)
 - [ ] Logo nos relatórios exportados
