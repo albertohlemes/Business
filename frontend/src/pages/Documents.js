@@ -375,19 +375,22 @@ const Documents = ({ user, onLogout }) => {
       
       const uploadId = initResponse.data.upload_id;
       
-      // 2. Conectar ao SSE para receber atualizações de progresso
-      const eventSource = new EventSource(`${BACKEND_URL}/api/xml/upload-progress/${uploadId}`);
-      eventSourceRef.current = eventSource;
+      // Variável para controlar se recebemos eventos SSE
+      let sseWorking = false;
+      let pollingInterval = null;
       
-      eventSource.onmessage = (event) => {
+      // Função de polling como fallback
+      const pollProgress = async () => {
         try {
-          const data = JSON.parse(event.data);
-          console.log('SSE Event:', data);
+          const pollResponse = await axios.get(`${API}/xml/upload-status/${uploadId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = pollResponse.data;
           
           if (data.completed === true && data.results) {
+            if (pollingInterval) clearInterval(pollingInterval);
             setUploadProgress({ current: files.length, total: files.length, percent: 100 });
             
-            // Mapear campos do backend para o formato esperado pelo modal
             const resumo = data.results.resumo || {};
             const successList = data.results.success || [];
             const errorsList = [
@@ -420,9 +423,8 @@ const Documents = ({ user, onLogout }) => {
             setShowUploadResult(true);
             setUploading(false);
             fetchDocuments();
-            eventSource.close();
-            eventSourceRef.current = null;
           } else if (data.error) {
+            if (pollingInterval) clearInterval(pollingInterval);
             setUploadResult({
               tipo: 'erro',
               total: files.length,
@@ -433,8 +435,6 @@ const Documents = ({ user, onLogout }) => {
             });
             setShowUploadResult(true);
             setUploading(false);
-            eventSource.close();
-            eventSourceRef.current = null;
           } else {
             const processed = data.processed_files || 0;
             const total = data.total_files || files.length;
@@ -446,14 +446,117 @@ const Documents = ({ user, onLogout }) => {
               percent: percent
             });
           }
-        } catch (e) {
-          console.error('Erro ao processar evento SSE:', e);
+        } catch (pollError) {
+          console.error('Erro no polling:', pollError);
         }
       };
       
-      eventSource.onerror = () => {
-        console.error('Erro na conexão SSE');
-      };
+      // 2. Tentar SSE primeiro, com fallback para polling
+      let eventSource = null;
+      try {
+        eventSource = new EventSource(`${BACKEND_URL}/api/xml/upload-progress/${uploadId}`);
+        eventSourceRef.current = eventSource;
+        
+        // Timeout para verificar se SSE está funcionando
+        const sseTimeout = setTimeout(() => {
+          if (!sseWorking) {
+            console.log('SSE não respondeu, ativando polling...');
+            if (eventSource) eventSource.close();
+            pollingInterval = setInterval(pollProgress, 500);
+          }
+        }, 3000);
+        
+        eventSource.onmessage = (event) => {
+          try {
+            sseWorking = true;
+            clearTimeout(sseTimeout);
+            if (pollingInterval) {
+              clearInterval(pollingInterval);
+              pollingInterval = null;
+            }
+            
+            const data = JSON.parse(event.data);
+            console.log('SSE Event:', data);
+            
+            if (data.completed === true && data.results) {
+              setUploadProgress({ current: files.length, total: files.length, percent: 100 });
+              
+              // Mapear campos do backend para o formato esperado pelo modal
+              const resumo = data.results.resumo || {};
+              const successList = data.results.success || [];
+              const errorsList = [
+                ...(data.results.errors || []),
+                ...(data.results.duplicadas || []).map(d => ({ arquivo: d.arquivo || d.filename, motivo: 'Documento duplicado', numero: d.numero })),
+                ...(data.results.rejeitadas_cnpj || []).map(d => ({ arquivo: d.arquivo || d.filename, motivo: `CNPJ não corresponde à empresa (encontrado: ${d.cnpj_encontrado})` }))
+              ];
+              
+              setUploadResult({
+                tipo: 'xml',
+                total: resumo.total_arquivos || files.length,
+                sucesso: resumo.importados || successList.length,
+                erros: (resumo.erros || 0) + (resumo.duplicados || 0) + (resumo.rejeitados_cnpj || 0),
+                processados: successList.map(s => ({
+                  arquivo: s.arquivo || s.filename,
+                  numero: s.numero || s.numero_nfe,
+                  valor: s.valor || 0,
+                  emitente: s.emitente || s.emitente_nome,
+                  modelo: s.modelo
+                })),
+                rejeitados: errorsList.map(e => ({
+                  arquivo: e.arquivo || e.filename,
+                  motivo: e.motivo || e.erro || e.error || 'Erro desconhecido'
+                })),
+                alertas_cfop: data.results.alertas_cfop || [],
+                duplicadas: data.results.duplicadas || [],
+                rejeitadas_cnpj: data.results.rejeitadas_cnpj || [],
+                performance: data.results.performance || {}
+              });
+              setShowUploadResult(true);
+              setUploading(false);
+              fetchDocuments();
+              eventSource.close();
+              eventSourceRef.current = null;
+            } else if (data.error) {
+              setUploadResult({
+                tipo: 'erro',
+                total: files.length,
+                sucesso: 0,
+                erros: files.length,
+                processados: [],
+                rejeitados: [{ arquivo: 'Erro', motivo: data.error }]
+              });
+              setShowUploadResult(true);
+              setUploading(false);
+              eventSource.close();
+              eventSourceRef.current = null;
+            } else {
+              const processed = data.processed_files || 0;
+              const total = data.total_files || files.length;
+              const percent = data.progress_percent || Math.round((processed / total) * 100);
+              
+              setUploadProgress({
+                current: processed,
+                total: total,
+                percent: percent
+              });
+            }
+          } catch (e) {
+            console.error('Erro ao processar evento SSE:', e);
+          }
+        };
+        
+        eventSource.onerror = () => {
+          console.error('Erro na conexão SSE, ativando polling...');
+          clearTimeout(sseTimeout);
+          if (eventSource) eventSource.close();
+          if (!pollingInterval) {
+            pollingInterval = setInterval(pollProgress, 500);
+          }
+        };
+      } catch (sseError) {
+        console.error('Falha ao criar EventSource:', sseError);
+        pollingInterval = setInterval(pollProgress, 500);
+      }
       
       // 3. Enviar arquivos em lotes
       const BATCH_SIZE = 50;
