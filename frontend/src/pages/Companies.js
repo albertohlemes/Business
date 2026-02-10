@@ -1094,60 +1094,6 @@ const Companies = ({ user, onLogout }) => {
                       </p>
                     </div>
                   )}
-
-                  {/* Aplicação em Serviços */}
-                  {/* Para empresas SÓ de serviços: é o campo principal (substitui revenda) */}
-                  {/* Para empresas mistas: campo adicional */}
-                  {formData.tipo_atividade === 'servicos' && (
-                    <div className="pt-4 border-t border-[#2A2A2A]">
-                      <label className="block text-xs text-[#A1A1AA] mb-3">Classificação de Entradas</label>
-                      <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center flex-shrink-0">
-                            <Settings className="w-5 h-5 text-purple-400" />
-                          </div>
-                          <div>
-                            <span className="text-white font-medium">Aplicação em Serviços</span>
-                            <p className="text-sm text-[#A1A1AA] mt-1">
-                              Como empresa exclusivamente de serviços, suas compras de entrada serão automaticamente 
-                              classificadas como <span className="text-purple-300 font-medium">"Aplicação em Serviços"</span> (materiais 
-                              aplicados na prestação de serviços).
-                            </p>
-                            <p className="text-xs text-[#666] mt-2">
-                              * Esta é a configuração padrão para empresas de serviços. Não há opção de "Revenda" pois a 
-                              atividade principal não envolve comercialização de mercadorias.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Para empresas MISTAS: mostrar opção adicional de Aplicação em Serviços */}
-                  {formData.tipo_atividade === 'mista' && (
-                    <div className="pt-4 border-t border-[#2A2A2A]">
-                      <label className="block text-xs text-[#A1A1AA] mb-3">Classificação de Entradas para Serviços</label>
-                      <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/20">
-                        <input
-                          type="checkbox"
-                          checked={formData.aplicacao_em_servicos || false}
-                          onChange={(e) => setFormData({ ...formData, aplicacao_em_servicos: e.target.checked })}
-                          className="mt-1 w-4 h-4 text-purple-500 bg-[#141414] border-[#2A2A2A] rounded focus:ring-purple-500 focus:ring-2"
-                        />
-                        <div>
-                          <span className="text-white font-medium">Habilitar Aplicação em Serviços</span>
-                          <p className="text-xs text-[#A1A1AA] mt-0.5">
-                            Ao marcar, a classificação inteligente também considerará "Aplicação em Serviços" como 
-                            categoria para produtos que não sejam claramente de revenda.
-                          </p>
-                        </div>
-                      </label>
-                      <p className="text-xs text-[#666] mt-2">
-                        * Para empresas mistas, produtos identificados como revenda continuam sendo classificados normalmente.
-                        Esta opção adiciona uma categoria extra para materiais aplicados em serviços.
-                      </p>
-                    </div>
-                  )}
                   
                   {/* Presunção - apenas para Lucro Presumido */}
                   {formData.regime_tributario === 'lucro_presumido' && (
