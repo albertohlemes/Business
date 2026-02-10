@@ -77,6 +77,19 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-10 (Sessão 11 - Correção Bug de Upload "Sessão não encontrada")
+
+**Bug Fix Crítico - Importação de NF-e (P0 - RESOLVIDO):**
+- ✅ **Problema:** Erro "Sessão de upload não encontrada" ao importar NF-e de entrada (138 arquivos rejeitados)
+- ✅ **Causa raiz:** Sessões de upload armazenadas apenas em memória (dict Python) eram perdidas no hot reload
+- ✅ **Solução:** Sessões agora persistidas no MongoDB (collection `upload_sessions`) com fallback automático
+- ✅ **Novas funções:**
+  - `get_upload_session(upload_id)` - Busca primeiro em memória, depois no MongoDB
+  - `save_upload_session(upload_id, session_data)` - Salva em memória e MongoDB
+  - `delete_upload_session(upload_id)` - Remove de ambos
+- ✅ **Retry logic no SSE** - `stream_upload_progress` aguarda até 3s para sessão aparecer (race condition)
+- ✅ **Testes:** 8/8 testes passaram (100% sucesso)
+
 ### 2026-02-10 (Sessão 10 - Melhorias IA, Vilões/Oportunidades, Permissões e Alertas NCM)
 
 **Melhorias na IA de Classificação:**
