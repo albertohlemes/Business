@@ -10402,8 +10402,16 @@ async def classificar_produtos_ia(
     produtos_vendidos_texto = "\n".join([f"- {p}" for p in list(produtos_vendidos)[:50]]) if produtos_vendidos else "Nenhum produto de saída encontrado"
     ncms_vendidos_texto = ", ".join(list(ncms_vendidos)[:20]) if ncms_vendidos else "N/A"
     
-    # Definir categoria padrão baseada na atividade
-    categoria_padrao = "revenda" if tipo_atividade in ['comercio', 'mista'] else "insumo" if tipo_atividade == 'industria' else "servico_aplicacao"
+    # Definir categoria padrão baseada na atividade e configuração da empresa
+    aplicacao_em_servicos = company.get('aplicacao_em_servicos', False)
+    if tipo_atividade == 'servicos' or (tipo_atividade == 'mista' and aplicacao_em_servicos):
+        categoria_padrao = "servico_aplicacao"
+    elif tipo_atividade in ['comercio', 'mista']:
+        categoria_padrao = "revenda"
+    elif tipo_atividade == 'industria':
+        categoria_padrao = "insumo"
+    else:
+        categoria_padrao = "revenda"
     
     prompt = f"""Você é um assistente fiscal especializado em classificação de produtos para fins tributários.
 
