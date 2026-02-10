@@ -2884,9 +2884,11 @@ async def delete_company(company_id: str, current_user: User = Depends(get_curre
 
 @api_router.post("/companies", response_model=Company)
 async def create_company(company_data: CompanyCreate, current_user: User = Depends(get_current_user)):
-    allowed_roles = ["super_admin", "master", "admin"]
+    # Admin, master e operacional podem criar empresas
+    # Operacional só verá as empresas que ele criou
+    allowed_roles = ["super_admin", "master", "admin", "operacional"]
     if current_user.role not in allowed_roles:
-        raise HTTPException(status_code=403, detail="Apenas administradores podem criar empresas")
+        raise HTTPException(status_code=403, detail="Você não tem permissão para criar empresas")
     
     # Verificar se CNPJ já existe
     existing = await db.companies.find_one({"cnpj": company_data.cnpj}, {"_id": 0})
