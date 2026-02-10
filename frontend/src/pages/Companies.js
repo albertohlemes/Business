@@ -1072,6 +1072,32 @@ const Companies = ({ user, onLogout }) => {
                       </p>
                     </div>
                   )}
+
+                  {/* Aplicação em Serviços - para empresas de serviços ou mistas */}
+                  {(formData.tipo_atividade === 'servicos' || formData.tipo_atividade === 'mista') && (
+                    <div className="pt-4 border-t border-[#2A2A2A]">
+                      <label className="block text-xs text-[#A1A1AA] mb-3">Classificação de Entradas para Serviços</label>
+                      <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/20">
+                        <input
+                          type="checkbox"
+                          checked={formData.aplicacao_em_servicos || false}
+                          onChange={(e) => setFormData({ ...formData, aplicacao_em_servicos: e.target.checked })}
+                          className="mt-1 w-4 h-4 text-purple-500 bg-[#141414] border-[#2A2A2A] rounded focus:ring-purple-500 focus:ring-2"
+                        />
+                        <div>
+                          <span className="text-white font-medium">Aplicação em Serviços</span>
+                          <p className="text-xs text-[#A1A1AA] mt-0.5">
+                            Ao marcar, as compras de entrada serão classificadas como "Aplicação em Serviços" em vez de "Revenda". 
+                            Ideal para empresas que compram insumos para aplicar na prestação de serviços.
+                          </p>
+                        </div>
+                      </label>
+                      <p className="text-xs text-[#666] mt-2">
+                        * Esta configuração afeta a classificação automática de notas de entrada na importação.
+                        {formData.tipo_atividade === 'mista' && ' Para empresas mistas, produtos de revenda continuam sendo classificados normalmente.'}
+                      </p>
+                    </div>
+                  )}
                   
                   {/* Presunção - apenas para Lucro Presumido */}
                   {formData.regime_tributario === 'lucro_presumido' && (
