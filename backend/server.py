@@ -4187,42 +4187,42 @@ async def upload_xml_batch(
                         continue
                 
                 if tipo == 'entrada':
-                # ==== VALIDAÇÃO SIMPLIFICADA PARA ENTRADA ====
-                # REGRA: Aceitar se:
-                # 1. Destinatário é a empresa (entrada normal) OU
-                # 2. Emitente é a empresa E CFOPs são de entrada (1xxx/2xxx/3xxx) - emissão própria entrada
-                
-                cfops_xml_check = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
-                cfops_sao_entrada = any(
-                    cfop and len(cfop) >= 1 and cfop[0] in ['1', '2', '3'] 
-                    for cfop in cfops_xml_check if cfop
-                )
-                
-                # Emissão própria com CFOP de entrada = aceitar como entrada
-                is_emissao_propria_entrada = (cnpj_emitente == cnpj_empresa and cfops_sao_entrada)
-                
-                # Entrada normal = destinatário é a empresa
-                is_entrada_normal = (cnpj_destinatario == cnpj_empresa)
-                
-                cnpj_valido = is_emissao_propria_entrada or is_entrada_normal
-                
-                if is_emissao_propria_entrada:
-                    logger.info(f"VALIDAÇÃO ENTRADA (EMISSÃO PRÓPRIA): NF {parsed_data.get('numero_nfe')} - CFOPs {cfops_xml_check[:3]} - ACEITO")
-                else:
-                    logger.info(f"VALIDAÇÃO ENTRADA: NF {parsed_data.get('numero_nfe')} - Dest: {cnpj_destinatario}, Empresa: {cnpj_empresa}, Válido: {cnpj_valido}")
-                
-                if not cnpj_valido:
-                    rejeitadas_cnpj.append({
-                        "filename": file.filename,
-                        "numero_nfe": parsed_data.get('numero_nfe', ''),
-                        "motivo": f"CNPJ do destinatário ({cnpj_destinatario}) não corresponde à empresa selecionada ({cnpj_empresa})",
-                        "emitente": parsed_data.get('emitente_nome', ''),
-                        "destinatario": parsed_data.get('destinatario_nome', '')
-                    })
-                    continue
-                
-                # ==== DETECTAR DEVOLUÇÃO DO FORNECEDOR ====
-                # IMPORTANTE: Desconsiderar APENAS quando:
+                    # ==== VALIDAÇÃO SIMPLIFICADA PARA ENTRADA ====
+                    # REGRA: Aceitar se:
+                    # 1. Destinatário é a empresa (entrada normal) OU
+                    # 2. Emitente é a empresa E CFOPs são de entrada (1xxx/2xxx/3xxx) - emissão própria entrada
+                    
+                    cfops_xml_check = [str(p.get('cfop', '')) for p in parsed_data.get('produtos', [])]
+                    cfops_sao_entrada = any(
+                        cfop and len(cfop) >= 1 and cfop[0] in ['1', '2', '3'] 
+                        for cfop in cfops_xml_check if cfop
+                    )
+                    
+                    # Emissão própria com CFOP de entrada = aceitar como entrada
+                    is_emissao_propria_entrada = (cnpj_emitente == cnpj_empresa and cfops_sao_entrada)
+                    
+                    # Entrada normal = destinatário é a empresa
+                    is_entrada_normal = (cnpj_destinatario == cnpj_empresa)
+                    
+                    cnpj_valido = is_emissao_propria_entrada or is_entrada_normal
+                    
+                    if is_emissao_propria_entrada:
+                        logger.info(f"VALIDAÇÃO ENTRADA (EMISSÃO PRÓPRIA): NF {parsed_data.get('numero_nfe')} - CFOPs {cfops_xml_check[:3]} - ACEITO")
+                    else:
+                        logger.info(f"VALIDAÇÃO ENTRADA: NF {parsed_data.get('numero_nfe')} - Dest: {cnpj_destinatario}, Empresa: {cnpj_empresa}, Válido: {cnpj_valido}")
+                    
+                    if not cnpj_valido:
+                        rejeitadas_cnpj.append({
+                            "filename": file.filename,
+                            "numero_nfe": parsed_data.get('numero_nfe', ''),
+                            "motivo": f"CNPJ do destinatário ({cnpj_destinatario}) não corresponde à empresa selecionada ({cnpj_empresa})",
+                            "emitente": parsed_data.get('emitente_nome', ''),
+                            "destinatario": parsed_data.get('destinatario_nome', '')
+                        })
+                        continue
+                    
+                    # ==== DETECTAR DEVOLUÇÃO DO FORNECEDOR ====
+                    # IMPORTANTE: Desconsiderar APENAS quando:
                 # 1. Emitente é TERCEIRO (fornecedor) - verificado abaixo
                 # 2. CFOP no XML já é de ENTRADA (1xxx/2xxx) - não foi convertido
                 # 3. CFOP é de devolução de entrada (1411, 2411, 1201, 2201, etc.)
