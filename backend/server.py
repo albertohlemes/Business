@@ -128,6 +128,7 @@ class Company(BaseModel):
     cnaes: List[str] = []  # CNAEs secundários
     atividade_principal: Optional[str] = None
     produtos_comercializados: List[str] = []
+    produtos_aplicacao_servico: List[str] = []  # Materiais para aplicação em serviços
     insumos_producao: List[str] = []
     produtos_despesa: List[str] = []
     ativo_imobilizado: List[str] = []  # Palavras-chave para Ativo Imobilizado
@@ -216,6 +217,7 @@ class CompanyCreate(BaseModel):
     cnaes: List[str] = []  # CNAEs secundários
     atividade_principal: Optional[str] = None
     produtos_comercializados: List[str] = []
+    produtos_aplicacao_servico: List[str] = []  # Materiais para aplicação em serviços
     insumos_producao: List[str] = []
     produtos_despesa: List[str] = []
     ativo_imobilizado: List[str] = []
