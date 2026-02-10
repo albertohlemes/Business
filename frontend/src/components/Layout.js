@@ -75,6 +75,7 @@ const Layout = ({ user, onLogout, children }) => {
         { name: 'Simples Nacional', href: '/simples-nacional', icon: Star, testId: 'nav-simples-nacional' },
         { name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' },
         { name: 'Evolução Fiscal', href: '/analise-horizontal', icon: TrendingUp, testId: 'nav-analise-horizontal' },
+        { name: 'Vilões e Oportunidades', href: '/viloes-oportunidades', icon: AlertTriangle, testId: 'nav-viloes-oportunidades' },
         { name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' },
         // Exportações
         { name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' },
