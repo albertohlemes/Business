@@ -14308,6 +14308,7 @@ async def save_classification_to_cache(company_id: str, product: Dict, categoria
 async def classify_products_with_cache(products: List[Dict], company_id: str, company_data: Dict, emitente_uf: str = '') -> tuple:
     """
     Classifica produtos usando cache primeiro, depois IA para os não-cacheados.
+    Inclui análise de produtos vendidos para melhorar a classificação.
     Retorna: (resultados_classificados, stats)
     """
     results = {}
@@ -14320,6 +14321,29 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
     
     products_for_ai = []
     company_uf = company_data.get('uf', 'SP')
+    
+    # Buscar produtos vendidos (saídas) para inferência
+    try:
+        saidas_cursor = db.xml_documents.find({
+            "company_id": company_id,
+            "tipo": "saida",
+            **get_filtro_notas_ativas()
+        }, {"produtos.descricao": 1, "_id": 0}).limit(100)
+        
+        saidas = await saidas_cursor.to_list(length=100)
+        produtos_vendidos = set()
+        for doc in saidas:
+            for prod in doc.get('produtos', []):
+                desc = prod.get('descricao', '')
+                if desc and len(desc) > 5:
+                    # Pegar apenas primeiras 2 palavras significativas
+                    palavras = [p for p in desc.split()[:3] if len(p) > 3]
+                    if palavras:
+                        produtos_vendidos.add(' '.join(palavras[:2]))
+        produtos_vendidos_list = list(produtos_vendidos)[:50]
+    except Exception as e:
+        logger.warning(f"Erro ao buscar produtos vendidos: {e}")
+        produtos_vendidos_list = []
     
     for idx, product in enumerate(products):
         product['_temp_id'] = str(idx)
@@ -14375,9 +14399,9 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
         # 3. Enviar para IA
         products_for_ai.append(product)
     
-    # Classificar com IA os produtos restantes
+    # Classificar com IA os produtos restantes (inclui produtos vendidos para inferência)
     if products_for_ai:
-        ai_results = await classify_products_batch_llm(products_for_ai, company_data)
+        ai_results = await classify_products_batch_llm(products_for_ai, company_data, produtos_vendidos=produtos_vendidos_list)
         
         for product in products_for_ai:
             p_id = product.get('_temp_id')
