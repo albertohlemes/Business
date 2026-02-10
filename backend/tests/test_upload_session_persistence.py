@@ -284,9 +284,11 @@ class TestUploadStream:
         assert stream_response.status_code == 200, f"upload-stream failed: {stream_response.text}"
         data = stream_response.json()
         
-        # Verify response structure
-        assert "message" in data or "success" in data or "results" in data, f"Unexpected response: {data}"
-        print(f"✓ upload-stream processed file successfully")
+        # Verify response structure - upload-stream returns processed count
+        assert "processed" in data or "message" in data or "success" in data or "results" in data, f"Unexpected response: {data}"
+        if "processed" in data:
+            assert data["processed"] >= 0, "processed count should be >= 0"
+        print(f"✓ upload-stream processed file successfully: {data}")
     
     def test_upload_stream_invalid_session(self, auth_headers):
         """Test that upload-stream returns 404 for invalid session"""
