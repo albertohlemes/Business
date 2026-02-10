@@ -203,11 +203,36 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
         compras_anterior: comprasAnterior,
         vendas_anterior: vendasAnterior,
         impostos_anterior: saldoImpostosAnterior,
-        // Variação
+        // Variação vs ano anterior
         var_compras: comprasAnterior > 0 ? ((compras - comprasAnterior) / comprasAnterior * 100) : 0,
         var_vendas: vendasAnterior > 0 ? ((vendas - vendasAnterior) / vendasAnterior * 100) : 0,
         var_impostos: impostosAnterior !== 0 ? ((saldoImpostos - saldoImpostosAnterior) / Math.abs(saldoImpostosAnterior) * 100) : 0,
       });
+    }
+    
+    // Calcular variação vs mês anterior para cada item
+    for (let i = 0; i < result.length; i++) {
+      if (i === 0) {
+        // Primeiro mês não tem mês anterior no mesmo ano
+        result[i].var_compras_mes = 0;
+        result[i].var_vendas_mes = 0;
+        result[i].var_impostos_mes = 0;
+      } else {
+        const mesAtual = result[i];
+        const mesAnterior = result[i - 1];
+        
+        result[i].var_compras_mes = mesAnterior.compras > 0 
+          ? ((mesAtual.compras - mesAnterior.compras) / mesAnterior.compras * 100) 
+          : (mesAtual.compras > 0 ? 100 : 0);
+        
+        result[i].var_vendas_mes = mesAnterior.vendas > 0 
+          ? ((mesAtual.vendas - mesAnterior.vendas) / mesAnterior.vendas * 100) 
+          : (mesAtual.vendas > 0 ? 100 : 0);
+        
+        result[i].var_impostos_mes = mesAnterior.impostos !== 0 
+          ? ((mesAtual.impostos - mesAnterior.impostos) / Math.abs(mesAnterior.impostos) * 100) 
+          : (mesAtual.impostos !== 0 ? 100 : 0);
+      }
     }
     
     return result;
