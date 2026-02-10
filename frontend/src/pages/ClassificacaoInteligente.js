@@ -913,12 +913,14 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                               className="px-3 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white text-sm focus:border-[#C8A951] outline-none"
                             >
                               <option value="">Categoria automática</option>
-                              <option value="produto">Revenda/Produto</option>
+                              <option value="revenda">Revenda/Produto</option>
                               <option value="insumo">Insumo</option>
                               <option value="despesa">Despesa</option>
-                              <option value="ativo">Ativo Imobilizado</option>
+                              <option value="ativo_imobilizado">Ativo Imobilizado</option>
                               <option value="combustivel">Combustível</option>
-                              <option value="servico">Serviço</option>
+                              <option value="servico_aplicacao">Aplicação em Serviços</option>
+                              <option value="bonificacao">Bonificação</option>
+                              <option value="outras_entradas">Outras Entradas</option>
                             </select>
                             <button
                               onClick={() => {
