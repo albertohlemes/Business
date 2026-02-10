@@ -77,6 +77,27 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-10 (Sessão 12 - Barra de Progresso e Permissões)
+
+**Correção da Barra de Progresso de Upload:**
+- ✅ **Problema:** Barra de progresso congelava durante importação de XMLs
+- ✅ **Causa raiz:** SSE (Server-Sent Events) sendo bloqueado pelo proxy/ingress do Kubernetes
+- ✅ **Solução:** Sistema híbrido SSE + Polling como fallback
+  - SSE tenta conectar primeiro (mais eficiente)
+  - Se não receber eventos em 3 segundos, ativa polling via `/api/xml/upload-status/{upload_id}`
+  - Polling verifica status a cada 500ms
+- ✅ **Novo endpoint:** `GET /api/xml/upload-status/{upload_id}` - Retorna status atual do upload
+
+**Melhoria de UX - Seletor de Competência:**
+- ✅ **Enter rápido:** Digitar apenas o mês (ex: "01") e pressionar Enter completa automaticamente com o ano atual
+- ✅ **Confirma e fecha:** O modal fecha automaticamente ao pressionar Enter
+
+**Permissões de Usuários (Master/Operacional):**
+- ✅ **Funções auxiliares criadas:**
+  - `check_company_access(company, user)` - Verifica se usuário tem acesso à empresa
+  - `verify_company_access(company_id, user)` - Busca empresa e verifica acesso
+- ✅ **Regra:** Operacional pode acessar empresas onde é responsável, criou, ou tem no company_ids
+
 ### 2026-02-10 (Sessão 11 - Correção Bug de Upload "Sessão não encontrada")
 
 **Bug Fix Crítico - Importação de NF-e (P0 - RESOLVIDO):**
