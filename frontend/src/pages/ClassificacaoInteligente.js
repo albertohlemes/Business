@@ -580,8 +580,8 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     'retorno_exposicao', 'entrada_mercadoria_devolucao', 'retorno_industrializacao',
     'devolucao_simples_remessa', 'entrada_embalagem', 'retorno_merc_remetida_consig',
     'devolucao', 'energia_eletrica', 'servico_tomado', 'servico_aplicacao', 
-    'servico_comunicacao', 'servico_transporte', 'servico_issqn',
-    'operacao_distinta', 'outros', 'pendente'
+    'aplicacao_servico', 'servico_comunicacao', 'servico_transporte', 'servico_issqn',
+    'operacao_distinta', 'outros', 'outras_entradas', 'pendente'
   ];
   
   // Nomes amigáveis para exibição
