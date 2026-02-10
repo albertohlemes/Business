@@ -448,6 +448,50 @@ const Layout = ({ user, onLogout, children }) => {
           </div>
         </div>
       </div>
+
+      {/* Barra de Progresso Global de Upload - SEMPRE VISÍVEL */}
+      {uploadProgress.isUploading && (
+        <div className="fixed bottom-6 right-6 z-[9999] w-80 bg-[#141414] rounded-xl border border-[#2A2A2A] shadow-2xl">
+          <div className="p-4">
+            {/* Header com título e porcentagem */}
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-medium text-white">Importando documentos</p>
+                <p className="text-xs text-[#666] truncate max-w-[180px]">{uploadProgress.companyName}</p>
+              </div>
+              <span className="text-2xl font-bold text-[#C8A951]">{uploadProgress.percent}%</span>
+            </div>
+            
+            {/* Barra de progresso */}
+            <div className="h-2.5 bg-[#2A2A2A] rounded-full overflow-hidden mb-3">
+              <div 
+                className="h-full bg-gradient-to-r from-[#C8A951] to-[#D4B85C] rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress.percent}%` }}
+              />
+            </div>
+            
+            {/* Contador de café centralizado */}
+            <div className="flex justify-center">
+              <CoffeeProgress 
+                progress={uploadProgress.percent} 
+                message=""
+                showPercentage={false}
+              />
+            </div>
+            
+            {/* Info de arquivos */}
+            {uploadProgress.total > 0 && (
+              <p className="text-xs text-[#A1A1AA] text-center mt-2">
+                {uploadProgress.current} de {uploadProgress.total} arquivos processados
+              </p>
+            )}
+            
+            <p className="text-xs text-[#666] text-center mt-1 italic">
+              ☕ Continue navegando enquanto processamos...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
