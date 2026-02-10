@@ -17560,20 +17560,28 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     controla_fator_r = company.get('controla_fator_r', False)
     tipo_atividade = company.get('tipo_atividade', 'comercio')
     
+    # DEBUG
+    logger.info(f"FATOR_R DEBUG: anexos_confirmados={anexos_confirmados}, controla_fator_r={controla_fator_r}, tipo_atividade={tipo_atividade}, folha_12m={folha_12m}, rbt12={rbt12}")
+    
     # Calcular Fator R se:
-    # 1. Anexo V confirmado E controla Fator R E tem faturamento OU
+    # 1. Anexo V confirmado E controla Fator R OU
     # 2. Empresa de serviços/mista e controla Fator R (mesmo sem faturamento, para simulação)
     calcular_fator = False
     if controla_fator_r:
         if 'V' in anexos_confirmados:
             calcular_fator = True
+            logger.info("FATOR_R: Calculando porque Anexo V")
         elif tipo_atividade in ['servicos', 'mista']:
             calcular_fator = True
+            logger.info("FATOR_R: Calculando porque tipo_atividade é serviços/mista")
+    else:
+        logger.info("FATOR_R: NÃO calculando porque controla_fator_r=False")
     
     if calcular_fator:
         # Usar rbt12 se tiver, senão usar 1 para evitar divisão por zero
         rbt12_calc = max(rbt12, 1)
         fator_r_info = calcular_fator_r(folha_12m, rbt12_calc, faturamento_mes_atual)
+        logger.info(f"FATOR_R: Calculado! fator_r_info={fator_r_info}")
     
     # Calcular limites disponíveis
     limite_disponivel = max(0, LIMITE_SIMPLES - rbt12)
