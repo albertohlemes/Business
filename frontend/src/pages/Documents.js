@@ -532,6 +532,7 @@ const Documents = ({ user, onLogout }) => {
               });
               setShowUploadResult(true);
               setUploading(false);
+              finishGlobalUpload(); // Finalizar progresso global
               fetchDocuments();
               eventSource.close();
               eventSourceRef.current = null;
