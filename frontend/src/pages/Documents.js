@@ -59,6 +59,7 @@ const Documents = ({ user, onLogout }) => {
     // Upload global
     startUpload: startGlobalUpload,
     updateUploadProgress: updateGlobalProgress,
+    setUploadError,
     finishUpload: finishGlobalUpload,
     uploadProgress: globalUploadProgress
   } = useAppContext();
