@@ -14937,6 +14937,9 @@ async def apurar_icms(
         "apuracao": {
             "credito_icms": round(credito_icms, 2),
             "debito_icms": round(debito_icms, 2),
+            "credito_presumido_icms": round(credito_presumido_icms, 2),
+            "credito_presumido_percent": credito_presumido_percent if is_transportadora else 0,
+            "is_transportadora": is_transportadora,
             "saldo": round(saldo, 2),
             "situacao": "A_PAGAR" if saldo > 0 else "A_RECUPERAR" if saldo < 0 else "ZERADO"
         },
