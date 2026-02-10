@@ -183,15 +183,15 @@ const Dashboard = ({ user, onLogout }) => {
                   />
                   <StatCard
                     icon={FileText}
-                    title="Outros"
-                    value={0}
+                    title="Outros Docs"
+                    value={stats.quantidades.outros_entrada || 0}
                     color="bg-slate-600"
                     link="/documents"
-                    subtitle="Demais Docs"
+                    subtitle="Energia, Internet..."
                   />
                   <div className="bg-[#0C0C0C] rounded-lg p-5 border border-[#2A2A2A]">
                     <h3 className="text-[#666] text-sm font-medium mb-1">Total Entradas</h3>
-                    <p className="text-2xl font-bold text-blue-400">{stats.quantidades.total_entradas || (stats.quantidades.nfe_entrada + (stats.quantidades.cte_entrada || 0) + (stats.quantidades.nfse_tomados || 0))}</p>
+                    <p className="text-2xl font-bold text-blue-400">{stats.quantidades.total_entradas || (stats.quantidades.nfe_entrada + (stats.quantidades.cte_entrada || 0) + (stats.quantidades.nfse_tomados || 0) + (stats.quantidades.outros_entrada || 0))}</p>
                   </div>
                 </div>
               </div>
