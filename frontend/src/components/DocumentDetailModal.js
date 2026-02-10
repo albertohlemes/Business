@@ -98,18 +98,17 @@ const DocumentDetailModal = ({ document, onClose }) => {
     return <XCircle className="w-4 h-4 text-red-400" />;
   };
 
-  // Contar divergências de CST/CFOP nos produtos
+  // Contar divergências de CFOP nos produtos (removido CST - não é relevante para validação)
   const contarDivergenciasProdutos = () => {
     const produtos = document.produtos || [];
-    let cstDivergentes = 0;
     let cfopDivergentes = 0;
     
     produtos.forEach(p => {
-      if (p.cst_divergente) cstDivergentes++;
+      // Apenas CFOP alterado é relevante - CST não deve ser validado
       if (p.cfop_original && p.cfop !== p.cfop_original) cfopDivergentes++;
     });
     
-    return { cstDivergentes, cfopDivergentes, total: cstDivergentes + cfopDivergentes };
+    return { cfopDivergentes, total: cfopDivergentes };
   };
 
   const divergenciasProd = contarDivergenciasProdutos();
