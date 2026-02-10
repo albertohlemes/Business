@@ -20255,6 +20255,269 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ============================================================
+# ANÁLISE HORIZONTAL - Evolução de Compras, Vendas e Impostos
+# ============================================================
+
+@api_router.get("/analise-horizontal/{company_id}")
+async def get_analise_horizontal(
+    company_id: str,
+    ano: int,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna dados mensais para análise horizontal:
+    - Compras (somente compras)
+    - Vendas (somente vendas)
+    - Impostos (a pagar positivo, crédito negativo)
+    - Comparativo com ano anterior
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    regime = company.get('regime_tributario', 'simples_nacional')
+    
+    # Função para buscar dados de um mês
+    async def buscar_dados_mes(competencia):
+        # Buscar documentos
+        filtro_ativo = get_filtro_notas_ativas()
+        
+        # Compras (entradas com CFOPs de compra)
+        cfops_compra = ['1101', '1102', '1111', '1113', '1116', '1117', '1120', '1121', '1122', '1124', '1125',
+                       '1401', '1403', '1501', '1651', '1652', '1653', '1556',
+                       '2101', '2102', '2111', '2113', '2116', '2117', '2120', '2121', '2122', '2124', '2125',
+                       '2401', '2403', '2501', '2651', '2652', '2653', '2556']
+        
+        # Vendas (saídas com CFOPs de venda)
+        cfops_venda = ['5101', '5102', '5103', '5104', '5105', '5106', '5109', '5110', '5111', '5112', '5113',
+                      '5401', '5402', '5403', '5405', '5656', '5667',
+                      '6101', '6102', '6103', '6104', '6105', '6106', '6107', '6108', '6109', '6110', '6111',
+                      '6401', '6402', '6403', '6404', '6656', '6667']
+        
+        # Documentos de entrada
+        docs_entrada = await db.xml_documents.find({
+            "company_id": company_id,
+            "competencia": competencia,
+            "tipo": "entrada",
+            **filtro_ativo
+        }, {"_id": 0, "valor_total": 1, "produtos": 1, "modelo": 1}).to_list(10000)
+        
+        # Documentos de saída
+        docs_saida = await db.xml_documents.find({
+            "company_id": company_id,
+            "competencia": competencia,
+            "tipo": "saida",
+            **filtro_ativo
+        }, {"_id": 0, "valor_total": 1, "produtos": 1, "modelo": 1}).to_list(10000)
+        
+        # Calcular compras (somente CFOPs de compra)
+        total_compras = 0
+        for doc in docs_entrada:
+            for prod in doc.get('produtos', []):
+                cfop = str(prod.get('cfop', ''))
+                if cfop in cfops_compra:
+                    total_compras += float(prod.get('valor_total', 0) or 0)
+        
+        # Se não tiver produtos com CFOP de compra, usar valor total do documento
+        if total_compras == 0:
+            total_compras = sum(float(d.get('valor_total', 0) or 0) for d in docs_entrada)
+        
+        # Calcular vendas (somente CFOPs de venda)
+        total_vendas = 0
+        for doc in docs_saida:
+            for prod in doc.get('produtos', []):
+                cfop = str(prod.get('cfop', ''))
+                if cfop in cfops_venda:
+                    total_vendas += float(prod.get('valor_total', 0) or 0)
+        
+        # Se não tiver produtos com CFOP de venda, usar valor total
+        if total_vendas == 0:
+            total_vendas = sum(float(d.get('valor_total', 0) or 0) for d in docs_saida)
+        
+        # Buscar impostos da competência
+        impostos_pagar = 0
+        credito_acumulado = 0
+        icms = 0
+        pis = 0
+        cofins = 0
+        ipi = 0
+        iss = 0
+        das = 0
+        
+        # Buscar apurações
+        apuracao_icms = await db.apuracoes_icms.find_one({
+            "company_id": company_id,
+            "competencia": competencia
+        }, {"_id": 0})
+        
+        if apuracao_icms:
+            icms = float(apuracao_icms.get('icms_a_pagar', 0) or 0)
+            credito_icms = float(apuracao_icms.get('saldo_credor_proximo_periodo', 0) or 0)
+            if icms > 0:
+                impostos_pagar += icms
+            else:
+                credito_acumulado += credito_icms
+        
+        # PIS/COFINS
+        apuracao_pis = await db.apuracoes_pis_cofins.find_one({
+            "company_id": company_id,
+            "competencia": competencia
+        }, {"_id": 0})
+        
+        if apuracao_pis:
+            pis = float(apuracao_pis.get('pis_a_pagar', 0) or 0)
+            cofins = float(apuracao_pis.get('cofins_a_pagar', 0) or 0)
+            if pis > 0: impostos_pagar += pis
+            if cofins > 0: impostos_pagar += cofins
+            
+            credito_pis = float(apuracao_pis.get('saldo_credor_pis', 0) or 0)
+            credito_cofins = float(apuracao_pis.get('saldo_credor_cofins', 0) or 0)
+            credito_acumulado += credito_pis + credito_cofins
+        
+        # IPI
+        apuracao_ipi = await db.apuracoes_ipi.find_one({
+            "company_id": company_id,
+            "competencia": competencia
+        }, {"_id": 0})
+        
+        if apuracao_ipi:
+            ipi = float(apuracao_ipi.get('ipi_a_pagar', 0) or 0)
+            if ipi > 0: impostos_pagar += ipi
+        
+        # ISS (NFS-e)
+        pipeline_iss = [
+            {"$match": {
+                "company_id": company_id,
+                "competencia": competencia,
+                "modelo": {"$in": ["nfse", "nfs-e", "NFSE", "NFS-e"]},
+                **filtro_ativo
+            }},
+            {"$group": {"_id": None, "total_iss": {"$sum": "$iss_valor"}}}
+        ]
+        result_iss = await db.xml_documents.aggregate(pipeline_iss).to_list(1)
+        if result_iss:
+            iss = float(result_iss[0].get('total_iss', 0) or 0)
+            impostos_pagar += iss
+        
+        # DAS (Simples Nacional)
+        if regime == 'simples_nacional':
+            apuracao_sn = await db.apuracoes_simples.find_one({
+                "company_id": company_id,
+                "competencia": competencia
+            }, {"_id": 0})
+            
+            if apuracao_sn:
+                das = float(apuracao_sn.get('das_a_pagar', 0) or 0)
+                impostos_pagar += das
+        
+        return {
+            "compras": round(total_compras, 2),
+            "vendas": round(total_vendas, 2),
+            "impostos_pagar": round(impostos_pagar, 2),
+            "credito_acumulado": round(credito_acumulado, 2),
+            "icms": round(icms, 2),
+            "pis": round(pis, 2),
+            "cofins": round(cofins, 2),
+            "ipi": round(ipi, 2),
+            "iss": round(iss, 2),
+            "das": round(das, 2),
+        }
+    
+    # Buscar dados de todos os meses do ano atual e anterior
+    dados_mensal = {}
+    dados_mensal_anterior = {}
+    
+    for mes in range(1, 13):
+        competencia_atual = f"{str(mes).zfill(2)}/{ano}"
+        competencia_anterior = f"{str(mes).zfill(2)}/{ano - 1}"
+        
+        dados_mensal[competencia_atual] = await buscar_dados_mes(competencia_atual)
+        dados_mensal_anterior[competencia_anterior] = await buscar_dados_mes(competencia_anterior)
+    
+    return {
+        "empresa": company['razao_social'],
+        "regime_tributario": regime,
+        "ano": ano,
+        "ano_anterior": ano - 1,
+        "mensal": dados_mensal,
+        "mensal_ano_anterior": dados_mensal_anterior
+    }
+
+
+@api_router.post("/analise-horizontal/insights/{company_id}")
+async def gerar_insights_analise_horizontal(
+    company_id: str,
+    request: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Gera análise IA comparando dados do ano atual com o anterior
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    dados_grafico = request.get('dados_grafico', [])
+    totais = request.get('totais', {})
+    ano_atual = request.get('ano_atual', 2026)
+    ano_anterior = request.get('ano_anterior', 2025)
+    
+    # Montar prompt para IA
+    prompt = f"""Analise a evolução fiscal da empresa {company['razao_social']} comparando {ano_atual} com {ano_anterior}.
+
+DADOS ANUAIS:
+- Compras {ano_atual}: R$ {totais.get('atual', {}).get('compras', 0):,.2f}
+- Compras {ano_anterior}: R$ {totais.get('anterior', {}).get('compras', 0):,.2f}
+- Vendas {ano_atual}: R$ {totais.get('atual', {}).get('vendas', 0):,.2f}
+- Vendas {ano_anterior}: R$ {totais.get('anterior', {}).get('vendas', 0):,.2f}
+- Impostos {ano_atual}: R$ {totais.get('atual', {}).get('impostos', 0):,.2f} (positivo = pagar, negativo = crédito)
+- Impostos {ano_anterior}: R$ {totais.get('anterior', {}).get('impostos', 0):,.2f}
+
+EVOLUÇÃO MENSAL:
+"""
+    for mes in dados_grafico[:12]:
+        prompt += f"""
+{mes.get('mes')}/{ano_atual}:
+  - Compras: R$ {mes.get('compras', 0):,.2f} (var: {mes.get('var_compras', 0):.1f}%)
+  - Vendas: R$ {mes.get('vendas', 0):,.2f} (var: {mes.get('var_vendas', 0):.1f}%)
+  - Impostos: R$ {mes.get('impostos', 0):,.2f}
+"""
+    
+    prompt += """
+
+Por favor, forneça uma análise em português do Brasil contendo:
+1. VISÃO GERAL: Resumo da evolução do negócio
+2. ANÁLISE DE COMPRAS: Tendências e variações significativas
+3. ANÁLISE DE VENDAS: Crescimento ou retração, sazonalidade
+4. ANÁLISE TRIBUTÁRIA: Situação dos impostos, oportunidades de economia
+5. RECOMENDAÇÕES: Ações sugeridas para otimização fiscal
+
+Seja objetivo e direto, focando em insights acionáveis."""
+
+    try:
+        from emergentintegrations.llm.chat import chat, LlmModel
+        
+        response = await chat(
+            api_key=EMERGENT_API_KEY,
+            model=LlmModel.GEMINI_2_FLASH,
+            system_prompt="Você é um consultor tributário especialista em análise fiscal de empresas brasileiras.",
+            user_message=prompt
+        )
+        
+        return {"analise": response}
+        
+    except Exception as e:
+        logger.error(f"Erro ao gerar análise IA: {str(e)}")
+        return {"analise": "Não foi possível gerar a análise automática. Verifique os dados manualmente."}
+
+
+# ============================================================
+# Configuração de Logging
+# ============================================================
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
