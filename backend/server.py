@@ -17661,9 +17661,9 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
             "mes_atual": round(faturamento_mes_atual, 2),
             "media_mensal": round(rbt12 / 12, 2) if rbt12 > 0 else 0,
             # Vendas por CFOPs de venda (5101, 5102, 6101, 6102, 6108, etc.)
-            "vendas_cfop": round(faturamento_mes_atual, 2),  # Por hora igual ao total, pois só considera saídas
+            "vendas_cfop": round(vendas_cfop_mes, 2),
             # Serviços prestados (NFS-e)
-            "servicos_prestados": 0  # Será calculado separadamente se houver NFS-e
+            "servicos_prestados": round(servicos_prestados_mes, 2)
         },
         
         # Limites
