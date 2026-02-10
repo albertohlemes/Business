@@ -520,6 +520,28 @@ const UsersPage = ({ user, onLogout }) => {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {/* Promover para Master - só aparece para Operacionais */}
+                        {u.id !== user.id && (u.role === 'operacional' || u.role === 'client') && (
+                          <button
+                            data-testid={`promote-user-btn-${u.id}`}
+                            onClick={() => handlePromoteToMaster(u.id, u.name)}
+                            className="p-2 text-[#A1A1AA] hover:text-[#C8A951] hover:bg-[#C8A951]/10 rounded transition-colors"
+                            title="Promover para Master"
+                          >
+                            <Crown className="w-4 h-4" />
+                          </button>
+                        )}
+                        {/* Rebaixar para Operacional - só aparece para Master (não admin/super_admin) */}
+                        {u.id !== user.id && u.role === 'master' && user.role !== 'client' && (
+                          <button
+                            data-testid={`demote-user-btn-${u.id}`}
+                            onClick={() => handleDemoteToOperacional(u.id, u.name)}
+                            className="p-2 text-[#A1A1AA] hover:text-amber-400 hover:bg-amber-400/10 rounded transition-colors"
+                            title="Rebaixar para Operacional"
+                          >
+                            <UserMinus className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           data-testid={`edit-user-btn-${u.id}`}
                           onClick={() => handleEdit(u)}
