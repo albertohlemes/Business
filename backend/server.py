@@ -2968,8 +2968,17 @@ async def get_company(company_id: str, current_user: User = Depends(get_current_
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
-        raise HTTPException(status_code=403, detail="Acesso negado")
+    # Verificar permissões: Admin/Master podem ver todas, operacional só vê as que tem acesso ou criou
+    allowed_roles = ["super_admin", "master", "admin"]
+    if current_user.role not in allowed_roles:
+        # Operacional pode ver se é responsável, se criou a empresa, ou se tem acesso via company_ids
+        has_access = (
+            current_user.id in company.get('responsavel_ids', []) or
+            company.get('created_by') == current_user.id or
+            company['cnpj'] in current_user.company_ids
+        )
+        if not has_access:
+            raise HTTPException(status_code=403, detail="Acesso negado")
     
     if isinstance(company['created_at'], str):
         company['created_at'] = datetime.fromisoformat(company['created_at'])
