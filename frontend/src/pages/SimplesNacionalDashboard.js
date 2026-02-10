@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, AlertTriangle, AlertCircle, Info, 
   DollarSign, Target, Calculator, Percent, BarChart3, Calendar,
   ChevronDown, ChevronUp, RefreshCw, Edit2, Check, X, HelpCircle,
-  Building2, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight,
+  Building2, Wallet, PiggyBank, ArrowUpRight, ArrowDownRight, ArrowUpCircle,
   Upload, FileText, CheckCircle, History, Zap, Award, Scale, Download
 } from 'lucide-react';
 import { toast } from 'sonner';
