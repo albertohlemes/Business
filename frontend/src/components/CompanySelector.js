@@ -223,11 +223,12 @@ const CompanySelector = () => {
               type="text"
               value={tempCompetencia}
               onChange={handleCompetenciaChange}
-              placeholder="122025"
+              onKeyDown={handleCompetenciaKeyDown}
+              placeholder="01"
               maxLength="7"
               className="w-full px-4 py-2.5 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white text-lg font-mono text-center focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
             />
-            <p className="text-xs text-[#A1A1AA] mt-1 text-center">Digite apenas números (ex: 122025 → 12/2025)</p>
+            <p className="text-xs text-[#A1A1AA] mt-1 text-center">Digite o mês e pressione Enter (ex: 01 → 01/{new Date().getFullYear()})</p>
           </div>
 
           {/* Confirm Button */}
