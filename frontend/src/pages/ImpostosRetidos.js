@@ -4,7 +4,8 @@ import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
 import { 
   FileText, Download, Building2, User, DollarSign, AlertTriangle,
-  Search, RefreshCw, FileSpreadsheet, Loader2, ArrowRight, Info
+  Search, RefreshCw, FileSpreadsheet, Loader2, ArrowRight, Info,
+  Landmark, Receipt, Percent, Users, ChevronDown, MapPin
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
