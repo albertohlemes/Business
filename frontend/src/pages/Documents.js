@@ -545,6 +545,8 @@ const Documents = ({ user, onLogout }) => {
           try {
             sseWorking = true;
             clearTimeout(sseTimeout);
+            updateLastProgress(); // Atualizar timestamp ao receber evento SSE
+            
             if (pollingInterval) {
               clearInterval(pollingInterval);
               pollingInterval = null;
@@ -554,6 +556,7 @@ const Documents = ({ user, onLogout }) => {
             console.log('SSE Event:', data);
             
             if (data.completed === true && data.results) {
+              if (globalTimeoutId) clearInterval(globalTimeoutId); // Limpar timeout global
               setUploadProgress({ current: files.length, total: files.length, percent: 100 });
               
               // Mapear campos do backend para o formato esperado pelo modal
@@ -593,6 +596,8 @@ const Documents = ({ user, onLogout }) => {
               eventSource.close();
               eventSourceRef.current = null;
             } else if (data.error) {
+              if (globalTimeoutId) clearInterval(globalTimeoutId); // Limpar timeout global
+              setUploadError(data.error); // Atualizar erro global
               setUploadResult({
                 tipo: 'erro',
                 total: files.length,
@@ -615,6 +620,9 @@ const Documents = ({ user, onLogout }) => {
                 total: total,
                 percent: percent
               });
+              
+              // Atualizar progresso global
+              updateGlobalProgress(percent, processed, total);
             }
           } catch (e) {
             console.error('Erro ao processar evento SSE:', e);
