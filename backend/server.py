@@ -10361,7 +10361,7 @@ CATEGORIA_NOMES = {
 def obter_categoria_por_cfop(cfop: str) -> str:
     """
     Retorna a categoria de classificação baseada no CFOP.
-    Se não encontrar, retorna None (pendente de classificação).
+    NUNCA retorna None - sempre classifica (padrão é revenda/produto).
     """
     cfop = str(cfop).strip()
     
@@ -10376,9 +10376,9 @@ def obter_categoria_por_cfop(cfop: str) -> str:
         return 'insumo'
     if cfop.startswith(('1551', '2551', '1406', '2406')):
         return 'ativo_imobilizado'
-    if cfop.startswith(('1556', '2556', '1253', '1303')):
+    if cfop.startswith(('1556', '2556', '1253', '1303', '1407', '2407')):
         return 'despesa'
-    if cfop.startswith(('165', '265')):  # CFOPs de combustível começam com 165x/265x
+    if cfop.startswith(('165', '265', '1653', '2653')):  # CFOPs de combustível
         return 'combustivel'
     
     # Bonificações e amostras têm categorias próprias
@@ -10391,7 +10391,12 @@ def obter_categoria_por_cfop(cfop: str) -> str:
     if cfop in ('1949', '2949'):
         return 'outros'
     
-    return None  # Pendente de classificação
+    # 1128/2128 são aplicação em serviços
+    if cfop in ('1128', '2128'):
+        return 'aplicacao_servico'
+    
+    # PADRÃO: Se não identificar, assume como compra para revenda (nunca pendente)
+    return 'produto'
 
 
 def obter_nome_categoria(categoria: str) -> str:
