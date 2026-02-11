@@ -426,6 +426,12 @@ const Documents = ({ user, onLogout }) => {
       if (globalTimeoutId) clearInterval(globalTimeoutId);
       if (eventSourceRef.current) eventSourceRef.current.close();
       
+      // Não mostrar erro de timeout se já mostramos resultado
+      if (resultDisplayedRef.current) {
+        setUploading(false);
+        return;
+      }
+      
       const errorMsg = `Importação travou - sem resposta do servidor por ${GLOBAL_TIMEOUT_MS / 1000} segundos. Clique no X para fechar.`;
       
       // Atualizar estado global com erro
