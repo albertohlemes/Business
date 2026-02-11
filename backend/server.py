@@ -14833,10 +14833,36 @@ async def update_learned_rule(
     motivo: str = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Atualiza uma regra aprendida pela IA"""
+    """
+    Atualiza uma regra aprendida pela IA.
+    Se apenas a categoria for alterada, calcula automaticamente o CFOP padrão.
+    """
     rule = await db.learned_rules.find_one({"id": rule_id}, {"_id": 0})
     if not rule:
         raise HTTPException(status_code=404, detail="Regra não encontrada")
+    
+    # Se não foi fornecido CFOP, calcular baseado na categoria
+    novo_cfop = cfop
+    if not cfop:
+        # Usar o prefixo do CFOP atual ou padrão '1' (estadual)
+        cfop_atual = str(rule.get('cfop_correto', '') or rule.get('cfop', ''))
+        cfop_prefix = cfop_atual[0] if cfop_atual and cfop_atual[0] in ['1', '2', '3', '5', '6', '7'] else '1'
+        
+        # Se for entrada (1, 2, 3), manter como entrada
+        if cfop_prefix in ['1', '2', '3']:
+            categoria_lower = categoria.lower()
+            if categoria_lower == 'revenda':
+                novo_cfop = cfop_prefix + '102'  # Compra para comercialização
+            elif categoria_lower == 'insumo':
+                novo_cfop = cfop_prefix + '101'  # Compra para industrialização
+            elif categoria_lower == 'despesa':
+                novo_cfop = cfop_prefix + '556'  # Compra para uso/consumo
+            elif categoria_lower == 'combustivel':
+                novo_cfop = cfop_prefix + '653'  # Compra de combustível
+            elif categoria_lower in ['servico_aplicacao', 'servico']:
+                novo_cfop = cfop_prefix + '128'  # Compra para prestação de serviço
+            else:
+                novo_cfop = cfop_prefix + '102'  # Padrão: revenda
     
     # Atualizar campos corretos para compatibilidade com o sistema de cache
     update_data = {
@@ -14845,9 +14871,11 @@ async def update_learned_rule(
         "updated_at": datetime.utcnow().isoformat(),
         "updated_by": current_user.email
     }
-    if cfop:
-        update_data["cfop"] = cfop
-        update_data["cfop_correto"] = cfop  # Campo usado pelo sistema de classificação
+    
+    if novo_cfop:
+        update_data["cfop"] = novo_cfop
+        update_data["cfop_correto"] = novo_cfop  # Campo usado pelo sistema de classificação
+    
     if motivo:
         update_data["motivo"] = motivo
     
@@ -14856,7 +14884,12 @@ async def update_learned_rule(
         {"$set": update_data}
     )
     
-    return {"message": "Regra atualizada com sucesso"}
+    # Retornar dados atualizados para que o frontend possa mostrar o novo CFOP
+    return {
+        "message": "Regra atualizada com sucesso",
+        "categoria": categoria,
+        "cfop": novo_cfop
+    }
 
 @api_router.delete("/ai/learned-rules/{rule_id}")
 async def delete_learned_rule(
