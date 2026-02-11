@@ -1762,13 +1762,13 @@ const Documents = ({ user, onLogout }) => {
               data-testid="btn-notas-ausentes"
               onClick={handleOpenNotasAusentes}
               className="flex items-center gap-2 px-4 py-2 text-sm text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg hover:bg-yellow-500/20 transition-all"
-              >
-                <AlertTriangle className="w-4 h-4" />
-                Verificar Notas Ausentes
-              </button>
-            </div>
+            >
+              <AlertTriangle className="w-4 h-4" />
+              Verificar Notas Ausentes
+            </button>
           </div>
         </div>
+      </div>
 
         {/* Modal de Notas Ausentes */}
         {showNotasAusentes && (
