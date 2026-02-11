@@ -227,6 +227,10 @@ function App() {
               path="/fechamento-mensal"
               element={user ? <FechamentoMensal user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/audit-log"
+              element={user ? <AuditLog user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
           </Routes>
           </UploadProvider>
         </AppProvider>
