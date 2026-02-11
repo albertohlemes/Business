@@ -7847,6 +7847,30 @@ async def get_dashboard_stats(
     credito_pis = 0
     credito_cofins = 0
     
+    # Base de crédito para PIS/COFINS no Lucro Real (produtos que geram direito a crédito)
+    # Considera a classificação do produto (categoria, NCM, CST, CFOP)
+    base_credito_pis_cofins_real = 0  # Base para calcular crédito hipotético
+    
+    # CFOPs de entrada que NÃO geram crédito de PIS/COFINS
+    CFOPS_ENTRADA_SEM_CREDITO_PIS_COFINS = [
+        # Despesa/Uso e Consumo (não geram crédito no Lucro Real)
+        '1556', '2556',  # Compra para uso/consumo
+        '1557', '2557',  # Transferência para uso/consumo
+        # Ativo Imobilizado (crédito é 1/48 avos - tratamento especial)
+        '1551', '2551',  # Compra ativo imobilizado
+        '1128', '2128',  # Compra para ativo imobilizado
+        # Remessas e devoluções
+        '1201', '2201', '1202', '2202', '1203', '2203',  # Devoluções
+        '1410', '2410',  # Devoluções com ST
+        '1411', '2411',  # Devoluções com ST
+        '1908', '2908',  # Retorno de remessa
+        '1909', '2909',  # Retorno de remessa
+        '1949', '2949',  # Outras entradas
+    ]
+    
+    # Categorias de produto que NÃO geram crédito de PIS/COFINS
+    CATEGORIAS_SEM_CREDITO = ['despesa', 'ativo_imobilizado', 'bonificacao']
+    
     # Flags de desconsiderar ICMS
     desconsiderar_icms_despesas = company.get('desconsiderar_icms_despesas', False)
     desconsiderar_icms_st = company.get('desconsiderar_icms_st', False)
