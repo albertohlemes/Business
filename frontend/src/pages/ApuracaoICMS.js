@@ -754,37 +754,63 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                           <table className="w-full text-sm">
                             <thead className="bg-[#1A1A1A] sticky top-0">
                               <tr>
-                                <th className="px-4 py-3 text-left text-[#A1A1AA] font-medium">Produto</th>
-                                <th className="px-4 py-3 text-left text-[#A1A1AA] font-medium">NCM</th>
-                                <th className="px-4 py-3 text-center text-[#A1A1AA] font-medium">Notas</th>
-                                <th className="px-4 py-3 text-right text-[#A1A1AA] font-medium">Valor Total</th>
-                                <th className="px-4 py-3 text-right text-[#A1A1AA] font-medium">ICMS Desconsiderado</th>
+                                <th className="px-3 py-3 text-left text-[#A1A1AA] font-medium">Produto</th>
+                                <th className="px-3 py-3 text-left text-[#A1A1AA] font-medium">NCM</th>
+                                <th className="px-3 py-3 text-center text-[#A1A1AA] font-medium">CFOP</th>
+                                <th className="px-3 py-3 text-center text-[#A1A1AA] font-medium">Notas</th>
+                                <th className="px-3 py-3 text-right text-[#A1A1AA] font-medium">Valor</th>
+                                <th className="px-3 py-3 text-right text-[#A1A1AA] font-medium">BC ICMS</th>
+                                <th className="px-3 py-3 text-right text-[#A1A1AA] font-medium">ICMS</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-[#2A2A2A]">
                               {beneficioDetalhes.por_produto.map((item, idx) => (
-                                <tr key={idx} className="hover:bg-white/5">
-                                  <td className="px-4 py-3 text-white">
-                                    <span className="block truncate max-w-[300px]" title={item.descricao}>
-                                      {item.descricao}
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    <span className="font-mono text-[#C8A951]">{item.ncm}</span>
-                                  </td>
-                                  <td className="px-4 py-3 text-center text-[#A1A1AA]">{item.qtd_notas}</td>
-                                  <td className="px-4 py-3 text-right text-white">{formatCurrency(item.valor_total)}</td>
-                                  <td className="px-4 py-3 text-right">
-                                    <span className="text-red-400 font-semibold">{formatCurrency(item.valor_icms)}</span>
-                                  </td>
-                                </tr>
+                                <React.Fragment key={idx}>
+                                  <tr className="hover:bg-white/5">
+                                    <td className="px-3 py-3 text-white">
+                                      <span className="block truncate max-w-[250px]" title={item.descricao}>
+                                        {item.descricao}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-3">
+                                      <span className="font-mono text-[#C8A951] text-xs">{item.ncm}</span>
+                                    </td>
+                                    <td className="px-3 py-3 text-center">
+                                      <span className="font-mono text-blue-400">{item.cfop}</span>
+                                    </td>
+                                    <td className="px-3 py-3 text-center text-[#A1A1AA]">{item.qtd_notas}</td>
+                                    <td className="px-3 py-3 text-right text-white">{formatCurrency(item.valor_total)}</td>
+                                    <td className="px-3 py-3 text-right text-[#A1A1AA]">{formatCurrency(item.bc_icms)}</td>
+                                    <td className="px-3 py-3 text-right">
+                                      <span className="text-red-400 font-semibold">{formatCurrency(item.valor_icms)}</span>
+                                    </td>
+                                  </tr>
+                                  {/* Sub-lista de notas se houver */}
+                                  {item.notas && item.notas.length > 0 && (
+                                    <tr className="bg-[#0A0A0A]">
+                                      <td colSpan="7" className="px-6 py-2">
+                                        <div className="text-xs text-[#666]">
+                                          <span className="text-[#888] mr-2">Notas:</span>
+                                          {item.notas.slice(0, 5).map((nota, nidx) => (
+                                            <span key={nidx} className="inline-block mr-3 mb-1">
+                                              <span className="text-[#C8A951]">{nota.numero}</span>
+                                              {nota.emitente && <span className="text-[#666] ml-1">({nota.emitente})</span>}
+                                            </span>
+                                          ))}
+                                          {item.notas.length > 5 && <span className="text-[#666]">... +{item.notas.length - 5}</span>}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </React.Fragment>
                               ))}
                             </tbody>
                             <tfoot className="bg-[#1A1A1A] border-t border-yellow-500/30">
                               <tr className="font-semibold">
-                                <td colSpan="3" className="px-4 py-3 text-yellow-400">TOTAL</td>
-                                <td className="px-4 py-3 text-right text-white">{formatCurrency(beneficioDetalhes.valor_total)}</td>
-                                <td className="px-4 py-3 text-right text-red-400">{formatCurrency(beneficioDetalhes.valor_icms_desconsiderado)}</td>
+                                <td colSpan="4" className="px-3 py-3 text-yellow-400">TOTAL</td>
+                                <td className="px-3 py-3 text-right text-white">{formatCurrency(beneficioDetalhes.valor_total)}</td>
+                                <td className="px-3 py-3 text-right text-[#A1A1AA]">{formatCurrency(beneficioDetalhes.bc_icms_total)}</td>
+                                <td className="px-3 py-3 text-right text-red-400">{formatCurrency(beneficioDetalhes.valor_icms_desconsiderado)}</td>
                               </tr>
                             </tfoot>
                           </table>
