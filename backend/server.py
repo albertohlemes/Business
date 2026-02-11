@@ -3325,15 +3325,39 @@ async def register(user_data: UserCreate):
     return user
 
 @api_router.post("/auth/login", response_model=Token)
-async def login(credentials: UserLogin):
+async def login(credentials: UserLogin, request: Request = None):
     user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
+    
+    # Obter IP do cliente
+    client_ip = None
+    if request:
+        client_ip = request.client.host if request.client else None
+    
     if not user or not verify_password(credentials.password, user.get('hashed_password', '')):
+        # Registrar tentativa de login falha
+        await log_audit(
+            action=AuditAction.LOGIN_FAILED,
+            user_email=credentials.email,
+            ip_address=client_ip,
+            success=False,
+            error_message="Email ou senha inválidos"
+        )
         raise HTTPException(status_code=401, detail="Email ou senha inválidos")
     
     access_token = create_access_token(data={"sub": user['id']})
     user.pop('hashed_password', None)
     if isinstance(user['created_at'], str):
         user['created_at'] = datetime.fromisoformat(user['created_at'])
+    
+    # Registrar login bem-sucedido
+    await log_audit(
+        action=AuditAction.LOGIN,
+        user_id=user['id'],
+        user_email=user['email'],
+        ip_address=client_ip,
+        success=True,
+        details={"role": user.get('role')}
+    )
     
     return Token(access_token=access_token, token_type="bearer", user=User(**user))
 
