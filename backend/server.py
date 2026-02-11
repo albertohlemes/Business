@@ -5203,8 +5203,9 @@ async def get_upload_session(upload_id: str) -> Optional[Dict]:
     session = await db.upload_sessions.find_one({"upload_id": upload_id}, {"_id": 0})
     if session:
         # Restaurar para memória para operações subsequentes
+        # IMPORTANTE: Armazenar o objeto para que modificações sejam refletidas
         upload_progress_store[upload_id] = session
-        return session
+        return upload_progress_store[upload_id]  # Retornar referência do store
     
     return None
 
