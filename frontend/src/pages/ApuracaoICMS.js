@@ -7,7 +7,8 @@ import {
   TrendingUp, TrendingDown, DollarSign, FileText,
   ChevronDown, ChevronUp, Download, RefreshCw, 
   Building2, Package, Hash, BarChart3, ArrowRight,
-  ArrowLeftRight, Minus, Truck, Settings, Save, Loader2
+  ArrowLeftRight, Minus, Truck, Settings, Save, Loader2,
+  Star, X, FileSpreadsheet, FileDown
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -22,6 +23,13 @@ const ApuracaoICMS = ({ user, onLogout }) => {
     entradas: true,
     saidas: true
   });
+  
+  // Modal de detalhamento do Benefício Fiscal
+  const [showBeneficioModal, setShowBeneficioModal] = useState(false);
+  const [beneficioTab, setBeneficioTab] = useState('produto'); // 'produto' ou 'ncm'
+  const [beneficioDetalhes, setBeneficioDetalhes] = useState(null);
+  const [loadingBeneficioDetalhes, setLoadingBeneficioDetalhes] = useState(false);
+  const [exportingBeneficio, setExportingBeneficio] = useState(false);
   
   // Flags de desconsiderar ICMS - estado local
   const [desconsiderarDespesas, setDesconsiderarDespesas] = useState(false);
