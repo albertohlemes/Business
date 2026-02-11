@@ -243,6 +243,74 @@ const Documents = ({ user, onLogout }) => {
     }
   }, [globalResults, globalUploading]);
 
+  // Reagir quando o polling do AppContext detectar que o upload terminou
+  useEffect(() => {
+    if (globalUploadProgress.showResults && globalUploadProgress.completedResults) {
+      console.log('Documents: Polling global detectou conclusão, exibindo resultados');
+      
+      // Processar os resultados do polling global
+      const results = globalUploadProgress.completedResults;
+      const resumo = results.resumo || {};
+      const successList = results.success || [];
+      const errorsList = [
+        ...(results.errors || []),
+        ...(results.duplicadas || []).map(d => ({ arquivo: d.arquivo || d.filename, motivo: 'Documento duplicado', numero: d.numero })),
+        ...(results.rejeitadas_cnpj || []).map(d => ({ arquivo: d.arquivo || d.filename, motivo: `CNPJ não corresponde à empresa (encontrado: ${d.cnpj_encontrado})` }))
+      ];
+      const devolucoes = results.notas_desconsideradas_devolucao || [];
+      
+      // Contar canceladas
+      const canceladasCount = successList.filter(s => s.status === 'cancelada').length;
+      
+      setUploadResult({
+        tipo: 'xml',
+        total: resumo.total_arquivos || globalUploadProgress.total,
+        sucesso: resumo.importados || successList.length,
+        erros: (resumo.erros || 0) + (resumo.duplicados || 0) + (resumo.rejeitados_cnpj || 0),
+        canceladas: canceladasCount,
+        devolucoes: devolucoes.filter(d => d.tipo === 'devolucao_entrada' || !d.tipo).length,
+        processados: successList.map(s => ({
+          arquivo: s.arquivo || s.filename,
+          numero: s.numero || s.numero_nfe,
+          valor: s.valor || 0,
+          emitente: s.emitente || s.emitente_nome,
+          modelo: s.modelo,
+          status: s.status || 'ativa'
+        })),
+        rejeitados: errorsList.map(e => ({
+          arquivo: e.arquivo || e.filename,
+          motivo: e.motivo || e.erro || e.error || 'Erro desconhecido'
+        })),
+        notasDevolucao: devolucoes.map(d => ({
+          arquivo: d.filename,
+          numero: d.numero_nfe,
+          valor: d.valor_total || 0,
+          emitente: d.emitente || d.emitente_nome,
+          cfops: d.cfops || [],
+          nfeReferenciada: d.nfe_referenciada,
+          motivo: d.motivo,
+          tipo: d.tipo,
+          chaveNfe: d.chave_nfe,
+          vinculadaA: d.vinculada_a,
+          destinatario: d.destinatario,
+          dataEmissao: d.data_emissao
+        })),
+        alertas_cfop: results.alertas_cfop || [],
+        duplicadas: results.duplicadas || [],
+        rejeitadas_cnpj: results.rejeitadas_cnpj || [],
+        performance: results.performance || {}
+      });
+      setShowUploadResult(true);
+      setUploading(false);
+      
+      // Limpar os resultados do contexto global
+      clearUploadResults();
+      
+      // Recarregar documentos
+      fetchDocuments();
+    }
+  }, [globalUploadProgress.showResults, globalUploadProgress.completedResults]);
+
   // ========== UPLOAD COM SSE ==========
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files);
