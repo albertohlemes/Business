@@ -1496,6 +1496,46 @@ const Documents = ({ user, onLogout }) => {
     setTipoDoc(null);
     setDocuments([]);
   };
+  
+  // Exportar documentos por categoria
+  const handleExportCategoria = async (formato) => {
+    if (!ctxCompany || !selectedCompetencia || !operacao || !tipoDoc) return;
+    
+    setExportingCategoria(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/xml/exportar-categoria/${ctxCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}&operacao=${operacao}&tipo_doc=${tipoDoc}&formato=${formato}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      );
+      
+      // Criar link de download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const ext = formato === 'excel' ? 'xlsx' : 'pdf';
+      link.setAttribute('download', `${tipoDoc}_${operacao}_${selectedCompetencia.replace('/', '_')}.${ext}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`Relatório exportado com sucesso!`);
+    } catch (err) {
+      console.error('Erro ao exportar:', err);
+      if (err.response?.status === 404) {
+        toast.error('Nenhum documento encontrado para exportar');
+      } else {
+        toast.error('Erro ao exportar relatório');
+      }
+    } finally {
+      setExportingCategoria(false);
+    }
+  };
 
   // Obter configuração do tipo atual
   const getTipoConfig = () => {
