@@ -2232,113 +2232,102 @@ const Documents = ({ user, onLogout }) => {
                       Devoluções de Fornecedor
                       <span className="text-xs text-[#A1A1AA] font-normal">(Desconsideradas automaticamente)</span>
                     </h3>
-                    <p className="text-xs text-[#A1A1AA] mb-2">
+                    <p className="text-xs text-[#A1A1AA] mb-3">
                       Notas de entrada emitidas pelo fornecedor com CFOP de devolução - não contabilizadas como entrada de mercadoria.
                     </p>
                     
-                    {/* Separar por tipo */}
+                    {/* Tabela correlacionando devolução com nota original */}
                     {(() => {
                       const devolucoes = uploadResult.notasDevolucao.filter(d => d.tipo === 'devolucao_entrada' || !d.tipo);
                       const originaisEncontradas = uploadResult.notasDevolucao.filter(d => d.tipo === 'saida_original');
                       const originaisNaoEncontradas = uploadResult.notasDevolucao.filter(d => d.tipo === 'saida_original_nao_encontrada');
                       
+                      // Criar mapeamento de NF devolução -> NF original
+                      const correlacao = devolucoes.map(dev => {
+                        const original = originaisEncontradas.find(o => o.vinculadaA === dev.numero);
+                        const naoEncontrada = originaisNaoEncontradas.find(o => o.vinculadaA === dev.numero);
+                        return {
+                          devolucao: dev,
+                          original: original || null,
+                          naoEncontrada: naoEncontrada || null
+                        };
+                      });
+                      
                       return (
-                        <>
-                          {/* Notas de devolução do fornecedor */}
-                          {devolucoes.length > 0 && (
-                            <div className="mb-3">
-                              <p className="text-xs font-medium text-orange-300 mb-1">
-                                📥 Notas de Devolução Recebidas ({devolucoes.length})
-                              </p>
-                              <div className="space-y-1 max-h-[150px] overflow-y-auto">
-                                {devolucoes.map((item, idx) => (
-                                  <div key={idx} className="py-2 px-3 bg-orange-500/5 rounded border border-orange-500/20">
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-white truncate">
-                                          NF-e Nº {item.numero} 
-                                          {item.cfops && item.cfops.length > 0 && (
-                                            <span className="ml-2 text-xs text-orange-400">
-                                              CFOP: {item.cfops.join(', ')}
-                                            </span>
-                                          )}
-                                        </p>
-                                        <p className="text-xs text-[#A1A1AA] truncate">
-                                          Emitente: {item.emitente}
-                                        </p>
-                                        {item.nfeReferenciada && (
-                                          <p className="text-xs text-blue-300 mt-1">
-                                            🔗 Referencia NF Original: ...{item.nfeReferenciada.slice(-20)}
-                                          </p>
-                                        )}
-                                      </div>
-                                      <span className="text-sm font-medium text-orange-400 ml-2 line-through">
-                                        {formatCurrency(item.valor || 0)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
+                        <div className="border border-[#2A2A2A] rounded-lg overflow-hidden">
+                          {/* Cabeçalho da tabela */}
+                          <div className="grid grid-cols-2 bg-[#1A1A1A] border-b border-[#2A2A2A]">
+                            <div className="px-3 py-2 text-xs font-medium text-orange-400 border-r border-[#2A2A2A]">
+                              📥 Nota de Devolução (Entrada)
                             </div>
-                          )}
-                          
-                          {/* Notas originais que foram encontradas e excluídas */}
-                          {originaisEncontradas.length > 0 && (
-                            <div className="mb-3">
-                              <p className="text-xs font-medium text-emerald-300 mb-1">
-                                ✅ NFs Originais Encontradas e Desconsideradas ({originaisEncontradas.length})
-                              </p>
-                              <div className="space-y-1 max-h-[120px] overflow-y-auto">
-                                {originaisEncontradas.map((item, idx) => (
-                                  <div key={idx} className="py-2 px-3 bg-emerald-500/5 rounded border border-emerald-500/20">
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-white truncate">
-                                          NF-e Nº {item.numero}
-                                          <span className="ml-2 text-xs text-emerald-400">
-                                            (Vinculada à devolução NF {item.vinculadaA})
-                                          </span>
-                                        </p>
-                                        <p className="text-xs text-[#A1A1AA] truncate">
-                                          Destinatário: {item.destinatario || 'N/A'}
-                                        </p>
-                                      </div>
-                                      <span className="text-sm font-medium text-emerald-400 ml-2 line-through">
-                                        {formatCurrency(item.valor || 0)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
+                            <div className="px-3 py-2 text-xs font-medium text-blue-400">
+                              📤 NF Original Referenciada (Saída)
                             </div>
-                          )}
+                          </div>
                           
-                          {/* Notas originais NÃO encontradas - ALERTA */}
-                          {originaisNaoEncontradas.length > 0 && (
-                            <div className="mb-3">
-                              <p className="text-xs font-medium text-red-300 mb-1">
-                                ⚠️ NFs Originais NÃO Encontradas ({originaisNaoEncontradas.length})
-                              </p>
-                              <div className="space-y-1 max-h-[120px] overflow-y-auto">
-                                {originaisNaoEncontradas.map((item, idx) => (
-                                  <div key={idx} className="py-2 px-3 bg-red-500/10 rounded border border-red-500/30">
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm text-white truncate">
-                                        Chave: ...{item.chaveNfe?.slice(-25) || 'N/A'}
+                          {/* Linhas */}
+                          <div className="max-h-[200px] overflow-y-auto">
+                            {correlacao.map((item, idx) => (
+                              <div key={idx} className="grid grid-cols-2 border-b border-[#2A2A2A] last:border-b-0">
+                                {/* Coluna Devolução */}
+                                <div className="px-3 py-2 border-r border-[#2A2A2A] bg-orange-500/5">
+                                  <p className="text-sm text-white font-medium">
+                                    NF {item.devolucao.numero}
+                                  </p>
+                                  <p className="text-xs text-[#A1A1AA] truncate">
+                                    {item.devolucao.emitente}
+                                  </p>
+                                  {item.devolucao.cfops && item.devolucao.cfops.length > 0 && (
+                                    <p className="text-xs text-orange-400">
+                                      CFOP: {item.devolucao.cfops.join(', ')}
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-orange-400 line-through mt-1">
+                                    {formatCurrency(item.devolucao.valor || 0)}
+                                  </p>
+                                </div>
+                                
+                                {/* Coluna NF Original */}
+                                <div className={`px-3 py-2 ${item.original ? 'bg-emerald-500/5' : item.naoEncontrada ? 'bg-red-500/5' : 'bg-[#0C0C0C]'}`}>
+                                  {item.original ? (
+                                    <>
+                                      <p className="text-sm text-white font-medium flex items-center gap-1">
+                                        <span className="text-emerald-400">✓</span> NF {item.original.numero}
                                       </p>
-                                      <p className="text-xs text-red-300 truncate">
-                                        Referenciada na devolução NF {item.vinculadaA}
+                                      <p className="text-xs text-[#A1A1AA] truncate">
+                                        {item.original.destinatario || 'N/A'}
+                                      </p>
+                                      <p className="text-xs text-emerald-400 mt-1">
+                                        Desconsiderada automaticamente
+                                      </p>
+                                    </>
+                                  ) : item.naoEncontrada ? (
+                                    <>
+                                      <p className="text-sm text-red-300 font-medium flex items-center gap-1">
+                                        <span>⚠️</span> Não encontrada
+                                      </p>
+                                      <p className="text-xs text-[#A1A1AA] truncate">
+                                        ...{item.naoEncontrada.chaveNfe?.slice(-20) || 'N/A'}
                                       </p>
                                       <p className="text-xs text-red-400/70 mt-1">
-                                        A nota original não foi importada. Importe-a para que seja desconsiderada automaticamente.
+                                        Importe a NF original
                                       </p>
-                                    </div>
-                                  </div>
-                                ))}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <p className="text-sm text-[#A1A1AA]">
+                                        Sem referência
+                                      </p>
+                                      <p className="text-xs text-[#666]">
+                                        NF de devolução não contém chave de referência
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </>
+                            ))}
+                          </div>
+                        </div>
                       );
                     })()}
                     
