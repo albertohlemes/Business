@@ -223,6 +223,11 @@ const Companies = ({ user, onLogout }) => {
       // Flags de desconsiderar ICMS
       desconsiderar_icms_despesas: company.desconsiderar_icms_despesas || false,
       desconsiderar_icms_st: company.desconsiderar_icms_st || false,
+      // === BENEFÍCIO FISCAL ICMS ===
+      beneficio_fiscal_icms: company.beneficio_fiscal_icms || false,
+      tipo_beneficio_fiscal: company.tipo_beneficio_fiscal || '',
+      produtos_sem_credito_icms: company.produtos_sem_credito_icms || [],
+      produtos_sem_credito_descricao: company.produtos_sem_credito_descricao || '',
       // Classificação inteligente
       classificacao_inteligente: company.classificacao_inteligente || '',
       // Presunção por atividade
