@@ -129,14 +129,13 @@ const CompanySelector = () => {
                 <p className="text-[#A1A1AA] text-xs">Escolha a empresa e competência</p>
               </div>
             </div>
-            {selectedCompany && (
-              <button 
-                onClick={closeSelector}
-                className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
+            <button 
+              onClick={closeSelector}
+              className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              title="Fechar"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
