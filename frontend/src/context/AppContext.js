@@ -154,8 +154,18 @@ export const AppProvider = ({ children }) => {
       total: 0,
       companyName: '',
       tipo: '',
-      error: null
+      error: null,
+      completedResults: null,
+      showResults: false
     });
+  };
+
+  const clearUploadResults = () => {
+    setUploadProgress(prev => ({
+      ...prev,
+      completedResults: null,
+      showResults: false
+    }));
   };
 
   // Polling persistente para acompanhar upload mesmo ao navegar
