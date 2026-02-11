@@ -3431,6 +3431,305 @@ async def delete_user_permanent(
     return {"status": "ok", "message": f"Usuário {existing['name']} excluído permanentemente"}
 
 
+# ============= ENDPOINTS DE PERMISSÕES =============
+
+@api_router.get("/auth/permissions/available")
+async def get_available_permissions(current_user: User = Depends(get_current_user)):
+    """
+    Retorna todas as permissões disponíveis no sistema, organizadas por módulo.
+    """
+    permissions_by_module = {
+        "dashboard": {
+            "label": "Dashboard",
+            "permissions": [
+                {"key": PermissionFlags.DASHBOARD_VIEW, "label": "Visualizar Dashboard", "description": "Acesso ao painel principal"},
+                {"key": PermissionFlags.DASHBOARD_EXPORT, "label": "Exportar Dashboard", "description": "Exportar dados do dashboard"},
+            ]
+        },
+        "documents": {
+            "label": "Documentos",
+            "permissions": [
+                {"key": PermissionFlags.DOCUMENTS_VIEW, "label": "Visualizar Documentos", "description": "Ver lista de documentos"},
+                {"key": PermissionFlags.DOCUMENTS_UPLOAD, "label": "Upload de Documentos", "description": "Importar XMLs"},
+                {"key": PermissionFlags.DOCUMENTS_EDIT, "label": "Editar Documentos", "description": "Modificar dados de documentos"},
+                {"key": PermissionFlags.DOCUMENTS_DELETE, "label": "Excluir Documentos", "description": "Remover documentos"},
+                {"key": PermissionFlags.DOCUMENTS_EXPORT, "label": "Exportar Documentos", "description": "Exportar para Excel/PDF"},
+            ]
+        },
+        "classification": {
+            "label": "Classificação",
+            "permissions": [
+                {"key": PermissionFlags.CLASSIFICATION_VIEW, "label": "Visualizar Classificação", "description": "Ver classificação de produtos"},
+                {"key": PermissionFlags.CLASSIFICATION_EDIT, "label": "Editar Classificação", "description": "Alterar categoria de produtos"},
+                {"key": PermissionFlags.CLASSIFICATION_AI, "label": "Usar IA", "description": "Usar classificação por inteligência artificial"},
+                {"key": PermissionFlags.CLASSIFICATION_BULK, "label": "Classificação em Lote", "description": "Classificar múltiplos produtos"},
+            ]
+        },
+        "icms": {
+            "label": "ICMS",
+            "permissions": [
+                {"key": PermissionFlags.ICMS_VIEW, "label": "Visualizar ICMS", "description": "Ver apuração de ICMS"},
+                {"key": PermissionFlags.ICMS_EDIT, "label": "Editar ICMS", "description": "Ajustar valores de ICMS"},
+                {"key": PermissionFlags.ICMS_EXPORT, "label": "Exportar ICMS", "description": "Exportar relatório de ICMS"},
+            ]
+        },
+        "pis_cofins": {
+            "label": "PIS/COFINS",
+            "permissions": [
+                {"key": PermissionFlags.PIS_COFINS_VIEW, "label": "Visualizar PIS/COFINS", "description": "Ver apuração de PIS/COFINS"},
+                {"key": PermissionFlags.PIS_COFINS_EDIT, "label": "Editar PIS/COFINS", "description": "Ajustar valores de PIS/COFINS"},
+                {"key": PermissionFlags.PIS_COFINS_EXPORT, "label": "Exportar PIS/COFINS", "description": "Exportar relatório de PIS/COFINS"},
+            ]
+        },
+        "ret": {
+            "label": "RET",
+            "permissions": [
+                {"key": PermissionFlags.RET_VIEW, "label": "Visualizar RET", "description": "Ver comparativo de regimes tributários"},
+                {"key": PermissionFlags.RET_EDIT, "label": "Editar RET", "description": "Ajustar parâmetros do RET"},
+                {"key": PermissionFlags.RET_EXPORT, "label": "Exportar RET", "description": "Exportar relatório do RET"},
+            ]
+        },
+        "reports": {
+            "label": "Relatórios",
+            "permissions": [
+                {"key": PermissionFlags.REPORTS_VIEW, "label": "Visualizar Relatórios", "description": "Acessar área de relatórios"},
+                {"key": PermissionFlags.REPORTS_EXPORT, "label": "Exportar Relatórios", "description": "Baixar relatórios"},
+                {"key": PermissionFlags.REPORTS_GENERATE, "label": "Gerar Relatórios", "description": "Criar novos relatórios"},
+            ]
+        },
+        "sped": {
+            "label": "SPED",
+            "permissions": [
+                {"key": PermissionFlags.SPED_VIEW, "label": "Visualizar SPED", "description": "Ver dados do SPED"},
+                {"key": PermissionFlags.SPED_GENERATE, "label": "Gerar SPED", "description": "Gerar arquivo SPED"},
+                {"key": PermissionFlags.SPED_VALIDATE, "label": "Validar SPED", "description": "Validar arquivo SPED"},
+            ]
+        },
+        "companies": {
+            "label": "Empresas",
+            "permissions": [
+                {"key": PermissionFlags.COMPANIES_VIEW, "label": "Visualizar Empresas", "description": "Ver lista de empresas"},
+                {"key": PermissionFlags.COMPANIES_CREATE, "label": "Criar Empresas", "description": "Cadastrar novas empresas"},
+                {"key": PermissionFlags.COMPANIES_EDIT, "label": "Editar Empresas", "description": "Modificar dados de empresas"},
+                {"key": PermissionFlags.COMPANIES_DELETE, "label": "Excluir Empresas", "description": "Remover empresas"},
+                {"key": PermissionFlags.ALL_COMPANIES, "label": "Todas as Empresas", "description": "Acesso a todas as empresas do sistema"},
+            ]
+        },
+        "users": {
+            "label": "Usuários",
+            "permissions": [
+                {"key": PermissionFlags.USERS_VIEW, "label": "Visualizar Usuários", "description": "Ver lista de usuários"},
+                {"key": PermissionFlags.USERS_CREATE, "label": "Criar Usuários", "description": "Cadastrar novos usuários"},
+                {"key": PermissionFlags.USERS_EDIT, "label": "Editar Usuários", "description": "Modificar dados de usuários"},
+                {"key": PermissionFlags.USERS_DELETE, "label": "Excluir Usuários", "description": "Remover usuários"},
+                {"key": PermissionFlags.USERS_PERMISSIONS, "label": "Gerenciar Permissões", "description": "Alterar permissões de usuários"},
+            ]
+        },
+        "settings": {
+            "label": "Configurações",
+            "permissions": [
+                {"key": PermissionFlags.SETTINGS_VIEW, "label": "Visualizar Configurações", "description": "Ver configurações do sistema"},
+                {"key": PermissionFlags.SETTINGS_EDIT, "label": "Editar Configurações", "description": "Alterar configurações do sistema"},
+            ]
+        },
+    }
+    
+    return {
+        "modules": permissions_by_module,
+        "roles": {
+            "super_admin": {"label": "Super Admin", "description": "Acesso total ao sistema"},
+            "admin": {"label": "Administrador", "description": "Acesso total ao sistema"},
+            "master": {"label": "Master", "description": "Acesso a todas as empresas, gerencia usuários"},
+            "operacional": {"label": "Operacional", "description": "Acesso às empresas vinculadas"},
+            "client": {"label": "Cliente", "description": "Acesso limitado para visualização"},
+        },
+        "default_permissions": DEFAULT_PERMISSIONS
+    }
+
+
+@api_router.get("/auth/users/{user_id}/permissions")
+async def get_user_permissions_endpoint(
+    user_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna as permissões efetivas de um usuário específico.
+    """
+    # Verificar se pode ver permissões
+    if not has_permission(current_user.model_dump(), PermissionFlags.USERS_PERMISSIONS):
+        if current_user.id != user_id:
+            raise HTTPException(status_code=403, detail="Sem permissão para ver permissões de outros usuários")
+    
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    effective_permissions = get_user_permissions(user)
+    role_default = DEFAULT_PERMISSIONS.get(user.get('role', 'operacional'), [])
+    
+    return {
+        "user_id": user_id,
+        "user_name": user.get('name'),
+        "role": user.get('role'),
+        "role_permissions": role_default,
+        "custom_permissions": user.get('permissions', []),
+        "denied_permissions": user.get('denied_permissions', []),
+        "effective_permissions": effective_permissions,
+        "has_full_access": "*" in effective_permissions
+    }
+
+
+@api_router.put("/auth/users/{user_id}/permissions")
+async def update_user_permissions(
+    user_id: str,
+    permissions_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Atualiza as permissões customizadas de um usuário.
+    
+    Body:
+    {
+        "permissions": ["permission.key", ...],      // Permissões adicionais
+        "denied_permissions": ["permission.key", ...]  // Permissões negadas
+    }
+    """
+    # Verificar se pode editar permissões
+    if not has_permission(current_user.model_dump(), PermissionFlags.USERS_PERMISSIONS):
+        raise HTTPException(status_code=403, detail="Sem permissão para gerenciar permissões")
+    
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    # Não pode editar permissões de super_admin (exceto se for super_admin)
+    if user.get('role') == 'super_admin' and current_user.role != 'super_admin':
+        raise HTTPException(status_code=403, detail="Apenas Super Admin pode editar permissões de Super Admin")
+    
+    update_fields = {}
+    
+    if 'permissions' in permissions_data:
+        update_fields['permissions'] = permissions_data['permissions']
+    
+    if 'denied_permissions' in permissions_data:
+        update_fields['denied_permissions'] = permissions_data['denied_permissions']
+    
+    if update_fields:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": update_fields}
+        )
+        
+        # Registrar no audit log
+        await db.audit_log.insert_one({
+            "id": str(uuid.uuid4()),
+            "action": "permissions_updated",
+            "entity_type": "user",
+            "entity_id": user_id,
+            "user_id": current_user.id,
+            "user_name": current_user.name,
+            "details": {
+                "permissions_added": permissions_data.get('permissions', []),
+                "permissions_denied": permissions_data.get('denied_permissions', [])
+            },
+            "timestamp": datetime.now(timezone.utc)
+        })
+    
+    # Buscar usuário atualizado
+    updated_user = await db.users.find_one({"id": user_id})
+    effective = get_user_permissions(updated_user)
+    
+    return {
+        "success": True,
+        "message": f"Permissões de {user.get('name')} atualizadas",
+        "effective_permissions": effective
+    }
+
+
+@api_router.post("/auth/users/{user_id}/permissions/toggle")
+async def toggle_user_permission(
+    user_id: str,
+    toggle_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Liga/desliga uma permissão específica para um usuário.
+    
+    Body:
+    {
+        "permission": "permission.key",
+        "enabled": true/false
+    }
+    """
+    if not has_permission(current_user.model_dump(), PermissionFlags.USERS_PERMISSIONS):
+        raise HTTPException(status_code=403, detail="Sem permissão para gerenciar permissões")
+    
+    permission_key = toggle_data.get('permission')
+    enabled = toggle_data.get('enabled', True)
+    
+    if not permission_key:
+        raise HTTPException(status_code=400, detail="Permissão não especificada")
+    
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    current_permissions = set(user.get('permissions', []))
+    current_denied = set(user.get('denied_permissions', []))
+    role_default = set(DEFAULT_PERMISSIONS.get(user.get('role', 'operacional'), []))
+    
+    if enabled:
+        # Adicionar permissão
+        if permission_key in role_default:
+            # Se já é padrão do role, apenas remover da lista de negados
+            current_denied.discard(permission_key)
+        else:
+            # Adicionar como permissão customizada
+            current_permissions.add(permission_key)
+            current_denied.discard(permission_key)
+    else:
+        # Remover/negar permissão
+        if permission_key in role_default:
+            # Se é padrão do role, adicionar à lista de negados
+            current_denied.add(permission_key)
+        else:
+            # Apenas remover da lista de permissões customizadas
+            current_permissions.discard(permission_key)
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "permissions": list(current_permissions),
+            "denied_permissions": list(current_denied)
+        }}
+    )
+    
+    # Registrar no audit log
+    await db.audit_log.insert_one({
+        "id": str(uuid.uuid4()),
+        "action": "permission_toggled",
+        "entity_type": "user",
+        "entity_id": user_id,
+        "user_id": current_user.id,
+        "user_name": current_user.name,
+        "details": {
+            "permission": permission_key,
+            "enabled": enabled
+        },
+        "timestamp": datetime.now(timezone.utc)
+    })
+    
+    updated_user = await db.users.find_one({"id": user_id})
+    effective = get_user_permissions(updated_user)
+    
+    return {
+        "success": True,
+        "permission": permission_key,
+        "enabled": enabled,
+        "effective_permissions": effective
+    }
+
+
 @api_router.post("/auth/users/cleanup-inactive")
 async def cleanup_inactive_users(
     current_user: User = Depends(get_current_user)
