@@ -2351,26 +2351,81 @@ const Documents = ({ user, onLogout }) => {
               <div className="p-4 border-t border-[#2A2A2A] flex gap-3">
                 {/* Botão de Download do Relatório - CSV */}
                 {((uploadResult.processados && uploadResult.processados.length > 0) || 
-                  (uploadResult.rejeitados && uploadResult.rejeitados.length > 0)) && (
+                  (uploadResult.rejeitados && uploadResult.rejeitados.length > 0) ||
+                  (uploadResult.notasDevolucao && uploadResult.notasDevolucao.length > 0)) && (
                   <>
                     <button
                       onClick={() => {
-                        // Gerar CSV do relatório
-                        let csv = 'Status,Arquivo,Número,Emitente,Valor,Motivo\n';
+                        // Gerar CSV completo do relatório - fiel à tela
+                        let csv = '';
                         
-                        if (uploadResult.processados) {
+                        // Resumo
+                        csv += 'RESUMO DA IMPORTAÇÃO\n';
+                        csv += `Total de Arquivos,${uploadResult.total || 0}\n`;
+                        csv += `Importados,${uploadResult.sucesso || 0}\n`;
+                        const totalAtivo = (uploadResult.sucesso || 0) - (uploadResult.canceladas || 0) - (uploadResult.devolucoes || 0);
+                        csv += `Ativos (Dashboard),${totalAtivo}\n`;
+                        csv += `Canceladas,${uploadResult.canceladas || 0}\n`;
+                        csv += `Devoluções,${uploadResult.devolucoes || 0}\n`;
+                        csv += `Rejeitados,${uploadResult.erros || 0}\n`;
+                        csv += '\n';
+                        
+                        // Documentos Importados
+                        if (uploadResult.processados && uploadResult.processados.length > 0) {
+                          csv += 'DOCUMENTOS IMPORTADOS\n';
+                          csv += 'Status,Arquivo,Número,Emitente,Modelo,Valor\n';
                           uploadResult.processados.forEach(item => {
-                            csv += `Aceito,"${item.arquivo || ''}","${item.numero || ''}","${item.emitente || ''}",${item.valor || 0},""\n`;
+                            const status = item.status === 'cancelada' ? 'Cancelada' : 'Ativa';
+                            csv += `${status},"${item.arquivo || ''}","${item.numero || ''}","${(item.emitente || '').replace(/"/g, '""')}","${item.modelo || ''}",${item.valor || 0}\n`;
                           });
+                          csv += '\n';
                         }
                         
-                        if (uploadResult.rejeitados) {
+                        // Rejeitados
+                        if (uploadResult.rejeitados && uploadResult.rejeitados.length > 0) {
+                          csv += 'DOCUMENTOS REJEITADOS\n';
+                          csv += 'Arquivo,Motivo\n';
                           uploadResult.rejeitados.forEach(item => {
-                            csv += `Rejeitado,"${item.arquivo || ''}","","","","${(item.motivo || '').replace(/"/g, '""')}"\n`;
+                            csv += `"${item.arquivo || ''}","${(item.motivo || '').replace(/"/g, '""')}"\n`;
                           });
+                          csv += '\n';
                         }
                         
-                        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                        // Devoluções - correlacionadas
+                        if (uploadResult.notasDevolucao && uploadResult.notasDevolucao.length > 0) {
+                          const devolucoes = uploadResult.notasDevolucao.filter(d => d.tipo === 'devolucao_entrada' || !d.tipo);
+                          const originaisEncontradas = uploadResult.notasDevolucao.filter(d => d.tipo === 'saida_original');
+                          const originaisNaoEncontradas = uploadResult.notasDevolucao.filter(d => d.tipo === 'saida_original_nao_encontrada');
+                          
+                          if (devolucoes.length > 0) {
+                            csv += 'DEVOLUÇÕES DE FORNECEDOR (Correlacionadas)\n';
+                            csv += 'NF Devolução (Entrada),Emitente,CFOP,Valor Desconsiderado,Status NF Original,NF Original,Observação\n';
+                            
+                            devolucoes.forEach(dev => {
+                              const original = originaisEncontradas.find(o => o.vinculadaA === dev.numero);
+                              const naoEncontrada = originaisNaoEncontradas.find(o => o.vinculadaA === dev.numero);
+                              
+                              let statusOriginal = 'Sem referência';
+                              let nfOriginal = '-';
+                              let obs = 'NF de devolução não contém chave de referência';
+                              
+                              if (original) {
+                                statusOriginal = 'Encontrada';
+                                nfOriginal = original.numero || '-';
+                                obs = 'Desconsiderada automaticamente';
+                              } else if (naoEncontrada) {
+                                statusOriginal = 'NÃO Encontrada';
+                                nfOriginal = `...${(naoEncontrada.chaveNfe || '').slice(-20)}`;
+                                obs = 'Importe a NF original para desconsiderar';
+                              }
+                              
+                              csv += `"${dev.numero || ''}","${(dev.emitente || '').replace(/"/g, '""')}","${(dev.cfops || []).join('; ')}",${dev.valor || 0},"${statusOriginal}","${nfOriginal}","${obs}"\n`;
+                            });
+                            csv += '\n';
+                          }
+                        }
+                        
+                        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
