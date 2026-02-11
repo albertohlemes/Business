@@ -17,11 +17,19 @@ const ExportMenu = ({ user, onLogout }) => {
   const [availableCompetencias, setAvailableCompetencias] = useState([]);
   const [activeTab, setActiveTab] = useState('sped'); // sped, entrada, saida, relatorios
   const [excluirCreditosDespesaST, setExcluirCreditosDespesaST] = useState(true); // Default: excluir
+  const [aplicarBeneficioFiscal, setAplicarBeneficioFiscal] = useState(false);
   const [validacao, setValidacao] = useState(null);
   const [loadingValidacao, setLoadingValidacao] = useState(false);
   const [corrigindoItem, setCorrigindoItem] = useState(null); // Item sendo corrigido
   const [modalCorrecao, setModalCorrecao] = useState(null); // Modal de correção
   const [itensSelecionados, setItensSelecionados] = useState(new Set()); // Itens selecionados para correção em lote
+  
+  // Sincronizar flag de benefício fiscal com empresa selecionada
+  useEffect(() => {
+    if (selectedCompany?.beneficio_fiscal_icms) {
+      setAplicarBeneficioFiscal(true);
+    }
+  }, [selectedCompany]);
   
   // Estados para relatórios agrupados por alíquota
   const [relatorioImposto, setRelatorioImposto] = useState('icms');
