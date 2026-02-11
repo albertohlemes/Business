@@ -6542,7 +6542,7 @@ async def delete_historico(
     return {"status": "ok", "message": "Registro excluído"}
 
 
-
+@api_router.get("/xml/documents")
 async def list_documents(
     company_id: Optional[str] = None,
     competencia: Optional[str] = None,
