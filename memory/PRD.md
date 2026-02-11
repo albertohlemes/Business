@@ -112,6 +112,43 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-12 (Sessão 22 - FASE 3: Wizard e Central de Alertas)
+
+**FASE 3 - Wizard de Configuração e Dashboard de Inconsistências:**
+
+**Novas Funcionalidades:**
+- ✅ **Central de Alertas (Dashboard de Inconsistências):**
+  - Nova página `/alertas` com análise de inconsistências fiscais
+  - Cards de resumo: Total de Alertas, Críticos, Avisos, Informações
+  - Filtros clicáveis por severidade
+  - Categorias de alertas: Classificação de Produtos, CFOPs Divergentes, Cálculos Fiscais, Prazos e Obrigações
+  - Ações rápidas: Classificar Produtos, Revisar Documentos, Apuração ICMS, PIS/COFINS
+  - Status "Tudo em ordem!" quando não há inconsistências
+  - Link no menu lateral com ícone de sino
+
+- ✅ **Wizard de Configuração de Empresa:**
+  - Nova página `/wizard-empresa` e `/wizard-empresa/:companyId`
+  - 6 etapas de configuração: Dados Básicos → Atividade → Tributação → Classificação → Benefícios → Finalizar
+  - Indicadores visuais de progresso com checkmarks
+  - Formulário completo com validação
+  - Palavras-chave para classificação automática
+  - Configuração de benefícios fiscais
+
+**Backend:**
+- ✅ **Endpoint de Inconsistências:** `GET /api/inconsistencias/{company_id}?competencia=MM/YYYY`
+  - Detecta produtos sem classificação
+  - Identifica CFOPs divergentes da categoria
+  - Verifica notas de saída com ICMS zerado
+  - Monitora prazos de entrega do SPED
+
+**Arquivos criados/modificados:**
+- `/app/frontend/src/pages/WizardEmpresa.js` - Componente wizard completo
+- `/app/frontend/src/pages/WizardEmpresaPage.js` - Página wrapper com Layout
+- `/app/frontend/src/pages/DashboardInconsistencias.js` - Dashboard de alertas
+- `/app/frontend/src/pages/AlertasPage.js` - Página wrapper com Layout
+- `/app/frontend/src/App.js` - Novas rotas adicionadas
+- `/app/frontend/src/components/Layout.js` - Link "Central de Alertas" no menu
+
 ### 2026-02-11 (Sessão 21 - Correções e Melhorias Diversas)
 
 **Novas Funcionalidades:**
