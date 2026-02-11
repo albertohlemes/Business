@@ -10983,6 +10983,64 @@ async def get_viloes_oportunidades(
     viloes_por_keyword.sort(key=lambda x: x['impacto_total'], reverse=True)
     oportunidades_por_keyword.sort(key=lambda x: x.get('beneficio_total', 0), reverse=True)
     
+    # Gerar análise geral automática
+    analise_geral = {
+        "conclusao": "",
+        "pontos_atencao": [],
+        "recomendacoes": []
+    }
+    
+    impacto_total_viloes = sum(v['impacto_total'] for v in viloes)
+    beneficio_total_oportunidades = sum(o['beneficio_total'] for o in oportunidades)
+    saldo_tributario = beneficio_total_oportunidades - impacto_total_viloes
+    
+    # Conclusão geral
+    if saldo_tributario > 0:
+        analise_geral["conclusao"] = f"📊 BALANÇO POSITIVO: A empresa tem mais créditos tributários do que débitos nos NCMs analisados. Saldo favorável de R$ {saldo_tributario:,.2f}."
+    elif saldo_tributario < -1000:
+        analise_geral["conclusao"] = f"⚠️ ATENÇÃO: A empresa tem um impacto tributário negativo significativo de R$ {abs(saldo_tributario):,.2f}. Os 'vilões' superam as 'oportunidades'."
+    else:
+        analise_geral["conclusao"] = f"📊 BALANÇO EQUILIBRADO: Diferença de R$ {abs(saldo_tributario):,.2f} entre débitos e créditos tributários."
+    
+    # Pontos de atenção
+    if viloes:
+        # Top 3 vilões
+        for i, v in enumerate(viloes[:3]):
+            if v['impacto_total'] > 500:
+                ponto = f"NCM {v['ncm']} ({v['descricao'][:30]}): Impacto de R$ {v['impacto_total']:,.2f}"
+                if v.get('margem_percentual', 0) < 15:
+                    ponto += f" | MARGEM BAIXA ({v.get('margem_percentual', 0):.1f}%) - RISCO DE PREJUÍZO"
+                analise_geral["pontos_atencao"].append(ponto)
+    
+    # Verificar margens apertadas
+    ncms_margem_baixa = [v for v in viloes if v.get('margem_percentual', 100) < 15 and v['impacto_total'] > 200]
+    if ncms_margem_baixa:
+        analise_geral["pontos_atencao"].append(f"🔴 {len(ncms_margem_baixa)} NCM(s) com margem abaixo de 15% e impacto tributário alto - revisar precificação urgente")
+    
+    # Verificar desequilíbrio entrada/saída
+    ncms_estoque = [v for v in viloes if v['entrada_valor'] > v['saida_valor'] * 2]
+    if ncms_estoque:
+        analise_geral["pontos_atencao"].append(f"📦 {len(ncms_estoque)} NCM(s) com compras muito superiores às vendas - verificar giro de estoque")
+    
+    # Recomendações
+    if impacto_total_viloes > 1000:
+        analise_geral["recomendacoes"].append("📋 Revisar precificação dos produtos 'vilões' considerando a carga tributária real")
+    
+    if any(v['icms'].get('impacto', 0) > 300 for v in viloes):
+        analise_geral["recomendacoes"].append("🏷️ Verificar se há benefícios fiscais de ICMS aplicáveis aos NCMs com maior impacto")
+    
+    if any(v['pis'].get('impacto', 0) + v['cofins'].get('impacto', 0) > 200 for v in viloes):
+        analise_geral["recomendacoes"].append("📊 Verificar se os NCMs vilões são monofásicos ou com alíquota reduzida de PIS/COFINS")
+    
+    if beneficio_total_oportunidades > 500:
+        analise_geral["recomendacoes"].append("💰 Aproveitar os créditos acumulados das 'oportunidades' para compensação tributária")
+    
+    # Análise por categoria
+    if viloes_por_keyword:
+        categorias_criticas = [k['keyword'].upper() for k in viloes_por_keyword[:3] if k['impacto_total'] > 300]
+        if categorias_criticas:
+            analise_geral["pontos_atencao"].append(f"📌 Categorias com maior impacto: {', '.join(categorias_criticas)}")
+    
     return {
         "empresa": company.get('razao_social', ''),
         "competencia": competencia,
@@ -10990,9 +11048,11 @@ async def get_viloes_oportunidades(
         "resumo": {
             "total_viloes": len(viloes),
             "total_oportunidades": len(oportunidades),
-            "impacto_total_viloes": round(sum(v['impacto_total'] for v in viloes), 2),
-            "beneficio_total_oportunidades": round(sum(o['beneficio_total'] for o in oportunidades), 2)
+            "impacto_total_viloes": round(impacto_total_viloes, 2),
+            "beneficio_total_oportunidades": round(beneficio_total_oportunidades, 2),
+            "saldo_tributario": round(saldo_tributario, 2)
         },
+        "analise_geral": analise_geral,
         "por_ncm": {
             "viloes": viloes[:20],
             "oportunidades": oportunidades[:20]
