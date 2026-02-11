@@ -850,31 +850,9 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 async def check_company_access(company: Dict, user: User, allow_view_only: bool = False) -> bool:
     """
     Verifica se o usuário tem acesso à empresa.
-    
-    Regras:
-    - super_admin, master, admin: acesso total a todas as empresas
-    - operacional: acesso às empresas onde é responsável, criou, ou tem no company_ids
-    
-    Args:
-        company: Dicionário com dados da empresa
-        user: Usuário atual
-        allow_view_only: Se True, permite apenas visualização (não bloqueia)
-        
-    Returns:
-        True se tem acesso, False caso contrário
+    TEMPORARIAMENTE DESABILITADO - Todos têm acesso total
     """
-    # Admin e Master têm acesso total
-    if user.role in ["super_admin", "master", "admin"]:
-        return True
-    
-    # Operacional: verifica acesso específico
-    has_access = (
-        user.id in company.get('responsavel_ids', []) or
-        company.get('created_by') == user.id or
-        company.get('cnpj', '') in (user.company_ids or [])
-    )
-    
-    return has_access
+    return True  # Acesso liberado para todos
 
 
 async def verify_company_access(company_id: str, user: User, action: str = "acessar") -> Dict:
