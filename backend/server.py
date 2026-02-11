@@ -6653,24 +6653,37 @@ async def get_historico_importacoes(
         
         documentos_preview = []
         valor_total = 0
+        modelos = []
         
-        for doc in success_docs[:5]:  # Limitar a 5 documentos no preview
-            doc_preview = {
-                "numero": doc.get("numero") or doc.get("numero_nfe"),
-                "emitente": doc.get("emitente") or doc.get("emitente_nome"),
-                "valor": doc.get("valor", 0),
-                "modelo": doc.get("modelo") or doc.get("modelo_doc") or "55"
-            }
-            documentos_preview.append(doc_preview)
-            valor_total += doc.get("valor", 0)
+        # Buscar dados completos dos documentos importados no xml_documents
+        for doc_info in success_docs[:5]:  # Limitar a 5 documentos no preview
+            chave = doc_info.get("chave", "")
+            
+            # Buscar o documento completo pelo chave_acesso
+            doc_completo = await db.xml_documents.find_one(
+                {"$or": [{"chave_acesso": chave}, {"chave_nfe": chave}]},
+                {"_id": 0, "xml_content": 0}
+            )
+            
+            if doc_completo:
+                doc_preview = {
+                    "numero": doc_completo.get("numero_nfe") or doc_completo.get("numero"),
+                    "emitente": doc_completo.get("emitente_nome") or doc_completo.get("emitente"),
+                    "valor": doc_completo.get("valor_nota", 0) or doc_completo.get("valor_total", 0),
+                    "modelo": doc_completo.get("modelo") or doc_completo.get("modelo_doc") or "55"
+                }
+                documentos_preview.append(doc_preview)
+                valor_total += doc_preview["valor"]
+                if doc_preview["modelo"]:
+                    modelos.append(doc_preview["modelo"])
         
-        # Calcular valor total de todos os documentos (não só preview)
-        for doc in success_docs:
-            if doc not in success_docs[:5]:
-                valor_total += doc.get("valor", 0)
+        # Calcular valor total aproximado
+        if len(success_docs) > 5:
+            # Extrapolar valor baseado na média dos primeiros 5
+            media = valor_total / 5 if valor_total > 0 else 0
+            valor_total = media * len(success_docs)
         
-        # Extrair modelo predominante
-        modelos = [d.get("modelo") or d.get("modelo_doc") for d in success_docs if d.get("modelo") or d.get("modelo_doc")]
+        # Modelo predominante
         modelo_predominante = max(set(modelos), key=modelos.count) if modelos else None
         
         # Adicionar item processado (sem o relatório completo pesado)
