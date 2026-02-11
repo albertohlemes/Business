@@ -86,6 +86,17 @@ class UserRole:
     MASTER = "master"         # Usuário master (vê todas as empresas, pode atribuir responsáveis)
     OPERACIONAL = "operacional"  # Usuário operacional (só vê empresas que cadastrou)
     CLIENT = "client"         # Cliente legado (compatibilidade)
+    SUPER_ADMIN = "super_admin"  # Super administrador legado
+    
+    @classmethod
+    def is_admin(cls, role: str) -> bool:
+        """Verifica se o role tem privilégios de administrador total"""
+        return role in [cls.ADMIN, cls.SUPER_ADMIN, 'super_admin', 'admin']
+    
+    @classmethod
+    def has_full_access(cls, role: str) -> bool:
+        """Verifica se o role tem acesso total a todas as empresas"""
+        return role in [cls.ADMIN, cls.SUPER_ADMIN, cls.MASTER, 'super_admin', 'admin', 'master']
 
 class User(BaseModel):
     model_config = ConfigDict(extra="ignore")
