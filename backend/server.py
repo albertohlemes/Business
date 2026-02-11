@@ -4811,10 +4811,40 @@ async def upload_xml_batch(
                     'motivo': f"CFOP {cfop_original} ({CFOPS_OPERACOES_DISTINTAS_UPLOAD[cfop_original]}) → {cfop_convertido}"
                 })
             
-            # 3. CLASSIFICAR COM CACHE + IA (OTIMIZADO)
-            if produtos_para_classificar and tipo == 'entrada':
+            # 3. PRÉ-PROCESSAR PRODUTOS COM CFOP DE DEVOLUÇÃO
+            # CFOPs de devolução devem ser classificados como "devolucao" ANTES da IA
+            produtos_para_ia = []
+            for product in produtos_para_classificar:
+                cfop_original = product.get('cfop', '')
+                categoria_cfop = obter_categoria_por_cfop(cfop_original)
+                
+                if categoria_cfop == 'devolucao':
+                    # CFOP de devolução: classificar diretamente como devolução
+                    product['cfop_original'] = cfop_original
+                    product['categoria_classificada'] = 'devolucao'
+                    product['justificativa_ia'] = f'CFOP {cfop_original} é devolução - classificação automática'
+                    product['status_validacao'] = 'validado'
+                    
+                    file_conversions.append({
+                        'produto': product.get('descricao', ''),
+                        'codigo': product.get('codigo', ''),
+                        'cfop_original': cfop_original,
+                        'cfop_convertido': cfop_original,
+                        'categoria': 'devolucao',
+                        'motivo': f'CFOP {cfop_original} - Devolução (classificação automática)',
+                        'origem': 'cfop'
+                    })
+                    
+                    total_stats["from_rules"] += 1
+                    total_stats["total"] += 1
+                else:
+                    # Outros produtos: enviar para classificação IA
+                    produtos_para_ia.append(product)
+            
+            # 4. CLASSIFICAR COM CACHE + IA (OTIMIZADO) - apenas produtos não de devolução
+            if produtos_para_ia and tipo == 'entrada':
                 classifications, stats = await classify_products_with_cache(
-                    produtos_para_classificar, 
+                    produtos_para_ia, 
                     company_id, 
                     company, 
                     emitente_uf
@@ -4830,7 +4860,7 @@ async def upload_xml_batch(
                 print(f"📊 Classificação: {stats['from_cache']} do cache, {stats['from_rules']} de regras, {stats['from_ai']} da IA")
                 
                 # Aplicar classificações
-                for idx, product in enumerate(produtos_para_classificar):
+                for idx, product in enumerate(produtos_para_ia):
                     p_id = str(idx)
                     if p_id in classifications:
                         result = classifications[p_id]
