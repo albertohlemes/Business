@@ -6143,22 +6143,23 @@ async def upload_xml_with_progress(
             doc = xml_doc.model_dump()
             doc['uploaded_at'] = doc['uploaded_at'].isoformat()
             
-            # ==== VERIFICAR SE HÁ EVENTO DE CANCELAMENTO PENDENTE ====
+            # ==== VERIFICAR SE HÁ EVENTO DE CANCELAMENTO PENDENTE (usando cache) ====
             chave_nfe = parsed_data.get('chave_nfe', '')
-            if chave_nfe:
-                evento_cancelamento = await db.eventos_cancelamento.find_one({"chave_nfe": chave_nfe})
-                if evento_cancelamento:
-                    # Marcar nota como cancelada
-                    doc['cancelada'] = True
-                    doc['data_cancelamento'] = evento_cancelamento.get('data_cancelamento', '')
-                    doc['justificativa_cancelamento'] = evento_cancelamento.get('justificativa', '')
-                    doc['protocolo_cancelamento'] = evento_cancelamento.get('protocolo', '')
-                    
-                    # Marcar evento como processado
-                    await db.eventos_cancelamento.update_one(
-                        {"chave_nfe": chave_nfe},
-                        {"$set": {"processado": True}}
-                    )
+            if chave_nfe and chave_nfe in eventos_cancelamento_cache:
+                evento_cancelamento = eventos_cancelamento_cache[chave_nfe]
+                # Marcar nota como cancelada
+                doc['cancelada'] = True
+                doc['data_cancelamento'] = evento_cancelamento.get('data_cancelamento', '')
+                doc['justificativa_cancelamento'] = evento_cancelamento.get('justificativa', '')
+                doc['protocolo_cancelamento'] = evento_cancelamento.get('protocolo', '')
+                
+                # Marcar evento como processado (em lote depois, ou agora)
+                await db.eventos_cancelamento.update_one(
+                    {"chave_nfe": chave_nfe},
+                    {"$set": {"processado": True}}
+                )
+                # Remover do cache para não processar novamente
+                del eventos_cancelamento_cache[chave_nfe]
             
             # ==== MARCAR COMO DESCONSIDERADA SE FOR DEVOLUÇÃO DO FORNECEDOR ====
             if is_devolucao_fornecedor:
