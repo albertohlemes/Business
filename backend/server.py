@@ -13077,7 +13077,7 @@ async def report_by_ncm(
 
 @api_router.post("/cfop/rules", response_model=CFOPRule)
 async def create_cfop_rule(rule_data: CFOPRule, current_user: User = Depends(get_current_user)):
-    if current_user.role != UserRole.ADMIN:
+    if not UserRole.has_full_access(current_user.role):
         raise HTTPException(status_code=403, detail="Apenas administradores podem criar regras")
     
     doc = rule_data.model_dump()
@@ -14593,7 +14593,7 @@ async def export_csv_saida(
 ):
     """Exportar CSV de Saídas (Layout Personalizado)"""
     # Verify company access
-    if current_user.role != UserRole.ADMIN:
+    if not UserRole.has_full_access(current_user.role):
         company = await db.companies.find_one({"id": company_id})
         if not company or company['cnpj'] not in current_user.company_ids:
              raise HTTPException(status_code=403, detail="Acesso negado")
@@ -14621,7 +14621,7 @@ async def export_csv_entrada(
 ):
     """Exportar CSV de Entradas (Layout Personalizado)"""
     # Verify company access
-    if current_user.role != UserRole.ADMIN:
+    if not UserRole.has_full_access(current_user.role):
         company = await db.companies.find_one({"id": company_id})
         if not company or company['cnpj'] not in current_user.company_ids:
              raise HTTPException(status_code=403, detail="Acesso negado")
@@ -14643,7 +14643,7 @@ async def export_csv_entrada(
 
 @api_router.post("/cfop/initialize")
 async def initialize_cfop_rules(current_user: User = Depends(get_current_user)):
-    if current_user.role != UserRole.ADMIN:
+    if not UserRole.has_full_access(current_user.role):
         raise HTTPException(status_code=403, detail="Apenas administradores podem executar esta ação")
     
     default_rules = [
@@ -14684,7 +14684,7 @@ async def initialize_cfop_rules(current_user: User = Depends(get_current_user)):
 @api_router.post("/db/reset")
 async def reset_database(current_user: User = Depends(get_current_user)):
     """Zera todas as tabelas do banco de dados (exceto usuários)"""
-    if current_user.role != UserRole.ADMIN:
+    if not UserRole.has_full_access(current_user.role):
         raise HTTPException(status_code=403, detail="Apenas administradores podem executar esta ação")
     
     # Deletar todas as collections (exceto users)
@@ -14923,7 +14923,7 @@ async def delete_all_learned_rules(
     current_user: User = Depends(get_current_user)
 ):
     """Exclui todas as regras aprendidas de uma empresa"""
-    if current_user.role != UserRole.ADMIN:
+    if not UserRole.has_full_access(current_user.role):
         raise HTTPException(status_code=403, detail="Apenas administradores podem excluir todas as regras")
     
     result = await db.learned_rules.delete_many({"company_id": company_id})
