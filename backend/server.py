@@ -1283,11 +1283,29 @@ def parse_xml_nfce(xml_content: str) -> Dict[str, Any]:
         data = xmltodict.parse(xml_content)
         
         # Tentar diferentes estruturas de NFC-e
-        nfce = data.get('nfeProc', {}).get('NFe', {}).get('infNFe', {})
+        nfce_proc = data.get('nfeProc', {})
+        nfce = nfce_proc.get('NFe', {}).get('infNFe', {})
         if not nfce:
             nfce = data.get('NFe', {}).get('infNFe', {})
         if not nfce:
             raise ValueError("Estrutura de XML NFC-e inválida")
+        
+        # Verificar cancelamento (NFC-e usa a mesma estrutura de NF-e)
+        cancelada = False
+        dados_cancelamento = {}
+        prot_nfe = nfce_proc.get('protNFe', {})
+        if prot_nfe:
+            inf_prot = prot_nfe.get('infProt', {})
+            if inf_prot:
+                c_stat = str(inf_prot.get('cStat', ''))
+                if c_stat in ['101', '151']:
+                    cancelada = True
+                    dados_cancelamento = {
+                        'cancelada': True,
+                        'cStat_cancelamento': c_stat,
+                        'xMotivo_cancelamento': inf_prot.get('xMotivo', ''),
+                        'status': 'cancelada'
+                    }
         
         ide = nfce.get('ide', {})
         emit = nfce.get('emit', {})
