@@ -122,7 +122,8 @@ const UsersPage = ({ user, onLogout }) => {
         const updateData = {
           name: formData.name,
           role: formData.role,
-          company_ids: formData.company_ids
+          company_ids: formData.company_ids,
+          atividades: formData.atividades
         };
         await axios.put(`${API}/auth/users/${editingUser.id}`, updateData, {
           headers: { Authorization: `Bearer ${token}` }
