@@ -828,17 +828,87 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                           <table className="w-full text-sm">
                             <thead className="bg-[#1A1A1A] sticky top-0">
                               <tr>
-                                <th className="px-3 py-3 text-left text-[#A1A1AA] font-medium">Produto</th>
-                                <th className="px-3 py-3 text-left text-[#A1A1AA] font-medium">NCM</th>
-                                <th className="px-3 py-3 text-center text-[#A1A1AA] font-medium">CFOP</th>
-                                <th className="px-3 py-3 text-center text-[#A1A1AA] font-medium">Notas</th>
-                                <th className="px-3 py-3 text-right text-[#A1A1AA] font-medium">Valor</th>
-                                <th className="px-3 py-3 text-right text-[#A1A1AA] font-medium">BC ICMS</th>
-                                <th className="px-3 py-3 text-right text-[#A1A1AA] font-medium">ICMS</th>
+                                <th 
+                                  className="px-3 py-3 text-left text-[#A1A1AA] font-medium cursor-pointer hover:bg-white/5 select-none"
+                                  onClick={() => handleProdutoSort('descricao')}
+                                >
+                                  <div className="flex items-center gap-1">
+                                    Produto
+                                    {beneficioProdutoSort.column === 'descricao' && (
+                                      beneficioProdutoSort.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                </th>
+                                <th 
+                                  className="px-3 py-3 text-left text-[#A1A1AA] font-medium cursor-pointer hover:bg-white/5 select-none"
+                                  onClick={() => handleProdutoSort('ncm')}
+                                >
+                                  <div className="flex items-center gap-1">
+                                    NCM
+                                    {beneficioProdutoSort.column === 'ncm' && (
+                                      beneficioProdutoSort.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                </th>
+                                <th 
+                                  className="px-3 py-3 text-center text-[#A1A1AA] font-medium cursor-pointer hover:bg-white/5 select-none"
+                                  onClick={() => handleProdutoSort('cfop')}
+                                >
+                                  <div className="flex items-center justify-center gap-1">
+                                    CFOP
+                                    {beneficioProdutoSort.column === 'cfop' && (
+                                      beneficioProdutoSort.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                </th>
+                                <th 
+                                  className="px-3 py-3 text-center text-[#A1A1AA] font-medium cursor-pointer hover:bg-white/5 select-none"
+                                  onClick={() => handleProdutoSort('qtd_notas')}
+                                >
+                                  <div className="flex items-center justify-center gap-1">
+                                    Notas
+                                    {beneficioProdutoSort.column === 'qtd_notas' && (
+                                      beneficioProdutoSort.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                </th>
+                                <th 
+                                  className="px-3 py-3 text-right text-[#A1A1AA] font-medium cursor-pointer hover:bg-white/5 select-none"
+                                  onClick={() => handleProdutoSort('valor_total')}
+                                >
+                                  <div className="flex items-center justify-end gap-1">
+                                    Valor
+                                    {beneficioProdutoSort.column === 'valor_total' && (
+                                      beneficioProdutoSort.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                </th>
+                                <th 
+                                  className="px-3 py-3 text-right text-[#A1A1AA] font-medium cursor-pointer hover:bg-white/5 select-none"
+                                  onClick={() => handleProdutoSort('bc_icms')}
+                                >
+                                  <div className="flex items-center justify-end gap-1">
+                                    BC ICMS
+                                    {beneficioProdutoSort.column === 'bc_icms' && (
+                                      beneficioProdutoSort.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                </th>
+                                <th 
+                                  className="px-3 py-3 text-right text-[#A1A1AA] font-medium cursor-pointer hover:bg-white/5 select-none"
+                                  onClick={() => handleProdutoSort('valor_icms')}
+                                >
+                                  <div className="flex items-center justify-end gap-1">
+                                    ICMS
+                                    {beneficioProdutoSort.column === 'valor_icms' && (
+                                      beneficioProdutoSort.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                </th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-[#2A2A2A]">
-                              {beneficioDetalhes.por_produto.map((item, idx) => (
+                              {sortedBeneficioProdutos.map((item, idx) => (
                                 <React.Fragment key={idx}>
                                   <tr className="hover:bg-white/5">
                                     <td className="px-3 py-3 text-white">
