@@ -12185,23 +12185,35 @@ async def classificar_produto_individual(
     
     # Salvar regra se solicitado
     if salvar_regra:
-        descricao_produto = produto.get('descricao', '')[:100].lower()
+        descricao_produto = produto.get('descricao', '')
         regra_existente = await db.learned_rules.find_one({
             "company_id": doc.get('company_id'),
-            "descricao_produto": descricao_produto
+            "produto_descricao": descricao_produto
         })
         
-        if not regra_existente:
+        if regra_existente:
+            # Atualizar regra existente
+            await db.learned_rules.update_one(
+                {"id": regra_existente['id']},
+                {"$set": {
+                    "categoria_correta": nova_categoria,
+                    "cfop_correto": cfop_novo,
+                    "motivo": f"Reclassificado manualmente por {current_user.email}",
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        else:
             await db.learned_rules.insert_one({
                 "id": str(uuid.uuid4()),
                 "company_id": doc.get('company_id'),
-                "descricao_produto": descricao_produto,
+                "produto_descricao": descricao_produto,
+                "produto_codigo": produto.get('codigo', ''),
                 "ncm": produto.get('ncm', ''),
-                "categoria": nova_categoria,
-                "cfop_sugerido": cfop_novo,
+                "categoria_correta": nova_categoria,
+                "cfop_correto": cfop_novo,
                 "aprendido_de": "user_manual_classification",
-                "created_by": current_user.id,
-                "created_at": datetime.now(timezone.utc)
+                "created_by": current_user.email,
+                "created_at": datetime.now(timezone.utc).isoformat()
             })
     
     return {
