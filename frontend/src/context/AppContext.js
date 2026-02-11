@@ -177,8 +177,15 @@ export const AppProvider = ({ children }) => {
         const data = response.data;
         
         if (data.completed === true && data.results) {
-          console.log('AppContext: Upload concluído!');
-          finishUpload();
+          console.log('AppContext: Upload concluído! Armazenando resultados.');
+          // Armazenar resultados para serem exibidos pelo Documents.js
+          setUploadProgress(prev => ({
+            ...prev,
+            isUploading: false,
+            percent: 100,
+            completedResults: data.results,
+            showResults: true
+          }));
         } else if (data.error) {
           setUploadError(data.error);
         } else {
