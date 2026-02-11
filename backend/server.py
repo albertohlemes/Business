@@ -18205,12 +18205,13 @@ async def apurar_pis_cofins(
                     ncms_debito[ncm]["qtd"] += 1
                     ncms_debito[ncm]["produtos"].add(descricao[:30])
                 
-                # Agrupar por CFOP + CST (saídas)
-                cfop_cst_key = f"{cfop} {cst_pis_xml or '01'}"
+                # Agrupar por CFOP + CST CALCULADO (saídas)
+                cst_calculado_saida = calc_real.get('cst', '01')
+                cfop_cst_key = f"{cfop} {cst_calculado_saida}"
                 if cfop_cst_key not in cfop_cst_agrupado:
                     cfop_cst_agrupado[cfop_cst_key] = {
                         "cfop": cfop,
-                        "cst": cst_pis_xml or '01',
+                        "cst": cst_calculado_saida,
                         "tipo": "SAIDA",
                         "valor_base": 0,
                         "valor_pis": 0,
