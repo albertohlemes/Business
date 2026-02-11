@@ -108,6 +108,12 @@ const Documents = ({ user, onLogout }) => {
   const [siegProgress, setSiegProgress] = useState({ step: '', percent: 0 });
   const [siegResult, setSiegResult] = useState(null);
   
+  // Histórico de importações
+  const [showHistorico, setShowHistorico] = useState(false);
+  const [historico, setHistorico] = useState([]);
+  const [historicoLoading, setHistoricoLoading] = useState(false);
+  const [historicoDetalhe, setHistoricoDetalhe] = useState(null);
+  
   // Ordenação
   const [sortField, setSortField] = useState('numero_nfe');
   const [sortDirection, setSortDirection] = useState('asc');
