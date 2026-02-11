@@ -309,6 +309,8 @@ class User(BaseModel):
     name: str
     role: str
     company_ids: List[str] = []        # CNPJs das empresas que o usuário tem acesso
+    permissions: List[str] = []        # Permissões customizadas adicionais
+    denied_permissions: List[str] = [] # Permissões explicitamente negadas
     created_by: Optional[str] = None   # ID do usuário que criou este usuário
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -318,6 +320,8 @@ class UserCreate(BaseModel):
     name: str
     role: str = UserRole.OPERACIONAL   # Novos usuários são operacionais por padrão
     company_ids: List[str] = []
+    permissions: List[str] = []
+    denied_permissions: List[str] = []
 
 class UserLogin(BaseModel):
     email: str
@@ -327,6 +331,8 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     role: Optional[str] = None
     company_ids: Optional[List[str]] = None
+    permissions: Optional[List[str]] = None
+    denied_permissions: Optional[List[str]] = None
 
 class Token(BaseModel):
     access_token: str
