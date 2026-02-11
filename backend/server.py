@@ -23455,6 +23455,235 @@ async def exportar_relatorio_consolidado(
     )
 
 
+@api_router.get("/relatorio-consolidado/{company_id}/exportar-pdf")
+async def exportar_relatorio_consolidado_pdf(
+    company_id: str,
+    competencia: str,
+    secoes: str = "resumo,icms,pis_cofins",
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Exporta relatório consolidado em PDF com logo da empresa.
+    """
+    from services.pdf_generator import generate_simple_pdf, create_pdf_table, format_currency_pdf
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    import base64
+    import tempfile
+    import os
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    secoes_lista = secoes.split(',')
+    
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=15*mm,
+        leftMargin=15*mm,
+        topMargin=15*mm,
+        bottomMargin=15*mm
+    )
+    
+    styles = getSampleStyleSheet()
+    elements = []
+    
+    # Estilos personalizados
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        textColor=colors.HexColor('#C8A951'),
+        alignment=TA_CENTER,
+        spaceAfter=6
+    )
+    
+    subtitle_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.HexColor('#666666'),
+        alignment=TA_CENTER,
+        spaceAfter=12
+    )
+    
+    section_style = ParagraphStyle(
+        'SectionTitle',
+        parent=styles['Heading2'],
+        fontSize=12,
+        textColor=colors.HexColor('#333333'),
+        spaceBefore=15,
+        spaceAfter=10
+    )
+    
+    # Adicionar logo se existir
+    logo_url = company.get('logo_url', '')
+    logo_temp_path = None
+    if logo_url and logo_url.startswith('data:'):
+        try:
+            # Extrair dados base64
+            header, encoded = logo_url.split(',', 1)
+            img_data = base64.b64decode(encoded)
+            
+            # Salvar temporariamente
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as f:
+                f.write(img_data)
+                logo_temp_path = f.name
+            
+            logo = Image(logo_temp_path, width=50*mm, height=20*mm)
+            logo.hAlign = 'CENTER'
+            elements.append(logo)
+            elements.append(Spacer(1, 5*mm))
+        except Exception as e:
+            print(f"Erro ao processar logo: {e}")
+    
+    # Título do relatório
+    elements.append(Paragraph("RELATÓRIO CONSOLIDADO", title_style))
+    elements.append(Paragraph(f"{company.get('razao_social', 'EMPRESA')}", subtitle_style))
+    elements.append(Paragraph(f"CNPJ: {company.get('cnpj', '')} | Competência: {competencia}", subtitle_style))
+    elements.append(Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}", subtitle_style))
+    elements.append(Spacer(1, 10*mm))
+    
+    # Seção: Resumo
+    if 'resumo' in secoes_lista:
+        elements.append(Paragraph("RESUMO EXECUTIVO", section_style))
+        
+        # Buscar dados
+        try:
+            dash = await db.xml_documents.aggregate([
+                {"$match": {"company_id": company_id, "competencia": competencia, **get_filtro_notas_ativas()}},
+                {"$group": {
+                    "_id": None,
+                    "total_docs": {"$sum": 1},
+                    "faturamento": {"$sum": {"$cond": [
+                        {"$or": [{"$eq": ["$tipo", "saida"]}, {"$eq": ["$tipo_operacao", "saida"]}]},
+                        {"$toDouble": {"$ifNull": ["$valor_total", 0]}},
+                        0
+                    ]}},
+                    "compras": {"$sum": {"$cond": [
+                        {"$or": [{"$eq": ["$tipo", "entrada"]}, {"$eq": ["$tipo_operacao", "entrada"]}]},
+                        {"$toDouble": {"$ifNull": ["$valor_total", 0]}},
+                        0
+                    ]}}
+                }}
+            ]).to_list(1)
+            
+            dados = dash[0] if dash else {"total_docs": 0, "faturamento": 0, "compras": 0}
+        except:
+            dados = {"total_docs": 0, "faturamento": 0, "compras": 0}
+        
+        resumo_data = [
+            ["Indicador", "Valor"],
+            ["Total de Documentos", str(dados.get('total_docs', 0))],
+            ["Faturamento (Saídas)", format_currency_pdf(dados.get('faturamento', 0))],
+            ["Compras (Entradas)", format_currency_pdf(dados.get('compras', 0))],
+        ]
+        
+        table = create_pdf_table(resumo_data, column_widths=[100*mm, 60*mm])
+        elements.append(table)
+        elements.append(Spacer(1, 10*mm))
+    
+    # Seção: ICMS
+    if 'icms' in secoes_lista:
+        elements.append(Paragraph("APURAÇÃO DE ICMS", section_style))
+        
+        try:
+            icms_data = await db.xml_documents.aggregate([
+                {"$match": {"company_id": company_id, "competencia": competencia, **get_filtro_notas_ativas()}},
+                {"$unwind": "$produtos"},
+                {"$group": {
+                    "_id": {"tipo": {"$ifNull": ["$tipo_operacao", "$tipo"]}},
+                    "valor_icms": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_icms", 0]}}}
+                }}
+            ]).to_list(10)
+            
+            credito = sum(d['valor_icms'] for d in icms_data if d['_id']['tipo'] == 'entrada')
+            debito = sum(d['valor_icms'] for d in icms_data if d['_id']['tipo'] == 'saida')
+        except:
+            credito = debito = 0
+        
+        saldo = debito - credito
+        icms_table_data = [
+            ["Descrição", "Valor"],
+            ["Créditos (Entradas)", format_currency_pdf(credito)],
+            ["Débitos (Saídas)", format_currency_pdf(debito)],
+            ["Saldo a Pagar" if saldo > 0 else "Saldo Credor", format_currency_pdf(abs(saldo))],
+        ]
+        
+        table = create_pdf_table(icms_table_data, column_widths=[100*mm, 60*mm])
+        elements.append(table)
+        elements.append(Spacer(1, 10*mm))
+    
+    # Seção: PIS/COFINS
+    if 'pis_cofins' in secoes_lista:
+        elements.append(Paragraph("APURAÇÃO DE PIS/COFINS", section_style))
+        
+        try:
+            pis_cofins = await db.xml_documents.aggregate([
+                {"$match": {"company_id": company_id, "competencia": competencia, **get_filtro_notas_ativas()}},
+                {"$unwind": "$produtos"},
+                {"$group": {
+                    "_id": {"tipo": {"$ifNull": ["$tipo_operacao", "$tipo"]}},
+                    "pis": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_pis", 0]}}},
+                    "cofins": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.v_cofins", 0]}}}
+                }}
+            ]).to_list(10)
+            
+            cred_pis = sum(d['pis'] for d in pis_cofins if d['_id']['tipo'] == 'entrada')
+            cred_cofins = sum(d['cofins'] for d in pis_cofins if d['_id']['tipo'] == 'entrada')
+            deb_pis = sum(d['pis'] for d in pis_cofins if d['_id']['tipo'] == 'saida')
+            deb_cofins = sum(d['cofins'] for d in pis_cofins if d['_id']['tipo'] == 'saida')
+        except:
+            cred_pis = cred_cofins = deb_pis = deb_cofins = 0
+        
+        pis_cofins_data = [
+            ["Descrição", "PIS", "COFINS", "Total"],
+            ["Créditos", format_currency_pdf(cred_pis), format_currency_pdf(cred_cofins), format_currency_pdf(cred_pis + cred_cofins)],
+            ["Débitos", format_currency_pdf(deb_pis), format_currency_pdf(deb_cofins), format_currency_pdf(deb_pis + deb_cofins)],
+            ["Saldo", format_currency_pdf(deb_pis - cred_pis), format_currency_pdf(deb_cofins - cred_cofins), format_currency_pdf((deb_pis - cred_pis) + (deb_cofins - cred_cofins))],
+        ]
+        
+        table = create_pdf_table(pis_cofins_data, column_widths=[50*mm, 40*mm, 40*mm, 40*mm])
+        elements.append(table)
+    
+    # Rodapé
+    elements.append(Spacer(1, 15*mm))
+    footer_style = ParagraphStyle(
+        'Footer',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=colors.HexColor('#999999'),
+        alignment=TA_CENTER
+    )
+    elements.append(Paragraph("AURION - Sistema de Gestão Fiscal", footer_style))
+    
+    # Construir PDF
+    doc.build(elements)
+    buffer.seek(0)
+    
+    # Limpar arquivo temporário do logo
+    if logo_temp_path and os.path.exists(logo_temp_path):
+        try:
+            os.remove(logo_temp_path)
+        except:
+            pass
+    
+    filename = f"relatorio_{company_id[:8]}_{competencia.replace('/', '-')}.pdf"
+    
+    return Response(
+        content=buffer.getvalue(),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 @api_router.put("/companies/{company_id}/simples-nacional/anexos")
 async def update_anexos_simples(company_id: str, anexos: List[str], current_user: User = Depends(get_current_user)):
     """
