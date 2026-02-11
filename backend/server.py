@@ -22708,18 +22708,98 @@ async def ret_simples_nacional(
     }
     
     # ============== CÁLCULO LUCRO REAL (baseado no DRE) ==============
-    # Buscar dados de entrada (compras) para calcular CMV
-    pipeline_entradas = [
-        {"$match": {
-            "company_id": company_id,
-            "tipo": "entrada",
-            "competencia": {"$in": competencias_ano},
-            **get_filtro_notas_ativas()
-        }},
-        {"$group": {"_id": None, "total": {"$sum": "$valor_total"}}}
-    ]
-    result_entradas = await db.xml_documents.aggregate(pipeline_entradas).to_list(1)
-    total_compras = result_entradas[0]["total"] if result_entradas else 0
+    # Buscar dados de entrada (compras) para calcular CMV e créditos de PIS/COFINS
+    
+    # Pipeline para buscar entradas com detalhes dos produtos
+    entradas_docs = await db.xml_documents.find({
+        "company_id": company_id,
+        "tipo": "entrada",
+        "competencia": {"$in": competencias_ano},
+        **get_filtro_notas_ativas()
+    }, {"_id": 0, "valor_total": 1, "produtos": 1}).to_list(None)
+    
+    total_compras = sum(doc.get('valor_total', 0) for doc in entradas_docs)
+    
+    # Calcular base de crédito excluindo monofásicos e alíquota zero
+    base_credito_pis_cofins = 0
+    for doc in entradas_docs:
+        for prod in doc.get('produtos', []):
+            valor_prod = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
+            ncm = prod.get('ncm', '')
+            cfop = str(prod.get('cfop', ''))
+            categoria = prod.get('categoria_classificada', 'revenda')
+            
+            # Verificar se gera crédito
+            gera_credito = True
+            
+            # Monofásicos não geram crédito na revenda
+            if is_ncm_monofasico(ncm):
+                gera_credito = False
+            
+            # Alíquota zero não gera crédito
+            if is_ncm_aliquota_zero(ncm):
+                gera_credito = False
+            
+            # CFOPs de remessa, devolução, transferência não geram crédito
+            CFOPS_SEM_CREDITO = ['1910', '1949', '2910', '2949', '1152', '2152', '1556', '2556', '1551', '2551']
+            if cfop in CFOPS_SEM_CREDITO:
+                gera_credito = False
+            
+            # Despesas e ativo imobilizado não geram crédito de PIS/COFINS da forma tradicional
+            if categoria in ['despesa', 'ativo']:
+                gera_credito = False
+            
+            if gera_credito and valor_prod > 0:
+                base_credito_pis_cofins += valor_prod
+    
+    # Buscar saídas para calcular base de débito
+    saidas_docs = await db.xml_documents.find({
+        "company_id": company_id,
+        "tipo": "saida",
+        "competencia": {"$in": competencias_ano},
+        **get_filtro_notas_ativas()
+    }, {"_id": 0, "valor_total": 1, "produtos": 1}).to_list(None)
+    
+    # Calcular base de débito excluindo monofásicos e alíquota zero
+    base_debito_pis_cofins = 0
+    for doc in saidas_docs:
+        for prod in doc.get('produtos', []):
+            valor_prod = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
+            ncm = prod.get('ncm', '')
+            cfop = str(prod.get('cfop', ''))
+            
+            # Verificar se gera débito
+            gera_debito = True
+            
+            # Monofásicos não geram débito na revenda (já tributados na origem)
+            if is_ncm_monofasico(ncm):
+                gera_debito = False
+            
+            # Alíquota zero não gera débito
+            if is_ncm_aliquota_zero(ncm):
+                gera_debito = False
+            
+            # CFOPs de remessa, devolução, transferência não geram débito
+            CFOPS_SEM_DEBITO = ['5910', '5911', '5912', '5913', '5914', '5915', '5916', '5917', '5918', '5919',
+                               '5920', '5921', '5922', '5923', '5924', '5925', '5926', '5927', '5928', '5929',
+                               '6910', '6911', '6912', '6913', '6914', '6915', '6916', '6917', '6918', '6919',
+                               '6920', '6921', '6922', '6923', '6924', '6925', '6926', '6927', '6928', '6929',
+                               '5949', '6949', '5152', '6152', '5409', '6409', '5556', '6556', '5551', '6551']
+            if cfop in CFOPS_SEM_DEBITO:
+                gera_debito = False
+            
+            if gera_debito and valor_prod > 0:
+                base_debito_pis_cofins += valor_prod
+    
+    # PIS: 1.65% (não-cumulativo) - com créditos sobre entradas elegíveis
+    real_pis_debito = base_debito_pis_cofins * 0.0165
+    real_pis_credito = base_credito_pis_cofins * 0.0165
+    real_pis = max(0, real_pis_debito - real_pis_credito)
+    
+    # COFINS: 7.6% (não-cumulativo) - com créditos sobre entradas elegíveis
+    real_cofins_debito = base_debito_pis_cofins * 0.076
+    real_cofins_credito = base_credito_pis_cofins * 0.076
+    real_cofins = max(0, real_cofins_debito - real_cofins_credito)
     
     # Dados do DRE da empresa
     estoque_inicial = float(company.get('estoque_inicial', 0) or 0)
@@ -22736,18 +22816,6 @@ async def ret_simples_nacional(
     # Lucro Contábil = Lucro Bruto - Despesas Operacionais
     lucro_contabil = lucro_bruto - despesa_real if despesa_real > 0 else lucro_bruto
     lucro_contabil = max(0, lucro_contabil)  # Se der prejuízo, não há IRPJ/CSLL
-    
-    # PIS: 1.65% (não-cumulativo) - com créditos sobre entradas
-    # Débito sobre saídas
-    real_pis_debito = faturamento_base * 0.0165
-    # Crédito sobre entradas (mercadorias para revenda, insumos)
-    real_pis_credito = total_compras * 0.0165
-    real_pis = max(0, real_pis_debito - real_pis_credito)
-    
-    # COFINS: 7.6% (não-cumulativo) - com créditos sobre entradas
-    real_cofins_debito = faturamento_base * 0.076
-    real_cofins_credito = total_compras * 0.076
-    real_cofins = max(0, real_cofins_debito - real_cofins_credito)
     
     # IRPJ: 15% sobre lucro contábil + adicional de 10% sobre excedente
     real_irpj = lucro_contabil * 0.15
