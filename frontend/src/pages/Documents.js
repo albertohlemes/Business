@@ -553,6 +553,13 @@ const Documents = ({ user, onLogout }) => {
           } else if (data.error) {
             if (pollingInterval) clearInterval(pollingInterval);
             if (globalTimeoutId) clearInterval(globalTimeoutId); // Limpar timeout global
+            
+            // Não mostrar erro se já mostramos resultado
+            if (resultDisplayedRef.current) {
+              return;
+            }
+            resultDisplayedRef.current = true;
+            
             setUploadError(data.error); // Atualizar erro global
             setUploadResult({
               tipo: 'erro',
