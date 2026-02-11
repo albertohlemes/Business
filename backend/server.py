@@ -20816,6 +20816,11 @@ async def inteligencia_tributaria(
         'despesa_informada': round(despesa_real, 2)
     }
     
+    # ============ BUSCAR DADOS MANUAIS (para Lucro Presumido/Real) ============
+    # Para empresas que não são Simples Nacional, podemos usar dados manuais digitados
+    dados_manuais = company.get("dados_manuais_historico", {})
+    regime_tributario = company.get('regime_tributario', 'lucro_presumido')
+    
     # ============ SIMPLES NACIONAL ============
     # Para Simples Nacional, precisamos do faturamento dos últimos 12 meses para calcular a alíquota correta
     # RBT12 = Receita Bruta dos últimos 12 meses
@@ -20844,16 +20849,16 @@ async def inteligencia_tributaria(
                 a -= 1
             competencias_12m.append(f"{str(m).zfill(2)}/{a}")
         
-        # PRIORIDADE 1: Usar PGDAS_RBT12 se disponível (igual ao Dashboard)
+        # PRIORIDADE 1: Usar PGDAS_RBT12 se disponível (para Simples Nacional)
         pgdas_rbt12 = company.get("pgdas_rbt12", 0)
         historico_pgdas = company.get("historico_faturamento", {})
         
-        if pgdas_rbt12 > 0:
+        if pgdas_rbt12 > 0 and regime_tributario == 'simples_nacional':
             # Usar valor do PGDAS importado (fonte oficial)
             rbt12 = pgdas_rbt12
             qtd_meses_dados = 12  # PGDAS sempre tem dados completos
         else:
-            # PRIORIDADE 2: Calcular a partir dos documentos + histórico PGDAS
+            # PRIORIDADE 2: Calcular a partir dos documentos + histórico PGDAS + dados manuais
             # Buscar faturamento por competência do sistema
             pipeline_faturamento = [
                 {"$match": {
@@ -20871,6 +20876,13 @@ async def inteligencia_tributaria(
             faturamento_por_mes = {}
             async for doc in db.xml_documents.aggregate(pipeline_faturamento):
                 faturamento_por_mes[doc["_id"]] = doc["faturamento"]
+            
+            # PRIORIDADE 2.5: Usar dados manuais para competências sem dados (especialmente para Presumido/Real)
+            for comp in competencias_12m:
+                if comp not in faturamento_por_mes or faturamento_por_mes.get(comp, 0) == 0:
+                    dados_manual_comp = dados_manuais.get(comp, {})
+                    if dados_manual_comp.get('vendas', 0) > 0:
+                        faturamento_por_mes[comp] = dados_manual_comp.get('vendas', 0)
             
             # Mesclar com dados do PGDAS (PGDAS tem prioridade para meses bloqueados)
             for comp in competencias_12m:
