@@ -7949,6 +7949,7 @@ async def get_dashboard_stats(
     total_base_pis_cofins = 0  # Base de cálculo para PIS/COFINS (apenas produtos TRIBUTADOS)
     total_aliquota_zero = 0  # Total de produtos com alíquota zero (não geram débito)
     total_cfop_sem_incidencia = 0  # Total de produtos com CFOP sem incidência de PIS/COFINS
+    base_debito_pis_cofins_real = 0  # Base para cálculo do débito hipotético (Lucro Real)
     
     # CFOPs de saída que NÃO geram débito de PIS/COFINS (remessas, devoluções, transferências, etc.)
     CFOPS_SAIDA_SEM_DEBITO = [
@@ -7972,6 +7973,12 @@ async def get_dashboard_stats(
         '7651', '7654', '7667', '7930', '7949'
     ]
     
+    # CSTs de saída que NÃO geram débito mesmo no Lucro Real hipotético
+    # 04 = Operação Tributável - Monofásica - Revenda a Alíquota Zero
+    # 06 = Operação Tributável - Alíquota Zero
+    # 49 = Outras Operações de Saída (sem incidência)
+    CST_SAIDA_SEM_DEBITO = ['04', '06', '49']
+    
     for doc in nfe_saida + nfce:
         for prod in doc.get('produtos', []):
             debito_icms += float(prod.get('v_icms', 0) or 0)
@@ -7981,6 +7988,8 @@ async def get_dashboard_stats(
             valor_prod = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
             ncm = prod.get('ncm', '')
             cfop = str(prod.get('cfop', ''))
+            cst_pis_saida = str(prod.get('cst_pis', '')).strip()
+            cst_cofins_saida = str(prod.get('cst_cofins', '')).strip()
             
             # Verificar se o produto é de alíquota zero pelo NCM ou pelo CST calculado
             ncm_aliq_zero = prod.get('ncm_aliq_zero', is_ncm_aliquota_zero(ncm))
@@ -7999,6 +8008,19 @@ async def get_dashboard_stats(
             else:
                 # Apenas produtos TRIBUTADOS (CST 01) entram na base de cálculo do débito
                 total_base_pis_cofins += valor_prod
+            
+            # Base para cálculo do DÉBITO hipotético no Lucro Real
+            # Desconsiderar CSTs 04, 06, 49 e CFOPs sem incidência
+            gera_debito_hipotetico = True
+            
+            if cfop in CFOPS_SAIDA_SEM_DEBITO:
+                gera_debito_hipotetico = False
+            
+            if cst_pis_saida in CST_SAIDA_SEM_DEBITO or cst_cofins_saida in CST_SAIDA_SEM_DEBITO:
+                gera_debito_hipotetico = False
+            
+            if gera_debito_hipotetico and valor_prod > 0:
+                base_debito_pis_cofins_real += valor_prod
     
     # Para Lucro Real, usar alíquotas corretas e verificar divergências
     divergencias_pis_cofins = []
