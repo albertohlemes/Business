@@ -26346,6 +26346,316 @@ Se não encontrar dados para um mês, deixe como 0. Retorne SOMENTE o JSON."""
     return resultado
 
 
+# ============================================================
+# FASE 6 - Apuração Consolidada Mensal
+# ============================================================
+
+class FechamentoMensalRequest(BaseModel):
+    competencia: str
+    observacoes: Optional[str] = ""
+
+@api_router.get("/fechamento-mensal/{company_id}")
+async def get_fechamento_mensal(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna a apuração consolidada de todos os impostos para a competência.
+    Combina ICMS, PIS, COFINS, ISS e IPI em um único relatório.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    regime = company.get('regime_tributario', 'lucro_presumido')
+    is_simples = regime == 'simples_nacional'
+    tipo_atividade = company.get('tipo_atividade', 'comercio')
+    
+    # Verificar se já existe fechamento para esta competência
+    fechamento_existente = await db.fechamentos_mensais.find_one(
+        {"company_id": company_id, "competencia": competencia},
+        {"_id": 0}
+    )
+    
+    # Buscar documentos da competência
+    query = {
+        "company_id": company_id,
+        "competencia": competencia
+    }
+    query.update(get_filtro_notas_ativas())
+    
+    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    # Calcular totais de entradas e saídas
+    entradas = [d for d in documents if d.get('tipo') == 'entrada' or d.get('tipo_operacao') == 'entrada']
+    saidas = [d for d in documents if d.get('tipo') == 'saida' or d.get('tipo_operacao') == 'saida']
+    
+    total_entradas = sum(float(d.get('valor_total', 0) or 0) for d in entradas)
+    total_saidas = sum(float(d.get('valor_total', 0) or 0) for d in saidas)
+    
+    # Calcular ICMS
+    icms_debito = 0
+    icms_credito = 0
+    icms_st = 0
+    
+    for doc in saidas:
+        for prod in doc.get('produtos', []):
+            icms_debito += float(prod.get('v_icms', 0) or 0)
+            icms_st += float(prod.get('v_icms_st', 0) or 0)
+    
+    for doc in entradas:
+        for prod in doc.get('produtos', []):
+            cfop = str(prod.get('cfop', ''))
+            # Verificar se CFOP dá direito a crédito
+            if cfop and cfop[0] in ['1', '2', '3'] and cfop not in ['1556', '2556', '1403', '2403', '1409', '2409']:
+                icms_credito += float(prod.get('v_icms', 0) or 0)
+    
+    icms_saldo = icms_debito - icms_credito
+    
+    # Calcular PIS/COFINS
+    pis_debito = 0
+    pis_credito = 0
+    cofins_debito = 0
+    cofins_credito = 0
+    
+    for doc in saidas:
+        for prod in doc.get('produtos', []):
+            pis_debito += float(prod.get('v_pis', 0) or 0)
+            cofins_debito += float(prod.get('v_cofins', 0) or 0)
+    
+    for doc in entradas:
+        for prod in doc.get('produtos', []):
+            cst_pis = str(prod.get('cst_pis', '') or prod.get('cst_pis_calculado', ''))
+            # CSTs com crédito: 50-56, 60-66
+            if cst_pis in ['50', '51', '52', '53', '54', '55', '56', '60', '61', '62', '63', '64', '65', '66']:
+                pis_credito += float(prod.get('v_pis', 0) or 0)
+                cofins_credito += float(prod.get('v_cofins', 0) or 0)
+    
+    pis_saldo = pis_debito - pis_credito
+    cofins_saldo = cofins_debito - cofins_credito
+    
+    # Calcular ISS (apenas se empresa presta serviços)
+    iss_total = 0
+    if tipo_atividade in ['servicos', 'mista']:
+        nfse_saida = [d for d in saidas if d.get('modelo', '').lower() in ['nfse', 'nfs-e']]
+        for doc in nfse_saida:
+            iss_total += float(doc.get('total_iss', 0) or doc.get('valor_iss', 0) or 0)
+    
+    # Calcular IPI
+    ipi_debito = 0
+    ipi_credito = 0
+    
+    for doc in saidas:
+        for prod in doc.get('produtos', []):
+            ipi_debito += float(prod.get('v_ipi', 0) or 0)
+    
+    for doc in entradas:
+        for prod in doc.get('produtos', []):
+            ipi_credito += float(prod.get('v_ipi', 0) or 0)
+    
+    ipi_saldo = ipi_debito - ipi_credito
+    
+    # Total de impostos a pagar
+    total_impostos = 0
+    if not is_simples:
+        total_impostos = max(icms_saldo, 0) + max(pis_saldo, 0) + max(cofins_saldo, 0) + iss_total + max(ipi_saldo, 0)
+    
+    # Buscar saldo credor disponível
+    saldo_credor = await db.saldos_credores.find_one(
+        {"company_id": company_id, "competencia": competencia},
+        {"_id": 0}
+    )
+    
+    return {
+        "company_id": company_id,
+        "competencia": competencia,
+        "regime_tributario": regime,
+        "tipo_atividade": tipo_atividade,
+        "fechamento_existente": fechamento_existente is not None,
+        "data_fechamento": fechamento_existente.get('data_fechamento') if fechamento_existente else None,
+        "status": "fechado" if fechamento_existente else "aberto",
+        "resumo": {
+            "total_entradas": round(total_entradas, 2),
+            "total_saidas": round(total_saidas, 2),
+            "qtd_entradas": len(entradas),
+            "qtd_saidas": len(saidas),
+            "qtd_documentos": len(documents)
+        },
+        "icms": {
+            "debito": round(icms_debito, 2),
+            "credito": round(icms_credito, 2),
+            "saldo": round(icms_saldo, 2),
+            "st": round(icms_st, 2),
+            "a_pagar": round(max(icms_saldo, 0), 2),
+            "a_compensar": round(abs(min(icms_saldo, 0)), 2)
+        },
+        "pis": {
+            "debito": round(pis_debito, 2),
+            "credito": round(pis_credito, 2),
+            "saldo": round(pis_saldo, 2),
+            "a_pagar": round(max(pis_saldo, 0), 2),
+            "a_compensar": round(abs(min(pis_saldo, 0)), 2)
+        },
+        "cofins": {
+            "debito": round(cofins_debito, 2),
+            "credito": round(cofins_credito, 2),
+            "saldo": round(cofins_saldo, 2),
+            "a_pagar": round(max(cofins_saldo, 0), 2),
+            "a_compensar": round(abs(min(cofins_saldo, 0)), 2)
+        },
+        "iss": {
+            "total": round(iss_total, 2),
+            "a_pagar": round(iss_total, 2)
+        },
+        "ipi": {
+            "debito": round(ipi_debito, 2),
+            "credito": round(ipi_credito, 2),
+            "saldo": round(ipi_saldo, 2),
+            "a_pagar": round(max(ipi_saldo, 0), 2),
+            "a_compensar": round(abs(min(ipi_saldo, 0)), 2)
+        },
+        "total_impostos": {
+            "a_pagar": round(total_impostos, 2),
+            "icms": round(max(icms_saldo, 0), 2),
+            "pis": round(max(pis_saldo, 0), 2),
+            "cofins": round(max(cofins_saldo, 0), 2),
+            "iss": round(iss_total, 2),
+            "ipi": round(max(ipi_saldo, 0), 2)
+        },
+        "saldo_credor_anterior": saldo_credor.get('saldo_a_transportar') if saldo_credor else None,
+        "observacoes": fechamento_existente.get('observacoes') if fechamento_existente else ""
+    }
+
+
+@api_router.post("/fechamento-mensal/{company_id}")
+async def fechar_competencia_mensal(
+    company_id: str,
+    request: FechamentoMensalRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Fecha a competência e registra o fechamento mensal.
+    Após fechamento, alterações em documentos desta competência são bloqueadas.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Verificar se já está fechado
+    existente = await db.fechamentos_mensais.find_one(
+        {"company_id": company_id, "competencia": request.competencia}
+    )
+    if existente:
+        raise HTTPException(status_code=400, detail="Esta competência já está fechada")
+    
+    # Obter dados da apuração
+    apuracao = await get_fechamento_mensal(company_id, request.competencia, current_user)
+    
+    # Registrar fechamento
+    fechamento = {
+        "company_id": company_id,
+        "competencia": request.competencia,
+        "data_fechamento": datetime.now(timezone.utc).isoformat(),
+        "usuario": current_user.email,
+        "usuario_id": current_user.id,
+        "observacoes": request.observacoes,
+        "resumo": apuracao["resumo"],
+        "icms": apuracao["icms"],
+        "pis": apuracao["pis"],
+        "cofins": apuracao["cofins"],
+        "iss": apuracao["iss"],
+        "ipi": apuracao["ipi"],
+        "total_impostos": apuracao["total_impostos"]
+    }
+    
+    await db.fechamentos_mensais.insert_one(fechamento)
+    
+    # Calcular próxima competência
+    try:
+        mes, ano = request.competencia.split('/')
+        mes_int = int(mes)
+        ano_int = int(ano)
+        if mes_int == 12:
+            prox_comp = f"01/{ano_int + 1}"
+        else:
+            prox_comp = f"{mes_int + 1:02d}/{ano_int}"
+    except:
+        prox_comp = request.competencia
+    
+    return {
+        "success": True,
+        "competencia": request.competencia,
+        "proxima_competencia": prox_comp,
+        "data_fechamento": fechamento["data_fechamento"],
+        "total_impostos": apuracao["total_impostos"],
+        "mensagem": f"Competência {request.competencia} fechada com sucesso!"
+    }
+
+
+@api_router.delete("/fechamento-mensal/{company_id}/{competencia}")
+async def reabrir_competencia_mensal(
+    company_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Reabre uma competência fechada (apenas admin/super_admin).
+    """
+    if current_user.role not in ['admin', 'super_admin']:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem reabrir competências")
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    result = await db.fechamentos_mensais.delete_one(
+        {"company_id": company_id, "competencia": competencia}
+    )
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Fechamento não encontrado")
+    
+    return {
+        "success": True,
+        "competencia": competencia,
+        "mensagem": f"Competência {competencia} reaberta com sucesso!"
+    }
+
+
+@api_router.get("/fechamento-mensal/{company_id}/historico")
+async def get_historico_fechamentos(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna o histórico de todos os fechamentos mensais da empresa.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    fechamentos = await db.fechamentos_mensais.find(
+        {"company_id": company_id},
+        {"_id": 0}
+    ).sort("competencia", -1).to_list(100)
+    
+    return {
+        "company_id": company_id,
+        "fechamentos": fechamentos,
+        "total": len(fechamentos)
+    }
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
