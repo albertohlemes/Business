@@ -26745,6 +26745,207 @@ async def get_historico_fechamentos(
     }
 
 
+# ============================================================
+# FASE 4 - Endpoints do Audit Log
+# ============================================================
+
+@api_router.get("/audit-logs")
+async def get_audit_logs(
+    company_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    action: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    success_only: Optional[bool] = None,
+    limit: int = Query(100, ge=1, le=1000),
+    skip: int = Query(0, ge=0),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Lista os registros do audit log com filtros.
+    Apenas admin e super_admin podem ver todos os logs.
+    Outros usuários veem apenas seus próprios logs.
+    """
+    query = {}
+    
+    # Restrição de acesso: não-admins só veem seus próprios logs
+    if current_user.role not in ['admin', 'super_admin']:
+        query["user_id"] = current_user.id
+    else:
+        # Admins podem filtrar por user_id
+        if user_id:
+            query["user_id"] = user_id
+    
+    # Filtros opcionais
+    if company_id:
+        query["company_id"] = company_id
+    
+    if action:
+        # Permitir busca por prefixo (ex: "auth" retorna auth.login, auth.logout, etc)
+        query["action"] = {"$regex": f"^{action}"}
+    
+    if success_only is not None:
+        query["success"] = success_only
+    
+    # Filtro de data
+    if start_date or end_date:
+        date_filter = {}
+        if start_date:
+            date_filter["$gte"] = start_date
+        if end_date:
+            date_filter["$lte"] = end_date + "T23:59:59"
+        query["timestamp"] = date_filter
+    
+    # Buscar logs
+    total = await db.audit_logs.count_documents(query)
+    logs = await db.audit_logs.find(
+        query, 
+        {"_id": 0}
+    ).sort("timestamp", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "logs": logs,
+        "total": total,
+        "limit": limit,
+        "skip": skip,
+        "has_more": (skip + limit) < total
+    }
+
+
+@api_router.get("/audit-logs/actions")
+async def get_audit_actions(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna lista de todas as ações possíveis no audit log.
+    """
+    if current_user.role not in ['admin', 'super_admin']:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    return {
+        "actions": {
+            "Autenticação": [
+                {"value": "auth.login", "label": "Login"},
+                {"value": "auth.logout", "label": "Logout"},
+                {"value": "auth.login_failed", "label": "Login Falhou"}
+            ],
+            "Usuários": [
+                {"value": "user.create", "label": "Criar Usuário"},
+                {"value": "user.update", "label": "Atualizar Usuário"},
+                {"value": "user.delete", "label": "Excluir Usuário"},
+                {"value": "user.reactivate", "label": "Reativar Usuário"},
+                {"value": "user.permission_change", "label": "Alterar Permissões"}
+            ],
+            "Empresas": [
+                {"value": "company.create", "label": "Criar Empresa"},
+                {"value": "company.update", "label": "Atualizar Empresa"},
+                {"value": "company.delete", "label": "Excluir Empresa"}
+            ],
+            "Documentos": [
+                {"value": "document.upload", "label": "Upload de Documentos"},
+                {"value": "document.delete", "label": "Excluir Documentos"},
+                {"value": "document.reprocess", "label": "Reprocessar"}
+            ],
+            "Classificação": [
+                {"value": "classification.manual", "label": "Classificação Manual"},
+                {"value": "classification.ai", "label": "Classificação por IA"},
+                {"value": "classification.batch", "label": "Classificação em Lote"}
+            ],
+            "Fechamento": [
+                {"value": "competencia.fechar", "label": "Fechar Competência"},
+                {"value": "competencia.reabrir", "label": "Reabrir Competência"}
+            ],
+            "SPED": [
+                {"value": "sped.export", "label": "Exportar SPED"}
+            ]
+        }
+    }
+
+
+@api_router.get("/audit-logs/summary")
+async def get_audit_summary(
+    company_id: Optional[str] = None,
+    days: int = Query(30, ge=1, le=365),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna um resumo das atividades dos últimos N dias.
+    """
+    if current_user.role not in ['admin', 'super_admin']:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Calcular data inicial
+    start_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    
+    query = {"timestamp": {"$gte": start_date}}
+    if company_id:
+        query["company_id"] = company_id
+    
+    # Agregar por ação
+    pipeline = [
+        {"$match": query},
+        {"$group": {
+            "_id": "$action",
+            "count": {"$sum": 1},
+            "success_count": {"$sum": {"$cond": ["$success", 1, 0]}},
+            "failure_count": {"$sum": {"$cond": ["$success", 0, 1]}}
+        }},
+        {"$sort": {"count": -1}}
+    ]
+    
+    action_summary = await db.audit_logs.aggregate(pipeline).to_list(100)
+    
+    # Agregar por usuário
+    user_pipeline = [
+        {"$match": query},
+        {"$group": {
+            "_id": {"user_id": "$user_id", "user_email": "$user_email"},
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"count": -1}},
+        {"$limit": 10}
+    ]
+    
+    user_summary = await db.audit_logs.aggregate(user_pipeline).to_list(10)
+    
+    # Agregar por dia
+    daily_pipeline = [
+        {"$match": query},
+        {"$addFields": {
+            "date": {"$substr": ["$timestamp", 0, 10]}
+        }},
+        {"$group": {
+            "_id": "$date",
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"_id": -1}},
+        {"$limit": 30}
+    ]
+    
+    daily_summary = await db.audit_logs.aggregate(daily_pipeline).to_list(30)
+    
+    # Total de logs
+    total_logs = await db.audit_logs.count_documents(query)
+    
+    return {
+        "period_days": days,
+        "total_logs": total_logs,
+        "by_action": action_summary,
+        "by_user": [
+            {
+                "user_id": item["_id"]["user_id"],
+                "user_email": item["_id"]["user_email"],
+                "count": item["count"]
+            }
+            for item in user_summary
+        ],
+        "by_day": [
+            {"date": item["_id"], "count": item["count"]}
+            for item in daily_summary
+        ]
+    }
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
