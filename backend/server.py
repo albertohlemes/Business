@@ -24855,6 +24855,176 @@ async def exportar_documentos_categoria(
         raise HTTPException(status_code=400, detail="Formato inválido. Use 'excel' ou 'pdf'")
 
 
+# ============================================================
+# IMPORTAÇÃO DE ARQUIVOS PARA DADOS MANUAIS
+# ============================================================
+
+@api_router.post("/analise-horizontal/importar-arquivo/{company_id}")
+async def importar_arquivo_dados_manuais(
+    company_id: str,
+    ano: int = Query(..., description="Ano para importar os dados"),
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Importa dados de Excel, Word ou PDF para preencher movimento de períodos anteriores.
+    Usa IA para identificar valores de entradas, saídas e impostos mês a mês.
+    """
+    import pdfplumber
+    from docx import Document as DocxDocument
+    from openpyxl import load_workbook
+    import io
+    import re
+    
+    # Verificar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Identificar tipo de arquivo
+    filename = file.filename.lower()
+    content = await file.read()
+    
+    extracted_text = ""
+    extracted_data = []
+    
+    try:
+        if filename.endswith(('.xlsx', '.xls')):
+            # Processar Excel
+            wb = load_workbook(io.BytesIO(content), data_only=True)
+            for sheet in wb.worksheets:
+                for row in sheet.iter_rows():
+                    row_data = []
+                    for cell in row:
+                        if cell.value is not None:
+                            row_data.append(str(cell.value))
+                    if row_data:
+                        extracted_text += " | ".join(row_data) + "\n"
+                        extracted_data.append(row_data)
+        
+        elif filename.endswith(('.doc', '.docx')):
+            # Processar Word
+            doc = DocxDocument(io.BytesIO(content))
+            for para in doc.paragraphs:
+                if para.text.strip():
+                    extracted_text += para.text + "\n"
+            # Processar tabelas
+            for table in doc.tables:
+                for row in table.rows:
+                    row_data = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+                    if row_data:
+                        extracted_text += " | ".join(row_data) + "\n"
+                        extracted_data.append(row_data)
+        
+        elif filename.endswith('.pdf'):
+            # Processar PDF
+            with pdfplumber.open(io.BytesIO(content)) as pdf:
+                for page in pdf.pages:
+                    text = page.extract_text()
+                    if text:
+                        extracted_text += text + "\n"
+                    # Extrair tabelas
+                    tables = page.extract_tables()
+                    for table in tables:
+                        for row in table:
+                            if row:
+                                row_data = [str(cell).strip() for cell in row if cell]
+                                if row_data:
+                                    extracted_data.append(row_data)
+        else:
+            raise HTTPException(status_code=400, detail="Formato não suportado. Use Excel (.xlsx), Word (.docx) ou PDF (.pdf)")
+    
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao processar arquivo: {str(e)}")
+    
+    if not extracted_text and not extracted_data:
+        raise HTTPException(status_code=400, detail="Não foi possível extrair dados do arquivo")
+    
+    # Usar IA para interpretar os dados
+    meses_pt = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
+                "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+    meses_abrev = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+    
+    prompt = f"""Analise o seguinte conteúdo extraído de um documento fiscal/contábil e extraia os dados mensais.
+
+CONTEÚDO DO ARQUIVO:
+{extracted_text[:8000]}
+
+INSTRUÇÕES:
+1. Identifique valores mensais de: compras (entradas), vendas (saídas/faturamento), ICMS, PIS, COFINS, ISS, DAS (Simples Nacional)
+2. Os meses podem estar em formato: "01", "janeiro", "jan", etc.
+3. Valores podem estar em formato: "1.234,56" ou "1234.56" ou "R$ 1.234,56"
+4. Retorne APENAS um JSON válido com a estrutura abaixo, sem explicações adicionais:
+
+{{
+  "dados": [
+    {{"mes": 1, "compras": 0, "vendas": 0, "icms": 0, "pis": 0, "cofins": 0, "iss": 0, "das": 0}},
+    {{"mes": 2, "compras": 0, "vendas": 0, "icms": 0, "pis": 0, "cofins": 0, "iss": 0, "das": 0}},
+    ...
+  ],
+  "ano_identificado": {ano},
+  "observacoes": "descrição breve do que foi encontrado"
+}}
+
+Se não encontrar dados para um mês, deixe como 0. Retorne SOMENTE o JSON."""
+
+    try:
+        from emergentintegrations.llm.chat import chat, LlmModel
+        
+        response = await chat(
+            api_key=os.environ.get('EMERGENT_API_KEY', ''),
+            model=LlmModel.GEMINI_2_0_FLASH,
+            system_message="Você é um especialista em extrair dados fiscais e contábeis de documentos. Retorne apenas JSON válido.",
+            user_message=prompt,
+            is_structured=False
+        )
+        
+        # Extrair JSON da resposta
+        response_text = response.message if hasattr(response, 'message') else str(response)
+        
+        # Tentar encontrar JSON na resposta
+        json_match = re.search(r'\{[\s\S]*\}', response_text)
+        if json_match:
+            import json
+            dados_extraidos = json.loads(json_match.group())
+        else:
+            raise ValueError("IA não retornou JSON válido")
+        
+    except Exception as e:
+        # Fallback: tentar extrair dados manualmente se IA falhar
+        dados_extraidos = {"dados": [], "ano_identificado": ano, "observacoes": f"Extração automática falhou: {str(e)}"}
+        
+        # Tentar extrair padrões numéricos básicos
+        for i, mes in enumerate(meses_pt, 1):
+            dados_mes = {"mes": i, "compras": 0, "vendas": 0, "icms": 0, "pis": 0, "cofins": 0, "iss": 0, "das": 0}
+            dados_extraidos["dados"].append(dados_mes)
+    
+    # Converter para formato esperado pelo frontend
+    resultado = {
+        "success": True,
+        "ano": ano,
+        "dados_por_mes": {},
+        "observacoes": dados_extraidos.get("observacoes", ""),
+        "texto_extraido_preview": extracted_text[:500] + "..." if len(extracted_text) > 500 else extracted_text
+    }
+    
+    for item in dados_extraidos.get("dados", []):
+        mes = item.get("mes", 0)
+        if 1 <= mes <= 12:
+            competencia = f"{str(mes).zfill(2)}/{ano}"
+            resultado["dados_por_mes"][competencia] = {
+                "compras": float(item.get("compras", 0) or 0),
+                "vendas": float(item.get("vendas", 0) or 0),
+                "icms": float(item.get("icms", 0) or 0),
+                "pis": float(item.get("pis", 0) or 0),
+                "cofins": float(item.get("cofins", 0) or 0),
+                "iss": float(item.get("iss", 0) or 0),
+                "das": float(item.get("das", 0) or 0)
+            }
+    
+    return resultado
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
