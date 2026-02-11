@@ -16033,9 +16033,12 @@ def get_cached_classification_from_memory(rules_cache: List[Dict], descricao: st
         rule_key = normalize_product_key(rule.get('produto_descricao', ''))
         # Match exato ou substring significativa
         if rule_key == normalized_key or (len(rule_key) > 5 and rule_key in normalized_key) or (len(normalized_key) > 5 and normalized_key in rule_key):
+            # Suportar ambos os formatos de campos (com e sem sufixo _correta/_correto)
+            categoria = rule.get('categoria_correta') or rule.get('categoria', 'revenda')
+            cfop = rule.get('cfop_correto') or rule.get('cfop', '')
             return {
-                "categoria": rule['categoria_correta'],
-                "cfop": rule['cfop_correto'],
+                "categoria": categoria,
+                "cfop": cfop,
                 "justificativa": f"Memorizado: {rule.get('motivo', 'Classificação anterior')}"
             }
     return None
