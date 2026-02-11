@@ -4374,6 +4374,48 @@ async def upload_xml_batch(
         '6122': 'Venda com entrega futura (interestadual)',
     }
     
+    # ===== PRÉ-CARREGAR CACHE DE VENDAS (uma vez só, antes do loop) =====
+    sales_cache = {"company_id": company_id}
+    if tipo == 'entrada':
+        try:
+            saidas_cursor = db.xml_documents.find({
+                "company_id": company_id,
+                "tipo": "saida",
+                **get_filtro_notas_ativas()
+            }, {"produtos.descricao": 1, "produtos.ncm": 1, "_id": 0}).limit(200)
+            
+            saidas = await saidas_cursor.to_list(length=200)
+            ncms_vendidos = set()
+            palavras_produtos_vendidos = set()
+            produtos_vendidos = set()
+            
+            for doc in saidas:
+                for prod in doc.get('produtos', []):
+                    desc = prod.get('descricao', '')
+                    ncm = prod.get('ncm', '')
+                    
+                    if ncm and len(ncm) >= 4:
+                        ncms_vendidos.add(ncm[:4])
+                        ncms_vendidos.add(ncm[:6])
+                    
+                    if desc and len(desc) > 5:
+                        palavras = [p.upper() for p in desc.split() if len(p) > 3 and p.upper() not in ['PARA', 'COM', 'SEM', 'UNID', 'PEÇA', 'PECA', 'CADA', 'CAIXA']]
+                        for palavra in palavras[:3]:
+                            palavras_produtos_vendidos.add(palavra)
+                        if palavras:
+                            produtos_vendidos.add(' '.join(palavras[:2]))
+            
+            sales_cache["ncms_vendidos"] = ncms_vendidos
+            sales_cache["palavras_produtos_vendidos"] = palavras_produtos_vendidos
+            sales_cache["produtos_vendidos_list"] = list(produtos_vendidos)[:50]
+            
+            logger.info(f"UPLOAD-BATCH: Cache de vendas carregado - {len(ncms_vendidos)} NCMs")
+        except Exception as e:
+            logger.warning(f"UPLOAD-BATCH: Erro ao carregar cache de vendas: {e}")
+            sales_cache = None
+    else:
+        sales_cache = None  # Não precisa para saídas
+    
     for file in files:
         try:
             content = await file.read()
