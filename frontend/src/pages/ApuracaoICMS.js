@@ -38,6 +38,16 @@ const ApuracaoICMS = ({ user, onLogout }) => {
   const [loadingDesconsideradosDetalhes, setLoadingDesconsideradosDetalhes] = useState(false);
   const [desconsideradosTipo, setDesconsideradosTipo] = useState('todos'); // 'st', 'despesas', 'todos'
   
+  // Estado para expansão de NCMs no modal de benefício fiscal
+  const [expandedNcms, setExpandedNcms] = useState({});
+  
+  const toggleNcmExpansion = (ncm) => {
+    setExpandedNcms(prev => ({
+      ...prev,
+      [ncm]: !prev[ncm]
+    }));
+  };
+  
   // Flags de desconsiderar ICMS - estado local
   const [desconsiderarDespesas, setDesconsiderarDespesas] = useState(false);
   const [desconsiderarST, setDesconsiderarST] = useState(false);
