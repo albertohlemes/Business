@@ -480,13 +480,13 @@ const ApuracaoICMS = ({ user, onLogout }) => {
         )}
 
         {/* Card de Resumo - Valores Desconsiderados */}
-        {selectedCompany && dados && (dados.desconsiderados?.despesas?.valor_icms > 0 || dados.desconsiderados?.st?.valor_icms > 0) && (
+        {selectedCompany && dados && (dados.desconsiderados?.despesas?.valor_icms > 0 || dados.desconsiderados?.st?.valor_icms > 0 || dados.desconsiderados?.beneficio_fiscal?.valor_icms > 0) && (
           <div className="bg-gradient-to-r from-red-900/20 to-orange-900/20 border border-red-500/30 rounded-xl p-4 mb-6">
             <div className="flex items-center gap-3 mb-3">
               <span className="text-lg">⚠️</span>
               <span className="text-white font-medium">Valores Desconsiderados na Apuração</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {dados.desconsiderados?.despesas?.valor_icms > 0 && (
                 <div className="bg-red-500/10 rounded-lg p-3 border border-red-500/20">
                   <span className="text-xs text-red-400 block mb-1">ICMS Despesas (Zerado)</span>
@@ -506,6 +506,17 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                   </span>
                   <span className="text-xs text-[#A1A1AA] block mt-1">
                     {dados.desconsiderados.st.qtd_itens} itens afetados
+                  </span>
+                </div>
+              )}
+              {dados.desconsiderados?.beneficio_fiscal?.valor_icms > 0 && (
+                <div className="bg-yellow-500/10 rounded-lg p-3 border border-yellow-500/20">
+                  <span className="text-xs text-yellow-400 block mb-1">⭐ Benefício Fiscal (Zerado)</span>
+                  <span className="text-lg font-bold text-yellow-400 line-through">
+                    {formatCurrency(dados.desconsiderados.beneficio_fiscal.valor_icms)}
+                  </span>
+                  <span className="text-xs text-[#A1A1AA] block mt-1">
+                    {dados.desconsiderados.beneficio_fiscal.qtd_itens} produtos afetados
                   </span>
                 </div>
               )}
