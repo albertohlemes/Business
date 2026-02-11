@@ -112,6 +112,47 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-11 (Sessão 23 - Correção de Testes + Melhorias UX + PDF com Logo)
+
+**Correções Realizadas:**
+- ✅ **Testes Automatizados:** Todos os 17 testes em `/app/backend/tests/test_session22_features.py` passando
+- ✅ **Campo `logo_url`:** Adicionado nos modelos `Company`, `CompanyCreate` e `CompanyUpdate`
+
+**Melhorias de UX (Task A):**
+- ✅ **Novas animações CSS:** Adicionadas em `/app/frontend/src/App.css`:
+  - `animate-success-pulse` - Efeito de sucesso
+  - `animate-shake` - Efeito de erro
+  - `animate-bounce-in` - Entrada com bounce
+  - `animate-progress-pulse` - Pulsação de progresso
+  - `animate-highlight` - Destaque para novos itens
+  - `btn-ripple` - Efeito ripple em botões
+  - `toast-enter` - Animação de entrada para toasts
+  - `skeleton-loading` - Loading com gradiente melhorado
+  - `input-focus-gold` - Estados de focus personalizados
+  - `status-dot` - Indicadores de status (.active, .inactive, .warning, .error)
+  - `collapse-content` - Animação de colapso/expansão
+  - `page-enter` - Transições de página
+
+**Relatórios Avançados com Logo (Task C):**
+- ✅ **Endpoint de Upload de Logo:** `POST /api/upload/logo/{company_id}`
+  - Salva logo diretamente na empresa
+  - Suporta PNG, JPG, WEBP
+  - Máximo 2MB
+  - Armazenado como data URL base64
+
+- ✅ **Endpoint de PDF com Logo:** `GET /api/relatorio-consolidado/{company_id}/exportar-pdf`
+  - Seções: resumo, icms, pis_cofins
+  - Inclui logo da empresa automaticamente
+  - Cabeçalho personalizado
+  - Rodapé com marca AURION
+  - Formatação profissional
+
+**Arquivos Modificados:**
+- `/app/backend/server.py` - Modelos e endpoints de logo e PDF
+- `/app/frontend/src/App.css` - Novas animações e estilos
+
+---
+
 ### 2026-02-12 (Sessão 22 - TODAS AS 7 FASES COMPLETAS + MELHORIAS)
 
 **FASE 7 - Grupos Empresariais (Multi-estabelecimento):**
