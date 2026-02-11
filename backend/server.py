@@ -13145,6 +13145,47 @@ Se o comando não for claro, retorne {{"alteracoes": [], "erro": "mensagem expli
         alteracoes_aplicadas = []
         docs_atualizados = {}
         
+        # ============= APLICAR PRÉ-CLASSIFICAÇÕES POR PALAVRAS-CHAVE =============
+        # Estas têm PRIORIDADE sobre a IA
+        for chave, dados in produtos_pre_classificados.items():
+            categoria_destino = dados['categoria_sugerida']
+            
+            # Atualizar todas as ocorrências deste produto
+            for occ in dados['ocorrencias']:
+                doc_id = occ['doc_id']
+                idx = occ['idx']
+                
+                if doc_id not in docs_atualizados:
+                    doc = await db.xml_documents.find_one({"id": doc_id})
+                    if doc:
+                        docs_atualizados[doc_id] = doc.get('produtos', [])
+                
+                if doc_id in docs_atualizados:
+                    produtos_doc = docs_atualizados[doc_id]
+                    if idx < len(produtos_doc):
+                        produtos_doc[idx]['categoria_classificada'] = categoria_destino
+                        produtos_doc[idx]['classificado_por_ia'] = False
+                        produtos_doc[idx]['classificado_por_palavra_chave'] = True
+                        produtos_doc[idx]['comando_ia'] = comando
+                        
+                        # ATUALIZAR CFOP baseado na categoria
+                        cfop_atual = produtos_doc[idx].get('cfop', '1102')
+                        cfop_novo = obter_cfop_por_categoria(categoria_destino, cfop_atual)
+                        if cfop_novo:
+                            produtos_doc[idx]['cfop_anterior'] = cfop_atual
+                            produtos_doc[idx]['cfop'] = cfop_novo
+            
+            alteracoes_aplicadas.append({
+                'produto': dados['descricao'],
+                'categoria_anterior': dados['categoria_atual'],
+                'categoria_nova': categoria_destino,
+                'ocorrencias': len(dados['ocorrencias']),
+                'motivo': f"Palavra-chave cadastrada",
+                'fonte': 'palavra_chave'
+            })
+        
+        # ============= APLICAR ALTERAÇÕES DA IA =============
+        # Apenas para produtos que NÃO foram pré-classificados
         for alt in resultado.get('alteracoes', []):
             categoria_destino = alt.get('nova_categoria', '')
             if categoria_destino not in ['revenda', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel', 'servico_aplicacao', 'bonificacao']:
@@ -13155,8 +13196,8 @@ Se o comando não for claro, retorne {{"alteracoes": [], "erro": "mensagem expli
             # MELHORIA: Match mais inteligente - considera palavras-chave separadamente
             palavras_match = [p for p in desc_match.split() if len(p) > 2]
             
-            # Encontrar produtos correspondentes
-            for chave, dados in produtos_unicos.items():
+            # Encontrar produtos correspondentes (APENAS nos que foram para IA)
+            for chave, dados in produtos_para_ia.items():
                 descricao_produto = dados['descricao'].lower()
                 
                 # Match exato ou por palavras-chave
@@ -13199,7 +13240,8 @@ Se o comando não for claro, retorne {{"alteracoes": [], "erro": "mensagem expli
                         'categoria_anterior': dados['categoria_atual'],
                         'categoria_nova': categoria_destino,
                         'ocorrencias': len(dados['ocorrencias']),
-                        'motivo': alt.get('motivo', comando)
+                        'motivo': alt.get('motivo', comando),
+                        'fonte': 'ia'
                     })
         
         # Salvar alterações no banco
