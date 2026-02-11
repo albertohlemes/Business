@@ -7922,8 +7922,13 @@ async def get_dashboard_stats(
             if categoria in CATEGORIAS_SEM_CREDITO:
                 gera_credito_pis_cofins = False
             
-            # NÃO verificar CST para o comparativo, pois o CST reflete o regime atual
-            # No Lucro Real hipotético, o CST seria diferente
+            # CSTs de entrada que NÃO geram crédito mesmo no Lucro Real hipotético
+            # 70 = Operação de Aquisição sem Direito a Crédito
+            # 73 = Operação de Aquisição a Alíquota Zero
+            # 98 = Outras Operações de Entrada
+            CST_ENTRADA_SEM_CREDITO = ['70', '73', '98']
+            if cst_pis in CST_ENTRADA_SEM_CREDITO or cst_cofins in CST_ENTRADA_SEM_CREDITO:
+                gera_credito_pis_cofins = False
             
             # Adicionar à base de crédito se aplicável
             if gera_credito_pis_cofins and valor_produto > 0:
