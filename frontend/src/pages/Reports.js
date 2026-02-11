@@ -6,7 +6,7 @@ import {
   ArrowDownCircle, ArrowUpCircle, ArrowUp, ArrowDown, ArrowUpDown,
   FileSpreadsheet, FileText, CheckSquare, Square, Check, X,
   RefreshCw, Building2, Calendar, DollarSign, Calculator, Percent,
-  BarChart3, PieChart, Scale, Loader2, Filter
+  BarChart3, PieChart, Scale, Loader2, Filter, FileBarChart as FilePdf
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { toast } from 'sonner';
