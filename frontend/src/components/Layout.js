@@ -158,6 +158,7 @@ const Layout = ({ user, onLogout, children }) => {
     
     // === ADMINISTRAÇÃO (apenas admin/super_admin) ===
     if (user?.role === 'admin' || user?.role === 'super_admin') {
+      nav.push({ name: 'Grupos Empresariais', href: '/grupos-empresariais', icon: Building2, testId: 'nav-grupos-empresariais' });
       nav.push({ name: 'Histórico de Alterações', href: '/audit-log', icon: History, testId: 'nav-audit-log' });
     }
     
