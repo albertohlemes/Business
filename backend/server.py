@@ -26845,6 +26845,371 @@ async def get_historico_fechamentos(
 
 
 # ============================================================
+# FASE 7 - Endpoints de Grupos Empresariais (Multi-estabelecimento)
+# ============================================================
+
+@api_router.get("/grupos-empresariais")
+async def list_grupos_empresariais(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Lista todos os grupos empresariais que o usuário tem acesso.
+    Admin/Super Admin veem todos, outros veem apenas grupos onde são responsáveis.
+    """
+    query = {"is_active": True}
+    
+    if current_user.role not in ['admin', 'super_admin']:
+        # Buscar grupos onde é responsável ou tem acesso às empresas
+        user_companies = current_user.company_ids or []
+        query["$or"] = [
+            {"responsavel_id": current_user.id},
+            {"created_by": current_user.id},
+            {"matriz_id": {"$in": user_companies}},
+            {"filiais_ids": {"$in": user_companies}}
+        ]
+    
+    grupos = await db.grupos_empresariais.find(query, {"_id": 0}).to_list(100)
+    
+    # Enriquecer com dados das empresas
+    for grupo in grupos:
+        # Buscar dados da matriz
+        matriz = await db.companies.find_one({"id": grupo.get("matriz_id")}, {"_id": 0, "razao_social": 1, "cnpj": 1, "uf": 1})
+        grupo["matriz"] = matriz
+        
+        # Buscar dados das filiais
+        filiais = []
+        for filial_id in grupo.get("filiais_ids", []):
+            filial = await db.companies.find_one({"id": filial_id}, {"_id": 0, "razao_social": 1, "cnpj": 1, "uf": 1})
+            if filial:
+                filial["id"] = filial_id
+                filiais.append(filial)
+        grupo["filiais"] = filiais
+        grupo["total_empresas"] = 1 + len(filiais)  # matriz + filiais
+    
+    return {"grupos": grupos, "total": len(grupos)}
+
+
+@api_router.post("/grupos-empresariais")
+async def create_grupo_empresarial(
+    grupo_data: GrupoEmpresarialCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Cria um novo grupo empresarial.
+    """
+    if current_user.role not in ['admin', 'super_admin', 'master']:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem criar grupos empresariais")
+    
+    # Verificar se matriz existe
+    matriz = await db.companies.find_one({"id": grupo_data.matriz_id}, {"_id": 0})
+    if not matriz:
+        raise HTTPException(status_code=404, detail="Empresa matriz não encontrada")
+    
+    # Verificar se filiais existem
+    for filial_id in grupo_data.filiais_ids:
+        filial = await db.companies.find_one({"id": filial_id}, {"_id": 0})
+        if not filial:
+            raise HTTPException(status_code=404, detail=f"Empresa filial {filial_id} não encontrada")
+    
+    # Verificar se já existe grupo com mesmo nome
+    existente = await db.grupos_empresariais.find_one({"nome": grupo_data.nome, "is_active": True})
+    if existente:
+        raise HTTPException(status_code=400, detail="Já existe um grupo com este nome")
+    
+    grupo_id = str(uuid.uuid4())
+    grupo = {
+        "id": grupo_id,
+        "nome": grupo_data.nome,
+        "descricao": grupo_data.descricao,
+        "matriz_id": grupo_data.matriz_id,
+        "filiais_ids": grupo_data.filiais_ids,
+        "responsavel_id": grupo_data.responsavel_id or current_user.id,
+        "created_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "is_active": True
+    }
+    
+    await db.grupos_empresariais.insert_one(grupo)
+    
+    # Registrar no audit log
+    await log_audit(
+        action="grupo.create",
+        user_id=current_user.id,
+        user_email=current_user.email,
+        details={
+            "grupo_id": grupo_id,
+            "nome": grupo_data.nome,
+            "matriz": matriz.get("razao_social"),
+            "qtd_filiais": len(grupo_data.filiais_ids)
+        },
+        success=True
+    )
+    
+    return {"id": grupo_id, **grupo}
+
+
+@api_router.get("/grupos-empresariais/{grupo_id}")
+async def get_grupo_empresarial(
+    grupo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna detalhes de um grupo empresarial específico.
+    """
+    grupo = await db.grupos_empresariais.find_one({"id": grupo_id, "is_active": True}, {"_id": 0})
+    if not grupo:
+        raise HTTPException(status_code=404, detail="Grupo não encontrado")
+    
+    # Buscar dados da matriz
+    matriz = await db.companies.find_one({"id": grupo.get("matriz_id")}, {"_id": 0})
+    grupo["matriz"] = matriz
+    
+    # Buscar dados das filiais
+    filiais = []
+    for filial_id in grupo.get("filiais_ids", []):
+        filial = await db.companies.find_one({"id": filial_id}, {"_id": 0})
+        if filial:
+            filiais.append(filial)
+    grupo["filiais"] = filiais
+    
+    return grupo
+
+
+@api_router.put("/grupos-empresariais/{grupo_id}")
+async def update_grupo_empresarial(
+    grupo_id: str,
+    grupo_data: GrupoEmpresarialUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Atualiza um grupo empresarial.
+    """
+    if current_user.role not in ['admin', 'super_admin', 'master']:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem atualizar grupos")
+    
+    grupo = await db.grupos_empresariais.find_one({"id": grupo_id, "is_active": True})
+    if not grupo:
+        raise HTTPException(status_code=404, detail="Grupo não encontrado")
+    
+    update_data = {k: v for k, v in grupo_data.model_dump().items() if v is not None}
+    
+    if update_data:
+        await db.grupos_empresariais.update_one(
+            {"id": grupo_id},
+            {"$set": update_data}
+        )
+    
+    return {"success": True, "message": "Grupo atualizado com sucesso"}
+
+
+@api_router.delete("/grupos-empresariais/{grupo_id}")
+async def delete_grupo_empresarial(
+    grupo_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Desativa um grupo empresarial (soft delete).
+    """
+    if current_user.role not in ['admin', 'super_admin']:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem excluir grupos")
+    
+    grupo = await db.grupos_empresariais.find_one({"id": grupo_id, "is_active": True})
+    if not grupo:
+        raise HTTPException(status_code=404, detail="Grupo não encontrado")
+    
+    await db.grupos_empresariais.update_one(
+        {"id": grupo_id},
+        {"$set": {"is_active": False}}
+    )
+    
+    # Registrar no audit log
+    await log_audit(
+        action="grupo.delete",
+        user_id=current_user.id,
+        user_email=current_user.email,
+        details={"grupo_id": grupo_id, "nome": grupo.get("nome")},
+        success=True
+    )
+    
+    return {"success": True, "message": "Grupo excluído com sucesso"}
+
+
+@api_router.post("/grupos-empresariais/{grupo_id}/filiais/{company_id}")
+async def add_filial_to_grupo(
+    grupo_id: str,
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Adiciona uma empresa filial ao grupo.
+    """
+    if current_user.role not in ['admin', 'super_admin', 'master']:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem modificar grupos")
+    
+    grupo = await db.grupos_empresariais.find_one({"id": grupo_id, "is_active": True})
+    if not grupo:
+        raise HTTPException(status_code=404, detail="Grupo não encontrado")
+    
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if company_id in grupo.get("filiais_ids", []):
+        raise HTTPException(status_code=400, detail="Empresa já é filial deste grupo")
+    
+    if company_id == grupo.get("matriz_id"):
+        raise HTTPException(status_code=400, detail="Empresa já é a matriz deste grupo")
+    
+    await db.grupos_empresariais.update_one(
+        {"id": grupo_id},
+        {"$push": {"filiais_ids": company_id}}
+    )
+    
+    return {"success": True, "message": f"Empresa {company.get('razao_social')} adicionada ao grupo"}
+
+
+@api_router.delete("/grupos-empresariais/{grupo_id}/filiais/{company_id}")
+async def remove_filial_from_grupo(
+    grupo_id: str,
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Remove uma empresa filial do grupo.
+    """
+    if current_user.role not in ['admin', 'super_admin', 'master']:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem modificar grupos")
+    
+    grupo = await db.grupos_empresariais.find_one({"id": grupo_id, "is_active": True})
+    if not grupo:
+        raise HTTPException(status_code=404, detail="Grupo não encontrado")
+    
+    if company_id not in grupo.get("filiais_ids", []):
+        raise HTTPException(status_code=400, detail="Empresa não é filial deste grupo")
+    
+    await db.grupos_empresariais.update_one(
+        {"id": grupo_id},
+        {"$pull": {"filiais_ids": company_id}}
+    )
+    
+    return {"success": True, "message": "Empresa removida do grupo"}
+
+
+@api_router.get("/grupos-empresariais/{grupo_id}/consolidado")
+async def get_grupo_consolidado(
+    grupo_id: str,
+    competencia: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna o dashboard consolidado de todas as empresas do grupo.
+    """
+    grupo = await db.grupos_empresariais.find_one({"id": grupo_id, "is_active": True}, {"_id": 0})
+    if not grupo:
+        raise HTTPException(status_code=404, detail="Grupo não encontrado")
+    
+    # Lista de todas as empresas do grupo (matriz + filiais)
+    empresa_ids = [grupo.get("matriz_id")] + grupo.get("filiais_ids", [])
+    
+    # Inicializar totais consolidados
+    consolidado = {
+        "grupo_id": grupo_id,
+        "grupo_nome": grupo.get("nome"),
+        "competencia": competencia,
+        "total_empresas": len(empresa_ids),
+        "resumo": {
+            "total_entradas": 0,
+            "total_saidas": 0,
+            "qtd_documentos": 0
+        },
+        "icms": {"debito": 0, "credito": 0, "saldo": 0, "a_pagar": 0},
+        "pis": {"debito": 0, "credito": 0, "saldo": 0, "a_pagar": 0},
+        "cofins": {"debito": 0, "credito": 0, "saldo": 0, "a_pagar": 0},
+        "iss": {"total": 0},
+        "ipi": {"debito": 0, "credito": 0, "saldo": 0, "a_pagar": 0},
+        "total_impostos": 0,
+        "empresas": []
+    }
+    
+    # Buscar dados de cada empresa
+    for empresa_id in empresa_ids:
+        company = await db.companies.find_one({"id": empresa_id}, {"_id": 0})
+        if not company:
+            continue
+        
+        # Buscar documentos da empresa
+        query = {
+            "company_id": empresa_id,
+            "competencia": competencia
+        }
+        query.update(get_filtro_notas_ativas())
+        documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
+        
+        entradas = [d for d in documents if d.get('tipo') == 'entrada' or d.get('tipo_operacao') == 'entrada']
+        saidas = [d for d in documents if d.get('tipo') == 'saida' or d.get('tipo_operacao') == 'saida']
+        
+        total_entradas = sum(float(d.get('valor_total', 0) or 0) for d in entradas)
+        total_saidas = sum(float(d.get('valor_total', 0) or 0) for d in saidas)
+        
+        # Calcular impostos (simplificado)
+        icms_debito = sum(float(p.get('v_icms', 0) or 0) for d in saidas for p in d.get('produtos', []))
+        icms_credito = sum(float(p.get('v_icms', 0) or 0) for d in entradas for p in d.get('produtos', []))
+        pis_debito = sum(float(p.get('v_pis', 0) or 0) for d in saidas for p in d.get('produtos', []))
+        cofins_debito = sum(float(p.get('v_cofins', 0) or 0) for d in saidas for p in d.get('produtos', []))
+        
+        empresa_data = {
+            "id": empresa_id,
+            "razao_social": company.get("razao_social"),
+            "cnpj": company.get("cnpj"),
+            "uf": company.get("uf"),
+            "is_matriz": empresa_id == grupo.get("matriz_id"),
+            "entradas": round(total_entradas, 2),
+            "saidas": round(total_saidas, 2),
+            "qtd_documentos": len(documents),
+            "icms_debito": round(icms_debito, 2),
+            "icms_credito": round(icms_credito, 2),
+            "icms_saldo": round(icms_debito - icms_credito, 2),
+            "pis_debito": round(pis_debito, 2),
+            "cofins_debito": round(cofins_debito, 2)
+        }
+        consolidado["empresas"].append(empresa_data)
+        
+        # Somar aos totais consolidados
+        consolidado["resumo"]["total_entradas"] += total_entradas
+        consolidado["resumo"]["total_saidas"] += total_saidas
+        consolidado["resumo"]["qtd_documentos"] += len(documents)
+        consolidado["icms"]["debito"] += icms_debito
+        consolidado["icms"]["credito"] += icms_credito
+        consolidado["pis"]["debito"] += pis_debito
+        consolidado["cofins"]["debito"] += cofins_debito
+    
+    # Calcular saldos consolidados
+    consolidado["icms"]["saldo"] = round(consolidado["icms"]["debito"] - consolidado["icms"]["credito"], 2)
+    consolidado["icms"]["a_pagar"] = round(max(consolidado["icms"]["saldo"], 0), 2)
+    consolidado["pis"]["saldo"] = round(consolidado["pis"]["debito"], 2)
+    consolidado["pis"]["a_pagar"] = round(consolidado["pis"]["debito"], 2)
+    consolidado["cofins"]["saldo"] = round(consolidado["cofins"]["debito"], 2)
+    consolidado["cofins"]["a_pagar"] = round(consolidado["cofins"]["debito"], 2)
+    
+    consolidado["total_impostos"] = round(
+        consolidado["icms"]["a_pagar"] + 
+        consolidado["pis"]["a_pagar"] + 
+        consolidado["cofins"]["a_pagar"], 
+        2
+    )
+    
+    # Arredondar totais
+    consolidado["resumo"]["total_entradas"] = round(consolidado["resumo"]["total_entradas"], 2)
+    consolidado["resumo"]["total_saidas"] = round(consolidado["resumo"]["total_saidas"], 2)
+    consolidado["icms"]["debito"] = round(consolidado["icms"]["debito"], 2)
+    consolidado["icms"]["credito"] = round(consolidado["icms"]["credito"], 2)
+    consolidado["pis"]["debito"] = round(consolidado["pis"]["debito"], 2)
+    consolidado["cofins"]["debito"] = round(consolidado["cofins"]["debito"], 2)
+    
+    return consolidado
+
+
+# ============================================================
 # FASE 4 - Endpoints do Audit Log
 # ============================================================
 
