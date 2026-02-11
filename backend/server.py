@@ -1317,6 +1317,7 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             'numero_nfe': ide.get('nNF', ''),
             'serie': ide.get('serie', ''),
             'data_emissao': ide.get('dhEmi', ''),
+            'data_saida_entrada': ide.get('dhSaiEnt', ''),  # Data de saída/entrada (para competência de entradas)
             # Dados do emitente
             'emitente_cnpj': emit.get('CNPJ', ''),
             'emitente_nome': emit.get('xNome', ''),
