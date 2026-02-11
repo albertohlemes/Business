@@ -8072,6 +8072,7 @@ async def get_dashboard_stats(
     # Para Lucro Presumido: não há crédito de PIS/COFINS
     # Para Lucro Real: há crédito de PIS/COFINS (1.65% e 7.6%)
     # IMPORTANTE: Usar apenas a base tributada (excluindo alíquota zero)
+    # NOVO: Usar base_credito_pis_cofins_real que considera classificação (NCM, CST, CFOP, categoria)
     
     analise_comparativa = None
     
@@ -8093,9 +8094,11 @@ async def get_dashboard_stats(
         debito_pis_real = total_base_pis_cofins * aliq_pis_real
         debito_cofins_real = total_base_pis_cofins * aliq_cofins_real
         
-        # Créditos hipotéticos (assumindo mesmas alíquotas sobre compras)
-        credito_pis_real = total_entradas * aliq_pis_real
-        credito_cofins_real = total_entradas * aliq_cofins_real
+        # Créditos hipotéticos - USAR BASE CALCULADA com classificação (NCM, CST, CFOP, categoria)
+        # Se temos a base específica, usar ela; senão, fallback para entradas totais
+        base_para_credito = base_credito_pis_cofins_real if base_credito_pis_cofins_real > 0 else total_entradas
+        credito_pis_real = base_para_credito * aliq_pis_real
+        credito_cofins_real = base_para_credito * aliq_cofins_real
         
         pis_real_pagar = max(0, debito_pis_real - credito_pis_real)
         cofins_real_pagar = max(0, debito_cofins_real - credito_cofins_real)
@@ -8107,6 +8110,7 @@ async def get_dashboard_stats(
         analise_comparativa = {
             "regime_atual": "lucro_presumido",
             "base_calculo": round(total_base_pis_cofins, 2),
+            "base_credito_calculada": round(base_credito_pis_cofins_real, 2),
             "aliquota_zero_excluida": round(total_aliquota_zero, 2),
             "lucro_presumido": {
                 "pis": round(pis_presumido, 2),
@@ -8124,7 +8128,8 @@ async def get_dashboard_stats(
                 "cofins_pagar": round(cofins_real_pagar, 2),
                 "total": round(total_real, 2),
                 "aliq_pis": "1.65%",
-                "aliq_cofins": "7.6%"
+                "aliq_cofins": "7.6%",
+                "base_credito": round(base_para_credito, 2)
             },
             "diferenca": round(diferenca, 2),
             "regime_mais_vantajoso": "lucro_real" if diferenca > 0 else "lucro_presumido",
