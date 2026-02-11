@@ -201,6 +201,36 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 **Timeout de Upload:**
 - ✅ Aumentado para 5 minutos (300 segundos) para suportar volumes grandes (4000+ arquivos)
 
+### 2026-02-11 (Sessão 17 - Correção SPED e Notas Ausentes)
+
+**CORREÇÃO CRÍTICA: Exportação SPED Fiscal:**
+- ✅ **Problema identificado:** Erro 520 (Internal Server Error) ao exportar SPED
+- ✅ **Causa raiz:** Inconsistências no banco de dados MongoDB onde alguns documentos XML usavam campos diferentes:
+  - `tipo_operacao` em vez de `tipo`
+  - `chave_acesso` em vez de `chave_nfe`
+  - `modelo: "55"` em vez de `modelo: "nfe"`
+- ✅ **Solução implementada:** Adicionado `model_validator` no modelo Pydantic `XMLDocument` para normalizar campos automaticamente
+- ✅ **Frontend corrigido:** `ExportMenu.js` ajustado para aceitar resposta da API em ambos os formatos (array ou objeto com chave `documents`)
+- ✅ **Arquivos modificados:** `/app/backend/server.py`, `/app/frontend/src/pages/ExportMenu.js`
+
+**NOVA FUNCIONALIDADE: Alerta de Notas Fiscais Ausentes:**
+- ✅ **Detecção de gaps na sequência numérica** de notas fiscais de saída
+- ✅ **Filtros disponíveis:** Competência (mês/ano) e Série da NF-e
+- ✅ **Resumo visual:**
+  - Total de notas emitidas
+  - Total de notas ausentes (vermelho se > 0, verde se = 0)
+  - Status: "Sequência OK" ou "Gaps Detectados"
+- ✅ **Resumo por série:** Primeiro nº, último nº, total emitidas, total esperado, ausentes
+- ✅ **Detalhamento:** Lista de cada nota ausente com nota anterior/posterior e suas datas
+- ✅ **Exportação Excel:** Arquivo .xlsx completo com resumo e detalhamento
+- ✅ **Exportação PDF:** Relatório formatado com tabelas estilizadas
+- ✅ **Menu lateral:** Link "Notas Ausentes" adicionado na seção de Análises
+- ✅ **Arquivos criados/modificados:**
+  - `/app/backend/server.py` - Endpoints `/api/notas-ausentes/{company_id}` e `/api/notas-ausentes/{company_id}/exportar`
+  - `/app/frontend/src/pages/NotasAusentes.js` - Nova página de interface
+  - `/app/frontend/src/App.js` - Rota `/notas-ausentes`
+  - `/app/frontend/src/components/Layout.js` - Link no menu lateral
+
 ### 2026-02-11 (Sessão 16 - Correção CST Bebidas Alcoólicas e Timeout Upload)
 
 **CORREÇÃO CRÍTICA: CST de PIS/COFINS para Bebidas Alcoólicas:**
