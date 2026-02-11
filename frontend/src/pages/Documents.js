@@ -756,6 +756,12 @@ const Documents = ({ user, onLogout }) => {
         
         while (retries > 0 && !resultFound) {
           try {
+            // Se já mostramos o resultado, não tentar novamente
+            if (resultDisplayedRef.current) {
+              resultFound = true;
+              break;
+            }
+            
             const statusResponse = await axios.get(`${API}/xml/upload-status/${uploadId}`, {
               headers: { Authorization: `Bearer ${token}` },
               timeout: 30000
@@ -763,6 +769,13 @@ const Documents = ({ user, onLogout }) => {
             const data = statusResponse.data;
             
             if (data.completed && data.results) {
+              // Verificar novamente antes de exibir
+              if (resultDisplayedRef.current) {
+                resultFound = true;
+                break;
+              }
+              resultDisplayedRef.current = true;
+              
               const resumo = data.results.resumo || {};
               const successList = data.results.success || [];
               const errorsList = [
