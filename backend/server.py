@@ -742,6 +742,42 @@ class CompanyUpdate(BaseModel):
     percentual_presuncao_servicos_irpj: Optional[float] = None
     percentual_presuncao_servicos_csll: Optional[float] = None
 
+
+# ============================================================
+# FASE 7 - Modelos de Grupo Empresarial (Multi-estabelecimento)
+# ============================================================
+
+class GrupoEmpresarial(BaseModel):
+    """Modelo para grupo empresarial (holding/matriz + filiais)"""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    nome: str  # Nome do grupo (ex: "Grupo Comercial ABC")
+    descricao: Optional[str] = None
+    matriz_id: str  # ID da empresa matriz
+    filiais_ids: List[str] = []  # IDs das empresas filiais
+    responsavel_id: Optional[str] = None  # ID do usuário responsável pelo grupo
+    created_by: str  # ID do usuário que criou
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    is_active: bool = True
+
+
+class GrupoEmpresarialCreate(BaseModel):
+    nome: str
+    descricao: Optional[str] = None
+    matriz_id: str
+    filiais_ids: List[str] = []
+    responsavel_id: Optional[str] = None
+
+
+class GrupoEmpresarialUpdate(BaseModel):
+    nome: Optional[str] = None
+    descricao: Optional[str] = None
+    matriz_id: Optional[str] = None
+    filiais_ids: Optional[List[str]] = None
+    responsavel_id: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
 class XMLDocument(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
