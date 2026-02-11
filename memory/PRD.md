@@ -112,6 +112,23 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-11 (Sessão 20 - Detalhamento do Benefício Fiscal ICMS)
+
+**Modal de Detalhamento do Benefício Fiscal:**
+- ✅ **Novo endpoint `/api/beneficio-fiscal-detalhes/{company_id}`:** Retorna detalhamento dos créditos desconsiderados por produto e NCM
+- ✅ **Novo endpoint `/api/beneficio-fiscal-detalhes/{company_id}/exportar`:** Exporta detalhamento para Excel ou PDF
+- ✅ **Modal interativo em ApuracaoICMS.js:**
+  - Abas "Por Produto" e "Por NCM" com tabelas detalhadas
+  - Cards de resumo: Total de Produtos, Valor Total, ICMS Desconsiderado
+  - Botões de exportação: Excel (verde) e PDF (vermelho)
+  - Exibição da regra aplicada (ex: "carne, bebida")
+- ✅ **Card clicável na página de Apuração ICMS:** Mostra valor total de crédito desconsiderado e "Clique para ver detalhes"
+- ✅ **Correção de compatibilidade:** Suporte para campos `itens`/`produtos` e `valor_icms`/`v_icms` nos documentos
+
+**Arquivos modificados:**
+- `/app/backend/server.py`: Novos endpoints de detalhamento e exportação
+- `/app/frontend/src/pages/ApuracaoICMS.js`: Modal de detalhamento já existia, funcionando com os novos endpoints
+
 ### 2026-02-11 (Sessão 19 - Padronização UI PIS/COFINS, Relatórios e Usuários)
 
 **Padronização das Abas NCM e Produto em PIS/COFINS:**
