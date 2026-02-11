@@ -18261,15 +18261,31 @@ async def get_beneficio_fiscal_detalhes(
                 por_produto[desc_key] = {
                     "descricao": desc_key,
                     "ncm": ncm,
+                    "cfop": cfop,
                     "valor_total": 0,
+                    "bc_icms": 0,
                     "valor_icms": 0,
-                    "qtd_notas": 0,
-                    "notas": set()
+                    "notas": []
                 }
             por_produto[desc_key]["valor_total"] += valor_produto
+            por_produto[desc_key]["bc_icms"] += bc_icms
             por_produto[desc_key]["valor_icms"] += valor_icms
-            por_produto[desc_key]["notas"].add(doc.get('numero', ''))
-            por_produto[desc_key]["qtd_notas"] = len(por_produto[desc_key]["notas"])
+            
+            # Adicionar nota se ainda não existir
+            numero_nfe = doc.get('numero_nfe', doc.get('numero', ''))
+            emitente = doc.get('emitente_nome', '')
+            if isinstance(doc.get('emitente'), dict):
+                emitente = doc.get('emitente', {}).get('razao_social', emitente)
+            
+            nota_existe = any(n.get('numero') == numero_nfe for n in por_produto[desc_key]["notas"])
+            if numero_nfe and not nota_existe:
+                por_produto[desc_key]["notas"].append({
+                    "numero": numero_nfe,
+                    "emitente": emitente[:40] if emitente else "",
+                    "valor": valor_produto,
+                    "bc_icms": bc_icms,
+                    "valor_icms": valor_icms
+                })
             
             # Agregar por NCM
             ncm_key = ncm[:8] if ncm else "SEM_NCM"
@@ -18278,14 +18294,27 @@ async def get_beneficio_fiscal_detalhes(
                     "ncm": ncm_key,
                     "descricao_ncm": get_ncm_descricao(ncm_key),
                     "valor_total": 0,
+                    "bc_icms": 0,
                     "valor_icms": 0,
-                    "qtd_produtos": 0,
-                    "produtos": set()
+                    "produtos": {}
                 }
             por_ncm[ncm_key]["valor_total"] += valor_produto
+            por_ncm[ncm_key]["bc_icms"] += bc_icms
             por_ncm[ncm_key]["valor_icms"] += valor_icms
-            por_ncm[ncm_key]["produtos"].add(desc_key[:50])
-            por_ncm[ncm_key]["qtd_produtos"] = len(por_ncm[ncm_key]["produtos"])
+            
+            # Adicionar produto ao NCM
+            prod_key = desc_key[:50]
+            if prod_key not in por_ncm[ncm_key]["produtos"]:
+                por_ncm[ncm_key]["produtos"][prod_key] = {
+                    "descricao": prod_key,
+                    "cfop": cfop,
+                    "valor_total": 0,
+                    "bc_icms": 0,
+                    "valor_icms": 0
+                }
+            por_ncm[ncm_key]["produtos"][prod_key]["valor_total"] += valor_produto
+            por_ncm[ncm_key]["produtos"][prod_key]["bc_icms"] += bc_icms
+            por_ncm[ncm_key]["produtos"][prod_key]["valor_icms"] += valor_icms
     
     # Converter para listas e ordenar por valor de ICMS desconsiderado
     lista_produtos = []
@@ -18293,26 +18322,44 @@ async def get_beneficio_fiscal_detalhes(
         lista_produtos.append({
             "descricao": p["descricao"],
             "ncm": p["ncm"],
+            "cfop": p["cfop"],
             "valor_total": round(p["valor_total"], 2),
+            "bc_icms": round(p["bc_icms"], 2),
             "valor_icms": round(p["valor_icms"], 2),
-            "qtd_notas": p["qtd_notas"]
+            "qtd_notas": len(p["notas"]),
+            "notas": p["notas"][:10]  # Limitar a 10 notas
         })
     lista_produtos.sort(key=lambda x: x["valor_icms"], reverse=True)
     
     lista_ncm = []
     for n in por_ncm.values():
+        # Converter produtos do NCM para lista
+        produtos_ncm = []
+        for prod in n["produtos"].values():
+            produtos_ncm.append({
+                "descricao": prod["descricao"],
+                "cfop": prod["cfop"],
+                "valor_total": round(prod["valor_total"], 2),
+                "bc_icms": round(prod["bc_icms"], 2),
+                "valor_icms": round(prod["valor_icms"], 2)
+            })
+        produtos_ncm.sort(key=lambda x: x["valor_icms"], reverse=True)
+        
         lista_ncm.append({
             "ncm": n["ncm"],
             "descricao_ncm": n["descricao_ncm"],
             "valor_total": round(n["valor_total"], 2),
+            "bc_icms": round(n["bc_icms"], 2),
             "valor_icms": round(n["valor_icms"], 2),
-            "qtd_produtos": n["qtd_produtos"]
+            "qtd_produtos": len(produtos_ncm),
+            "produtos": produtos_ncm
         })
     lista_ncm.sort(key=lambda x: x["valor_icms"], reverse=True)
     
     return {
         "total_produtos": total_produtos,
         "valor_total": round(total_valor, 2),
+        "bc_icms_total": round(sum(p["bc_icms"] for p in lista_produtos), 2),
         "valor_icms_desconsiderado": round(total_icms, 2),
         "por_produto": lista_produtos,
         "por_ncm": lista_ncm,
