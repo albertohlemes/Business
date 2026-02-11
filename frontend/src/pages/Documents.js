@@ -250,6 +250,35 @@ const Documents = ({ user, onLogout }) => {
     }
   };
 
+  // Carregar histórico de importações
+  const fetchHistorico = async () => {
+    if (!ctxCompany?.id) return;
+    setHistoricoLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API}/xml/historico-importacoes/${ctxCompany.id}?limit=50`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setHistorico(res.data.historico || []);
+    } catch (err) {
+      console.error('Erro ao carregar histórico:', err);
+    } finally {
+      setHistoricoLoading(false);
+    }
+  };
+
+  const fetchHistoricoDetalhe = async (historicoId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API}/xml/historico-importacoes/${ctxCompany.id}/${historicoId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setHistoricoDetalhe(res.data);
+    } catch (err) {
+      console.error('Erro ao carregar detalhe do histórico:', err);
+    }
+  };
+
   const handleDeleteDocument = async (docId, numeroNfe) => {
     if (!window.confirm(`Tem certeza que deseja apagar o documento ${numeroNfe}?`)) {
       return;
