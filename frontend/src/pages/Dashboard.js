@@ -52,12 +52,12 @@ const Dashboard = ({ user, onLogout }) => {
     return `${(value || 0).toFixed(1)}%`;
   };
 
-  // Card de estatística simples
+  // Card de estatística simples com animações melhoradas
   const StatCard = ({ icon: Icon, title, value, color, link, subtitle }) => (
-    <Link to={link} className="block group">
-      <div className="bg-[#141414] rounded-lg p-5 border border-[#2A2A2A] hover:border-[#C8A951]/30 transition-all">
+    <Link to={link} className="block group animate-fade-in">
+      <div className="bg-[#141414] rounded-lg p-5 border border-[#2A2A2A] card-interactive">
         <div className="flex items-center justify-between mb-3">
-          <div className={`w-11 h-11 rounded-lg flex items-center justify-center ${color}`}>
+          <div className={`w-11 h-11 rounded-lg flex items-center justify-center ${color} transition-transform group-hover:scale-110`}>
             <Icon className="w-5 h-5 text-white" />
           </div>
           <ChevronRight className="w-5 h-5 text-[#A1A1AA] group-hover:text-[#C8A951] transition-colors" />
