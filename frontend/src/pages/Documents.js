@@ -1679,9 +1679,9 @@ const Documents = ({ user, onLogout }) => {
           </div>
 
           {/* Botões de Operação */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 py-8">
+          <div className="flex flex-col sm:flex-row items-start justify-center gap-6 py-8">
             {/* Card ENTRADAS */}
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center">
               <button
                 data-testid="btn-entradas"
                 onClick={() => setOperacao('entrada')}
@@ -1695,30 +1695,10 @@ const Documents = ({ user, onLogout }) => {
                   <p className="text-sm text-[#A1A1AA]">Compras e Aquisições</p>
                 </div>
               </button>
-              
-              {/* Botão Apagar Tudo Entradas */}
-              <button
-                data-testid="btn-delete-all-entradas"
-                onClick={() => handleDeleteAllByOperacao('entrada')}
-                disabled={deletingAll === 'entrada'}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 disabled:opacity-50 transition-all"
-              >
-                {deletingAll === 'entrada' ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    Excluindo...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Apagar Todas Entradas
-                  </>
-                )}
-              </button>
             </div>
 
             {/* Card SAÍDAS */}
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center">
               <button
                 data-testid="btn-saidas"
                 onClick={() => setOperacao('saida')}
@@ -1732,32 +1712,56 @@ const Documents = ({ user, onLogout }) => {
                   <p className="text-sm text-[#A1A1AA]">Vendas e Prestações</p>
                 </div>
               </button>
-              
-              {/* Botão Apagar Tudo Saídas */}
-              <button
-                data-testid="btn-delete-all-saidas"
-                onClick={() => handleDeleteAllByOperacao('saida')}
-                disabled={deletingAll === 'saida'}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 disabled:opacity-50 transition-all"
-              >
-                {deletingAll === 'saida' ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    Excluindo...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Apagar Todas Saídas
-                  </>
-                )}
-              </button>
-              
-              {/* Botão Verificar Notas Ausentes */}
-              <button
-                data-testid="btn-notas-ausentes"
-                onClick={handleOpenNotasAusentes}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg hover:bg-yellow-500/20 transition-all"
+            </div>
+          </div>
+          
+          {/* Botões de Ação - Separados dos Cards */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-4 border-t border-[#2A2A2A]">
+            {/* Botão Apagar Tudo Entradas */}
+            <button
+              data-testid="btn-delete-all-entradas"
+              onClick={() => handleDeleteAllByOperacao('entrada')}
+              disabled={deletingAll === 'entrada'}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 disabled:opacity-50 transition-all"
+            >
+              {deletingAll === 'entrada' ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  Apagar Todas Entradas
+                </>
+              )}
+            </button>
+            
+            {/* Botão Apagar Tudo Saídas */}
+            <button
+              data-testid="btn-delete-all-saidas"
+              onClick={() => handleDeleteAllByOperacao('saida')}
+              disabled={deletingAll === 'saida'}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 disabled:opacity-50 transition-all"
+            >
+              {deletingAll === 'saida' ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  Apagar Todas Saídas
+                </>
+              )}
+            </button>
+            
+            {/* Botão Verificar Notas Ausentes */}
+            <button
+              data-testid="btn-notas-ausentes"
+              onClick={handleOpenNotasAusentes}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg hover:bg-yellow-500/20 transition-all"
               >
                 <AlertTriangle className="w-4 h-4" />
                 Verificar Notas Ausentes
