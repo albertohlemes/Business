@@ -836,6 +836,12 @@ const Documents = ({ user, onLogout }) => {
       console.error('Erro no upload:', err);
       if (globalTimeoutId) clearInterval(globalTimeoutId); // Limpar timeout global
       
+      // Só mostrar erro se ainda não mostramos resultado
+      if (resultDisplayedRef.current) {
+        setUploading(false);
+        return;
+      }
+      
       const errorMsg = err.response?.data?.detail || err.message || 'Erro de conexão';
       setUploadError(errorMsg); // Atualizar erro global
       
