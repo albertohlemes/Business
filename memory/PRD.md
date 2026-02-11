@@ -112,6 +112,36 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-11 (Sessão 20 - Melhorias Histórico, Documentos e Vilões)
+
+**Histórico de Importações (Documents.js):**
+- ✅ Reestruturado igual à tela pós-upload
+- ✅ Tags de tipo: SAÍDA (azul), ENTRADA (verde)
+- ✅ Tag de modelo: NF-e, NFC-e, CT-e, NFS-e
+- ✅ Data e hora da importação
+- ✅ Cards de resumo: Total e Importados (com cores)
+- ✅ Valor Total destacado em card dourado
+- ✅ Preview de documentos importados: Modelo, Número, Emitente, Valor
+- ✅ Backend atualizado para buscar dados reais dos documentos (xml_documents)
+
+**Menu Documentos (Documents.js):**
+- ✅ Cards ENTRADAS e SAÍDAS alinhados lado a lado
+- ✅ Botões de ação (Apagar Todas Entradas/Saídas, Verificar Notas Ausentes) em linha separada
+
+**Vilões e Oportunidades (ViloesOportunidades.js):**
+- ✅ Linha do NCM/Categoria com grid detalhado:
+  - Total Entradas e Total Saídas
+  - ICMS: Créditos | Débitos | Diferença | % s/ venda
+  - PIS: Créditos | Débitos | Diferença | % s/ venda
+  - COFINS: Créditos | Débitos | Diferença | % s/ venda
+  - Impacto Total | % s/ venda
+  - Margem | Quantidade de produtos
+
+**Arquivos modificados:**
+- `/app/backend/server.py`: Endpoint `get_historico_importacoes` melhorado para buscar dados reais
+- `/app/frontend/src/pages/Documents.js`: Histórico reestruturado e cards alinhados
+- `/app/frontend/src/pages/ViloesOportunidades.js`: Grid detalhado na linha do NCM
+
 ### 2026-02-11 (Sessão 20 - Correções na Memória IA / Classificação Inteligente)
 
 **Bugs corrigidos:**
