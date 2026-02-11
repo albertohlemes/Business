@@ -378,7 +378,8 @@ export const AppProvider = ({ children }) => {
       startUpload,
       updateUploadProgress,
       setUploadError,
-      finishUpload
+      finishUpload,
+      clearUploadResults
     }}>
       {children}
     </AppContext.Provider>
