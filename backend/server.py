@@ -18294,7 +18294,7 @@ async def listar_divergencias_pis_cofins(
         resultado['itens'] = lista
         
     else:  # produtos
-        # Agrupar por produto (codigo + descricao)
+        # Agrupar por produto (codigo + descricao) - mantendo estrutura detalhada como "notas"
         agrupado = {}
         for div in todas_divergencias:
             key = f"{div['codigo']}_{div['produto'][:50]}"
@@ -18309,19 +18309,32 @@ async def listar_divergencias_pis_cofins(
                     'diferenca_pis': 0,
                     'diferenca_cofins': 0,
                     'diferenca_total': 0,
-                    'notas': []
+                    'produtos': []  # Lista detalhada (renomeado de 'notas' para 'produtos' para consistência)
                 }
             agrupado[key]['ocorrencias'] += 1
             agrupado[key]['valor_base_total'] += div['valor_base']
             agrupado[key]['diferenca_pis'] += div['diferenca_pis']
             agrupado[key]['diferenca_cofins'] += div['diferenca_cofins']
             agrupado[key]['diferenca_total'] += div['diferenca_total']
-            if len(agrupado[key]['notas']) < 5:  # Limitar exemplos
-                agrupado[key]['notas'].append({
-                    'numero_nfe': div['numero_nfe'],
-                    'data_emissao': div['data_emissao'],
-                    'divergencias': div['divergencias']
-                })
+            # Adicionar detalhes com mesmos campos de "notas"
+            agrupado[key]['produtos'].append({
+                'numero_nfe': div['numero_nfe'],
+                'tipo_operacao': div['tipo_operacao'],
+                'emitente': div['emitente'],
+                'destinatario': div['destinatario'],
+                'produto': div['produto'],
+                'ncm': div['ncm'],
+                'cfop': div['cfop'],
+                'cst_xml': next((d['xml'] for d in div['divergencias'] if d['campo'] == 'CST PIS'), ''),
+                'cst_calc': next((d['calculado'] for d in div['divergencias'] if d['campo'] == 'CST PIS'), ''),
+                'aliq_pis_xml': next((d['xml'] for d in div['divergencias'] if 'Alíquota PIS' in d['campo']), None),
+                'aliq_pis_calc': next((d['calculado'] for d in div['divergencias'] if 'Alíquota PIS' in d['campo']), None),
+                'aliq_cofins_xml': next((d['xml'] for d in div['divergencias'] if 'COFINS' in d['campo'] and 'Alíquota' in d['campo']), None),
+                'aliq_cofins_calc': next((d['calculado'] for d in div['divergencias'] if 'COFINS' in d['campo'] and 'Alíquota' in d['campo']), None),
+                'valor_base': div['valor_base'],
+                'divergencias': div['divergencias'],
+                'diferenca_total': div['diferenca_total']
+            })
         
         lista = list(agrupado.values())
         lista.sort(key=lambda x: abs(x['diferenca_total']), reverse=True)
