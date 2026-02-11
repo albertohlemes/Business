@@ -7907,21 +7907,22 @@ async def get_dashboard_stats(
             credito_pis += v_pis
             credito_cofins += v_cofins
             
-            # Calcular base de crédito para PIS/COFINS Lucro Real
-            # Considera: CFOP, categoria, CST
+            # Calcular base de crédito para PIS/COFINS Lucro Real (COMPARATIVO HIPOTÉTICO)
+            # Para o comparativo, consideramos que a empresa TERIA direito ao crédito
+            # se fosse Lucro Real, independente do CST atual (que reflete o regime atual)
+            # Consideramos apenas: CFOP e categoria do produto
             gera_credito_pis_cofins = True
             
-            # Verificar CFOP
+            # Verificar CFOP - remessas, devoluções e despesas não geram crédito
             if cfop in CFOPS_ENTRADA_SEM_CREDITO_PIS_COFINS:
                 gera_credito_pis_cofins = False
             
-            # Verificar categoria
+            # Verificar categoria - despesas e ativo não geram crédito (ou geram parcialmente)
             if categoria in CATEGORIAS_SEM_CREDITO:
                 gera_credito_pis_cofins = False
             
-            # Verificar CST de PIS/COFINS (50-56 = crédito presumido, 60-67 = sem crédito, 70-75 = sem incidência)
-            if cst_pis.startswith(('6', '7', '8', '9')):  # Sem crédito ou sem incidência
-                gera_credito_pis_cofins = False
+            # NÃO verificar CST para o comparativo, pois o CST reflete o regime atual
+            # No Lucro Real hipotético, o CST seria diferente
             
             # Adicionar à base de crédito se aplicável
             if gera_credito_pis_cofins and valor_produto > 0:
