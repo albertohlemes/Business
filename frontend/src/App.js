@@ -94,6 +94,10 @@ function App() {
               element={user ? <UsersPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
+              path="/permissoes"
+              element={user ? <UserPermissions user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
+            <Route
               path="/upload"
               element={<Navigate to="/documents" />}
             />
