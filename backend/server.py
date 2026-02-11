@@ -15618,6 +15618,21 @@ async def get_cached_classification(company_id: str, descricao: str) -> Optional
             }
     return None
 
+def get_cached_classification_from_memory(rules_cache: List[Dict], descricao: str) -> Optional[Dict]:
+    """Busca classificação no cache em memória (sem query ao banco)"""
+    normalized_key = normalize_product_key(descricao)
+    
+    for rule in rules_cache:
+        rule_key = normalize_product_key(rule.get('produto_descricao', ''))
+        # Match exato ou substring significativa
+        if rule_key == normalized_key or (len(rule_key) > 5 and rule_key in normalized_key) or (len(normalized_key) > 5 and normalized_key in rule_key):
+            return {
+                "categoria": rule['categoria_correta'],
+                "cfop": rule['cfop_correto'],
+                "justificativa": f"Memorizado: {rule.get('motivo', 'Classificação anterior')}"
+            }
+    return None
+
 async def save_classification_to_cache(company_id: str, product: Dict, categoria: str, cfop: str, justificativa: str, created_by: str = "system"):
     """Salva classificação no cache para uso futuro"""
     # Verificar se já existe
