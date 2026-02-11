@@ -139,12 +139,12 @@ const Documents = ({ user, onLogout }) => {
   const [showNfseCancellation, setShowNfseCancellation] = useState(false);
   const [nfseFilesForCancellation, setNfseFilesForCancellation] = useState([]);
 
-  // Carregar documentos quando selecionar tipo
+  // Carregar documentos quando selecionar tipo ou mudar filtro
   useEffect(() => {
     if (ctxCompany && operacao && tipoDoc) {
       fetchDocuments();
     }
-  }, [ctxCompany, operacao, tipoDoc, selectedCompetencia]);
+  }, [ctxCompany, operacao, tipoDoc, selectedCompetencia, filterStatus]);
 
   const fetchDocuments = async () => {
     setLoading(true);
@@ -165,6 +165,11 @@ const Documents = ({ user, onLogout }) => {
       const tipoConfig = CATEGORIAS[operacao]?.tipos.find(t => t.id === tipoDoc);
       if (tipoConfig && tipoConfig.modelo !== 'outros') {
         params.append('modelo', tipoConfig.modelo);
+      }
+      
+      // Filtrar por status (ativas/canceladas)
+      if (filterStatus !== 'todas') {
+        params.append('status', filterStatus === 'canceladas' ? 'cancelada' : 'ativa');
       }
       
       const res = await axios.get(`${API}/xml/documents?${params.toString()}`, {
