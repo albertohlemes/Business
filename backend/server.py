@@ -18081,6 +18081,15 @@ async def listar_divergencias_pis_cofins(
             v_pis_xml = float(prod.get('v_pis', 0) or 0)
             v_cofins_xml = float(prod.get('v_cofins', 0) or 0)
             
+            # Verificar se CFOP não gera débito/crédito
+            cfop_sem_credito = not verificar_cfop_gera_credito(cfop) if tipo_op == 'entrada' else False
+            cfop_sem_debito = not verificar_cfop_gera_debito(cfop) if tipo_op == 'saida' else False
+            pis_cofins_zerado = (v_pis_xml == 0 and v_cofins_xml == 0)
+            
+            # Se CFOP não gera débito/crédito E PIS/COFINS está zerado, ignorar divergências
+            if (cfop_sem_credito or cfop_sem_debito) and pis_cofins_zerado:
+                continue
+            
             # Calcular valores corretos usando o regime da empresa
             calc = calcular_pis_cofins_produto(valor_base, ncm, cfop, tipo_op, perfil, regime_para_calculo)
             
@@ -18090,21 +18099,31 @@ async def listar_divergencias_pis_cofins(
             # CST PIS
             cst_correto = calc.get('cst', '')
             if cst_pis_xml and cst_pis_xml != cst_correto:
-                divergencias_prod.append({
-                    'campo': 'CST PIS',
-                    'xml': cst_pis_xml,
-                    'calculado': cst_correto,
-                    'tipo': 'CST'
-                })
+                # Ignorar divergências CST 06↔04 ou 04↔06 quando PIS/COFINS zerado
+                csts_permutaveis = {'04', '06'}
+                if cst_pis_xml in csts_permutaveis and cst_correto in csts_permutaveis and pis_cofins_zerado:
+                    pass  # Ignorar esta divergência
+                else:
+                    divergencias_prod.append({
+                        'campo': 'CST PIS',
+                        'xml': cst_pis_xml,
+                        'calculado': cst_correto,
+                        'tipo': 'CST'
+                    })
             
             # CST COFINS
             if cst_cofins_xml and cst_cofins_xml != cst_correto:
-                divergencias_prod.append({
-                    'campo': 'CST COFINS',
-                    'xml': cst_cofins_xml,
-                    'calculado': cst_correto,
-                    'tipo': 'CST'
-                })
+                # Ignorar divergências CST 06↔04 ou 04↔06 quando PIS/COFINS zerado
+                csts_permutaveis = {'04', '06'}
+                if cst_cofins_xml in csts_permutaveis and cst_correto in csts_permutaveis and pis_cofins_zerado:
+                    pass  # Ignorar esta divergência
+                else:
+                    divergencias_prod.append({
+                        'campo': 'CST COFINS',
+                        'xml': cst_cofins_xml,
+                        'calculado': cst_correto,
+                        'tipo': 'CST'
+                    })
             
             # Alíquota PIS
             aliq_pis_calc = calc.get('aliquota_pis', 0)
