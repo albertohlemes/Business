@@ -6477,7 +6477,7 @@ async def get_historico_importacoes(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Sem permissão")
     
     query = {"company_id": company_id}
