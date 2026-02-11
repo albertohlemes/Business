@@ -13264,7 +13264,7 @@ Se o comando não for claro, retorne {{"alteracoes": [], "erro": "mensagem expli
                 'categoria_anterior': dados['categoria_atual'],
                 'categoria_nova': categoria_destino,
                 'ocorrencias': len(dados['ocorrencias']),
-                'motivo': f"Palavra-chave cadastrada",
+                'motivo': f"Palavra-chave: '{dados.get('palavra_match', 'N/A')}'",
                 'fonte': 'palavra_chave'
             })
         
