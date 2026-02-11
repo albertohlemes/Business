@@ -41,10 +41,84 @@ const ApuracaoICMS = ({ user, onLogout }) => {
   // Estado para expansão de NCMs no modal de benefício fiscal
   const [expandedNcms, setExpandedNcms] = useState({});
   
+  // Estado para ordenação das tabelas de benefício fiscal
+  const [beneficioProdutoSort, setBeneficioProdutoSort] = useState({ column: null, direction: 'asc' });
+  const [beneficioNcmSort, setBeneficioNcmSort] = useState({ column: null, direction: 'asc' });
+  
   const toggleNcmExpansion = (ncm) => {
     setExpandedNcms(prev => ({
       ...prev,
       [ncm]: !prev[ncm]
+    }));
+  };
+  
+  // Função para ordenar a lista de produtos do benefício fiscal
+  const sortedBeneficioProdutos = useMemo(() => {
+    if (!beneficioDetalhes?.por_produto) return [];
+    const items = [...beneficioDetalhes.por_produto];
+    
+    if (beneficioProdutoSort.column) {
+      items.sort((a, b) => {
+        let aVal = a[beneficioProdutoSort.column];
+        let bVal = b[beneficioProdutoSort.column];
+        
+        // Converter para número se necessário
+        if (typeof aVal === 'number' || !isNaN(parseFloat(aVal))) {
+          aVal = parseFloat(aVal) || 0;
+          bVal = parseFloat(bVal) || 0;
+        } else {
+          aVal = String(aVal || '').toLowerCase();
+          bVal = String(bVal || '').toLowerCase();
+        }
+        
+        if (aVal < bVal) return beneficioProdutoSort.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return beneficioProdutoSort.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return items;
+  }, [beneficioDetalhes?.por_produto, beneficioProdutoSort]);
+  
+  // Função para ordenar a lista de NCMs do benefício fiscal
+  const sortedBeneficioNcms = useMemo(() => {
+    if (!beneficioDetalhes?.por_ncm) return [];
+    const items = [...beneficioDetalhes.por_ncm];
+    
+    if (beneficioNcmSort.column) {
+      items.sort((a, b) => {
+        let aVal = a[beneficioNcmSort.column];
+        let bVal = b[beneficioNcmSort.column];
+        
+        // Converter para número se necessário
+        if (typeof aVal === 'number' || !isNaN(parseFloat(aVal))) {
+          aVal = parseFloat(aVal) || 0;
+          bVal = parseFloat(bVal) || 0;
+        } else {
+          aVal = String(aVal || '').toLowerCase();
+          bVal = String(bVal || '').toLowerCase();
+        }
+        
+        if (aVal < bVal) return beneficioNcmSort.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return beneficioNcmSort.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return items;
+  }, [beneficioDetalhes?.por_ncm, beneficioNcmSort]);
+  
+  // Handler para alternar ordenação de produtos
+  const handleProdutoSort = (column) => {
+    setBeneficioProdutoSort(prev => ({
+      column,
+      direction: prev.column === column && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+  
+  // Handler para alternar ordenação de NCMs
+  const handleNcmSort = (column) => {
+    setBeneficioNcmSort(prev => ({
+      column,
+      direction: prev.column === column && prev.direction === 'asc' ? 'desc' : 'asc'
     }));
   };
   
