@@ -113,6 +113,9 @@ const Documents = ({ user, onLogout }) => {
 
   // Filtro de divergências
   const [filterDivergencia, setFilterDivergencia] = useState('all'); // 'all', 'divergente', 'ok'
+  
+  // Filtro de status (ativas/canceladas)
+  const [filterStatus, setFilterStatus] = useState('ativas'); // 'ativas', 'canceladas', 'todas'
 
   // Modal de exclusão em massa
   const [showDeleteModal, setShowDeleteModal] = useState(false);
