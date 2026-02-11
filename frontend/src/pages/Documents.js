@@ -604,6 +604,14 @@ const Documents = ({ user, onLogout }) => {
             console.log('SSE Event:', data);
             
             if (data.completed === true && data.results) {
+              // Evitar múltiplas atualizações do resultado
+              if (resultDisplayedRef.current) {
+                eventSource.close();
+                eventSourceRef.current = null;
+                return;
+              }
+              resultDisplayedRef.current = true;
+              
               if (globalTimeoutId) clearInterval(globalTimeoutId); // Limpar timeout global
               setUploadProgress({ current: files.length, total: files.length, percent: 100 });
               
