@@ -79,8 +79,11 @@ const ExportMenu = ({ user, onLogout }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
+      // A resposta pode ser um array ou um objeto com chave 'documents'
+      const documents = Array.isArray(response.data) ? response.data : (response.data.documents || []);
+      
       // Ordenar competências cronologicamente (mais recente primeiro)
-      const competencias = [...new Set(response.data.map(d => d.competencia))]
+      const competencias = [...new Set(documents.map(d => d.competencia))]
         .filter(Boolean)
         .sort((a, b) => {
           const [mesA, anoA] = a.split('/').map(Number);
@@ -90,7 +93,7 @@ const ExportMenu = ({ user, onLogout }) => {
           return mesB - mesA;
         });
       setAvailableCompetencias(competencias);
-      setDocumentsCount(response.data.length);
+      setDocumentsCount(documents.length);
       
       // Se tem competência para preservar e ela existe na lista, manter
       // Senão, se a competência atual não existe na lista, selecionar a primeira (mais recente)
