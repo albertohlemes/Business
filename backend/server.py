@@ -6620,6 +6620,7 @@ async def get_historico_importacoes(
 ):
     """
     Retorna o histórico de importações de uma empresa, ordenado por data decrescente e tipo de documento.
+    Inclui preview dos documentos importados.
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
@@ -6636,13 +6637,58 @@ async def get_historico_importacoes(
     if tipo:
         query["tipo"] = tipo
     
-    # Buscar histórico ordenado por tipo (decrescente) e data (decrescente)
-    cursor = db.historico_importacoes.find(query, {"_id": 0, "relatorio_completo": 0}).sort([
-        ("tipo", -1),  # Saída primeiro, depois entrada
+    # Buscar histórico ordenado por data (decrescente) - inclui relatorio_completo para preview
+    cursor = db.historico_importacoes.find(query, {"_id": 0}).sort([
         ("data_importacao", -1)  # Mais recente primeiro
     ]).limit(limit)
     
-    historico = await cursor.to_list(length=limit)
+    historico_raw = await cursor.to_list(length=limit)
+    
+    # Processar cada registro para incluir preview dos documentos
+    historico = []
+    for item in historico_raw:
+        # Extrair preview de documentos do relatório completo
+        relatorio = item.get("relatorio_completo", {})
+        success_docs = relatorio.get("success", [])
+        
+        documentos_preview = []
+        valor_total = 0
+        
+        for doc in success_docs[:5]:  # Limitar a 5 documentos no preview
+            doc_preview = {
+                "numero": doc.get("numero") or doc.get("numero_nfe"),
+                "emitente": doc.get("emitente") or doc.get("emitente_nome"),
+                "valor": doc.get("valor", 0),
+                "modelo": doc.get("modelo") or doc.get("modelo_doc") or "55"
+            }
+            documentos_preview.append(doc_preview)
+            valor_total += doc.get("valor", 0)
+        
+        # Calcular valor total de todos os documentos (não só preview)
+        for doc in success_docs:
+            if doc not in success_docs[:5]:
+                valor_total += doc.get("valor", 0)
+        
+        # Extrair modelo predominante
+        modelos = [d.get("modelo") or d.get("modelo_doc") for d in success_docs if d.get("modelo") or d.get("modelo_doc")]
+        modelo_predominante = max(set(modelos), key=modelos.count) if modelos else None
+        
+        # Adicionar item processado (sem o relatório completo pesado)
+        item_processado = {
+            "id": item.get("id"),
+            "company_id": item.get("company_id"),
+            "tipo_operacao": item.get("tipo_operacao") or item.get("tipo"),
+            "data_importacao": item.get("data_importacao"),
+            "competencia": item.get("competencia"),
+            "total_arquivos": item.get("total_arquivos", 0),
+            "total_importados": item.get("total_importados", 0),
+            "total_erros": item.get("total_erros", 0),
+            "total_duplicados": item.get("total_duplicados", 0),
+            "modelo": modelo_predominante,
+            "valor_total": round(valor_total, 2),
+            "documentos_preview": documentos_preview
+        }
+        historico.append(item_processado)
     
     # Agrupar por tipo para facilitar exibição
     agrupado = {
@@ -6651,7 +6697,7 @@ async def get_historico_importacoes(
     }
     
     for item in historico:
-        tipo_item = item.get("tipo", "entrada")
+        tipo_item = item.get("tipo_operacao", "entrada")
         if tipo_item in agrupado:
             agrupado[tipo_item].append(item)
         else:
