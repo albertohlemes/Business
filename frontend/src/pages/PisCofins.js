@@ -1226,45 +1226,86 @@ const PisCofins = ({ user, onLogout }) => {
               </div>
             )}
 
-            {/* Agrupamento por NCMs */}
-            {/* Agrupamento por NCMs - Formato Tabela */}
+            {/* Agrupamento por NCMs - Mesmo formato de Notas */}
             {agrupamento === 'ncms' && (
               <div className="bg-[#141414] border border-[#2A2A2A] rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-[#0C0C0C] sticky top-0">
                       <tr className="text-[#666] text-left">
+                        <th className="px-3 py-2 font-medium">NF</th>
+                        <th className="px-3 py-2 font-medium">Tipo</th>
+                        <th className="px-3 py-2 font-medium">Emitente/Dest.</th>
+                        <th className="px-3 py-2 font-medium">Produto</th>
                         <th className="px-3 py-2 font-medium">NCM</th>
-                        <th className="px-3 py-2 font-medium">Classificação</th>
-                        <th className="px-3 py-2 font-medium text-center">Ocorrências</th>
-                        <th className="px-3 py-2 font-medium text-right">Valor Base</th>
-                        <th className="px-3 py-2 font-medium text-right">Dif. PIS</th>
-                        <th className="px-3 py-2 font-medium text-right">Dif. COFINS</th>
-                        <th className="px-3 py-2 font-medium text-right">Impacto Total</th>
+                        <th className="px-3 py-2 font-medium">CFOP</th>
+                        <th className="px-3 py-2 font-medium">CST XML</th>
+                        <th className="px-3 py-2 font-medium">CST Calc.</th>
+                        <th className="px-3 py-2 font-medium">Alíq. PIS</th>
+                        <th className="px-3 py-2 font-medium">Alíq. COFINS</th>
+                        <th className="px-3 py-2 font-medium text-right">Impacto</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#2A2A2A]">
-                      {itensFiltrados.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-[#1A1A1A]">
-                          <td className="px-3 py-2 text-white font-mono">{item.ncm}</td>
-                          <td className="px-3 py-2">
-                            <span className="bg-[#C8A951]/20 text-[#C8A951] text-xs px-2 py-0.5 rounded">
-                              {item.classificacao}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-center text-[#A1A1AA]">{item.ocorrencias}</td>
-                          <td className="px-3 py-2 text-right text-white">{formatCurrency(item.valor_base_total)}</td>
-                          <td className={`px-3 py-2 text-right font-medium ${item.diferenca_pis > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {item.diferenca_pis > 0 ? '+' : ''}{formatCurrency(item.diferenca_pis)}
-                          </td>
-                          <td className={`px-3 py-2 text-right font-medium ${item.diferenca_cofins > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {item.diferenca_cofins > 0 ? '+' : ''}{formatCurrency(item.diferenca_cofins)}
-                          </td>
-                          <td className={`px-3 py-2 text-right font-bold ${item.diferenca_total > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {item.diferenca_total > 0 ? '+' : ''}{formatCurrency(item.diferenca_total)}
-                          </td>
-                        </tr>
-                      ))}
+                      {itensFiltrados.flatMap((item, idx) => 
+                        (item.produtos || []).map((prod, pIdx) => (
+                          <tr key={`${idx}-${pIdx}`} className="hover:bg-[#1A1A1A]">
+                            <td className="px-3 py-2 text-white font-medium">{prod.numero_nfe}</td>
+                            <td className="px-3 py-2">
+                              <span className={`text-xs px-1.5 py-0.5 rounded ${prod.tipo_operacao === 'entrada' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                {prod.tipo_operacao?.substring(0,3).toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-[#A1A1AA] max-w-[120px] truncate" title={prod.emitente || prod.destinatario}>
+                              {(prod.emitente || prod.destinatario)?.substring(0,20)}
+                            </td>
+                            <td className="px-3 py-2 text-white max-w-[150px] truncate" title={prod.produto}>
+                              {prod.produto?.substring(0,25)}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-[#A1A1AA] text-xs">{prod.ncm}</td>
+                            <td className="px-3 py-2 font-mono text-white">{prod.cfop}</td>
+                            <td className="px-3 py-2">
+                              {prod.cst_xml ? (
+                                <span className="text-red-400 font-mono">{prod.cst_xml}</span>
+                              ) : (
+                                <span className="text-[#666] font-mono">-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2">
+                              {prod.cst_calc ? (
+                                <span className="text-green-400 font-mono">{prod.cst_calc}</span>
+                              ) : (
+                                <span className="text-[#666] font-mono">-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-xs">
+                              {prod.aliq_pis_xml !== null && prod.aliq_pis_xml !== undefined ? (
+                                <span>
+                                  <span className="text-red-400">{prod.aliq_pis_xml}%</span>
+                                  <span className="text-[#666] mx-1">→</span>
+                                  <span className="text-green-400">{prod.aliq_pis_calc}%</span>
+                                </span>
+                              ) : (
+                                <span className="text-[#666]">OK</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-xs">
+                              {prod.aliq_cofins_xml !== null && prod.aliq_cofins_xml !== undefined ? (
+                                <span>
+                                  <span className="text-red-400">{prod.aliq_cofins_xml}%</span>
+                                  <span className="text-[#666] mx-1">→</span>
+                                  <span className="text-green-400">{prod.aliq_cofins_calc}%</span>
+                                </span>
+                              ) : (
+                                <span className="text-[#666]">OK</span>
+                              )}
+                            </td>
+                            <td className={`px-3 py-2 text-right font-medium ${prod.diferenca_total > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {prod.diferenca_total > 0 ? '+' : ''}{formatCurrency(prod.diferenca_total)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
