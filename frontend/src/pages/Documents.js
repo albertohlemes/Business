@@ -1175,6 +1175,85 @@ const Documents = ({ user, onLogout }) => {
   // Apagar todos os documentos de uma operação (entrada ou saída)
   const [deletingAll, setDeletingAll] = useState(null); // 'entrada' ou 'saida'
   
+  // Funções para Notas Ausentes
+  const fetchNotasAusentes = async () => {
+    if (!ctxCompany) return;
+    
+    setNotasAusentesLoading(true);
+    setNotasAusentesData(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const companyId = typeof ctxCompany === 'object' ? ctxCompany.id : ctxCompany;
+      
+      const params = new URLSearchParams();
+      if (selectedCompetencia) params.append('competencia', selectedCompetencia);
+      
+      const response = await axios.get(
+        `${API}/notas-ausentes/${companyId}?${params.toString()}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      setNotasAusentesData(response.data);
+    } catch (err) {
+      console.error('Erro ao buscar notas ausentes:', err);
+      alert(err.response?.data?.detail || 'Erro ao analisar notas ausentes');
+    } finally {
+      setNotasAusentesLoading(false);
+    }
+  };
+  
+  const exportarNotasAusentes = async (formato) => {
+    if (!ctxCompany || !notasAusentesData) return;
+    
+    setNotasAusentesExporting(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const companyId = typeof ctxCompany === 'object' ? ctxCompany.id : ctxCompany;
+      
+      const params = new URLSearchParams();
+      params.append('formato', formato);
+      if (selectedCompetencia) params.append('competencia', selectedCompetencia);
+      
+      const response = await axios.get(
+        `${API}/notas-ausentes/${companyId}/exportar?${params.toString()}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      );
+      
+      // Criar link de download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `notas_ausentes.${formato === 'excel' ? 'xlsx' : 'pdf'}`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename=([^;]+)/);
+        if (match) filename = match[1].replace(/"/g, '');
+      }
+      
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Erro ao exportar:', err);
+      alert('Erro ao exportar relatório');
+    } finally {
+      setNotasAusentesExporting(false);
+    }
+  };
+  
+  const handleOpenNotasAusentes = () => {
+    setShowNotasAusentes(true);
+    fetchNotasAusentes();
+  };
+
   const handleDeleteAllByOperacao = async (tipoOperacao) => {
     const tipoLabel = tipoOperacao === 'entrada' ? 'ENTRADAS' : 'SAÍDAS';
     
