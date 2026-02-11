@@ -1854,34 +1854,50 @@ const Documents = ({ user, onLogout }) => {
                     {filteredDocuments.map((doc) => (
                       <tr 
                         key={doc.id}
-                        className="hover:bg-white/5 transition-colors"
+                        className={`hover:bg-white/5 transition-colors ${
+                          doc.cancelada ? 'bg-red-900/10' : ''
+                        }`}
                       >
                         <td className="px-4 py-3 w-24">
-                          <span className="font-medium text-white">{doc.numero_nfe}</span>
+                          <span className={`font-medium ${
+                            doc.cancelada ? 'text-red-400 line-through' : 'text-white'
+                          }`}>{doc.numero_nfe}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <p className="text-white truncate max-w-[180px]">
+                          <p className={`truncate max-w-[180px] ${
+                            doc.cancelada ? 'text-red-400/60 line-through' : 'text-white'
+                          }`}>
                             {operacao === 'entrada' ? doc.emitente_nome : doc.destinatario_nome}
                           </p>
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell w-32">
-                          <span className="text-[#A1A1AA] font-mono text-xs">
+                          <span className={`font-mono text-xs ${
+                            doc.cancelada ? 'text-red-400/60 line-through' : 'text-[#A1A1AA]'
+                          }`}>
                             {operacao === 'entrada' ? doc.emitente_cnpj : doc.destinatario_cnpj}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-[#A1A1AA] w-24 hidden md:table-cell">
+                        <td className={`px-4 py-3 w-24 hidden md:table-cell ${
+                          doc.cancelada ? 'text-red-400/60 line-through' : 'text-[#A1A1AA]'
+                        }`}>
                           {formatDate(doc.data_emissao)}
                         </td>
                         {/* CFOPs */}
                         <td className="px-2 py-3 hidden xl:table-cell w-28">
                           <div className="flex flex-wrap gap-1">
                             {getDocumentCfops(doc).slice(0, 3).map(cfop => (
-                              <span key={cfop} className="px-1.5 py-0.5 text-[10px] font-mono bg-[#2A2A2A] text-[#A1A1AA] rounded">
+                              <span key={cfop} className={`px-1.5 py-0.5 text-[10px] font-mono rounded ${
+                                doc.cancelada 
+                                  ? 'bg-red-900/30 text-red-400/60 line-through' 
+                                  : 'bg-[#2A2A2A] text-[#A1A1AA]'
+                              }`}>
                                 {cfop}
                               </span>
                             ))}
                             {getDocumentCfops(doc).length > 3 && (
-                              <span className="px-1.5 py-0.5 text-[10px] bg-[#2A2A2A] text-[#666] rounded">
+                              <span className={`px-1.5 py-0.5 text-[10px] rounded ${
+                                doc.cancelada ? 'bg-red-900/30 text-red-400/60' : 'bg-[#2A2A2A] text-[#666]'
+                              }`}>
                                 +{getDocumentCfops(doc).length - 3}
                               </span>
                             )}
@@ -1894,14 +1910,17 @@ const Documents = ({ user, onLogout }) => {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right w-28">
-                          <span className="text-[#C8A951] font-medium">
-                            {formatCurrency(doc.valor_total)}
+                          <span className={`font-medium ${
+                            doc.cancelada ? 'text-red-400/60 line-through' : 'text-[#C8A951]'
+                          }`}>
+                            {doc.cancelada ? 'R$ 0,00' : formatCurrency(doc.valor_total)}
                           </span>
                         </td>
                         <td className="px-2 py-3 text-center w-16">
                           {doc.cancelada ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded text-xs" title="Cancelada">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-xs font-medium" title="Cancelada">
                               <XCircle className="w-3 h-3" />
+                              <span className="hidden sm:inline">CANC</span>
                             </span>
                           ) : doc.status === 'autorizada' ? (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 rounded text-xs" title="Autorizada">
@@ -1933,6 +1952,9 @@ const Documents = ({ user, onLogout }) => {
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
                   </tbody>
                 </table>
               </div>
