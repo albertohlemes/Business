@@ -1570,6 +1570,29 @@ const Documents = ({ user, onLogout }) => {
             </div>
           </div>
 
+          {/* Botão Histórico de Importações */}
+          <div className="max-w-2xl mx-auto">
+            <button
+              data-testid="btn-historico-importacoes"
+              onClick={() => {
+                setShowHistorico(true);
+                fetchHistorico();
+              }}
+              className="w-full flex items-center justify-between p-4 bg-[#141414] border border-[#27272A] rounded-xl hover:border-[#C8A951] hover:bg-[#C8A951]/5 transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-[#C8A951]/10 flex items-center justify-center group-hover:bg-[#C8A951]/20 transition-all">
+                  <Clock className="w-5 h-5 text-[#C8A951]" />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-white font-medium">Histórico de Importações</h3>
+                  <p className="text-[#A1A1AA] text-sm">Visualizar importações anteriores e seus relatórios</p>
+                </div>
+              </div>
+              <ArrowUpDown className="w-5 h-5 text-[#A1A1AA] group-hover:text-[#C8A951] transition-all" />
+            </button>
+          </div>
+
           {/* Botões de Operação */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 py-8">
             {/* Card ENTRADAS */}
