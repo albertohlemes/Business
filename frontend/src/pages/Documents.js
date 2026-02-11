@@ -66,10 +66,27 @@ const Documents = ({ user, onLogout }) => {
   const { startUpload, isUploading: globalUploading, progress: globalProgress, currentFile, uploadResults: globalResults, uploadError: globalError, clearResults } = useUpload();
   const [searchParams] = useSearchParams();
   const highlightDocId = searchParams.get('highlight');
+  const urlOperacao = searchParams.get('operacao'); // 'entrada' ou 'saida'
+  const urlTipo = searchParams.get('tipo'); // 'nfe', 'nfce', 'cte', 'servicos_tomados', etc.
   
   // Estados de navegação
   const [operacao, setOperacao] = useState(null); // 'entrada' ou 'saida'
   const [tipoDoc, setTipoDoc] = useState(null); // tipo selecionado dentro da operação
+  
+  // Inicializar a partir dos parâmetros da URL
+  useEffect(() => {
+    if (urlOperacao && urlTipo) {
+      // Verificar se o tipo existe na categoria
+      const categoria = CATEGORIAS[urlOperacao];
+      if (categoria) {
+        const tipoValido = categoria.tipos.find(t => t.id === urlTipo);
+        if (tipoValido) {
+          setOperacao(urlOperacao);
+          setTipoDoc(urlTipo);
+        }
+      }
+    }
+  }, [urlOperacao, urlTipo]);
   
   // Estados de dados
   const [documents, setDocuments] = useState([]);
