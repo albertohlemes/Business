@@ -100,7 +100,8 @@ const UsersPage = ({ user, onLogout }) => {
       password: '',
       name: userData.name,
       role: userData.role,
-      company_ids: userData.company_ids || []
+      company_ids: userData.company_ids || [],
+      atividades: userData.atividades || atividadesDisponiveis.map(a => a.key)
     });
     setShowForm(true);
   };
