@@ -1064,8 +1064,8 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                       <span className="text-white font-bold">TOTAL ENTRADAS</span>
                       <div className="flex gap-8">
                         <div className="text-right">
-                          <p className="text-[#666] text-xs">Valor Total</p>
-                          <p className="text-white font-semibold">{formatCurrency(dados.entradas?.totais?.valor_total)}</p>
+                          <p className="text-[#666] text-xs">Valor Total (Doc)</p>
+                          <p className="text-white font-semibold">{formatCurrency(dados.valores_por_documento?.total_entradas || dados.entradas?.totais?.valor_total_por_documento || dados.entradas?.totais?.valor_total)}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-[#666] text-xs">BC ICMS</p>
@@ -1117,7 +1117,7 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                       <span className="text-white font-bold">TOTAL SAÍDAS</span>
                       <div className="flex gap-8">
                         <div className="text-right">
-                          <p className="text-[#666] text-xs">Valor Total</p>
+                          <p className="text-[#666] text-xs">Valor Total (Doc)</p>
                           <p className="text-white font-semibold">{formatCurrency(dados.saidas?.totais?.valor_total)}</p>
                         </div>
                         <div className="text-right">
