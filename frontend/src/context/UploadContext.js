@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const UploadContext = createContext();
 
@@ -11,6 +12,8 @@ export const useUpload = () => {
 };
 
 export const UploadProvider = ({ children }) => {
+  const location = useLocation();
+  
   // Estado do upload
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, percent: 0 });
@@ -24,9 +27,30 @@ export const UploadProvider = ({ children }) => {
   const eventSourceRef = useRef(null);
   const uploadIdRef = useRef(null);
   const pollingIntervalRef = useRef(null);
+  
+  // Referência para a rota anterior
+  const previousPathRef = useRef(location.pathname);
 
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
   const API = `${BACKEND_URL}/api`;
+  
+  // Limpar resultados quando navegar para outra página (e não estiver fazendo upload)
+  useEffect(() => {
+    // Se a rota mudou e não está fazendo upload, limpar os resultados
+    if (previousPathRef.current !== location.pathname) {
+      previousPathRef.current = location.pathname;
+      
+      // Se não está fazendo upload, limpar os resultados para não ficar "congelado"
+      if (!isUploading && (uploadResults || uploadError)) {
+        console.log('UploadContext: Navegação detectada, limpando resultados do upload');
+        setUploadResults(null);
+        setUploadError(null);
+        setProgress({ current: 0, total: 0, percent: 0 });
+        setCurrentFile('');
+        setMinimized(false);
+      }
+    }
+  }, [location.pathname, isUploading, uploadResults, uploadError]);
 
   // Função de polling fallback
   const startPollingFallback = useCallback(async (uploadId, token) => {
