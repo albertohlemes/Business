@@ -12477,14 +12477,29 @@ Se o comando não for claro, retorne {{"alteracoes": [], "erro": "mensagem expli
         
         for alt in resultado.get('alteracoes', []):
             categoria_destino = alt.get('nova_categoria', '')
-            if categoria_destino not in ['revenda', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel']:
+            if categoria_destino not in ['revenda', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel', 'servico_aplicacao', 'bonificacao']:
                 continue
             
-            desc_match = alt.get('descricao_produto', '').lower()
+            desc_match = alt.get('descricao_produto', '').lower().strip()
+            
+            # MELHORIA: Match mais inteligente - considera palavras-chave separadamente
+            palavras_match = [p for p in desc_match.split() if len(p) > 2]
             
             # Encontrar produtos correspondentes
             for chave, dados in produtos_unicos.items():
-                if desc_match in dados['descricao'].lower():
+                descricao_produto = dados['descricao'].lower()
+                
+                # Match exato ou por palavras-chave
+                match_encontrado = False
+                if desc_match in descricao_produto:
+                    match_encontrado = True
+                elif len(palavras_match) > 0:
+                    # Se pelo menos 2 palavras-chave coincidem, considera match
+                    palavras_encontradas = sum(1 for p in palavras_match if p in descricao_produto)
+                    if palavras_encontradas >= min(2, len(palavras_match)):
+                        match_encontrado = True
+                
+                if match_encontrado:
                     # Atualizar todas as ocorrências deste produto
                     for occ in dados['ocorrencias']:
                         doc_id = occ['doc_id']
