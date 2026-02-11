@@ -403,9 +403,6 @@ const Documents = ({ user, onLogout }) => {
     // Resetar flag de resultado exibido para novo upload
     resultDisplayedRef.current = false;
     
-    // Iniciar progresso global (visível em todas as telas)
-    startGlobalUpload(null, files.length, ctxCompany?.razao_social || 'Empresa', operacao);
-    
     // Variáveis para controle de timeout global
     let lastProgressTime = Date.now();
     let globalTimeoutId = null;
