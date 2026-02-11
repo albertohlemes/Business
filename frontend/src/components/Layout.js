@@ -230,73 +230,74 @@ const Layout = ({ user, onLogout, children }) => {
               </div>
             </div>
 
-            {/* Right side controls */}
-            <div className="flex items-center gap-3">
-              {/* Company Selector */}
-              {selectedCompany && (
-                <button
-                  data-testid="change-company-btn"
-                  onClick={openSelector}
-                  className="hidden md:flex items-center gap-3 px-3 py-2 bg-[#141414] hover:bg-[#1F1F1F] rounded border border-[#2A2A2A] transition-colors"
-                >
-                  {/* Logo da empresa */}
-                  {selectedCompany.logo_url ? (
-                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-white flex items-center justify-center flex-shrink-0">
-                      <img 
-                        src={selectedCompany.logo_url} 
-                        alt={selectedCompany.razao_social}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                  ) : selectedCompany.codigo_empresa ? (
-                    <span className="px-2 py-0.5 bg-[#C8A951]/10 text-[#C8A951] rounded text-xs font-semibold flex-shrink-0">
-                      #{selectedCompany.codigo_empresa}
-                    </span>
-                  ) : (
-                    <Building2 className="w-5 h-5 text-[#A1A1AA] flex-shrink-0" />
-                  )}
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-white truncate max-w-[150px]">
-                      {selectedCompany.razao_social}
-                    </p>
-                    <div className="flex items-center gap-1.5 text-xs text-[#A1A1AA]">
-                      <Calendar className="w-3 h-3" />
-                      <span>{selectedCompetencia}</span>
-                    </div>
+            {/* Centro - Company Selector (mais destaque) */}
+            {selectedCompany && (
+              <button
+                data-testid="change-company-btn"
+                onClick={openSelector}
+                className="hidden md:flex items-center gap-3 px-4 py-2 bg-[#141414] hover:bg-[#1F1F1F] rounded-lg border border-[#2A2A2A] transition-colors"
+              >
+                {/* Logo da empresa */}
+                {selectedCompany.logo_url ? (
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-white flex items-center justify-center flex-shrink-0">
+                    <img 
+                      src={selectedCompany.logo_url} 
+                      alt={selectedCompany.razao_social}
+                      className="w-full h-full object-contain"
+                    />
                   </div>
-                  <ChevronDown className="w-4 h-4 text-[#A1A1AA]" />
-                </button>
-              )}
+                ) : selectedCompany.codigo_empresa ? (
+                  <span className="px-2 py-0.5 bg-[#C8A951]/10 text-[#C8A951] rounded text-xs font-semibold flex-shrink-0">
+                    #{selectedCompany.codigo_empresa}
+                  </span>
+                ) : (
+                  <Building2 className="w-5 h-5 text-[#A1A1AA] flex-shrink-0" />
+                )}
+                <div className="text-left">
+                  <p className="text-sm font-medium text-white truncate max-w-[200px]">
+                    {selectedCompany.razao_social}
+                  </p>
+                  <div className="flex items-center gap-1.5 text-xs text-[#A1A1AA]">
+                    <Calendar className="w-3 h-3" />
+                    <span>{selectedCompetencia}</span>
+                  </div>
+                </div>
+                <ChevronDown className="w-4 h-4 text-[#A1A1AA]" />
+              </button>
+            )}
 
-              {/* Management Links (Master/Admin only) */}
+            {/* Right side controls */}
+            <div className="flex items-center gap-2">
+              {/* Management Links (Master/Admin only) - Cadastros */}
               {isMasterOrAdmin && (
-                <div className="hidden md:flex items-center gap-1">
+                <div className="hidden md:flex items-center gap-1 px-2 py-1 bg-[#141414] rounded-lg border border-[#2A2A2A]">
                   <Link
                     to="/companies"
                     data-testid="nav-companies"
-                    className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
+                    className="flex items-center gap-1.5 px-2 py-1.5 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
                     title="Empresas"
                   >
-                    <Building2 className="w-5 h-5" />
+                    <Building2 className="w-4 h-4" />
+                    <span className="text-xs">Empresas</span>
                   </Link>
-                  {isMasterOrAdmin && (
-                    <Link
-                      to="/usuarios"
-                      data-testid="nav-users"
-                      className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
-                      title="Usuários"
-                    >
-                      <Users className="w-5 h-5" />
-                    </Link>
-                  )}
+                  <div className="w-px h-4 bg-[#2A2A2A]" />
+                  <Link
+                    to="/usuarios"
+                    data-testid="nav-users"
+                    className="flex items-center gap-1.5 px-2 py-1.5 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
+                    title="Usuários"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span className="text-xs">Usuários</span>
+                  </Link>
                 </div>
               )}
 
-              {/* Menu Mode Toggle - SEMPRE VISÍVEL */}
+              {/* Menu Mode Toggle */}
               <button
                 data-testid="toggle-menu-mode"
                 onClick={toggleMenuMode}
-                className="hidden md:flex items-center gap-2 px-3 py-2 bg-[#C8A951] hover:bg-[#B09240] text-black rounded font-medium transition-colors"
+                className="hidden md:flex items-center gap-2 px-3 py-2 bg-[#C8A951] hover:bg-[#B09240] text-black rounded-lg font-medium transition-colors"
                 title={menuMode === 'vertical' ? 'Mudar para menu horizontal' : 'Mudar para menu vertical'}
               >
                 {menuMode === 'vertical' ? (
@@ -313,7 +314,7 @@ const Layout = ({ user, onLogout, children }) => {
               </button>
 
               {/* User Info */}
-              <div className="hidden md:flex items-center gap-3 pl-3 border-l border-[#2A2A2A]">
+              <div className="hidden md:flex items-center gap-3 pl-2 border-l border-[#2A2A2A]">
                 <div className="text-right">
                   <p className="text-sm font-medium text-white">{user.name}</p>
                   <p className="text-xs text-[#A1A1AA]">
