@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { AppContext } from '../context/AppContext';
+import { useAppContext } from '../context/AppContext';
 import Layout from '../components/Layout';
 import { AlertTriangle, FileSpreadsheet, FileText, Search, Download, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL + '/api';
 
 export default function NotasAusentes({ user, onLogout }) {
-  const { selectedCompany, selectedCompetencia } = useContext(AppContext);
+  const { selectedCompany, selectedCompetencia } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [dados, setDados] = useState(null);
