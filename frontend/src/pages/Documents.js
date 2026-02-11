@@ -295,13 +295,14 @@ const Documents = ({ user, onLogout }) => {
     }
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`${API}/xml/documents/${docId}`, {
+      await axios.delete(`${API}/documents/${docId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      toast.success(`Documento ${numeroNfe} excluído com sucesso`);
       fetchDocuments();
     } catch (err) {
       console.error('Erro ao excluir:', err);
-      alert('Erro ao excluir documento');
+      toast.error('Erro ao excluir documento');
     }
   };
 
