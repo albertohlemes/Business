@@ -18168,8 +18168,8 @@ async def apurar_pis_cofins(
                 ncm = str(prod.get('ncm', '')).replace('.', '')
                 cfop = str(prod.get('cfop', ''))
                 
-                # Valores do XML
-                cst_pis_xml = str(prod.get('cst_pis', ''))
+                # Valores do XML - usar o CST original do XML para o resumo
+                cst_pis_xml = str(prod.get('cst_pis_xml', prod.get('cst_pis', '')))
                 aliq_pis_xml = float(prod.get('aliquota_pis', 0) or 0)
                 aliq_cofins_xml = float(prod.get('aliquota_cofins', 0) or 0)
                 valor_pis_xml = float(prod.get('valor_pis', 0) or 0)
