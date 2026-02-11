@@ -24129,6 +24129,317 @@ async def exportar_notas_ausentes(
         raise HTTPException(status_code=400, detail="Formato inválido. Use 'excel' ou 'pdf'")
 
 
+# ============================================================
+# EXPORTAR DOCUMENTOS POR CATEGORIA (TIPO DE DOCUMENTO)
+# ============================================================
+
+@api_router.get("/xml/exportar-categoria/{company_id}")
+async def exportar_documentos_categoria(
+    company_id: str,
+    competencia: str = Query(..., description="Competência no formato MM/YYYY"),
+    operacao: str = Query(..., description="Tipo de operação: 'entrada' ou 'saida'"),
+    tipo_doc: str = Query(..., description="Tipo de documento: 'nfe', 'nfce', 'cte', 'nfse', 'outros'"),
+    formato: str = Query(..., description="Formato de exportação: 'excel' ou 'pdf'"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Exporta todos os documentos de uma categoria específica para Excel ou PDF.
+    Permite exportar por tipo de documento (NF-e, NFC-e, CT-e, NFS-e, Outros).
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    
+    # Buscar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Verificar acesso
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Mapear tipo de documento para modelos no banco
+    modelos_map = {
+        'nfe': ['nfe', 'NFe', 'NF-e', '55'],
+        'nfce': ['nfce', 'NFCe', 'NFC-e', '65'],
+        'cte': ['cte', 'CTe', 'CT-e', '57'],
+        'nfse': ['nfse', 'NFSe', 'NFS-e'],
+        'outros': []  # Documentos que não são dos modelos conhecidos
+    }
+    
+    # Construir query
+    query = {
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": operacao
+    }
+    query.update(get_filtro_notas_ativas())
+    
+    # Filtrar por modelo
+    modelos_conhecidos = modelos_map['nfe'] + modelos_map['nfce'] + modelos_map['cte'] + modelos_map['nfse']
+    
+    if tipo_doc == 'outros':
+        query["modelo"] = {"$nin": modelos_conhecidos}
+    else:
+        query["modelo"] = {"$in": modelos_map.get(tipo_doc, [])}
+    
+    # Buscar documentos
+    documentos = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
+    
+    if not documentos:
+        raise HTTPException(status_code=404, detail="Nenhum documento encontrado para os filtros informados")
+    
+    # Mapear nomes para display
+    tipo_doc_nome = {
+        'nfe': 'NF-e',
+        'nfce': 'NFC-e',
+        'cte': 'CT-e',
+        'nfse': 'NFS-e',
+        'outros': 'Outros Documentos'
+    }.get(tipo_doc, tipo_doc.upper())
+    
+    operacao_nome = 'Entradas' if operacao == 'entrada' else 'Saídas'
+    
+    if formato == 'excel':
+        wb = Workbook()
+        ws = wb.active
+        ws.title = f"{tipo_doc_nome} - {operacao_nome}"
+        
+        # Estilos
+        header_fill = PatternFill(start_color="C8A951", end_color="C8A951", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF")
+        total_fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+        total_font = Font(bold=True)
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # Cabeçalho
+        ws['A1'] = f"RELATÓRIO DE {tipo_doc_nome.upper()} - {operacao_nome.upper()}"
+        ws['A1'].font = Font(bold=True, size=14)
+        ws['A2'] = f"Empresa: {company.get('razao_social', '')}"
+        ws['A3'] = f"CNPJ: {company.get('cnpj', '')} | Competência: {competencia}"
+        ws['A4'] = f"Total de Documentos: {len(documentos)}"
+        
+        # Tabela de documentos
+        row = 6
+        headers = ['Número', 'Série', 'Data Emissão', 'Emitente/Destinatário', 'CNPJ', 'UF', 'Valor Total', 'ICMS', 'ICMS ST', 'PIS', 'COFINS']
+        for col, h in enumerate(headers, 1):
+            cell = ws.cell(row=row, column=col, value=h)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal='center')
+        
+        total_valor = 0
+        total_icms = 0
+        total_icms_st = 0
+        total_pis = 0
+        total_cofins = 0
+        
+        for doc in documentos:
+            row += 1
+            valor = float(doc.get('valor_total', 0) or 0)
+            icms = float(doc.get('icms_total', 0) or 0)
+            icms_st = float(doc.get('total_icms_st', 0) or 0)
+            pis = float(doc.get('total_pis', 0) or 0)
+            cofins = float(doc.get('total_cofins', 0) or 0)
+            
+            total_valor += valor
+            total_icms += icms
+            total_icms_st += icms_st
+            total_pis += pis
+            total_cofins += cofins
+            
+            # Emitente ou destinatário
+            if operacao == 'entrada':
+                nome = doc.get('emitente', {}).get('razao_social', '') if isinstance(doc.get('emitente'), dict) else doc.get('emitente', '')
+                cnpj = doc.get('emitente', {}).get('cnpj', '') if isinstance(doc.get('emitente'), dict) else ''
+            else:
+                nome = doc.get('destinatario', {}).get('razao_social', '') if isinstance(doc.get('destinatario'), dict) else doc.get('destinatario', '')
+                cnpj = doc.get('destinatario', {}).get('cnpj', '') if isinstance(doc.get('destinatario'), dict) else ''
+            
+            if not nome:
+                nome = doc.get('emitente_nome', '') or doc.get('destinatario_nome', '') or '-'
+            if not cnpj:
+                cnpj = doc.get('emitente_cnpj', '') or doc.get('destinatario_cnpj', '') or '-'
+            
+            ws.cell(row=row, column=1, value=doc.get('numero_nfe', '')).border = thin_border
+            ws.cell(row=row, column=2, value=doc.get('serie', '')).border = thin_border
+            
+            data_emissao = doc.get('data_emissao', '')
+            if data_emissao:
+                try:
+                    if isinstance(data_emissao, str):
+                        data_emissao = data_emissao[:10]
+                except:
+                    pass
+            ws.cell(row=row, column=3, value=data_emissao).border = thin_border
+            
+            ws.cell(row=row, column=4, value=nome[:40] if nome else '-').border = thin_border
+            ws.cell(row=row, column=5, value=cnpj).border = thin_border
+            ws.cell(row=row, column=6, value=doc.get('uf_emitente', '') or doc.get('uf', '')).border = thin_border
+            
+            ws.cell(row=row, column=7, value=valor).border = thin_border
+            ws.cell(row=row, column=7).number_format = '#,##0.00'
+            ws.cell(row=row, column=8, value=icms).border = thin_border
+            ws.cell(row=row, column=8).number_format = '#,##0.00'
+            ws.cell(row=row, column=9, value=icms_st).border = thin_border
+            ws.cell(row=row, column=9).number_format = '#,##0.00'
+            ws.cell(row=row, column=10, value=pis).border = thin_border
+            ws.cell(row=row, column=10).number_format = '#,##0.00'
+            ws.cell(row=row, column=11, value=cofins).border = thin_border
+            ws.cell(row=row, column=11).number_format = '#,##0.00'
+        
+        # Total
+        row += 1
+        ws.cell(row=row, column=1, value="TOTAL").font = total_font
+        ws.cell(row=row, column=1).fill = total_fill
+        for col in range(2, 7):
+            ws.cell(row=row, column=col).fill = total_fill
+        ws.cell(row=row, column=7, value=total_valor).font = total_font
+        ws.cell(row=row, column=7).fill = total_fill
+        ws.cell(row=row, column=7).number_format = '#,##0.00'
+        ws.cell(row=row, column=8, value=total_icms).font = total_font
+        ws.cell(row=row, column=8).fill = total_fill
+        ws.cell(row=row, column=8).number_format = '#,##0.00'
+        ws.cell(row=row, column=9, value=total_icms_st).font = total_font
+        ws.cell(row=row, column=9).fill = total_fill
+        ws.cell(row=row, column=9).number_format = '#,##0.00'
+        ws.cell(row=row, column=10, value=total_pis).font = total_font
+        ws.cell(row=row, column=10).fill = total_fill
+        ws.cell(row=row, column=10).number_format = '#,##0.00'
+        ws.cell(row=row, column=11, value=total_cofins).font = total_font
+        ws.cell(row=row, column=11).fill = total_fill
+        ws.cell(row=row, column=11).number_format = '#,##0.00'
+        
+        # Ajustar largura das colunas
+        ws.column_dimensions['A'].width = 12
+        ws.column_dimensions['B'].width = 8
+        ws.column_dimensions['C'].width = 12
+        ws.column_dimensions['D'].width = 40
+        ws.column_dimensions['E'].width = 18
+        ws.column_dimensions['F'].width = 6
+        ws.column_dimensions['G'].width = 15
+        ws.column_dimensions['H'].width = 12
+        ws.column_dimensions['I'].width = 12
+        ws.column_dimensions['J'].width = 12
+        ws.column_dimensions['K'].width = 12
+        
+        # Salvar e retornar
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        cnpj_limpo = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+        filename = f"{tipo_doc}_{operacao}_{cnpj_limpo}_{competencia.replace('/', '_')}.xlsx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
+    elif formato == 'pdf':
+        output = io.BytesIO()
+        doc_pdf = SimpleDocTemplate(output, pagesize=landscape(A4), leftMargin=1*cm, rightMargin=1*cm, topMargin=1*cm, bottomMargin=1*cm)
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=14, alignment=1)
+        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=10, alignment=1)
+        
+        elements = []
+        
+        # Título
+        elements.append(Paragraph(f"RELATÓRIO DE {tipo_doc_nome.upper()} - {operacao_nome.upper()}", title_style))
+        elements.append(Spacer(1, 10))
+        elements.append(Paragraph(f"Empresa: {company.get('razao_social', '')} | CNPJ: {company.get('cnpj', '')}", subtitle_style))
+        elements.append(Paragraph(f"Competência: {competencia} | Total: {len(documentos)} documentos", subtitle_style))
+        elements.append(Spacer(1, 20))
+        
+        # Tabela
+        headers = ['Número', 'Série', 'Data', 'Emitente/Dest.', 'CNPJ', 'Valor Total', 'ICMS']
+        data = [headers]
+        
+        total_valor = 0
+        total_icms = 0
+        
+        for doc in documentos:
+            valor = float(doc.get('valor_total', 0) or 0)
+            icms = float(doc.get('icms_total', 0) or 0)
+            total_valor += valor
+            total_icms += icms
+            
+            if operacao == 'entrada':
+                nome = doc.get('emitente', {}).get('razao_social', '') if isinstance(doc.get('emitente'), dict) else doc.get('emitente', '')
+                cnpj = doc.get('emitente', {}).get('cnpj', '') if isinstance(doc.get('emitente'), dict) else ''
+            else:
+                nome = doc.get('destinatario', {}).get('razao_social', '') if isinstance(doc.get('destinatario'), dict) else doc.get('destinatario', '')
+                cnpj = doc.get('destinatario', {}).get('cnpj', '') if isinstance(doc.get('destinatario'), dict) else ''
+            
+            if not nome:
+                nome = doc.get('emitente_nome', '') or doc.get('destinatario_nome', '') or '-'
+            if not cnpj:
+                cnpj = doc.get('emitente_cnpj', '') or doc.get('destinatario_cnpj', '') or '-'
+            
+            data_emissao = doc.get('data_emissao', '')
+            if data_emissao and isinstance(data_emissao, str):
+                data_emissao = data_emissao[:10]
+            
+            data.append([
+                str(doc.get('numero_nfe', '')),
+                str(doc.get('serie', '')),
+                str(data_emissao or '-'),
+                str(nome)[:30] if nome else '-',
+                str(cnpj),
+                f"R$ {valor:,.2f}",
+                f"R$ {icms:,.2f}"
+            ])
+        
+        # Total
+        data.append(['TOTAL', '', '', '', '', f"R$ {total_valor:,.2f}", f"R$ {total_icms:,.2f}"])
+        
+        table = Table(data, colWidths=[60, 40, 70, 150, 100, 80, 80])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#C8A951')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('TOPPADDING', (0, 0), (-1, 0), 8),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#FEF3C7')),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.whitesmoke, colors.white]),
+        ]))
+        
+        elements.append(table)
+        doc_pdf.build(elements)
+        
+        output.seek(0)
+        cnpj_limpo = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
+        filename = f"{tipo_doc}_{operacao}_{cnpj_limpo}_{competencia.replace('/', '_')}.pdf"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
+    else:
+        raise HTTPException(status_code=400, detail="Formato inválido. Use 'excel' ou 'pdf'")
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
