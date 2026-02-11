@@ -2133,6 +2133,16 @@ const Documents = ({ user, onLogout }) => {
                     </p>
                   </div>
                 )}
+                
+                {/* Nota explicativa sobre diferença de contagem */}
+                {((uploadResult.canceladas || 0) > 0 || (uploadResult.devolucoes || 0) > 0) && (
+                  <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <p className="text-xs text-blue-300">
+                      <strong>Nota:</strong> O dashboard exibe apenas notas ativas. 
+                      Notas canceladas ({uploadResult.canceladas || 0}) e devoluções de terceiros ({uploadResult.devolucoes || 0}) são importadas mas não contabilizadas nos totais.
+                    </p>
+                  </div>
+                )}
               </div>
               
               <div className="p-4 max-h-[40vh] overflow-y-auto space-y-4">
