@@ -8238,6 +8238,7 @@ async def get_dashboard_stats(
             "regime_atual": "lucro_real",
             "base_calculo": round(total_base_pis_cofins, 2),
             "aliquota_zero_excluida": round(total_aliquota_zero, 2),
+            "monofasico_excluido": round(total_monofasico, 2),
             "cfop_sem_incidencia_excluida": round(total_cfop_sem_incidencia, 2),
             "lucro_presumido_hipotetico": {
                 "pis": round(pis_presumido, 2),
