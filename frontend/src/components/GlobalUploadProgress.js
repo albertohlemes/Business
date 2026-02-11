@@ -359,6 +359,13 @@ const GlobalUploadProgress = () => {
                 📋
               </button>
             </div>
+            {/* Botão para fechar/limpar */}
+            <button
+              onClick={clearResults}
+              className="mt-2 w-full py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
+            >
+              Fechar
+            </button>
           </div>
         )}
 
