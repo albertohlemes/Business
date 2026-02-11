@@ -2131,6 +2131,59 @@ const Documents = ({ user, onLogout }) => {
                   </div>
                 )}
                 
+                {/* Notas de Devolução (Entrada emitida por terceiros) */}
+                {uploadResult.notasDevolucao && uploadResult.notasDevolucao.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-orange-400 mb-2 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      Devoluções de Fornecedor ({uploadResult.notasDevolucao.length})
+                      <span className="text-xs text-[#A1A1AA] font-normal">(Desconsideradas automaticamente)</span>
+                    </h3>
+                    <p className="text-xs text-[#A1A1AA] mb-2">
+                      Notas de entrada emitidas pelo fornecedor com CFOP de devolução - não contabilizadas como entrada de mercadoria.
+                    </p>
+                    <div className="space-y-1 max-h-[180px] overflow-y-auto">
+                      {uploadResult.notasDevolucao.map((item, idx) => (
+                        <div key={idx} className="py-2 px-3 bg-orange-500/5 rounded border border-orange-500/20">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-white truncate">
+                                NF-e Nº {item.numero} 
+                                {item.cfops && item.cfops.length > 0 && (
+                                  <span className="ml-2 text-xs text-orange-400">
+                                    CFOP: {item.cfops.join(', ')}
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-xs text-[#A1A1AA] truncate">
+                                Emitente: {item.emitente}
+                              </p>
+                              {item.nfeReferenciada && (
+                                <p className="text-xs text-orange-300 mt-1">
+                                  📌 Referencia NF-e: {item.nfeReferenciada.slice(-15)}...
+                                </p>
+                              )}
+                              {item.motivo && (
+                                <p className="text-xs text-orange-400/70 mt-1 truncate">
+                                  {item.motivo}
+                                </p>
+                              )}
+                            </div>
+                            <span className="text-sm font-medium text-orange-400 ml-2 line-through">
+                              {formatCurrency(item.valor || 0)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2 p-2 bg-orange-500/10 rounded text-center">
+                      <p className="text-xs text-orange-400">
+                        Valor total desconsiderado: {formatCurrency(uploadResult.notasDevolucao.reduce((sum, d) => sum + (d.valor || 0), 0))}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Mensagem se não houver nenhum dado */}
                 {(!uploadResult.processados || uploadResult.processados.length === 0) && 
                  (!uploadResult.rejeitados || uploadResult.rejeitados.length === 0) && (
