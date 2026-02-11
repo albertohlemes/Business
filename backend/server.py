@@ -8195,6 +8195,8 @@ async def get_dashboard_stats(
             "base_debito_hipotetico": round(base_para_debito, 2),
             "base_credito_calculada": round(base_credito_pis_cofins_real, 2),
             "aliquota_zero_excluida": round(total_aliquota_zero, 2),
+            "monofasico_excluido": round(total_monofasico, 2),
+            "cfop_sem_incidencia_excluida": round(total_cfop_sem_incidencia, 2),
             "lucro_presumido": {
                 "pis": round(pis_presumido, 2),
                 "cofins": round(cofins_presumido, 2),
