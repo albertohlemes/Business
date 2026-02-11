@@ -2912,7 +2912,7 @@ async def update_user(
         raise HTTPException(status_code=403, detail="Apenas Super Admin pode modificar outro Super Admin")
     
     update_data = {}
-    for key in ["name", "role", "company_ids", "is_active", "preferences"]:
+    for key in ["name", "role", "company_ids", "is_active", "preferences", "atividades"]:
         if key in user_data and user_data[key] is not None:
             update_data[key] = user_data[key]
     
