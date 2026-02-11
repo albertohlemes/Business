@@ -17347,6 +17347,8 @@ async def apurar_icms(
     # Flags de desconsiderar ICMS
     desconsiderar_icms_despesas = company.get('desconsiderar_icms_despesas', False)
     desconsiderar_icms_st = company.get('desconsiderar_icms_st', False)
+    # Benefício Fiscal ICMS
+    beneficio_fiscal_icms = company.get('beneficio_fiscal_icms', False)
     
     # CFOPs de DESPESA (entradas que não geram crédito tributário)
     CFOPS_DESPESA = [
