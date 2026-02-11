@@ -112,7 +112,27 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-12 (Sessão 22 - FASE 3: Wizard e Central de Alertas)
+### 2026-02-12 (Sessão 22 - FASE 1 e FASE 3 Completas)
+
+**FASE 1 - Sistema de Permissões e Controle de Acesso (P0 - SEGURANÇA):**
+
+**Correção Crítica de Segurança:**
+- ✅ **Reativação do `check_company_access`:** Função restaurada com lógica completa de verificação
+  - Super Admin e Admin têm acesso total a todas as empresas
+  - Master tem acesso via permissão `ALL_COMPANIES`
+  - Operacional e Client só acessam empresas em seu `company_ids`
+  - Verificação adicional por `responsavel_id` e `created_by`
+
+- ✅ **Função auxiliar `require_company_access`:** Nova função para verificar permissão + acesso em uma única chamada
+
+- ✅ **Correção no endpoint `/companies`:** Query atualizada para verificar por ID além de CNPJ
+
+**Testado e Validado:**
+- Usuário operacional vê apenas empresas atribuídas
+- Acesso a empresas não autorizadas retorna HTTP 403 "Acesso negado"
+- Super Admin/Admin mantêm acesso total
+
+---
 
 **FASE 3 - Wizard de Configuração e Dashboard de Inconsistências:**
 
@@ -142,6 +162,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
   - Monitora prazos de entrega do SPED
 
 **Arquivos criados/modificados:**
+- `/app/backend/server.py` - `check_company_access`, `require_company_access`, endpoint companies
 - `/app/frontend/src/pages/WizardEmpresa.js` - Componente wizard completo
 - `/app/frontend/src/pages/WizardEmpresaPage.js` - Página wrapper com Layout
 - `/app/frontend/src/pages/DashboardInconsistencias.js` - Dashboard de alertas
