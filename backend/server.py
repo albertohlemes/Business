@@ -17849,11 +17849,21 @@ async def get_beneficio_fiscal_detalhes(
         }
     
     # Buscar documentos de entrada da competência
+    # Usar mesma lógica que o endpoint de apuração ICMS
     docs = await db.xml_documents.find({
         "company_id": company_id,
-        "competencia": competencia,
-        "tipo_operacao": {"$in": ["entrada", "Entrada"]}
+        "competencia": competencia
     }, {"_id": 0, "xml_content": 0}).to_list(50000)
+    
+    # Filtrar apenas documentos de entrada (mesma lógica da apuração ICMS)
+    docs_entrada = []
+    for doc in docs:
+        # Determinar se é entrada pelo campo 'tipo' (usado na apuração) ou 'tipo_operacao'
+        tipo = doc.get('tipo', doc.get('tipo_operacao', 'saida'))
+        if tipo == 'entrada':
+            docs_entrada.append(doc)
+    
+    docs = docs_entrada
     
     # Estruturas para acumular dados
     por_produto = {}  # Chave: descrição do produto
