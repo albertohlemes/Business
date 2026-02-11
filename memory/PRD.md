@@ -100,6 +100,28 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-12 (Sessão 18 - Correção Modal Upload e Classificação Devolução)
+
+**Correção do Modal de Relatório de Upload que "Aparece e Some":**
+- ✅ **Problema identificado:** Race condition entre SSE e polling causava múltiplas atualizações do estado
+- ✅ **Solução implementada:**
+  - Adicionado `resultDisplayedRef` (useRef) para evitar múltiplas atualizações
+  - Flag verificada antes de chamar `setUploadResult` e `setShowUploadResult`
+  - Flag resetada no início de cada novo upload
+- ✅ **Arquivo modificado:** `/app/frontend/src/pages/Documents.js`
+
+**Correção da Classificação de Produtos com CFOP de Devolução:**
+- ✅ **Problema identificado:** Documentos importados antes da correção não tinham `categoria_classificada` definida
+- ✅ **Solução implementada:** Script de correção em massa no banco de dados
+  - Corrigidos 6 documentos com CFOPs de devolução (1201, 1202, 2201, 2202, etc.)
+  - Todos os 38 produtos com CFOP de devolução agora têm `categoria_classificada: 'devolucao'`
+- ✅ **Verificação:** Empresa COMERCIAL RS LTDA, competência 01/2026, mostra 33 produtos na categoria "Devolução"
+
+**Adição de Cor Orange no Frontend:**
+- ✅ **Problema identificado:** Categoria "devolucao" usava `color: 'orange'`, mas não havia mapeamento
+- ✅ **Solução implementada:** Adicionado `orange: 'bg-orange-500/10 border-orange-500/30 text-orange-400'`
+- ✅ **Arquivo modificado:** `/app/frontend/src/pages/ClassificacaoInteligente.js`
+
 ### 2026-02-11 (Sessão 17 - Agrupamento Devolução e Notas Canceladas)
 
 **Categoria "Devolução" na Classificação:**
