@@ -2598,10 +2598,12 @@ def generate_sped_fiscal(
                 aliq_cofins = 0.0
                 bc_pis = vl_item
                 bc_cofins = vl_item
-            elif regime == 'simples_nacional':
-                # Simples Nacional - não tem PIS/COFINS destacado
-                cst_pis = '99'
-                cst_cofins = '99'
+            elif regime == 'simples_nacional' or is_simples_nacional:
+                # Simples Nacional - CST específicos conforme solicitação do usuário
+                # Entrada: CST 98 (Outras operações de entrada)
+                # Saída: CST 49 (Outras operações de saída)
+                cst_pis = '98' if is_entrada else '49'
+                cst_cofins = '98' if is_entrada else '49'
                 aliq_pis = 0.0
                 aliq_cofins = 0.0
                 bc_pis = 0.0
