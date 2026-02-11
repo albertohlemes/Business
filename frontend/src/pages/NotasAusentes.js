@@ -63,8 +63,11 @@ export default function NotasAusentes({ user, onLogout }) {
       if (filtroCompetencia) params.append('competencia', filtroCompetencia);
       if (serie) params.append('serie', serie);
 
+      // selectedCompany pode ser um objeto ou string ID
+      const companyId = typeof selectedCompany === 'object' ? selectedCompany.id : selectedCompany;
+
       const response = await axios.get(
-        `${API}/notas-ausentes/${selectedCompany}/exportar?${params.toString()}`,
+        `${API}/notas-ausentes/${companyId}/exportar?${params.toString()}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: 'blob'
