@@ -782,6 +782,80 @@ def get_filtro_notas_ativas():
         ]
     }
 
+
+def produto_sem_credito_icms_beneficio(ncm: str, descricao: str, company: dict) -> bool:
+    """
+    Verifica se um produto deve ter crédito de ICMS desconsiderado devido a benefício fiscal.
+    
+    Args:
+        ncm: Código NCM do produto
+        descricao: Descrição do produto
+        company: Dados da empresa (dict com beneficio_fiscal_icms, tipo_beneficio_fiscal, produtos_sem_credito_icms)
+    
+    Returns:
+        True se o produto NÃO deve gerar crédito de ICMS
+    """
+    if not company.get('beneficio_fiscal_icms', False):
+        return False
+    
+    tipo_beneficio = company.get('tipo_beneficio_fiscal', '')
+    produtos_sem_credito = company.get('produtos_sem_credito_icms', [])
+    
+    # Restaurante ou bar: nenhum produto gera crédito
+    if tipo_beneficio in ['restaurante', 'bar', 'lanchonete']:
+        return True
+    
+    # Se não há lista específica, não desconsiderar
+    if not produtos_sem_credito:
+        return False
+    
+    ncm_str = str(ncm or '').strip()
+    descricao_lower = (descricao or '').lower()
+    
+    for item in produtos_sem_credito:
+        item_lower = item.lower().strip()
+        
+        # Verificar se é um NCM (começa com dígito)
+        if item_lower and item_lower[0].isdigit():
+            # Comparação de NCM (prefixo)
+            if ncm_str.startswith(item_lower):
+                return True
+        else:
+            # Comparação de palavra-chave na descrição
+            if item_lower in descricao_lower:
+                return True
+            
+            # Verificar aliases comuns
+            aliases = {
+                'carne': ['carne', 'bovina', 'suina', 'frango', 'peixe', 'pescado', 'aves'],
+                'bebida': ['bebida', 'refrigerante', 'suco', 'água', 'cerveja', 'vinho', 'destilado'],
+                'alcool': ['cerveja', 'vinho', 'vodka', 'whisky', 'cachaça', 'gin', 'licor', 'alcool', 'álcool', 'destilado'],
+                'laticinio': ['leite', 'queijo', 'iogurte', 'manteiga', 'requeijão', 'creme de leite'],
+                'frios': ['presunto', 'mortadela', 'salame', 'linguiça', 'bacon', 'salsicha'],
+                'hortifruti': ['frutas', 'legumes', 'verduras', 'hortaliças', 'banana', 'maçã', 'laranja', 'tomate', 'cebola', 'batata'],
+            }
+            
+            for categoria, keywords in aliases.items():
+                if item_lower == categoria:
+                    for kw in keywords:
+                        if kw in descricao_lower:
+                            return True
+    
+    return False
+
+
+def get_cst_icms_simples_nacional() -> str:
+    """Retorna o CST de ICMS para empresas do Simples Nacional"""
+    return '090'  # Outros (sem tributação pelo ICMS no regime do Simples)
+
+
+def get_cst_pis_cofins_simples_nacional(tipo_operacao: str) -> str:
+    """Retorna o CST de PIS/COFINS para empresas do Simples Nacional"""
+    if tipo_operacao == 'entrada':
+        return '98'  # Outras operações de entrada
+    else:
+        return '49'  # Outras operações de saída
+
 def calcular_cst_pis_cofins(ncm: str, cfop: str, tipo_operacao: str, cst_xml: str = None, regime: str = 'lucro_real') -> dict:
     """
     Calcula o CST correto de PIS/COFINS baseado nas regras fiscais.
