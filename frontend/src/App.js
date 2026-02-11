@@ -222,6 +222,10 @@ function App() {
               path="/sped"
               element={user ? <ExportSPED user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/fechamento-mensal"
+              element={user ? <FechamentoMensal user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
           </Routes>
           </UploadProvider>
         </AppProvider>
