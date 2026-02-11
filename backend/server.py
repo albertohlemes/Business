@@ -24776,8 +24776,18 @@ async def exportar_documentos_categoria(
         
         for doc in documentos:
             valor = float(doc.get('valor_total', 0) or 0)
-            bc_icms = float(doc.get('bc_icms_total', 0) or doc.get('total_bc_icms', 0) or 0)
-            icms = float(doc.get('icms_total', 0) or 0)
+            
+            # Calcular BC ICMS e ICMS a partir dos produtos
+            produtos = doc.get('produtos', [])
+            bc_icms = sum(float(p.get('v_bc_icms', 0) or p.get('v_bc', 0) or p.get('bc_icms', 0) or 0) for p in produtos)
+            icms = sum(float(p.get('v_icms', 0) or p.get('valor_icms', 0) or 0) for p in produtos)
+            
+            # Fallback para campos no documento se produtos não tiverem valores
+            if bc_icms == 0:
+                bc_icms = float(doc.get('bc_icms_total', 0) or doc.get('total_bc_icms', 0) or 0)
+            if icms == 0:
+                icms = float(doc.get('icms_total', 0) or doc.get('total_icms', 0) or 0)
+            
             total_valor += valor
             total_bc_icms += bc_icms
             total_icms += icms
