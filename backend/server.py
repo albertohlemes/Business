@@ -1251,6 +1251,27 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
         # Adicionar dados de cancelamento se a nota estiver cancelada
         if cancelada:
             resultado.update(dados_cancelamento)
+            # IMPORTANTE: Zerar valores de notas canceladas para não impactar apurações
+            resultado['valor_total'] = 0.0
+            resultado['valor_produtos'] = 0.0
+            resultado['valor_frete'] = 0.0
+            resultado['valor_seguro'] = 0.0
+            resultado['outras_despesas'] = 0.0
+            resultado['total_desconto'] = 0.0
+            resultado['total_ipi'] = 0.0
+            resultado['total_icms_st'] = 0.0
+            resultado['status'] = 'cancelada'
+            # Zerar valores de cada produto também
+            for prod in resultado['produtos']:
+                prod['valor_total'] = 0.0
+                prod['valor_unitario'] = 0.0
+                prod['quantidade'] = 0.0
+                prod['desconto'] = 0.0
+                prod['valor_icms'] = 0.0
+                prod['valor_icms_st'] = 0.0
+                prod['valor_ipi'] = 0.0
+                prod['valor_pis'] = 0.0
+                prod['valor_cofins'] = 0.0
         
         return resultado
     except Exception as e:
