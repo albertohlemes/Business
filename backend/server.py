@@ -4070,7 +4070,7 @@ async def list_companies(
     """
     List companies based on user role:
     - Admin/Master: all companies (can filter by responsavel_id)
-    - Operacional: only companies where user is responsible OR companies they created
+    - Operacional: only companies where user is responsible OR companies they created OR in company_ids
     """
     allowed_roles = ["super_admin", "master", "admin"]
     
@@ -4081,12 +4081,14 @@ async def list_companies(
             query["responsavel_ids"] = responsavel_id
         companies = await db.companies.find(query, {"_id": 0}).to_list(1000)
     else:
-        # Operacional só vê empresas onde é responsável OU que ele criou
+        # Operacional só vê empresas onde é responsável OU que ele criou OU está em company_ids
+        user_company_ids = current_user.company_ids or []
         companies = await db.companies.find(
             {"$or": [
                 {"responsavel_ids": current_user.id},
-                {"created_by": current_user.id},  # Empresas que o usuário criou
-                {"cnpj": {"$in": current_user.company_ids}}  # Fallback para compatibilidade
+                {"created_by": current_user.id},
+                {"cnpj": {"$in": user_company_ids}},
+                {"id": {"$in": user_company_ids}}  # Também verificar por ID
             ]}, 
             {"_id": 0}
         ).to_list(1000)
