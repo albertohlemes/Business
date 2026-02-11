@@ -682,6 +682,14 @@ const Documents = ({ user, onLogout }) => {
               eventSource.close();
               eventSourceRef.current = null;
             } else if (data.error) {
+              // Não mostrar erro se já mostramos resultado
+              if (resultDisplayedRef.current) {
+                eventSource.close();
+                eventSourceRef.current = null;
+                return;
+              }
+              resultDisplayedRef.current = true;
+              
               if (globalTimeoutId) clearInterval(globalTimeoutId); // Limpar timeout global
               setUploadError(data.error); // Atualizar erro global
               setUploadResult({
