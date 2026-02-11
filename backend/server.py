@@ -7685,14 +7685,20 @@ async def get_dashboard_stats(
     tipo_atividade = company.get('tipo_atividade', 'comercio')
     
     # Contadores por tipo e modelo de documento
+    # Modelos válidos para NF-e: 'nfe', 'NFe', 'NF-e', '55' (código do modelo), ou campo vazio/None (default para nfe)
+    MODELOS_NFE = ['nfe', 'NFe', 'NF-e', '55', '', None]
+    MODELOS_CTE = ['cte', 'ct-e', 'CTE', 'CT-e', '57']
+    MODELOS_NFSE = ['nfse', 'nfs-e', 'NFSE', 'NFS-e']
+    MODELOS_NFCE = ['nfce', 'nfc-e', 'NFCE', 'NFC-e', '65']
+    
     # ENTRADAS
-    nfe_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', 'nfe') in ['nfe', 'NFe', 'NF-e']]
-    cte_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', '').lower() in ['cte', 'ct-e']]
-    nfse_tomados = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', '').lower() in ['nfse', 'nfs-e']]
+    nfe_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', 'nfe') in MODELOS_NFE]
+    cte_entrada = [d for d in documents if d.get('tipo') == 'entrada' and (d.get('modelo', '') or '').lower() in [m.lower() for m in MODELOS_CTE]]
+    nfse_tomados = [d for d in documents if d.get('tipo') == 'entrada' and (d.get('modelo', '') or '').lower() in [m.lower() for m in MODELOS_NFSE]]
     
     # Outros documentos de entrada (energia, internet, faturas, etc.)
-    modelos_conhecidos_entrada = ['nfe', 'NFe', 'NF-e', 'cte', 'ct-e', 'CTE', 'CT-e', 'nfse', 'nfs-e', 'NFSE', 'NFS-e']
-    outros_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', '').upper() not in [m.upper() for m in modelos_conhecidos_entrada]]
+    modelos_conhecidos_entrada = MODELOS_NFE + MODELOS_CTE + MODELOS_NFSE + MODELOS_NFCE
+    outros_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', '') not in modelos_conhecidos_entrada and (d.get('modelo', '') or '').lower() not in [m.lower() for m in modelos_conhecidos_entrada]]
     
     # SAÍDAS - filtrar por atividade
     # Modelos válidos para NF-e: 'nfe', 'NFe', 'NF-e', '55' (código do modelo), ou campo vazio/None (default para nfe)
