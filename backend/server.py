@@ -7695,9 +7695,15 @@ async def get_dashboard_stats(
     outros_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', '').upper() not in [m.upper() for m in modelos_conhecidos_entrada]]
     
     # SAÍDAS - filtrar por atividade
-    nfe_saida = [d for d in documents if d.get('tipo') == 'saida' and d.get('modelo', 'nfe') in ['nfe', 'NFe', 'NF-e']]
-    nfce = [d for d in documents if d.get('modelo', '').lower() in ['nfce', 'nfc-e']]
-    cte_saida = [d for d in documents if d.get('tipo') == 'saida' and d.get('modelo', '').lower() in ['cte', 'ct-e']]
+    # Modelos válidos para NF-e: 'nfe', 'NFe', 'NF-e', '55' (código do modelo), ou campo vazio/None (default para nfe)
+    MODELOS_NFE = ['nfe', 'NFe', 'NF-e', '55', '', None]
+    nfe_saida = [d for d in documents if d.get('tipo') == 'saida' and d.get('modelo', 'nfe') in MODELOS_NFE]
+    
+    # NFC-e: modelo 65
+    nfce = [d for d in documents if d.get('modelo', '').lower() in ['nfce', 'nfc-e', '65']]
+    
+    # CT-e: modelo 57
+    cte_saida = [d for d in documents if d.get('tipo') == 'saida' and d.get('modelo', '').lower() in ['cte', 'ct-e', '57']]
     
     # NFS-e prestados (serviços próprios) - só mostrar se empresa presta serviços
     nfse_prestados = []
