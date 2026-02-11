@@ -970,16 +970,76 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                             <thead className="bg-[#1A1A1A] sticky top-0">
                               <tr>
                                 <th className="px-3 py-3 text-left text-[#A1A1AA] font-medium w-8"></th>
-                                <th className="px-3 py-3 text-left text-[#A1A1AA] font-medium">NCM</th>
-                                <th className="px-3 py-3 text-left text-[#A1A1AA] font-medium">Descrição</th>
-                                <th className="px-3 py-3 text-center text-[#A1A1AA] font-medium">Produtos</th>
-                                <th className="px-3 py-3 text-right text-[#A1A1AA] font-medium">Valor</th>
-                                <th className="px-3 py-3 text-right text-[#A1A1AA] font-medium">BC ICMS</th>
-                                <th className="px-3 py-3 text-right text-[#A1A1AA] font-medium">ICMS</th>
+                                <th 
+                                  className="px-3 py-3 text-left text-[#A1A1AA] font-medium cursor-pointer hover:bg-white/5 select-none"
+                                  onClick={() => handleNcmSort('ncm')}
+                                >
+                                  <div className="flex items-center gap-1">
+                                    NCM
+                                    {beneficioNcmSort.column === 'ncm' && (
+                                      beneficioNcmSort.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                </th>
+                                <th 
+                                  className="px-3 py-3 text-left text-[#A1A1AA] font-medium cursor-pointer hover:bg-white/5 select-none"
+                                  onClick={() => handleNcmSort('descricao_ncm')}
+                                >
+                                  <div className="flex items-center gap-1">
+                                    Descrição
+                                    {beneficioNcmSort.column === 'descricao_ncm' && (
+                                      beneficioNcmSort.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                </th>
+                                <th 
+                                  className="px-3 py-3 text-center text-[#A1A1AA] font-medium cursor-pointer hover:bg-white/5 select-none"
+                                  onClick={() => handleNcmSort('qtd_produtos')}
+                                >
+                                  <div className="flex items-center justify-center gap-1">
+                                    Produtos
+                                    {beneficioNcmSort.column === 'qtd_produtos' && (
+                                      beneficioNcmSort.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                </th>
+                                <th 
+                                  className="px-3 py-3 text-right text-[#A1A1AA] font-medium cursor-pointer hover:bg-white/5 select-none"
+                                  onClick={() => handleNcmSort('valor_total')}
+                                >
+                                  <div className="flex items-center justify-end gap-1">
+                                    Valor
+                                    {beneficioNcmSort.column === 'valor_total' && (
+                                      beneficioNcmSort.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                </th>
+                                <th 
+                                  className="px-3 py-3 text-right text-[#A1A1AA] font-medium cursor-pointer hover:bg-white/5 select-none"
+                                  onClick={() => handleNcmSort('bc_icms')}
+                                >
+                                  <div className="flex items-center justify-end gap-1">
+                                    BC ICMS
+                                    {beneficioNcmSort.column === 'bc_icms' && (
+                                      beneficioNcmSort.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                </th>
+                                <th 
+                                  className="px-3 py-3 text-right text-[#A1A1AA] font-medium cursor-pointer hover:bg-white/5 select-none"
+                                  onClick={() => handleNcmSort('valor_icms')}
+                                >
+                                  <div className="flex items-center justify-end gap-1">
+                                    ICMS
+                                    {beneficioNcmSort.column === 'valor_icms' && (
+                                      beneficioNcmSort.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                  </div>
+                                </th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-[#2A2A2A]">
-                              {beneficioDetalhes.por_ncm.map((item, idx) => (
+                              {sortedBeneficioNcms.map((item, idx) => (
                                 <React.Fragment key={idx}>
                                   <tr 
                                     className="hover:bg-white/5 cursor-pointer"
