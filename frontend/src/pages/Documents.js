@@ -405,7 +405,8 @@ const Documents = ({ user, onLogout }) => {
     // Variáveis para controle de timeout global
     let lastProgressTime = Date.now();
     let globalTimeoutId = null;
-    const GLOBAL_TIMEOUT_MS = 120000; // 120 segundos sem progresso = timeout (aumentado para grandes volumes)
+    // 5 minutos sem progresso = timeout (para volumes muito grandes como 4000+ arquivos)
+    const GLOBAL_TIMEOUT_MS = 300000;
     
     // Função para verificar e disparar timeout
     const checkGlobalTimeout = () => {
