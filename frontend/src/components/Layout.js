@@ -156,6 +156,11 @@ const Layout = ({ user, onLogout, children }) => {
     nav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
     nav.push({ name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' });
     
+    // === ADMINISTRAÇÃO (apenas admin/super_admin) ===
+    if (user?.role === 'admin' || user?.role === 'super_admin') {
+      nav.push({ name: 'Histórico de Alterações', href: '/audit-log', icon: History, testId: 'nav-audit-log' });
+    }
+    
     return nav;
   };
   
