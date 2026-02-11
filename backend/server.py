@@ -12929,11 +12929,74 @@ async def classificar_produtos_ia(
     if not produtos_unicos:
         return {"success": True, "message": "Nenhum produto encontrado", "alteracoes": [], "total_alteracoes": 0}
     
-    # Preparar contexto para IA
+    # ============= PRÉ-CLASSIFICAÇÃO POR PALAVRAS-CHAVE =============
+    # PRIORIDADE 1: Classificar baseado nas palavras-chave cadastradas ANTES de usar IA
+    # Isso garante que as palavras-chave sempre tenham prioridade sobre a IA
+    
+    produtos_comercializados = company.get('produtos_comercializados', [])
+    produtos_aplicacao_servico = company.get('produtos_aplicacao_servico', [])
+    insumos_producao = company.get('insumos_producao', [])
+    produtos_despesa = company.get('produtos_despesa', [])
+    
+    # Normalizar palavras-chave para match case-insensitive
+    palavras_revenda = [p.lower().strip() for p in produtos_comercializados if p]
+    palavras_servico = [p.lower().strip() for p in produtos_aplicacao_servico if p]
+    palavras_insumo = [p.lower().strip() for p in insumos_producao if p]
+    palavras_despesa = [p.lower().strip() for p in produtos_despesa if p]
+    
+    # Pré-classificar produtos com base nas palavras-chave
+    produtos_pre_classificados = {}
+    produtos_para_ia = {}
+    
+    for chave, dados in produtos_unicos.items():
+        descricao_lower = dados['descricao'].lower()
+        categoria_encontrada = None
+        
+        # Verificar palavras-chave em ordem de prioridade
+        # 1. Insumo (mais específico)
+        for palavra in palavras_insumo:
+            if palavra in descricao_lower:
+                categoria_encontrada = 'insumo'
+                break
+        
+        # 2. Despesa
+        if not categoria_encontrada:
+            for palavra in palavras_despesa:
+                if palavra in descricao_lower:
+                    categoria_encontrada = 'despesa'
+                    break
+        
+        # 3. Serviço aplicação
+        if not categoria_encontrada:
+            for palavra in palavras_servico:
+                if palavra in descricao_lower:
+                    categoria_encontrada = 'servico_aplicacao'
+                    break
+        
+        # 4. Revenda
+        if not categoria_encontrada:
+            for palavra in palavras_revenda:
+                if palavra in descricao_lower:
+                    categoria_encontrada = 'revenda'
+                    break
+        
+        if categoria_encontrada:
+            dados['categoria_sugerida'] = categoria_encontrada
+            dados['fonte'] = 'palavra_chave'
+            produtos_pre_classificados[chave] = dados
+        else:
+            produtos_para_ia[chave] = dados
+    
+    # Log para debug
+    import logging
+    logging.info(f"[IA-CLASSIFICACAO] Pré-classificados por palavra-chave: {len(produtos_pre_classificados)}")
+    logging.info(f"[IA-CLASSIFICACAO] Enviados para IA: {len(produtos_para_ia)}")
+    
+    # Preparar contexto para IA (apenas produtos não pré-classificados)
     produtos_texto = "\n".join([
         f"- {p['descricao'][:80]} (NCM: {p['ncm']}, categoria atual: {p['categoria_atual']})"
-        for p in list(produtos_unicos.values())[:100]
-    ])
+        for p in list(produtos_para_ia.values())[:100]
+    ]) if produtos_para_ia else "Nenhum produto pendente"
     
     # Carregar regras existentes
     regras_existentes = await db.learned_rules.find({"company_id": company_id}).to_list(100)
@@ -12946,8 +13009,7 @@ async def classificar_produtos_ia(
     produtos_vendidos_texto = "\n".join([f"- {p}" for p in list(produtos_vendidos)[:50]]) if produtos_vendidos else "Nenhum produto de saída encontrado"
     ncms_vendidos_texto = ", ".join(list(ncms_vendidos)[:20]) if ncms_vendidos else "N/A"
     
-    # Palavras-chave cadastradas pela empresa
-    produtos_comercializados = company.get('produtos_comercializados', [])
+    # Palavras-chave cadastradas pela empresa (para incluir no prompt da IA)
     produtos_aplicacao_servico = company.get('produtos_aplicacao_servico', [])
     insumos_producao = company.get('insumos_producao', [])
     produtos_despesa = company.get('produtos_despesa', [])
