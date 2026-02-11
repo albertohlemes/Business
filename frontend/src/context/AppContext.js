@@ -109,7 +109,8 @@ export const AppProvider = ({ children }) => {
     tipo: '',
     error: null,
     completedResults: null,  // Resultados quando upload completa
-    showResults: false       // Flag para mostrar o modal de resultados
+    showResults: false,      // Flag para mostrar o modal de resultados
+    startTime: null          // Timestamp do início para calcular tempo restante
   });
 
   const startUpload = (uploadId, total, companyName, tipo = 'entrada') => {
@@ -123,7 +124,8 @@ export const AppProvider = ({ children }) => {
       tipo,
       error: null,
       completedResults: null,
-      showResults: false
+      showResults: false,
+      startTime: Date.now()  // Registrar início
     });
   };
 
@@ -133,7 +135,8 @@ export const AppProvider = ({ children }) => {
       percent,
       current,
       total: total || prev.total,
-      error: null
+      error: null,
+      startTime: prev.startTime || Date.now()  // Manter startTime original
     }));
   };
 
