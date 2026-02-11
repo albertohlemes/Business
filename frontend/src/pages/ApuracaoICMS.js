@@ -599,6 +599,251 @@ const ApuracaoICMS = ({ user, onLogout }) => {
           </div>
         )}
 
+        {/* Card de Benefício Fiscal - Clicável */}
+        {selectedCompany?.beneficio_fiscal_icms && dados?.desconsiderados?.beneficio_fiscal?.valor_icms > 0 && (
+          <div 
+            onClick={handleOpenBeneficioModal}
+            className="bg-gradient-to-r from-yellow-900/30 to-amber-900/30 border border-yellow-500/50 rounded-xl p-4 mb-6 cursor-pointer hover:border-yellow-400 transition-all"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                  <Star className="w-6 h-6 text-yellow-400" />
+                </div>
+                <div>
+                  <h3 className="text-yellow-400 font-semibold flex items-center gap-2">
+                    Benefício Fiscal ICMS
+                    <span className="text-xs bg-yellow-500/30 px-2 py-0.5 rounded">
+                      {selectedCompany.tipo_beneficio_fiscal || 'Ativo'}
+                    </span>
+                  </h3>
+                  <p className="text-sm text-[#A1A1AA]">
+                    {dados.desconsiderados.beneficio_fiscal.qtd_itens} produtos tiveram crédito de ICMS desconsiderado
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-xs text-[#A1A1AA] block">ICMS Desconsiderado</span>
+                <span className="text-2xl font-bold text-red-400">
+                  {formatCurrency(dados.desconsiderados.beneficio_fiscal.valor_icms)}
+                </span>
+                <span className="text-xs text-yellow-400 block mt-1 flex items-center justify-end gap-1">
+                  Clique para ver detalhes <ArrowRight className="w-3 h-3" />
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Detalhamento do Benefício Fiscal */}
+        {showBeneficioModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                    <Star className="w-5 h-5 text-yellow-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Detalhamento do Benefício Fiscal</h2>
+                    <p className="text-sm text-[#A1A1AA]">
+                      Produtos com crédito de ICMS desconsiderado - {selectedCompetencia}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {/* Botões de Exportação */}
+                  <button
+                    onClick={() => exportarBeneficioFiscal('excel')}
+                    disabled={exportingBeneficio || loadingBeneficioDetalhes}
+                    className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    Excel
+                  </button>
+                  <button
+                    onClick={() => exportarBeneficioFiscal('pdf')}
+                    disabled={exportingBeneficio || loadingBeneficioDetalhes}
+                    className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    PDF
+                  </button>
+                  <button
+                    onClick={() => setShowBeneficioModal(false)}
+                    className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex gap-2 p-4 border-b border-[#2A2A2A]">
+                <button
+                  onClick={() => setBeneficioTab('produto')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    beneficioTab === 'produto'
+                      ? 'bg-yellow-500 text-black'
+                      : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
+                  }`}
+                >
+                  <Package className="w-4 h-4 inline mr-2" />
+                  Por Produto
+                </button>
+                <button
+                  onClick={() => setBeneficioTab('ncm')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    beneficioTab === 'ncm'
+                      ? 'bg-yellow-500 text-black'
+                      : 'bg-[#2A2A2A] text-[#A1A1AA] hover:bg-[#333]'
+                  }`}
+                >
+                  <Hash className="w-4 h-4 inline mr-2" />
+                  Por NCM
+                </button>
+              </div>
+
+              {/* Conteúdo */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {loadingBeneficioDetalhes ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mb-4" />
+                    <p className="text-[#A1A1AA]">Carregando detalhes...</p>
+                  </div>
+                ) : beneficioDetalhes ? (
+                  <>
+                    {/* Resumo */}
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      <div className="bg-[#0C0C0C] rounded-lg p-4 border border-[#2A2A2A]">
+                        <p className="text-[#A1A1AA] text-sm">Total de Produtos</p>
+                        <p className="text-2xl font-bold text-white">{beneficioDetalhes.total_produtos || 0}</p>
+                      </div>
+                      <div className="bg-[#0C0C0C] rounded-lg p-4 border border-[#2A2A2A]">
+                        <p className="text-[#A1A1AA] text-sm">Valor Total</p>
+                        <p className="text-2xl font-bold text-white">{formatCurrency(beneficioDetalhes.valor_total || 0)}</p>
+                      </div>
+                      <div className="bg-red-900/20 rounded-lg p-4 border border-red-500/30">
+                        <p className="text-red-400 text-sm">ICMS Desconsiderado</p>
+                        <p className="text-2xl font-bold text-red-400">{formatCurrency(beneficioDetalhes.valor_icms_desconsiderado || 0)}</p>
+                      </div>
+                    </div>
+
+                    {/* Tabela por Produto */}
+                    {beneficioTab === 'produto' && beneficioDetalhes.por_produto && (
+                      <div className="bg-[#0C0C0C] rounded-lg border border-[#2A2A2A] overflow-hidden">
+                        <div className="max-h-[400px] overflow-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-[#1A1A1A] sticky top-0">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-[#A1A1AA] font-medium">Produto</th>
+                                <th className="px-4 py-3 text-left text-[#A1A1AA] font-medium">NCM</th>
+                                <th className="px-4 py-3 text-center text-[#A1A1AA] font-medium">Notas</th>
+                                <th className="px-4 py-3 text-right text-[#A1A1AA] font-medium">Valor Total</th>
+                                <th className="px-4 py-3 text-right text-[#A1A1AA] font-medium">ICMS Desconsiderado</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#2A2A2A]">
+                              {beneficioDetalhes.por_produto.map((item, idx) => (
+                                <tr key={idx} className="hover:bg-white/5">
+                                  <td className="px-4 py-3 text-white">
+                                    <span className="block truncate max-w-[300px]" title={item.descricao}>
+                                      {item.descricao}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <span className="font-mono text-[#C8A951]">{item.ncm}</span>
+                                  </td>
+                                  <td className="px-4 py-3 text-center text-[#A1A1AA]">{item.qtd_notas}</td>
+                                  <td className="px-4 py-3 text-right text-white">{formatCurrency(item.valor_total)}</td>
+                                  <td className="px-4 py-3 text-right">
+                                    <span className="text-red-400 font-semibold">{formatCurrency(item.valor_icms)}</span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot className="bg-[#1A1A1A] border-t border-yellow-500/30">
+                              <tr className="font-semibold">
+                                <td colSpan="3" className="px-4 py-3 text-yellow-400">TOTAL</td>
+                                <td className="px-4 py-3 text-right text-white">{formatCurrency(beneficioDetalhes.valor_total)}</td>
+                                <td className="px-4 py-3 text-right text-red-400">{formatCurrency(beneficioDetalhes.valor_icms_desconsiderado)}</td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tabela por NCM */}
+                    {beneficioTab === 'ncm' && beneficioDetalhes.por_ncm && (
+                      <div className="bg-[#0C0C0C] rounded-lg border border-[#2A2A2A] overflow-hidden">
+                        <div className="max-h-[400px] overflow-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-[#1A1A1A] sticky top-0">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-[#A1A1AA] font-medium">NCM</th>
+                                <th className="px-4 py-3 text-left text-[#A1A1AA] font-medium">Descrição</th>
+                                <th className="px-4 py-3 text-center text-[#A1A1AA] font-medium">Qtd Produtos</th>
+                                <th className="px-4 py-3 text-right text-[#A1A1AA] font-medium">Valor Total</th>
+                                <th className="px-4 py-3 text-right text-[#A1A1AA] font-medium">ICMS Desconsiderado</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#2A2A2A]">
+                              {beneficioDetalhes.por_ncm.map((item, idx) => (
+                                <tr key={idx} className="hover:bg-white/5">
+                                  <td className="px-4 py-3">
+                                    <span className="font-mono text-[#C8A951] text-lg">{item.ncm}</span>
+                                  </td>
+                                  <td className="px-4 py-3 text-white">{item.descricao_ncm}</td>
+                                  <td className="px-4 py-3 text-center text-[#A1A1AA]">{item.qtd_produtos}</td>
+                                  <td className="px-4 py-3 text-right text-white">{formatCurrency(item.valor_total)}</td>
+                                  <td className="px-4 py-3 text-right">
+                                    <span className="text-red-400 font-semibold">{formatCurrency(item.valor_icms)}</span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot className="bg-[#1A1A1A] border-t border-yellow-500/30">
+                              <tr className="font-semibold">
+                                <td colSpan="3" className="px-4 py-3 text-yellow-400">TOTAL</td>
+                                <td className="px-4 py-3 text-right text-white">{formatCurrency(beneficioDetalhes.valor_total)}</td>
+                                <td className="px-4 py-3 text-right text-red-400">{formatCurrency(beneficioDetalhes.valor_icms_desconsiderado)}</td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <Star className="w-12 h-12 text-yellow-500/50 mx-auto mb-4" />
+                    <p className="text-[#A1A1AA]">Nenhum dado disponível</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-between items-center p-4 border-t border-[#2A2A2A]">
+                <div className="text-sm text-[#A1A1AA]">
+                  {selectedCompany?.produtos_sem_credito_icms?.length > 0 && (
+                    <span>
+                      Regra aplicada: <span className="text-yellow-400">{selectedCompany.produtos_sem_credito_icms.join(', ')}</span>
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowBeneficioModal(false)}
+                  className="px-6 py-2 bg-[#2A2A2A] hover:bg-[#333] text-white rounded-lg transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tabs ICMS / ICMS ST */}
         {selectedCompany && dados && (
           <div className="flex gap-2 mb-6 border-b border-[#2A2A2A] pb-3">
