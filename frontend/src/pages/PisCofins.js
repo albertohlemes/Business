@@ -153,6 +153,17 @@ const PisCofins = ({ user, onLogout }) => {
     
     const regime = apuracao.empresa?.regime_tributario || 'LUCRO_REAL';
     const dadosRegime = regime.toUpperCase().includes('REAL') ? apuracao.lucro_real : apuracao.lucro_presumido;
+    const tipoAtividade = selectedCompany?.tipo_atividade || 'comercio';
+    const temServicos = tipoAtividade === 'servicos' || tipoAtividade === 'mista';
+    
+    // Determinar se é credor ou devedor
+    const saldoPIS = dadosRegime.saldo.pis;
+    const saldoCOFINS = dadosRegime.saldo.cofins;
+    const saldoTotal = dadosRegime.saldo.total;
+    
+    const isPISCredor = saldoPIS < 0;
+    const isCOFINSCredor = saldoCOFINS < 0;
+    const isTotalCredor = saldoTotal < 0;
     
     return (
       <div className="space-y-6">
@@ -162,7 +173,7 @@ const PisCofins = ({ user, onLogout }) => {
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
             PIS (1,65%)
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <ResumoCard
               titulo="Créditos PIS"
               valor={dadosRegime.creditos.pis}
@@ -178,19 +189,12 @@ const PisCofins = ({ user, onLogout }) => {
               corValor="text-red-400"
             />
             <ResumoCard
-              titulo="Saldo PIS"
-              valor={dadosRegime.saldo.pis}
-              subtitulo={dadosRegime.saldo.pis < 0 ? 'Crédito acumulado' : 'Imposto devido'}
-              icon={Scale}
-              corIcone="bg-blue-600"
-              corValor={dadosRegime.saldo.pis < 0 ? 'text-green-400' : 'text-amber-400'}
-            />
-            <ResumoCard
-              titulo="PIS a Pagar"
-              valor={dadosRegime.imposto_a_pagar.pis}
-              icon={DollarSign}
-              corIcone="bg-emerald-600"
-              corValor="text-emerald-400"
+              titulo={isPISCredor ? "PIS a Recuperar" : "PIS a Pagar"}
+              valor={Math.abs(saldoPIS)}
+              subtitulo={isPISCredor ? 'Crédito acumulado' : 'Imposto devido'}
+              icon={isPISCredor ? TrendingUp : DollarSign}
+              corIcone={isPISCredor ? "bg-blue-600" : "bg-amber-600"}
+              corValor={isPISCredor ? "text-blue-400" : "text-amber-400"}
             />
           </div>
         </div>
@@ -201,7 +205,7 @@ const PisCofins = ({ user, onLogout }) => {
             <span className="w-2 h-2 rounded-full bg-teal-500"></span>
             COFINS (7,6%)
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <ResumoCard
               titulo="Créditos COFINS"
               valor={dadosRegime.creditos.cofins}
@@ -217,26 +221,19 @@ const PisCofins = ({ user, onLogout }) => {
               corValor="text-red-400"
             />
             <ResumoCard
-              titulo="Saldo COFINS"
-              valor={dadosRegime.saldo.cofins}
-              subtitulo={dadosRegime.saldo.cofins < 0 ? 'Crédito acumulado' : 'Imposto devido'}
-              icon={Scale}
-              corIcone="bg-blue-600"
-              corValor={dadosRegime.saldo.cofins < 0 ? 'text-green-400' : 'text-amber-400'}
-            />
-            <ResumoCard
-              titulo="COFINS a Pagar"
-              valor={dadosRegime.imposto_a_pagar.cofins}
-              icon={DollarSign}
-              corIcone="bg-teal-600"
-              corValor="text-teal-400"
+              titulo={isCOFINSCredor ? "COFINS a Recuperar" : "COFINS a Pagar"}
+              valor={Math.abs(saldoCOFINS)}
+              subtitulo={isCOFINSCredor ? 'Crédito acumulado' : 'Imposto devido'}
+              icon={isCOFINSCredor ? TrendingUp : DollarSign}
+              corIcone={isCOFINSCredor ? "bg-blue-600" : "bg-amber-600"}
+              corValor={isCOFINSCredor ? "text-blue-400" : "text-amber-400"}
             />
           </div>
         </div>
 
         {/* Total Geral */}
         <div className="bg-gradient-to-r from-[#C8A951]/20 to-[#C8A951]/10 border border-[#C8A951]/30 rounded-xl p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
               <p className="text-[#A1A1AA] text-sm">Total Créditos</p>
               <p className="text-xl font-bold text-green-400">{formatCurrency(dadosRegime.creditos.total)}</p>
@@ -246,62 +243,114 @@ const PisCofins = ({ user, onLogout }) => {
               <p className="text-xl font-bold text-red-400">{formatCurrency(dadosRegime.debitos_total.total)}</p>
             </div>
             <div className="text-center">
-              <p className="text-[#A1A1AA] text-sm">Saldo Total</p>
-              <p className={`text-xl font-bold ${dadosRegime.saldo.total < 0 ? 'text-green-400' : 'text-amber-400'}`}>
-                {formatCurrency(dadosRegime.saldo.total)}
+              <p className="text-[#A1A1AA] text-sm">{isTotalCredor ? 'Total a Recuperar' : 'Total a Pagar'}</p>
+              <p className={`text-2xl font-bold ${isTotalCredor ? 'text-blue-400' : 'text-[#C8A951]'}`}>
+                {formatCurrency(Math.abs(saldoTotal))}
               </p>
-            </div>
-            <div className="text-center">
-              <p className="text-[#A1A1AA] text-sm">Total a Pagar</p>
-              <p className="text-2xl font-bold text-[#C8A951]">{formatCurrency(dadosRegime.imposto_a_pagar.total)}</p>
             </div>
           </div>
         </div>
 
         {/* Detalhamento de Créditos */}
         <SecaoColapsavel
-          titulo="Detalhamento de Créditos"
+          titulo="Detalhamento de Créditos (Entradas)"
           subtitulo={formatCurrency(dadosRegime.creditos.total)}
           sectionKey="creditos"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-[#0C0C0C] rounded-lg p-4">
-              <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-[#C8A951]" />
-                PIS (Crédito)
-              </h4>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#A1A1AA]">Base de Cálculo</span>
-                  <span className="text-white">{formatCurrency(dadosRegime.creditos.total / 0.0925)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#A1A1AA]">Alíquota</span>
-                  <span className="text-white">1,65%</span>
-                </div>
-                <div className="flex justify-between text-sm font-semibold border-t border-[#2A2A2A] pt-2 mt-2">
-                  <span className="text-[#A1A1AA]">Crédito PIS</span>
-                  <span className="text-green-400">{formatCurrency(dadosRegime.creditos.pis)}</span>
+          <div className="space-y-4">
+            {/* Resumo por CST - Créditos */}
+            {apuracao.por_cfop_cst && apuracao.por_cfop_cst.filter(i => i.tipo === 'ENTRADA').length > 0 && (
+              <div className="bg-[#0C0C0C] rounded-lg p-4">
+                <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-green-400" />
+                  Resumo por CST (Créditos)
+                </h4>
+                {(() => {
+                  const entradas = apuracao.por_cfop_cst.filter(i => i.tipo === 'ENTRADA');
+                  const porCST = entradas.reduce((acc, item) => {
+                    const cst = item.cst || 'N/A';
+                    if (!acc[cst]) {
+                      acc[cst] = { qtd: 0, valor_base: 0, valor_pis: 0, valor_cofins: 0 };
+                    }
+                    acc[cst].qtd += item.qtd || 0;
+                    acc[cst].valor_base += item.valor_base || 0;
+                    acc[cst].valor_pis += item.valor_pis || 0;
+                    acc[cst].valor_cofins += item.valor_cofins || 0;
+                    return acc;
+                  }, {});
+                  
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-[#2A2A2A]">
+                            <th className="text-left py-2 px-3 text-[#A1A1AA]">CST</th>
+                            <th className="text-right py-2 px-3 text-[#A1A1AA]">Qtd Docs</th>
+                            <th className="text-right py-2 px-3 text-[#A1A1AA]">Base de Cálculo</th>
+                            <th className="text-right py-2 px-3 text-[#A1A1AA]">PIS</th>
+                            <th className="text-right py-2 px-3 text-[#A1A1AA]">COFINS</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.entries(porCST).sort((a, b) => b[1].valor_base - a[1].valor_base).map(([cst, dados]) => (
+                            <tr key={cst} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
+                              <td className="py-2 px-3">
+                                <span className="font-mono text-[#C8A951]">{cst}</span>
+                              </td>
+                              <td className="py-2 px-3 text-right text-[#A1A1AA]">{dados.qtd}</td>
+                              <td className="py-2 px-3 text-right text-white">{formatCurrency(dados.valor_base)}</td>
+                              <td className="py-2 px-3 text-right text-green-400">{formatCurrency(dados.valor_pis)}</td>
+                              <td className="py-2 px-3 text-right text-green-400">{formatCurrency(dados.valor_cofins)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+            
+            {/* Totais PIS e COFINS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-[#0C0C0C] rounded-lg p-4">
+                <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <Calculator className="w-4 h-4 text-[#C8A951]" />
+                  PIS (Crédito)
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#A1A1AA]">Base de Cálculo</span>
+                    <span className="text-white">{formatCurrency(dadosRegime.creditos.pis / 0.0165)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#A1A1AA]">Alíquota</span>
+                    <span className="text-white">1,65%</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-semibold border-t border-[#2A2A2A] pt-2 mt-2">
+                    <span className="text-[#A1A1AA]">Crédito PIS</span>
+                    <span className="text-green-400">{formatCurrency(dadosRegime.creditos.pis)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="bg-[#0C0C0C] rounded-lg p-4">
-              <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-[#C8A951]" />
-                COFINS (Crédito)
-              </h4>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#A1A1AA]">Base de Cálculo</span>
-                  <span className="text-white">{formatCurrency(dadosRegime.creditos.total / 0.0925)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#A1A1AA]">Alíquota</span>
-                  <span className="text-white">7,60%</span>
-                </div>
-                <div className="flex justify-between text-sm font-semibold border-t border-[#2A2A2A] pt-2 mt-2">
-                  <span className="text-[#A1A1AA]">Crédito COFINS</span>
-                  <span className="text-green-400">{formatCurrency(dadosRegime.creditos.cofins)}</span>
+              <div className="bg-[#0C0C0C] rounded-lg p-4">
+                <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <Calculator className="w-4 h-4 text-[#C8A951]" />
+                  COFINS (Crédito)
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#A1A1AA]">Base de Cálculo</span>
+                    <span className="text-white">{formatCurrency(dadosRegime.creditos.cofins / 0.076)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#A1A1AA]">Alíquota</span>
+                    <span className="text-white">7,60%</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-semibold border-t border-[#2A2A2A] pt-2 mt-2">
+                    <span className="text-[#A1A1AA]">Crédito COFINS</span>
+                    <span className="text-green-400">{formatCurrency(dadosRegime.creditos.cofins)}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -310,54 +359,133 @@ const PisCofins = ({ user, onLogout }) => {
 
         {/* Detalhamento de Débitos */}
         <SecaoColapsavel
-          titulo="Detalhamento de Débitos"
+          titulo="Detalhamento de Débitos (Saídas)"
           subtitulo={formatCurrency(dadosRegime.debitos_total.total)}
           sectionKey="debitos"
         >
           <div className="space-y-4">
+            {/* Resumo por CST - Débitos */}
+            {apuracao.por_cfop_cst && apuracao.por_cfop_cst.filter(i => i.tipo === 'SAIDA' || i.tipo === 'SAÍDA').length > 0 && (
+              <div className="bg-[#0C0C0C] rounded-lg p-4">
+                <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-red-400" />
+                  Resumo por CST (Débitos)
+                </h4>
+                {(() => {
+                  const saidas = apuracao.por_cfop_cst.filter(i => i.tipo === 'SAIDA' || i.tipo === 'SAÍDA');
+                  const porCST = saidas.reduce((acc, item) => {
+                    const cst = item.cst || 'N/A';
+                    if (!acc[cst]) {
+                      acc[cst] = { qtd: 0, valor_base: 0, valor_pis: 0, valor_cofins: 0 };
+                    }
+                    acc[cst].qtd += item.qtd || 0;
+                    acc[cst].valor_base += item.valor_base || 0;
+                    acc[cst].valor_pis += item.valor_pis || 0;
+                    acc[cst].valor_cofins += item.valor_cofins || 0;
+                    return acc;
+                  }, {});
+                  
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-[#2A2A2A]">
+                            <th className="text-left py-2 px-3 text-[#A1A1AA]">CST</th>
+                            <th className="text-right py-2 px-3 text-[#A1A1AA]">Qtd Docs</th>
+                            <th className="text-right py-2 px-3 text-[#A1A1AA]">Base de Cálculo</th>
+                            <th className="text-right py-2 px-3 text-[#A1A1AA]">PIS</th>
+                            <th className="text-right py-2 px-3 text-[#A1A1AA]">COFINS</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.entries(porCST).sort((a, b) => b[1].valor_base - a[1].valor_base).map(([cst, dados]) => (
+                            <tr key={cst} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
+                              <td className="py-2 px-3">
+                                <span className="font-mono text-[#C8A951]">{cst}</span>
+                              </td>
+                              <td className="py-2 px-3 text-right text-[#A1A1AA]">{dados.qtd}</td>
+                              <td className="py-2 px-3 text-right text-white">{formatCurrency(dados.valor_base)}</td>
+                              <td className="py-2 px-3 text-right text-red-400">{formatCurrency(dados.valor_pis)}</td>
+                              <td className="py-2 px-3 text-right text-red-400">{formatCurrency(dados.valor_cofins)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+            
             {/* Débitos de Comércio */}
             <div className="bg-[#0C0C0C] rounded-lg p-4">
               <h4 className="text-white font-medium mb-3 flex items-center gap-2">
                 <Package className="w-4 h-4 text-blue-400" />
-                Débitos de Comércio
+                Débitos de Comércio (NF-e)
               </h4>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <p className="text-[#A1A1AA] text-xs">PIS</p>
-                  <p className="text-white font-semibold">{formatCurrency(dadosRegime.debitos_comercio.pis)}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#A1A1AA]">Base de Cálculo</span>
+                    <span className="text-white">{formatCurrency(dadosRegime.debitos_comercio.pis / 0.0165)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#A1A1AA]">PIS (1,65%)</span>
+                    <span className="text-red-400">{formatCurrency(dadosRegime.debitos_comercio.pis)}</span>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[#A1A1AA] text-xs">COFINS</p>
-                  <p className="text-white font-semibold">{formatCurrency(dadosRegime.debitos_comercio.cofins)}</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#A1A1AA]">Base de Cálculo</span>
+                    <span className="text-white">{formatCurrency(dadosRegime.debitos_comercio.cofins / 0.076)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#A1A1AA]">COFINS (7,60%)</span>
+                    <span className="text-red-400">{formatCurrency(dadosRegime.debitos_comercio.cofins)}</span>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[#A1A1AA] text-xs">Total</p>
-                  <p className="text-red-400 font-semibold">{formatCurrency(dadosRegime.debitos_comercio.total)}</p>
-                </div>
+              </div>
+              <div className="flex justify-between text-sm font-semibold border-t border-[#2A2A2A] pt-2 mt-3">
+                <span className="text-white">Total Comércio</span>
+                <span className="text-red-400">{formatCurrency(dadosRegime.debitos_comercio.total)}</span>
               </div>
             </div>
             
-            {/* Débitos de Serviços */}
-            <div className="bg-[#0C0C0C] rounded-lg p-4">
-              <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-purple-400" />
-                Débitos de Serviços
-              </h4>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <p className="text-[#A1A1AA] text-xs">PIS</p>
-                  <p className="text-white font-semibold">{formatCurrency(dadosRegime.debitos_servicos.pis)}</p>
+            {/* Débitos de Serviços - Apenas para empresas de serviços ou mistas */}
+            {temServicos && (
+              <div className="bg-[#0C0C0C] rounded-lg p-4">
+                <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-purple-400" />
+                  Débitos de Serviços (NFS-e)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#A1A1AA]">Base de Cálculo</span>
+                      <span className="text-white">{formatCurrency((dadosRegime.debitos_servicos?.pis || 0) / 0.0165)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#A1A1AA]">PIS (1,65%)</span>
+                      <span className="text-red-400">{formatCurrency(dadosRegime.debitos_servicos?.pis || 0)}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#A1A1AA]">Base de Cálculo</span>
+                      <span className="text-white">{formatCurrency((dadosRegime.debitos_servicos?.cofins || 0) / 0.076)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#A1A1AA]">COFINS (7,60%)</span>
+                      <span className="text-red-400">{formatCurrency(dadosRegime.debitos_servicos?.cofins || 0)}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[#A1A1AA] text-xs">COFINS</p>
-                  <p className="text-white font-semibold">{formatCurrency(dadosRegime.debitos_servicos.cofins)}</p>
-                </div>
-                <div>
-                  <p className="text-[#A1A1AA] text-xs">Total</p>
-                  <p className="text-red-400 font-semibold">{formatCurrency(dadosRegime.debitos_servicos.total)}</p>
+                <div className="flex justify-between text-sm font-semibold border-t border-[#2A2A2A] pt-2 mt-3">
+                  <span className="text-white">Total Serviços</span>
+                  <span className="text-red-400">{formatCurrency(dadosRegime.debitos_servicos?.total || 0)}</span>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </SecaoColapsavel>
 
