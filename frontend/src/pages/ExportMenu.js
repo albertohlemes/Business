@@ -132,7 +132,7 @@ const ExportMenu = ({ user, onLogout }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `${API}/sped/validar/${selectedCompany}?competencia=${competencia}&excluir_creditos_despesa_st=${excluirCreditosDespesaST}`,
+        `${API}/sped/validar/${selectedCompany}?competencia=${competencia}&excluir_creditos_despesa_st=${excluirCreditosDespesaST}&aplicar_beneficio_fiscal=${aplicarBeneficioFiscal}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setValidacao(response.data);
