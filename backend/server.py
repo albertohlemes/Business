@@ -22895,41 +22895,6 @@ async def get_notas_ausentes(
         "modelos_analisados": resultado_por_modelo,
         "gerado_em": datetime.now(timezone.utc).isoformat()
     }
-        numeros_set = set(numeros)
-        for num in range(primeiro, ultimo + 1):
-            if num not in numeros_set:
-                # Encontrar a nota anterior e posterior para contexto
-                nota_anterior = None
-                nota_posterior = None
-                
-                for n in notas_ordenadas:
-                    if n['numero'] < num:
-                        nota_anterior = n
-                    elif n['numero'] > num and nota_posterior is None:
-                        nota_posterior = n
-                        break
-                
-                notas_ausentes.append({
-                    "numero": num,
-                    "serie": serie_num,
-                    "nota_anterior": nota_anterior,
-                    "nota_posterior": nota_posterior
-                })
-    
-    # Ordenar por série e número
-    notas_ausentes.sort(key=lambda x: (x['serie'], x['numero']))
-    
-    return {
-        "empresa": company.get('nome', company.get('razao_social', 'N/A')),
-        "cnpj": company.get('cnpj', 'N/A'),
-        "competencia": competencia or "Todas",
-        "serie": serie or "Todas",
-        "total_notas": len(documents),
-        "total_ausentes": len(notas_ausentes),
-        "notas_ausentes": notas_ausentes,
-        "sequencias_analisadas": sequencias_analisadas,
-        "gerado_em": datetime.now(timezone.utc).isoformat()
-    }
 
 
 @api_router.get("/notas-ausentes/{company_id}/exportar")
@@ -22937,17 +22902,17 @@ async def exportar_notas_ausentes(
     company_id: str,
     formato: str = "excel",  # excel ou pdf
     competencia: Optional[str] = None,
-    serie: str = "1",
     current_user: User = Depends(get_current_user)
 ):
     """
     Exporta relatório de notas fiscais ausentes em Excel ou PDF.
+    Analisa todos os modelos de documentos de saída.
     """
     from io import BytesIO
     from fastapi.responses import StreamingResponse
     
     # Obter dados
-    dados = await get_notas_ausentes(company_id, competencia, serie, current_user)
+    dados = await get_notas_ausentes(company_id, competencia, current_user)
     
     if formato.lower() == "excel":
         # Exportar para Excel
