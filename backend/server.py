@@ -15711,6 +15711,46 @@ async def save_classification_to_cache(company_id: str, product: Dict, categoria
         }
         await db.learned_rules.insert_one(rule)
 
+async def save_classifications_batch(company_id: str, classifications_to_save: List[Dict]):
+    """Salva múltiplas classificações de uma vez só (otimizado)"""
+    if not classifications_to_save:
+        return
+    
+    # Buscar todas as descrições existentes de uma vez
+    descricoes = [c['descricao'] for c in classifications_to_save]
+    existing_cursor = db.learned_rules.find({
+        "company_id": company_id,
+        "produto_descricao": {"$in": descricoes}
+    }, {"produto_descricao": 1, "_id": 0})
+    existing_descricoes = set()
+    async for doc in existing_cursor:
+        existing_descricoes.add(doc.get('produto_descricao', ''))
+    
+    # Filtrar apenas os novos
+    new_rules = []
+    for c in classifications_to_save:
+        if c['descricao'] not in existing_descricoes:
+            new_rules.append({
+                "id": str(uuid.uuid4()),
+                "company_id": company_id,
+                "produto_descricao": c['descricao'],
+                "produto_codigo": c.get('codigo', ''),
+                "ncm": c.get('ncm', ''),
+                "categoria_correta": c['categoria'],
+                "cfop_correto": c['cfop'],
+                "motivo": c['justificativa'],
+                "aprendido_de": "ai_classification",
+                "created_by": "system",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            # Adicionar ao set para evitar duplicados dentro do mesmo batch
+            existing_descricoes.add(c['descricao'])
+    
+    # Inserir em lote
+    if new_rules:
+        await db.learned_rules.insert_many(new_rules)
+        logger.info(f"CLASSIFY: {len(new_rules)} novas regras salvas em batch")
+
 async def classify_products_with_cache(products: List[Dict], company_id: str, company_data: Dict, emitente_uf: str = '', sales_cache: Dict = None) -> tuple:
     """
     Classifica produtos usando cache primeiro, depois IA para os não-cacheados.
