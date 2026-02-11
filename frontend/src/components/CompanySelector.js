@@ -224,6 +224,7 @@ const CompanySelector = () => {
               value={tempCompetencia}
               onChange={handleCompetenciaChange}
               onKeyDown={handleCompetenciaKeyDown}
+              onFocus={(e) => e.target.select()}
               placeholder="01"
               maxLength="7"
               className="w-full px-4 py-2.5 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white text-lg font-mono text-center focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
