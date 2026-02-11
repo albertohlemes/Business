@@ -17412,7 +17412,8 @@ async def apurar_icms(
     # Totais desconsiderados (para mostrar no frontend)
     totais_desconsiderados = {
         "despesas": {"bc_icms": 0, "valor_icms": 0, "qtd_itens": 0},
-        "st": {"bc_icms": 0, "valor_icms": 0, "qtd_itens": 0}
+        "st": {"bc_icms": 0, "valor_icms": 0, "qtd_itens": 0},
+        "beneficio_fiscal": {"bc_icms": 0, "valor_icms": 0, "qtd_itens": 0, "produtos": []}
     }
     
     # CFOPs de devolução que geram dedução de ICMS ST
