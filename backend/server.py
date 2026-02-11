@@ -3600,8 +3600,8 @@ async def delete_documents_by_competencia(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    # Verificar permissão: Admin ou dono da empresa
-    if current_user.role != UserRole.ADMIN:
+    # Verificar permissão: Admin/Master ou dono da empresa
+    if not UserRole.has_full_access(current_user.role):
         if company['cnpj'] not in current_user.company_ids:
             raise HTTPException(status_code=403, detail="Acesso negado: Você não tem permissão para esta empresa")
     
