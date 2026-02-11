@@ -18323,6 +18323,168 @@ async def get_beneficio_fiscal_detalhes(
     }
 
 
+@api_router.get("/desconsiderados-detalhes/{company_id}")
+async def get_desconsiderados_detalhes(
+    company_id: str,
+    competencia: str = Query(..., description="Competência no formato MM/YYYY"),
+    tipo: str = Query(..., description="Tipo: 'st', 'despesas' ou 'todos'"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna o detalhamento dos créditos de ICMS desconsiderados por ST ou Despesas.
+    Agrupa os dados por produto e por NCM.
+    """
+    # Buscar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Buscar documentos de entrada da competência
+    docs = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia
+    }, {"_id": 0, "xml_content": 0}).to_list(50000)
+    
+    # Filtrar apenas documentos de entrada
+    docs_entrada = [doc for doc in docs if doc.get('tipo', doc.get('tipo_operacao', 'saida')) == 'entrada']
+    
+    # CFOPs de ST e Despesas
+    CFOPS_ST = {'1401', '1403', '1407', '1408', '1409', '2401', '2403', '2407', '2408', '2409'}
+    CFOPS_DESPESA = {
+        '1128', '1407', '1556', '1557', '1651', '1652', '1653', '1658', '1659', '1660', '1661', '1662',
+        '1663', '1664', '1901', '1902', '1903', '1904', '1905', '1906', '1907', '1908', '1909', '1910',
+        '1911', '1912', '1913', '1914', '1915', '1916', '1917', '1918', '1919', '1920', '1921', '1922',
+        '1923', '1924', '1925', '1926', '1949', '2128', '2407', '2556', '2557', '2651', '2652', '2653',
+        '2658', '2659', '2660', '2661', '2662', '2663', '2664', '2901', '2902', '2903', '2904', '2905',
+        '2906', '2907', '2908', '2909', '2910', '2911', '2912', '2913', '2914', '2915', '2916', '2917',
+        '2918', '2919', '2920', '2921', '2922', '2923', '2924', '2925', '2949'
+    }
+    
+    # Determinar quais CFOPs filtrar
+    if tipo == 'st':
+        cfops_filtrar = CFOPS_ST
+        titulo = "Produtos com ICMS ST Desconsiderado"
+    elif tipo == 'despesas':
+        cfops_filtrar = CFOPS_DESPESA
+        titulo = "Produtos de Despesa (ICMS Desconsiderado)"
+    else:
+        cfops_filtrar = CFOPS_ST | CFOPS_DESPESA
+        titulo = "Todos os Produtos Desconsiderados"
+    
+    # Estruturas para acumular dados
+    por_produto = {}
+    por_ncm = {}
+    
+    total_valor = 0
+    total_icms = 0
+    total_produtos = 0
+    
+    # Processar documentos
+    for doc in docs_entrada:
+        itens = doc.get('itens', []) or doc.get('produtos', [])
+        if not itens:
+            continue
+        
+        numero_nfe = doc.get('numero_nfe', doc.get('numero', ''))
+        emitente = doc.get('emitente_nome', '')
+        if isinstance(doc.get('emitente'), dict):
+            emitente = doc.get('emitente', {}).get('razao_social', emitente)
+        
+        for item in itens:
+            cfop = str(item.get('cfop', '') or '').strip()
+            
+            # Verificar se o CFOP está na lista de filtro
+            if cfop not in cfops_filtrar:
+                continue
+            
+            ncm = str(item.get('ncm', '') or '').strip()
+            descricao = str(item.get('descricao', '') or item.get('produto', '') or '').strip()
+            valor_produto = float(item.get('valor_produto', 0) or item.get('valor_total', 0) or 0)
+            bc_icms = float(item.get('bc_icms', 0) or item.get('v_bc_icms', 0) or 0)
+            valor_icms = float(item.get('valor_icms', 0) or item.get('v_icms', 0) or 0)
+            
+            # Determinar o tipo (ST ou Despesa)
+            tipo_item = "ST" if cfop in CFOPS_ST else "Despesa"
+            
+            # Acumular totais
+            total_valor += valor_produto
+            total_icms += valor_icms
+            total_produtos += 1
+            
+            # Agregar por produto
+            desc_key = descricao[:100] if descricao else "Produto sem descrição"
+            if desc_key not in por_produto:
+                por_produto[desc_key] = {
+                    "descricao": desc_key,
+                    "ncm": ncm,
+                    "cfop": cfop,
+                    "tipo": tipo_item,
+                    "valor_total": 0,
+                    "valor_icms": 0,
+                    "qtd_notas": 0,
+                    "notas": []
+                }
+            por_produto[desc_key]["valor_total"] += valor_produto
+            por_produto[desc_key]["valor_icms"] += valor_icms
+            if numero_nfe and numero_nfe not in [n.get('numero') for n in por_produto[desc_key]["notas"]]:
+                por_produto[desc_key]["notas"].append({
+                    "numero": numero_nfe,
+                    "emitente": emitente[:30] if emitente else ""
+                })
+            por_produto[desc_key]["qtd_notas"] = len(por_produto[desc_key]["notas"])
+            
+            # Agregar por NCM
+            ncm_key = ncm[:8] if ncm else "SEM_NCM"
+            if ncm_key not in por_ncm:
+                por_ncm[ncm_key] = {
+                    "ncm": ncm_key,
+                    "valor_total": 0,
+                    "valor_icms": 0,
+                    "qtd_itens": 0,
+                    "produtos": set()
+                }
+            por_ncm[ncm_key]["valor_total"] += valor_produto
+            por_ncm[ncm_key]["valor_icms"] += valor_icms
+            por_ncm[ncm_key]["qtd_itens"] += 1
+            por_ncm[ncm_key]["produtos"].add(desc_key[:50])
+    
+    # Converter para listas ordenadas
+    lista_produtos = []
+    for item in por_produto.values():
+        lista_produtos.append({
+            "descricao": item["descricao"],
+            "ncm": item["ncm"],
+            "cfop": item["cfop"],
+            "tipo": item["tipo"],
+            "valor_total": round(item["valor_total"], 2),
+            "valor_icms": round(item["valor_icms"], 2),
+            "qtd_notas": item["qtd_notas"],
+            "notas": item["notas"][:5]  # Limitar a 5 notas
+        })
+    lista_produtos.sort(key=lambda x: x["valor_icms"], reverse=True)
+    
+    lista_ncm = []
+    for ncm_key, item in por_ncm.items():
+        lista_ncm.append({
+            "ncm": ncm_key,
+            "valor_total": round(item["valor_total"], 2),
+            "valor_icms": round(item["valor_icms"], 2),
+            "qtd_itens": item["qtd_itens"],
+            "produtos": list(item["produtos"])[:5]  # Limitar a 5 produtos
+        })
+    lista_ncm.sort(key=lambda x: x["valor_icms"], reverse=True)
+    
+    return {
+        "titulo": titulo,
+        "tipo": tipo,
+        "total_produtos": total_produtos,
+        "valor_total": round(total_valor, 2),
+        "valor_icms_desconsiderado": round(total_icms, 2),
+        "por_produto": lista_produtos,
+        "por_ncm": lista_ncm
+    }
+
+
 @api_router.get("/beneficio-fiscal-detalhes/{company_id}/exportar")
 async def exportar_beneficio_fiscal_detalhes(
     company_id: str,
