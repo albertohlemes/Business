@@ -15755,6 +15755,7 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
     """
     Classifica produtos usando cache primeiro, depois IA para os não-cacheados.
     Inclui análise de produtos vendidos para melhorar a classificação.
+    OTIMIZADO: Todas as classificações são salvas em batch no final.
     
     Args:
         sales_cache: Cache opcional com dados de vendas pré-carregados para evitar múltiplas queries
@@ -15767,8 +15768,11 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
         "from_cache": 0,
         "from_ai": 0,
         "from_rules": 0,
-        "from_sales_inference": 0  # Nova estatística
+        "from_sales_inference": 0
     }
+    
+    # Lista para acumular classificações a serem salvas em batch no final
+    classifications_to_save = []
     
     products_for_ai = []
     company_uf = company_data.get('uf', 'SP')
