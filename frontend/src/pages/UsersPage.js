@@ -218,6 +218,23 @@ const UsersPage = ({ user, onLogout }) => {
     }
   };
 
+  const toggleAtividade = (atividadeKey) => {
+    const current = formData.atividades || [];
+    if (current.includes(atividadeKey)) {
+      setFormData({ ...formData, atividades: current.filter(a => a !== atividadeKey) });
+    } else {
+      setFormData({ ...formData, atividades: [...current, atividadeKey] });
+    }
+  };
+
+  const selectAllAtividades = () => {
+    setFormData({ ...formData, atividades: atividadesDisponiveis.map(a => a.key) });
+  };
+
+  const deselectAllAtividades = () => {
+    setFormData({ ...formData, atividades: [] });
+  };
+
   const getRoleLabel = (role) => {
     switch (role) {
       case 'super_admin': return 'Super Admin';
