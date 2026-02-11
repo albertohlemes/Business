@@ -59,10 +59,13 @@ const ExportSPED = ({ user, onLogout }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
+      // A resposta pode ser um array ou um objeto { documents: [...] }
+      const docs = Array.isArray(response.data) ? response.data : (response.data.documents || []);
+      
       // Extrair competências únicas
-      const competencias = [...new Set(response.data.map(d => d.competencia))].filter(Boolean).sort();
+      const competencias = [...new Set(docs.map(d => d.competencia))].filter(Boolean).sort();
       setAvailableCompetencias(competencias);
-      setDocumentsCount(response.data.length);
+      setDocumentsCount(docs.length);
       
       // Se existirem competências, selecionar a primeira
       if (competencias.length > 0 && !competencias.includes(competencia)) {
