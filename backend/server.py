@@ -24502,7 +24502,7 @@ async def exportar_documentos_categoria(
         
         # Tabela de documentos
         row = 6
-        headers = ['Número', 'Série', 'Data Emissão', 'Emitente/Destinatário', 'CNPJ', 'UF', 'Valor Total', 'ICMS', 'ICMS ST', 'PIS', 'COFINS']
+        headers = ['Número', 'Série', 'Data Emissão', 'Emitente/Destinatário', 'CNPJ', 'UF', 'Valor Total', 'BC ICMS', 'ICMS', 'ICMS ST', 'PIS', 'COFINS']
         for col, h in enumerate(headers, 1):
             cell = ws.cell(row=row, column=col, value=h)
             cell.fill = header_fill
@@ -24511,6 +24511,7 @@ async def exportar_documentos_categoria(
             cell.alignment = Alignment(horizontal='center')
         
         total_valor = 0
+        total_bc_icms = 0
         total_icms = 0
         total_icms_st = 0
         total_pis = 0
@@ -24519,12 +24520,14 @@ async def exportar_documentos_categoria(
         for doc in documentos:
             row += 1
             valor = float(doc.get('valor_total', 0) or 0)
+            bc_icms = float(doc.get('bc_icms_total', 0) or doc.get('total_bc_icms', 0) or 0)
             icms = float(doc.get('icms_total', 0) or 0)
             icms_st = float(doc.get('total_icms_st', 0) or 0)
             pis = float(doc.get('total_pis', 0) or 0)
             cofins = float(doc.get('total_cofins', 0) or 0)
             
             total_valor += valor
+            total_bc_icms += bc_icms
             total_icms += icms
             total_icms_st += icms_st
             total_pis += pis
