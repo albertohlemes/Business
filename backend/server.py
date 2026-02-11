@@ -17916,7 +17916,8 @@ async def get_beneficio_fiscal_detalhes(
     
     # Processar documentos
     for doc in docs:
-        itens = doc.get('itens', [])
+        # Itens podem estar em 'itens' ou 'produtos' dependendo da fonte
+        itens = doc.get('itens', []) or doc.get('produtos', [])
         if not itens:
             continue
         
