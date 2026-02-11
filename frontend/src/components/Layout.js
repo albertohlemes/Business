@@ -147,6 +147,7 @@ const Layout = ({ user, onLogout, children }) => {
     nav.push({ name: 'Indicadores', href: '/indicadores', icon: BarChart3, testId: 'nav-indicadores' });
     nav.push({ name: 'Evolução Fiscal', href: '/analise-horizontal', icon: TrendingUp, testId: 'nav-analise-horizontal' });
     nav.push({ name: 'Vilões e Oportunidades', href: '/viloes-oportunidades', icon: AlertTriangle, testId: 'nav-viloes-oportunidades' });
+    nav.push({ name: 'Notas Ausentes', href: '/notas-ausentes', icon: AlertTriangle, testId: 'nav-notas-ausentes' });
     nav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
     
     // === EXPORTAÇÕES (sempre no final) ===
