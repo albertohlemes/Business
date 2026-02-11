@@ -1767,8 +1767,6 @@ const Documents = ({ user, onLogout }) => {
               Verificar Notas Ausentes
             </button>
           </div>
-        </div>
-      </div>
 
         {/* Modal de Notas Ausentes */}
         {showNotasAusentes && (
