@@ -477,6 +477,9 @@ const Documents = ({ user, onLogout }) => {
       
       const uploadId = initResponse.data.upload_id;
       
+      // Atualizar o progresso global com o uploadId para o polling persistente funcionar
+      startGlobalUpload(uploadId, files.length, ctxCompany?.razao_social || 'Empresa', operacao);
+      
       // Variável para controlar se recebemos eventos SSE
       let sseWorking = false;
       let pollingInterval = null;
