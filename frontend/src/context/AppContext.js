@@ -107,7 +107,9 @@ export const AppProvider = ({ children }) => {
     total: 0,
     companyName: '',
     tipo: '',
-    error: null
+    error: null,
+    completedResults: null,  // Resultados quando upload completa
+    showResults: false       // Flag para mostrar o modal de resultados
   });
 
   const startUpload = (uploadId, total, companyName, tipo = 'entrada') => {
