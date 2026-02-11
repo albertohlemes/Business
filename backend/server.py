@@ -7897,6 +7897,13 @@ async def get_dashboard_stats(
             cst_icms = str(prod.get('cst', prod.get('cst_icms', ''))).strip()
             is_1910_com_st = cfop == '1910' and cst_icms in ['010', '060', '070', '10', '60', '70']
             
+            # Verificar se produto é afetado pelo benefício fiscal
+            ncm = prod.get('ncm', '')
+            descricao = prod.get('descricao', '')
+            is_beneficio_fiscal = False
+            if beneficio_fiscal_ativo:
+                is_beneficio_fiscal = produto_sem_credito_icms_beneficio(ncm, descricao, company)
+            
             if is_st or is_1910_com_st:
                 if desconsiderar_icms_st:
                     credito_icms_st_desconsiderado += v_icms
@@ -7907,6 +7914,9 @@ async def get_dashboard_stats(
                     credito_icms_despesa_desconsiderado += v_icms
                 else:
                     credito_icms += v_icms  # Inclui no crédito se flag desativada
+            elif is_beneficio_fiscal:
+                # Produto afetado pelo benefício fiscal - desconsiderar crédito
+                credito_icms_beneficio_desconsiderado += v_icms
             else:
                 credito_icms += v_icms
             
