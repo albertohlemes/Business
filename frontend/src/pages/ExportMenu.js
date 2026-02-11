@@ -463,6 +463,34 @@ const ExportMenu = ({ user, onLogout }) => {
                                 </div>
                               </label>
                             </div>
+                            
+                            {/* Opção de Benefício Fiscal ICMS */}
+                            <div className="mt-3 p-3 bg-yellow-900/20 rounded-lg border border-yellow-500/30">
+                              <label className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={aplicarBeneficioFiscal}
+                                  onChange={(e) => setAplicarBeneficioFiscal(e.target.checked)}
+                                  className="mt-1 w-4 h-4 text-yellow-500 border-[#333333] rounded focus:ring-yellow-500 accent-yellow-500"
+                                />
+                                <div>
+                                  <span className={`font-medium ${aplicarBeneficioFiscal ? 'text-yellow-400' : 'text-white'}`}>
+                                    ⭐ Aplicar Benefício Fiscal ICMS
+                                  </span>
+                                  <p className="text-xs text-[#A1A1AA] mt-0.5">
+                                    {aplicarBeneficioFiscal 
+                                      ? `✓ Produtos sem direito a crédito (conforme cadastro) terão CST convertido para 041` 
+                                      : "Desativado - todos os créditos de entrada serão mantidos"}
+                                  </p>
+                                  {selectedCompany?.tipo_beneficio_fiscal && (
+                                    <p className="text-xs text-yellow-400 mt-1">
+                                      Tipo: {selectedCompany.tipo_beneficio_fiscal} | 
+                                      Produtos: {selectedCompany.produtos_sem_credito_icms?.join(', ') || 'Todos'}
+                                    </p>
+                                  )}
+                                </div>
+                              </label>
+                            </div>
                         </div>
                     </div>
                 )}
