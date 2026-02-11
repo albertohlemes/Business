@@ -26,12 +26,20 @@ const Reports = ({ user, onLogout }) => {
   const [selectedSections, setSelectedSections] = useState({
     resumo: true,
     icms: true,
+    icms_st: false,
     pis_cofins: true,
+    ipi: false,
+    iss: false,
+    difal: false,
+    impostos_retidos: false,
     documentos: true,
     produtos_entrada: true,
     produtos_saida: true,
     divergencias: false,
-    classificacao: false
+    classificacao: false,
+    indicadores: false,
+    evolucao: false,
+    viloes: false
   });
   
   // Dados carregados
