@@ -112,7 +112,36 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-12 (Sessão 22 - FASE 1, FASE 2, FASE 3 e FASE 5)
+### 2026-02-12 (Sessão 22 - FASE 1, FASE 2, FASE 3, FASE 5 e FASE 6)
+
+**FASE 6 - Apuração Automática Mensal (Fechamento Mensal):**
+
+**Funcionalidade Implementada:**
+- ✅ **Página Fechamento Mensal** (`/fechamento-mensal`): Dashboard consolidado de impostos
+  - Cards de resumo: Total Documentos, Entradas, Saídas, Total Impostos
+  - Cards individuais por imposto: ICMS, PIS, COFINS, ISS, IPI
+  - Cálculo automático de débito, crédito e saldo por imposto
+  - Total consolidado de impostos a pagar
+  - Campo de observações para o fechamento
+  - Histórico de fechamentos anteriores
+
+- ✅ **Backend Fechamento:** 4 novos endpoints:
+  - `GET /api/fechamento-mensal/{company_id}` - Apuração consolidada
+  - `POST /api/fechamento-mensal/{company_id}` - Fechar competência
+  - `DELETE /api/fechamento-mensal/{company_id}/{competencia}` - Reabrir competência (admin)
+  - `GET /api/fechamento-mensal/{company_id}/historico` - Histórico de fechamentos
+
+- ✅ **Collection MongoDB:** `fechamentos_mensais` para armazenar fechamentos
+
+- ✅ **Menu Lateral:** Link "Fechamento Mensal" com ícone de cadeado
+
+**Arquivos criados/modificados:**
+- `/app/frontend/src/pages/FechamentoMensal.js` - Nova página completa
+- `/app/backend/server.py` - 4 novos endpoints + model `FechamentoMensalRequest`
+- `/app/frontend/src/App.js` - Rota `/fechamento-mensal`
+- `/app/frontend/src/components/Layout.js` - Link no menu
+
+---
 
 **FASE 5 - Geração de SPED Fiscal:**
 
