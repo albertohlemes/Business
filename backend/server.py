@@ -5467,6 +5467,8 @@ async def upload_xml_with_progress(
     total_files = len(files)
     last_db_update = 0  # Contador para saber quando atualizar o MongoDB
     
+    logger.info(f"UPLOAD-STREAM: Processando {total_files} arquivos para upload_id={upload_id}")
+    
     for file_idx, file in enumerate(files):
         # Atualizar progresso: lendo arquivo
         progress["processed_files"] = file_idx
@@ -5475,8 +5477,12 @@ async def upload_xml_with_progress(
         progress["progress_percent"] = int((file_idx / total_files) * 100)
         progress["status"] = "processing"
         
-        # Atualizar MongoDB a cada 5 arquivos ou no primeiro para garantir que o SSE veja o progresso
+        # Garantir que o progress_store seja atualizado imediatamente
+        upload_progress_store[upload_id] = progress
+        
+        # Atualizar MongoDB a cada 5 arquivos ou no primeiro para garantir que o SSE/polling veja o progresso
         if file_idx == 0 or file_idx - last_db_update >= 5:
+            logger.info(f"UPLOAD-STREAM: Salvando progresso no MongoDB - {file_idx+1}/{total_files} ({progress['progress_percent']}%)")
             await save_upload_session(upload_id, progress)
             last_db_update = file_idx
         
