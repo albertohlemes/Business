@@ -139,6 +139,8 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
+      
+      // Buscar dados de análise horizontal
       const response = await fetch(
         `${API_URL}/api/analise-horizontal/${selectedCompany.id}?ano=${anoAtual}`,
         {
@@ -153,6 +155,33 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
       } else {
         console.error('Erro na resposta:', response.status);
       }
+      
+      // Buscar dados manuais salvos no servidor
+      try {
+        const manuaisResponse = await axios.get(
+          `${API_URL}/api/analise-horizontal/dados-manuais/${selectedCompany.id}`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        
+        if (manuaisResponse.data?.dados && Object.keys(manuaisResponse.data.dados).length > 0) {
+          setDadosManuais(manuaisResponse.data.dados);
+        } else {
+          // Fallback para localStorage
+          const key = `evolucao_manual_${selectedCompany.id}`;
+          const savedLocal = localStorage.getItem(key);
+          if (savedLocal) {
+            setDadosManuais(JSON.parse(savedLocal));
+          }
+        }
+      } catch (e) {
+        // Fallback para localStorage se o endpoint falhar
+        const key = `evolucao_manual_${selectedCompany.id}`;
+        const savedLocal = localStorage.getItem(key);
+        if (savedLocal) {
+          setDadosManuais(JSON.parse(savedLocal));
+        }
+      }
+      
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
     }
