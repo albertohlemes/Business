@@ -24859,6 +24859,78 @@ async def exportar_documentos_categoria(
 # IMPORTAÇÃO DE ARQUIVOS PARA DADOS MANUAIS
 # ============================================================
 
+class DadosManuaisItem(BaseModel):
+    compras: float = 0
+    vendas: float = 0
+    icms: float = 0
+    pis: float = 0
+    cofins: float = 0
+    iss: float = 0
+    das: float = 0
+
+class DadosManuaisRequest(BaseModel):
+    dados: dict  # {competencia: DadosManuaisItem}
+
+
+@api_router.post("/analise-horizontal/salvar-dados-manuais/{company_id}")
+async def salvar_dados_manuais(
+    company_id: str,
+    request: DadosManuaisRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Salva dados manuais de períodos anteriores no MongoDB.
+    Esses dados são usados no RET para empresas Lucro Presumido/Real.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Estrutura para salvar
+    dados_formatados = {}
+    for competencia, valores in request.dados.items():
+        if isinstance(valores, dict):
+            dados_formatados[competencia] = {
+                "compras": float(valores.get("compras", 0) or 0),
+                "vendas": float(valores.get("vendas", 0) or 0),
+                "icms": float(valores.get("icms", 0) or 0),
+                "pis": float(valores.get("pis", 0) or 0),
+                "cofins": float(valores.get("cofins", 0) or 0),
+                "iss": float(valores.get("iss", 0) or 0),
+                "das": float(valores.get("das", 0) or 0),
+                "updated_at": datetime.utcnow().isoformat()
+            }
+    
+    # Salvar na empresa
+    await db.companies.update_one(
+        {"id": company_id},
+        {"$set": {"dados_manuais_historico": dados_formatados}}
+    )
+    
+    return {
+        "success": True,
+        "message": f"Dados de {len(dados_formatados)} competências salvos com sucesso",
+        "competencias": list(dados_formatados.keys())
+    }
+
+
+@api_router.get("/analise-horizontal/dados-manuais/{company_id}")
+async def get_dados_manuais(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna dados manuais salvos para uma empresa.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0, "dados_manuais_historico": 1})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    return {
+        "dados": company.get("dados_manuais_historico", {})
+    }
+
+
 @api_router.post("/analise-horizontal/importar-arquivo/{company_id}")
 async def importar_arquivo_dados_manuais(
     company_id: str,
