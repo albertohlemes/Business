@@ -6179,6 +6179,9 @@ async def upload_xml_with_progress(
             
             await db.xml_documents.insert_one(doc)
             
+            # Adicionar ao cache para evitar duplicados dentro do mesmo lote
+            existing_docs_cache.add(chave_nfe)
+            
             result_entry = {
                 "filename": file.filename,
                 "status": "success",
