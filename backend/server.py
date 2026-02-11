@@ -4923,7 +4923,8 @@ async def upload_xml_batch(
                     produtos_para_ia, 
                     company_id, 
                     company, 
-                    emitente_uf
+                    emitente_uf,
+                    sales_cache  # Usar cache pré-carregado
                 )
                 
                 # Acumular estatísticas
