@@ -13049,10 +13049,10 @@ async def classificar_produtos_ia(
                     categoria_encontrada = 'revenda'
                     palavra_match = palavra
                     break
-                    break
         
         if categoria_encontrada:
             dados['categoria_sugerida'] = categoria_encontrada
+            dados['palavra_match'] = palavra_match
             dados['fonte'] = 'palavra_chave'
             produtos_pre_classificados[chave] = dados
         else:
