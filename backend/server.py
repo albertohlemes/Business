@@ -3641,8 +3641,8 @@ async def delete_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Documento não encontrado")
     
-    # Verificar permissão: Admin ou dono da empresa
-    if current_user.role != UserRole.ADMIN:
+    # Verificar permissão: Admin/Master ou dono da empresa
+    if not UserRole.has_full_access(current_user.role):
         # Buscar empresa do documento
         company = await db.companies.find_one({"id": doc['company_id']}, {"_id": 0})
         if not company or company['cnpj'] not in current_user.company_ids:
