@@ -6192,11 +6192,32 @@ async def upload_xml_with_progress(
                     pass
             
             # Verificar duplicados usando cache em memória (sem query ao banco)
-            if chave_nfe in existing_docs_cache:
+            # Primeiro verifica por chave_nfe (44 dígitos - já inclui série naturalmente)
+            is_duplicate = False
+            duplicate_reason = ""
+            
+            if chave_nfe and chave_nfe in existing_docs_cache:
+                is_duplicate = True
+                duplicate_reason = f"Chave já existe: {chave_nfe}"
+            else:
+                # Verificação alternativa por numero + serie + cnpj_emitente
+                num = str(parsed_data.get('numero_nfe') or "")
+                serie = str(parsed_data.get('serie') or "1")
+                cnpj_emitente = str(parsed_data.get('emitente_cnpj') or "")
+                
+                if num and cnpj_emitente:
+                    alt_key = f"{num}|{serie}|{cnpj_emitente}"
+                    if alt_key in existing_docs_by_num_serie:
+                        is_duplicate = True
+                        duplicate_reason = f"Nº {num} Série {serie} já existe para este emitente"
+            
+            if is_duplicate:
                 duplicadas.append({
                     "filename": file.filename,
                     "chave": chave_nfe,
-                    "numero_nfe": parsed_data['numero_nfe']
+                    "numero_nfe": parsed_data['numero_nfe'],
+                    "serie": parsed_data.get('serie', '1'),
+                    "motivo": duplicate_reason
                 })
                 continue
             
