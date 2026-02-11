@@ -22860,7 +22860,15 @@ async def ret_simples_nacional(
         'creditos': {
             'pis': round(real_pis_credito, 2),
             'cofins': round(real_cofins_credito, 2),
-            'icms': round(real_icms_credito, 2)
+            'icms': round(real_icms_credito, 2),
+            'base_credito_pis_cofins': round(base_credito_pis_cofins, 2),
+            'nota': 'Base de crédito exclui monofásicos, alíquota zero e CFOPs sem crédito'
+        },
+        'debitos': {
+            'pis': round(real_pis_debito, 2),
+            'cofins': round(real_cofins_debito, 2),
+            'base_debito_pis_cofins': round(base_debito_pis_cofins, 2),
+            'nota': 'Base de débito exclui monofásicos, alíquota zero e CFOPs sem débito'
         }
     }
     
