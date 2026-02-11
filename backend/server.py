@@ -5664,18 +5664,27 @@ async def upload_xml_with_progress(
     
     for file_idx, file in enumerate(files):
         # Atualizar progresso: lendo arquivo
-        progress["processed_files"] = file_idx
+        # Calcular progresso baseado no total da sessão, não apenas do lote atual
+        session_processed = progress.get("processed_in_session", 0)
+        current_progress = session_processed + file_idx
+        total_session = progress.get("total_files", total_files)
+        new_percent = int((current_progress / total_session) * 100) if total_session > 0 else 0
+        
+        # Garantir que o progresso NUNCA diminua
+        old_percent = progress.get("progress_percent", 0)
+        progress["progress_percent"] = max(old_percent, new_percent)
+        
+        progress["processed_files"] = current_progress
         progress["current_file"] = file.filename
-        progress["current_step"] = f"Lendo arquivo {file_idx + 1}/{total_files}..."
-        progress["progress_percent"] = int((file_idx / total_files) * 100)
+        progress["current_step"] = f"Processando {file_idx + 1}/{total_files}..."
         progress["status"] = "processing"
         
         # Garantir que o progress_store seja atualizado imediatamente
         upload_progress_store[upload_id] = progress
         
-        # Atualizar MongoDB a cada 5 arquivos ou no primeiro para garantir que o SSE/polling veja o progresso
-        if file_idx == 0 or file_idx - last_db_update >= 5:
-            logger.info(f"UPLOAD-STREAM: Salvando progresso no MongoDB - {file_idx+1}/{total_files} ({progress['progress_percent']}%)")
+        # Atualizar MongoDB a cada 10 arquivos ou no primeiro para garantir que o SSE/polling veja o progresso
+        if file_idx == 0 or file_idx - last_db_update >= 10:
+            logger.info(f"UPLOAD-STREAM: Progresso {current_progress}/{total_session} ({progress['progress_percent']}%)")
             await save_upload_session(upload_id, progress)
             last_db_update = file_idx
         
