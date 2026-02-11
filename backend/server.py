@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form, status, BackgroundTasks, Query, Body, Response
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form, status, BackgroundTasks, Query, Body, Response, Request
 from fastapi.responses import StreamingResponse
 import asyncio
 from export_service import generate_csv_saida, generate_csv_entrada
