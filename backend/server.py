@@ -1180,9 +1180,54 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 async def check_company_access(company: Dict, user: User, allow_view_only: bool = False) -> bool:
     """
     Verifica se o usuário tem acesso à empresa.
-    TEMPORARIAMENTE DESABILITADO - Todos têm acesso total
+    
+    Regras de acesso:
+    1. Super Admin e Admin têm acesso a todas as empresas
+    2. Master tem acesso a todas as empresas (via permissão ALL_COMPANIES)
+    3. Operacional tem acesso apenas às empresas em seu company_ids
+    4. Client tem acesso apenas às empresas em seu company_ids
+    
+    Args:
+        company: Dicionário com dados da empresa
+        user: Objeto do usuário atual
+        allow_view_only: Se True, permite acesso apenas para visualização
+        
+    Returns:
+        True se o usuário tem acesso, False caso contrário
     """
-    return True  # Acesso liberado para todos
+    # Converter user para dict se necessário
+    user_data = user.model_dump() if hasattr(user, 'model_dump') else dict(user)
+    
+    # Super Admin e Admin têm acesso total
+    role = user_data.get('role', 'operacional')
+    if role in ['super_admin', 'admin']:
+        return True
+    
+    # Verificar se tem permissão de acesso a todas empresas
+    if has_permission(user_data, PermissionFlags.ALL_COMPANIES):
+        return True
+    
+    # Verificar se a empresa está na lista de empresas do usuário
+    company_ids = user_data.get('company_ids', [])
+    company_cnpj = company.get('cnpj', '')
+    company_id = company.get('id', '')
+    
+    # Verificar por CNPJ ou ID
+    if company_cnpj in company_ids or company_id in company_ids:
+        return True
+    
+    # Verificar se o usuário é o responsável pela empresa
+    responsavel_id = company.get('responsavel_id', '')
+    user_id = user_data.get('id', '')
+    if responsavel_id and user_id and responsavel_id == user_id:
+        return True
+    
+    # Verificar se o usuário criou a empresa
+    created_by = company.get('created_by', '')
+    if created_by and user_id and created_by == user_id:
+        return True
+    
+    return False
 
 
 async def verify_company_access(company_id: str, user: User, action: str = "acessar") -> Dict:
