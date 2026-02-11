@@ -268,16 +268,31 @@ const Reports = ({ user, onLogout }) => {
     </th>
   );
 
-  // Seções disponíveis
+  // Seções disponíveis - Todas as informações de todos os menus
   const secoes = [
-    { key: 'resumo', label: 'Resumo Executivo', icon: BarChart3, desc: 'Totais de faturamento, compras e indicadores' },
-    { key: 'icms', label: 'Apuração ICMS', icon: Calculator, desc: 'Créditos, débitos e saldo de ICMS' },
-    { key: 'pis_cofins', label: 'PIS/COFINS Unificado', icon: Scale, desc: 'Apuração unificada de PIS e COFINS' },
-    { key: 'documentos', label: 'Documentos Fiscais', icon: FileText, desc: 'Lista de NF-e, NFC-e e outros documentos' },
-    { key: 'produtos_entrada', label: 'Produtos (Entradas)', icon: ArrowDownCircle, desc: 'Produtos adquiridos na competência' },
-    { key: 'produtos_saida', label: 'Produtos (Saídas)', icon: ArrowUpCircle, desc: 'Produtos vendidos na competência' },
-    { key: 'divergencias', label: 'Divergências Fiscais', icon: TrendingDown, desc: 'Divergências de PIS/COFINS identificadas' },
-    { key: 'classificacao', label: 'Classificação Produtos', icon: Package, desc: 'Status da classificação de produtos' }
+    // Resumo
+    { key: 'resumo', label: 'Resumo Executivo', icon: BarChart3, desc: 'Totais de faturamento, compras e indicadores', category: 'Resumo' },
+    
+    // Apurações
+    { key: 'icms', label: 'Apuração ICMS', icon: Calculator, desc: 'Créditos, débitos e saldo de ICMS', category: 'Apurações' },
+    { key: 'icms_st', label: 'Apuração ICMS ST', icon: Calculator, desc: 'Substituição Tributária de ICMS', category: 'Apurações' },
+    { key: 'pis_cofins', label: 'PIS/COFINS', icon: Scale, desc: 'Apuração de PIS e COFINS', category: 'Apurações' },
+    { key: 'ipi', label: 'Apuração IPI', icon: Calculator, desc: 'Imposto sobre Produtos Industrializados', category: 'Apurações' },
+    { key: 'iss', label: 'Apuração ISS', icon: Calculator, desc: 'Imposto Sobre Serviços', category: 'Apurações' },
+    { key: 'difal', label: 'DIFAL', icon: Calculator, desc: 'Diferencial de Alíquota', category: 'Apurações' },
+    { key: 'impostos_retidos', label: 'Impostos Retidos', icon: DollarSign, desc: 'IR, CSLL, PIS, COFINS retidos', category: 'Apurações' },
+    
+    // Documentos
+    { key: 'documentos', label: 'Documentos Fiscais', icon: FileText, desc: 'Lista de NF-e, NFC-e e outros documentos', category: 'Documentos' },
+    { key: 'produtos_entrada', label: 'Produtos (Entradas)', icon: ArrowDownCircle, desc: 'Produtos adquiridos na competência', category: 'Documentos' },
+    { key: 'produtos_saida', label: 'Produtos (Saídas)', icon: ArrowUpCircle, desc: 'Produtos vendidos na competência', category: 'Documentos' },
+    
+    // Análises
+    { key: 'divergencias', label: 'Divergências Fiscais', icon: TrendingDown, desc: 'Divergências de PIS/COFINS identificadas', category: 'Análises' },
+    { key: 'classificacao', label: 'Classificação Produtos', icon: Package, desc: 'Status da classificação de produtos', category: 'Análises' },
+    { key: 'indicadores', label: 'Indicadores Fiscais', icon: BarChart3, desc: 'KPIs e métricas fiscais', category: 'Análises' },
+    { key: 'evolucao', label: 'Evolução Fiscal', icon: TrendingUp, desc: 'Análise horizontal comparativa', category: 'Análises' },
+    { key: 'viloes', label: 'Vilões e Oportunidades', icon: TrendingDown, desc: 'NCMs com maior carga tributária', category: 'Análises' },
   ];
 
   return (
