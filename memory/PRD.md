@@ -112,6 +112,28 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-11 (Sessão 21 - Correções e Melhorias Diversas)
+
+**Novas Funcionalidades:**
+- ✅ **Exportação de documentos por categoria:** Novo endpoint `/api/xml/exportar-categoria/{company_id}` permite exportar todos os documentos de uma categoria específica (NF-e, NFC-e, CT-e, NFS-e) para Excel ou PDF
+- ✅ **Botões de exportação no menu Documentos:** Adicionados botões "Excel" e "PDF" na tela de listagem de documentos por tipo
+
+**Correções de Bugs:**
+- ✅ **Botão "olho" não abria modal:** Corrigido problema de controle de acesso - roles `super_admin`, `admin` e `master` agora têm acesso total aos documentos
+- ✅ **Atualização de regras na Memória IA:** Ao alterar a categoria de uma regra, o CFOP é agora calculado automaticamente baseado na categoria (revenda → 1102/2102, insumo → 1101/2101, despesa → 1556/2556, etc.)
+- ✅ **Consistência de valores Dashboard vs ICMS:** Frontend da Apuração ICMS agora usa `valores_por_documento.total_entradas` para garantir consistência com o Dashboard
+- ✅ **Erro de validação `codigo_empresa`:** Campo alterado para `Optional[str]` para evitar erros quando é `None` no banco de dados
+
+**Melhorias de Segurança:**
+- ✅ **Unificação de verificação de roles:** Criados métodos `UserRole.is_admin()` e `UserRole.has_full_access()` para padronizar verificações de permissão em toda a aplicação
+- ✅ **Suporte a `super_admin`:** Role `super_admin` agora é tratado corretamente em todos os endpoints de documentos
+
+**Arquivos modificados:**
+- `/app/backend/server.py`: Novo endpoint de exportação, correções de controle de acesso, melhoria na atualização de regras
+- `/app/frontend/src/pages/Documents.js`: Botões de exportação e import de toast
+- `/app/frontend/src/pages/ApuracaoICMS.js`: Uso de `valores_por_documento` para totais
+- `/app/frontend/src/pages/ClassificacaoInteligente.js`: Toast mostra novo CFOP calculado
+
 ### 2026-02-11 (Sessão 20 - Correção Duplicidade por Série)
 
 **Correção na detecção de documentos duplicados:**
