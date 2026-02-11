@@ -112,7 +112,42 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-12 (Sessão 22 - FASE 1, FASE 2, FASE 3, FASE 5 e FASE 6)
+### 2026-02-12 (Sessão 22 - FASE 1, FASE 2, FASE 3, FASE 4, FASE 5 e FASE 6)
+
+**FASE 4 - Histórico de Alterações (Audit Log):**
+
+**Funcionalidade Implementada:**
+- ✅ **Página Histórico de Alterações** (`/audit-log`): Auditoria completa de ações
+  - Cards de resumo: Total (30 dias), Logins, Usuários Ativos, Fechamentos
+  - Filtros: Tipo de ação, Data inicial/final, Status (sucesso/falha)
+  - Tabela de logs: Data/Hora, Ação, Usuário, Empresa, Status, Detalhes
+  - Paginação com navegação (50 registros por página)
+  - Acesso restrito a admin/super_admin
+
+- ✅ **Backend Audit Log:** 
+  - Função `log_audit()` para registrar qualquer ação
+  - Constantes `AuditAction` para padronizar tipos de ações
+  - `GET /api/audit-logs` - Listar logs com filtros
+  - `GET /api/audit-logs/actions` - Tipos de ações disponíveis
+  - `GET /api/audit-logs/summary` - Resumo por período
+
+- ✅ **Collection MongoDB:** `audit_logs` para armazenar registros
+
+- ✅ **Integração nos endpoints críticos:**
+  - Login (sucesso e falha)
+  - Criação de usuários
+  - Fechamento de competência
+  - Reabertura de competência
+
+- ✅ **Menu Lateral:** Link "Histórico de Alterações" (apenas admin)
+
+**Arquivos criados/modificados:**
+- `/app/frontend/src/pages/AuditLog.js` - Nova página completa
+- `/app/backend/server.py` - Função `log_audit`, `AuditAction`, 3 endpoints
+- `/app/frontend/src/App.js` - Rota `/audit-log`
+- `/app/frontend/src/components/Layout.js` - Link condicional no menu
+
+---
 
 **FASE 6 - Apuração Automática Mensal (Fechamento Mensal):**
 
