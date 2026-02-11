@@ -236,6 +236,10 @@ export const UploadProvider = ({ children }) => {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
     setIsUploading(false);
     setProgress({ current: 0, total: 0, percent: 0 });
     setCurrentFile('');
@@ -248,6 +252,10 @@ export const UploadProvider = ({ children }) => {
     setUploadError(null);
     setProgress({ current: 0, total: 0, percent: 0 });
     setCurrentFile('');
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
   }, []);
 
   // Minimizar/expandir barra
