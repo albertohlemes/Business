@@ -110,6 +110,14 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
   - Flag resetada no início de cada novo upload
 - ✅ **Arquivo modificado:** `/app/frontend/src/pages/Documents.js`
 
+**Correção da Barra de Progresso Congelada no Upload:**
+- ✅ **Problema identificado:** O progresso não era atualizado no MongoDB durante o processamento dos arquivos
+- ✅ **Solução implementada:**
+  - Backend agora salva o progresso no MongoDB a cada 5 arquivos processados
+  - Adicionado `upload_progress_store[upload_id] = progress` para atualização imediata em memória
+  - Logs de debug adicionados para monitoramento
+- ✅ **Arquivo modificado:** `/app/backend/server.py`
+
 **Correção da Classificação de Produtos com CFOP de Devolução:**
 - ✅ **Problema identificado:** Documentos importados antes da correção não tinham `categoria_classificada` definida
 - ✅ **Solução implementada:** Script de correção em massa no banco de dados
