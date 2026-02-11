@@ -10697,16 +10697,17 @@ async def get_viloes_oportunidades(
     regime = company.get('regime_tributario', 'lucro_presumido').lower().replace(' ', '_')
     
     # Buscar documentos de entrada e saída
+    # Suportar tanto 'tipo' quanto 'tipo_operacao' para compatibilidade
     docs_entrada = await db.xml_documents.find({
         "company_id": company_id,
         "competencia": competencia,
-        "tipo": "entrada"
+        "$or": [{"tipo": "entrada"}, {"tipo_operacao": "entrada"}]
     }, {"_id": 0}).to_list(10000)
     
     docs_saida = await db.xml_documents.find({
         "company_id": company_id,
         "competencia": competencia,
-        "tipo": "saida"
+        "$or": [{"tipo": "saida"}, {"tipo_operacao": "saida"}]
     }, {"_id": 0}).to_list(10000)
     
     # Agrupar por NCM
