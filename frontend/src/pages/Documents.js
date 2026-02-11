@@ -2229,49 +2229,122 @@ const Documents = ({ user, onLogout }) => {
                   <div>
                     <h3 className="text-sm font-medium text-orange-400 mb-2 flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4" />
-                      Devoluções de Fornecedor ({uploadResult.notasDevolucao.length})
+                      Devoluções de Fornecedor
                       <span className="text-xs text-[#A1A1AA] font-normal">(Desconsideradas automaticamente)</span>
                     </h3>
                     <p className="text-xs text-[#A1A1AA] mb-2">
                       Notas de entrada emitidas pelo fornecedor com CFOP de devolução - não contabilizadas como entrada de mercadoria.
                     </p>
-                    <div className="space-y-1 max-h-[180px] overflow-y-auto">
-                      {uploadResult.notasDevolucao.map((item, idx) => (
-                        <div key={idx} className="py-2 px-3 bg-orange-500/5 rounded border border-orange-500/20">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-white truncate">
-                                NF-e Nº {item.numero} 
-                                {item.cfops && item.cfops.length > 0 && (
-                                  <span className="ml-2 text-xs text-orange-400">
-                                    CFOP: {item.cfops.join(', ')}
-                                  </span>
-                                )}
+                    
+                    {/* Separar por tipo */}
+                    {(() => {
+                      const devolucoes = uploadResult.notasDevolucao.filter(d => d.tipo === 'devolucao_entrada' || !d.tipo);
+                      const originaisEncontradas = uploadResult.notasDevolucao.filter(d => d.tipo === 'saida_original');
+                      const originaisNaoEncontradas = uploadResult.notasDevolucao.filter(d => d.tipo === 'saida_original_nao_encontrada');
+                      
+                      return (
+                        <>
+                          {/* Notas de devolução do fornecedor */}
+                          {devolucoes.length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-xs font-medium text-orange-300 mb-1">
+                                📥 Notas de Devolução Recebidas ({devolucoes.length})
                               </p>
-                              <p className="text-xs text-[#A1A1AA] truncate">
-                                Emitente: {item.emitente}
-                              </p>
-                              {item.nfeReferenciada && (
-                                <p className="text-xs text-orange-300 mt-1">
-                                  📌 Referencia NF-e: {item.nfeReferenciada.slice(-15)}...
-                                </p>
-                              )}
-                              {item.motivo && (
-                                <p className="text-xs text-orange-400/70 mt-1 truncate">
-                                  {item.motivo}
-                                </p>
-                              )}
+                              <div className="space-y-1 max-h-[150px] overflow-y-auto">
+                                {devolucoes.map((item, idx) => (
+                                  <div key={idx} className="py-2 px-3 bg-orange-500/5 rounded border border-orange-500/20">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-white truncate">
+                                          NF-e Nº {item.numero} 
+                                          {item.cfops && item.cfops.length > 0 && (
+                                            <span className="ml-2 text-xs text-orange-400">
+                                              CFOP: {item.cfops.join(', ')}
+                                            </span>
+                                          )}
+                                        </p>
+                                        <p className="text-xs text-[#A1A1AA] truncate">
+                                          Emitente: {item.emitente}
+                                        </p>
+                                        {item.nfeReferenciada && (
+                                          <p className="text-xs text-blue-300 mt-1">
+                                            🔗 Referencia NF Original: ...{item.nfeReferenciada.slice(-20)}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <span className="text-sm font-medium text-orange-400 ml-2 line-through">
+                                        {formatCurrency(item.valor || 0)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                            <span className="text-sm font-medium text-orange-400 ml-2 line-through">
-                              {formatCurrency(item.valor || 0)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                          )}
+                          
+                          {/* Notas originais que foram encontradas e excluídas */}
+                          {originaisEncontradas.length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-xs font-medium text-emerald-300 mb-1">
+                                ✅ NFs Originais Encontradas e Desconsideradas ({originaisEncontradas.length})
+                              </p>
+                              <div className="space-y-1 max-h-[120px] overflow-y-auto">
+                                {originaisEncontradas.map((item, idx) => (
+                                  <div key={idx} className="py-2 px-3 bg-emerald-500/5 rounded border border-emerald-500/20">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-white truncate">
+                                          NF-e Nº {item.numero}
+                                          <span className="ml-2 text-xs text-emerald-400">
+                                            (Vinculada à devolução NF {item.vinculadaA})
+                                          </span>
+                                        </p>
+                                        <p className="text-xs text-[#A1A1AA] truncate">
+                                          Destinatário: {item.destinatario || 'N/A'}
+                                        </p>
+                                      </div>
+                                      <span className="text-sm font-medium text-emerald-400 ml-2 line-through">
+                                        {formatCurrency(item.valor || 0)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Notas originais NÃO encontradas - ALERTA */}
+                          {originaisNaoEncontradas.length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-xs font-medium text-red-300 mb-1">
+                                ⚠️ NFs Originais NÃO Encontradas ({originaisNaoEncontradas.length})
+                              </p>
+                              <div className="space-y-1 max-h-[120px] overflow-y-auto">
+                                {originaisNaoEncontradas.map((item, idx) => (
+                                  <div key={idx} className="py-2 px-3 bg-red-500/10 rounded border border-red-500/30">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm text-white truncate">
+                                        Chave: ...{item.chaveNfe?.slice(-25) || 'N/A'}
+                                      </p>
+                                      <p className="text-xs text-red-300 truncate">
+                                        Referenciada na devolução NF {item.vinculadaA}
+                                      </p>
+                                      <p className="text-xs text-red-400/70 mt-1">
+                                        A nota original não foi importada. Importe-a para que seja desconsiderada automaticamente.
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                    
                     <div className="mt-2 p-2 bg-orange-500/10 rounded text-center">
                       <p className="text-xs text-orange-400">
-                        Valor total desconsiderado: {formatCurrency(uploadResult.notasDevolucao.reduce((sum, d) => sum + (d.valor || 0), 0))}
+                        Valor total desconsiderado: {formatCurrency(uploadResult.notasDevolucao.filter(d => d.tipo === 'devolucao_entrada' || !d.tipo).reduce((sum, d) => sum + (d.valor || 0), 0))}
                       </p>
                     </div>
                   </div>
