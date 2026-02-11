@@ -7889,7 +7889,11 @@ async def get_dashboard_stats(
             is_st = cfop in CFOPS_ST
             is_despesa = cfop in CFOPS_DESPESA
             
-            if is_st:
+            # ADICIONAL: CFOP 1910 com CST ICMS 010, 060, 070 também é considerado ST
+            cst_icms = str(prod.get('cst', prod.get('cst_icms', ''))).strip()
+            is_1910_com_st = cfop == '1910' and cst_icms in ['010', '060', '070', '10', '60', '70']
+            
+            if is_st or is_1910_com_st:
                 if desconsiderar_icms_st:
                     credito_icms_st_desconsiderado += v_icms
                 else:
