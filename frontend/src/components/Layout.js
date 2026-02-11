@@ -454,7 +454,7 @@ const Layout = ({ user, onLogout, children }) => {
       {uploadProgress.isUploading && (
         <div className="fixed bottom-6 right-6 z-[9999] w-80 bg-[#141414] rounded-xl border border-[#2A2A2A] shadow-2xl">
           <div className="p-4">
-            {/* Header com título, porcentagem e botão fechar */}
+            {/* Header com título e botão fechar */}
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-sm font-medium text-white">
@@ -462,18 +462,13 @@ const Layout = ({ user, onLogout, children }) => {
                 </p>
                 <p className="text-xs text-[#666] truncate max-w-[150px]">{uploadProgress.companyName}</p>
               </div>
-              <div className="flex items-center gap-2">
-                {!uploadProgress.error && (
-                  <span className="text-2xl font-bold text-[#C8A951]">{uploadProgress.percent}%</span>
-                )}
-                <button
-                  onClick={() => finishUpload()}
-                  className="p-1 hover:bg-[#2A2A2A] rounded transition-colors"
-                  title="Fechar"
-                >
-                  <X className="w-4 h-4 text-[#666] hover:text-white" />
-                </button>
-              </div>
+              <button
+                onClick={() => finishUpload()}
+                className="p-1 hover:bg-[#2A2A2A] rounded transition-colors"
+                title="Fechar"
+              >
+                <X className="w-4 h-4 text-[#666] hover:text-white" />
+              </button>
             </div>
             
             {uploadProgress.error ? (
@@ -483,15 +478,28 @@ const Layout = ({ user, onLogout, children }) => {
               </div>
             ) : (
               <>
+                {/* Contador principal - GRANDE E VISÍVEL */}
+                {uploadProgress.total > 0 && (
+                  <div className="text-center mb-3">
+                    <p className="text-3xl font-bold text-white">
+                      {uploadProgress.current} <span className="text-[#666] text-lg">de</span> {uploadProgress.total}
+                    </p>
+                    <p className="text-xs text-[#C8A951]">documentos processados</p>
+                  </div>
+                )}
+                
                 {/* Barra de progresso */}
-                <div className="h-2.5 bg-[#2A2A2A] rounded-full overflow-hidden mb-3">
+                <div className="h-2.5 bg-[#2A2A2A] rounded-full overflow-hidden mb-2">
                   <div 
                     className="h-full bg-gradient-to-r from-[#C8A951] to-[#D4B85C] rounded-full transition-all duration-300"
                     style={{ width: `${uploadProgress.percent}%` }}
                   />
                 </div>
                 
-                {/* Contador de café centralizado */}
+                {/* Porcentagem */}
+                <p className="text-center text-sm text-[#A1A1AA] mb-2">{uploadProgress.percent}% concluído</p>
+                
+                {/* Contador de café */}
                 <div className="flex justify-center">
                   <CoffeeProgress 
                     progress={uploadProgress.percent} 
@@ -502,14 +510,7 @@ const Layout = ({ user, onLogout, children }) => {
               </>
             )}
             
-            {/* Info de arquivos */}
-            {uploadProgress.total > 0 && !uploadProgress.error && (
-              <p className="text-xs text-[#A1A1AA] text-center mt-2">
-                {uploadProgress.current} de {uploadProgress.total} arquivos processados
-              </p>
-            )}
-            
-            <p className="text-xs text-[#666] text-center mt-1 italic">
+            <p className="text-xs text-[#666] text-center mt-2 italic">
               {uploadProgress.error ? 'Clique no X para fechar' : '☕ Continue navegando enquanto processamos...'}
             </p>
           </div>
