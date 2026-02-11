@@ -956,7 +956,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [ ] Upload de Certificado Digital (.pfx)
 
 ### P3 - Baixa Prioridade
-- [ ] FASE 1 - Integrar Sistema de Permissões aos endpoints
+- [x] ~~FASE 1 - Sistema de Permissões e Controle de Acesso~~ ✅ (SEGURANÇA RESOLVIDA)
 - [ ] FASE 2 - Refatorar server.py em routers
 - [ ] FASE 4 - Histórico de Alterações (Audit Log)
 - [ ] FASE 5 - Geração de SPED Fiscal
@@ -967,8 +967,9 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [ ] Integração SIEG (BLOQUEADO - chave inválida)
 
 ## Credenciais de Teste
-- Email: admin@test.com
-- Senha: 123456
+- Email Super Admin: alberto.lemes@businessconta.com.br / Business@2026
+- Email Admin: admin@test.com / 123456
+- Email Operacional: operacional@test.com / 123456 (acesso apenas à COMERCIAL RS LTDA)
 
 ## Endpoints de Alertas CFOP
 
