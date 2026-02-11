@@ -809,19 +809,78 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-white">Dados Manuais - {anoDigitacao}</h3>
-                  <p className="text-xs text-amber-300">Preencha os valores mensais do ano anterior</p>
+                  <p className="text-xs text-amber-300">Preencha os valores mensais ou importe de arquivo</p>
                 </div>
               </div>
-              <select
-                value={anoDigitacao}
-                onChange={(e) => setAnoDigitacao(parseInt(e.target.value))}
-                className="px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white"
-              >
-                {[...Array(5)].map((_, i) => {
-                  const ano = new Date().getFullYear() - i - 1;
-                  return <option key={ano} value={ano}>{ano}</option>;
-                })}
-              </select>
+              <div className="flex items-center gap-3">
+                {/* Botão de Importar Arquivo */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept=".xlsx,.xls,.docx,.doc,.pdf"
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingFile}
+                  className="px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-600/30 rounded-lg text-emerald-400 flex items-center gap-2 transition-colors disabled:opacity-50"
+                >
+                  {uploadingFile ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      Importar Arquivo
+                    </>
+                  )}
+                </button>
+                <select
+                  value={anoDigitacao}
+                  onChange={(e) => setAnoDigitacao(parseInt(e.target.value))}
+                  className="px-3 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white"
+                >
+                  {[...Array(5)].map((_, i) => {
+                    const ano = new Date().getFullYear() - i - 1;
+                    return <option key={ano} value={ano}>{ano}</option>;
+                  })}
+                </select>
+              </div>
+            </div>
+            
+            {/* Resultado da importação */}
+            {uploadResult && (
+              <div className={`mb-4 p-3 rounded-lg border ${
+                uploadResult.success 
+                  ? 'bg-emerald-900/20 border-emerald-500/30 text-emerald-400' 
+                  : 'bg-red-900/20 border-red-500/30 text-red-400'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {uploadResult.success ? (
+                    <FileSpreadsheet className="w-5 h-5" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5" />
+                  )}
+                  <span className="font-medium">{uploadResult.message}</span>
+                </div>
+                {uploadResult.observacoes && (
+                  <p className="text-xs mt-1 opacity-80">{uploadResult.observacoes}</p>
+                )}
+              </div>
+            )}
+            
+            {/* Dica sobre formatos aceitos */}
+            <div className="mb-4 p-3 bg-[#0C0C0C] rounded-lg border border-[#2A2A2A]">
+              <div className="flex items-start gap-2 text-xs text-[#666]">
+                <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>
+                  <strong className="text-[#888]">Formatos aceitos:</strong> Excel (.xlsx), Word (.docx) ou PDF (.pdf). 
+                  O sistema usa IA para identificar automaticamente valores de compras, vendas e impostos por mês.
+                </span>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
