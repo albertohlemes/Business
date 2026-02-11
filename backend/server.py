@@ -381,9 +381,9 @@ class XMLDocument(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     company_id: str
     competencia: str
-    tipo: str  # entrada, saida
+    tipo: str = ""  # entrada, saida - será preenchido pelo validator se tipo_operacao existir
     modelo: str = "nfe"  # nfe, nfce, nfse
-    chave_nfe: str
+    chave_nfe: str = ""  # Será preenchido pelo validator se chave_acesso existir
     numero_nfe: str
     serie: str = ""
     data_emissao: str
@@ -410,7 +410,7 @@ class XMLDocument(BaseModel):
     total_outras_despesas: float = 0.0
     total_desconto: float = 0.0
     # Conteúdo e itens
-    xml_content: str
+    xml_content: str = ""  # Pode não existir em documentos antigos
     produtos: List[Dict[str, Any]] = []
     servicos: List[Dict[str, Any]] = []
     status_validacao: str = "pendente"
@@ -431,6 +431,22 @@ class XMLDocument(BaseModel):
     motivo_desconsideracao: str = ""
     nfe_referenciada: str = ""  # Chave da NF original (quando é uma devolução)
     nfe_vinculada_devolucao: str = ""  # Chave da NF de devolução que causou desconsideração
+    
+    @model_validator(mode='before')
+    @classmethod
+    def normalize_fields(cls, data):
+        """Normaliza campos com nomes alternativos do banco de dados"""
+        if isinstance(data, dict):
+            # tipo_operacao -> tipo
+            if not data.get('tipo') and data.get('tipo_operacao'):
+                data['tipo'] = data['tipo_operacao']
+            # chave_acesso -> chave_nfe
+            if not data.get('chave_nfe') and data.get('chave_acesso'):
+                data['chave_nfe'] = data['chave_acesso']
+            # modelo '55' -> 'nfe'
+            if data.get('modelo') == '55':
+                data['modelo'] = 'nfe'
+        return data
 
 class CFOPRule(BaseModel):
     model_config = ConfigDict(extra="ignore")
