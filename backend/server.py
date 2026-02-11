@@ -17728,8 +17728,16 @@ async def apurar_icms(
                 "valor_icms": round(totais_desconsiderados["st"]["valor_icms"], 2),
                 "qtd_itens": totais_desconsiderados["st"]["qtd_itens"]
             },
+            "beneficio_fiscal": {
+                "bc_icms": round(totais_desconsiderados["beneficio_fiscal"]["bc_icms"], 2),
+                "valor_icms": round(totais_desconsiderados["beneficio_fiscal"]["valor_icms"], 2),
+                "qtd_itens": totais_desconsiderados["beneficio_fiscal"]["qtd_itens"],
+                "produtos": totais_desconsiderados["beneficio_fiscal"]["produtos"]
+            },
             "total_icms_desconsiderado": round(
-                totais_desconsiderados["despesas"]["valor_icms"] + totais_desconsiderados["st"]["valor_icms"], 2
+                totais_desconsiderados["despesas"]["valor_icms"] + 
+                totais_desconsiderados["st"]["valor_icms"] + 
+                totais_desconsiderados["beneficio_fiscal"]["valor_icms"], 2
             )
         }
     }
