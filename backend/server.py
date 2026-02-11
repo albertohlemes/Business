@@ -22921,11 +22921,12 @@ async def exportar_notas_ausentes(
         
         wb = Workbook()
         ws = wb.active
-        ws.title = "Notas Ausentes"
+        ws.title = "Resumo Geral"
         
         # Estilos
         header_font = Font(bold=True, color="FFFFFF")
         header_fill = PatternFill(start_color="C8A951", end_color="C8A951", fill_type="solid")
+        red_fill = PatternFill(start_color="FF6B6B", end_color="FF6B6B", fill_type="solid")
         thin_border = Border(
             left=Side(style='thin'),
             right=Side(style='thin'),
@@ -22934,27 +22935,27 @@ async def exportar_notas_ausentes(
         )
         
         # Cabeçalho do relatório
-        ws.merge_cells('A1:F1')
-        ws['A1'] = f"RELATÓRIO DE NOTAS FISCAIS AUSENTES"
+        ws.merge_cells('A1:G1')
+        ws['A1'] = f"RELATÓRIO DE NOTAS FISCAIS AUSENTES - TODOS OS MODELOS"
         ws['A1'].font = Font(bold=True, size=14)
         ws['A1'].alignment = Alignment(horizontal='center')
         
         ws['A3'] = f"Empresa: {dados['empresa']}"
         ws['A4'] = f"CNPJ: {dados['cnpj']}"
         ws['A5'] = f"Competência: {dados['competencia']}"
-        ws['A6'] = f"Série: {dados['serie']}"
-        ws['A7'] = f"Total de Notas Emitidas: {dados['total_notas']}"
-        ws['A8'] = f"Total de Notas Ausentes: {dados['total_ausentes']}"
+        ws['A6'] = f"Tipo de Atividade: {dados.get('tipo_atividade', 'N/A')}"
+        ws['A7'] = f"Total Geral de Notas Emitidas: {dados['total_notas']}"
+        ws['A8'] = f"Total Geral de Notas Ausentes: {dados['total_ausentes']}"
         ws['A9'] = f"Gerado em: {dados.get('gerado_em', '')[:19].replace('T', ' ')}"
         
-        # Resumo por série
+        # Resumo por Modelo
         row = 11
-        ws[f'A{row}'] = "RESUMO POR SÉRIE"
+        ws[f'A{row}'] = "RESUMO POR MODELO DE DOCUMENTO"
         ws[f'A{row}'].font = Font(bold=True, size=12)
         row += 1
         
-        headers_resumo = ['Série', 'Primeiro Nº', 'Último Nº', 'Total Emitidas', 'Total Esperado', 'Ausentes']
-        for col, header in enumerate(headers_resumo, 1):
+        headers_modelo = ['Modelo', 'Total Emitidas', 'Total Ausentes', 'Status']
+        for col, header in enumerate(headers_modelo, 1):
             cell = ws.cell(row=row, column=col, value=header)
             cell.font = header_font
             cell.fill = header_fill
@@ -22962,60 +22963,109 @@ async def exportar_notas_ausentes(
             cell.alignment = Alignment(horizontal='center')
         
         row += 1
-        for seq in dados['sequencias_analisadas']:
-            ausentes = seq['total_esperado'] - seq['total_notas']
-            ws.cell(row=row, column=1, value=seq['serie']).border = thin_border
-            ws.cell(row=row, column=2, value=seq['primeiro_numero']).border = thin_border
-            ws.cell(row=row, column=3, value=seq['ultimo_numero']).border = thin_border
-            ws.cell(row=row, column=4, value=seq['total_notas']).border = thin_border
-            ws.cell(row=row, column=5, value=seq['total_esperado']).border = thin_border
-            ws.cell(row=row, column=6, value=ausentes).border = thin_border
+        for modelo in dados.get('modelos_analisados', []):
+            ws.cell(row=row, column=1, value=modelo['modelo_nome']).border = thin_border
+            ws.cell(row=row, column=2, value=modelo['total_notas']).border = thin_border
+            cell_ausentes = ws.cell(row=row, column=3, value=modelo['total_ausentes'])
+            cell_ausentes.border = thin_border
+            if modelo['total_ausentes'] > 0:
+                cell_ausentes.fill = red_fill
+                cell_ausentes.font = Font(bold=True, color="FFFFFF")
+            status = "OK" if modelo['total_ausentes'] == 0 else "GAPS DETECTADOS"
+            ws.cell(row=row, column=4, value=status).border = thin_border
             row += 1
         
-        # Detalhamento das notas ausentes
-        row += 2
-        ws[f'A{row}'] = "DETALHAMENTO DAS NOTAS AUSENTES"
-        ws[f'A{row}'].font = Font(bold=True, size=12)
-        row += 1
-        
-        headers_detalhe = ['Nº Ausente', 'Série', 'Nº Anterior', 'Data Anterior', 'Nº Posterior', 'Data Posterior']
-        for col, header in enumerate(headers_detalhe, 1):
-            cell = ws.cell(row=row, column=col, value=header)
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.border = thin_border
-            cell.alignment = Alignment(horizontal='center')
-        
-        row += 1
-        for nota in dados['notas_ausentes']:
-            ws.cell(row=row, column=1, value=nota['numero']).border = thin_border
-            ws.cell(row=row, column=2, value=nota['serie']).border = thin_border
+        # Criar uma aba para cada modelo com dados
+        for modelo in dados.get('modelos_analisados', []):
+            if modelo['total_notas'] == 0:
+                continue
             
-            if nota.get('nota_anterior'):
-                ws.cell(row=row, column=3, value=nota['nota_anterior']['numero']).border = thin_border
-                data_ant = nota['nota_anterior'].get('data_emissao', '')[:10]
-                ws.cell(row=row, column=4, value=data_ant).border = thin_border
-            else:
-                ws.cell(row=row, column=3, value='-').border = thin_border
-                ws.cell(row=row, column=4, value='-').border = thin_border
+            ws_modelo = wb.create_sheet(title=modelo['modelo'][:31])
             
-            if nota.get('nota_posterior'):
-                ws.cell(row=row, column=5, value=nota['nota_posterior']['numero']).border = thin_border
-                data_post = nota['nota_posterior'].get('data_emissao', '')[:10]
-                ws.cell(row=row, column=6, value=data_post).border = thin_border
-            else:
-                ws.cell(row=row, column=5, value='-').border = thin_border
-                ws.cell(row=row, column=6, value='-').border = thin_border
+            # Título
+            ws_modelo.merge_cells('A1:G1')
+            ws_modelo['A1'] = f"DETALHAMENTO - {modelo['modelo_nome']}"
+            ws_modelo['A1'].font = Font(bold=True, size=14)
+            ws_modelo['A1'].alignment = Alignment(horizontal='center')
+            
+            ws_modelo['A3'] = f"Total Emitidas: {modelo['total_notas']}"
+            ws_modelo['A4'] = f"Total Ausentes: {modelo['total_ausentes']}"
+            
+            # Resumo por série
+            row = 6
+            ws_modelo[f'A{row}'] = "RESUMO POR SÉRIE"
+            ws_modelo[f'A{row}'].font = Font(bold=True, size=12)
+            row += 1
+            
+            headers_serie = ['Série', 'Primeiro Nº', 'Último Nº', 'Emitidas', 'Esperado', 'Ausentes']
+            for col, header in enumerate(headers_serie, 1):
+                cell = ws_modelo.cell(row=row, column=col, value=header)
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.border = thin_border
+                cell.alignment = Alignment(horizontal='center')
             
             row += 1
+            for seq in modelo.get('sequencias', []):
+                ausentes = seq['total_esperado'] - seq['total_notas']
+                ws_modelo.cell(row=row, column=1, value=f"Série {seq['serie']}").border = thin_border
+                ws_modelo.cell(row=row, column=2, value=seq['primeiro_numero']).border = thin_border
+                ws_modelo.cell(row=row, column=3, value=seq['ultimo_numero']).border = thin_border
+                ws_modelo.cell(row=row, column=4, value=seq['total_notas']).border = thin_border
+                ws_modelo.cell(row=row, column=5, value=seq['total_esperado']).border = thin_border
+                ws_modelo.cell(row=row, column=6, value=ausentes).border = thin_border
+                row += 1
+            
+            # Detalhamento das notas ausentes
+            if modelo.get('notas_ausentes'):
+                row += 2
+                ws_modelo[f'A{row}'] = "NOTAS AUSENTES"
+                ws_modelo[f'A{row}'].font = Font(bold=True, size=12)
+                row += 1
+                
+                headers_detalhe = ['Nº Ausente', 'Série', 'Nº Anterior', 'Data Anterior', 'Nº Posterior', 'Data Posterior']
+                for col, header in enumerate(headers_detalhe, 1):
+                    cell = ws_modelo.cell(row=row, column=col, value=header)
+                    cell.font = header_font
+                    cell.fill = header_fill
+                    cell.border = thin_border
+                    cell.alignment = Alignment(horizontal='center')
+                
+                row += 1
+                for nota in modelo['notas_ausentes']:
+                    cell = ws_modelo.cell(row=row, column=1, value=nota['numero'])
+                    cell.border = thin_border
+                    cell.fill = red_fill
+                    cell.font = Font(bold=True, color="FFFFFF")
+                    ws_modelo.cell(row=row, column=2, value=nota['serie']).border = thin_border
+                    
+                    if nota.get('nota_anterior'):
+                        ws_modelo.cell(row=row, column=3, value=nota['nota_anterior']['numero']).border = thin_border
+                        data_ant = nota['nota_anterior'].get('data_emissao', '')[:10]
+                        ws_modelo.cell(row=row, column=4, value=data_ant).border = thin_border
+                    else:
+                        ws_modelo.cell(row=row, column=3, value='-').border = thin_border
+                        ws_modelo.cell(row=row, column=4, value='-').border = thin_border
+                    
+                    if nota.get('nota_posterior'):
+                        ws_modelo.cell(row=row, column=5, value=nota['nota_posterior']['numero']).border = thin_border
+                        data_post = nota['nota_posterior'].get('data_emissao', '')[:10]
+                        ws_modelo.cell(row=row, column=6, value=data_post).border = thin_border
+                    else:
+                        ws_modelo.cell(row=row, column=5, value='-').border = thin_border
+                        ws_modelo.cell(row=row, column=6, value='-').border = thin_border
+                    
+                    row += 1
+            
+            # Ajustar largura das colunas
+            for col in ['A', 'B', 'C', 'D', 'E', 'F']:
+                ws_modelo.column_dimensions[col].width = 15
         
-        # Ajustar largura das colunas
-        ws.column_dimensions['A'].width = 15
-        ws.column_dimensions['B'].width = 12
-        ws.column_dimensions['C'].width = 12
-        ws.column_dimensions['D'].width = 15
-        ws.column_dimensions['E'].width = 12
-        ws.column_dimensions['F'].width = 15
+        # Ajustar largura das colunas da aba principal
+        ws.column_dimensions['A'].width = 25
+        ws.column_dimensions['B'].width = 15
+        ws.column_dimensions['C'].width = 15
+        ws.column_dimensions['D'].width = 20
         
         # Salvar em memória
         output = BytesIO()
@@ -23035,7 +23085,7 @@ async def exportar_notas_ausentes(
         from reportlab.lib.pagesizes import A4
         from reportlab.lib import colors
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
         from reportlab.lib.units import cm
         
         output = BytesIO()
@@ -23044,19 +23094,20 @@ async def exportar_notas_ausentes(
         styles = getSampleStyleSheet()
         title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16, alignment=1, spaceAfter=20)
         subtitle_style = ParagraphStyle('Subtitle', parent=styles['Heading2'], fontSize=12, spaceAfter=10)
-        normal_style = styles['Normal']
+        modelo_style = ParagraphStyle('Modelo', parent=styles['Heading2'], fontSize=14, spaceAfter=10, spaceBefore=20)
         
         elements = []
         
         # Título
         elements.append(Paragraph("RELATÓRIO DE NOTAS FISCAIS AUSENTES", title_style))
+        elements.append(Paragraph("ANÁLISE DE TODOS OS MODELOS DE DOCUMENTOS", subtitle_style))
         elements.append(Spacer(1, 10))
         
         # Informações da empresa
         info_data = [
             [f"Empresa: {dados['empresa']}", f"CNPJ: {dados['cnpj']}"],
-            [f"Competência: {dados['competencia']}", f"Série: {dados['serie']}"],
-            [f"Total Emitidas: {dados['total_notas']}", f"Total Ausentes: {dados['total_ausentes']}"],
+            [f"Competência: {dados['competencia']}", f"Tipo Atividade: {dados.get('tipo_atividade', 'N/A')}"],
+            [f"Total Geral Emitidas: {dados['total_notas']}", f"Total Geral Ausentes: {dados['total_ausentes']}"],
             [f"Gerado em: {dados.get('gerado_em', '')[:19].replace('T', ' ')}", ""]
         ]
         
@@ -23068,24 +23119,22 @@ async def exportar_notas_ausentes(
         elements.append(info_table)
         elements.append(Spacer(1, 20))
         
-        # Resumo por série
-        elements.append(Paragraph("RESUMO POR SÉRIE", subtitle_style))
+        # Resumo por Modelo
+        elements.append(Paragraph("RESUMO POR MODELO", subtitle_style))
         
-        resumo_data = [['Série', 'Primeiro Nº', 'Último Nº', 'Emitidas', 'Esperado', 'Ausentes']]
-        for seq in dados['sequencias_analisadas']:
-            ausentes = seq['total_esperado'] - seq['total_notas']
-            resumo_data.append([
-                seq['serie'],
-                str(seq['primeiro_numero']),
-                str(seq['ultimo_numero']),
-                str(seq['total_notas']),
-                str(seq['total_esperado']),
-                str(ausentes)
+        resumo_modelo_data = [['Modelo', 'Emitidas', 'Ausentes', 'Status']]
+        for modelo in dados.get('modelos_analisados', []):
+            status = "OK" if modelo['total_ausentes'] == 0 else "GAPS"
+            resumo_modelo_data.append([
+                modelo['modelo_nome'],
+                str(modelo['total_notas']),
+                str(modelo['total_ausentes']),
+                status
             ])
         
-        resumo_table = Table(resumo_data, colWidths=[2*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm])
-        resumo_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.78, 0.66, 0.32)),  # Dourado
+        resumo_modelo_table = Table(resumo_modelo_data, colWidths=[7*cm, 3*cm, 3*cm, 3*cm])
+        resumo_modelo_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.78, 0.66, 0.32)),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -23093,30 +23142,33 @@ async def exportar_notas_ausentes(
             ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ]))
-        elements.append(resumo_table)
-        elements.append(Spacer(1, 20))
+        elements.append(resumo_modelo_table)
         
-        # Detalhamento (limitar a 100 por página)
-        if dados['notas_ausentes']:
-            elements.append(Paragraph("DETALHAMENTO DAS NOTAS AUSENTES", subtitle_style))
+        # Detalhamento por modelo
+        for modelo in dados.get('modelos_analisados', []):
+            if modelo['total_ausentes'] == 0:
+                continue
             
-            detalhe_data = [['Nº Ausente', 'Série', 'Nº Anterior', 'Data Ant.', 'Nº Posterior', 'Data Post.']]
-            for nota in dados['notas_ausentes'][:200]:  # Limitar para não estourar o PDF
-                row = [
-                    str(nota['numero']),
-                    nota['serie'],
-                    str(nota['nota_anterior']['numero']) if nota.get('nota_anterior') else '-',
-                    nota['nota_anterior'].get('data_emissao', '')[:10] if nota.get('nota_anterior') else '-',
-                    str(nota['nota_posterior']['numero']) if nota.get('nota_posterior') else '-',
-                    nota['nota_posterior'].get('data_emissao', '')[:10] if nota.get('nota_posterior') else '-'
-                ]
-                detalhe_data.append(row)
+            elements.append(PageBreak())
+            elements.append(Paragraph(f"DETALHAMENTO: {modelo['modelo_nome']}", modelo_style))
             
-            if len(dados['notas_ausentes']) > 200:
-                detalhe_data.append(['...', f"+ {len(dados['notas_ausentes']) - 200} registros", '', '', '', ''])
+            # Resumo por série do modelo
+            elements.append(Paragraph("Resumo por Série", subtitle_style))
             
-            detalhe_table = Table(detalhe_data, colWidths=[2.5*cm, 2*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm])
-            detalhe_table.setStyle(TableStyle([
+            serie_data = [['Série', 'Primeiro Nº', 'Último Nº', 'Emitidas', 'Esperado', 'Ausentes']]
+            for seq in modelo.get('sequencias', []):
+                ausentes = seq['total_esperado'] - seq['total_notas']
+                serie_data.append([
+                    f"Série {seq['serie']}",
+                    str(seq['primeiro_numero']),
+                    str(seq['ultimo_numero']),
+                    str(seq['total_notas']),
+                    str(seq['total_esperado']),
+                    str(ausentes)
+                ])
+            
+            serie_table = Table(serie_data, colWidths=[2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm])
+            serie_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.78, 0.66, 0.32)),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -23124,9 +23176,41 @@ async def exportar_notas_ausentes(
                 ('FONTSIZE', (0, 0), (-1, -1), 8),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.Color(0.95, 0.95, 0.95)]),
             ]))
-            elements.append(detalhe_table)
+            elements.append(serie_table)
+            elements.append(Spacer(1, 15))
+            
+            # Notas ausentes
+            if modelo.get('notas_ausentes'):
+                elements.append(Paragraph("Notas Ausentes", subtitle_style))
+                
+                detalhe_data = [['Nº Ausente', 'Série', 'Nº Anterior', 'Data Ant.', 'Nº Posterior', 'Data Post.']]
+                for nota in modelo['notas_ausentes'][:100]:
+                    row = [
+                        str(nota['numero']),
+                        nota['serie'],
+                        str(nota['nota_anterior']['numero']) if nota.get('nota_anterior') else '-',
+                        nota['nota_anterior'].get('data_emissao', '')[:10] if nota.get('nota_anterior') else '-',
+                        str(nota['nota_posterior']['numero']) if nota.get('nota_posterior') else '-',
+                        nota['nota_posterior'].get('data_emissao', '')[:10] if nota.get('nota_posterior') else '-'
+                    ]
+                    detalhe_data.append(row)
+                
+                if len(modelo['notas_ausentes']) > 100:
+                    detalhe_data.append(['...', f"+ {len(modelo['notas_ausentes']) - 100}", '', '', '', ''])
+                
+                detalhe_table = Table(detalhe_data, colWidths=[2.5*cm, 2*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm])
+                detalhe_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.78, 0.66, 0.32)),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.Color(0.95, 0.95, 0.95)]),
+                ]))
+                elements.append(detalhe_table)
         
         doc.build(elements)
         output.seek(0)
