@@ -17529,7 +17529,11 @@ async def apurar_icms(
                     icms_st_devolucoes[cfop]["qtd"] += 1
                 
                 # Top produtos crédito (só inclui se não foi desconsiderado)
-                should_include_in_credito = not ((is_despesa and desconsiderar_icms_despesas) or (is_st and desconsiderar_icms_st))
+                should_include_in_credito = not (
+                    (is_despesa and desconsiderar_icms_despesas) or 
+                    (is_st and desconsiderar_icms_st) or
+                    is_sem_credito_beneficio
+                )
                 if valor_icms > 0 and should_include_in_credito:
                     key = codigo or descricao[:30]
                     if key not in produtos_credito:
