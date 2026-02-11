@@ -1670,6 +1670,231 @@ const Documents = ({ user, onLogout }) => {
             </div>
           </div>
         </div>
+
+        {/* Modal de Histórico de Importações - Tela inicial */}
+        {showHistorico && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#C8A951]/20 flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-[#C8A951]" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Histórico de Importações</h2>
+                    <p className="text-sm text-[#A1A1AA]">Visualize importações anteriores e seus relatórios</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowHistorico(false);
+                    setHistoricoDetalhe(null);
+                  }}
+                  className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Conteúdo */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {historicoLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 text-[#C8A951] animate-spin" />
+                  </div>
+                ) : historicoDetalhe ? (
+                  /* Visualização de detalhe de uma importação */
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => setHistoricoDetalhe(null)}
+                      className="flex items-center gap-2 text-[#A1A1AA] hover:text-white transition-all"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Voltar para lista
+                    </button>
+                    
+                    {/* Resumo da importação */}
+                    <div className="bg-[#0C0C0C] rounded-xl border border-[#2A2A2A] p-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div className="text-center p-3 bg-[#141414] rounded-lg">
+                          <p className="text-2xl font-bold text-white">{historicoDetalhe.total_arquivos || 0}</p>
+                          <p className="text-xs text-[#A1A1AA]">Total Arquivos</p>
+                        </div>
+                        <div className="text-center p-3 bg-emerald-500/10 rounded-lg">
+                          <p className="text-2xl font-bold text-emerald-400">{historicoDetalhe.total_importados || 0}</p>
+                          <p className="text-xs text-emerald-400">Importados</p>
+                        </div>
+                        <div className="text-center p-3 bg-red-500/10 rounded-lg">
+                          <p className="text-2xl font-bold text-red-400">{historicoDetalhe.total_erros || 0}</p>
+                          <p className="text-xs text-red-400">Erros</p>
+                        </div>
+                        <div className="text-center p-3 bg-amber-500/10 rounded-lg">
+                          <p className="text-2xl font-bold text-amber-400">{historicoDetalhe.total_duplicados || 0}</p>
+                          <p className="text-xs text-amber-400">Duplicados</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-sm text-[#A1A1AA]">
+                        <span>
+                          <Calendar className="w-4 h-4 inline mr-1" />
+                          {historicoDetalhe.data_importacao ? new Date(historicoDetalhe.data_importacao).toLocaleString('pt-BR') : '-'}
+                        </span>
+                        <span className={`px-2 py-1 rounded text-xs ${historicoDetalhe.tipo_operacao === 'entrada' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                          {historicoDetalhe.tipo_operacao === 'entrada' ? 'Entradas' : 'Saídas'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Detalhes - Documentos importados */}
+                    {historicoDetalhe.relatorio_completo?.success && historicoDetalhe.relatorio_completo.success.length > 0 && (
+                      <div className="bg-[#0C0C0C] rounded-xl border border-[#2A2A2A] overflow-hidden">
+                        <div className="p-3 border-b border-[#2A2A2A] bg-emerald-500/10">
+                          <h3 className="text-sm font-medium text-emerald-400 flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4" />
+                            Documentos Importados ({historicoDetalhe.relatorio_completo.success.length})
+                          </h3>
+                        </div>
+                        <div className="max-h-60 overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-[#141414] sticky top-0">
+                              <tr>
+                                <th className="text-left px-3 py-2 text-xs text-[#A1A1AA]">Número</th>
+                                <th className="text-left px-3 py-2 text-xs text-[#A1A1AA]">Emitente</th>
+                                <th className="text-right px-3 py-2 text-xs text-[#A1A1AA]">Valor</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#2A2A2A]">
+                              {historicoDetalhe.relatorio_completo.success.map((doc, idx) => (
+                                <tr key={idx} className="hover:bg-white/5">
+                                  <td className="px-3 py-2 text-white">{doc.numero || doc.numero_nfe}</td>
+                                  <td className="px-3 py-2 text-[#A1A1AA] truncate max-w-[200px]">{doc.emitente || doc.emitente_nome}</td>
+                                  <td className="px-3 py-2 text-right text-[#C8A951]">{formatCurrency(doc.valor || 0)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Detalhes - Erros */}
+                    {historicoDetalhe.relatorio_completo?.errors && historicoDetalhe.relatorio_completo.errors.length > 0 && (
+                      <div className="bg-[#0C0C0C] rounded-xl border border-[#2A2A2A] overflow-hidden">
+                        <div className="p-3 border-b border-[#2A2A2A] bg-red-500/10">
+                          <h3 className="text-sm font-medium text-red-400 flex items-center gap-2">
+                            <XCircle className="w-4 h-4" />
+                            Erros ({historicoDetalhe.relatorio_completo.errors.length})
+                          </h3>
+                        </div>
+                        <div className="max-h-40 overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-[#141414] sticky top-0">
+                              <tr>
+                                <th className="text-left px-3 py-2 text-xs text-[#A1A1AA]">Arquivo</th>
+                                <th className="text-left px-3 py-2 text-xs text-[#A1A1AA]">Motivo</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#2A2A2A]">
+                              {historicoDetalhe.relatorio_completo.errors.map((err, idx) => (
+                                <tr key={idx} className="hover:bg-white/5">
+                                  <td className="px-3 py-2 text-white truncate max-w-[150px]">{err.arquivo || err.filename}</td>
+                                  <td className="px-3 py-2 text-red-400">{err.motivo || err.erro || err.error}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Detalhes - Duplicados */}
+                    {historicoDetalhe.relatorio_completo?.duplicadas && historicoDetalhe.relatorio_completo.duplicadas.length > 0 && (
+                      <div className="bg-[#0C0C0C] rounded-xl border border-[#2A2A2A] overflow-hidden">
+                        <div className="p-3 border-b border-[#2A2A2A] bg-amber-500/10">
+                          <h3 className="text-sm font-medium text-amber-400 flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4" />
+                            Duplicados ({historicoDetalhe.relatorio_completo.duplicadas.length})
+                          </h3>
+                        </div>
+                        <div className="max-h-40 overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-[#141414] sticky top-0">
+                              <tr>
+                                <th className="text-left px-3 py-2 text-xs text-[#A1A1AA]">Arquivo</th>
+                                <th className="text-left px-3 py-2 text-xs text-[#A1A1AA]">Número</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#2A2A2A]">
+                              {historicoDetalhe.relatorio_completo.duplicadas.map((dup, idx) => (
+                                <tr key={idx} className="hover:bg-white/5">
+                                  <td className="px-3 py-2 text-white truncate max-w-[150px]">{dup.arquivo || dup.filename}</td>
+                                  <td className="px-3 py-2 text-amber-400">{dup.numero || dup.numero_nfe}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : historico.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Clock className="w-12 h-12 text-[#3F3F46] mb-4" />
+                    <p className="text-[#A1A1AA]">Nenhuma importação encontrada</p>
+                    <p className="text-sm text-[#52525B]">Importe documentos para ver o histórico aqui</p>
+                  </div>
+                ) : (
+                  /* Lista de histórico */
+                  <div className="space-y-3">
+                    {historico.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => fetchHistoricoDetalhe(item.id)}
+                        className="w-full p-4 bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl hover:border-[#C8A951] hover:bg-[#C8A951]/5 transition-all text-left group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.tipo_operacao === 'entrada' ? 'bg-emerald-500/20' : 'bg-blue-500/20'}`}>
+                              {item.tipo_operacao === 'entrada' ? (
+                                <ArrowDownCircle className="w-5 h-5 text-emerald-400" />
+                              ) : (
+                                <ArrowUpCircle className="w-5 h-5 text-blue-400" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-white font-medium">
+                                {item.tipo_operacao === 'entrada' ? 'Entradas' : 'Saídas'} • {item.total_importados || 0} importados
+                              </p>
+                              <p className="text-sm text-[#A1A1AA]">
+                                {item.data_importacao ? new Date(item.data_importacao).toLocaleString('pt-BR') : '-'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 text-sm">
+                              {item.total_erros > 0 && (
+                                <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">
+                                  {item.total_erros} erros
+                                </span>
+                              )}
+                              {item.total_duplicados > 0 && (
+                                <span className="px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-xs">
+                                  {item.total_duplicados} duplicados
+                                </span>
+                              )}
+                            </div>
+                            <Eye className="w-5 h-5 text-[#A1A1AA] group-hover:text-[#C8A951] transition-all" />
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </Layout>
     );
   }
