@@ -112,7 +112,34 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-12 (Sessão 22 - FASE 1, FASE 2 e FASE 3)
+### 2026-02-12 (Sessão 22 - FASE 1, FASE 2, FASE 3 e FASE 5)
+
+**FASE 5 - Geração de SPED Fiscal:**
+
+**Funcionalidade Implementada:**
+- ✅ **Página SPED Fiscal** (`/sped`): Interface completa para exportação do arquivo SPED
+  - Seletor de empresa e competência
+  - Exibição de competências disponíveis (2 períodos)
+  - Informações da empresa (Razão Social, CNPJ, IE)
+  - Descrição dos blocos gerados (0, C, E, H, 9)
+  - Botão de exportação com download do arquivo .txt
+
+- ✅ **Backend SPED:** Endpoint `GET /api/sped/export/{company_id}` funcional
+  - Layout versão 019 (válido para 2025/2026)
+  - Registros 0000, 0001, 0005, 0100, 0150 (participantes)
+  - Bloco C com documentos fiscais
+  - Bloco E com apuração ICMS
+
+- ✅ **Menu Lateral:** Link "SPED Fiscal" adicionado na seção de Exportações
+
+- ✅ **Correção de Bug:** Ajustado parser de resposta da API para carregar competências corretamente
+
+**Arquivos modificados:**
+- `/app/frontend/src/pages/ExportSPED.js` - Correção do parser de competências
+- `/app/frontend/src/App.js` - Importação e rota `/sped`
+- `/app/frontend/src/components/Layout.js` - Link no menu lateral
+
+---
 
 **FASE 2 - Documentação e Preparação para Refatoração:**
 
