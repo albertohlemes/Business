@@ -494,21 +494,35 @@ const Documents = ({ user, onLogout }) => {
               ...(data.results.rejeitadas_cnpj || []).map(d => ({ arquivo: d.arquivo || d.filename, motivo: `CNPJ não corresponde à empresa (encontrado: ${d.cnpj_encontrado})` }))
             ];
             
+            // Notas de devolução (entrada emitida por terceiros com CFOP de devolução)
+            const devolucoes = data.results.notas_desconsideradas_devolucao || [];
+            
             setUploadResult({
               tipo: 'xml',
               total: resumo.total_arquivos || files.length,
               sucesso: resumo.importados || successList.length,
               erros: (resumo.erros || 0) + (resumo.duplicados || 0) + (resumo.rejeitados_cnpj || 0),
+              devolucoes: devolucoes.length,
               processados: successList.map(s => ({
                 arquivo: s.arquivo || s.filename,
                 numero: s.numero || s.numero_nfe,
                 valor: s.valor || 0,
                 emitente: s.emitente || s.emitente_nome,
-                modelo: s.modelo
+                modelo: s.modelo,
+                status: s.status || 'ativa'
               })),
               rejeitados: errorsList.map(e => ({
                 arquivo: e.arquivo || e.filename,
                 motivo: e.motivo || e.erro || e.error || 'Erro desconhecido'
+              })),
+              notasDevolucao: devolucoes.map(d => ({
+                arquivo: d.filename,
+                numero: d.numero_nfe,
+                valor: d.valor_total || 0,
+                emitente: d.emitente_nome,
+                cfops: d.cfops || [],
+                nfeReferenciada: d.nfe_referenciada,
+                motivo: d.motivo
               })),
               alertas_cfop: data.results.alertas_cfop || [],
               duplicadas: data.results.duplicadas || [],
