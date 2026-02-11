@@ -1187,13 +1187,35 @@ const PisCofins = ({ user, onLogout }) => {
                 <span className="text-[#A1A1AA]">(-) Créditos</span>
                 <span className="text-green-400 font-semibold">{formatCurrency(lucro_presumido.creditos.total)}</span>
               </div>
+              {/* Débitos PIS - Comércio */}
               <div className="flex justify-between items-center">
-                <span className="text-[#A1A1AA]">(+) Débitos Comércio</span>
-                <span className="text-red-400 font-semibold">{formatCurrency(lucro_presumido.debitos_comercio.total)}</span>
+                <span className="text-[#A1A1AA]">(+) Débito PIS Comércio</span>
+                <span className="text-red-400 font-semibold">{formatCurrency(lucro_presumido.debitos_comercio?.pis || 0)}</span>
               </div>
+              {/* Débitos COFINS - Comércio */}
               <div className="flex justify-between items-center">
-                <span className="text-[#A1A1AA]">(+) Débitos Serviços</span>
-                <span className="text-red-400 font-semibold">{formatCurrency(lucro_presumido.debitos_servicos.total)}</span>
+                <span className="text-[#A1A1AA]">(+) Débito COFINS Comércio</span>
+                <span className="text-red-400 font-semibold">{formatCurrency(lucro_presumido.debitos_comercio?.cofins || 0)}</span>
+              </div>
+              {/* Subtotal Comércio */}
+              <div className="flex justify-between items-center bg-[#1A1A1A]/50 rounded px-2 py-1 text-sm">
+                <span className="text-[#666]">Subtotal Comércio</span>
+                <span className="text-[#A1A1AA]">{formatCurrency(lucro_presumido.debitos_comercio.total)}</span>
+              </div>
+              {/* Débitos PIS - Serviços */}
+              <div className="flex justify-between items-center">
+                <span className="text-[#A1A1AA]">(+) Débito PIS Serviços</span>
+                <span className="text-red-400 font-semibold">{formatCurrency(lucro_presumido.debitos_servicos?.pis || 0)}</span>
+              </div>
+              {/* Débitos COFINS - Serviços */}
+              <div className="flex justify-between items-center">
+                <span className="text-[#A1A1AA]">(+) Débito COFINS Serviços</span>
+                <span className="text-red-400 font-semibold">{formatCurrency(lucro_presumido.debitos_servicos?.cofins || 0)}</span>
+              </div>
+              {/* Subtotal Serviços */}
+              <div className="flex justify-between items-center bg-[#1A1A1A]/50 rounded px-2 py-1 text-sm">
+                <span className="text-[#666]">Subtotal Serviços</span>
+                <span className="text-[#A1A1AA]">{formatCurrency(lucro_presumido.debitos_servicos.total)}</span>
               </div>
               <div className="border-t border-[#2A2A2A] pt-4">
                 <div className="flex justify-between items-center">
@@ -1201,11 +1223,11 @@ const PisCofins = ({ user, onLogout }) => {
                   <span className="text-[#C8A951] font-bold text-xl">{formatCurrency(lucro_presumido.imposto_a_pagar.total)}</span>
                 </div>
                 <div className="flex justify-between text-sm mt-2">
-                  <span className="text-[#666]">PIS</span>
+                  <span className="text-[#666]">PIS a Pagar</span>
                   <span className="text-[#A1A1AA]">{formatCurrency(lucro_presumido.imposto_a_pagar.pis)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#666]">COFINS</span>
+                  <span className="text-[#666]">COFINS a Pagar</span>
                   <span className="text-[#A1A1AA]">{formatCurrency(lucro_presumido.imposto_a_pagar.cofins)}</span>
                 </div>
               </div>
