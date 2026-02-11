@@ -349,6 +349,11 @@ class CompanyUpdate(BaseModel):
     # Flags de desconsiderar ICMS
     desconsiderar_icms_despesas: Optional[bool] = None
     desconsiderar_icms_st: Optional[bool] = None
+    # === BENEFÍCIO FISCAL ICMS ===
+    beneficio_fiscal_icms: Optional[bool] = None
+    tipo_beneficio_fiscal: Optional[str] = None
+    produtos_sem_credito_icms: Optional[List[str]] = None
+    produtos_sem_credito_descricao: Optional[str] = None
     # Presunção geral
     percentual_presuncao_irpj: Optional[float] = None
     percentual_presuncao_csll: Optional[float] = None
