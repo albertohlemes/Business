@@ -4931,27 +4931,41 @@ async def upload_xml_batch(
                     motivo_devolucao = ""
                     nfe_ref_devolucao = ""
             
-            # VALIDAR COMPETÊNCIA - Verificar se a data da NF-e corresponde à competência selecionada
+            # VALIDAR COMPETÊNCIA - Verificar se a data corresponde à competência selecionada
+            # Para ENTRADAS: usar data_saida_entrada (dhSaiEnt) se disponível, senão data_emissao
+            # Para SAÍDAS: usar data_emissao
             data_emissao = parsed_data.get('data_emissao', '')
-            if data_emissao:
-                # data_emissao pode ser formato ISO: 2024-01-15T10:30:00-03:00
+            data_saida_entrada = parsed_data.get('data_saida_entrada', '')
+            
+            # Determinar qual data usar para a competência
+            if tipo_operacao == 'entrada' and data_saida_entrada:
+                # Para entradas, priorizar data de saída (quando o fornecedor despachou)
+                data_para_competencia = data_saida_entrada
+                tipo_data = "saída"
+            else:
+                # Para saídas ou quando não tem data de saída, usar emissão
+                data_para_competencia = data_emissao
+                tipo_data = "emissão"
+            
+            if data_para_competencia:
+                # data pode ser formato ISO: 2024-01-15T10:30:00-03:00
                 try:
-                    if 'T' in data_emissao:
-                        data_emissao_dt = datetime.fromisoformat(data_emissao.replace('Z', '+00:00'))
+                    if 'T' in data_para_competencia:
+                        data_competencia_dt = datetime.fromisoformat(data_para_competencia.replace('Z', '+00:00'))
                     else:
-                        data_emissao_dt = datetime.strptime(data_emissao[:10], '%Y-%m-%d')
+                        data_competencia_dt = datetime.strptime(data_para_competencia[:10], '%Y-%m-%d')
                     
-                    # Extrair mês/ano da NF-e
-                    mes_nfe = str(data_emissao_dt.month).zfill(2)
-                    ano_nfe = str(data_emissao_dt.year)
+                    # Extrair mês/ano para competência
+                    mes_nfe = str(data_competencia_dt.month).zfill(2)
+                    ano_nfe = str(data_competencia_dt.year)
                     competencia_nfe = f"{mes_nfe}/{ano_nfe}"
                     
                     if competencia_nfe != competencia:
                         rejeitadas_competencia.append({
                             "filename": file.filename,
                             "numero_nfe": parsed_data.get('numero_nfe', ''),
-                            "motivo": f"Data da NF-e ({competencia_nfe}) não corresponde à competência selecionada ({competencia})",
-                            "data_emissao": data_emissao[:10]
+                            "motivo": f"Data de {tipo_data} ({competencia_nfe}) não corresponde à competência selecionada ({competencia})",
+                            "data_emissao": data_emissao[:10] if data_emissao else ''
                         })
                         continue
                 except Exception as e:
