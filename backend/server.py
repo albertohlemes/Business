@@ -11008,22 +11008,31 @@ async def get_viloes_oportunidades(
             # Calcular margem para análise
             margem_valor = ((saida['valor'] - entrada['valor']) / entrada['valor'] * 100) if entrada['valor'] > 0 else 0
             
-            # Gerar motivo detalhado
-            motivos = []
+            # Gerar explicação concisa (sem repetir valores que já aparecem no grid)
+            impostos_beneficio = []
             if -impacto_icms > 50:
-                motivos.append(f"ICMS: crédito R$ {icms_credito:,.2f} > débito R$ {icms_debito:,.2f} (excedente: R$ {-impacto_icms:,.2f})")
+                impostos_beneficio.append("ICMS")
             if -impacto_pis > 50:
-                motivos.append(f"PIS: crédito R$ {pis_credito:,.2f} > débito R$ {pis_debito:,.2f} (excedente: R$ {-impacto_pis:,.2f})")
+                impostos_beneficio.append("PIS")
             if -impacto_cofins > 50:
-                motivos.append(f"COFINS: crédito R$ {cofins_credito:,.2f} > débito R$ {cofins_debito:,.2f} (excedente: R$ {-impacto_cofins:,.2f})")
+                impostos_beneficio.append("COFINS")
+            
+            if len(impostos_beneficio) == 3:
+                motivo = "Os créditos de ICMS, PIS e COFINS superam os débitos, gerando benefício fiscal."
+            elif len(impostos_beneficio) == 2:
+                motivo = f"Os créditos de {' e '.join(impostos_beneficio)} superam os débitos, gerando benefício."
+            elif len(impostos_beneficio) == 1:
+                motivo = f"O crédito de {impostos_beneficio[0]} supera significativamente o débito."
+            else:
+                motivo = "O somatório dos créditos tributários supera os débitos."
             
             # Análise de oportunidade
             if saida['valor'] < entrada['valor'] * 0.5:
-                analise_preco = "💡 OPORTUNIDADE: Está comprando muito mais do que vendendo - possível estoque ou revenda futura"
+                analise_preco = "💡 Compras muito superiores às vendas - possível formação de estoque"
             elif saida['valor'] < entrada['valor'] * 0.8:
-                analise_preco = "💡 Compras superiores às vendas - crédito acumulado pode ser aproveitado"
+                analise_preco = "💡 Crédito acumulado pode ser aproveitado em compensações futuras"
             else:
-                analise_preco = "Crédito tributário excedente - boa performance fiscal neste NCM"
+                analise_preco = "Boa performance fiscal neste NCM - crédito excedente"
             
             oportunidades.append({
                 'tipo': 'CREDITO_EXCEDENTE',
@@ -11040,9 +11049,9 @@ async def get_viloes_oportunidades(
                 'qtd_saida': saida['qtd'],
                 'produtos_entrada': sorted(entrada['produtos'], key=lambda x: x.get('descricao', ''))[:10],
                 'produtos_saida': sorted(saida['produtos'], key=lambda x: x.get('descricao', ''))[:10],
-                'motivo_classificacao': " | ".join(motivos) if motivos else f"Crédito de impostos maior que débito em R$ {-impacto_total:,.2f}",
+                'motivo_classificacao': motivo,
                 'analise_preco': analise_preco,
-                'explicacao': f"Crédito maior que débito: ICMS {-impacto_icms:+.2f} | PIS {-impacto_pis:+.2f} | COFINS {-impacto_cofins:+.2f}"
+                'explicacao': motivo
             })
     
     # Ordenar por impacto
