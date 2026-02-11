@@ -41,10 +41,11 @@ const UserPermissions = () => {
   const fetchUsers = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API}/api/users`, {
+      const response = await axios.get(`${API}/api/auth/users`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setUsers(response.data);
+      // API retorna {users: [...], total: N}
+      setUsers(response.data.users || response.data || []);
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
       toast.error('Erro ao carregar lista de usuários');
