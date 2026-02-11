@@ -22731,12 +22731,12 @@ async def gerar_insights_analise_horizontal(
 async def get_notas_ausentes(
     company_id: str,
     competencia: Optional[str] = None,
-    serie: str = "1",
     current_user: User = Depends(get_current_user)
 ):
     """
     Detecta notas fiscais de saída ausentes (gaps na sequência numérica).
-    Retorna lista de números faltantes por série.
+    Analisa todos os modelos de documentos de saída (NF-e, NFC-e, CT-e, NFS-e).
+    Retorna lista de números faltantes por modelo e série.
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
@@ -22745,79 +22745,156 @@ async def get_notas_ausentes(
     if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    # Query para buscar notas de saída
-    query = {
+    # Determinar quais modelos a empresa usa com base no tipo de atividade
+    tipo_atividade = company.get('tipo_atividade', 'comercio')
+    modelos_saida = []
+    
+    # NF-e (modelo 55) - Todos usam
+    modelos_saida.append({'codigo': 'nfe', 'nome': 'NF-e (Modelo 55)', 'modelo_db': ['nfe', '55']})
+    
+    # NFC-e (modelo 65) - Comércio varejo
+    if tipo_atividade in ['comercio', 'mista'] or 'varejo' in company.get('perfis_comerciais', []):
+        modelos_saida.append({'codigo': 'nfce', 'nome': 'NFC-e (Modelo 65)', 'modelo_db': ['nfce', '65']})
+    
+    # CT-e (modelo 57) - Transportadoras
+    if tipo_atividade == 'transporte' or 'transportadora' in str(company.get('cnae_principal', '')).lower():
+        modelos_saida.append({'codigo': 'cte', 'nome': 'CT-e (Modelo 57)', 'modelo_db': ['cte', '57']})
+    
+    # NFS-e - Serviços
+    if tipo_atividade in ['servicos', 'mista']:
+        modelos_saida.append({'codigo': 'nfse', 'nome': 'NFS-e (Serviços)', 'modelo_db': ['nfse']})
+    
+    # Query base para buscar notas de saída
+    base_query = {
         "company_id": company_id,
         "$or": [
             {"tipo": "saida"},
             {"tipo_operacao": "saida"}
         ]
     }
-    query.update(get_filtro_notas_ativas())
+    base_query.update(get_filtro_notas_ativas())
     
     if competencia:
-        query['competencia'] = competencia
+        base_query['competencia'] = competencia
     
-    if serie:
-        query['serie'] = serie
+    # Analisar cada modelo
+    resultado_por_modelo = []
+    total_notas_geral = 0
+    total_ausentes_geral = 0
     
-    # Buscar documentos
-    documents = await db.xml_documents.find(query, {"_id": 0, "numero_nfe": 1, "serie": 1, "data_emissao": 1, "competencia": 1}).to_list(50000)
-    
-    if not documents:
-        return {
-            "empresa": company.get('nome', company.get('razao_social', 'N/A')),
-            "cnpj": company.get('cnpj', 'N/A'),
-            "competencia": competencia or "Todas",
-            "serie": serie,
-            "total_notas": 0,
-            "total_ausentes": 0,
-            "notas_ausentes": [],
-            "sequencias_analisadas": []
-        }
-    
-    # Agrupar por série
-    notas_por_serie = {}
-    for doc in documents:
-        doc_serie = doc.get('serie', '1') or '1'
-        if doc_serie not in notas_por_serie:
-            notas_por_serie[doc_serie] = []
+    for modelo_info in modelos_saida:
+        # Query específica para este modelo
+        query = base_query.copy()
+        query['modelo'] = {"$in": modelo_info['modelo_db']}
         
-        try:
-            numero = int(doc.get('numero_nfe', '0'))
-            if numero > 0:
-                notas_por_serie[doc_serie].append({
-                    'numero': numero,
-                    'data_emissao': doc.get('data_emissao', ''),
-                    'competencia': doc.get('competencia', '')
-                })
-        except (ValueError, TypeError):
+        # Buscar documentos
+        documents = await db.xml_documents.find(
+            query, 
+            {"_id": 0, "numero_nfe": 1, "serie": 1, "data_emissao": 1, "competencia": 1, "modelo": 1}
+        ).to_list(50000)
+        
+        if not documents:
+            resultado_por_modelo.append({
+                "modelo": modelo_info['codigo'],
+                "modelo_nome": modelo_info['nome'],
+                "total_notas": 0,
+                "total_ausentes": 0,
+                "sequencias": [],
+                "notas_ausentes": []
+            })
             continue
-    
-    # Detectar gaps em cada série
-    notas_ausentes = []
-    sequencias_analisadas = []
-    
-    for serie_num, notas in notas_por_serie.items():
-        if not notas:
-            continue
+        
+        # Agrupar por série
+        notas_por_serie = {}
+        for doc in documents:
+            doc_serie = doc.get('serie', '1') or '1'
+            if doc_serie not in notas_por_serie:
+                notas_por_serie[doc_serie] = []
             
-        # Ordenar por número
-        notas_ordenadas = sorted(notas, key=lambda x: x['numero'])
-        numeros = [n['numero'] for n in notas_ordenadas]
+            try:
+                numero = int(doc.get('numero_nfe', '0'))
+                if numero > 0:
+                    notas_por_serie[doc_serie].append({
+                        'numero': numero,
+                        'data_emissao': doc.get('data_emissao', ''),
+                        'competencia': doc.get('competencia', '')
+                    })
+            except (ValueError, TypeError):
+                continue
         
-        primeiro = min(numeros)
-        ultimo = max(numeros)
+        # Detectar gaps em cada série
+        notas_ausentes_modelo = []
+        sequencias_modelo = []
         
-        sequencias_analisadas.append({
-            "serie": serie_num,
-            "primeiro_numero": primeiro,
-            "ultimo_numero": ultimo,
-            "total_notas": len(numeros),
-            "total_esperado": ultimo - primeiro + 1
+        for serie_num, notas in notas_por_serie.items():
+            if not notas:
+                continue
+                
+            # Ordenar por número
+            notas_ordenadas = sorted(notas, key=lambda x: x['numero'])
+            numeros = [n['numero'] for n in notas_ordenadas]
+            
+            primeiro = min(numeros)
+            ultimo = max(numeros)
+            
+            sequencias_modelo.append({
+                "serie": serie_num,
+                "primeiro_numero": primeiro,
+                "ultimo_numero": ultimo,
+                "total_notas": len(numeros),
+                "total_esperado": ultimo - primeiro + 1
+            })
+            
+            # Encontrar gaps
+            numeros_set = set(numeros)
+            for num in range(primeiro, ultimo + 1):
+                if num not in numeros_set:
+                    # Encontrar a nota anterior e posterior para contexto
+                    nota_anterior = None
+                    nota_posterior = None
+                    
+                    for n in notas_ordenadas:
+                        if n['numero'] < num:
+                            nota_anterior = n
+                        elif n['numero'] > num and nota_posterior is None:
+                            nota_posterior = n
+                            break
+                    
+                    notas_ausentes_modelo.append({
+                        "numero": num,
+                        "serie": serie_num,
+                        "nota_anterior": nota_anterior,
+                        "nota_posterior": nota_posterior
+                    })
+        
+        # Ordenar por série e número
+        notas_ausentes_modelo.sort(key=lambda x: (x['serie'], x['numero']))
+        
+        total_notas_modelo = len(documents)
+        total_ausentes_modelo = len(notas_ausentes_modelo)
+        
+        total_notas_geral += total_notas_modelo
+        total_ausentes_geral += total_ausentes_modelo
+        
+        resultado_por_modelo.append({
+            "modelo": modelo_info['codigo'],
+            "modelo_nome": modelo_info['nome'],
+            "total_notas": total_notas_modelo,
+            "total_ausentes": total_ausentes_modelo,
+            "sequencias": sequencias_modelo,
+            "notas_ausentes": notas_ausentes_modelo[:500]  # Limitar a 500 por modelo
         })
-        
-        # Encontrar gaps
+    
+    return {
+        "empresa": company.get('nome', company.get('razao_social', 'N/A')),
+        "cnpj": company.get('cnpj', 'N/A'),
+        "competencia": competencia or "Todas",
+        "tipo_atividade": tipo_atividade,
+        "total_notas": total_notas_geral,
+        "total_ausentes": total_ausentes_geral,
+        "modelos_analisados": resultado_por_modelo,
+        "gerado_em": datetime.now(timezone.utc).isoformat()
+    }
         numeros_set = set(numeros)
         for num in range(primeiro, ultimo + 1):
             if num not in numeros_set:
