@@ -1011,16 +1011,19 @@ const Companies = ({ user, onLogout }) => {
 
                 {/* Código da Empresa */}
                 <div className="bg-[#C8A951]/5 border border-[#C8A951]/20 rounded p-4">
-                  <label className="block text-sm font-medium text-[#C8A951] mb-2">Código/ID da Empresa</label>
+                  <label className="block text-sm font-medium text-[#C8A951] mb-2">
+                    Código/ID da Empresa <span className="text-red-400">*</span>
+                  </label>
                   <input
                     data-testid="company-codigo-input"
                     type="text"
                     value={formData.codigo_empresa}
                     onChange={(e) => setFormData({ ...formData, codigo_empresa: e.target.value })}
+                    required
                     className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-[#C8A951] focus:ring-1 focus:ring-[#C8A951]"
                     placeholder="Ex: 001, CLI-2024"
                   />
-                  <p className="text-xs text-[#A1A1AA] mt-1">Identificador interno para facilitar a busca</p>
+                  <p className="text-xs text-[#A1A1AA] mt-1">Identificador interno obrigatório para facilitar a busca</p>
                 </div>
 
                 {/* CNPJ */}
