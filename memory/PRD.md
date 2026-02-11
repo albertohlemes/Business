@@ -112,6 +112,25 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-11 (Sessão 20 - Melhorias em Vilões e Oportunidades)
+
+**Melhorias na página Vilões e Oportunidades:**
+- ✅ **Descrição detalhada do motivo de classificação:** Cada item agora mostra "Por que este NCM é vilão/oportunidade?" com explicação clara dos valores de débito/crédito e análise de precificação
+- ✅ **Análise Inteligente:** Nova seção expansível com:
+  - Conclusão geral do balanço tributário
+  - Saldo Tributário calculado automaticamente
+  - Pontos de Atenção (NCMs críticos, margens baixas, desequilíbrio entrada/saída)
+  - Recomendações práticas (benefícios fiscais, precificação, PIS/COFINS monofásico)
+- ✅ **Ordenação por colunas:** Cabeçalhos clicáveis para ordenar por NCM, Descrição, Impacto, Entrada, Saída e Margem (crescente/decrescente)
+- ✅ **Ordenação de produtos:** Tabela de produtos dentro do detalhe também tem ordenação por colunas
+- ✅ **Margem percentual:** Nova coluna mostrando a margem de cada NCM com cores indicativas (vermelho < 15%, amarelo < 30%, verde >= 30%)
+- ✅ **Análise de precificação:** Cada vilão/oportunidade mostra uma análise automática sobre margem e risco de prejuízo
+- ✅ **Compatibilidade de dados:** Ajustada query para suportar tanto 'tipo' quanto 'tipo_operacao' nos documentos
+
+**Arquivos modificados:**
+- `/app/backend/server.py`: Adicionado motivo_classificacao, analise_preco, margem_percentual, análise geral com pontos de atenção e recomendações
+- `/app/frontend/src/pages/ViloesOportunidades.js`: Reescrito com ordenação, análise inteligente expansível e detalhamento aprimorado
+
 ### 2026-02-11 (Sessão 20 - Detalhamento do Benefício Fiscal ICMS)
 
 **Modal de Detalhamento do Benefício Fiscal:**
