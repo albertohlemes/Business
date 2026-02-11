@@ -12902,10 +12902,12 @@ async def list_exceptions(
     return exceptions
 
 @api_router.get("/sped/export/{company_id}")
+@api_router.get("/sped/export/{company_id}")
 async def export_sped(
     company_id: str,
     competencia: Optional[str] = None,
     excluir_creditos_despesa_st: bool = False,
+    aplicar_beneficio_fiscal: bool = False,
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -12913,6 +12915,7 @@ async def export_sped(
     
     Parâmetros:
     - excluir_creditos_despesa_st: Se True, exclui créditos de ICMS de CFOPs de despesa (1556, 2556) e ST na apuração
+    - aplicar_beneficio_fiscal: Se True, aplica regras de benefício fiscal para créditos de ICMS
     """
     company = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company:
@@ -12942,14 +12945,18 @@ async def export_sped(
     
     company_obj = Company(**company)
     
+    # Se não foi explicitamente passado, usar o valor do cadastro da empresa
+    usar_beneficio_fiscal = aplicar_beneficio_fiscal or company.get('beneficio_fiscal_icms', False)
+    
     # Usar competência para gerar o período correto
     periodo = competencia or "01/2024"
-    sped_content = generate_sped_fiscal(company_obj, xml_docs, periodo, excluir_creditos_despesa_st)
+    sped_content = generate_sped_fiscal(company_obj, xml_docs, periodo, excluir_creditos_despesa_st, usar_beneficio_fiscal)
     
     return {
         "content": sped_content,
         "filename": f"SPED_FISCAL_{company['cnpj']}_{competencia or periodo}.txt",
-        "excluir_creditos_despesa_st": excluir_creditos_despesa_st
+        "excluir_creditos_despesa_st": excluir_creditos_despesa_st,
+        "aplicar_beneficio_fiscal": usar_beneficio_fiscal
     }
 
 
