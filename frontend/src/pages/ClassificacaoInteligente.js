@@ -464,22 +464,11 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
       const token = localStorage.getItem('token');
       const prod = editingProduct.prod;
       
-      // DEBUG: Log detalhado do produto sendo editado
-      console.log('[DEBUG salvarAlteracaoProduto] editingProduct:', editingProduct);
-      console.log('[DEBUG salvarAlteracaoProduto] prod:', prod);
-      console.log('[DEBUG salvarAlteracaoProduto] prod.ocorrencias:', prod?.ocorrencias);
-      console.log('[DEBUG salvarAlteracaoProduto] novaCategoria:', novaCategoria);
-      
       // Usar as ocorrências para atualizar todos os documentos que têm esse produto
       if (prod.ocorrencias && prod.ocorrencias.length > 0) {
-        console.log(`[DEBUG] Atualizando ${prod.ocorrencias.length} ocorrência(s)...`);
-        
         // Atualizar cada ocorrência do produto
-        let atualizados = 0;
         for (const ocorrencia of prod.ocorrencias) {
-          console.log(`[DEBUG] Chamando API para doc_id=${ocorrencia.doc_id}, produto_idx=${ocorrencia.produto_idx}`);
-          
-          const response = await axios.post(
+          await axios.post(
             `${API}/products/classify-single`,
             {
               document_id: ocorrencia.doc_id,
@@ -489,21 +478,15 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
             },
             { headers: { Authorization: `Bearer ${token}` } }
           );
-          
-          console.log(`[DEBUG] Resposta API:`, response.data);
-          atualizados++;
         }
         
-        console.log(`[DEBUG] Total atualizado: ${atualizados}`);
         toast.success(`Produto "${prod.descricao?.substring(0, 30)}..." reclassificado para ${categoriasConfig[novaCategoria]?.label || novaCategoria}`);
         fetchValidacao(); // Recarregar dados
       } else {
-        console.error('[DEBUG] ERRO: prod.ocorrencias está vazio ou undefined!', { prod });
         toast.error('Não foi possível identificar as ocorrências do produto');
       }
     } catch (err) {
       console.error('Erro ao salvar alteração:', err);
-      console.error('[DEBUG] Detalhes do erro:', err.response?.data);
       toast.error('Erro ao reclassificar produto');
     } finally {
       setSavingProduct(false);
