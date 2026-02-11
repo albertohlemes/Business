@@ -17925,8 +17925,9 @@ async def get_beneficio_fiscal_detalhes(
             ncm = str(item.get('ncm', '') or '').strip()
             descricao = str(item.get('descricao', '') or item.get('produto', '') or '').strip()
             valor_produto = float(item.get('valor_produto', 0) or item.get('valor_total', 0) or 0)
-            bc_icms = float(item.get('bc_icms', 0) or 0)
-            valor_icms = float(item.get('valor_icms', 0) or 0)
+            # Suportar diferentes nomes para campos de ICMS
+            bc_icms = float(item.get('bc_icms', 0) or item.get('v_bc_icms', 0) or 0)
+            valor_icms = float(item.get('valor_icms', 0) or item.get('v_icms', 0) or 0)
             
             # Verificar se o produto está sujeito ao benefício fiscal
             if not produto_sem_credito_icms_beneficio(ncm, descricao, company):
