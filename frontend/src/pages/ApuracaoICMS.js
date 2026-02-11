@@ -102,6 +102,64 @@ const ApuracaoICMS = ({ user, onLogout }) => {
     }
   }, [selectedCompany, selectedCompetencia, fetchData]);
 
+  // Buscar detalhes do benefício fiscal (produtos desconsiderados)
+  const fetchBeneficioDetalhes = async () => {
+    if (!selectedCompany?.id || !selectedCompetencia) return;
+    
+    setLoadingBeneficioDetalhes(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/beneficio-fiscal-detalhes/${selectedCompany.id}?competencia=${encodeURIComponent(selectedCompetencia)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setBeneficioDetalhes(response.data);
+    } catch (err) {
+      console.error('Erro ao carregar detalhes do benefício fiscal:', err);
+      alert('Erro ao carregar detalhes do benefício fiscal');
+    } finally {
+      setLoadingBeneficioDetalhes(false);
+    }
+  };
+
+  // Abrir modal de benefício fiscal
+  const handleOpenBeneficioModal = () => {
+    setShowBeneficioModal(true);
+    fetchBeneficioDetalhes();
+  };
+
+  // Exportar relatório de benefício fiscal
+  const exportarBeneficioFiscal = async (formato) => {
+    if (!selectedCompany?.id || !selectedCompetencia) return;
+    
+    setExportingBeneficio(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API}/beneficio-fiscal-detalhes/${selectedCompany.id}/exportar?competencia=${encodeURIComponent(selectedCompetencia)}&formato=${formato}&agrupamento=${beneficioTab}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      );
+      
+      // Criar link de download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `beneficio_fiscal_${beneficioTab}_${selectedCompetencia.replace('/', '_')}.${formato === 'excel' ? 'xlsx' : 'pdf'}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Erro ao exportar:', err);
+      alert('Erro ao exportar relatório');
+    } finally {
+      setExportingBeneficio(false);
+    }
+  };
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   };
