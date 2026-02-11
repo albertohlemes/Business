@@ -479,30 +479,60 @@ const Layout = ({ user, onLogout, children }) => {
             ) : (
               <>
                 {/* Contador principal - GRANDE E VISÍVEL */}
-                {uploadProgress.total > 0 && (
-                  <div className="text-center mb-3">
-                    <p className="text-3xl font-bold text-white">
-                      {uploadProgress.current} <span className="text-[#666] text-lg">de</span> {uploadProgress.total}
-                    </p>
-                    <p className="text-xs text-[#C8A951]">documentos processados</p>
-                  </div>
-                )}
-                
-                {/* Barra de progresso */}
-                <div className="h-2.5 bg-[#2A2A2A] rounded-full overflow-hidden mb-2">
-                  <div 
-                    className="h-full bg-gradient-to-r from-[#C8A951] to-[#D4B85C] rounded-full transition-all duration-300"
-                    style={{ width: `${uploadProgress.percent}%` }}
-                  />
-                </div>
-                
-                {/* Porcentagem */}
-                <p className="text-center text-sm text-[#A1A1AA] mb-2">{uploadProgress.percent}% concluído</p>
+                {uploadProgress.total > 0 && (() => {
+                  // Calcular porcentagem real
+                  const realPercent = Math.round((uploadProgress.current / uploadProgress.total) * 100);
+                  
+                  // Calcular tempo estimado
+                  const startTime = uploadProgress.startTime || Date.now();
+                  const elapsed = (Date.now() - startTime) / 1000; // segundos
+                  const rate = uploadProgress.current > 0 ? elapsed / uploadProgress.current : 0; // segundos por doc
+                  const remaining = (uploadProgress.total - uploadProgress.current) * rate;
+                  
+                  // Formatar tempo restante
+                  const formatTime = (seconds) => {
+                    if (seconds < 60) return `${Math.round(seconds)}s`;
+                    if (seconds < 3600) return `${Math.round(seconds / 60)}min`;
+                    return `${Math.round(seconds / 3600)}h ${Math.round((seconds % 3600) / 60)}min`;
+                  };
+                  
+                  return (
+                    <div className="text-center mb-3">
+                      <p className="text-3xl font-bold text-white">
+                        {uploadProgress.current.toLocaleString()} <span className="text-[#666] text-lg">de</span> {uploadProgress.total.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-[#C8A951]">documentos processados</p>
+                      
+                      {/* Barra de progresso */}
+                      <div className="h-2.5 bg-[#2A2A2A] rounded-full overflow-hidden my-3">
+                        <div 
+                          className="h-full bg-gradient-to-r from-[#C8A951] to-[#D4B85C] rounded-full transition-all duration-300"
+                          style={{ width: `${realPercent}%` }}
+                        />
+                      </div>
+                      
+                      {/* Porcentagem e tempo estimado */}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-[#A1A1AA]">{realPercent}% concluído</span>
+                        {remaining > 0 && uploadProgress.current > 5 && (
+                          <span className="text-[#C8A951]">~{formatTime(remaining)} restante</span>
+                        )}
+                      </div>
+                      
+                      {/* Velocidade */}
+                      {rate > 0 && uploadProgress.current > 5 && (
+                        <p className="text-xs text-[#666] mt-1">
+                          {(1/rate).toFixed(1)} docs/seg
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
                 
                 {/* Contador de café */}
                 <div className="flex justify-center">
                   <CoffeeProgress 
-                    progress={uploadProgress.percent} 
+                    progress={uploadProgress.total > 0 ? Math.round((uploadProgress.current / uploadProgress.total) * 100) : 0} 
                     message=""
                     showPercentage={false}
                   />
