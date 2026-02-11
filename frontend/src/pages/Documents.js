@@ -670,10 +670,15 @@ const Documents = ({ user, onLogout }) => {
                   arquivo: d.filename,
                   numero: d.numero_nfe,
                   valor: d.valor_total || 0,
-                  emitente: d.emitente_nome,
+                  emitente: d.emitente || d.emitente_nome,
                   cfops: d.cfops || [],
                   nfeReferenciada: d.nfe_referenciada,
-                  motivo: d.motivo
+                  motivo: d.motivo,
+                  tipo: d.tipo,  // devolucao_entrada, saida_original, saida_original_nao_encontrada
+                  chaveNfe: d.chave_nfe,
+                  vinculadaA: d.vinculada_a,
+                  destinatario: d.destinatario,
+                  dataEmissao: d.data_emissao
                 })),
                 alertas_cfop: data.results.alertas_cfop || [],
                 duplicadas: data.results.duplicadas || [],
