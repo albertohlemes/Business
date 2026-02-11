@@ -24564,36 +24564,41 @@ async def exportar_documentos_categoria(
             
             ws.cell(row=row, column=7, value=valor).border = thin_border
             ws.cell(row=row, column=7).number_format = '#,##0.00'
-            ws.cell(row=row, column=8, value=icms).border = thin_border
+            ws.cell(row=row, column=8, value=bc_icms).border = thin_border
             ws.cell(row=row, column=8).number_format = '#,##0.00'
-            ws.cell(row=row, column=9, value=icms_st).border = thin_border
+            ws.cell(row=row, column=9, value=icms).border = thin_border
             ws.cell(row=row, column=9).number_format = '#,##0.00'
-            ws.cell(row=row, column=10, value=pis).border = thin_border
+            ws.cell(row=row, column=10, value=icms_st).border = thin_border
             ws.cell(row=row, column=10).number_format = '#,##0.00'
-            ws.cell(row=row, column=11, value=cofins).border = thin_border
+            ws.cell(row=row, column=11, value=pis).border = thin_border
             ws.cell(row=row, column=11).number_format = '#,##0.00'
+            ws.cell(row=row, column=12, value=cofins).border = thin_border
+            ws.cell(row=row, column=12).number_format = '#,##0.00'
         
         # Total
         row += 1
         ws.cell(row=row, column=1, value="TOTAL").font = total_font
         ws.cell(row=row, column=1).fill = total_fill
-        for col in range(2, 7):
+        for col in range(2, 8):
             ws.cell(row=row, column=col).fill = total_fill
         ws.cell(row=row, column=7, value=total_valor).font = total_font
         ws.cell(row=row, column=7).fill = total_fill
         ws.cell(row=row, column=7).number_format = '#,##0.00'
-        ws.cell(row=row, column=8, value=total_icms).font = total_font
+        ws.cell(row=row, column=8, value=total_bc_icms).font = total_font
         ws.cell(row=row, column=8).fill = total_fill
         ws.cell(row=row, column=8).number_format = '#,##0.00'
-        ws.cell(row=row, column=9, value=total_icms_st).font = total_font
+        ws.cell(row=row, column=9, value=total_icms).font = total_font
         ws.cell(row=row, column=9).fill = total_fill
         ws.cell(row=row, column=9).number_format = '#,##0.00'
-        ws.cell(row=row, column=10, value=total_pis).font = total_font
+        ws.cell(row=row, column=10, value=total_icms_st).font = total_font
         ws.cell(row=row, column=10).fill = total_fill
         ws.cell(row=row, column=10).number_format = '#,##0.00'
-        ws.cell(row=row, column=11, value=total_cofins).font = total_font
+        ws.cell(row=row, column=11, value=total_pis).font = total_font
         ws.cell(row=row, column=11).fill = total_fill
         ws.cell(row=row, column=11).number_format = '#,##0.00'
+        ws.cell(row=row, column=12, value=total_cofins).font = total_font
+        ws.cell(row=row, column=12).fill = total_fill
+        ws.cell(row=row, column=12).number_format = '#,##0.00'
         
         # Ajustar largura das colunas
         ws.column_dimensions['A'].width = 12
@@ -24603,10 +24608,11 @@ async def exportar_documentos_categoria(
         ws.column_dimensions['E'].width = 18
         ws.column_dimensions['F'].width = 6
         ws.column_dimensions['G'].width = 15
-        ws.column_dimensions['H'].width = 12
+        ws.column_dimensions['H'].width = 14
         ws.column_dimensions['I'].width = 12
         ws.column_dimensions['J'].width = 12
         ws.column_dimensions['K'].width = 12
+        ws.column_dimensions['L'].width = 12
         
         # Salvar e retornar
         output = io.BytesIO()
