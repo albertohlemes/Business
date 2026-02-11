@@ -340,6 +340,95 @@ async def require_company_access(company_id: str, user_data: dict, permission: s
     return company
 
 
+# ============================================================
+# FASE 4 - Sistema de Audit Log
+# ============================================================
+
+class AuditAction:
+    """Tipos de ações para o audit log"""
+    # Autenticação
+    LOGIN = "auth.login"
+    LOGOUT = "auth.logout"
+    LOGIN_FAILED = "auth.login_failed"
+    
+    # Usuários
+    USER_CREATE = "user.create"
+    USER_UPDATE = "user.update"
+    USER_DELETE = "user.delete"
+    USER_REACTIVATE = "user.reactivate"
+    USER_PERMISSION_CHANGE = "user.permission_change"
+    
+    # Empresas
+    COMPANY_CREATE = "company.create"
+    COMPANY_UPDATE = "company.update"
+    COMPANY_DELETE = "company.delete"
+    
+    # Documentos
+    DOCUMENT_UPLOAD = "document.upload"
+    DOCUMENT_DELETE = "document.delete"
+    DOCUMENT_REPROCESS = "document.reprocess"
+    
+    # Classificação
+    CLASSIFICATION_MANUAL = "classification.manual"
+    CLASSIFICATION_AI = "classification.ai"
+    CLASSIFICATION_BATCH = "classification.batch"
+    
+    # Fechamento
+    COMPETENCIA_FECHAR = "competencia.fechar"
+    COMPETENCIA_REABRIR = "competencia.reabrir"
+    
+    # SPED
+    SPED_EXPORT = "sped.export"
+    
+    # Configurações
+    CONFIG_UPDATE = "config.update"
+
+
+async def log_audit(
+    action: str,
+    user_id: str = None,
+    user_email: str = None,
+    company_id: str = None,
+    company_name: str = None,
+    details: dict = None,
+    ip_address: str = None,
+    success: bool = True,
+    error_message: str = None
+):
+    """
+    Registra uma ação no audit log.
+    
+    Args:
+        action: Tipo de ação (usar constantes de AuditAction)
+        user_id: ID do usuário que executou a ação
+        user_email: Email do usuário
+        company_id: ID da empresa afetada (se aplicável)
+        company_name: Nome da empresa (para facilitar consultas)
+        details: Detalhes adicionais da ação
+        ip_address: Endereço IP do cliente
+        success: Se a ação foi bem-sucedida
+        error_message: Mensagem de erro (se falhou)
+    """
+    try:
+        log_entry = {
+            "id": str(uuid.uuid4()),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "action": action,
+            "user_id": user_id,
+            "user_email": user_email,
+            "company_id": company_id,
+            "company_name": company_name,
+            "details": details or {},
+            "ip_address": ip_address,
+            "success": success,
+            "error_message": error_message
+        }
+        await db.audit_logs.insert_one(log_entry)
+    except Exception as e:
+        # Não falhar a operação principal por causa do log
+        logger.error(f"Erro ao registrar audit log: {e}")
+
+
 class User(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
