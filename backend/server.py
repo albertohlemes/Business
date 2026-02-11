@@ -3031,6 +3031,82 @@ async def demote_to_operacional(
     return {"status": "ok", "message": f"Usuário {existing['name']} alterado para Operacional"}
 
 
+@api_router.delete("/auth/users/{user_id}/permanent")
+async def delete_user_permanent(
+    user_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Permanently delete a user from the database.
+    Only Super Admin or Admin can do this.
+    """
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Apenas Admin pode excluir permanentemente")
+    
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Você não pode excluir a si mesmo")
+    
+    existing = await db.users.find_one({"id": user_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    if existing.get("role") == "super_admin":
+        raise HTTPException(status_code=400, detail="Super Admin não pode ser excluído")
+    
+    result = await db.users.delete_one({"id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=500, detail="Erro ao excluir usuário")
+    
+    return {"status": "ok", "message": f"Usuário {existing['name']} excluído permanentemente"}
+
+
+@api_router.post("/auth/users/cleanup-inactive")
+async def cleanup_inactive_users(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Delete all inactive and test users (excluding admins).
+    Only Admin can do this.
+    """
+    if current_user.role not in ["super_admin", "admin"]:
+        raise HTTPException(status_code=403, detail="Apenas Admin pode fazer limpeza de usuários")
+    
+    # Critérios para exclusão:
+    # 1. Usuários inativos (is_active = false)
+    # 2. Emails contendo 'test' ou '@test'
+    # 3. Não ser admin, super_admin ou o próprio usuário logado
+    
+    protected_roles = ["super_admin", "admin"]
+    
+    # Buscar usuários para excluir
+    users_to_delete = await db.users.find({
+        "$and": [
+            {"id": {"$ne": current_user.id}},
+            {"role": {"$nin": protected_roles}},
+            {"$or": [
+                {"is_active": False},
+                {"email": {"$regex": "test", "$options": "i"}}
+            ]}
+        ]
+    }).to_list(1000)
+    
+    deleted_count = 0
+    deleted_names = []
+    
+    for user in users_to_delete:
+        result = await db.users.delete_one({"id": user["id"]})
+        if result.deleted_count > 0:
+            deleted_count += 1
+            deleted_names.append(user.get("name", user.get("email")))
+    
+    return {
+        "status": "ok",
+        "deleted_count": deleted_count,
+        "deleted_users": deleted_names,
+        "message": f"{deleted_count} usuário(s) excluído(s) permanentemente"
+    }
+
+
 @api_router.post("/companies/{company_id}/responsaveis")
 async def add_responsavel_to_company(
     company_id: str,
