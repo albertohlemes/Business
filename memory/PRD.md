@@ -112,6 +112,23 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-11 (Sessão 20 - Correções na Memória IA / Classificação Inteligente)
+
+**Bugs corrigidos:**
+- ✅ **"Produto sem descrição":** Corrigido mapeamento de campos - frontend agora usa `produto_descricao` (campo correto do backend) em vez de `descricao_produto`
+- ✅ **Regras não aplicadas após alteração:** Corrigido endpoint de update para salvar tanto `categoria` quanto `categoria_correta` (e `cfop`/`cfop_correto`) para compatibilidade com o sistema de cache
+- ✅ **Função de cache mais robusta:** `get_cached_classification_from_memory` agora aceita ambos os formatos de campos
+
+**Novas funcionalidades:**
+- ✅ **Seleção em lote:** Checkbox individual em cada regra + "Selecionar todas" no topo
+- ✅ **Alteração de categoria em lote:** Dropdown para alterar categoria de múltiplas regras de uma vez
+- ✅ **Exclusão em lote:** Botão vermelho "Excluir (N)" para remover múltiplas regras selecionadas
+- ✅ **Destaque visual:** Regras selecionadas têm borda roxa e fundo suave
+
+**Arquivos modificados:**
+- `/app/backend/server.py`: Corrigido endpoint PUT `/ai/learned-rules/{rule_id}` e função `get_cached_classification_from_memory`
+- `/app/frontend/src/pages/ClassificacaoInteligente.js`: Adicionada lógica de seleção em lote e correção de campos
+
 ### 2026-02-11 (Sessão 20 - Melhorias em Vilões e Oportunidades)
 
 **Melhorias na página Vilões e Oportunidades:**
