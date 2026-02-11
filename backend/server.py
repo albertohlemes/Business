@@ -7693,6 +7693,7 @@ async def get_dashboard_stats(
     
     # ENTRADAS
     nfe_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', 'nfe') in MODELOS_NFE]
+    logger.info(f"DASHBOARD: NFe Entrada = {len(nfe_entrada)} docs")
     cte_entrada = [d for d in documents if d.get('tipo') == 'entrada' and (d.get('modelo', '') or '').lower() in [m.lower() for m in MODELOS_CTE]]
     nfse_tomados = [d for d in documents if d.get('tipo') == 'entrada' and (d.get('modelo', '') or '').lower() in [m.lower() for m in MODELOS_NFSE]]
     
