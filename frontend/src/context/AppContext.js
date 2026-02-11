@@ -121,7 +121,9 @@ export const AppProvider = ({ children }) => {
       total,
       companyName,
       tipo,
-      error: null
+      error: null,
+      completedResults: null,
+      showResults: false
     });
   };
 
