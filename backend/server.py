@@ -658,6 +658,8 @@ class CompanyCreate(BaseModel):
     # Presunção para serviços
     percentual_presuncao_servicos_irpj: float = 32.0
     percentual_presuncao_servicos_csll: float = 32.0
+    # Logo da empresa (base64 data URL)
+    logo_url: Optional[str] = None
 
 class CompanyUpdate(BaseModel):
     """Modelo para atualização de empresa"""
