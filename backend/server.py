@@ -6398,7 +6398,110 @@ async def upload_xml_with_progress(
     return {"processed": len(files), "total_processed": processed_in_session, "total_expected": total_expected}
 
 
-@api_router.get("/xml/documents")
+# ===== HISTÓRICO DE IMPORTAÇÕES =====
+@api_router.get("/xml/historico-importacoes/{company_id}")
+async def get_historico_importacoes(
+    company_id: str,
+    competencia: Optional[str] = None,
+    tipo: Optional[str] = None,  # 'entrada' ou 'saida'
+    limit: int = 50,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna o histórico de importações de uma empresa, ordenado por data decrescente e tipo de documento.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    
+    query = {"company_id": company_id}
+    
+    if competencia:
+        query["competencia"] = competencia
+    
+    if tipo:
+        query["tipo"] = tipo
+    
+    # Buscar histórico ordenado por tipo (decrescente) e data (decrescente)
+    cursor = db.historico_importacoes.find(query, {"_id": 0, "relatorio_completo": 0}).sort([
+        ("tipo", -1),  # Saída primeiro, depois entrada
+        ("data_importacao", -1)  # Mais recente primeiro
+    ]).limit(limit)
+    
+    historico = await cursor.to_list(length=limit)
+    
+    # Agrupar por tipo para facilitar exibição
+    agrupado = {
+        "saida": [],
+        "entrada": []
+    }
+    
+    for item in historico:
+        tipo_item = item.get("tipo", "entrada")
+        if tipo_item in agrupado:
+            agrupado[tipo_item].append(item)
+        else:
+            agrupado["entrada"].append(item)
+    
+    return {
+        "empresa": company.get("razao_social"),
+        "total_registros": len(historico),
+        "historico": historico,
+        "agrupado": agrupado
+    }
+
+
+@api_router.get("/xml/historico-importacoes/{company_id}/{historico_id}")
+async def get_historico_detalhe(
+    company_id: str,
+    historico_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna o detalhe completo de uma importação específica, incluindo o relatório completo.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    
+    historico = await db.historico_importacoes.find_one(
+        {"id": historico_id, "company_id": company_id},
+        {"_id": 0}
+    )
+    
+    if not historico:
+        raise HTTPException(status_code=404, detail="Registro não encontrado")
+    
+    return historico
+
+
+@api_router.delete("/xml/historico-importacoes/{company_id}/{historico_id}")
+async def delete_historico(
+    company_id: str,
+    historico_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Remove um registro do histórico de importações.
+    """
+    if current_user.role not in [UserRole.ADMIN, "super_admin"]:
+        raise HTTPException(status_code=403, detail="Apenas admin pode excluir histórico")
+    
+    result = await db.historico_importacoes.delete_one({"id": historico_id, "company_id": company_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Registro não encontrado")
+    
+    return {"status": "ok", "message": "Registro excluído"}
+
+
+
 async def list_documents(
     company_id: Optional[str] = None,
     competencia: Optional[str] = None,
