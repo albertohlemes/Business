@@ -7845,6 +7845,7 @@ async def get_dashboard_stats(
     credito_icms = 0
     credito_icms_st_desconsiderado = 0  # Para mostrar quanto foi desconsiderado (ST)
     credito_icms_despesa_desconsiderado = 0  # Para mostrar quanto foi desconsiderado (Despesa)
+    credito_icms_beneficio_desconsiderado = 0  # Para mostrar quanto foi desconsiderado (Benefício Fiscal)
     credito_pis = 0
     credito_cofins = 0
     
@@ -7871,6 +7872,9 @@ async def get_dashboard_stats(
     
     # Categorias de produto que NÃO geram crédito de PIS/COFINS
     CATEGORIAS_SEM_CREDITO = ['despesa', 'ativo_imobilizado', 'bonificacao']
+    
+    # Verificar se a empresa tem benefício fiscal ativo
+    beneficio_fiscal_ativo = company.get('beneficio_fiscal_icms', False)
     
     # Flags de desconsiderar ICMS
     desconsiderar_icms_despesas = company.get('desconsiderar_icms_despesas', False)
