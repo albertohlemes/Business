@@ -13072,24 +13072,37 @@ Comando do usuário: "{comando}"
 
 **NCMs dos produtos vendidos:** {ncms_vendidos_texto}
 
+**REGRAS DE PRIORIDADE ABSOLUTA - EXPANSÃO SEMÂNTICA:**
+As palavras-chave cadastradas devem ser EXPANDIDAS SEMANTICAMENTE para incluir todos os produtos relacionados:
+
+Exemplos de expansão semântica:
+- "carne" → inclui: picanha, alcatra, costela, frango, peixe, linguiça, bacon, filé, bife, coxão, patinho, maminha, cupim, acém, contrafilé, chã de dentro, lagarto, músculo, coxinha da asa, sobrecoxa, peito de frango, tilápia, salmão, camarão, etc.
+- "frutas" → inclui: abacaxi, banana, maçã, laranja, uva, melancia, melão, mamão, morango, manga, pera, kiwi, limão, abacate, goiaba, etc.
+- "verduras" ou "legumes" → inclui: alface, tomate, cebola, cenoura, batata, beterraba, abobrinha, berinjela, brócolis, couve, espinafre, etc.
+- "laticínios" → inclui: leite, queijo, manteiga, iogurte, creme de leite, requeijão, etc.
+- "bebidas" → inclui: água, refrigerante, suco, cerveja, vinho, etc.
+- "limpeza" → inclui: detergente, desinfetante, água sanitária, sabão, esponja, vassoura, rodo, etc.
+
+**APLIQUE ESTA EXPANSÃO PARA AS PALAVRAS-CHAVE CADASTRADAS:**
+{palavras_chave_texto if palavras_chave_texto else 'Nenhuma palavra-chave cadastrada'}
+
 **REGRAS IMPORTANTES:** 
-1. Se um produto de ENTRADA tiver descrição ou NCM similar aos produtos de SAÍDA, ele é para REVENDA.
-2. Se a empresa for de SERVIÇOS, classificar materiais de entrada como SERVICO_APLICACAO.
-3. Se houver palavras-chave cadastradas, priorizar a categoria correspondente.
+1. PRIORIDADE MÁXIMA: Se um produto for semanticamente relacionado a uma palavra-chave cadastrada, classificar na categoria dessa palavra-chave.
+2. Se um produto de ENTRADA tiver descrição ou NCM similar aos produtos de SAÍDA, ele é para REVENDA.
+3. Se a empresa for de SERVIÇOS, classificar materiais de entrada como SERVICO_APLICACAO.
 4. Em caso de DÚVIDA para empresas de comércio, classificar como REVENDA.
 5. Em caso de DÚVIDA para empresas de serviços, classificar como SERVICO_APLICACAO.
 
 Categorias válidas:
 - revenda: Mercadorias compradas para revenda (PRIORIZAR para empresas de comércio)
 - servico_aplicacao: Materiais aplicados na prestação de serviços (PRIORIZAR para empresas de serviços)
-- insumo: Matérias-primas e insumos de produção industrial
+- insumo: Matérias-primas e insumos de produção industrial ou restaurante
 - despesa: Material de uso e consumo, limpeza, escritório, manutenção
 - ativo_imobilizado: Máquinas, equipamentos, móveis, veículos
 - combustivel: Gasolina, etanol, diesel, GNV
 - bonificacao: Produtos recebidos em bonificação/doação
-- servico_aplicacao: Para empresas de serviço - material aplicado no serviço
 
-Palavras-chave para DESPESA:
+Palavras-chave para DESPESA (padrão):
 - limpeza, desinfetante, papel toalha, papel higiênico, sabonete, detergente
 - escritório, caneta, papel A4, impressora, toner, cartucho
 - manutenção, peças de reposição, ferramenta
@@ -13102,15 +13115,15 @@ Produtos de ENTRADA para classificar:
 {produtos_texto}
 
 IMPORTANTE: 
-1. Analise o comando e identifique TODOS os produtos que correspondem ao critério
-2. Compare com os produtos de SAÍDA - se forem similares, é REVENDA
-3. Em caso de dúvida para comércio, classificar como REVENDA
+1. Analise o comando E as palavras-chave cadastradas
+2. EXPANDA SEMANTICAMENTE as palavras-chave para incluir TODOS os produtos relacionados
+3. Classifique cada produto na categoria correta baseado na expansão semântica
 4. Considere variações de nome, sinônimos e produtos relacionados
 
 Retorne um JSON com:
 {{
     "alteracoes": [
-        {{"descricao_produto": "texto parcial para match", "nova_categoria": "categoria_valida", "motivo": "explicação"}}
+        {{"descricao_produto": "texto parcial para match", "nova_categoria": "categoria_valida", "motivo": "explicação (mencionar se foi por expansão semântica de palavra-chave)"}}
     ],
     "nova_regra": {{
         "padrao": "padrão de texto para identificar produtos similares no futuro",
