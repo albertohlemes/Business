@@ -447,6 +447,53 @@ const UsersPage = ({ user, onLogout }) => {
                   </div>
                 )}
 
+                {/* Seção de Atividades/Permissões */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-[#A1A1AA]">
+                      Atividades Autorizadas
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={selectAllAtividades}
+                        className="text-xs px-2 py-1 bg-[#2A2A2A] text-white rounded hover:bg-[#3A3A3A]"
+                      >
+                        Todos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={deselectAllAtividades}
+                        className="text-xs px-2 py-1 bg-[#2A2A2A] text-[#A1A1AA] rounded hover:bg-[#3A3A3A]"
+                      >
+                        Nenhum
+                      </button>
+                    </div>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto bg-[#0C0C0C] border border-[#2A2A2A] rounded p-2 space-y-1">
+                    {atividadesDisponiveis.map(atividade => (
+                      <label
+                        key={atividade.key}
+                        className="flex items-center gap-2 p-2 hover:bg-white/5 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.atividades?.includes(atividade.key)}
+                          onChange={() => toggleAtividade(atividade.key)}
+                          className="w-4 h-4 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951] focus:ring-[#C8A951]"
+                        />
+                        <div className="flex-1">
+                          <span className="text-sm text-white">{atividade.label}</span>
+                          <span className="text-xs text-[#666] ml-2">- {atividade.desc}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-[#A1A1AA] mt-1">
+                    Selecione quais menus e funcionalidades o usuário terá acesso
+                  </p>
+                </div>
+
                 <div className="flex gap-3 pt-4">
                   <button
                     data-testid="save-user-button"
