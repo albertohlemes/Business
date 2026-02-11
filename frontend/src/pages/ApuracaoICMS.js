@@ -1118,7 +1118,7 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                       <div className="flex gap-8">
                         <div className="text-right">
                           <p className="text-[#666] text-xs">Valor Total (Doc)</p>
-                          <p className="text-white font-semibold">{formatCurrency(dados.saidas?.totais?.valor_total)}</p>
+                          <p className="text-white font-semibold">{formatCurrency(dados.valores_por_documento?.total_saidas || dados.saidas?.totais?.valor_total_por_documento || dados.saidas?.totais?.valor_total)}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-[#666] text-xs">BC ICMS</p>
