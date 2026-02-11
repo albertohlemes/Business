@@ -160,7 +160,7 @@ const ExportMenu = ({ user, onLogout }) => {
       if (activeTab === 'sped') {
           // Usar novo endpoint que exporta e valida automaticamente
           response = await axios.post(
-            `${API}/sped/exportar-e-validar/${selectedCompany}?competencia=${encodeURIComponent(competencia)}&excluir_creditos_despesa_st=${excluirCreditosDespesaST}`,
+            `${API}/sped/exportar-e-validar/${selectedCompany}?competencia=${encodeURIComponent(competencia)}&excluir_creditos_despesa_st=${excluirCreditosDespesaST}&aplicar_beneficio_fiscal=${aplicarBeneficioFiscal}`,
             {},
             { headers: { Authorization: `Bearer ${token}` } }
           );
