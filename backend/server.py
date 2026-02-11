@@ -12649,20 +12649,52 @@ async def classificar_produto_individual(
 def obter_cfop_por_categoria(categoria: str, cfop_atual: str) -> str:
     """
     Retorna o CFOP apropriado baseado na categoria do produto.
+    Mantém o prefixo estadual/interestadual e considera se é operação com ST.
     """
-    # Se o CFOP atual começa com 1 (entrada interestadual) ou 2 (entrada estadual)
-    prefixo = cfop_atual[0] if cfop_atual and len(cfop_atual) >= 1 else '1'
+    if not cfop_atual or len(cfop_atual) < 4:
+        cfop_atual = '1102'
     
-    mapeamento = {
-        'revenda': f'{prefixo}102',      # Compra para comercialização
-        'insumo': f'{prefixo}101',       # Compra para industrialização
-        'despesa': f'{prefixo}556',      # Uso e consumo
-        'ativo_imobilizado': f'{prefixo}551',  # Ativo imobilizado
-        'combustivel': f'{prefixo}653',  # Combustível
-        'servico': f'{prefixo}933',      # Serviço
+    # Prefixo: 1 (estadual), 2 (interestadual), 3 (exterior)
+    prefixo = cfop_atual[0] if cfop_atual[0] in ['1', '2', '3', '5', '6', '7'] else '1'
+    
+    # Verificar se é operação com ST (4xx indica ST)
+    is_st = cfop_atual[1] == '4' if len(cfop_atual) >= 2 else False
+    
+    # Mapeamento base (sem ST)
+    mapeamento_base = {
+        'revenda': '102',       # Compra para comercialização
+        'insumo': '101',        # Compra para industrialização
+        'despesa': '556',       # Uso e consumo
+        'ativo_imobilizado': '551',  # Ativo imobilizado
+        'combustivel': '653',   # Combustível
+        'servico_aplicacao': '128',  # Compra para prestação de serviço
+        'servico': '933',       # Serviço
+        'bonificacao': '910',   # Bonificação
     }
     
-    return mapeamento.get(categoria, '')
+    # Mapeamento com ST (4xx)
+    mapeamento_st = {
+        'revenda': '403',       # Compra para comercialização com ST
+        'insumo': '401',        # Compra para industrialização com ST
+        'despesa': '556',       # Uso e consumo (não tem versão ST específica)
+        'ativo_imobilizado': '551',  # Ativo imobilizado
+        'combustivel': '653',   # Combustível
+        'servico_aplicacao': '128',  # Compra para prestação de serviço
+        'servico': '933',       # Serviço
+        'bonificacao': '910',   # Bonificação
+    }
+    
+    categoria_lower = categoria.lower() if categoria else ''
+    
+    if is_st:
+        sufixo = mapeamento_st.get(categoria_lower, mapeamento_base.get(categoria_lower, ''))
+    else:
+        sufixo = mapeamento_base.get(categoria_lower, '')
+    
+    if sufixo:
+        return f'{prefixo}{sufixo}'
+    
+    return ''
 
 
 @api_router.post("/classification/ia-command/{company_id}")
