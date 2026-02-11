@@ -15887,8 +15887,14 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
                 }
                 stats["from_sales_inference"] += 1
                 
-                # Salvar no cache para acelerar futuras classificações
-                await save_classification_to_cache(company_id, {"descricao": descricao}, "revenda", cfop, f"Inferido de vendas (NCM {match_level})")
+                # Acumular para salvar em batch no final
+                classifications_to_save.append({
+                    "descricao": descricao,
+                    "ncm": product.get('ncm', ''),
+                    "categoria": "revenda",
+                    "cfop": cfop,
+                    "justificativa": f"Inferido de vendas (NCM {match_level})"
+                })
                 continue
         
         # 3. Verificar match por palavras-chave dos produtos vendidos
