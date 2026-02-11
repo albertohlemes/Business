@@ -65,13 +65,19 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - **Links para NFs do produto** ✅
 - Classificação atualiza CFOP automaticamente
 - Comandos de IA com atualização de CFOP
+- **Categoria "Devolução"** ✅ para CFOPs de devolução (1201-1210, 2201-2210, 5201-5210, 6201-6210)
 
 ### 8. Divergências PIS/COFINS
 - **Filtra apenas notas de SAÍDA** ✅
 - **Bebidas alcoólicas (NCMs 2204-2208) tratadas como TRIBUTADAS** ✅
 - CST correto: 01 (saída) / 50 (entrada) para bebidas alcoólicas
 
-### 9. Exportação
+### 9. Notas Canceladas
+- **Importação automática** ✅ com status "cancelada"
+- **Valores zerados** ✅ (valor_total, produtos, impostos = 0)
+- **Exibição visual** ✅ em vermelho com texto riscado na listagem
+
+### 10. Exportação
 - SPED Fiscal
 - Relatórios por alíquota (ICMS, PIS, COFINS)
 - CSV de entradas/saídas
@@ -93,6 +99,20 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - `/app/frontend/src/context/` - Contextos (App, Upload)
 
 ## Changelog
+
+### 2026-02-11 (Sessão 17 - Agrupamento Devolução e Notas Canceladas)
+
+**Categoria "Devolução" na Classificação:**
+- ✅ CFOPs de devolução de ENTRADA expandidos: 1201-1210, 2201-2210, 1411, 2411, etc.
+- ✅ CFOPs de devolução de SAÍDA adicionados: 5201-5210, 6201-6210, 5411, 6411, etc.
+- ✅ Função `obter_categoria_por_cfop` retorna 'devolucao' para todos os CFOPs de devolução
+- ✅ Frontend já tinha suporte para label "Devolução"
+
+**Importação de Notas Canceladas:**
+- ✅ Parser de NF-e detecta cStat 101/151 (nota cancelada)
+- ✅ Parser de NFC-e atualizado com mesma lógica de cancelamento
+- ✅ Valores da nota e produtos zerados automaticamente quando cancelada
+- ✅ Campo `status: 'cancelada'` adicionado ao documento
 
 ### 2026-02-11 (Sessão 16 - Correção CST Bebidas Alcoólicas e Timeout Upload)
 
