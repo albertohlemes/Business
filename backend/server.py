@@ -567,6 +567,9 @@ class Company(BaseModel):
     percentual_presuncao_servicos_irpj: float = 32.0
     percentual_presuncao_servicos_csll: float = 32.0
     
+    # Logo da empresa (base64 data URL)
+    logo_url: Optional[str] = None
+    
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CompanyCreate(BaseModel):
