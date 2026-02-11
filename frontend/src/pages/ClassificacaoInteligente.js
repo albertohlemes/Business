@@ -1605,8 +1605,8 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                 </button>
               </div>
               
-              {/* Barra de Pesquisa */}
-              <div className="p-4 border-b border-[#2A2A2A]">
+              {/* Barra de Pesquisa e Ações em Lote */}
+              <div className="p-4 border-b border-[#2A2A2A] space-y-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666]" />
                   <input
@@ -1617,6 +1617,68 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                     className="w-full bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg pl-10 pr-4 py-2 text-white text-sm placeholder-[#666] focus:border-purple-500 focus:outline-none"
                   />
                 </div>
+                
+                {/* Ações em lote */}
+                {memoriaFiltrada.length > 0 && (
+                  <div className="flex items-center justify-between bg-[#0C0C0C] rounded-lg p-3">
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedRules.size === memoriaFiltrada.length && memoriaFiltrada.length > 0}
+                          onChange={selectAllRules}
+                          className="w-4 h-4 rounded border-[#2A2A2A] bg-[#1A1A1A] text-purple-500 focus:ring-purple-500"
+                        />
+                        <span className="text-sm text-[#A1A1AA]">
+                          Selecionar todas ({memoriaFiltrada.length})
+                        </span>
+                      </label>
+                      {selectedRules.size > 0 && (
+                        <span className="text-sm text-purple-400">
+                          {selectedRules.size} selecionada(s)
+                        </span>
+                      )}
+                    </div>
+                    
+                    {selectedRules.size > 0 && (
+                      <div className="flex items-center gap-2">
+                        {/* Alterar categoria em lote */}
+                        <select
+                          value={batchCategory}
+                          onChange={(e) => {
+                            setBatchCategory(e.target.value);
+                            if (e.target.value) {
+                              updateBatchCategory(e.target.value);
+                            }
+                          }}
+                          disabled={batchUpdating}
+                          className="bg-[#1A1A1A] border border-[#2A2A2A] rounded px-2 py-1.5 text-white text-sm"
+                        >
+                          <option value="">Alterar categoria...</option>
+                          <option value="revenda">Revenda</option>
+                          <option value="insumo">Insumo</option>
+                          <option value="despesa">Despesa</option>
+                          <option value="combustivel">Combustível</option>
+                          <option value="ativo_imobilizado">Ativo Imobilizado</option>
+                        </select>
+                        
+                        {/* Excluir em lote */}
+                        <button
+                          onClick={deleteBatchRules}
+                          disabled={batchDeleting}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors text-sm disabled:opacity-50"
+                        >
+                          {batchDeleting ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                          Excluir ({selectedRules.size})
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               
               {/* Conteúdo */}
@@ -1640,13 +1702,25 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                     {memoriaFiltrada.map((rule) => (
                       <div 
                         key={rule.id} 
-                        className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg p-4 hover:border-purple-500/30 transition-colors"
+                        className={`bg-[#0C0C0C] border rounded-lg p-4 transition-colors ${
+                          selectedRules.has(rule.id) 
+                            ? 'border-purple-500/50 bg-purple-500/5' 
+                            : 'border-[#2A2A2A] hover:border-purple-500/30'
+                        }`}
                       >
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                          {/* Checkbox de seleção */}
+                          <input
+                            type="checkbox"
+                            checked={selectedRules.has(rule.id)}
+                            onChange={() => toggleRuleSelection(rule.id)}
+                            className="mt-1 w-4 h-4 rounded border-[#2A2A2A] bg-[#1A1A1A] text-purple-500 focus:ring-purple-500"
+                          />
+                          
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
                               <span className="text-white font-medium truncate">
-                                {rule.descricao_produto || rule.padrao || 'Produto sem descrição'}
+                                {rule.produto_descricao || rule.descricao_produto || rule.padrao || 'Produto sem descrição'}
                               </span>
                               {rule.ncm && (
                                 <span className="text-xs bg-[#1A1A1A] text-[#A1A1AA] px-2 py-0.5 rounded font-mono">
@@ -1660,7 +1734,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                               {editingRule === rule.id ? (
                                 <select
                                   defaultValue={rule.categoria || rule.categoria_correta}
-                                  onChange={(e) => updateRule(rule.id, e.target.value, rule.cfop)}
+                                  onChange={(e) => updateRule(rule.id, e.target.value, rule.cfop || rule.cfop_correto)}
                                   className="bg-[#1A1A1A] border border-[#2A2A2A] rounded px-2 py-1 text-white text-sm"
                                 >
                                   <option value="revenda">Revenda</option>
@@ -1681,11 +1755,11 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                 </span>
                               )}
                               
-                              {rule.cfop && (
+                              {(rule.cfop || rule.cfop_correto) && (
                                 <>
                                   <span className="text-[#666]">|</span>
                                   <span className="text-[#A1A1AA]">CFOP:</span>
-                                  <span className="font-mono text-[#C8A951]">{rule.cfop}</span>
+                                  <span className="font-mono text-[#C8A951]">{rule.cfop || rule.cfop_correto}</span>
                                 </>
                               )}
                               
