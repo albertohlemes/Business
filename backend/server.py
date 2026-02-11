@@ -98,6 +98,210 @@ class UserRole:
         """Verifica se o role tem acesso total a todas as empresas"""
         return role in [cls.ADMIN, cls.SUPER_ADMIN, cls.MASTER, 'super_admin', 'admin', 'master']
 
+
+# ============= SISTEMA DE PERMISSÕES POR FLAGS =============
+class PermissionFlags:
+    """
+    Flags de permissão granular por módulo e ação.
+    Cada flag controla uma funcionalidade específica do sistema.
+    """
+    # Módulo: Dashboard
+    DASHBOARD_VIEW = "dashboard.view"
+    DASHBOARD_EXPORT = "dashboard.export"
+    
+    # Módulo: Documentos
+    DOCUMENTS_VIEW = "documents.view"
+    DOCUMENTS_UPLOAD = "documents.upload"
+    DOCUMENTS_EDIT = "documents.edit"
+    DOCUMENTS_DELETE = "documents.delete"
+    DOCUMENTS_EXPORT = "documents.export"
+    
+    # Módulo: Classificação
+    CLASSIFICATION_VIEW = "classification.view"
+    CLASSIFICATION_EDIT = "classification.edit"
+    CLASSIFICATION_AI = "classification.ai"
+    CLASSIFICATION_BULK = "classification.bulk"
+    
+    # Módulo: ICMS
+    ICMS_VIEW = "icms.view"
+    ICMS_EDIT = "icms.edit"
+    ICMS_EXPORT = "icms.export"
+    
+    # Módulo: PIS/COFINS
+    PIS_COFINS_VIEW = "pis_cofins.view"
+    PIS_COFINS_EDIT = "pis_cofins.edit"
+    PIS_COFINS_EXPORT = "pis_cofins.export"
+    
+    # Módulo: RET
+    RET_VIEW = "ret.view"
+    RET_EDIT = "ret.edit"
+    RET_EXPORT = "ret.export"
+    
+    # Módulo: Relatórios
+    REPORTS_VIEW = "reports.view"
+    REPORTS_EXPORT = "reports.export"
+    REPORTS_GENERATE = "reports.generate"
+    
+    # Módulo: SPED
+    SPED_VIEW = "sped.view"
+    SPED_GENERATE = "sped.generate"
+    SPED_VALIDATE = "sped.validate"
+    
+    # Módulo: Empresas
+    COMPANIES_VIEW = "companies.view"
+    COMPANIES_CREATE = "companies.create"
+    COMPANIES_EDIT = "companies.edit"
+    COMPANIES_DELETE = "companies.delete"
+    
+    # Módulo: Usuários
+    USERS_VIEW = "users.view"
+    USERS_CREATE = "users.create"
+    USERS_EDIT = "users.edit"
+    USERS_DELETE = "users.delete"
+    USERS_PERMISSIONS = "users.permissions"
+    
+    # Módulo: Configurações
+    SETTINGS_VIEW = "settings.view"
+    SETTINGS_EDIT = "settings.edit"
+    
+    # Acesso a empresas
+    ALL_COMPANIES = "companies.all"  # Acesso a todas as empresas
+
+
+# Permissões padrão por role
+DEFAULT_PERMISSIONS = {
+    "super_admin": ["*"],  # Todas as permissões
+    "admin": ["*"],  # Todas as permissões
+    "master": [
+        # Dashboard
+        PermissionFlags.DASHBOARD_VIEW, PermissionFlags.DASHBOARD_EXPORT,
+        # Documentos
+        PermissionFlags.DOCUMENTS_VIEW, PermissionFlags.DOCUMENTS_UPLOAD,
+        PermissionFlags.DOCUMENTS_EDIT, PermissionFlags.DOCUMENTS_DELETE,
+        PermissionFlags.DOCUMENTS_EXPORT,
+        # Classificação
+        PermissionFlags.CLASSIFICATION_VIEW, PermissionFlags.CLASSIFICATION_EDIT,
+        PermissionFlags.CLASSIFICATION_AI, PermissionFlags.CLASSIFICATION_BULK,
+        # ICMS
+        PermissionFlags.ICMS_VIEW, PermissionFlags.ICMS_EDIT, PermissionFlags.ICMS_EXPORT,
+        # PIS/COFINS
+        PermissionFlags.PIS_COFINS_VIEW, PermissionFlags.PIS_COFINS_EDIT, PermissionFlags.PIS_COFINS_EXPORT,
+        # RET
+        PermissionFlags.RET_VIEW, PermissionFlags.RET_EDIT, PermissionFlags.RET_EXPORT,
+        # Relatórios
+        PermissionFlags.REPORTS_VIEW, PermissionFlags.REPORTS_EXPORT, PermissionFlags.REPORTS_GENERATE,
+        # SPED
+        PermissionFlags.SPED_VIEW, PermissionFlags.SPED_GENERATE, PermissionFlags.SPED_VALIDATE,
+        # Empresas
+        PermissionFlags.COMPANIES_VIEW, PermissionFlags.COMPANIES_CREATE,
+        PermissionFlags.COMPANIES_EDIT, PermissionFlags.COMPANIES_DELETE,
+        # Usuários
+        PermissionFlags.USERS_VIEW, PermissionFlags.USERS_CREATE,
+        PermissionFlags.USERS_EDIT,
+        # Configurações
+        PermissionFlags.SETTINGS_VIEW, PermissionFlags.SETTINGS_EDIT,
+        # Todas empresas
+        PermissionFlags.ALL_COMPANIES,
+    ],
+    "operacional": [
+        # Dashboard
+        PermissionFlags.DASHBOARD_VIEW,
+        # Documentos
+        PermissionFlags.DOCUMENTS_VIEW, PermissionFlags.DOCUMENTS_UPLOAD,
+        PermissionFlags.DOCUMENTS_EDIT, PermissionFlags.DOCUMENTS_EXPORT,
+        # Classificação
+        PermissionFlags.CLASSIFICATION_VIEW, PermissionFlags.CLASSIFICATION_EDIT,
+        PermissionFlags.CLASSIFICATION_AI,
+        # ICMS
+        PermissionFlags.ICMS_VIEW, PermissionFlags.ICMS_EXPORT,
+        # PIS/COFINS
+        PermissionFlags.PIS_COFINS_VIEW, PermissionFlags.PIS_COFINS_EXPORT,
+        # RET
+        PermissionFlags.RET_VIEW, PermissionFlags.RET_EXPORT,
+        # Relatórios
+        PermissionFlags.REPORTS_VIEW, PermissionFlags.REPORTS_EXPORT,
+        # SPED
+        PermissionFlags.SPED_VIEW,
+        # Empresas
+        PermissionFlags.COMPANIES_VIEW,
+        # Configurações
+        PermissionFlags.SETTINGS_VIEW,
+    ],
+    "client": [
+        # Dashboard
+        PermissionFlags.DASHBOARD_VIEW,
+        # Documentos
+        PermissionFlags.DOCUMENTS_VIEW,
+        # Relatórios
+        PermissionFlags.REPORTS_VIEW,
+        # Empresas
+        PermissionFlags.COMPANIES_VIEW,
+    ],
+}
+
+
+def get_user_permissions(user_data: dict) -> List[str]:
+    """
+    Retorna a lista de permissões efetivas do usuário.
+    Combina permissões do role com permissões customizadas.
+    """
+    role = user_data.get('role', 'operacional')
+    custom_permissions = user_data.get('permissions', [])
+    denied_permissions = user_data.get('denied_permissions', [])
+    
+    # Se for admin/super_admin, tem todas as permissões
+    if role in ['admin', 'super_admin']:
+        return ["*"]
+    
+    # Pegar permissões padrão do role
+    role_permissions = set(DEFAULT_PERMISSIONS.get(role, []))
+    
+    # Adicionar permissões customizadas
+    role_permissions.update(custom_permissions)
+    
+    # Remover permissões negadas
+    for denied in denied_permissions:
+        role_permissions.discard(denied)
+    
+    return list(role_permissions)
+
+
+def has_permission(user_data: dict, permission: str) -> bool:
+    """
+    Verifica se o usuário tem uma permissão específica.
+    """
+    permissions = get_user_permissions(user_data)
+    
+    # Wildcard - acesso total
+    if "*" in permissions:
+        return True
+    
+    # Verificar permissão exata
+    if permission in permissions:
+        return True
+    
+    # Verificar permissão de módulo (ex: "documents.*" permite "documents.view")
+    module = permission.split('.')[0]
+    if f"{module}.*" in permissions:
+        return True
+    
+    return False
+
+
+def check_permission(permission: str):
+    """
+    Decorator/Dependency para verificar permissão em endpoints.
+    """
+    async def permission_checker(current_user: dict = Depends(get_current_user)):
+        if not has_permission(current_user, permission):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Você não tem permissão para esta ação: {permission}"
+            )
+        return current_user
+    return permission_checker
+
+
 class User(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
