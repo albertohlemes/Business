@@ -302,6 +302,44 @@ def check_permission(permission: str):
     return permission_checker
 
 
+async def require_company_access(company_id: str, user_data: dict, permission: str = None, action: str = "acessar") -> Dict:
+    """
+    Verifica se o usuário tem permissão e acesso à empresa.
+    
+    Args:
+        company_id: ID da empresa
+        user_data: Dados do usuário atual
+        permission: Permissão necessária (opcional)
+        action: Descrição da ação (para mensagem de erro)
+        
+    Returns:
+        Dicionário com dados da empresa
+        
+    Raises:
+        HTTPException: Se não tiver permissão ou acesso
+    """
+    # Verificar permissão primeiro (se especificada)
+    if permission and not has_permission(user_data, permission):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Você não tem permissão para {action}: {permission}"
+        )
+    
+    # Buscar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Verificar acesso à empresa
+    if not await check_company_access(company, user_data):
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Você não tem acesso a esta empresa para {action}"
+        )
+    
+    return company
+
+
 class User(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
