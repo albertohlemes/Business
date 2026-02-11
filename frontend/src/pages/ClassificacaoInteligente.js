@@ -1141,6 +1141,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                       green: 'bg-green-500/10 border-green-500/30 text-green-400',
                       red: 'bg-red-500/10 border-red-500/30 text-red-400',
                       amber: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
+                      orange: 'bg-orange-500/10 border-orange-500/30 text-orange-400',
                       purple: 'bg-purple-500/10 border-purple-500/30 text-purple-400',
                       gray: 'bg-gray-500/10 border-gray-500/30 text-gray-400'
                     };
