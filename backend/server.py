@@ -6361,6 +6361,8 @@ async def list_documents(
     tipo_operacao: Optional[str] = None,
     modelo: Optional[str] = None,
     status: Optional[str] = None,  # 'ativa', 'cancelada' ou None para todas
+    skip: int = 0,  # Paginação: quantos pular
+    limit: int = 100,  # Paginação: máximo por página (padrão 100)
     current_user: User = Depends(get_current_user)
 ):
     query = {}
@@ -6375,16 +6377,38 @@ async def list_documents(
     if competencia:
         query['competencia'] = competencia
     
+    # Filtrar por tipo de operação diretamente na query
+    if tipo_operacao:
+        if tipo_operacao == 'saida':
+            query['$or'] = [
+                {'tipo_operacao': 'saida'},
+                {'tipo_operacao': 'prestado'},
+                {'tipo': 'saida'}
+            ]
+        elif tipo_operacao == 'entrada':
+            query['$or'] = [
+                {'tipo_operacao': 'entrada'},
+                {'tipo_operacao': 'tomado'},
+                {'tipo': 'entrada'}
+            ]
+        else:
+            query['tipo_operacao'] = tipo_operacao
+    
     # Filtrar por status (ativa/cancelada)
     if status == 'cancelada':
-        # Apenas notas canceladas
         query['cancelada'] = True
     elif status == 'ativa':
-        # Apenas notas ativas (não canceladas e não desconsideradas)
         query.update(get_filtro_notas_ativas())
-    # Se status for None, retorna todas (sem filtro)
     
-    documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
+    # Contar total para paginação
+    total_count = await db.xml_documents.count_documents(query)
+    
+    # Limitar o máximo de documentos por requisição para evitar travamentos
+    limit = min(limit, 500)  # Máximo 500 por página
+    
+    # Buscar documentos com paginação
+    cursor = db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).skip(skip).limit(limit).sort("data_emissao", -1)
+    documents = await cursor.to_list(length=limit)
     
     for doc in documents:
         if isinstance(doc.get('uploaded_at'), str):
@@ -6392,7 +6416,6 @@ async def list_documents(
         
         # Inferir tipo_operacao se não estiver definido
         if not doc.get('tipo_operacao'):
-            # Tentar inferir pelo CFOP do primeiro produto
             produtos = doc.get('produtos', [])
             if produtos:
                 cfop = str(produtos[0].get('cfop', ''))
@@ -6401,17 +6424,7 @@ async def list_documents(
                 elif cfop and cfop[0] in ['5', '6', '7']:
                     doc['tipo_operacao'] = 'saida'
     
-    # Filtrar por tipo de operação após inferência
-    if tipo_operacao:
-        # Para NFS-e, mapear 'saida' para 'prestado' e 'entrada' para 'tomado'
-        if tipo_operacao == 'saida':
-            documents = [d for d in documents if d.get('tipo_operacao') in ['saida', 'prestado'] or d.get('tipo') == 'saida']
-        elif tipo_operacao == 'entrada':
-            documents = [d for d in documents if d.get('tipo_operacao') in ['entrada', 'tomado'] or d.get('tipo') == 'entrada']
-        else:
-            documents = [d for d in documents if d.get('tipo_operacao') == tipo_operacao]
-    
-    # Filtrar por modelo do documento
+    # Filtrar por modelo do documento (pós-query pois pode ser complexo)
     if modelo:
         modelo_map = {
             '55': ['55', 'nfe'],
@@ -6425,7 +6438,14 @@ async def list_documents(
         else:
             documents = [d for d in documents if d.get('modelo') == modelo]
     
-    return documents
+    # Retornar com informações de paginação
+    return {
+        "documents": documents,
+        "total": total_count,
+        "skip": skip,
+        "limit": limit,
+        "has_more": (skip + len(documents)) < total_count
+    }
 
 @api_router.get("/xml/documents/{document_id}")
 async def get_document(
