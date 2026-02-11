@@ -9,7 +9,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ledgerfix-pro.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://smarttax-8.preview.emergentagent.com')
 COMPANY_ID = "d7f30ea1-9df3-4124-a561-12984ffff64b"
 COMPETENCIA = "01/2026"
 

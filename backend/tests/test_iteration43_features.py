@@ -14,7 +14,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ledgerfix-pro.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://smarttax-8.preview.emergentagent.com')
 
 # Test credentials
 TEST_EMAIL = "admin@test.com"
