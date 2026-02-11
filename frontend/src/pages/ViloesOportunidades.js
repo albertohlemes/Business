@@ -263,76 +263,121 @@ const ViloesOportunidades = ({ user, onLogout }) => {
     (item.produtos_saida || []).forEach(p => allProducts.push({ ...p, origem: 'saida' }));
     (item.produtos || []).forEach(p => allProducts.push({ ...p, origem: p.ncm ? 'geral' : 'geral' }));
 
+    // Calcular percentuais em relação às vendas
+    const percIcmsVenda = item.saida_valor > 0 ? (icmsImpacto / item.saida_valor * 100) : 0;
+    const percPisVenda = item.saida_valor > 0 ? (pisImpacto / item.saida_valor * 100) : 0;
+    const percCofinsVenda = item.saida_valor > 0 ? (cofinsImpacto / item.saida_valor * 100) : 0;
+    const totalImposto = icmsImpacto + pisImpacto + cofinsImpacto;
+    const percTotalVenda = item.saida_valor > 0 ? (totalImposto / item.saida_valor * 100) : 0;
+
     return (
       <div key={id} className="border-b border-[#2A2A2A] last:border-b-0">
-        {/* Linha principal */}
+        {/* Linha principal - Compacta */}
         <div 
-          className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#1A1A1A] transition-colors ${isExpanded ? 'bg-[#1A1A1A]' : ''}`}
+          className={`px-4 py-3 cursor-pointer hover:bg-[#1A1A1A] transition-colors ${isExpanded ? 'bg-[#1A1A1A]' : ''}`}
           onClick={() => toggleExpand(id)}
         >
-          <div className="flex-shrink-0">
-            {isExpanded ? (
-              <ChevronDown className="w-4 h-4 text-[#666]" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-[#666]" />
-            )}
-          </div>
-          
-          <div className="flex items-center gap-3 min-w-[200px]">
-            <span className={`text-xs font-mono px-2 py-0.5 rounded ${isVilao ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
-              #{index + 1}
-            </span>
-            <div>
-              <span className="font-mono text-sm text-white">
-                {activeTab === 'ncm' ? item.ncm : item.keyword?.toUpperCase()}
-              </span>
-              {item.descricao && (
-                <p className="text-xs text-[#666] truncate max-w-[150px]">{item.descricao}</p>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex-1 flex items-center justify-between gap-4">
-            <div className="text-center min-w-[100px]">
-              <p className="text-xs text-[#666]">ICMS</p>
-              <p className={`text-sm font-medium ${icmsImpacto > 0 ? (isVilao ? 'text-red-400' : 'text-green-400') : 'text-[#A1A1AA]'}`}>
-                {isVilao ? '+' : ''}{formatNumber(Math.abs(icmsImpacto))}
-              </p>
-            </div>
-            
-            <div className="text-center min-w-[100px]">
-              <p className="text-xs text-[#666]">PIS</p>
-              <p className={`text-sm font-medium ${pisImpacto > 0 ? (isVilao ? 'text-red-400' : 'text-green-400') : 'text-[#A1A1AA]'}`}>
-                {isVilao ? '+' : ''}{formatNumber(Math.abs(pisImpacto))}
-              </p>
-            </div>
-            
-            <div className="text-center min-w-[100px]">
-              <p className="text-xs text-[#666]">COFINS</p>
-              <p className={`text-sm font-medium ${cofinsImpacto > 0 ? (isVilao ? 'text-red-400' : 'text-green-400') : 'text-[#A1A1AA]'}`}>
-                {isVilao ? '+' : ''}{formatNumber(Math.abs(cofinsImpacto))}
-              </p>
-            </div>
-            
-            {item.margem_percentual !== undefined && (
-              <div className="text-center min-w-[80px]">
-                <p className="text-xs text-[#666]">Margem</p>
-                <p className={`text-sm font-medium ${item.margem_percentual < 15 ? 'text-red-400' : item.margem_percentual < 30 ? 'text-yellow-400' : 'text-green-400'}`}>
-                  {formatNumber(item.margem_percentual)}%
-                </p>
+          {/* Header com NCM/Categoria */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                {isExpanded ? (
+                  <ChevronDown className="w-4 h-4 text-[#666]" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-[#666]" />
+                )}
               </div>
-            )}
-            
-            <div className={`text-right min-w-[130px] px-3 py-1.5 rounded-lg ${isVilao ? 'bg-red-500/10' : 'bg-green-500/10'}`}>
-              <p className="text-xs text-[#666]">{isVilao ? 'Impacto' : 'Benefício'}</p>
+              <span className={`text-xs font-mono px-2 py-0.5 rounded ${isVilao ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                #{index + 1}
+              </span>
+              <div>
+                <span className="font-mono text-sm text-white font-semibold">
+                  {activeTab === 'ncm' ? item.ncm : item.keyword?.toUpperCase()}
+                </span>
+                {item.descricao && (
+                  <span className="text-xs text-[#666] ml-2">• {item.descricao}</span>
+                )}
+              </div>
+            </div>
+            <div className={`text-right px-3 py-1.5 rounded-lg ${isVilao ? 'bg-red-500/10' : 'bg-green-500/10'}`}>
+              <p className="text-xs text-[#666]">Total Imposto | % s/ Venda</p>
               <p className={`text-base font-bold ${isVilao ? 'text-red-400' : 'text-green-400'}`}>
-                {formatCurrency(impacto)}
+                {formatCurrency(Math.abs(totalImposto))} <span className="text-xs">({formatNumber(Math.abs(percTotalVenda))}%)</span>
+              </p>
+            </div>
+          </div>
+          
+          {/* Grid de informações detalhadas */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 text-center">
+            {/* Entradas */}
+            <div className="bg-[#0D0D0D] rounded-lg p-2">
+              <p className="text-[10px] text-[#666] uppercase">Entradas</p>
+              <p className="text-sm font-semibold text-blue-400">{formatCurrency(item.entrada_valor)}</p>
+            </div>
+            
+            {/* Saídas */}
+            <div className="bg-[#0D0D0D] rounded-lg p-2">
+              <p className="text-[10px] text-[#666] uppercase">Saídas</p>
+              <p className="text-sm font-semibold text-orange-400">{formatCurrency(item.saida_valor)}</p>
+            </div>
+            
+            {/* ICMS - Crédito | Débito | Diferença | % */}
+            <div className="bg-[#0D0D0D] rounded-lg p-2">
+              <p className="text-[10px] text-[#666] uppercase">ICMS</p>
+              <div className="flex items-center justify-center gap-1 text-xs">
+                <span className="text-green-400" title="Crédito">{formatNumber(item.icms?.credito || 0)}</span>
+                <span className="text-[#444]">|</span>
+                <span className="text-red-400" title="Débito">{formatNumber(item.icms?.debito || 0)}</span>
+              </div>
+              <p className={`text-sm font-semibold ${icmsImpacto > 0 ? 'text-red-400' : icmsImpacto < 0 ? 'text-green-400' : 'text-[#666]'}`}>
+                {icmsImpacto >= 0 ? '+' : ''}{formatNumber(icmsImpacto)} <span className="text-[10px]">({formatNumber(Math.abs(percIcmsVenda))}%)</span>
               </p>
             </div>
             
-            <div className="text-center min-w-[60px]">
-              <p className="text-xs text-[#666]">Itens</p>
-              <p className="text-sm text-[#A1A1AA]">{(item.qtd_entrada || 0) + (item.qtd_saida || 0)}</p>
+            {/* PIS - Crédito | Débito | Diferença | % */}
+            <div className="bg-[#0D0D0D] rounded-lg p-2">
+              <p className="text-[10px] text-[#666] uppercase">PIS</p>
+              <div className="flex items-center justify-center gap-1 text-xs">
+                <span className="text-green-400" title="Crédito">{formatNumber(item.pis?.credito || 0)}</span>
+                <span className="text-[#444]">|</span>
+                <span className="text-red-400" title="Débito">{formatNumber(item.pis?.debito || 0)}</span>
+              </div>
+              <p className={`text-sm font-semibold ${pisImpacto > 0 ? 'text-red-400' : pisImpacto < 0 ? 'text-green-400' : 'text-[#666]'}`}>
+                {pisImpacto >= 0 ? '+' : ''}{formatNumber(pisImpacto)} <span className="text-[10px]">({formatNumber(Math.abs(percPisVenda))}%)</span>
+              </p>
+            </div>
+            
+            {/* COFINS - Crédito | Débito | Diferença | % */}
+            <div className="bg-[#0D0D0D] rounded-lg p-2">
+              <p className="text-[10px] text-[#666] uppercase">COFINS</p>
+              <div className="flex items-center justify-center gap-1 text-xs">
+                <span className="text-green-400" title="Crédito">{formatNumber(item.cofins?.credito || 0)}</span>
+                <span className="text-[#444]">|</span>
+                <span className="text-red-400" title="Débito">{formatNumber(item.cofins?.debito || 0)}</span>
+              </div>
+              <p className={`text-sm font-semibold ${cofinsImpacto > 0 ? 'text-red-400' : cofinsImpacto < 0 ? 'text-green-400' : 'text-[#666]'}`}>
+                {cofinsImpacto >= 0 ? '+' : ''}{formatNumber(cofinsImpacto)} <span className="text-[10px]">({formatNumber(Math.abs(percCofinsVenda))}%)</span>
+              </p>
+            </div>
+            
+            {/* Total Impostos */}
+            <div className={`rounded-lg p-2 ${isVilao ? 'bg-red-500/10' : 'bg-green-500/10'}`}>
+              <p className="text-[10px] text-[#666] uppercase">Impacto Total</p>
+              <p className={`text-sm font-bold ${isVilao ? 'text-red-400' : 'text-green-400'}`}>
+                {formatCurrency(Math.abs(impacto))}
+              </p>
+              <p className={`text-xs ${isVilao ? 'text-red-400/70' : 'text-green-400/70'}`}>
+                {formatNumber(Math.abs(percTotalVenda))}% s/ venda
+              </p>
+            </div>
+            
+            {/* Margem e Qtd */}
+            <div className="bg-[#0D0D0D] rounded-lg p-2">
+              <p className="text-[10px] text-[#666] uppercase">Margem | Itens</p>
+              <p className={`text-sm font-semibold ${item.margem_percentual < 15 ? 'text-red-400' : item.margem_percentual < 30 ? 'text-yellow-400' : 'text-green-400'}`}>
+                {formatNumber(item.margem_percentual || 0)}%
+              </p>
+              <p className="text-xs text-[#A1A1AA]">{(item.qtd_entrada || 0) + (item.qtd_saida || 0)} produtos</p>
             </div>
           </div>
         </div>
