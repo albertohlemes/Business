@@ -6409,6 +6409,12 @@ async def upload_xml_with_progress(
             
             # Adicionar ao cache para evitar duplicados dentro do mesmo lote
             existing_docs_cache.add(chave_nfe)
+            # Também adicionar ao cache alternativo
+            num = str(parsed_data.get('numero_nfe') or "")
+            serie = str(parsed_data.get('serie') or "1")
+            cnpj_emitente = str(parsed_data.get('emitente_cnpj') or "")
+            if num and cnpj_emitente:
+                existing_docs_by_num_serie.add(f"{num}|{serie}|{cnpj_emitente}")
             
             result_entry = {
                 "filename": file.filename,
