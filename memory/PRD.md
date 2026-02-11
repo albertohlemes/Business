@@ -18,31 +18,43 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - Integração com SIEG (BLOQUEADO - chave inválida)
 - **Barra de progresso flutuante global** ✅ (visível em todas as telas)
 - **Botão X para fechar barra de progresso** ✅
-- **Timeout automático de 60 segundos** ✅ (notifica erro se travada)
+- **Timeout automático de 120 segundos** ✅ (notifica erro se travada)
 - Validação automática de CFOP por operação
 - **Filtro de divergências** ✅ (Todos/Divergente/OK)
+- **Filtro de status** ✅ (Ativas/Canceladas/Todas)
+- **Relatório de importação expandido** ✅ (inclui devoluções de fornecedor)
+- **Exibição de notas canceladas** ✅ (vermelho e riscadas)
 
-### 3. Visualização de NF-e (NOVO!)
+### 3. Dashboard - Cards de Navegação
+- **Cards clicáveis** ✅ que navegam para tipo específico de documento
+- NF-e Entrada → `/documents?operacao=entrada&tipo=nfe`
+- CT-e Entrada → `/documents?operacao=entrada&tipo=cte`
+- NFS-e Tomados → `/documents?operacao=entrada&tipo=servicos_tomados`
+- NF-e Saída → `/documents?operacao=saida&tipo=nfe`
+- NFC-e (Cupons) → `/documents?operacao=saida&tipo=nfce`
+- NFS-e Prestados → `/documents?operacao=saida&tipo=servicos_prestados`
+
+### 4. Visualização de NF-e
 - **Modal detalhado de documento** ✅
 - Comparativo Capa NF × Produtos
 - Indicadores visuais de divergência (verde/vermelho)
 - Tabela completa de produtos com CFOP, CST, NCM, bases, impostos
 
-### 4. Alertas de CFOP
+### 5. Alertas de CFOP
 - **Agrupamento por CFOP** para ação em lote ✅
 - Botões de ação: Manter, Converter, Editar manualmente
 - **Atualização de CFOP ao classificar via IA** ✅
 - Ação individual ou em lote
 - Lista de NFs por produto
 
-### 5. Apurações Fiscais
+### 6. Apurações Fiscais
 - ICMS, PIS/COFINS, ISS, IPI
 - DIFAL para Simples Nacional
 - Cálculo de Fator R
 - **DAS corrigido** ✅ (cálculo de descontos ST/monofásico)
 - **Indicadores para Lucro Presumido** ✅
 
-### 6. RET - Comparativo de Regimes
+### 7. RET - Comparativo de Regimes
 - Comparação entre Simples, Presumido e Real
 - DRE para Lucro Real
 - Aviso de dados incompletos
