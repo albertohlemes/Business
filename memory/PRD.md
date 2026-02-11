@@ -142,6 +142,18 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **Endpoint `/api/auth/users/{user_id}/permanent`:** Exclusão permanente individual
 - ✅ **Arquivos modificados:** `/app/backend/server.py`, `/app/frontend/src/pages/UsersPage.js`
 
+**IA de Classificação Inteligente com Aprendizado de Vendas:**
+- ✅ **Análise de NCMs vendidos:** Sistema coleta NCMs dos produtos de saída (primeiros 4-6 dígitos)
+- ✅ **Match por NCM:** Se produto de entrada tem NCM similar aos vendidos, classifica automaticamente como REVENDA
+- ✅ **Análise de palavras-chave:** Coleta palavras significativas dos produtos vendidos para inferência
+- ✅ **Match por palavras:** Se 2+ palavras do produto de entrada aparecem em vendidos, classifica como REVENDA
+- ✅ **Cache automático:** Classificações inferidas são salvas no cache para acelerar futuras classificações
+- ✅ **Nova estatística:** `from_sales_inference` conta quantos produtos foram classificados por aprendizado
+- ✅ **Arquivo modificado:** `/app/backend/server.py` (função `classify_products_with_cache`)
+
+**Arquivo Removido:**
+- ✅ `/app/frontend/src/pages/UploadXML.js` - Arquivo obsoleto já havia sido removido anteriormente
+
 **Correção do Modal de Relatório de Upload que "Aparece e Some":**
 - ✅ **Problema identificado:** Race condition entre SSE e polling causava múltiplas atualizações do estado
 - ✅ **Solução implementada:**
