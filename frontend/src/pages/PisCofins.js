@@ -1106,9 +1106,18 @@ const PisCofins = ({ user, onLogout }) => {
               <p className="text-[#A1A1AA] text-sm mt-1">PIS 1,65% + COFINS 7,60% (não cumulativo)</p>
             </div>
             <div className="p-4 space-y-4">
+              {/* Créditos separados */}
               <div className="flex justify-between items-center">
-                <span className="text-[#A1A1AA]">(-) Créditos</span>
-                <span className="text-green-400 font-semibold">{formatCurrency(lucro_real?.creditos?.total)}</span>
+                <span className="text-[#A1A1AA]">(-) Crédito PIS</span>
+                <span className="text-green-400 font-semibold">{formatCurrency(lucro_real?.creditos?.pis || 0)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#A1A1AA]">(-) Crédito COFINS</span>
+                <span className="text-green-400 font-semibold">{formatCurrency(lucro_real?.creditos?.cofins || 0)}</span>
+              </div>
+              <div className="flex justify-between items-center bg-[#1A1A1A]/50 rounded px-2 py-1 text-sm">
+                <span className="text-[#666]">Total Créditos</span>
+                <span className="text-green-400">{formatCurrency(lucro_real?.creditos?.total)}</span>
               </div>
               {/* Débitos PIS - Comércio */}
               <div className="flex justify-between items-center">
