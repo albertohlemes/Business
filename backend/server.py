@@ -4653,6 +4653,7 @@ async def upload_xml_batch(
                             "serie": parsed_data.get('serie', '1'),
                             "modelo": modelo,
                             "data_emissao": parsed_data.get('data_emissao', ''),
+                            "data_saida_entrada": parsed_data.get('data_saida_entrada', ''),  # dhSaiEnt - usado para competência de entradas
                             "valor_total": parsed_data.get('valor_total', 0),
                             "valor_servicos": parsed_data.get('valor_servicos', 0),
                             "emitente_cnpj": cnpj_emitente,
