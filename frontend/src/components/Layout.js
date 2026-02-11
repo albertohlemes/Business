@@ -58,6 +58,7 @@ const Layout = ({ user, onLogout, children }) => {
       { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
       { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
       { name: 'Classificação Inteligente', href: '/classificacao-inteligente', icon: Brain, testId: 'nav-classificacao-inteligente' },
+      { name: 'Central de Alertas', href: '/alertas', icon: Bell, testId: 'nav-alertas' },
     ];
     
     // Se não tem empresa selecionada, mostra menu completo padrão
