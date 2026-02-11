@@ -1468,10 +1468,12 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                             <button
                                               onClick={(e) => {
                                                 e.stopPropagation();
+                                                // Fazer cópia profunda do produto para evitar problemas de referência
+                                                const prodCopy = JSON.parse(JSON.stringify(prod));
                                                 setEditingProduct({ 
                                                   categoria, 
                                                   idx, 
-                                                  prod,
+                                                  prod: prodCopy,
                                                   novaCategoria: categoria 
                                                 });
                                               }}
