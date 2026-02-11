@@ -6555,7 +6555,10 @@ async def list_documents(
 ):
     query = {}
     
-    if current_user.role != UserRole.ADMIN:
+    # Roles administrativos têm acesso total
+    admin_roles = ["admin", "super_admin", "master"]
+    
+    if current_user.role not in admin_roles:
         companies = await db.companies.find({"cnpj": {"$in": current_user.company_ids}}, {"_id": 0}).to_list(1000)
         company_ids = [c['id'] for c in companies]
         query['company_id'] = {"$in": company_ids}
