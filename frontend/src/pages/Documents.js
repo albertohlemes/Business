@@ -2160,6 +2160,33 @@ const Documents = ({ user, onLogout }) => {
                   </tbody>
                 </table>
               </div>
+              
+              {/* Informação de paginação e botão carregar mais */}
+              <div className="px-4 py-3 border-t border-[#2A2A2A] flex items-center justify-between">
+                <p className="text-sm text-[#A1A1AA]">
+                  Exibindo <span className="text-white font-medium">{documents.length}</span> de{' '}
+                  <span className="text-white font-medium">{pagination.total.toLocaleString()}</span> documentos
+                </p>
+                {pagination.hasMore && (
+                  <button
+                    onClick={() => fetchDocuments(true)}
+                    disabled={loadingMore}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#C8A951] text-black rounded-lg font-medium hover:bg-[#B09240] transition-colors disabled:opacity-50"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Carregando...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4" />
+                        Carregar mais ({Math.min(100, pagination.total - documents.length)})
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
