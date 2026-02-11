@@ -12991,18 +12991,36 @@ Se o comando não for claro, retorne {{"alteracoes": [], "erro": "mensagem expli
             categoria = alt.get('categoria_nova', '')
             cfop_sugerido = obter_cfop_por_categoria(categoria, '1102')
             
-            # Verificar se já existe
+            # Verificar se já existe - se existir, ATUALIZAR
             regra_existente = await db.learned_rules.find_one({
                 "company_id": company_id,
                 "produto_descricao": descricao_produto
             })
             
-            if not regra_existente:
+            if regra_existente:
+                # ATUALIZAR regra existente
+                await db.learned_rules.update_one(
+                    {"id": regra_existente.get('id')},
+                    {"$set": {
+                        "categoria": categoria,
+                        "categoria_correta": categoria,
+                        "cfop": cfop_sugerido,
+                        "cfop_correto": cfop_sugerido,
+                        "motivo": alt.get('motivo', comando),
+                        "updated_by": current_user.email,
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                        "atualizado_por_comando": comando
+                    }}
+                )
+            else:
+                # Criar nova regra
                 await db.learned_rules.insert_one({
                     "id": str(uuid.uuid4()),
                     "company_id": company_id,
                     "produto_descricao": descricao_produto,
+                    "categoria": categoria,
                     "categoria_correta": categoria,
+                    "cfop": cfop_sugerido,
                     "cfop_correto": cfop_sugerido,
                     "motivo": alt.get('motivo', comando),
                     "aprendido_de": "ia_command_produto",
