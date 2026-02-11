@@ -232,6 +232,10 @@ function App() {
               path="/audit-log"
               element={user ? <AuditLog user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/grupos-empresariais"
+              element={user ? <GruposEmpresariais user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
           </Routes>
           </UploadProvider>
         </AppProvider>
