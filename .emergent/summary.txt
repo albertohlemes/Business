@@ -1,120 +1,99 @@
 <analysis>**original_problem_statement:**
-A sessão começou com o objetivo de finalizar a funcionalidade de Histórico de Importações. No entanto, o usuário relatou uma série de novos problemas críticos e solicitações, que se tornaram o foco principal:
-
-1.  **[BUG-CRÍTICO] Performance de Upload:** O upload de arquivos XML estava extremamente lento, mesmo após otimizações anteriores. A barra de progresso também oscilava.
-2.  **[BUG-CRÍTICO] Acesso Negado:** O dashboard não carregava e os uploads falhavam com erro Acesso Negado (403 Forbidden).
-3.  **[REQUISITO] Desabilitar Segurança:** Frustrado com os problemas de acesso, o usuário solicitou a desativação temporária de todas as verificações de permissão.
-4.  **[BUG-CRÍTICO] Documentos Não Aparecem:** Após clicar nos cards do dashboard que mostravam a existência de documentos, a página de listagem exibia Nenhum documento encontrado.
-5.  **[REQUISITO] Melhoria PIS/COFINS:**
-    *   Unificar os cards de Saldo e A Pagar.
-    *   Padronizar o detalhamento de débitos e créditos.
-    *   Agrupar o resumo de créditos pelo CST correto.
-    *   Corrigir a lógica de cálculo, pois o CST 50 (com crédito) não aparecia, sendo incorretamente classificado como CST 70.
-6.  **[REQUISITO] Melhoria Classificação IA:**
-    *   Corrigir um bug onde a correção manual de uma classificação não atualizava a visão geral.
-    *   Tornar a IA mais inteligente, para que aprenda com uma única correção e aplique a regra a todos os produtos similares.
-7.  **[BUG] Erro ao exportar SPED:** O usuário relatou um erro não especificado ao tentar exportar o arquivo SPED.
+A sessão começou com o objetivo de corrigir um erro ao exportar o SPED. Após a correção, o usuário solicitou uma série de novas funcionalidades e melhorias, em ordem:
+1.  **[FUNCIONALIDADE] Alerta de Notas Fiscais Ausentes:** Criar uma ferramenta para detectar quebras na sequência numérica das notas fiscais de saída, com um relatório exportável em Excel ou PDF.
+2.  **[MELHORIA] Reposicionar Relatório de Notas Ausentes:** Mover a funcionalidade do menu lateral para um botão dentro da página Documentos, na seção de Saídas, e garantir que analise todos os modelos de documentos de saída da empresa.
+3.  **[MELHORIA] Descrição de NCM em PIS/COFINS:** Na tela de detalhamento de PIS/COFINS, adicionar uma coluna Descrição após a coluna NCM, contendo uma descrição simples do código (ex: Carne, Leite, Bebida).
+4.  **[FUNCIONALIDADE CRÍTICA] Gestão de Benefício Fiscal de ICMS:**
+    *   No cadastro da empresa, permitir a configuração de produtos (por NCM ou palavra-chave) que não geram crédito de ICMS devido a um benefício fiscal.
+    *   Na tela de apuração de ICMS, adicionar um flag Benefício Fiscal que, quando ativo, desconsidera os créditos dos produtos configurados.
+    *   Na exportação do SPED, incluir o mesmo flag. Se ativo, além de desconsiderar os créditos, o CST dos itens deve ser ajustado para '041'.
+    *   Para empresas do **Simples Nacional**, ajustar a geração do SPED para que venha sem base/valor de ICMS e PIS/COFINS, e com CSTs específicos: ICMS '090', PIS/COFINS entrada '98', e PIS/COFINS saída '49'.
+5.  **[MELHORIA] Detalhamento do Benefício Fiscal:** Na tela de apuração de ICMS, adicionar um card/linha que mostre o valor total de crédito desconsiderado pelo benefício fiscal. Ao clicar, deve abrir um modal com duas abas (detalhamento por produto e por NCM) e opções para exportar esses detalhamentos para Excel e PDF.
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-Uma aplicação de gestão fiscal (React + FastAPI + MongoDB). A sessão atual focou intensamente em depuração e otimização. O agente:
-- Finalizou a interface da funcionalidade de Histórico de Importações.
-- Implementou múltiplas camadas de otimização de performance no processo de upload de XML, incluindo pré-carregamento de regras em memória e salvamento em lote (), o que deve ter melhorado drasticamente a velocidade.
-- Corrigiu um bug crítico de permissão que impedia o acesso ao dashboard e aos uploads, refatorando a verificação de acesso em vários endpoints.
-- **Temporariamente desabilitou todas as verificações de acesso** a pedido do usuário, editando a função  em .
-- Corrigiu um bug complexo onde os documentos não eram listados devido a uma combinação de: uma rota de API sem decorador, inconsistências nos campos do banco de dados ( vs , ) e uma verificação de role de usuário incorreta ( vs ).
-- Refatorou a tela de PIS/COFINS e corrigiu a lógica de cálculo do CST no backend para exibir corretamente o CST 50.
-- Melhorou a funcionalidade de Classificação Inteligente para aprender com as correções manuais.
+A aplicação é uma plataforma de gestão fiscal (React + FastAPI + MongoDB). O agente atual realizou as seguintes tarefas:
+- **Correção da Exportação do SPED:** Resolveu um erro 520 (Internal Server Error) causado por inconsistências nos nomes dos campos no banco de dados ( vs ,  vs ). A correção foi feita no backend, adicionando um  ao modelo Pydantic  para normalizar os dados na leitura.
+- **Implementação do Alerta de Notas Fiscais Ausentes:** Criou a funcionalidade completa, incluindo o endpoint no backend para analisar os gaps por modelo de documento e a UI no frontend, que foi movida para um modal dentro da página Documentos, conforme solicitado. A exportação para Excel e PDF também foi implementada.
+- **Implementação da Descrição de NCM:** Adicionou a coluna Descrição na tela de detalhamento de PIS/COFINS.
+- **Implementação da Lógica de Benefício Fiscal e Simples Nacional:** A maior parte da lógica complexa foi implementada. O backend foi modificado para armazenar as configurações no modelo da empresa, aplicar as regras na apuração de ICMS e na geração do SPED (incluindo as regras específicas do Simples Nacional). O frontend foi atualizado para incluir as UIs de configuração no cadastro da empresa e os checkboxes de ativação nas telas de ICMS e exportação do SPED.
+- **Início do Detalhamento do Benefício Fiscal:** O agente começou a implementar a última solicitação do usuário, adicionando o card clicável na página de apuração de ICMS e as funções de estado e chamada de API no componente React.
 
 **Last working item**:
-- **Last item agent was working**: Investigando um erro reportado pelo usuário na funcionalidade de exportação do SPED.
+- **Last item agent was working**: Implementação do modal de detalhamento dos créditos de ICMS desconsiderados pelo Benefício Fiscal. O agente adicionou o card clicável na UI da página de Apuração de ICMS () e estava prestes a criar os endpoints de backend necessários para buscar os dados detalhados e para exportá-los.
 - **Status**: IN PROGRESS
-- **Agent Testing Done**: Y (parcialmente)
-- **Which testing method agent to use?**: both
-    - **Backend:** O agente usou  e confirmou que o endpoint  está gerando um arquivo. No entanto, o arquivo completo não foi validado. O próximo agente deve salvar o output completo em um arquivo e verificar sua integridade.
-    - **Frontend:** A interação do frontend com o download não foi verificada. É preciso testar o clique no botão e ver se o download é iniciado corretamente no navegador.
+- **Agent Testing Done**: N
+- **Which testing method agent to use?**: both. O agente precisará criar e testar os endpoints de backend (com ) e depois testar o fluxo completo no frontend (clicar no card, ver o modal, validar os dados e testar os botões de exportação).
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Erro ao exportar arquivo SPED (P0)**
--   **Issue 2: Reativar e validar as regras de controle de acesso (P0)**
--   **Issue 3: Documentos não aparecem após clicar no card do dashboard (P1)**
--   **Issue 4: Lentidão no upload e oscilação da barra de progresso (P1)**
+- **Issue 1: Finalizar detalhamento do Benefício Fiscal (P0)**
+- **Issue 2: Reativar e validar as regras de controle de acesso (P0)** (Vulnerabilidade de segurança crítica do handoff anterior)
+- **Issue 3: Validação de correções anteriores pelo usuário (P1)** (Dashboard, performance de upload, Classificação IA)
 
 **Issues Detail**:
--   **Issue 1: Erro ao exportar arquivo SPED (P0)**
-    -   **Attempted fixes**: O agente verificou os logs (sem erros claros) e testou o endpoint de geração do SPED via , que retornou um conteúdo de arquivo válido (embora truncado).
-    -   **Next debug checklist**:
-        1.  Executar o  novamente, mas redirecionando a saída para um arquivo: .
-        2.  Analisar o arquivo  para verificar se está completo e bem formado.
-        3.  Investigar o código do frontend que chama esse endpoint para ver como o download do arquivo é tratado. Pode haver um problema na forma como o  é criado ou como o link de download é acionado.
-        4.  Verificar os logs do console do navegador no momento em que o usuário clica para exportar.
-    -   **Why fix this issue and what will be achieved with the fix?**: A exportação do SPED é uma funcionalidade central para a contabilidade fiscal.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: both
-    -   **Blocked on other issue**: Não.
+- **Issue 1: Finalizar detalhamento do Benefício Fiscal (P0)**
+  - **Attempted fixes**: A UI do card clicável foi adicionada em  junto com os hooks de estado e as funções placeholder para as chamadas de API.
+  - **Next debug checklist**:
+    1.  Em , criar um novo endpoint (ex: ) que retorne os dados dos créditos desconsiderados, agrupados por produto e por NCM.
+    2.  Em , criar um novo endpoint de exportação (ex: ) que aceite um parâmetro de formato ( ou ) e gere o arquivo correspondente.
+    3.  Em , implementar a UI completa do modal () com abas e tabelas.
+    4.  Implementar a lógica nas funções ,  para chamar os novos endpoints e popular o modal/iniciar o download.
+  - **Why fix this issue and what will be achieved with the fix?**: Completa a última solicitação do usuário, fornecendo uma ferramenta de análise detalhada e exportável para o benefício fiscal.
+  - **Status**: IN PROGRESS
+  - **Is recurring issue?**: N
+  - **Should Test frontend/backend/both after fix?**: both
+  - **Blocked on other issue**: Não.
 
--   **Issue 2: Reativar e validar as regras de controle de acesso (P0)**
-    -   **Attempted fixes**: A pedido do usuário, o agente comentou o conteúdo da função  em , desativando todas as permissões.
-    -   **Next debug checklist**:
-        1.  Reverter a alteração na função  para reativar a segurança.
-        2.  Garantir que a lógica de verificação de role inclua todos os tipos de administradores (ex: ).
-        3.  Testar exaustivamente o acesso com diferentes perfis de usuário (admin, super_admin, usuário comum) a diferentes empresas para garantir que as permissões funcionem como esperado.
-    -   **Why fix this issue and what will be achieved with the fix?**: É um risco de segurança crítico ter as permissões desativadas. A correção garante que os usuários só possam ver os dados das empresas às quais têm acesso.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: backend
-    -   **Blocked on other issue**: Não.
+- **Issue 2: Reativar e validar as regras de controle de acesso (P0)**
+  - **Attempted fixes**: Nenhuma nesta sessão. A função  em  permanece comentada.
+  - **Next debug checklist**:
+    1.  Descomentar o código dentro da função  em .
+    2.  Realizar testes extensivos de acesso com diferentes perfis de usuário (admin, super_admin, usuário comum) para garantir que as permissões de acesso por empresa estejam funcionando corretamente em toda a aplicação.
+  - **Why fix this issue and what will be achieved with the fix?**: Resolve uma vulnerabilidade de segurança crítica que permite que qualquer usuário acesse dados de qualquer empresa.
+  - **Status**: NOT STARTED
+  - **Is recurring issue?**: Y
+  - **Should Test frontend/backend/both after fix?**: backend
+  - **Blocked on other issue**: Não.
 
--   **Issue 3: Documentos não aparecem após clicar no card do dashboard (P1)**
-    -   **Attempted fixes**: O agente corrigiu múltiplos bugs, incluindo uma rota de API sem decorador, uma verificação de role incorreta ( vs ) e inconsistências de campo na query ( vs ). A última correção no  fez o endpoint retornar os dados corretamente via .
-    -   **Next debug checklist**: A correção principal foi feita, mas o usuário não confirmou a resolução.
-        1.  Pedir ao usuário para limpar o cache do navegador e testar novamente o fluxo: selecionar a empresa e competência correta, clicar no card do dashboard e verificar se a lista de documentos aparece.
-        2.  Se o problema persistir, usar a  para simular o fluxo exato e analisar os logs do console e as chamadas de rede.
-    -   **Why fix this issue and what will be achieved with the fix?**: Resolve um bug crítico que impede o acesso aos dados principais da aplicação.
-    -   **Status**: USER VERIFICATION PENDING
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: frontend
-    -   **Blocked on other issue**: Não.
-
--   **Issue 4: Lentidão no upload e oscilação da barra de progresso (P1)**
-    -   **Attempted fixes**: O agente implementou duas grandes otimizações: pré-carregamento de regras em um cache na memória para evitar queries repetidas e salvamento em lote () das novas classificações da IA. Também foi adicionada uma lógica para garantir que o percentual da barra de progresso nunca diminua.
-    -   **Next debug checklist**: A solução técnica foi implementada, mas precisa de validação prática.
-        1.  Solicitar ao usuário que realize um novo teste de upload com um grande volume de arquivos para confirmar que o processo está significativamente mais rápido e que a barra de progresso se comporta de forma estável.
-    -   **Why fix this issue and what will be achieved with the fix?**: Resolve um dos bugs mais críticos reportados pelo usuário, melhorando a usabilidade de um fluxo de trabalho principal.
-    -   **Status**: USER VERIFICATION PENDING
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: backend
-    -   **Blocked on other issue**: Não.
+- **Issue 3: Validação de correções anteriores pelo usuário (P1)**
+  - **Attempted fixes**: Várias correções de performance e bugs foram feitas na sessão anterior.
+  - **Next debug checklist**: Aguardar o feedback do usuário sobre a performance do upload, o bug dos documentos do dashboard e o funcionamento da classificação inteligente.
+  - **Why fix this issue and what will be achieved with the fix?**: Confirma a resolução de problemas críticos para o usuário.
+  - **Status**: USER VERIFICATION PENDING
+  - **Is recurring issue?**: Y
+  - **Should Test frontend/backend/both after fix?**: N/A (Aguardando usuário)
+  - **Blocked on other issue**: Não.
 
 **In progress Task List**:
-- N/A
+- **Task 1: Implementação do detalhamento do Benefício Fiscal (P0)**
+  - **Where to resume**: Criar os endpoints no  para buscar os dados detalhados e para exportação.
+  - **What will be achieved with this?**: Finaliza a funcionalidade de análise de Benefício Fiscal solicitada pelo usuário.
+  - **Status**: IN PROGRESS
+  - **Should Test frontend/backend/both after fix?**: both
+  - **Blocked on something**: Não.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
-  - **(P1) Validar Melhoria da Classificação Inteligente:** O usuário precisa confirmar se as alterações na IA atendem à sua expectativa de aprender com uma única correção e aplicar a todos os produtos similares.
-  - **(P2) Finalizar Exportação de Relatórios:** Conforme o handoff anterior, a UI do menu Relatórios foi criada, mas a lógica de backend para gerar os arquivos nos formatos Word e PDF ainda precisa ser implementada.
+  - **(P2) Finalizar Exportação de Relatórios (Word/Excel):** Implementar a lógica de backend para gerar relatórios gerais que atualmente só têm a UI.
+  - **(P2) Feedback para XMLs Rejeitados:** Implementar um mecanismo para informar ao usuário por que um arquivo XML foi rejeitado durante a importação.
 - **Future Tasks:**
-  - **(P2) Fornecer Feedback para XMLs Rejeitados:** Implementar uma forma de informar ao usuário por que um arquivo XML foi rejeitado durante a importação.
   - Refatorar o arquivo monolítico .
   - Permitir o upload do Certificado Digital.
   - Implementar interface para transporte de saldo credor.
   - Implementar um sistema de licenças.
 
 **Completed work in this session**
-- **Funcionalidade Histórico de Importações Concluída:** A interface (botão e modal) foi implementada e testada no frontend.
-- **Otimização Drástica de Performance de Upload:** Implementado caching em memória para regras de classificação e documentos existentes, e  para novas regras aprendidas, reduzindo massivamente o número de queries ao banco.
-- **Correção da Barra de Progresso:** A lógica foi ajustada para que o percentual de progresso seja monotônico (nunca diminua).
-- **Correção Crítica de Acesso (403 Forbidden):** Problemas de autorização que bloqueavam o dashboard e uploads foram resolvidos pela padronização do uso da função  e correção da lógica de verificação de .
-- **Correção Crítica de Listagem de Documentos (404/Lista Vazia):** Resolvido um bug complexo que envolvia uma rota sem decorador, inconsistências nos campos do DB e uma verificação de role de admin incorreta.
-- **Refatoração da Tela PIS/COFINS:** A UI foi ajustada conforme a solicitação do usuário, e a lógica de cálculo do CST foi corrigida no backend para exibir o CST 50 corretamente.
-- **Melhoria da Classificação por IA:** Corrigido bug de atualização da UI e aprimorada a lógica para que a IA salve as regras aprendidas para uso futuro.
-- **Pequenas Melhorias de UI:** Adicionado um botão de fechar ao modal de seleção de empresa e foco automático no campo de competência.
+- **Correção da Exportação do SPED:** Resolvido bug crítico que causava erro 520, normalizando dados inconsistentes do MongoDB no backend.
+- **Funcionalidade de Alerta de Notas Fiscais Ausentes:** Implementada do zero, incluindo detecção de gaps por modelo de documento e exportação para Excel/PDF. A UI foi movida para um modal na página Documentos conforme feedback do usuário.
+- **Melhoria da Tela de PIS/COFINS:** Adicionada uma coluna Descrição para traduzir códigos NCM em termos simples.
+- **Implementação do Core de Benefício Fiscal e Simples Nacional:**
+    - **Backend:** Modelo de dados e lógica de apuração de ICMS e geração de SPED foram atualizados para lidar com as complexas regras fiscais de Benefício Fiscal e Simples Nacional.
+    - **Frontend:** Adicionadas UIs para configurar o benefício no cadastro da empresa e para ativá-lo nas telas de apuração e exportação.
 
 **Earlier issues found/mentioned but not fixed**
-- **Issue 1: XMLs rejeitados sem motivo claro para o usuário.** Este ponto do problema original ainda não foi abordado. O sistema poderia fornecer um feedback mais claro sobre por que um arquivo XML específico foi rejeitado durante a importação.
+- **Issue 1: XMLs rejeitados sem motivo claro para o usuário.** Mencionado no handoff anterior e ainda pendente.
 
 **Known issue recurrence from previous fork**
 - N/A
@@ -123,135 +102,65 @@ Uma aplicação de gestão fiscal (React + FastAPI + MongoDB). A sessão atual f
 
 
 **Key Technical Concepts**
--   **Backend Caching:** Uso intensivo de caches em memória (BASH=/bin/bash
-BASHOPTS=checkwinsize:cmdhist:complete_fullquote:extquote:force_fignore:globasciiranges:globskipdots:hostcomplete:interactive_comments:patsub_replacement:progcomp:promptvars:sourcepath
-BASH_ALIASES=()
-BASH_ARGC=()
-BASH_ARGV=()
-BASH_CMDS=()
-BASH_EXECUTION_STRING=$'mkdir -p /app/.emergent && echo "<analysis>**original_problem_statement:**\nA sessão começou com o objetivo de finalizar a funcionalidade de "Histórico de Importações". No entanto, o usuário relatou uma série de novos problemas críticos e solicitações, que se tornaram o foco principal:\n\n1.  **[BUG-CRÍTICO] Performance de Upload:** O upload de arquivos XML estava extremamente lento, mesmo após otimizações anteriores. A barra de progresso também oscilava.\n2.  **[BUG-CRÍTICO] Acesso Negado:** O dashboard não carregava e os uploads falhavam com erro "Acesso Negado" (403 Forbidden).\n3.  **[REQUISITO] Desabilitar Segurança:** Frustrado com os problemas de acesso, o usuário solicitou a desativação temporária de todas as verificações de permissão.\n4.  **[BUG-CRÍTICO] Documentos Não Aparecem:** Após clicar nos cards do dashboard que mostravam a existência de documentos, a página de listagem exibia "Nenhum documento encontrado".\n5.  **[REQUISITO] Melhoria PIS/COFINS:**\n    *   Unificar os cards de "Saldo" e "A Pagar".\n    *   Padronizar o detalhamento de débitos e créditos.\n    *   Agrupar o resumo de créditos pelo CST correto.\n    *   Corrigir a lógica de cálculo, pois o CST 50 (com crédito) não aparecia, sendo incorretamente classificado como CST 70.\n6.  **[REQUISITO] Melhoria Classificação IA:**\n    *   Corrigir um bug onde a correção manual de uma classificação não atualizava a visão geral.\n    *   Tornar a IA mais "inteligente", para que aprenda com uma única correção e aplique a regra a todos os produtos similares.\n7.  **[BUG] Erro ao exportar SPED:** O usuário relatou um erro não especificado ao tentar exportar o arquivo SPED.\n\n**User\'s preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.\n\n**what currently exists?**\nUma aplicação de gestão fiscal (React + FastAPI + MongoDB). A sessão atual focou intensamente em depuração e otimização. O agente:\n- Finalizou a interface da funcionalidade de "Histórico de Importações".\n- Implementou múltiplas camadas de otimização de performance no processo de upload de XML, incluindo pré-carregamento de regras em memória e salvamento em lote (`batch insert`), o que deve ter melhorado drasticamente a velocidade.\n- Corrigiu um bug crítico de permissão que impedia o acesso ao dashboard e aos uploads, refatorando a verificação de acesso em vários endpoints.\n- **Temporariamente desabilitou todas as verificações de acesso** a pedido do usuário, editando a função `check_company_access` em `backend/server.py`.\n- Corrigiu um bug complexo onde os documentos não eram listados devido a uma combinação de: uma rota de API sem decorador, inconsistências nos campos do banco de dados (`tipo` vs `tipo_operacao`, `modelo`) e uma verificação de role de usuário incorreta (`"admin"` vs `"super_admin"`).\n- Refatorou a tela de PIS/COFINS e corrigiu a lógica de cálculo do CST no backend para exibir corretamente o CST 50.\n- Melhorou a funcionalidade de "Classificação Inteligente" para aprender com as correções manuais.\n\n**Last working item**:\n- **Last item agent was working**: Investigando um erro reportado pelo usuário na funcionalidade de exportação do SPED.\n- **Status**: IN PROGRESS\n- **Agent Testing Done**: Y (parcialmente)\n- **Which testing method agent to use?**: both\n    - **Backend:** O agente usou `curl` e confirmou que o endpoint `/api/sped/generate` está gerando um arquivo. No entanto, o arquivo completo não foi validado. O próximo agente deve salvar o output completo em um arquivo e verificar sua integridade.\n    - **Frontend:** A interação do frontend com o download não foi verificada. É preciso testar o clique no botão e ver se o download é iniciado corretamente no navegador.\n- **User Testing Done**: N\n\n**All Pending/In progress Issue list**:\n-   **Issue 1: Erro ao exportar arquivo SPED (P0)**\n-   **Issue 2: Reativar e validar as regras de controle de acesso (P0)**\n-   **Issue 3: Documentos não aparecem após clicar no card do dashboard (P1)**\n-   **Issue 4: Lentidão no upload e oscilação da barra de progresso (P1)**\n\n**Issues Detail**:\n-   **Issue 1: Erro ao exportar arquivo SPED (P0)**\n    -   **Attempted fixes**: O agente verificou os logs (sem erros claros) e testou o endpoint de geração do SPED via `curl`, que retornou um conteúdo de arquivo válido (embora truncado).\n    -   **Next debug checklist**:\n        1.  Executar o `curl` novamente, mas redirecionando a saída para um arquivo: `curl ... > sped.txt`.\n        2.  Analisar o arquivo `sped.txt` para verificar se está completo e bem formado.\n        3.  Investigar o código do frontend que chama esse endpoint para ver como o download do arquivo é tratado. Pode haver um problema na forma como o `blob` é criado ou como o link de download é acionado.\n        4.  Verificar os logs do console do navegador no momento em que o usuário clica para exportar.\n    -   **Why fix this issue and what will be achieved with the fix?**: A exportação do SPED é uma funcionalidade central para a contabilidade fiscal.\n    -   **Status**: IN PROGRESS\n    -   **Is recurring issue?**: N\n    -   **Should Test frontend/backend/both after fix?**: both\n    -   **Blocked on other issue**: Não.\n\n-   **Issue 2: Reativar e validar as regras de controle de acesso (P0)**\n    -   **Attempted fixes**: A pedido do usuário, o agente comentou o conteúdo da função `check_company_access` em `backend/server.py`, desativando todas as permissões.\n    -   **Next debug checklist**:\n        1.  Reverter a alteração na função `check_company_access` para reativar a segurança.\n        2.  Garantir que a lógica de verificação de role inclua todos os tipos de administradores (ex: `if user.role in [UserRole.ADMIN, UserRole.SUPER_ADMIN]:`).\n        3.  Testar exaustivamente o acesso com diferentes perfis de usuário (admin, super_admin, usuário comum) a diferentes empresas para garantir que as permissões funcionem como esperado.\n    -   **Why fix this issue and what will be achieved with the fix?**: É um risco de segurança crítico ter as permissões desativadas. A correção garante que os usuários só possam ver os dados das empresas às quais têm acesso.\n    -   **Status**: NOT STARTED\n    -   **Is recurring issue?**: Y\n    -   **Should Test frontend/backend/both after fix?**: backend\n    -   **Blocked on other issue**: Não.\n\n-   **Issue 3: Documentos não aparecem após clicar no card do dashboard (P1)**\n    -   **Attempted fixes**: O agente corrigiu múltiplos bugs, incluindo uma rota de API sem decorador, uma verificação de role incorreta (`"admin"` vs `"super_admin"`) e inconsistências de campo na query (`tipo` vs `tipo_operacao`). A última correção no `role` fez o endpoint retornar os dados corretamente via `curl`.\n    -   **Next debug checklist**: A correção principal foi feita, mas o usuário não confirmou a resolução.\n        1.  Pedir ao usuário para limpar o cache do navegador e testar novamente o fluxo: selecionar a empresa e competência correta, clicar no card do dashboard e verificar se a lista de documentos aparece.\n        2.  Se o problema persistir, usar a `screenshot tool` para simular o fluxo exato e analisar os logs do console e as chamadas de rede.\n    -   **Why fix this issue and what will be achieved with the fix?**: Resolve um bug crítico que impede o acesso aos dados principais da aplicação.\n    -   **Status**: USER VERIFICATION PENDING\n    -   **Is recurring issue?**: Y\n    -   **Should Test frontend/backend/both after fix?**: frontend\n    -   **Blocked on other issue**: Não.\n\n-   **Issue 4: Lentidão no upload e oscilação da barra de progresso (P1)**\n    -   **Attempted fixes**: O agente implementou duas grandes otimizações: pré-carregamento de regras em um cache na memória para evitar queries repetidas e salvamento em lote (`insert_many`) das novas classificações da IA. Também foi adicionada uma lógica para garantir que o percentual da barra de progresso nunca diminua.\n    -   **Next debug checklist**: A solução técnica foi implementada, mas precisa de validação prática.\n        1.  Solicitar ao usuário que realize um novo teste de upload com um grande volume de arquivos para confirmar que o processo está significativamente mais rápido e que a barra de progresso se comporta de forma estável.\n    -   **Why fix this issue and what will be achieved with the fix?**: Resolve um dos bugs mais críticos reportados pelo usuário, melhorando a usabilidade de um fluxo de trabalho principal.\n    -   **Status**: USER VERIFICATION PENDING\n    -   **Is recurring issue?**: Y\n    -   **Should Test frontend/backend/both after fix?**: backend\n    -   **Blocked on other issue**: Não.\n\n**In progress Task List**:\n- N/A\n\n**Upcoming and Future Tasks**\n- **Upcoming Tasks:**\n  - **(P1) Validar Melhoria da Classificação Inteligente:** O usuário precisa confirmar se as alterações na IA atendem à sua expectativa de "aprender com uma única correção e aplicar a todos os produtos similares".\n  - **(P2) Finalizar Exportação de Relatórios:** Conforme o handoff anterior, a UI do menu "Relatórios" foi criada, mas a lógica de backend para gerar os arquivos nos formatos Word e PDF ainda precisa ser implementada.\n- **Future Tasks:**\n  - **(P2) Fornecer Feedback para XMLs Rejeitados:** Implementar uma forma de informar ao usuário por que um arquivo XML foi rejeitado durante a importação.\n  - Refatorar o arquivo monolítico `backend/server.py`.\n  - Permitir o upload do Certificado Digital.\n  - Implementar interface para transporte de saldo credor.\n  - Implementar um sistema de licenças.\n\n**Completed work in this session**\n- **Funcionalidade "Histórico de Importações" Concluída:** A interface (botão e modal) foi implementada e testada no frontend.\n- **Otimização Drástica de Performance de Upload:** Implementado caching em memória para regras de classificação e documentos existentes, e `batch insert` para novas regras aprendidas, reduzindo massivamente o número de queries ao banco.\n- **Correção da Barra de Progresso:** A lógica foi ajustada para que o percentual de progresso seja monotônico (nunca diminua).\n- **Correção Crítica de Acesso (403 Forbidden):** Problemas de autorização que bloqueavam o dashboard e uploads foram resolvidos pela padronização do uso da função `check_company_access` e correção da lógica de verificação de `role`.\n- **Correção Crítica de Listagem de Documentos (404/Lista Vazia):** Resolvido um bug complexo que envolvia uma rota sem decorador, inconsistências nos campos do DB e uma verificação de role de admin incorreta.\n- **Refatoração da Tela PIS/COFINS:** A UI foi ajustada conforme a solicitação do usuário, e a lógica de cálculo do CST foi corrigida no backend para exibir o CST 50 corretamente.\n- **Melhoria da Classificação por IA:** Corrigido bug de atualização da UI e aprimorada a lógica para que a IA salve as regras aprendidas para uso futuro.\n- **Pequenas Melhorias de UI:** Adicionado um botão de fechar ao modal de seleção de empresa e foco automático no campo de competência.\n\n**Earlier issues found/mentioned but not fixed**\n- **Issue 1: XMLs rejeitados sem motivo claro para o usuário.** Este ponto do problema original ainda não foi abordado. O sistema poderia fornecer um feedback mais claro sobre por que um arquivo XML específico foi rejeitado durante a importação.\n\n**Known issue recurrence from previous fork**\n- N/A\n\n**Code Architecture**\n```\n/app/\n├── backend/\n│   ├── server.py             # (MUITO MODIFICADO) Lógica de upload, cache, permissões, PIS/COFINS, histórico, SPED, listagem de docs, classificação IA.\n│   └── services/\n│       └── pis_cofins_calculator.py # (MODIFICADO) Lógica de cálculo de CST.\n└── frontend/\n    └── src/\n        ├── components/\n        │   ├── CompanySelector.js # (Modificado) Adicionado botão de fechar e foco no input.\n        │   └── Layout.js\n        └── pages/\n            ├── Documents.js        # (MUITO MODIFICADO) Adicionada UI de histórico e correções de bugs.\n            ├── PisCofins.js        # (MUITO MODIFICADO) UI redesenhada, resumo por CST.\n            └── ClassificacaoInteligente.js # (Modificado) Correção no fluxo de salvamento.\n```\n\n**Key Technical Concepts**\n-   **Backend Caching:** Uso intensivo de caches em memória (`set`, `dict`) para pré-carregar regras e chaves de documentos, transformando operações de O(N) ou O(N*M) em O(1) dentro de loops.\n-   **Batch Database Operations:** Refatoração de `inserts` individuais dentro de um loop para uma única operação `insert_many` no final, reduzindo drasticamente a carga no banco de dados.\n-   **Debugging de Permissões e Roteamento:** Diagnóstico de erros 403 e 404 causados por lógica de permissão falha (`role` "admin" vs "super_admin") e rotas de API sem decoradores.\n-   **Debugging de Inconsistência de Dados:** Rastreamento de bugs causados por inconsistências entre os dados persistidos e os filtros da API (ex: `tipo` vs. `tipo_operacao`, `modelo` \'nfe\' vs \'55\').\n-   **Injeção de Dependências (FastAPI):** O sistema usa `Depends(get_current_user)` para gerenciamento de sessão e permissões.\n\n**key DB schema**\n-   `learned_rules`: O formato de salvamento foi ajustado para garantir que as regras aprendidas pela IA possam ser reutilizadas pelo sistema de cache.\n-   `xml_documents`: O agente investigou inconsistências nos campos `tipo` vs `tipo_operacao` e `modelo` como a causa de bugs de listagem.\n\n**changes in tech stack**\n- N/A\n\n**All files of reference**\n-   `/app/backend/server.py`: Arquivo central do backend, massivamente modificado para performance, correções de bugs de acesso e lógica de negócios.\n-   `/app/frontend/src/pages/Documents.js`: Modificado para a UI de histórico e depuração de bugs de listagem.\n-   `/app/frontend/src/pages/PisCofins.js`: Refatorado para atender aos novos requisitos de UI e exibição de dados.\n-   `/app/backend/services/pis_cofins_calculator.py`: Arquivo contendo a lógica de negócios para o cálculo de PIS/COFINS, que foi investigado e validado.\n-   `/app/frontend/src/pages/ClassificacaoInteligente.js`: Corrigido para refletir as atualizações de classificação manual.\n\n**Areas that need refactoring**:\n- A função `check_company_access` em `backend/server.py` precisa ter a segurança reativada.\n- O arquivo `backend/server.py` está extremamente grande e monolítico. As diferentes responsabilidades (autenticação, upload, PIS/COFINS, SPED, etc.) deveriam ser divididas em arquivos/módulos separados.\n\n**key api endpoints**\n-   `GET /api/xml/documents`: Corrigido. Faltava um decorador de rota e a lógica de permissão estava falha.\n-   `POST /api/xml/upload-with-progress`: Otimizado com múltiplos caches e `batch inserts`.\n-   `POST /api/auth/users/cleanup`: Otimizado com múltiplos caches e `batch inserts`.\n-   `GET /api/dashboard-stats`: Corrigido o bug de permissão que retornava 403.\n-   `POST /api/products/classify-single`: Melhorado para ser mais "inteligente" e salvar regras aprendidas.\n-   `GET /api/sped/generate`: Endpoint sob investigação por erro reportado pelo usuário.\n-   `GET /api/pis-cofins/apuracao`: O backend foi ajustado para que os dados agrupados por CST usem a lógica de cálculo correta.\n\n**Critical Info for New Agent**\n-   **CONTROLE DE ACESSO DESABILITADO:** A pedido do usuário, todas as verificações de permissão foram desativadas na função `check_company_access` em `backend/server.py`. Esta é uma vulnerabilidade de segurança crítica e deve ser tratada como prioridade máxima (reativar e testar).\n-   **PROBLEMAS DE CONTEXTO DO USUÁRIO:** O usuário frequentemente relata bugs que são, na verdade, causados pela seleção da Empresa ou Competência (período contábil) errada na interface. Sempre verifique se o contexto (empresa, competência) do teste do agente corresponde ao contexto do problema do usuário.\n-   **PERFORMANCE DE UPLOAD:** Múltiplas otimizações foram aplicadas. É crucial validar com o usuário se a lentidão foi finalmente resolvida.\n\n**documents and test reports created in this job**\n- /app/memory/PRD.md: Atualizado com a nova funcionalidade de Histórico de Importações.\n\n**Last 10 User Messages and any pending HUMAN messages**\n1.  **Usuário (Msg 550):** Reportou erro ao exportar SPED. **(Status: Em progresso)**\n2.  **Usuário (Msg 514):** Pediu correção e melhoria na "Classificação Inteligente". **(Status: Concluído, pendente de validação do usuário)**\n3.  **Usuário (Msg 505):** Pediu um botão para fechar o modal de seleção de empresa. **(Status: Concluído)**\n4.  **Usuário (Msg 468):** Corrigiu o agente, explicando que o CST calculado deveria ser 50 e não 70, indicando um problema na lógica de cálculo. **(Status: Concluído)**\n5.  **Usuário (Msg 435):** Apontou que o CST 50 não estava aparecendo no resumo de PIS/COFINS. **(Status: Concluído)**\n6.  **Usuário (Msg 411):** Solicitou uma grande refatoração na tela de PIS/COFINS. **(Status: Concluído)**\n7.  **Usuário (Msg 356):** Insistiu que os documentos não apareciam, mesmo com a competência certa, e forneceu screenshots. **(Status: Concluído)**\n8.  **Usuário (Msg 336):** Reportou que os documentos ainda não apareciam e pediu uma pequena melhoria na UI do campo de competência. **(Status: Concluído)**\n9.  **Usuário (Msg 275):** Reportou que, após importar, a lista de documentos aparecia vazia. **(Status: Concluído)**\n10. **Usuário (Msg 269):** Pediu para desabilitar todo o controle de acesso. **(Status: Concluído, mas precisa ser revertido)**\n\n**Project Health Check:**\n-   **Broken**:\n    -   A exportação do SPED está reportada como quebrada.\n    -   O controle de acesso de toda a aplicação está intencionalmente desativado, representando uma vulnerabilidade de segurança crítica.\n-   **Mocked**: N/A\n\n**3rd Party Integrations**\n-   **Emergent LLM Key**: Utilizada para a funcionalidade de IA na classificação de produtos, através da biblioteca `emergentintegrations` com modelos Gemini.\n\n**Testing status**\n-   **Testing agent used after significant changes**: NO. A sessão foi dominada por depuração reativa e rápida implementação.\n-   **Troubleshoot agent used after agent stuck in loop**: NO\n-   **Test files created**: N/A\n-   **Known regressions**: O controle de acesso foi intencionalmente quebrado a pedido do usuário.\n\n**Credentials to test flow:**\n-   **Email (Super Admin)**: `alberto.lemes@businessconta.com.br`\n-   **Senha (Super Admin)**: `Business@2026`\n-   **Email (Admin)**: `admin@test.com`\n-   **Senha (Admin)**: `123456`\n\n**What agent forgot to execute**\n-   O agente não abordou as solicitações do handoff original de:\n    1.  Finalizar a funcionalidade de exportação de relatórios para **Word e Excel**.\n    2.  Fornecer um motivo claro para **XMLs rejeitados** durante o upload.</analysis>" > /app/.emergent/summary.txt'
-BASH_LINENO=()
-BASH_LOADABLES_PATH=/usr/local/lib/bash:/usr/lib/bash:/opt/local/lib/bash:/usr/pkg/lib/bash:/opt/pkg/lib/bash:.
-BASH_SOURCE=()
-BASH_VERSINFO=([0]="5" [1]="2" [2]="15" [3]="1" [4]="release" [5]="aarch64-unknown-linux-gnu")
-BASH_VERSION='5.2.15(1)-release'
-DEBIAN_FRONTEND=noninteractive
-DIRSTACK=()
-ENABLE_RELOAD=true
-EUID=0
-GPG_KEY=A035C8C19219BA821ECEA86B64E628F8D684696D
-GROUPS=()
-HOME=/root
-HOSTNAME=agent-env-cf3391b7-90cb-407e-adf4-3cacd3db947c
-HOSTTYPE=aarch64
-IFS=$' \t\n'
-KUBERNETES_PORT=tcp://34.118.224.1:443
-KUBERNETES_PORT_443_TCP=tcp://34.118.224.1:443
-KUBERNETES_PORT_443_TCP_ADDR=34.118.224.1
-KUBERNETES_PORT_443_TCP_PORT=443
-KUBERNETES_PORT_443_TCP_PROTO=tcp
-KUBERNETES_SERVICE_HOST=34.118.224.1
-KUBERNETES_SERVICE_PORT=443
-KUBERNETES_SERVICE_PORT_HTTPS=443
-LANG=C.UTF-8
-MACHTYPE=aarch64-unknown-linux-gnu
-NEXT_TELEMETRY_DISABLED=1
-NODE_VERSION=20
-OPTERR=1
-OPTIND=1
-OSTYPE=linux-gnu
-PATH=/root/.venv/bin:/opt/plugins-venv/bin:/opt/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-PIPESTATUS=([0]="0")
-PIP_NO_INPUT=1
-PLAYWRIGHT_BROWSERS_PATH=/pw-browsers
-PLUGIN_VENV_PATH=/opt/plugins-venv
-PPID=20
-PS4='+ '
-PWD=/app
-PYTHONUNBUFFERED=1
-PYTHON_SHA256=8d3ed8ec5c88c1c95f5e558612a725450d2452813ddad5e58fdb1a53b1209b78
-PYTHON_VERSION=3.11.14
-SHELL=/bin/bash
-SHELLOPTS=braceexpand:hashall:interactive-comments
-SHLVL=1
-STRIPE_API_KEY=sk_test_emergent
-TERM=dumb
-UID=0
-UV_COMPILE_BYTECODE=1
-VIRTUAL_ENV=/root/.venv
-_=/app/.emergent
-base_url=https://demobackend.emergentagent.com
-code_server_password=43a409b7
-integration_proxy_url=https://integrations.emergentagent.com
-monitor_polling_interval=1
-preview_endpoint=https://fiscal-dashboard-7.preview.emergentagent.com
-run_id=fiscal-dashboard-7, ) para pré-carregar regras e chaves de documentos, transformando operações de O(N) ou O(N*M) em O(1) dentro de loops.
--   **Batch Database Operations:** Refatoração de  individuais dentro de um loop para uma única operação  no final, reduzindo drasticamente a carga no banco de dados.
--   **Debugging de Permissões e Roteamento:** Diagnóstico de erros 403 e 404 causados por lógica de permissão falha ( admin vs super_admin) e rotas de API sem decoradores.
--   **Debugging de Inconsistência de Dados:** Rastreamento de bugs causados por inconsistências entre os dados persistidos e os filtros da API (ex:  vs. ,  'nfe' vs '55').
--   **Injeção de Dependências (FastAPI):** O sistema usa  para gerenciamento de sessão e permissões.
+- **Data Normalization (Pydantic):** Uso de  para corrigir inconsistências de dados ( vs. ) em tempo de execução, evitando a necessidade de migrações de dados.
+- **Complex Business Logic:** Implementação de regras fiscais complexas diretamente nos endpoints FastAPI, manipulando dados para apuração de impostos e geração de arquivos (SPED).
+- **File Generation (Backend):** Uso de  e  para gerar e servir arquivos Excel e PDF via API.
+- **Iterative UI/UX Development:** Refatoração de uma funcionalidade (de uma página para um modal) com base no feedback do usuário.
 
 **key DB schema**
--   : O formato de salvamento foi ajustado para garantir que as regras aprendidas pela IA possam ser reutilizadas pelo sistema de cache.
--   : O agente investigou inconsistências nos campos  vs  e  como a causa de bugs de listagem.
-
-**changes in tech stack**
-- N/A
+- : Adicionados os campos , , e .
 
 **All files of reference**
--   : Arquivo central do backend, massivamente modificado para performance, correções de bugs de acesso e lógica de negócios.
--   : Modificado para a UI de histórico e depuração de bugs de listagem.
--   : Refatorado para atender aos novos requisitos de UI e exibição de dados.
--   : Arquivo contendo a lógica de negócios para o cálculo de PIS/COFINS, que foi investigado e validado.
--   : Corrigido para refletir as atualizações de classificação manual.
+- : Arquivo central para toda a lógica de negócio, APIs e modelos de dados.
+- : Ponto central da implementação do Benefício Fiscal no frontend.
+- : Onde as configurações de benefício fiscal são salvas.
+- : Onde a funcionalidade de Notas Ausentes foi integrada.
 
 **Areas that need refactoring**:
-- A função  em  precisa ter a segurança reativada.
-- O arquivo  está extremamente grande e monolítico. As diferentes responsabilidades (autenticação, upload, PIS/COFINS, SPED, etc.) deveriam ser divididas em arquivos/módulos separados.
+- O arquivo  está se tornando excessivamente grande. A lógica fiscal (SPED, ICMS, PIS/COFINS, Notas Ausentes) deve ser separada em módulos de serviço distintos.
+- A função  em  precisa ter a segurança reativada (descomentada).
+- O arquivo  provavelmente se tornou obsoleto e pode ser excluído após confirmação.
 
 **key api endpoints**
--   : Corrigido. Faltava um decorador de rota e a lógica de permissão estava falha.
--   : Otimizado com múltiplos caches e .
--   : Otimizado com múltiplos caches e .
--   : Corrigido o bug de permissão que retornava 403.
--   : Melhorado para ser mais inteligente e salvar regras aprendidas.
--   : Endpoint sob investigação por erro reportado pelo usuário.
--   : O backend foi ajustado para que os dados agrupados por CST usem a lógica de cálculo correta.
+- : **Corrigido**.
+- : **Novo**.
+- : **Novo**.
+- : **Modificado** para aplicar a lógica de Benefício Fiscal.
+- : **Modificado** para aceitar o parâmetro  e aplicar regras do Simples Nacional.
+-  
+-  
 
 **Critical Info for New Agent**
--   **CONTROLE DE ACESSO DESABILITADO:** A pedido do usuário, todas as verificações de permissão foram desativadas na função  em . Esta é uma vulnerabilidade de segurança crítica e deve ser tratada como prioridade máxima (reativar e testar).
--   **PROBLEMAS DE CONTEXTO DO USUÁRIO:** O usuário frequentemente relata bugs que são, na verdade, causados pela seleção da Empresa ou Competência (período contábil) errada na interface. Sempre verifique se o contexto (empresa, competência) do teste do agente corresponde ao contexto do problema do usuário.
--   **PERFORMANCE DE UPLOAD:** Múltiplas otimizações foram aplicadas. É crucial validar com o usuário se a lentidão foi finalmente resolvida.
+- **CONTROLE DE ACESSO DESABILITADO:** A segurança da aplicação está **desativada**. A função  em  está comentada. Reativar e testar esta função é uma prioridade máxima (P0) após a conclusão da tarefa atual.
+- **LÓGICA FISCAL COMPLEXA IMPLEMENTADA:** O agente implementou regras fiscais muito específicas para Benefício Fiscal de ICMS e Simples Nacional. Qualquer alteração futura nas apurações ou na geração do SPED deve levar em conta essa nova lógica, localizada principalmente nas funções  e  no .
+- **TAREFA ATUAL:** A tarefa imediata é finalizar o detalhamento do Benefício Fiscal: criar os endpoints de backend para buscar e exportar os dados e construir o modal correspondente em .
 
 **documents and test reports created in this job**
-- /app/memory/PRD.md: Atualizado com a nova funcionalidade de Histórico de Importações.
+- : Atualizado com a nova funcionalidade de Alerta de Notas Fiscais Ausentes.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Usuário (Msg 550):** Reportou erro ao exportar SPED. **(Status: Em progresso)**
-2.  **Usuário (Msg 514):** Pediu correção e melhoria na Classificação Inteligente. **(Status: Concluído, pendente de validação do usuário)**
-3.  **Usuário (Msg 505):** Pediu um botão para fechar o modal de seleção de empresa. **(Status: Concluído)**
-4.  **Usuário (Msg 468):** Corrigiu o agente, explicando que o CST calculado deveria ser 50 e não 70, indicando um problema na lógica de cálculo. **(Status: Concluído)**
-5.  **Usuário (Msg 435):** Apontou que o CST 50 não estava aparecendo no resumo de PIS/COFINS. **(Status: Concluído)**
-6.  **Usuário (Msg 411):** Solicitou uma grande refatoração na tela de PIS/COFINS. **(Status: Concluído)**
-7.  **Usuário (Msg 356):** Insistiu que os documentos não apareciam, mesmo com a competência certa, e forneceu screenshots. **(Status: Concluído)**
-8.  **Usuário (Msg 336):** Reportou que os documentos ainda não apareciam e pediu uma pequena melhoria na UI do campo de competência. **(Status: Concluído)**
-9.  **Usuário (Msg 275):** Reportou que, após importar, a lista de documentos aparecia vazia. **(Status: Concluído)**
-10. **Usuário (Msg 269):** Pediu para desabilitar todo o controle de acesso. **(Status: Concluído, mas precisa ser revertido)**
+1.  **Usuário:** Solicitou um card detalhado e exportável para os créditos desconsiderados pelo Benefício Fiscal. **(Status: Em Progresso)**
+2.  **Usuário:** Solicitou a implementação complexa das regras de Benefício Fiscal e Simples Nacional. **(Status: Concluído, com melhoria em progresso)**
+3.  **Usuário:** Solicitou uma coluna de Descrição para o NCM na tela de PIS/COFINS. **(Status: Concluído)**
+4.  **Usuário:** Pediu para mover a funcionalidade de Notas Ausentes do menu para um botão na página de Documentos. **(Status: Concluído)**
+5.  **Usuário:** Solicitou a criação da funcionalidade de Alerta de Notas Fiscais Ausentes. **(Status: Concluído)**
+6.  **Usuário:** Reportou o erro ao exportar ao sped. **(Status: Concluído)**
 
 **Project Health Check:**
 -   **Broken**:
-    -   A exportação do SPED está reportada como quebrada.
     -   O controle de acesso de toda a aplicação está intencionalmente desativado, representando uma vulnerabilidade de segurança crítica.
 -   **Mocked**: N/A
 
 **3rd Party Integrations**
--   **Emergent LLM Key**: Utilizada para a funcionalidade de IA na classificação de produtos, através da biblioteca  com modelos Gemini.
+-   **Emergent LLM Key**: Utilizada para a funcionalidade de IA na classificação de produtos (da sessão anterior).
+-   **openpyxl**: Usado para gerar arquivos Excel ().
+-   **reportlab**: Usado para gerar arquivos PDF.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO. A sessão foi dominada por depuração reativa e rápida implementação.
+-   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: N/A
--   **Known regressions**: O controle de acesso foi intencionalmente quebrado a pedido do usuário.
+-   **Known regressions**: O controle de acesso foi intencionalmente desativado no passado e permanece assim.
 
 **Credentials to test flow:**
 -   **Email (Super Admin)**: 
@@ -260,6 +169,5 @@ run_id=fiscal-dashboard-7, ) para pré-carregar regras e chaves de documentos, t
 -   **Senha (Admin)**: 
 
 **What agent forgot to execute**
--   O agente não abordou as solicitações do handoff original de:
-    1.  Finalizar a funcionalidade de exportação de relatórios para **Word e Excel**.
-    2.  Fornecer um motivo claro para **XMLs rejeitados** durante o upload.</analysis>
+- Reativar o controle de acesso (), que é uma tarefa crítica de segurança herdada do handoff anterior.
+- Implementar o feedback para XMLs rejeitados durante o upload.</analysis>
