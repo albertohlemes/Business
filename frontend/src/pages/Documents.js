@@ -400,6 +400,9 @@ const Documents = ({ user, onLogout }) => {
     setUploading(true);
     setUploadProgress({ current: 0, total: files.length, percent: 0 });
     
+    // Resetar flag de resultado exibido para novo upload
+    resultDisplayedRef.current = false;
+    
     // Iniciar progresso global (visível em todas as telas)
     startGlobalUpload(null, files.length, ctxCompany?.razao_social || 'Empresa', operacao);
     
