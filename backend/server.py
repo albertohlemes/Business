@@ -7929,6 +7929,8 @@ async def get_dashboard_stats(
             if gera_credito_pis_cofins and valor_produto > 0:
                 base_credito_pis_cofins_real += valor_produto
     
+    logger.info(f"DASHBOARD: Base crédito PIS/COFINS Real = {base_credito_pis_cofins_real}")
+    
     # Alíquotas por regime
     ALIQ_PIS_LUCRO_REAL = 0.0165  # 1.65%
     ALIQ_COFINS_LUCRO_REAL = 0.076  # 7.6%
