@@ -5739,16 +5739,24 @@ async def upload_xml_with_progress(
     logger.info(f"UPLOAD-STREAM: Processando {total_files} arquivos para upload_id={upload_id}")
     
     # ===== PRÉ-CARREGAR CACHE DE DOCUMENTOS EXISTENTES (evita N queries de duplicados) =====
-    existing_docs_cache = set()
+    existing_docs_cache = set()  # Cache por chave_nfe
+    existing_docs_by_num_serie = set()  # Cache por numero + serie + cnpj_emitente (para docs sem chave)
     try:
         existing_cursor = db.xml_documents.find({
             "company_id": company_id,
             "competencia": competencia
-        }, {"chave_nfe": 1, "_id": 0})
+        }, {"chave_nfe": 1, "numero_nfe": 1, "serie": 1, "emitente_cnpj": 1, "_id": 0})
         async for doc in existing_cursor:
             if doc.get("chave_nfe"):
                 existing_docs_cache.add(doc["chave_nfe"])
-        logger.info(f"UPLOAD-STREAM: Cache de documentos existentes carregado - {len(existing_docs_cache)} documentos")
+            # Criar chave alternativa: numero + serie + cnpj_emitente
+            num = str(doc.get("numero_nfe") or "")
+            serie = str(doc.get("serie") or "1")
+            cnpj = str(doc.get("emitente_cnpj") or "")
+            if num and cnpj:
+                alt_key = f"{num}|{serie}|{cnpj}"
+                existing_docs_by_num_serie.add(alt_key)
+        logger.info(f"UPLOAD-STREAM: Cache de documentos existentes carregado - {len(existing_docs_cache)} por chave, {len(existing_docs_by_num_serie)} por num+serie")
     except Exception as e:
         logger.warning(f"UPLOAD-STREAM: Erro ao carregar cache de documentos existentes: {e}")
     
