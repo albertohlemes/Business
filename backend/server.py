@@ -17465,6 +17465,11 @@ async def apurar_icms(
                 is_despesa = cfop in CFOPS_DESPESA
                 is_st = cfop in CFOPS_ST
                 
+                # Verificar se produto deve ter crédito desconsiderado por benefício fiscal
+                is_sem_credito_beneficio = False
+                if beneficio_fiscal_icms:
+                    is_sem_credito_beneficio = produto_sem_credito_icms_beneficio(ncm, descricao, company)
+                
                 # Agrupar por CFOP - Entradas
                 if cfop not in entradas_por_cfop:
                     entradas_por_cfop[cfop] = {
@@ -17475,7 +17480,7 @@ async def apurar_icms(
                         "qtd": 0,
                         "is_despesa": is_despesa,
                         "is_st": is_st,
-                        "desconsiderado": (is_despesa and desconsiderar_icms_despesas) or (is_st and desconsiderar_icms_st)
+                        "desconsiderado": (is_despesa and desconsiderar_icms_despesas) or (is_st and desconsiderar_icms_st) or is_sem_credito_beneficio
                     }
                 entradas_por_cfop[cfop]["valor_total"] += valor_total
                 entradas_por_cfop[cfop]["bc_icms"] += bc_icms
@@ -17487,7 +17492,7 @@ async def apurar_icms(
                 totais["entradas"]["valor_icms_st"] += valor_icms_st
                 totais["entradas"]["qtd_itens"] += 1
                 
-                # Verificar se este CFOP deve ter BC e ICMS zerados
+                # Verificar se este CFOP/produto deve ter BC e ICMS zerados
                 if is_despesa and desconsiderar_icms_despesas:
                     # Acumular o que foi desconsiderado
                     totais_desconsiderados["despesas"]["bc_icms"] += bc_icms
@@ -17499,6 +17504,16 @@ async def apurar_icms(
                     totais_desconsiderados["st"]["bc_icms"] += bc_icms
                     totais_desconsiderados["st"]["valor_icms"] += valor_icms
                     totais_desconsiderados["st"]["qtd_itens"] += 1
+                    # NÃO soma no total de crédito
+                elif is_sem_credito_beneficio:
+                    # Acumular o que foi desconsiderado por benefício fiscal
+                    totais_desconsiderados["beneficio_fiscal"]["bc_icms"] += bc_icms
+                    totais_desconsiderados["beneficio_fiscal"]["valor_icms"] += valor_icms
+                    totais_desconsiderados["beneficio_fiscal"]["qtd_itens"] += 1
+                    if len(totais_desconsiderados["beneficio_fiscal"]["produtos"]) < 20:
+                        totais_desconsiderados["beneficio_fiscal"]["produtos"].append({
+                            "descricao": descricao[:40], "ncm": ncm, "valor_icms": valor_icms
+                        })
                     # NÃO soma no total de crédito
                 else:
                     # Soma normalmente no total de crédito
