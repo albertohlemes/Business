@@ -442,6 +442,17 @@ const Reports = ({ user, onLogout }) => {
                     <FileText className="w-5 h-5" />
                     Word
                   </button>
+                  <button
+                    onClick={() => setExportFormat('pdf')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors ${
+                      exportFormat === 'pdf'
+                        ? 'bg-red-600 text-white'
+                        : 'bg-[#0C0C0C] border border-[#2A2A2A] text-[#A1A1AA] hover:text-white'
+                    }`}
+                  >
+                    <FileBarChart className="w-5 h-5" />
+                    PDF
+                  </button>
                 </div>
                 
                 <button
