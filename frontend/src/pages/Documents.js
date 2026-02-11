@@ -2037,7 +2037,7 @@ const Documents = ({ user, onLogout }) => {
               
               {/* Resumo com números grandes */}
               <div className="p-4 border-b border-[#2A2A2A]">
-                <div className={`grid grid-cols-${3 + (uploadResult.canceladas > 0 ? 1 : 0) + (uploadResult.devolucoes > 0 ? 1 : 0)} gap-4`}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                   <div className="bg-[#0C0C0C] rounded-lg p-4 text-center">
                     <p className="text-3xl font-bold text-white">{uploadResult.total || (uploadResult.processados?.length || 0) + (uploadResult.rejeitados?.length || 0)}</p>
                     <p className="text-sm text-[#A1A1AA] mt-1">Total</p>
