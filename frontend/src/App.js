@@ -29,6 +29,7 @@ import ImpostosRetidos from './pages/ImpostosRetidos';
 import RelatorioUnificado from './pages/RelatorioUnificado';
 import AnaliseHorizontal from './pages/AnaliseHorizontal';
 import ViloesOportunidades from './pages/ViloesOportunidades';
+import NotasAusentes from './pages/NotasAusentes';
 import './App.css';
 
 function App() {
