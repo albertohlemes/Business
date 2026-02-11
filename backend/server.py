@@ -15522,7 +15522,57 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
             stats["from_cache"] += 1
             continue
         
-        # 2. Verificar regras diretas (keywords exatas)
+        # 2. NOVA VERIFICAÇÃO: Match por NCM com produtos vendidos (aprendizado automático)
+        product_ncm = product.get('ncm', '')
+        if product_ncm and len(product_ncm) >= 4 and ncms_vendidos:
+            ncm_match = False
+            match_level = ""
+            
+            # Verifica match exato ou por categoria (primeiros 4-6 dígitos)
+            if product_ncm[:6] in ncms_vendidos:
+                ncm_match = True
+                match_level = "subcategoria"
+            elif product_ncm[:4] in ncms_vendidos:
+                ncm_match = True
+                match_level = "categoria"
+            
+            if ncm_match:
+                cfop_prefix = '2' if (emitente_uf and emitente_uf != company_uf) else '1'
+                cst = str(product.get('cst', ''))
+                is_st = is_st_by_cfop or cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+                cfop = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
+                
+                results[str(idx)] = {
+                    "categoria": "revenda",
+                    "cfop": cfop,
+                    "justificativa": f"Aprendizado automático: NCM {product_ncm[:6]} similar aos produtos vendidos pela empresa ({match_level})"
+                }
+                stats["from_sales_inference"] += 1
+                
+                # Salvar no cache para acelerar futuras classificações
+                await save_classification_cache(company_id, descricao, "revenda", cfop, f"Inferido de vendas (NCM {match_level})")
+                continue
+        
+        # 3. Verificar match por palavras-chave dos produtos vendidos
+        descricao_upper = descricao.upper()
+        palavras_match = [p for p in palavras_produtos_vendidos if p in descricao_upper and len(p) > 4]
+        if len(palavras_match) >= 2:  # Pelo menos 2 palavras em comum
+            cfop_prefix = '2' if (emitente_uf and emitente_uf != company_uf) else '1'
+            cst = str(product.get('cst', ''))
+            is_st = is_st_by_cfop or cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+            cfop = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
+            
+            results[str(idx)] = {
+                "categoria": "revenda",
+                "cfop": cfop,
+                "justificativa": f"Aprendizado automático: Palavras '{', '.join(palavras_match[:3])}' encontradas em produtos vendidos"
+            }
+            stats["from_sales_inference"] += 1
+            
+            await save_classification_cache(company_id, descricao, "revenda", cfop, f"Inferido de vendas (palavras-chave)")
+            continue
+        
+        # 4. Verificar regras diretas (keywords cadastradas pelo usuário)
         produtos_comercializados = company_data.get('produtos_comercializados', [])
         insumos_producao = company_data.get('insumos_producao', [])
         produtos_despesa = company_data.get('produtos_despesa', [])
