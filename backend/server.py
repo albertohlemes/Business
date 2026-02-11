@@ -8345,6 +8345,7 @@ async def get_dashboard_stats(
             "total": round(debito_icms + debito_pis + debito_cofins + total_iss, 2),
             "base_tributada": round(total_base_pis_cofins, 2),
             "aliquota_zero": round(total_aliquota_zero, 2),
+            "monofasico": round(total_monofasico, 2),
             "cfop_sem_incidencia": round(total_cfop_sem_incidencia, 2),
             "divergencias": divergencias_pis_cofins if divergencias_pis_cofins else None
         },
