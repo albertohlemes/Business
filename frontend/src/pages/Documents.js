@@ -61,7 +61,8 @@ const Documents = ({ user, onLogout }) => {
     updateUploadProgress: updateGlobalProgress,
     setUploadError,
     finishUpload: finishGlobalUpload,
-    uploadProgress: globalUploadProgress
+    uploadProgress: globalUploadProgress,
+    clearUploadResults
   } = useAppContext();
   const { startUpload, isUploading: globalUploading, progress: globalProgress, currentFile, uploadResults: globalResults, uploadError: globalError, clearResults } = useUpload();
   const [searchParams] = useSearchParams();
