@@ -1414,7 +1414,7 @@ def parse_xml_nfce(xml_content: str) -> Dict[str, Any]:
                 'v_cofins': v_cofins
             })
         
-        return {
+        resultado = {
             'modelo': 'nfce',
             'chave_nfe': nfce.get('@Id', '').replace('NFe', ''),
             'numero_nfe': ide.get('nNF', ''),
@@ -1435,6 +1435,19 @@ def parse_xml_nfce(xml_content: str) -> Dict[str, Any]:
             'valor_total': float(total.get('vNF', 0)),
             'produtos': produtos
         }
+        
+        # Adicionar dados de cancelamento e zerar valores se cancelada
+        if cancelada:
+            resultado.update(dados_cancelamento)
+            resultado['valor_total'] = 0.0
+            resultado['status'] = 'cancelada'
+            for prod in resultado['produtos']:
+                prod['valor_total'] = 0.0
+                prod['valor_unitario'] = 0.0
+                prod['quantidade'] = 0.0
+                prod['desconto'] = 0.0
+        
+        return resultado
     except Exception as e:
         raise ValueError(f"Erro ao processar XML NFC-e: {str(e)}")
 
