@@ -16735,7 +16735,7 @@ async def apuracao_movimento(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company.get('cnpj') not in (current_user.company_ids or []):
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Buscar documentos do período
