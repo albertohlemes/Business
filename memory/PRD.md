@@ -11,6 +11,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - **Upload de logo da empresa** ✅
 - Configuração de CNAE, tipo de atividade
 - Perfis comerciais (indústria, distribuidor, varejo)
+- **Menu Empresas removido do sidebar** ✅ (disponível apenas no header)
 
 ### 2. Importação de Documentos
 - Upload de XMLs (NF-e, NFC-e, CT-e, NFS-e)
@@ -60,27 +61,37 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - Aviso de dados incompletos
 - Projeção anual
 
-### 7. Classificação Inteligente
+### 8. Classificação Inteligente
 - **Modal de edição de produto** ✅
 - **Links para NFs do produto** ✅
 - Classificação atualiza CFOP automaticamente
 - Comandos de IA com atualização de CFOP
 - **Categoria "Devolução"** ✅ para CFOPs de devolução (1201-1210, 2201-2210, 5201-5210, 6201-6210)
 
-### 8. Divergências PIS/COFINS
+### 9. Divergências PIS/COFINS
 - **Filtra apenas notas de SAÍDA** ✅
 - **Bebidas alcoólicas (NCMs 2204-2208) tratadas como TRIBUTADAS** ✅
 - CST correto: 01 (saída) / 50 (entrada) para bebidas alcoólicas
+- **Abas NCM e Produto padronizadas** ✅ (mesmas colunas da aba Notas Fiscais)
 
-### 9. Notas Canceladas
+### 10. Notas Canceladas
 - **Importação automática** ✅ com status "cancelada"
 - **Valores zerados** ✅ (valor_total, produtos, impostos = 0)
 - **Exibição visual** ✅ em vermelho com texto riscado na listagem
 
-### 10. Exportação
+### 11. Relatórios
+- **Seções organizadas por categoria** ✅ (Resumo, Apurações, Documentos, Análises)
+- **Multi-seleção com botão "Selecionar Todos"** ✅
+- **Exportação para Word, Excel e PDF** ✅
 - SPED Fiscal
 - Relatórios por alíquota (ICMS, PIS, COFINS)
 - CSV de entradas/saídas
+
+### 12. Gestão de Usuários
+- **Seção de Atividades Autorizadas** ✅ (selecionar permissões por funcionalidade)
+- **Botões Todos/Nenhum** ✅ para seleção rápida
+- **Botão "Limpar Inativos"** ✅ para excluir usuários teste/inativos
+- **Exclusão permanente de usuários** ✅
 
 ## Arquitetura
 
@@ -100,7 +111,36 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
-### 2026-02-12 (Sessão 18 - Correção Modal Upload e Classificação Devolução)
+### 2026-02-11 (Sessão 19 - Padronização UI PIS/COFINS, Relatórios e Usuários)
+
+**Padronização das Abas NCM e Produto em PIS/COFINS:**
+- ✅ **Problema identificado:** Abas NCM e Produto mostravam colunas diferentes da aba "Notas Fiscais"
+- ✅ **Solução implementada:**
+  - Backend retorna dados detalhados (cst_xml, cst_calc, aliq_pis_xml, aliq_pis_calc, etc.) para todos os agrupamentos
+  - Frontend renderiza mesmas colunas: NF, Tipo, Emitente/Dest., Produto, NCM, CFOP, CST XML, CST Calc., Alíq. PIS, Alíq. COFINS, Impacto
+- ✅ **Arquivos modificados:** `/app/backend/server.py`, `/app/frontend/src/pages/PisCofins.js`
+
+**Menu Empresas Removido do Sidebar:**
+- ✅ Menu "Empresas" removido do menu lateral (disponível apenas no header)
+- ✅ **Arquivo modificado:** `/app/frontend/src/components/Layout.js`
+
+**Página de Relatórios Aprimorada:**
+- ✅ **Seções organizadas por categoria:** Resumo, Apurações, Documentos, Análises
+- ✅ **Novas seções adicionadas:** ICMS ST, IPI, ISS, DIFAL, Impostos Retidos, Indicadores, Evolução, Vilões
+- ✅ **Exportação PDF:** Botão PDF adicionado junto com Excel e Word
+- ✅ **Arquivo modificado:** `/app/frontend/src/pages/Reports.js`
+
+**Gestão de Permissões de Usuários:**
+- ✅ **Seção "Atividades Autorizadas":** Lista de checkboxes para cada funcionalidade
+- ✅ **Botões "Todos" e "Nenhum":** Seleção rápida de todas ou nenhuma atividade
+- ✅ **Endpoint de atividades:** Backend atualizado para persistir atividades no usuário
+- ✅ **Arquivo modificado:** `/app/frontend/src/pages/UsersPage.js`, `/app/backend/server.py`
+
+**Limpeza de Usuários Inativos/Teste:**
+- ✅ **Botão "Limpar Inativos":** Exclui usuários inativos e de teste em lote
+- ✅ **Endpoint `/api/auth/users/cleanup-inactive`:** Remove usuários não-admin inativos ou com email contendo "test"
+- ✅ **Endpoint `/api/auth/users/{user_id}/permanent`:** Exclusão permanente individual
+- ✅ **Arquivos modificados:** `/app/backend/server.py`, `/app/frontend/src/pages/UsersPage.js`
 
 **Correção do Modal de Relatório de Upload que "Aparece e Some":**
 - ✅ **Problema identificado:** Race condition entre SSE e polling causava múltiplas atualizações do estado
