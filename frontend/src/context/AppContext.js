@@ -154,6 +154,59 @@ export const AppProvider = ({ children }) => {
     });
   };
 
+  // Polling persistente para acompanhar upload mesmo ao navegar
+  useEffect(() => {
+    if (!uploadProgress.isUploading || !uploadProgress.uploadId) return;
+    
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    console.log('AppContext: Iniciando polling persistente para upload:', uploadProgress.uploadId);
+    
+    const pollUploadStatus = async () => {
+      try {
+        const response = await axios.get(
+          `${API}/xml/upload-status/${uploadProgress.uploadId}`,
+          { headers: { Authorization: `Bearer ${token}` }, timeout: 10000 }
+        );
+        
+        const data = response.data;
+        
+        if (data.completed === true && data.results) {
+          console.log('AppContext: Upload concluído!');
+          finishUpload();
+        } else if (data.error) {
+          setUploadError(data.error);
+        } else {
+          const processed = data.processed_files || 0;
+          const total = data.total_files || uploadProgress.total || 1;
+          const percent = data.progress_percent || Math.round((processed / total) * 100);
+          
+          setUploadProgress(prev => ({
+            ...prev,
+            percent,
+            current: processed,
+            total,
+            error: null
+          }));
+        }
+      } catch (err) {
+        console.error('AppContext: Erro no polling:', err.message);
+      }
+    };
+    
+    // Polling a cada 2 segundos
+    const intervalId = setInterval(pollUploadStatus, 2000);
+    
+    // Executar imediatamente também
+    pollUploadStatus();
+    
+    return () => {
+      console.log('AppContext: Limpando polling');
+      clearInterval(intervalId);
+    };
+  }, [uploadProgress.isUploading, uploadProgress.uploadId]);
+
   const checkSiegCount = async (companyId, competencia) => {
     if (!companyId || !competencia) return;
     
