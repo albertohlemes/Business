@@ -215,21 +215,27 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 **NOVA FUNCIONALIDADE: Alerta de Notas Fiscais Ausentes:**
 - ✅ **Detecção de gaps na sequência numérica** de notas fiscais de saída
-- ✅ **Filtros disponíveis:** Competência (mês/ano) e Série da NF-e
-- ✅ **Resumo visual:**
+- ✅ **Integrado na página de Documentos:** Botão "Verificar Notas Ausentes" abaixo do card de Saídas
+- ✅ **Análise por modelo de documento:** Automático com base no tipo de atividade da empresa
+  - NF-e (Modelo 55) - Todos os tipos
+  - NFC-e (Modelo 65) - Comércio e varejo
+  - CT-e (Modelo 57) - Transportadoras
+  - NFS-e - Serviços
+- ✅ **Modal com resumo visual:**
   - Total de notas emitidas
   - Total de notas ausentes (vermelho se > 0, verde se = 0)
-  - Status: "Sequência OK" ou "Gaps Detectados"
-- ✅ **Resumo por série:** Primeiro nº, último nº, total emitidas, total esperado, ausentes
-- ✅ **Detalhamento:** Lista de cada nota ausente com nota anterior/posterior e suas datas
-- ✅ **Exportação Excel:** Arquivo .xlsx completo com resumo e detalhamento
+  - Tipo de atividade da empresa
+  - Status: "OK" ou "Gaps Detectados"
+- ✅ **Detalhamento por série:** Primeiro nº, último nº, emitidas vs esperadas
+- ✅ **Lista de números faltantes** com indicação visual
+- ✅ **Exportação Excel:** Arquivo .xlsx com múltiplas abas (uma por modelo)
 - ✅ **Exportação PDF:** Relatório formatado com tabelas estilizadas
-- ✅ **Menu lateral:** Link "Notas Ausentes" adicionado na seção de Análises
-- ✅ **Arquivos criados/modificados:**
-  - `/app/backend/server.py` - Endpoints `/api/notas-ausentes/{company_id}` e `/api/notas-ausentes/{company_id}/exportar`
-  - `/app/frontend/src/pages/NotasAusentes.js` - Nova página de interface
-  - `/app/frontend/src/App.js` - Rota `/notas-ausentes`
-  - `/app/frontend/src/components/Layout.js` - Link no menu lateral
+- ✅ **Removido do menu lateral** conforme solicitação do usuário
+- ✅ **Arquivos modificados:**
+  - `/app/backend/server.py` - Endpoints atualizados para análise multi-modelo
+  - `/app/frontend/src/pages/Documents.js` - Botão e modal integrados
+  - `/app/frontend/src/components/Layout.js` - Removido link do menu
+  - `/app/frontend/src/pages/NotasAusentes.js` - Mantido como página standalone (rota ainda ativa)
 
 ### 2026-02-11 (Sessão 16 - Correção CST Bebidas Alcoólicas e Timeout Upload)
 
