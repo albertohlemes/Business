@@ -1048,6 +1048,10 @@ const PisCofins = ({ user, onLogout }) => {
     const { lucro_real, lucro_presumido, comparativo } = apuracao;
     const maisEconomico = comparativo?.regime_mais_economico || 'IGUAL';
     
+    // Verificar tipo de atividade para mostrar/esconder serviços
+    const tipoAtividade = selectedCompany?.tipo_atividade || 'comercio';
+    const temServicos = tipoAtividade === 'servicos' || tipoAtividade === 'mista';
+    
     return (
       <div className="space-y-6">
         {/* Banner de Indicação */}
