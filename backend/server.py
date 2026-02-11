@@ -7390,7 +7390,8 @@ async def get_dashboard_stats(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    # Usar função padronizada de verificação de acesso
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Buscar todos os documentos da empresa na competência
