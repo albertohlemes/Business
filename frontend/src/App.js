@@ -217,6 +217,10 @@ function App() {
               path="/alertas"
               element={user ? <AlertasPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/sped"
+              element={user ? <ExportSPED user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
           </Routes>
           </UploadProvider>
         </AppProvider>
