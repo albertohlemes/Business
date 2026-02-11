@@ -210,7 +210,7 @@ const Dashboard = ({ user, onLogout }) => {
                       title="NF-e Saída"
                       value={stats.quantidades.nfe_saida}
                       color="bg-green-600"
-                      link="/documents"
+                      link="/documents?operacao=saida&tipo=nfe"
                       subtitle="Vendas"
                     />
                   )}
@@ -221,7 +221,7 @@ const Dashboard = ({ user, onLogout }) => {
                       title="Cupons (NFC-e)"
                       value={stats.quantidades.nfce}
                       color="bg-purple-600"
-                      link="/documents"
+                      link="/documents?operacao=saida&tipo=nfce"
                       subtitle="PDV"
                     />
                   )}
@@ -232,7 +232,7 @@ const Dashboard = ({ user, onLogout }) => {
                       title="CT-e Saída"
                       value={stats.quantidades.cte_saida || 0}
                       color="bg-teal-600"
-                      link="/documents"
+                      link="/documents?operacao=saida&tipo=cte"
                       subtitle="Frete Prestado"
                     />
                   )}
@@ -243,7 +243,7 @@ const Dashboard = ({ user, onLogout }) => {
                       title="NFS-e Prestados"
                       value={stats.quantidades.nfse_prestados || stats.quantidades.nfse || 0}
                       color="bg-amber-600"
-                      link="/documents"
+                      link="/documents?operacao=saida&tipo=servicos_prestados"
                       subtitle="Serviços Prestados"
                     />
                   )}
