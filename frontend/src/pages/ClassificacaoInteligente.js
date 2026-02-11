@@ -260,12 +260,19 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
   const updateRule = async (ruleId, newCategoria, newCfop) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(
+      const response = await axios.put(
         `${API}/ai/learned-rules/${ruleId}?categoria=${newCategoria}${newCfop ? `&cfop=${newCfop}` : ''}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success('Regra atualizada com sucesso');
+      
+      // Mostrar o novo CFOP calculado se foi alterado
+      if (response.data?.cfop) {
+        toast.success(`Regra atualizada! Novo CFOP: ${response.data.cfop}`);
+      } else {
+        toast.success('Regra atualizada com sucesso');
+      }
+      
       setEditingRule(null);
       fetchMemoriaIA();
     } catch (err) {
