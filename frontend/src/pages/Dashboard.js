@@ -162,7 +162,7 @@ const Dashboard = ({ user, onLogout }) => {
                     title="NF-e Entrada"
                     value={stats.quantidades.nfe_entrada}
                     color="bg-blue-600"
-                    link="/documents"
+                    link="/documents?operacao=entrada&tipo=nfe"
                     subtitle="Mercadorias"
                   />
                   <StatCard
@@ -170,7 +170,7 @@ const Dashboard = ({ user, onLogout }) => {
                     title="CT-e Entrada"
                     value={stats.quantidades.cte_entrada || 0}
                     color="bg-cyan-600"
-                    link="/documents"
+                    link="/documents?operacao=entrada&tipo=cte"
                     subtitle="Frete Tomado"
                   />
                   <StatCard
@@ -178,7 +178,7 @@ const Dashboard = ({ user, onLogout }) => {
                     title="NFS-e Tomados"
                     value={stats.quantidades.nfse_tomados || 0}
                     color="bg-orange-600"
-                    link="/documents"
+                    link="/documents?operacao=entrada&tipo=servicos_tomados"
                     subtitle="Serviços Tomados"
                   />
                   <StatCard
@@ -186,7 +186,7 @@ const Dashboard = ({ user, onLogout }) => {
                     title="Outros Docs"
                     value={stats.quantidades.outros_entrada || 0}
                     color="bg-slate-600"
-                    link="/documents"
+                    link="/documents?operacao=entrada&tipo=outros"
                     subtitle="Energia, Internet..."
                   />
                   <div className="bg-[#0C0C0C] rounded-lg p-5 border border-[#2A2A2A]">
