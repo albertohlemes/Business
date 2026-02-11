@@ -8886,6 +8886,242 @@ async def get_dashboard_stats(
         "simples": await _get_simples_nacional_stats(company, company_id, competencia, faturamento_total, documents) if regime_tributario == 'simples_nacional' else None
     }
 
+
+# ============= ENDPOINT DE INCONSISTÊNCIAS =============
+@api_router.get("/inconsistencias/{company_id}")
+async def get_inconsistencias(
+    company_id: str,
+    competencia: str = None,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna as inconsistências e alertas para uma empresa.
+    Verifica: classificação de produtos, CFOPs, cálculos fiscais e prazos.
+    """
+    company = await db.companies.find_one({"id": company_id})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    competencia = competencia or datetime.now().strftime("%m/%Y")
+    
+    alertas_classificacao = []
+    alertas_cfop = []
+    alertas_calculos = []
+    alertas_prazos = []
+    
+    # === VERIFICAR CLASSIFICAÇÃO DE PRODUTOS ===
+    # Buscar produtos sem classificação
+    pipeline_sem_classificacao = [
+        {"$match": {
+            "company_id": company_id,
+            "competencia": competencia,
+            "tipo": "entrada",
+            **get_filtro_notas_ativas()
+        }},
+        {"$unwind": "$produtos"},
+        {"$match": {
+            "$or": [
+                {"produtos.categoria_classificada": {"$exists": False}},
+                {"produtos.categoria_classificada": None},
+                {"produtos.categoria_classificada": ""},
+                {"produtos.categoria_classificada": "pendente"}
+            ]
+        }},
+        {"$group": {
+            "_id": {
+                "codigo": "$produtos.codigo",
+                "descricao": "$produtos.descricao"
+            },
+            "count": {"$sum": 1},
+            "valor_total": {"$sum": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}}
+        }},
+        {"$limit": 10}
+    ]
+    
+    produtos_sem_classificacao = await db.xml_documents.aggregate(pipeline_sem_classificacao).to_list(10)
+    
+    if produtos_sem_classificacao:
+        total_pendentes = len(produtos_sem_classificacao)
+        valor_pendente = sum(p.get('valor_total', 0) for p in produtos_sem_classificacao)
+        
+        alertas_classificacao.append({
+            "severidade": "warning" if total_pendentes < 50 else "critical",
+            "titulo": f"{total_pendentes} produto(s) sem classificação",
+            "descricao": f"Valor total: R$ {valor_pendente:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+            "detalhes": ", ".join([p['_id']['descricao'][:30] + "..." for p in produtos_sem_classificacao[:3]]),
+            "acao": {
+                "texto": "Classificar produtos",
+                "link": "/classificacao-inteligente"
+            }
+        })
+    
+    # === VERIFICAR CFOPs DIVERGENTES ===
+    # Buscar CFOPs de entrada que não correspondem à categoria
+    pipeline_cfop = [
+        {"$match": {
+            "company_id": company_id,
+            "competencia": competencia,
+            "tipo": "entrada",
+            **get_filtro_notas_ativas()
+        }},
+        {"$unwind": "$produtos"},
+        {"$match": {
+            "produtos.categoria_classificada": {"$exists": True, "$ne": None, "$ne": ""}
+        }},
+        {"$project": {
+            "cfop": "$produtos.cfop",
+            "categoria": "$produtos.categoria_classificada",
+            "descricao": "$produtos.descricao",
+            "valor": {"$toDouble": {"$ifNull": ["$produtos.valor_total", 0]}}
+        }}
+    ]
+    
+    produtos_cfop = await db.xml_documents.aggregate(pipeline_cfop).to_list(500)
+    
+    cfops_divergentes = []
+    for prod in produtos_cfop:
+        cfop = str(prod.get('cfop', ''))
+        categoria = prod.get('categoria', '')
+        
+        # Verificar se CFOP corresponde à categoria
+        cfop_esperado = obter_cfop_por_categoria(categoria, cfop)
+        if cfop_esperado and cfop != cfop_esperado:
+            # Verificar se o sufixo está correto
+            if cfop[-3:] != cfop_esperado[-3:]:
+                cfops_divergentes.append({
+                    "produto": prod.get('descricao', '')[:40],
+                    "cfop_atual": cfop,
+                    "cfop_esperado": cfop_esperado,
+                    "categoria": categoria
+                })
+    
+    if cfops_divergentes:
+        alertas_cfop.append({
+            "severidade": "warning",
+            "titulo": f"{len(cfops_divergentes)} CFOP(s) divergente(s)",
+            "descricao": "CFOPs não correspondem à categoria classificada",
+            "detalhes": f"Ex: {cfops_divergentes[0]['produto']} - CFOP {cfops_divergentes[0]['cfop_atual']} deveria ser {cfops_divergentes[0]['cfop_esperado']}",
+            "acao": {
+                "texto": "Revisar CFOPs",
+                "link": "/classificacao-inteligente"
+            }
+        })
+    
+    # === VERIFICAR CÁLCULOS FISCAIS ===
+    # Verificar se há notas com ICMS zerado quando deveria ter
+    pipeline_icms_zero = [
+        {"$match": {
+            "company_id": company_id,
+            "competencia": competencia,
+            "tipo": "saida",
+            **get_filtro_notas_ativas()
+        }},
+        {"$match": {
+            "valor_total": {"$gt": 1000},
+            "$or": [
+                {"icms_total": {"$eq": 0}},
+                {"icms_total": {"$exists": False}}
+            ]
+        }},
+        {"$limit": 5}
+    ]
+    
+    notas_icms_zero = await db.xml_documents.aggregate(pipeline_icms_zero).to_list(5)
+    
+    if notas_icms_zero:
+        alertas_calculos.append({
+            "severidade": "info",
+            "titulo": f"{len(notas_icms_zero)} nota(s) de saída com ICMS zerado",
+            "descricao": "Notas com valor > R$ 1.000 sem ICMS destacado",
+            "detalhes": "Pode ser isenção, não-incidência ou erro de emissão",
+            "acao": {
+                "texto": "Revisar documentos",
+                "link": "/documents"
+            }
+        })
+    
+    # === VERIFICAR PRAZOS ===
+    # Verificar se está próximo do fechamento (dia 15 do mês seguinte)
+    hoje = datetime.now()
+    mes_comp, ano_comp = competencia.split('/')
+    
+    # Data limite seria dia 15 do mês seguinte à competência
+    mes_limite = int(mes_comp) + 1
+    ano_limite = int(ano_comp)
+    if mes_limite > 12:
+        mes_limite = 1
+        ano_limite += 1
+    
+    data_limite_sped = datetime(ano_limite, mes_limite, 15)
+    dias_restantes = (data_limite_sped - hoje).days
+    
+    if 0 < dias_restantes <= 5:
+        alertas_prazos.append({
+            "severidade": "critical",
+            "titulo": f"SPED Fiscal vence em {dias_restantes} dia(s)!",
+            "descricao": f"Prazo de entrega: {data_limite_sped.strftime('%d/%m/%Y')}",
+            "acao": {
+                "texto": "Gerar SPED",
+                "link": "/sped"
+            }
+        })
+    elif 0 < dias_restantes <= 10:
+        alertas_prazos.append({
+            "severidade": "warning",
+            "titulo": f"SPED Fiscal vence em {dias_restantes} dia(s)",
+            "descricao": f"Prazo de entrega: {data_limite_sped.strftime('%d/%m/%Y')}",
+            "acao": {
+                "texto": "Verificar SPED",
+                "link": "/sped"
+            }
+        })
+    
+    # Contar totais
+    todos_alertas = alertas_classificacao + alertas_cfop + alertas_calculos + alertas_prazos
+    total_criticos = sum(1 for a in todos_alertas if a['severidade'] == 'critical')
+    total_avisos = sum(1 for a in todos_alertas if a['severidade'] == 'warning')
+    total_info = sum(1 for a in todos_alertas if a['severidade'] == 'info')
+    
+    return {
+        "empresa": company.get('razao_social'),
+        "competencia": competencia,
+        "resumo": {
+            "total_alertas": len(todos_alertas),
+            "criticos": total_criticos,
+            "avisos": total_avisos,
+            "informacoes": total_info,
+        },
+        "categorias": {
+            "classificacao": {
+                "titulo": "Classificação de Produtos",
+                "icone": "Package",
+                "alertas": alertas_classificacao,
+            },
+            "cfop": {
+                "titulo": "CFOPs Divergentes",
+                "icone": "FileText",
+                "alertas": alertas_cfop,
+            },
+            "calculos": {
+                "titulo": "Cálculos Fiscais",
+                "icone": "Calculator",
+                "alertas": alertas_calculos,
+            },
+            "prazos": {
+                "titulo": "Prazos e Obrigações",
+                "icone": "Calendar",
+                "alertas": alertas_prazos,
+            },
+        },
+        "acoes_rapidas": [
+            {"texto": "Classificar Produtos", "link": "/classificacao-inteligente"},
+            {"texto": "Revisar Documentos", "link": "/documents"},
+            {"texto": "Apuração ICMS", "link": "/icms"},
+            {"texto": "PIS/COFINS", "link": "/pis-cofins"},
+        ]
+    }
+
+
 @api_router.get("/apuracao-pis-cofins/{company_id}")
 async def apuracao_pis_cofins(
     company_id: str,
