@@ -991,7 +991,8 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ### P3 - Baixa Prioridade
 - [x] ~~FASE 1 - Sistema de Permissões e Controle de Acesso~~ ✅ (SEGURANÇA RESOLVIDA)
-- [ ] FASE 2 - Refatorar server.py em routers
+- [x] ~~FASE 2 - Documentação e Preparação para Refatoração~~ ✅ (API_DOCUMENTATION.md criado)
+- [ ] FASE 2.1 - Migração incremental de routers (trabalho contínuo)
 - [ ] FASE 4 - Histórico de Alterações (Audit Log)
 - [ ] FASE 5 - Geração de SPED Fiscal
 - [ ] FASE 6 - Apuração Automática Mensal
