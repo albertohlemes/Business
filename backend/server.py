@@ -224,7 +224,7 @@ class Company(BaseModel):
 class CompanyCreate(BaseModel):
     cnpj: str
     razao_social: str
-    codigo_empresa: Optional[str] = None  # ID customizado da empresa
+    codigo_empresa: str = ""  # ID customizado da empresa - obrigatório
     nome_fantasia: Optional[str] = None
     inscricao_estadual: Optional[str] = None
     inscricao_municipal: Optional[str] = None
