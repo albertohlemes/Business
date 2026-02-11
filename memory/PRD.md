@@ -25,6 +25,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - **Filtro de status** ✅ (Ativas/Canceladas/Todas)
 - **Relatório de importação expandido** ✅ (inclui devoluções de fornecedor)
 - **Exibição de notas canceladas** ✅ (vermelho e riscadas)
+- **Histórico de Importações** ✅ (modal com lista de importações anteriores e relatórios detalhados)
 
 ### 3. Dashboard - Cards de Navegação
 - **Cards clicáveis** ✅ que navegam para tipo específico de documento
