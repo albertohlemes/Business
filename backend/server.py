@@ -4319,7 +4319,7 @@ async def upload_xml_batch(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Extrair CNPJ da empresa selecionada (limpar formatação)
@@ -5359,7 +5359,7 @@ async def init_upload(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     upload_id = str(uuid.uuid4())
@@ -7961,7 +7961,7 @@ async def apuracao_pis_cofins(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     regime = company.get('regime_tributario', 'lucro_presumido')
@@ -8420,7 +8420,7 @@ async def apuracao_periodo(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     regime = company.get('regime_tributario', 'lucro_presumido')
@@ -8706,7 +8706,7 @@ async def analise_aliquotas_saida(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Regime tributário e UF da empresa
@@ -9673,7 +9673,7 @@ async def relatorio_divergencias_saida(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Buscar documentos de saída
@@ -9900,7 +9900,7 @@ async def relatorio_divergencias_entrada(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Verificar regime tributário (crédito só existe no Lucro Real)
@@ -11423,7 +11423,7 @@ async def alertas_cfop_operacoes_distintas(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Buscar documentos de entrada que tenham produtos pendentes de revisão
@@ -11509,7 +11509,7 @@ async def alertas_cfop_agrupado_por_cfop(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Buscar documentos de entrada que tenham produtos pendentes de revisão
@@ -12017,7 +12017,7 @@ async def report_by_product(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     query = {"company_id": company_id}
@@ -12580,7 +12580,7 @@ async def report_by_ncm(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     query = {"company_id": company_id}
@@ -12701,7 +12701,7 @@ async def export_sped(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # EXCLUIR notas canceladas e desconsideradas
@@ -16343,7 +16343,7 @@ async def relacao_notas(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Buscar documentos - incluir ou não canceladas
@@ -16498,7 +16498,7 @@ async def relacao_notas_detalhada(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Buscar documentos
@@ -16935,7 +16935,7 @@ async def preview_delete_documents(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Construir query base
@@ -17043,7 +17043,7 @@ async def delete_documents_bulk(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Se IDs específicos foram fornecidos, usar eles diretamente
@@ -18546,7 +18546,7 @@ async def listar_divergencias_pis_cofins(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Determinar perfil da empresa
@@ -18898,7 +18898,7 @@ async def upload_xml_validated(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
@@ -19028,7 +19028,7 @@ async def process_document_with_ai(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     results = {
@@ -21996,7 +21996,7 @@ async def preview_nfse_for_cancellation(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
@@ -22094,7 +22094,7 @@ async def import_nfse_with_cancellations(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     cnpj_empresa = company.get('cnpj', '').replace('.', '').replace('/', '').replace('-', '')
@@ -22283,7 +22283,7 @@ async def import_cancellation_from_report(
     if not company:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
-    if current_user.role != UserRole.ADMIN and company['cnpj'] not in current_user.company_ids:
+    if not await check_company_access(company, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     content = await report_file.read()
