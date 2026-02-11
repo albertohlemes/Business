@@ -6368,6 +6368,33 @@ async def upload_xml_with_progress(
     # Persistir alterações no MongoDB
     await save_upload_session(upload_id, progress)
     
+    # ===== SALVAR NO HISTÓRICO DE IMPORTAÇÕES QUANDO CONCLUÍDO =====
+    if progress.get("completed"):
+        try:
+            historico_entry = {
+                "id": str(uuid.uuid4()),
+                "upload_id": upload_id,
+                "company_id": company_id,
+                "company_name": company.get('razao_social', 'N/A'),
+                "competencia": competencia,
+                "tipo": tipo,  # 'entrada' ou 'saida'
+                "modelo": progress.get("modelo", "xml"),  # 'xml', 'nfe', 'nfce', 'cte', etc.
+                "data_importacao": datetime.now(timezone.utc).isoformat(),
+                "usuario_id": current_user.id,
+                "usuario_nome": current_user.name,
+                "resumo": progress.get("results", {}).get("resumo", {}),
+                "performance": progress.get("results", {}).get("performance", {}),
+                "relatorio_completo": progress.get("results", {}),
+                "total_arquivos": progress.get("results", {}).get("resumo", {}).get("total_arquivos", 0),
+                "total_importados": progress.get("results", {}).get("resumo", {}).get("importados", 0),
+                "total_erros": progress.get("results", {}).get("resumo", {}).get("erros", 0),
+                "total_duplicados": progress.get("results", {}).get("resumo", {}).get("duplicados", 0),
+            }
+            await db.historico_importacoes.insert_one(historico_entry)
+            logger.info(f"HISTORICO: Importação salva - {historico_entry['total_importados']} docs de {tipo}")
+        except Exception as e:
+            logger.error(f"HISTORICO: Erro ao salvar histórico: {e}")
+    
     return {"processed": len(files), "total_processed": processed_in_session, "total_expected": total_expected}
 
 
