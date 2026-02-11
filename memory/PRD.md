@@ -1086,8 +1086,8 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [x] ~~FASE 4 - Histórico de Alterações (Audit Log)~~ ✅ (Implementado)
 - [x] ~~FASE 5 - Geração de SPED Fiscal~~ ✅ (Página e endpoint funcionando)
 - [x] ~~FASE 6 - Apuração Automática Mensal~~ ✅ (Fechamento Mensal implementado)
+- [x] ~~FASE 7 - Suporte a Multi-estabelecimento~~ ✅ (Grupos Empresariais)
 - [ ] FASE 2.1 - Migração incremental de routers (trabalho contínuo)
-- [ ] FASE 7 - Suporte a Multi-estabelecimento
 - [ ] Sistema de licenças comerciais
 - [ ] Dashboard estatísticas Master
 - [ ] Integração SIEG (BLOQUEADO - chave inválida)
