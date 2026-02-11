@@ -3434,6 +3434,19 @@ async def create_user(
     
     await db.users.insert_one(user_dict)
     
+    # Registrar criação de usuário
+    await log_audit(
+        action=AuditAction.USER_CREATE,
+        user_id=current_user.id,
+        user_email=current_user.email,
+        details={
+            "new_user_id": user_id,
+            "new_user_email": user_data.email,
+            "new_user_role": user_data.role
+        },
+        success=True
+    )
+    
     # Return without password_hash and _id
     return {
         "id": user_id,
