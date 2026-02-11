@@ -14881,11 +14881,13 @@ async def update_learned_rule(
     categoria: str,
     cfop: str = None,
     motivo: str = None,
+    atualizar_documentos: bool = True,  # NOVO: Atualiza documentos existentes
     current_user: User = Depends(get_current_user)
 ):
     """
     Atualiza uma regra aprendida pela IA.
     Se apenas a categoria for alterada, calcula automaticamente o CFOP padrão.
+    Se atualizar_documentos=True, também atualiza todos os produtos nos documentos que correspondem à regra.
     """
     rule = await db.learned_rules.find_one({"id": rule_id}, {"_id": 0})
     if not rule:
@@ -14934,11 +14936,50 @@ async def update_learned_rule(
         {"$set": update_data}
     )
     
+    # NOVO: Atualizar documentos existentes que usam essa regra
+    docs_atualizados = 0
+    if atualizar_documentos:
+        descricao_produto = rule.get('produto_descricao', '') or rule.get('padrao', '')
+        company_id = rule.get('company_id')
+        
+        if descricao_produto and company_id:
+            # Buscar todos os documentos da empresa que têm esse produto
+            documentos = await db.xml_documents.find({
+                "company_id": company_id,
+                "produtos.descricao": descricao_produto
+            }).to_list(10000)
+            
+            for doc in documentos:
+                produtos = doc.get('produtos', [])
+                modificado = False
+                
+                for idx, prod in enumerate(produtos):
+                    if prod.get('descricao') == descricao_produto:
+                        # Determinar CFOP baseado no prefixo do CFOP atual do produto
+                        cfop_prod_atual = prod.get('cfop', '1102')
+                        cfop_prefix_prod = cfop_prod_atual[0] if cfop_prod_atual and cfop_prod_atual[0] in ['1', '2', '3', '5', '6', '7'] else '1'
+                        cfop_novo_prod = obter_cfop_por_categoria(categoria.lower(), cfop_prod_atual)
+                        
+                        produtos[idx]['categoria_classificada'] = categoria.lower()
+                        produtos[idx]['categoria_origem'] = 'regra_atualizada'
+                        if cfop_novo_prod:
+                            produtos[idx]['cfop_anterior'] = cfop_prod_atual
+                            produtos[idx]['cfop'] = cfop_novo_prod
+                        modificado = True
+                
+                if modificado:
+                    await db.xml_documents.update_one(
+                        {"id": doc['id']},
+                        {"$set": {"produtos": produtos}}
+                    )
+                    docs_atualizados += 1
+    
     # Retornar dados atualizados para que o frontend possa mostrar o novo CFOP
     return {
-        "message": "Regra atualizada com sucesso",
+        "message": f"Regra atualizada com sucesso" + (f" ({docs_atualizados} documento(s) atualizados)" if docs_atualizados > 0 else ""),
         "categoria": categoria,
-        "cfop": novo_cfop
+        "cfop": novo_cfop,
+        "documentos_atualizados": docs_atualizados
     }
 
 @api_router.delete("/ai/learned-rules/{rule_id}")
