@@ -12929,6 +12929,66 @@ async def classificar_produtos_ia(
     if not produtos_unicos:
         return {"success": True, "message": "Nenhum produto encontrado", "alteracoes": [], "total_alteracoes": 0}
     
+    # ============= DICIONÁRIO DE EXPANSÃO SEMÂNTICA =============
+    # Mapeamento de palavras-chave genéricas para termos relacionados
+    EXPANSAO_SEMANTICA = {
+        # Carnes e proteínas
+        'carne': ['picanha', 'alcatra', 'costela', 'filé', 'bife', 'coxão', 'patinho', 'maminha', 'cupim', 'acém', 
+                  'contrafilé', 'chã', 'lagarto', 'músculo', 'carne moída', 'carne bovina', 'carne suína', 'pernil',
+                  'lombo', 'bisteca', 'bacon', 'linguiça', 'salsicha', 'presunto', 'mortadela', 'hamburguer'],
+        'frango': ['coxa', 'sobrecoxa', 'peito de frango', 'asa', 'coxinha', 'filé de frango', 'frango inteiro', 
+                   'frango congelado', 'ave', 'galinha'],
+        'peixe': ['tilápia', 'salmão', 'bacalhau', 'atum', 'sardinha', 'merluza', 'pescada', 'camarão', 'peixe congelado'],
+        
+        # Frutas
+        'fruta': ['abacaxi', 'banana', 'maçã', 'laranja', 'uva', 'melancia', 'melão', 'mamão', 'morango', 'manga',
+                  'pera', 'kiwi', 'limão', 'abacate', 'goiaba', 'pêssego', 'ameixa', 'cereja', 'coco', 'maracujá',
+                  'tangerina', 'mexerica', 'bergamota', 'acerola', 'jabuticaba', 'caju', 'pitanga'],
+        
+        # Verduras e legumes
+        'verdura': ['alface', 'rúcula', 'agrião', 'espinafre', 'couve', 'repolho', 'brócolis', 'couve-flor',
+                    'acelga', 'chicória', 'almeirão', 'salsinha', 'cebolinha', 'coentro', 'manjericão'],
+        'legume': ['tomate', 'cebola', 'cenoura', 'batata', 'beterraba', 'abobrinha', 'berinjela', 'pepino',
+                   'pimentão', 'abóbora', 'chuchu', 'mandioca', 'inhame', 'nabo', 'rabanete', 'vagem', 'quiabo'],
+        
+        # Laticínios
+        'laticínio': ['leite', 'queijo', 'manteiga', 'margarina', 'iogurte', 'creme de leite', 'requeijão', 
+                      'mussarela', 'parmesão', 'gorgonzola', 'ricota', 'cottage', 'nata', 'leite condensado'],
+        'leite': ['leite integral', 'leite desnatado', 'leite semi', 'leite em pó', 'leite longa vida'],
+        'queijo': ['mussarela', 'parmesão', 'gorgonzola', 'provolone', 'prato', 'minas', 'ricota', 'cottage', 'coalho'],
+        
+        # Bebidas
+        'bebida': ['água', 'refrigerante', 'suco', 'cerveja', 'vinho', 'vodka', 'whisky', 'cachaça', 'espumante',
+                   'energético', 'isotônico', 'chá', 'café', 'achocolatado'],
+        
+        # Limpeza
+        'limpeza': ['detergente', 'desinfetante', 'água sanitária', 'sabão', 'esponja', 'vassoura', 'rodo', 
+                    'pano de chão', 'lustra móveis', 'limpa vidros', 'alvejante', 'amaciante', 'sabão em pó',
+                    'multiuso', 'cloro', 'saco de lixo'],
+        
+        # Escritório
+        'escritório': ['caneta', 'lápis', 'borracha', 'papel', 'grampeador', 'grampo', 'clips', 'envelope',
+                       'pasta', 'caderno', 'bloco', 'post-it', 'fita adesiva', 'tesoura', 'régua', 'calculadora'],
+    }
+    
+    def expandir_palavras_chave(palavras):
+        """Expande uma lista de palavras-chave incluindo termos relacionados"""
+        resultado = set()
+        for palavra in palavras:
+            palavra_lower = palavra.lower().strip()
+            resultado.add(palavra_lower)
+            
+            # Verificar se há expansão disponível
+            for chave, expansoes in EXPANSAO_SEMANTICA.items():
+                if chave in palavra_lower or palavra_lower in chave:
+                    resultado.update([e.lower() for e in expansoes])
+                # Também verificar se a palavra é uma das expansões
+                if palavra_lower in [e.lower() for e in expansoes]:
+                    resultado.add(chave)
+                    resultado.update([e.lower() for e in expansoes])
+        
+        return list(resultado)
+    
     # ============= PRÉ-CLASSIFICAÇÃO POR PALAVRAS-CHAVE =============
     # PRIORIDADE 1: Classificar baseado nas palavras-chave cadastradas ANTES de usar IA
     # Isso garante que as palavras-chave sempre tenham prioridade sobre a IA
@@ -12938,25 +12998,32 @@ async def classificar_produtos_ia(
     insumos_producao = company.get('insumos_producao', [])
     produtos_despesa = company.get('produtos_despesa', [])
     
-    # Normalizar palavras-chave para match case-insensitive
-    palavras_revenda = [p.lower().strip() for p in produtos_comercializados if p]
-    palavras_servico = [p.lower().strip() for p in produtos_aplicacao_servico if p]
-    palavras_insumo = [p.lower().strip() for p in insumos_producao if p]
-    palavras_despesa = [p.lower().strip() for p in produtos_despesa if p]
+    # Expandir palavras-chave com sinônimos e termos relacionados
+    palavras_revenda = expandir_palavras_chave(produtos_comercializados)
+    palavras_servico = expandir_palavras_chave(produtos_aplicacao_servico)
+    palavras_insumo = expandir_palavras_chave(insumos_producao)
+    palavras_despesa = expandir_palavras_chave(produtos_despesa)
     
-    # Pré-classificar produtos com base nas palavras-chave
+    # Log para debug
+    import logging
+    logging.info(f"[EXPANSAO] Insumo original: {insumos_producao}")
+    logging.info(f"[EXPANSAO] Insumo expandido: {palavras_insumo[:20]}...")
+    
+    # Pré-classificar produtos com base nas palavras-chave expandidas
     produtos_pre_classificados = {}
     produtos_para_ia = {}
     
     for chave, dados in produtos_unicos.items():
         descricao_lower = dados['descricao'].lower()
         categoria_encontrada = None
+        palavra_match = None
         
         # Verificar palavras-chave em ordem de prioridade
         # 1. Insumo (mais específico)
         for palavra in palavras_insumo:
             if palavra in descricao_lower:
                 categoria_encontrada = 'insumo'
+                palavra_match = palavra
                 break
         
         # 2. Despesa
@@ -12964,6 +13031,7 @@ async def classificar_produtos_ia(
             for palavra in palavras_despesa:
                 if palavra in descricao_lower:
                     categoria_encontrada = 'despesa'
+                    palavra_match = palavra
                     break
         
         # 3. Serviço aplicação
@@ -12971,6 +13039,7 @@ async def classificar_produtos_ia(
             for palavra in palavras_servico:
                 if palavra in descricao_lower:
                     categoria_encontrada = 'servico_aplicacao'
+                    palavra_match = palavra
                     break
         
         # 4. Revenda
@@ -12978,6 +13047,8 @@ async def classificar_produtos_ia(
             for palavra in palavras_revenda:
                 if palavra in descricao_lower:
                     categoria_encontrada = 'revenda'
+                    palavra_match = palavra
+                    break
                     break
         
         if categoria_encontrada:
