@@ -290,6 +290,15 @@ const Layout = ({ user, onLogout, children }) => {
                     <Users className="w-4 h-4" />
                     <span className="text-xs">Usuários</span>
                   </Link>
+                  <Link
+                    to="/permissoes"
+                    data-testid="nav-permissions"
+                    className="flex items-center gap-1.5 px-2 py-1.5 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded transition-colors"
+                    title="Permissões"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span className="text-xs">Permissões</span>
+                  </Link>
                 </div>
               )}
 
