@@ -20,12 +20,68 @@ export const UploadProvider = ({ children }) => {
   const [uploadInfo, setUploadInfo] = useState({ empresa: '', competencia: '' });
   const [minimized, setMinimized] = useState(false);
   
-  // Referência para o EventSource
+  // Referência para o EventSource e polling
   const eventSourceRef = useRef(null);
   const uploadIdRef = useRef(null);
+  const pollingIntervalRef = useRef(null);
 
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
   const API = `${BACKEND_URL}/api`;
+
+  // Função de polling fallback
+  const startPollingFallback = useCallback(async (uploadId, token) => {
+    if (pollingIntervalRef.current) return; // Já está rodando
+    
+    console.log('Iniciando polling de fallback para upload:', uploadId);
+    
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        const response = await fetch(`${API}/xml/upload-status/${uploadId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        
+        if (data.completed === true && data.results) {
+          console.log('Polling: Upload concluído!');
+          setProgress({ 
+            current: data.total_files || data.processed_files, 
+            total: data.total_files, 
+            percent: 100 
+          });
+          setCurrentFile('Concluído!');
+          setUploadResults(data.results);
+          setIsUploading(false);
+          
+          // Limpar polling
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+        } else if (data.error) {
+          setUploadError(data.error);
+          setIsUploading(false);
+          
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+        } else {
+          // Atualizar progresso
+          const processed = data.processed_files || 0;
+          const total = data.total_files || 1;
+          const percent = data.progress_percent || Math.round((processed / total) * 100);
+          
+          setProgress({ current: processed, total: total, percent: percent });
+          setCurrentFile(data.current_file || data.current_step || `Processando ${processed}/${total}...`);
+        }
+      } catch (err) {
+        console.error('Erro no polling:', err);
+      }
+    }, 2000); // Poll a cada 2 segundos
+  }, [API]);
 
   // Iniciar upload em segundo plano
   const startUpload = useCallback(async (files, companyId, competencia, empresaNome, tipo = 'entrada') => {
