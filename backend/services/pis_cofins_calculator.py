@@ -555,6 +555,24 @@ def classificar_ncm_comercio(ncm: str, perfil_empresa: str = 'VAREJO') -> Dict[s
             'tipo': 'BEBIDA_ALCOOLICA'
         }
     
+    # ===== 1.5) PRODUTOS TRIBUTADOS NORMALMENTE (bolos, panetones, xarope de groselha) =====
+    # Estes produtos NÃO são alíquota zero nem monofásicos - devem ser tributados!
+    for prefix, info in NCMS_TRIBUTADOS_NORMALMENTE.items():
+        if ncm_limpo.startswith(prefix.replace('.', '')):
+            aliquotas = ALIQUOTAS_COMERCIO.get(perfil_empresa, ALIQUOTAS_COMERCIO['VAREJO'])
+            aliq = aliquotas['REGRA_GERAL']
+            
+            return {
+                'grupo': 'REGRA_GERAL',
+                'descricao': info['descricao'],
+                'cst_entrada': CST_ENTRADA['CREDITO'],  # 50 - gera crédito
+                'cst_saida': '01',  # 01 (tributado)
+                'aliquota_pis': aliq['pis'],  # 1.65%
+                'aliquota_cofins': aliq['cofins'],  # 7.60%
+                'gera_credito': True,
+                'tipo': 'TRIBUTADO_NORMAL'
+            }
+    
     # ===== 2) Verificar Alíquota Zero =====
     for prefix, descricao in NCMS_ALIQUOTA_ZERO.items():
         if ncm_limpo.startswith(prefix.replace('.', '')):
