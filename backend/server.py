@@ -26703,6 +26703,21 @@ async def fechar_competencia_mensal(
     
     await db.fechamentos_mensais.insert_one(fechamento)
     
+    # Registrar no audit log
+    await log_audit(
+        action=AuditAction.COMPETENCIA_FECHAR,
+        user_id=current_user.id,
+        user_email=current_user.email,
+        company_id=company_id,
+        company_name=company.get('razao_social'),
+        details={
+            "competencia": request.competencia,
+            "total_impostos": apuracao["total_impostos"]["a_pagar"],
+            "qtd_documentos": apuracao["resumo"]["qtd_documentos"]
+        },
+        success=True
+    )
+    
     # Calcular próxima competência
     try:
         mes, ano = request.competencia.split('/')
