@@ -121,6 +121,9 @@ const Documents = ({ user, onLogout }) => {
   // Modal de detalhamento
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  
+  // Exportação por categoria
+  const [exportingCategoria, setExportingCategoria] = useState(false);
 
   // Filtro de divergências
   const [filterDivergencia, setFilterDivergencia] = useState('all'); // 'all', 'divergente', 'ok'
