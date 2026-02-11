@@ -2036,15 +2036,35 @@ async def suggest_cfop_intelligent(product: Dict[str, Any], company_id: str, tip
         "is_transferencia": is_transferencia
     }
 
-def generate_sped_fiscal(company: Company, documents: List[XMLDocument], periodo: str, excluir_creditos_despesa_st: bool = False) -> str:
+def generate_sped_fiscal(
+    company: Company, 
+    documents: List[XMLDocument], 
+    periodo: str, 
+    excluir_creditos_despesa_st: bool = False,
+    aplicar_beneficio_fiscal: bool = False
+) -> str:
     """
     Gera arquivo SPED Fiscal no layout versão 019 (válido para 2025)
     Baseado na Nota Técnica 2024.001 v1.0 - Ato Cotepe nº 131/2024
     
     Parâmetros:
     - excluir_creditos_despesa_st: Se True, exclui créditos de ICMS de CFOPs de despesa e ST na apuração (E110)
+    - aplicar_beneficio_fiscal: Se True, aplica regras de benefício fiscal (zera créditos de produtos específicos)
+    
+    Regras Simples Nacional:
+    - ICMS: Sem base e valor, CST 090
+    - PIS/COFINS entrada: CST 98
+    - PIS/COFINS saída: CST 49
     """
     lines = []
+    
+    # Verificar regime tributário
+    regime = getattr(company, 'regime_tributario', 'lucro_presumido') or 'lucro_presumido'
+    is_simples_nacional = regime == 'simples_nacional'
+    
+    # Verificar benefício fiscal
+    beneficio_fiscal_ativo = aplicar_beneficio_fiscal or getattr(company, 'beneficio_fiscal_icms', False)
+    company_dict = company.model_dump() if hasattr(company, 'model_dump') else company.__dict__
     
     # Parsear período (MM/AAAA) para obter datas corretas
     try:
