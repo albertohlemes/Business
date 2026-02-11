@@ -235,6 +235,38 @@ const UsersPage = ({ user, onLogout }) => {
     setFormData({ ...formData, atividades: [] });
   };
 
+  const handleCleanupInactiveUsers = async () => {
+    if (window.confirm('Deseja excluir permanentemente todos os usuários inativos e de teste?\n\nEsta ação não pode ser desfeita.')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.post(`${API}/auth/users/cleanup-inactive`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert(`${response.data.deleted_count} usuário(s) excluído(s) permanentemente:\n${response.data.deleted_users.join('\n')}`);
+        fetchUsers();
+      } catch (err) {
+        console.error('Erro ao limpar usuários:', err);
+        alert(err.response?.data?.detail || 'Erro ao limpar usuários');
+      }
+    }
+  };
+
+  const handleDeleteUserPermanent = async (userId, userName) => {
+    if (window.confirm(`Deseja EXCLUIR PERMANENTEMENTE o usuário "${userName}"?\n\nEsta ação não pode ser desfeita!`)) {
+      try {
+        const token = localStorage.getItem('token');
+        await axios.delete(`${API}/auth/users/${userId}/permanent`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Usuário excluído permanentemente!');
+        fetchUsers();
+      } catch (err) {
+        console.error('Erro ao excluir:', err);
+        alert(err.response?.data?.detail || 'Erro ao excluir usuário');
+      }
+    }
+  };
+
   const getRoleLabel = (role) => {
     switch (role) {
       case 'super_admin': return 'Super Admin';
