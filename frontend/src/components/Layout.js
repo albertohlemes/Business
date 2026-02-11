@@ -150,7 +150,8 @@ const Layout = ({ user, onLogout, children }) => {
     nav.push({ name: 'Vilões e Oportunidades', href: '/viloes-oportunidades', icon: AlertTriangle, testId: 'nav-viloes-oportunidades' });
     nav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
     
-    // === EXPORTAÇÕES (sempre no final) ===
+    // === FECHAMENTO E EXPORTAÇÕES ===
+    nav.push({ name: 'Fechamento Mensal', href: '/fechamento-mensal', icon: Lock, testId: 'nav-fechamento-mensal' });
     nav.push({ name: 'SPED Fiscal', href: '/sped', icon: FileOutput, testId: 'nav-sped' });
     nav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
     nav.push({ name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' });
