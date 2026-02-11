@@ -112,6 +112,23 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-11 (Sessão 20 - Correção Duplicidade por Série)
+
+**Correção na detecção de documentos duplicados:**
+- ✅ **Cache duplo de duplicados:** 
+  - Cache primário: `chave_nfe` (44 dígitos - já inclui série)
+  - Cache secundário: `numero|serie|cnpj_emitente` (para documentos sem chave de acesso)
+- ✅ **Verificação em duas etapas:**
+  1. Primeiro verifica pela chave de acesso completa
+  2. Se não tiver chave, verifica por número + série + CNPJ emitente
+- ✅ **Motivo detalhado:** Duplicados agora mostram o motivo específico
+- ✅ **Série salva no histórico:** Campo `serie` incluído no registro de duplicados
+
+**Impacto:** Documentos com mesmo número mas séries diferentes (ex: Nº 123 Série 1 vs Nº 123 Série 2) não serão mais marcados erroneamente como duplicados.
+
+**Arquivo modificado:**
+- `/app/backend/server.py`: Lógica de upload de XMLs melhorada
+
 ### 2026-02-11 (Sessão 20 - Melhorias Histórico, Documentos e Vilões)
 
 **Histórico de Importações (Documents.js):**
