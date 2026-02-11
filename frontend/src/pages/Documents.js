@@ -2161,49 +2161,126 @@ const Documents = ({ user, onLogout }) => {
                     <p className="text-sm text-[#52525B]">Importe documentos para ver o histórico aqui</p>
                   </div>
                 ) : (
-                  /* Lista de histórico */
-                  <div className="space-y-3">
+                  /* Lista de histórico - Estrutura igual à tela pós-upload */
+                  <div className="space-y-4">
                     {historico.map((item) => (
-                      <button
+                      <div
                         key={item.id}
-                        onClick={() => fetchHistoricoDetalhe(item.id)}
-                        className="w-full p-4 bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl hover:border-[#C8A951] hover:bg-[#C8A951]/5 transition-all text-left group"
+                        className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl overflow-hidden"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.tipo_operacao === 'entrada' ? 'bg-emerald-500/20' : 'bg-blue-500/20'}`}>
-                              {item.tipo_operacao === 'entrada' ? (
-                                <ArrowDownCircle className="w-5 h-5 text-emerald-400" />
-                              ) : (
-                                <ArrowUpCircle className="w-5 h-5 text-blue-400" />
-                              )}
+                        {/* Header da importação */}
+                        <div 
+                          onClick={() => fetchHistoricoDetalhe(item.id)}
+                          className="p-4 cursor-pointer hover:bg-[#1A1A1A] transition-colors"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.tipo_operacao === 'entrada' ? 'bg-emerald-500/20' : 'bg-blue-500/20'}`}>
+                                {item.tipo_operacao === 'entrada' ? (
+                                  <ArrowDownCircle className="w-5 h-5 text-emerald-400" />
+                                ) : (
+                                  <ArrowUpCircle className="w-5 h-5 text-blue-400" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-white font-medium flex items-center gap-2">
+                                  <span className={`px-2 py-0.5 rounded text-xs ${item.tipo_operacao === 'entrada' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                    {item.tipo_operacao === 'entrada' ? 'ENTRADA' : 'SAÍDA'}
+                                  </span>
+                                  {item.modelo && (
+                                    <span className="px-2 py-0.5 rounded text-xs bg-[#C8A951]/20 text-[#C8A951]">
+                                      {item.modelo === '55' ? 'NF-e' : 
+                                       item.modelo === '65' ? 'NFC-e' : 
+                                       item.modelo === '57' ? 'CT-e' : 
+                                       item.modelo === 'nfse' ? 'NFS-e' : 
+                                       item.modelo}
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-sm text-[#A1A1AA]">
+                                  <Calendar className="w-3 h-3 inline mr-1" />
+                                  {item.data_importacao ? new Date(item.data_importacao).toLocaleString('pt-BR') : '-'}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-white font-medium">
-                                {item.tipo_operacao === 'entrada' ? 'Entradas' : 'Saídas'} • {item.total_importados || 0} importados
-                              </p>
-                              <p className="text-sm text-[#A1A1AA]">
-                                {item.data_importacao ? new Date(item.data_importacao).toLocaleString('pt-BR') : '-'}
-                              </p>
+                            <div className="flex items-center gap-3">
+                              <Eye className="w-5 h-5 text-[#A1A1AA] hover:text-[#C8A951]" />
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2 text-sm">
-                              {item.total_erros > 0 && (
-                                <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">
-                                  {item.total_erros} erros
-                                </span>
-                              )}
-                              {item.total_duplicados > 0 && (
-                                <span className="px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-xs">
-                                  {item.total_duplicados} duplicados
-                                </span>
-                              )}
+                          
+                          {/* Resumo numérico igual à tela pós-upload */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <div className="bg-[#141414] rounded-lg p-2 text-center">
+                              <p className="text-xl font-bold text-white">{item.total_arquivos || 0}</p>
+                              <p className="text-xs text-[#A1A1AA]">Total</p>
                             </div>
-                            <Eye className="w-5 h-5 text-[#A1A1AA] group-hover:text-[#C8A951] transition-all" />
+                            <div className="bg-emerald-500/10 rounded-lg p-2 text-center border border-emerald-500/20">
+                              <p className="text-xl font-bold text-emerald-400">{item.total_importados || 0}</p>
+                              <p className="text-xs text-emerald-400">Importados</p>
+                            </div>
+                            {(item.total_duplicados || 0) > 0 && (
+                              <div className="bg-amber-500/10 rounded-lg p-2 text-center border border-amber-500/20">
+                                <p className="text-xl font-bold text-amber-400">{item.total_duplicados}</p>
+                                <p className="text-xs text-amber-400">Duplicados</p>
+                              </div>
+                            )}
+                            {(item.total_erros || 0) > 0 && (
+                              <div className="bg-red-500/10 rounded-lg p-2 text-center border border-red-500/20">
+                                <p className="text-xl font-bold text-red-400">{item.total_erros}</p>
+                                <p className="text-xs text-red-400">Rejeitados</p>
+                              </div>
+                            )}
                           </div>
+                          
+                          {/* Valor total se disponível */}
+                          {item.valor_total && item.valor_total > 0 && (
+                            <div className="mt-2 p-2 bg-[#C8A951]/10 border border-[#C8A951]/30 rounded-lg text-center">
+                              <p className="text-xs text-[#A1A1AA]">Valor Total</p>
+                              <p className="text-lg font-bold text-[#C8A951]">{formatCurrency(item.valor_total)}</p>
+                            </div>
+                          )}
                         </div>
-                      </button>
+                        
+                        {/* Preview de documentos importados (primeiros 3) */}
+                        {item.documentos_preview && item.documentos_preview.length > 0 && (
+                          <div className="border-t border-[#2A2A2A] p-3 bg-[#141414]/50">
+                            <p className="text-xs text-[#666] mb-2">Documentos importados:</p>
+                            <div className="space-y-1">
+                              {item.documentos_preview.slice(0, 3).map((doc, idx) => (
+                                <div key={idx} className="flex items-center justify-between text-xs py-1.5 px-2 bg-emerald-500/5 rounded border border-emerald-500/10">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                                      doc.modelo === '55' ? 'bg-blue-500/20 text-blue-400' :
+                                      doc.modelo === '65' ? 'bg-purple-500/20 text-purple-400' :
+                                      doc.modelo === '57' ? 'bg-orange-500/20 text-orange-400' :
+                                      'bg-[#C8A951]/20 text-[#C8A951]'
+                                    }`}>
+                                      {doc.modelo === '55' ? 'NF-e' : 
+                                       doc.modelo === '65' ? 'NFC-e' : 
+                                       doc.modelo === '57' ? 'CT-e' : 
+                                       doc.modelo || 'DOC'}
+                                    </span>
+                                    <span className="text-white font-medium">
+                                      Nº {doc.numero || '-'}
+                                    </span>
+                                    <span className="text-[#A1A1AA] truncate max-w-[200px]">
+                                      {doc.emitente || doc.emitente_nome || '-'}
+                                    </span>
+                                  </div>
+                                  <span className="text-[#C8A951] font-medium ml-2">
+                                    {formatCurrency(doc.valor || 0)}
+                                  </span>
+                                </div>
+                              ))}
+                              {item.documentos_preview.length > 3 && (
+                                <p className="text-xs text-[#666] text-center py-1">
+                                  +{item.documentos_preview.length - 3} documentos • Clique para ver todos
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
@@ -3465,49 +3542,126 @@ const Documents = ({ user, onLogout }) => {
                     <p className="text-sm text-[#52525B]">Importe documentos para ver o histórico aqui</p>
                   </div>
                 ) : (
-                  /* Lista de histórico */
-                  <div className="space-y-3">
+                  /* Lista de histórico - Estrutura igual à tela pós-upload */
+                  <div className="space-y-4">
                     {historico.map((item) => (
-                      <button
+                      <div
                         key={item.id}
-                        onClick={() => fetchHistoricoDetalhe(item.id)}
-                        className="w-full p-4 bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl hover:border-[#C8A951] hover:bg-[#C8A951]/5 transition-all text-left group"
+                        className="bg-[#0C0C0C] border border-[#2A2A2A] rounded-xl overflow-hidden"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.tipo_operacao === 'entrada' ? 'bg-emerald-500/20' : 'bg-blue-500/20'}`}>
-                              {item.tipo_operacao === 'entrada' ? (
-                                <ArrowDownCircle className="w-5 h-5 text-emerald-400" />
-                              ) : (
-                                <ArrowUpCircle className="w-5 h-5 text-blue-400" />
-                              )}
+                        {/* Header da importação */}
+                        <div 
+                          onClick={() => fetchHistoricoDetalhe(item.id)}
+                          className="p-4 cursor-pointer hover:bg-[#1A1A1A] transition-colors"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.tipo_operacao === 'entrada' ? 'bg-emerald-500/20' : 'bg-blue-500/20'}`}>
+                                {item.tipo_operacao === 'entrada' ? (
+                                  <ArrowDownCircle className="w-5 h-5 text-emerald-400" />
+                                ) : (
+                                  <ArrowUpCircle className="w-5 h-5 text-blue-400" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-white font-medium flex items-center gap-2">
+                                  <span className={`px-2 py-0.5 rounded text-xs ${item.tipo_operacao === 'entrada' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                    {item.tipo_operacao === 'entrada' ? 'ENTRADA' : 'SAÍDA'}
+                                  </span>
+                                  {item.modelo && (
+                                    <span className="px-2 py-0.5 rounded text-xs bg-[#C8A951]/20 text-[#C8A951]">
+                                      {item.modelo === '55' ? 'NF-e' : 
+                                       item.modelo === '65' ? 'NFC-e' : 
+                                       item.modelo === '57' ? 'CT-e' : 
+                                       item.modelo === 'nfse' ? 'NFS-e' : 
+                                       item.modelo}
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-sm text-[#A1A1AA]">
+                                  <Calendar className="w-3 h-3 inline mr-1" />
+                                  {item.data_importacao ? new Date(item.data_importacao).toLocaleString('pt-BR') : '-'}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-white font-medium">
-                                {item.tipo_operacao === 'entrada' ? 'Entradas' : 'Saídas'} • {item.total_importados || 0} importados
-                              </p>
-                              <p className="text-sm text-[#A1A1AA]">
-                                {item.data_importacao ? new Date(item.data_importacao).toLocaleString('pt-BR') : '-'}
-                              </p>
+                            <div className="flex items-center gap-3">
+                              <Eye className="w-5 h-5 text-[#A1A1AA] hover:text-[#C8A951]" />
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2 text-sm">
-                              {item.total_erros > 0 && (
-                                <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">
-                                  {item.total_erros} erros
-                                </span>
-                              )}
-                              {item.total_duplicados > 0 && (
-                                <span className="px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-xs">
-                                  {item.total_duplicados} duplicados
-                                </span>
-                              )}
+                          
+                          {/* Resumo numérico igual à tela pós-upload */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <div className="bg-[#141414] rounded-lg p-2 text-center">
+                              <p className="text-xl font-bold text-white">{item.total_arquivos || 0}</p>
+                              <p className="text-xs text-[#A1A1AA]">Total</p>
                             </div>
-                            <Eye className="w-5 h-5 text-[#A1A1AA] group-hover:text-[#C8A951] transition-all" />
+                            <div className="bg-emerald-500/10 rounded-lg p-2 text-center border border-emerald-500/20">
+                              <p className="text-xl font-bold text-emerald-400">{item.total_importados || 0}</p>
+                              <p className="text-xs text-emerald-400">Importados</p>
+                            </div>
+                            {(item.total_duplicados || 0) > 0 && (
+                              <div className="bg-amber-500/10 rounded-lg p-2 text-center border border-amber-500/20">
+                                <p className="text-xl font-bold text-amber-400">{item.total_duplicados}</p>
+                                <p className="text-xs text-amber-400">Duplicados</p>
+                              </div>
+                            )}
+                            {(item.total_erros || 0) > 0 && (
+                              <div className="bg-red-500/10 rounded-lg p-2 text-center border border-red-500/20">
+                                <p className="text-xl font-bold text-red-400">{item.total_erros}</p>
+                                <p className="text-xs text-red-400">Rejeitados</p>
+                              </div>
+                            )}
                           </div>
+                          
+                          {/* Valor total se disponível */}
+                          {item.valor_total && item.valor_total > 0 && (
+                            <div className="mt-2 p-2 bg-[#C8A951]/10 border border-[#C8A951]/30 rounded-lg text-center">
+                              <p className="text-xs text-[#A1A1AA]">Valor Total</p>
+                              <p className="text-lg font-bold text-[#C8A951]">{formatCurrency(item.valor_total)}</p>
+                            </div>
+                          )}
                         </div>
-                      </button>
+                        
+                        {/* Preview de documentos importados (primeiros 3) */}
+                        {item.documentos_preview && item.documentos_preview.length > 0 && (
+                          <div className="border-t border-[#2A2A2A] p-3 bg-[#141414]/50">
+                            <p className="text-xs text-[#666] mb-2">Documentos importados:</p>
+                            <div className="space-y-1">
+                              {item.documentos_preview.slice(0, 3).map((doc, idx) => (
+                                <div key={idx} className="flex items-center justify-between text-xs py-1.5 px-2 bg-emerald-500/5 rounded border border-emerald-500/10">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] ${
+                                      doc.modelo === '55' ? 'bg-blue-500/20 text-blue-400' :
+                                      doc.modelo === '65' ? 'bg-purple-500/20 text-purple-400' :
+                                      doc.modelo === '57' ? 'bg-orange-500/20 text-orange-400' :
+                                      'bg-[#C8A951]/20 text-[#C8A951]'
+                                    }`}>
+                                      {doc.modelo === '55' ? 'NF-e' : 
+                                       doc.modelo === '65' ? 'NFC-e' : 
+                                       doc.modelo === '57' ? 'CT-e' : 
+                                       doc.modelo || 'DOC'}
+                                    </span>
+                                    <span className="text-white font-medium">
+                                      Nº {doc.numero || '-'}
+                                    </span>
+                                    <span className="text-[#A1A1AA] truncate max-w-[200px]">
+                                      {doc.emitente || doc.emitente_nome || '-'}
+                                    </span>
+                                  </div>
+                                  <span className="text-[#C8A951] font-medium ml-2">
+                                    {formatCurrency(doc.valor || 0)}
+                                  </span>
+                                </div>
+                              ))}
+                              {item.documentos_preview.length > 3 && (
+                                <p className="text-xs text-[#666] text-center py-1">
+                                  +{item.documentos_preview.length - 3} documentos • Clique para ver todos
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
