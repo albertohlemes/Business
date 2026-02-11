@@ -7997,6 +7997,9 @@ async def get_dashboard_stats(
     # 49 = Outras Operações de Saída (sem incidência)
     CST_SAIDA_SEM_DEBITO = ['04', '06', '49']
     
+    # Contadores adicionais para análise
+    total_monofasico = 0  # Total de produtos monofásicos (CST 04)
+    
     for doc in nfe_saida + nfce:
         for prod in doc.get('produtos', []):
             debito_icms += float(prod.get('v_icms', 0) or 0)
@@ -8013,13 +8016,25 @@ async def get_dashboard_stats(
             ncm_aliq_zero = prod.get('ncm_aliq_zero', is_ncm_aliquota_zero(ncm))
             cst_calculado = str(prod.get('cst_pis_calculado', prod.get('cst_pis', ''))).strip()
             
+            # Verificar se é monofásico pelo NCM ou CST
+            ncm_monofasico = is_ncm_monofasico(ncm)
+            is_monofasico = ncm_monofasico or cst_calculado == '04' or cst_pis_saida == '04'
+            
             # Verificar se o CFOP não gera débito de PIS/COFINS
             cfop_sem_debito = cfop in CFOPS_SAIDA_SEM_DEBITO
             
-            # Verificar também se o CST calculado é 49 (sem incidência)
+            # Classificação para base de cálculo:
+            # 1. Monofásico (CST 04 ou NCM monofásico) - não gera débito na revenda
+            # 2. Alíquota Zero (CST 06 ou NCM alíquota zero) - não gera débito
+            # 3. Sem incidência (CST 49 ou CFOP de remessa/devolução) - não gera débito
+            # 4. Tributado (CST 01) - gera débito
+            
             if cfop_sem_debito or cst_calculado == '49':
                 # CFOP de remessa/devolução/transferência - CST 49 - não gera débito
                 total_cfop_sem_incidencia += valor_prod
+            elif is_monofasico:
+                # Produto monofásico - não gera débito na revenda
+                total_monofasico += valor_prod
             elif ncm_aliq_zero or cst_calculado == '06':
                 # Produto é alíquota zero pelo NCM ou CST 06
                 total_aliquota_zero += valor_prod
@@ -8028,13 +8043,21 @@ async def get_dashboard_stats(
                 total_base_pis_cofins += valor_prod
             
             # Base para cálculo do DÉBITO hipotético no Lucro Real
-            # Desconsiderar CSTs 04, 06, 49 e CFOPs sem incidência
+            # Desconsiderar: monofásicos, alíquota zero, CSTs 04, 06, 49 e CFOPs sem incidência
             gera_debito_hipotetico = True
             
             if cfop in CFOPS_SAIDA_SEM_DEBITO:
                 gera_debito_hipotetico = False
             
             if cst_pis_saida in CST_SAIDA_SEM_DEBITO or cst_cofins_saida in CST_SAIDA_SEM_DEBITO:
+                gera_debito_hipotetico = False
+            
+            # Desconsiderar monofásicos no cálculo hipotético
+            if is_monofasico:
+                gera_debito_hipotetico = False
+            
+            # Desconsiderar alíquota zero no cálculo hipotético
+            if ncm_aliq_zero:
                 gera_debito_hipotetico = False
             
             if gera_debito_hipotetico and valor_prod > 0:
