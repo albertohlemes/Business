@@ -151,13 +151,22 @@ const Documents = ({ user, onLogout }) => {
     }
   }, [ctxCompany, operacao, tipoDoc, selectedCompetencia, filterStatus]);
 
-  const fetchDocuments = async () => {
-    setLoading(true);
+  const fetchDocuments = async (loadMore = false) => {
+    if (loadMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setDocuments([]); // Limpar ao carregar nova página
+    }
     try {
       const token = localStorage.getItem('token');
       const params = new URLSearchParams();
       params.append('company_id', ctxCompany.id);
       params.append('competencia', selectedCompetencia);
+      
+      // Paginação
+      params.append('skip', loadMore ? pagination.skip + pagination.limit : 0);
+      params.append('limit', 100);
       
       // Filtrar por tipo de operação
       if (operacao === 'entrada') {
@@ -181,17 +190,42 @@ const Documents = ({ user, onLogout }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
+      // Nova estrutura de resposta com paginação
+      const responseData = res.data;
+      let docs = [];
+      let paginationInfo = { total: 0, skip: 0, limit: 100, hasMore: false };
+      
+      // Verificar se é a nova estrutura (objeto com documents) ou a antiga (array)
+      if (responseData && responseData.documents) {
+        docs = responseData.documents || [];
+        paginationInfo = {
+          total: responseData.total || 0,
+          skip: responseData.skip || 0,
+          limit: responseData.limit || 100,
+          hasMore: responseData.has_more || false
+        };
+      } else if (Array.isArray(responseData)) {
+        // Compatibilidade com resposta antiga
+        docs = responseData;
+        paginationInfo = { total: docs.length, skip: 0, limit: docs.length, hasMore: false };
+      }
+      
       // Filtrar localmente para demais documentos
-      let docs = res.data || [];
       if (tipoDoc === 'outros') {
         docs = docs.filter(d => !['55', '65', '57'].includes(d.modelo));
       }
       
-      setDocuments(docs);
+      if (loadMore) {
+        setDocuments(prev => [...prev, ...docs]);
+      } else {
+        setDocuments(docs);
+      }
+      setPagination(paginationInfo);
     } catch (err) {
       console.error('Erro ao carregar documentos:', err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
