@@ -150,6 +150,12 @@ const Documents = ({ user, onLogout }) => {
   const [showNfseCancellation, setShowNfseCancellation] = useState(false);
   const [nfseFilesForCancellation, setNfseFilesForCancellation] = useState([]);
 
+  // Modal de Notas Ausentes
+  const [showNotasAusentes, setShowNotasAusentes] = useState(false);
+  const [notasAusentesLoading, setNotasAusentesLoading] = useState(false);
+  const [notasAusentesData, setNotasAusentesData] = useState(null);
+  const [notasAusentesExporting, setNotasAusentesExporting] = useState(false);
+
   // Carregar documentos quando selecionar tipo ou mudar filtro
   useEffect(() => {
     if (ctxCompany && operacao && tipoDoc) {
