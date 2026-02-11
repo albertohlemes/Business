@@ -15441,31 +15441,53 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
         "total": len(products),
         "from_cache": 0,
         "from_ai": 0,
-        "from_rules": 0
+        "from_rules": 0,
+        "from_sales_inference": 0  # Nova estatística
     }
     
     products_for_ai = []
     company_uf = company_data.get('uf', 'SP')
     
-    # Buscar produtos vendidos (saídas) para inferência
+    # ===== ANÁLISE AVANÇADA DE PRODUTOS VENDIDOS =====
+    produtos_vendidos_list = []
+    ncms_vendidos = set()  # NCMs dos produtos que a empresa vende
+    palavras_produtos_vendidos = set()  # Palavras-chave dos produtos vendidos
+    
     try:
+        # Buscar produtos vendidos (saídas) com mais detalhes
         saidas_cursor = db.xml_documents.find({
             "company_id": company_id,
             "tipo": "saida",
             **get_filtro_notas_ativas()
-        }, {"produtos.descricao": 1, "_id": 0}).limit(100)
+        }, {"produtos.descricao": 1, "produtos.ncm": 1, "_id": 0}).limit(200)
         
-        saidas = await saidas_cursor.to_list(length=100)
+        saidas = await saidas_cursor.to_list(length=200)
         produtos_vendidos = set()
+        
         for doc in saidas:
             for prod in doc.get('produtos', []):
                 desc = prod.get('descricao', '')
+                ncm = prod.get('ncm', '')
+                
+                # Coletar NCMs vendidos (importante para match)
+                if ncm and len(ncm) >= 4:
+                    ncms_vendidos.add(ncm[:4])  # Primeiros 4 dígitos do NCM (categoria)
+                    ncms_vendidos.add(ncm[:6])  # Primeiros 6 dígitos (subcategoria)
+                
                 if desc and len(desc) > 5:
-                    # Pegar apenas primeiras 2 palavras significativas
-                    palavras = [p for p in desc.split()[:3] if len(p) > 3]
+                    # Coletar palavras-chave significativas
+                    palavras = [p.upper() for p in desc.split() if len(p) > 3 and p.upper() not in ['PARA', 'COM', 'SEM', 'UNID', 'PEÇA', 'PECA', 'CADA', 'CAIXA']]
+                    for palavra in palavras[:3]:
+                        palavras_produtos_vendidos.add(palavra)
+                    
+                    # Descrição resumida para lista
                     if palavras:
                         produtos_vendidos.add(' '.join(palavras[:2]))
+        
         produtos_vendidos_list = list(produtos_vendidos)[:50]
+        
+        logger.info(f"Análise de vendas: {len(ncms_vendidos)} NCMs vendidos, {len(palavras_produtos_vendidos)} palavras-chave")
+        
     except Exception as e:
         logger.warning(f"Erro ao buscar produtos vendidos: {e}")
         produtos_vendidos_list = []
