@@ -1636,6 +1636,42 @@ const Documents = ({ user, onLogout }) => {
                   OK
                 </button>
               </div>
+              
+              {/* Filtro de Status (Ativas/Canceladas) */}
+              <div className="flex items-center gap-1 p-1 bg-[#141414] rounded-lg border border-[#2A2A2A]">
+                <button
+                  onClick={() => setFilterStatus('ativas')}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                    filterStatus === 'ativas' 
+                      ? 'bg-emerald-500/20 text-emerald-400' 
+                      : 'text-[#A1A1AA] hover:text-white'
+                  }`}
+                >
+                  <CheckCircle className="w-3 h-3" />
+                  Ativas
+                </button>
+                <button
+                  onClick={() => setFilterStatus('canceladas')}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                    filterStatus === 'canceladas' 
+                      ? 'bg-red-500/20 text-red-400' 
+                      : 'text-[#A1A1AA] hover:text-white'
+                  }`}
+                >
+                  <Ban className="w-3 h-3" />
+                  Canceladas
+                </button>
+                <button
+                  onClick={() => setFilterStatus('todas')}
+                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                    filterStatus === 'todas' 
+                      ? 'bg-[#C8A951]/20 text-[#C8A951]' 
+                      : 'text-[#A1A1AA] hover:text-white'
+                  }`}
+                >
+                  Todas
+                </button>
+              </div>
             </div>
             
             <div className="relative w-full sm:w-80">
