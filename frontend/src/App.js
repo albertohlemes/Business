@@ -206,15 +206,15 @@ function App() {
             />
             <Route
               path="/wizard-empresa"
-              element={user ? <WizardEmpresa /> : <Navigate to="/login" />}
+              element={user ? <WizardEmpresaPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
               path="/wizard-empresa/:companyId"
-              element={user ? <WizardEmpresa /> : <Navigate to="/login" />}
+              element={user ? <WizardEmpresaPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
             <Route
               path="/alertas"
-              element={user ? <DashboardInconsistencias user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+              element={user ? <AlertasPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
           </Routes>
           </UploadProvider>
