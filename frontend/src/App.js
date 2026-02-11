@@ -204,6 +204,18 @@ function App() {
               path="/notas-ausentes"
               element={user ? <NotasAusentes user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/wizard-empresa"
+              element={user ? <WizardEmpresa /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/wizard-empresa/:companyId"
+              element={user ? <WizardEmpresa /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/alertas"
+              element={user ? <DashboardInconsistencias user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
           </Routes>
           </UploadProvider>
         </AppProvider>
