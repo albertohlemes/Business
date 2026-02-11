@@ -2097,6 +2097,170 @@ const Companies = ({ user, onLogout }) => {
                   </div>
                 </div>
 
+                {/* === BENEFÍCIO FISCAL ICMS === */}
+                {formData.regime_tributario !== 'simples_nacional' && (formData.tipo_atividade === 'comercio' || formData.tipo_atividade === 'mista') && (
+                  <div className="bg-gradient-to-r from-yellow-900/20 to-amber-900/20 border border-yellow-500/30 rounded p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Star className="w-4 h-4 text-yellow-400" />
+                      <span className="text-sm font-medium text-white">Benefício Fiscal ICMS</span>
+                      <span className="text-xs text-[#A1A1AA] ml-2">
+                        Para empresas com alíquota reduzida de ICMS na saída
+                      </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.beneficio_fiscal_icms}
+                            onChange={(e) => setFormData({ ...formData, beneficio_fiscal_icms: e.target.checked })}
+                            className="w-4 h-4 rounded border-2 border-[#666] bg-[#0C0C0C] text-yellow-500 focus:ring-yellow-500 accent-yellow-500"
+                          />
+                          <span className={`text-sm ${formData.beneficio_fiscal_icms ? 'text-yellow-400' : 'text-white'}`}>
+                            Ativar Benefício Fiscal
+                          </span>
+                        </label>
+                        <p className="text-xs text-[#A1A1AA] mt-1 ml-6">
+                          Empresa possui benefício de ICMS que impede aproveitamento de créditos em certos produtos
+                        </p>
+                      </div>
+                      
+                      {formData.beneficio_fiscal_icms && (
+                        <div>
+                          <label className="block text-xs text-[#A1A1AA] mb-2">Tipo de Estabelecimento</label>
+                          <select
+                            value={formData.tipo_beneficio_fiscal}
+                            onChange={(e) => {
+                              const tipo = e.target.value;
+                              let produtosSugeridos = [];
+                              // Sugerir produtos automaticamente
+                              if (tipo === 'restaurante' || tipo === 'bar' || tipo === 'lanchonete') {
+                                produtosSugeridos = ['todos']; // Nenhum produto gera crédito
+                              } else if (tipo === 'acougue') {
+                                produtosSugeridos = ['carne', '02'];
+                              } else if (tipo === 'padaria') {
+                                produtosSugeridos = ['farinha', 'trigo', '11', '19'];
+                              } else if (tipo === 'supermercado') {
+                                produtosSugeridos = ['carne', 'bebida', '02', '22'];
+                              } else if (tipo === 'distribuidora_bebidas') {
+                                produtosSugeridos = ['bebida', 'cerveja', 'refrigerante', '22'];
+                              }
+                              setFormData({ 
+                                ...formData, 
+                                tipo_beneficio_fiscal: tipo,
+                                produtos_sem_credito_icms: produtosSugeridos.length > 0 ? produtosSugeridos : formData.produtos_sem_credito_icms
+                              });
+                            }}
+                            className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white focus:border-yellow-500"
+                          >
+                            <option value="">Selecione...</option>
+                            <option value="restaurante">Restaurante (nenhum crédito)</option>
+                            <option value="bar">Bar/Lanchonete (nenhum crédito)</option>
+                            <option value="lanchonete">Lanchonete (nenhum crédito)</option>
+                            <option value="acougue">Açougue/Casa de Carnes</option>
+                            <option value="padaria">Padaria</option>
+                            <option value="supermercado">Supermercado</option>
+                            <option value="distribuidora_bebidas">Distribuidora de Bebidas</option>
+                            <option value="outro">Outro</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {formData.beneficio_fiscal_icms && formData.tipo_beneficio_fiscal && formData.tipo_beneficio_fiscal !== 'restaurante' && formData.tipo_beneficio_fiscal !== 'bar' && formData.tipo_beneficio_fiscal !== 'lanchonete' && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-xs text-yellow-400 mb-2">
+                            Produtos sem Crédito ICMS (NCM ou palavras-chave)
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={keywordInputs.produtosSemCredito || ''}
+                              onChange={(e) => setKeywordInputs({ ...keywordInputs, produtosSemCredito: e.target.value })}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (keywordInputs.produtosSemCredito?.trim()) {
+                                    setFormData({
+                                      ...formData,
+                                      produtos_sem_credito_icms: [...(formData.produtos_sem_credito_icms || []), keywordInputs.produtosSemCredito.trim()]
+                                    });
+                                    setKeywordInputs({ ...keywordInputs, produtosSemCredito: '' });
+                                  }
+                                }
+                              }}
+                              placeholder="Ex: carne, bebida, 02 (NCM carnes), 22 (NCM bebidas)"
+                              className="flex-1 px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-yellow-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (keywordInputs.produtosSemCredito?.trim()) {
+                                  setFormData({
+                                    ...formData,
+                                    produtos_sem_credito_icms: [...(formData.produtos_sem_credito_icms || []), keywordInputs.produtosSemCredito.trim()]
+                                  });
+                                  setKeywordInputs({ ...keywordInputs, produtosSemCredito: '' });
+                                }
+                              }}
+                              className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 font-medium"
+                            >
+                              Adicionar
+                            </button>
+                          </div>
+                          <p className="text-xs text-[#A1A1AA] mt-1">
+                            Use NCM (ex: 02 para carnes) ou palavras-chave (ex: carne, bebida, álcool)
+                          </p>
+                        </div>
+                        
+                        {formData.produtos_sem_credito_icms?.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {formData.produtos_sem_credito_icms.map((item, idx) => (
+                              <span key={idx} className="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-sm rounded flex items-center gap-2">
+                                {item}
+                                <button 
+                                  type="button" 
+                                  onClick={() => setFormData({
+                                    ...formData,
+                                    produtos_sem_credito_icms: formData.produtos_sem_credito_icms.filter((_, i) => i !== idx)
+                                  })}
+                                  className="hover:text-red-400 font-bold"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <div>
+                          <label className="block text-xs text-[#A1A1AA] mb-2">Descrição do Benefício (opcional)</label>
+                          <input
+                            type="text"
+                            value={formData.produtos_sem_credito_descricao}
+                            onChange={(e) => setFormData({ ...formData, produtos_sem_credito_descricao: e.target.value })}
+                            placeholder="Ex: Lei X - Redução de alíquota para carnes"
+                            className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded text-white placeholder:text-white/20 focus:border-yellow-500"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {formData.beneficio_fiscal_icms && (formData.tipo_beneficio_fiscal === 'restaurante' || formData.tipo_beneficio_fiscal === 'bar' || formData.tipo_beneficio_fiscal === 'lanchonete') && (
+                      <div className="bg-yellow-900/30 border border-yellow-500/20 rounded p-3 mt-3">
+                        <p className="text-sm text-yellow-400">
+                          ⚠️ <strong>Nenhum produto gerará crédito de ICMS</strong> para este tipo de estabelecimento.
+                        </p>
+                        <p className="text-xs text-[#A1A1AA] mt-1">
+                          Todos os créditos de ICMS nas entradas serão convertidos para CST 041 (Não tributado) na exportação do SPED.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Certificado Digital */}
                 <div className="bg-[#0C0C0C] border border-[#2A2A2A] rounded p-4">
                   <div className="flex items-center gap-2 mb-3">
