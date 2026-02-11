@@ -12509,7 +12509,7 @@ async def get_classification_suggestions(
     pendentes = 0
     
     for doc in documents:
-        for prod in doc.get('produtos', []):
+        for produto_idx, prod in enumerate(doc.get('produtos', [])):
             codigo = prod.get('codigo', '') or 'SEM_CODIGO'
             descricao = prod.get('descricao', '')
             chave = f"{codigo}_{descricao[:50]}"
@@ -12523,9 +12523,12 @@ async def get_classification_suggestions(
             # Verificar categoria classificada - aceita qualquer valor não vazio
             categoria = prod.get('categoria_classificada', '')
             if categoria and categoria.strip() and categoria.lower() not in ['', 'pendente', 'pendente_classificacao', 'none', 'null']:
-                grupo['categoria_atual'] = categoria
+                # Se já tem categoria definida no grupo, só sobrescreve se for diferente de pendente
+                if grupo['categoria_atual'] == 'pendente' or not grupo['categoria_atual']:
+                    grupo['categoria_atual'] = categoria
                 grupo['classificado'] = True
-            else:
+            elif not grupo['classificado']:
+                # Só marca como pendente se o grupo ainda não foi classificado
                 grupo['categoria_atual'] = 'pendente'
             
             grupo['quantidade'] += prod.get('quantidade', 0)
@@ -12533,7 +12536,8 @@ async def get_classification_suggestions(
             grupo['ocorrencias'].append({
                 'doc_id': doc['id'],
                 'numero_nfe': doc.get('numero_nfe', ''),
-                'nf': doc.get('numero_nfe', '')
+                'nf': doc.get('numero_nfe', ''),
+                'produto_idx': produto_idx  # IMPORTANTE: índice do produto no array
             })
             total_produtos += 1
     
