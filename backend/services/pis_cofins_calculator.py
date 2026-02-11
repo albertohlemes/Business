@@ -158,7 +158,6 @@ NCMS_ALIQUOTA_ZERO = {
 NCMS_TRIBUTADOS_NORMALMENTE = {
     # Bolos
     '19059020': {'descricao': 'Bolos e similares'},
-    '19052090': {'descricao': 'Bolos tipo panetone'},
     '19059090': {'descricao': 'Outros produtos de padaria e confeitaria'},
     # Panetones
     '19052010': {'descricao': 'Panetone'},
