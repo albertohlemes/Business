@@ -185,6 +185,8 @@ const Reports = ({ user, onLogout }) => {
       const blob = new Blob([response.data], { 
         type: exportFormat === 'xlsx' 
           ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          : exportFormat === 'pdf'
+          ? 'application/pdf'
           : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       });
       const url = URL.createObjectURL(blob);
