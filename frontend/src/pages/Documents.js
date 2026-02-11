@@ -2138,8 +2138,8 @@ const Documents = ({ user, onLogout }) => {
 
         {/* Modal de Resultado do Upload */}
         {showUploadResult && uploadResult && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] w-full max-w-2xl max-h-[90vh] overflow-hidden">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] w-full max-w-2xl max-h-[85vh] overflow-hidden my-auto">
               <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
                 <div className="flex items-center gap-3">
                   {(uploadResult.erros || 0) === 0 ? (
