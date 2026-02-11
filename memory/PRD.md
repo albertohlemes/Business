@@ -117,6 +117,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 **Novas Funcionalidades:**
 - ✅ **Exportação de documentos por categoria:** Novo endpoint `/api/xml/exportar-categoria/{company_id}` permite exportar todos os documentos de uma categoria específica (NF-e, NFC-e, CT-e, NFS-e) para Excel ou PDF
 - ✅ **Botões de exportação no menu Documentos:** Adicionados botões "Excel" e "PDF" na tela de listagem de documentos por tipo
+- ✅ **Competência baseada em data de saída para entradas:** Para notas de ENTRADA, a competência é determinada pela data de saída (dhSaiEnt) quando disponível, com fallback para data de emissão
 
 **Correções de Bugs:**
 - ✅ **Botão "olho" não abria modal:** Corrigido problema de controle de acesso - roles `super_admin`, `admin` e `master` agora têm acesso total aos documentos
@@ -129,7 +130,7 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **Suporte a `super_admin`:** Role `super_admin` agora é tratado corretamente em todos os endpoints de documentos
 
 **Arquivos modificados:**
-- `/app/backend/server.py`: Novo endpoint de exportação, correções de controle de acesso, melhoria na atualização de regras
+- `/app/backend/server.py`: Novo endpoint de exportação, correções de controle de acesso, melhoria na atualização de regras, lógica de competência por data de saída
 - `/app/frontend/src/pages/Documents.js`: Botões de exportação e import de toast
 - `/app/frontend/src/pages/ApuracaoICMS.js`: Uso de `valores_por_documento` para totais
 - `/app/frontend/src/pages/ClassificacaoInteligente.js`: Toast mostra novo CFOP calculado
