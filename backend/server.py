@@ -4933,7 +4933,7 @@ async def upload_xml_batch(
                     motivo_devolucao = ""
                     nfe_ref_devolucao = ""
             
-            # VALIDAR COMPETÊNCIA - Verificar se a data corresponde à competência selecionada
+            # CALCULAR COMPETÊNCIA DO DOCUMENTO
             # Para ENTRADAS: usar data_saida_entrada (dhSaiEnt) se disponível, senão data_emissao
             # Para SAÍDAS: usar data_emissao
             data_emissao = parsed_data.get('data_emissao', '')
@@ -4949,6 +4949,8 @@ async def upload_xml_batch(
                 data_para_competencia = data_emissao
                 tipo_data = "emissão"
             
+            # Calcular a competência real do documento
+            competencia_documento = competencia  # Default: usar a competência selecionada
             if data_para_competencia:
                 # data pode ser formato ISO: 2024-01-15T10:30:00-03:00
                 try:
@@ -4960,21 +4962,18 @@ async def upload_xml_batch(
                     # Extrair mês/ano para competência
                     mes_nfe = str(data_competencia_dt.month).zfill(2)
                     ano_nfe = str(data_competencia_dt.year)
-                    competencia_nfe = f"{mes_nfe}/{ano_nfe}"
+                    competencia_documento = f"{mes_nfe}/{ano_nfe}"
                     
-                    if competencia_nfe != competencia:
-                        rejeitadas_competencia.append({
-                            "filename": file.filename,
-                            "numero_nfe": parsed_data.get('numero_nfe', ''),
-                            "motivo": f"Data de {tipo_data} ({competencia_nfe}) não corresponde à competência selecionada ({competencia})",
-                            "data_emissao": data_emissao[:10] if data_emissao else ''
-                        })
-                        continue
+                    # Informar se a competência calculada é diferente da selecionada
+                    if competencia_documento != competencia:
+                        # Para entradas com data de saída diferente, usar a competência da data de saída
+                        # e adicionar uma observação (não rejeitar)
+                        print(f"INFO: Documento {parsed_data.get('numero_nfe', '')} - Competência ajustada de {competencia} para {competencia_documento} (baseada na data de {tipo_data})")
                 except Exception as e:
-                    # Se não conseguir parsear a data, deixa passar
+                    # Se não conseguir parsear a data, usar competência selecionada
                     pass
             
-            # VERIFICAR DUPLICAÇÃO
+            # VERIFICAR DUPLICAÇÃO - usar a competência calculada
             existing_doc = await db.xml_documents.find_one({
                 "company_id": company_id,
                 "competencia": competencia,
