@@ -22723,6 +22723,384 @@ async def gerar_insights_analise_horizontal(
         return {"analise": f"Não foi possível gerar análise: {str(e)}"}
 
 
+# ============================================================
+# ALERTA DE NOTAS FISCAIS AUSENTES
+# ============================================================
+
+@api_router.get("/notas-ausentes/{company_id}")
+async def get_notas_ausentes(
+    company_id: str,
+    competencia: Optional[str] = None,
+    serie: str = "1",
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Detecta notas fiscais de saída ausentes (gaps na sequência numérica).
+    Retorna lista de números faltantes por série.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Query para buscar notas de saída
+    query = {
+        "company_id": company_id,
+        "$or": [
+            {"tipo": "saida"},
+            {"tipo_operacao": "saida"}
+        ]
+    }
+    query.update(get_filtro_notas_ativas())
+    
+    if competencia:
+        query['competencia'] = competencia
+    
+    if serie:
+        query['serie'] = serie
+    
+    # Buscar documentos
+    documents = await db.xml_documents.find(query, {"_id": 0, "numero_nfe": 1, "serie": 1, "data_emissao": 1, "competencia": 1}).to_list(50000)
+    
+    if not documents:
+        return {
+            "empresa": company.get('nome', company.get('razao_social', 'N/A')),
+            "cnpj": company.get('cnpj', 'N/A'),
+            "competencia": competencia or "Todas",
+            "serie": serie,
+            "total_notas": 0,
+            "total_ausentes": 0,
+            "notas_ausentes": [],
+            "sequencias_analisadas": []
+        }
+    
+    # Agrupar por série
+    notas_por_serie = {}
+    for doc in documents:
+        doc_serie = doc.get('serie', '1') or '1'
+        if doc_serie not in notas_por_serie:
+            notas_por_serie[doc_serie] = []
+        
+        try:
+            numero = int(doc.get('numero_nfe', '0'))
+            if numero > 0:
+                notas_por_serie[doc_serie].append({
+                    'numero': numero,
+                    'data_emissao': doc.get('data_emissao', ''),
+                    'competencia': doc.get('competencia', '')
+                })
+        except (ValueError, TypeError):
+            continue
+    
+    # Detectar gaps em cada série
+    notas_ausentes = []
+    sequencias_analisadas = []
+    
+    for serie_num, notas in notas_por_serie.items():
+        if not notas:
+            continue
+            
+        # Ordenar por número
+        notas_ordenadas = sorted(notas, key=lambda x: x['numero'])
+        numeros = [n['numero'] for n in notas_ordenadas]
+        
+        primeiro = min(numeros)
+        ultimo = max(numeros)
+        
+        sequencias_analisadas.append({
+            "serie": serie_num,
+            "primeiro_numero": primeiro,
+            "ultimo_numero": ultimo,
+            "total_notas": len(numeros),
+            "total_esperado": ultimo - primeiro + 1
+        })
+        
+        # Encontrar gaps
+        numeros_set = set(numeros)
+        for num in range(primeiro, ultimo + 1):
+            if num not in numeros_set:
+                # Encontrar a nota anterior e posterior para contexto
+                nota_anterior = None
+                nota_posterior = None
+                
+                for n in notas_ordenadas:
+                    if n['numero'] < num:
+                        nota_anterior = n
+                    elif n['numero'] > num and nota_posterior is None:
+                        nota_posterior = n
+                        break
+                
+                notas_ausentes.append({
+                    "numero": num,
+                    "serie": serie_num,
+                    "nota_anterior": nota_anterior,
+                    "nota_posterior": nota_posterior
+                })
+    
+    # Ordenar por série e número
+    notas_ausentes.sort(key=lambda x: (x['serie'], x['numero']))
+    
+    return {
+        "empresa": company.get('nome', company.get('razao_social', 'N/A')),
+        "cnpj": company.get('cnpj', 'N/A'),
+        "competencia": competencia or "Todas",
+        "serie": serie or "Todas",
+        "total_notas": len(documents),
+        "total_ausentes": len(notas_ausentes),
+        "notas_ausentes": notas_ausentes,
+        "sequencias_analisadas": sequencias_analisadas,
+        "gerado_em": datetime.now(timezone.utc).isoformat()
+    }
+
+
+@api_router.get("/notas-ausentes/{company_id}/exportar")
+async def exportar_notas_ausentes(
+    company_id: str,
+    formato: str = "excel",  # excel ou pdf
+    competencia: Optional[str] = None,
+    serie: str = "1",
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Exporta relatório de notas fiscais ausentes em Excel ou PDF.
+    """
+    from io import BytesIO
+    from fastapi.responses import StreamingResponse
+    
+    # Obter dados
+    dados = await get_notas_ausentes(company_id, competencia, serie, current_user)
+    
+    if formato.lower() == "excel":
+        # Exportar para Excel
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Notas Ausentes"
+        
+        # Estilos
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="C8A951", end_color="C8A951", fill_type="solid")
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # Cabeçalho do relatório
+        ws.merge_cells('A1:F1')
+        ws['A1'] = f"RELATÓRIO DE NOTAS FISCAIS AUSENTES"
+        ws['A1'].font = Font(bold=True, size=14)
+        ws['A1'].alignment = Alignment(horizontal='center')
+        
+        ws['A3'] = f"Empresa: {dados['empresa']}"
+        ws['A4'] = f"CNPJ: {dados['cnpj']}"
+        ws['A5'] = f"Competência: {dados['competencia']}"
+        ws['A6'] = f"Série: {dados['serie']}"
+        ws['A7'] = f"Total de Notas Emitidas: {dados['total_notas']}"
+        ws['A8'] = f"Total de Notas Ausentes: {dados['total_ausentes']}"
+        ws['A9'] = f"Gerado em: {dados.get('gerado_em', '')[:19].replace('T', ' ')}"
+        
+        # Resumo por série
+        row = 11
+        ws[f'A{row}'] = "RESUMO POR SÉRIE"
+        ws[f'A{row}'].font = Font(bold=True, size=12)
+        row += 1
+        
+        headers_resumo = ['Série', 'Primeiro Nº', 'Último Nº', 'Total Emitidas', 'Total Esperado', 'Ausentes']
+        for col, header in enumerate(headers_resumo, 1):
+            cell = ws.cell(row=row, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal='center')
+        
+        row += 1
+        for seq in dados['sequencias_analisadas']:
+            ausentes = seq['total_esperado'] - seq['total_notas']
+            ws.cell(row=row, column=1, value=seq['serie']).border = thin_border
+            ws.cell(row=row, column=2, value=seq['primeiro_numero']).border = thin_border
+            ws.cell(row=row, column=3, value=seq['ultimo_numero']).border = thin_border
+            ws.cell(row=row, column=4, value=seq['total_notas']).border = thin_border
+            ws.cell(row=row, column=5, value=seq['total_esperado']).border = thin_border
+            ws.cell(row=row, column=6, value=ausentes).border = thin_border
+            row += 1
+        
+        # Detalhamento das notas ausentes
+        row += 2
+        ws[f'A{row}'] = "DETALHAMENTO DAS NOTAS AUSENTES"
+        ws[f'A{row}'].font = Font(bold=True, size=12)
+        row += 1
+        
+        headers_detalhe = ['Nº Ausente', 'Série', 'Nº Anterior', 'Data Anterior', 'Nº Posterior', 'Data Posterior']
+        for col, header in enumerate(headers_detalhe, 1):
+            cell = ws.cell(row=row, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal='center')
+        
+        row += 1
+        for nota in dados['notas_ausentes']:
+            ws.cell(row=row, column=1, value=nota['numero']).border = thin_border
+            ws.cell(row=row, column=2, value=nota['serie']).border = thin_border
+            
+            if nota.get('nota_anterior'):
+                ws.cell(row=row, column=3, value=nota['nota_anterior']['numero']).border = thin_border
+                data_ant = nota['nota_anterior'].get('data_emissao', '')[:10]
+                ws.cell(row=row, column=4, value=data_ant).border = thin_border
+            else:
+                ws.cell(row=row, column=3, value='-').border = thin_border
+                ws.cell(row=row, column=4, value='-').border = thin_border
+            
+            if nota.get('nota_posterior'):
+                ws.cell(row=row, column=5, value=nota['nota_posterior']['numero']).border = thin_border
+                data_post = nota['nota_posterior'].get('data_emissao', '')[:10]
+                ws.cell(row=row, column=6, value=data_post).border = thin_border
+            else:
+                ws.cell(row=row, column=5, value='-').border = thin_border
+                ws.cell(row=row, column=6, value='-').border = thin_border
+            
+            row += 1
+        
+        # Ajustar largura das colunas
+        ws.column_dimensions['A'].width = 15
+        ws.column_dimensions['B'].width = 12
+        ws.column_dimensions['C'].width = 12
+        ws.column_dimensions['D'].width = 15
+        ws.column_dimensions['E'].width = 12
+        ws.column_dimensions['F'].width = 15
+        
+        # Salvar em memória
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        filename = f"notas_ausentes_{dados['cnpj'].replace('.', '').replace('/', '').replace('-', '')}_{(competencia or 'todas').replace('/', '_')}.xlsx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
+    elif formato.lower() == "pdf":
+        # Exportar para PDF
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.units import cm
+        
+        output = BytesIO()
+        doc = SimpleDocTemplate(output, pagesize=A4, rightMargin=1.5*cm, leftMargin=1.5*cm, topMargin=1.5*cm, bottomMargin=1.5*cm)
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16, alignment=1, spaceAfter=20)
+        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Heading2'], fontSize=12, spaceAfter=10)
+        normal_style = styles['Normal']
+        
+        elements = []
+        
+        # Título
+        elements.append(Paragraph("RELATÓRIO DE NOTAS FISCAIS AUSENTES", title_style))
+        elements.append(Spacer(1, 10))
+        
+        # Informações da empresa
+        info_data = [
+            [f"Empresa: {dados['empresa']}", f"CNPJ: {dados['cnpj']}"],
+            [f"Competência: {dados['competencia']}", f"Série: {dados['serie']}"],
+            [f"Total Emitidas: {dados['total_notas']}", f"Total Ausentes: {dados['total_ausentes']}"],
+            [f"Gerado em: {dados.get('gerado_em', '')[:19].replace('T', ' ')}", ""]
+        ]
+        
+        info_table = Table(info_data, colWidths=[9*cm, 9*cm])
+        info_table.setStyle(TableStyle([
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        elements.append(info_table)
+        elements.append(Spacer(1, 20))
+        
+        # Resumo por série
+        elements.append(Paragraph("RESUMO POR SÉRIE", subtitle_style))
+        
+        resumo_data = [['Série', 'Primeiro Nº', 'Último Nº', 'Emitidas', 'Esperado', 'Ausentes']]
+        for seq in dados['sequencias_analisadas']:
+            ausentes = seq['total_esperado'] - seq['total_notas']
+            resumo_data.append([
+                seq['serie'],
+                str(seq['primeiro_numero']),
+                str(seq['ultimo_numero']),
+                str(seq['total_notas']),
+                str(seq['total_esperado']),
+                str(ausentes)
+            ])
+        
+        resumo_table = Table(resumo_data, colWidths=[2*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm])
+        resumo_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.78, 0.66, 0.32)),  # Dourado
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ]))
+        elements.append(resumo_table)
+        elements.append(Spacer(1, 20))
+        
+        # Detalhamento (limitar a 100 por página)
+        if dados['notas_ausentes']:
+            elements.append(Paragraph("DETALHAMENTO DAS NOTAS AUSENTES", subtitle_style))
+            
+            detalhe_data = [['Nº Ausente', 'Série', 'Nº Anterior', 'Data Ant.', 'Nº Posterior', 'Data Post.']]
+            for nota in dados['notas_ausentes'][:200]:  # Limitar para não estourar o PDF
+                row = [
+                    str(nota['numero']),
+                    nota['serie'],
+                    str(nota['nota_anterior']['numero']) if nota.get('nota_anterior') else '-',
+                    nota['nota_anterior'].get('data_emissao', '')[:10] if nota.get('nota_anterior') else '-',
+                    str(nota['nota_posterior']['numero']) if nota.get('nota_posterior') else '-',
+                    nota['nota_posterior'].get('data_emissao', '')[:10] if nota.get('nota_posterior') else '-'
+                ]
+                detalhe_data.append(row)
+            
+            if len(dados['notas_ausentes']) > 200:
+                detalhe_data.append(['...', f"+ {len(dados['notas_ausentes']) - 200} registros", '', '', '', ''])
+            
+            detalhe_table = Table(detalhe_data, colWidths=[2.5*cm, 2*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm])
+            detalhe_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.78, 0.66, 0.32)),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.Color(0.95, 0.95, 0.95)]),
+            ]))
+            elements.append(detalhe_table)
+        
+        doc.build(elements)
+        output.seek(0)
+        
+        filename = f"notas_ausentes_{dados['cnpj'].replace('.', '').replace('/', '').replace('-', '')}_{(competencia or 'todas').replace('/', '_')}.pdf"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
+    else:
+        raise HTTPException(status_code=400, detail="Formato inválido. Use 'excel' ou 'pdf'")
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
