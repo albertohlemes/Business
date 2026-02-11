@@ -5590,6 +5590,22 @@ async def upload_xml_with_progress(
     else:
         sales_cache = None  # Não precisa para saídas
     
+    # ===== PRÉ-CARREGAR EVENTOS DE CANCELAMENTO (evita N queries) =====
+    eventos_cancelamento_cache = {}
+    try:
+        eventos_cursor = db.eventos_cancelamento.find(
+            {"company_id": company_id, "processado": {"$ne": True}},
+            {"chave_nfe": 1, "data_cancelamento": 1, "justificativa": 1, "protocolo": 1, "_id": 0}
+        )
+        async for evento in eventos_cursor:
+            chave = evento.get("chave_nfe", "")
+            if chave:
+                eventos_cancelamento_cache[chave] = evento
+        if eventos_cancelamento_cache:
+            logger.info(f"UPLOAD-STREAM: Cache de cancelamentos carregado - {len(eventos_cancelamento_cache)} eventos")
+    except Exception as e:
+        logger.warning(f"UPLOAD-STREAM: Erro ao carregar cache de cancelamentos: {e}")
+    
     for file_idx, file in enumerate(files):
         # Atualizar progresso: lendo arquivo
         progress["processed_files"] = file_idx
