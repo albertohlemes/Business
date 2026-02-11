@@ -483,6 +483,13 @@ const Documents = ({ user, onLogout }) => {
           const data = pollResponse.data;
           
           if (data.completed === true && data.results) {
+            // Evitar múltiplas atualizações do resultado
+            if (resultDisplayedRef.current) {
+              if (pollingInterval) clearInterval(pollingInterval);
+              return;
+            }
+            resultDisplayedRef.current = true;
+            
             if (pollingInterval) clearInterval(pollingInterval);
             if (globalTimeoutId) clearInterval(globalTimeoutId); // Limpar timeout global
             setUploadProgress({ current: files.length, total: files.length, percent: 100 });
