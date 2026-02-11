@@ -7948,6 +7948,13 @@ async def get_dashboard_stats(
             if cst_pis in CST_ENTRADA_SEM_CREDITO or cst_cofins in CST_ENTRADA_SEM_CREDITO:
                 gera_credito_pis_cofins = False
             
+            # Monofásicos e Alíquota Zero - NÃO geram crédito
+            # Monofásicos: a tributação já foi feita na origem (fabricante/importador)
+            # Alíquota Zero: não há tributação, logo não há crédito
+            ncm_entrada = prod.get('ncm', '')
+            if is_ncm_monofasico(ncm_entrada) or is_ncm_aliquota_zero(ncm_entrada):
+                gera_credito_pis_cofins = False
+            
             # Adicionar à base de crédito se aplicável
             if gera_credito_pis_cofins and valor_produto > 0:
                 base_credito_pis_cofins_real += valor_produto
