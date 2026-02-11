@@ -7879,6 +7879,10 @@ async def get_dashboard_stats(
         for prod in doc.get('produtos', []):
             cfop = str(prod.get('cfop', ''))
             v_icms = float(prod.get('v_icms', 0) or 0)
+            valor_produto = float(prod.get('valor_total', 0) or prod.get('v_prod', 0) or 0)
+            categoria = str(prod.get('categoria_classificada', '')).lower()
+            cst_pis = str(prod.get('cst_pis', ''))
+            cst_cofins = str(prod.get('cst_cofins', ''))
             
             # ICMS-ST e Despesa - verificar flags da empresa
             is_st = cfop in CFOPS_ST
@@ -7902,6 +7906,26 @@ async def get_dashboard_stats(
             v_cofins = float(prod.get('v_cofins', 0) or 0)
             credito_pis += v_pis
             credito_cofins += v_cofins
+            
+            # Calcular base de crédito para PIS/COFINS Lucro Real
+            # Considera: CFOP, categoria, CST
+            gera_credito_pis_cofins = True
+            
+            # Verificar CFOP
+            if cfop in CFOPS_ENTRADA_SEM_CREDITO_PIS_COFINS:
+                gera_credito_pis_cofins = False
+            
+            # Verificar categoria
+            if categoria in CATEGORIAS_SEM_CREDITO:
+                gera_credito_pis_cofins = False
+            
+            # Verificar CST de PIS/COFINS (50-56 = crédito presumido, 60-67 = sem crédito, 70-75 = sem incidência)
+            if cst_pis.startswith(('6', '7', '8', '9')):  # Sem crédito ou sem incidência
+                gera_credito_pis_cofins = False
+            
+            # Adicionar à base de crédito se aplicável
+            if gera_credito_pis_cofins and valor_produto > 0:
+                base_credito_pis_cofins_real += valor_produto
     
     # Alíquotas por regime
     ALIQ_PIS_LUCRO_REAL = 0.0165  # 1.65%
