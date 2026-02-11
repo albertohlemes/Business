@@ -193,6 +193,10 @@ function App() {
               path="/viloes-oportunidades"
               element={user ? <ViloesOportunidades user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
             />
+            <Route
+              path="/notas-ausentes"
+              element={user ? <NotasAusentes user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+            />
           </Routes>
           </UploadProvider>
         </AppProvider>
