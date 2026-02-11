@@ -5548,6 +5548,20 @@ async def upload_xml_with_progress(
     
     logger.info(f"UPLOAD-STREAM: Processando {total_files} arquivos para upload_id={upload_id}")
     
+    # ===== PRÉ-CARREGAR CACHE DE DOCUMENTOS EXISTENTES (evita N queries de duplicados) =====
+    existing_docs_cache = set()
+    try:
+        existing_cursor = db.xml_documents.find({
+            "company_id": company_id,
+            "competencia": competencia
+        }, {"chave_nfe": 1, "_id": 0})
+        async for doc in existing_cursor:
+            if doc.get("chave_nfe"):
+                existing_docs_cache.add(doc["chave_nfe"])
+        logger.info(f"UPLOAD-STREAM: Cache de documentos existentes carregado - {len(existing_docs_cache)} documentos")
+    except Exception as e:
+        logger.warning(f"UPLOAD-STREAM: Erro ao carregar cache de documentos existentes: {e}")
+    
     # ===== PRÉ-CARREGAR CACHE DE VENDAS (uma vez só, antes do loop) =====
     sales_cache = {"company_id": company_id}
     if tipo == 'entrada':
