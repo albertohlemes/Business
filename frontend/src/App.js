@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
 import UsersPage from './pages/UsersPage';
+import UserPermissions from './pages/UserPermissions';
 import Documents from './pages/Documents';
 import ClassificacaoInteligente from './pages/ClassificacaoInteligente';
 import ExportMenu from './pages/ExportMenu';
