@@ -2432,6 +2432,7 @@ def generate_sped_fiscal(
             cst_icms = str(prod.get('cst', '') or prod.get('cst_icms', '') or '000').zfill(3)
             cfop = str(prod.get('cfop', '') or '')
             ncm = str(prod.get('ncm', '') or '')
+            descricao = str(prod.get('descricao', '') or prod.get('desc', '') or prod.get('nome', '') or '')
             
             # Determinar UF de origem (do emitente) para cálculo de ICMS interestadual
             uf_origem = (getattr(doc, 'emitente_uf', '') or '').upper() or uf_empresa
@@ -2472,32 +2473,71 @@ def generate_sped_fiscal(
                 '1411', '2411',  # Devolução com ST
             ]
             
-            # Se flag ativo e é ENTRADA, aplicar regras especiais
-            if excluir_creditos_despesa_st and is_entrada:
-                if cfop in CFOPS_DESPESAS:
-                    # Despesas: zerar ICMS e alterar CST para 090
-                    v_icms = 0
-                    bc_icms = 0
-                    aliq_icms = 0
-                    cst_icms = '090'  # CST 090 para despesas
-                elif cfop in CFOPS_ST:
-                    # ST: zerar ICMS e alterar CST para 060
-                    v_icms = 0
-                    bc_icms = 0
-                    aliq_icms = 0
-                    cst_icms = '060'  # CST 060 para ST
-                else:
-                    # Demais CFOPs: usar valores do XML
-                    v_icms = v_icms_xml
-                    bc_icms = v_bc_icms_xml
-                    if p_icms_xml > 0:
-                        aliq_icms = p_icms_xml
-                    elif v_bc_icms_xml > 0 and v_icms_xml > 0:
-                        aliq_icms = round((v_icms_xml / v_bc_icms_xml) * 100)
-                    else:
+            # ============================================================
+            # REGRAS ESPECIAIS DE CST
+            # ============================================================
+            
+            # 1. SIMPLES NACIONAL: Zerar tudo e usar CST 090
+            if is_simples_nacional:
+                v_icms = 0
+                bc_icms = 0
+                aliq_icms = 0
+                cst_icms = '090'  # CST 090 para Simples Nacional
+            
+            # 2. FLAG EXCLUIR CRÉDITOS OU BENEFÍCIO FISCAL
+            elif is_entrada:
+                # Verificar se é despesa ou ST
+                if excluir_creditos_despesa_st:
+                    if cfop in CFOPS_DESPESAS:
+                        # Despesas: zerar ICMS e alterar CST para 090
+                        v_icms = 0
+                        bc_icms = 0
                         aliq_icms = 0
+                        cst_icms = '090'  # CST 090 para despesas
+                    elif cfop in CFOPS_ST:
+                        # ST: zerar ICMS e alterar CST para 060
+                        v_icms = 0
+                        bc_icms = 0
+                        aliq_icms = 0
+                        cst_icms = '060'  # CST 060 para ST
+                    else:
+                        # Verificar benefício fiscal
+                        if beneficio_fiscal_ativo and produto_sem_credito_icms_beneficio(ncm, descricao, company_dict):
+                            # Produto sem direito a crédito: zerar e usar CST 041
+                            v_icms = 0
+                            bc_icms = 0
+                            aliq_icms = 0
+                            cst_icms = '041'  # CST 041 - Não tributado
+                        else:
+                            # Demais CFOPs: usar valores do XML
+                            v_icms = v_icms_xml
+                            bc_icms = v_bc_icms_xml
+                            if p_icms_xml > 0:
+                                aliq_icms = p_icms_xml
+                            elif v_bc_icms_xml > 0 and v_icms_xml > 0:
+                                aliq_icms = round((v_icms_xml / v_bc_icms_xml) * 100)
+                            else:
+                                aliq_icms = 0
+                else:
+                    # Flag desativado - verificar apenas benefício fiscal
+                    if beneficio_fiscal_ativo and produto_sem_credito_icms_beneficio(ncm, descricao, company_dict):
+                        # Produto sem direito a crédito: zerar e usar CST 041
+                        v_icms = 0
+                        bc_icms = 0
+                        aliq_icms = 0
+                        cst_icms = '041'  # CST 041 - Não tributado
+                    else:
+                        # Usar valores do XML normalmente
+                        v_icms = v_icms_xml
+                        bc_icms = v_bc_icms_xml
+                        if p_icms_xml > 0:
+                            aliq_icms = p_icms_xml
+                        elif v_bc_icms_xml > 0 and v_icms_xml > 0:
+                            aliq_icms = round((v_icms_xml / v_bc_icms_xml) * 100)
+                        else:
+                            aliq_icms = 0
             else:
-                # Flag desativado ou é saída: usar valores do XML normalmente
+                # É saída: usar valores do XML normalmente
                 v_icms = v_icms_xml
                 bc_icms = v_bc_icms_xml
                 
