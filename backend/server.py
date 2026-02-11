@@ -14726,12 +14726,16 @@ async def update_learned_rule(
     if not rule:
         raise HTTPException(status_code=404, detail="Regra não encontrada")
     
+    # Atualizar campos corretos para compatibilidade com o sistema de cache
     update_data = {
         "categoria": categoria,
-        "updated_at": datetime.utcnow().isoformat()
+        "categoria_correta": categoria,  # Campo usado pelo sistema de classificação
+        "updated_at": datetime.utcnow().isoformat(),
+        "updated_by": current_user.email
     }
     if cfop:
         update_data["cfop"] = cfop
+        update_data["cfop_correto"] = cfop  # Campo usado pelo sistema de classificação
     if motivo:
         update_data["motivo"] = motivo
     
