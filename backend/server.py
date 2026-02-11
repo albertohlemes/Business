@@ -17924,6 +17924,19 @@ async def get_beneficio_fiscal_detalhes(
                 return ncm_descricoes[prefix]
         return "Produto"
     
+    # CFOPs que já não geram crédito (ST e Despesas) - NÃO devem entrar no benefício fiscal
+    CFOPS_ST = {'1401', '1403', '1407', '1408', '1409', '2401', '2403', '2407', '2408', '2409'}
+    CFOPS_DESPESA = {
+        '1128', '1407', '1556', '1557', '1651', '1652', '1653', '1658', '1659', '1660', '1661', '1662',
+        '1663', '1664', '1901', '1902', '1903', '1904', '1905', '1906', '1907', '1908', '1909', '1910',
+        '1911', '1912', '1913', '1914', '1915', '1916', '1917', '1918', '1919', '1920', '1921', '1922',
+        '1923', '1924', '1925', '1926', '1949', '2128', '2407', '2556', '2557', '2651', '2652', '2653',
+        '2658', '2659', '2660', '2661', '2662', '2663', '2664', '2901', '2902', '2903', '2904', '2905',
+        '2906', '2907', '2908', '2909', '2910', '2911', '2912', '2913', '2914', '2915', '2916', '2917',
+        '2918', '2919', '2920', '2921', '2922', '2923', '2924', '2925', '2949'
+    }
+    CFOPS_SEM_CREDITO = CFOPS_ST | CFOPS_DESPESA
+    
     # Processar documentos
     for doc in docs:
         # Itens podem estar em 'itens' ou 'produtos' dependendo da fonte
@@ -17932,12 +17945,18 @@ async def get_beneficio_fiscal_detalhes(
             continue
         
         for item in itens:
+            cfop = str(item.get('cfop', '') or '').strip()
             ncm = str(item.get('ncm', '') or '').strip()
             descricao = str(item.get('descricao', '') or item.get('produto', '') or '').strip()
             valor_produto = float(item.get('valor_produto', 0) or item.get('valor_total', 0) or 0)
             # Suportar diferentes nomes para campos de ICMS
             bc_icms = float(item.get('bc_icms', 0) or item.get('v_bc_icms', 0) or 0)
             valor_icms = float(item.get('valor_icms', 0) or item.get('v_icms', 0) or 0)
+            
+            # EXCLUIR CFOPs de ST e Despesas - estes já não geram crédito normalmente
+            # Só devem entrar no benefício fiscal produtos que NORMALMENTE gerariam crédito
+            if cfop in CFOPS_SEM_CREDITO:
+                continue
             
             # Verificar se o produto está sujeito ao benefício fiscal
             if not produto_sem_credito_icms_beneficio(ncm, descricao, company):
