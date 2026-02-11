@@ -383,35 +383,46 @@ const Reports = ({ user, onLogout }) => {
                   </div>
                 </div>
                 
-                <div className="space-y-2">
-                  {secoes.map(secao => (
-                    <button
-                      key={secao.key}
-                      onClick={() => toggleSection(secao.key)}
-                      className={`w-full flex items-start gap-3 p-3 rounded-lg transition-colors text-left ${
-                        selectedSections[secao.key]
-                          ? 'bg-[#C8A951]/10 border border-[#C8A951]/30'
-                          : 'bg-[#0C0C0C] border border-[#2A2A2A] hover:border-[#3A3A3A]'
-                      }`}
-                    >
-                      <div className={`mt-0.5 ${selectedSections[secao.key] ? 'text-[#C8A951]' : 'text-[#666]'}`}>
-                        {selectedSections[secao.key] ? (
-                          <CheckSquare className="w-5 h-5" />
-                        ) : (
-                          <Square className="w-5 h-5" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <secao.icon className={`w-4 h-4 ${selectedSections[secao.key] ? 'text-[#C8A951]' : 'text-[#A1A1AA]'}`} />
-                          <span className={`font-medium ${selectedSections[secao.key] ? 'text-white' : 'text-[#A1A1AA]'}`}>
-                            {secao.label}
-                          </span>
+                <div className="space-y-4">
+                  {/* Agrupar seções por categoria */}
+                  {['Resumo', 'Apurações', 'Documentos', 'Análises'].map(categoria => {
+                    const secoesCategoria = secoes.filter(s => s.category === categoria);
+                    return (
+                      <div key={categoria}>
+                        <h4 className="text-xs font-semibold text-[#C8A951] uppercase mb-2">{categoria}</h4>
+                        <div className="space-y-2">
+                          {secoesCategoria.map(secao => (
+                            <button
+                              key={secao.key}
+                              onClick={() => toggleSection(secao.key)}
+                              className={`w-full flex items-start gap-3 p-3 rounded-lg transition-colors text-left ${
+                                selectedSections[secao.key]
+                                  ? 'bg-[#C8A951]/10 border border-[#C8A951]/30'
+                                  : 'bg-[#0C0C0C] border border-[#2A2A2A] hover:border-[#3A3A3A]'
+                              }`}
+                            >
+                              <div className={`mt-0.5 ${selectedSections[secao.key] ? 'text-[#C8A951]' : 'text-[#666]'}`}>
+                                {selectedSections[secao.key] ? (
+                                  <CheckSquare className="w-5 h-5" />
+                                ) : (
+                                  <Square className="w-5 h-5" />
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <secao.icon className={`w-4 h-4 ${selectedSections[secao.key] ? 'text-[#C8A951]' : 'text-[#A1A1AA]'}`} />
+                                  <span className={`font-medium text-sm ${selectedSections[secao.key] ? 'text-white' : 'text-[#A1A1AA]'}`}>
+                                    {secao.label}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-[#666] mt-1">{secao.desc}</p>
+                              </div>
+                            </button>
+                          ))}
                         </div>
-                        <p className="text-xs text-[#666] mt-1">{secao.desc}</p>
                       </div>
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
               
