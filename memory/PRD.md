@@ -927,13 +927,20 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [x] ~~DIFAL para Simples Nacional~~ ✅ (endpoint e página funcionando)
 - [x] ~~Melhorar análise de vilões/oportunidades com PIS/COFINS~~ ✅
 - [x] ~~Melhorar IA de classificação com análise de saídas~~ ✅
+- [x] ~~FASE 3 - Wizard de Configuração de Empresa~~ ✅
+- [x] ~~FASE 3 - Dashboard de Inconsistências (Central de Alertas)~~ ✅
 - [ ] Importação de CT-e para transportadoras
 - [ ] Ordenação nas páginas restantes (ISS, DIFAL, SimplesNacionalDashboard)
 - [ ] Logo nos relatórios exportados
 - [ ] Upload de Certificado Digital (.pfx)
 
 ### P3 - Baixa Prioridade
-- [ ] Refatorar server.py em routers
+- [ ] FASE 1 - Integrar Sistema de Permissões aos endpoints
+- [ ] FASE 2 - Refatorar server.py em routers
+- [ ] FASE 4 - Histórico de Alterações (Audit Log)
+- [ ] FASE 5 - Geração de SPED Fiscal
+- [ ] FASE 6 - Apuração Automática Mensal
+- [ ] FASE 7 - Suporte a Multi-estabelecimento
 - [ ] Sistema de licenças comerciais
 - [ ] Dashboard estatísticas Master
 - [ ] Integração SIEG (BLOQUEADO - chave inválida)
