@@ -1,0 +1,204 @@
+<analysis>**original_problem_statement:**
+O objetivo principal é continuar a correção de bugs críticos e a implementação de funcionalidades complexas para uma aplicação de gestão fiscal. O usuário aprovou um plano de desenvolvimento de longo prazo, dividido em fases, começando com a implementação de um sistema de permissões de usuário para resolver uma vulnerabilidade de segurança crítica.
+
+As solicitações do usuário e problemas em andamento incluem:
+1.  **[BUG - P0] Classificação Inteligente:** A funcionalidade de classificação (manual e por IA) não estava salvando as alterações de forma consistente. O usuário relatou que a edição manual funcionava com a busca, mas não ao navegar. Adicionalmente, a IA não estava respeitando as palavras-chave cadastradas (ex: carne em INSUMO era classificada como REVENDA).
+2.  **[BUG - P0] Controle de Acesso (Tenant Isolation):** A função  está desativada, representando uma vulnerabilidade de segurança crítica. O usuário solicitou a reativação através de um sistema de permissões editável por usuário.
+3.  **[BUG - P1] Dashboard com Benefício Fiscal:** Para empresas com benefício fiscal, a dedução de ICMS não estava sendo exibida no card do dashboard principal.
+4.  **[BUG - P1] Cálculo e Exibição de PIS/COFINS:**
+    *   Os cálculos hipotéticos de PIS/COFINS no comparativo de regimes (Lucro Real vs. Presumido) não estavam excluindo corretamente produtos monofásicos, alíquota zero e CFOPs sem incidência.
+    *   Os valores de PIS e COFINS estavam agrupados, e o usuário solicitou a separação para maior clareza.
+    *   As linhas de PIS/COFINS sobre serviços eram exibidas para empresas que só têm atividade de comércio.
+    *   Havia divergência de valores entre a apuração de PIS/COFINS e o cálculo no módulo RET.
+5.  **[FEATURE - P1-P2] Plano de Desenvolvimento Aprovado:** O usuário aprovou um plano de 12 pontos, que inclui:
+    *   (FASE 1) Sistema de Permissões.
+    *   (FASE 2) Refatoração do .
+    *   (FASE 3) Wizard de configuração e Dashboard de Inconsistências.
+    *   (FASE 4) Histórico de alterações (Audit Log).
+    *   (FASE 5) Geração de SPED (sem transmissão).
+    *   (FASE 6) Apuração automática mensal.
+    *   (FASE 7) Suporte a multi-estabelecimento.
+    *   E outras funcionalidades futuras (PWA, Licenciamento).
+
+**User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
+
+**what currently exists?**
+A aplicação é uma plataforma de gestão fiscal (React + FastAPI + MongoDB). A sessão anterior focou em resolver uma série de bugs e implementar a **FASE 1** do plano de desenvolvimento: um sistema de permissões granulares. Foi criada uma nova página de frontend e endpoints de backend para que um super-admin possa visualizar e editar as permissões de cada usuário para cada módulo do sistema (Dashboard, Documentos, Classificação, etc.). Esta funcionalidade serve como base para resolver a vulnerabilidade de segurança crítica de isolamento de dados. Além disso, foram feitas correções importantes na lógica de classificação por IA, no cálculo de PIS/COFINS e na exibição de dados no dashboard.
+
+**Last working item**:
+- **Last item agent was working**: O agente iniciou a **FASE 3** do plano de desenvolvimento, criando os arquivos placeholder e um endpoint inicial no backend para o **Wizard de Configuração de Empresa** e para o **Dashboard de Inconsistências**.
+- **Status**: IN PROGRESS
+- **Agent Testing Done**: N
+- **Which testing method agent to use?**: both. Usar o  para testar o fluxo do novo wizard e a exibição de dados no dashboard de inconsistências. Usar o  para validar a lógica de detecção de inconsistências fiscais no novo endpoint.
+- **User Testing Done**: N
+
+**All Pending/In progress Issue list**:
+- **Issue 1: Integração final do Sistema de Permissões (P0 - Segurança Crítica)**
+- **Issue 2: Cálculo de competência para notas fiscais está incorreto (P0)**
+- **Issue 3: Validação da correção na Classificação Inteligente (P1 - User Verification Pending)**
+- **Issue 4: O Dashboard de Saídas não atualiza os valores corretamente (P1 - User Verification Pending)**
+
+**Issues Detail**:
+- **Issue 1: Integração final do Sistema de Permissões (P0 - Segurança Crítica)**
+  - **Attempted fixes**: Um sistema de permissões completo foi construído (backend e frontend). No entanto, ele ainda não foi integrado aos endpoints da API para substituir a função  desativada.
+  - **Next debug checklist**:
+    1.  Criar uma função  que valide se o usuário atual tem a permissão necessária.
+    2.  Substituir as chamadas  (atualmente comentadas) e as validações de  () por  em todos os endpoints relevantes.
+    3.  Realizar testes de regressão extensivos, logando como um usuário com permissões restritas, para garantir que o acesso seja bloqueado corretamente.
+  - **Status**: IN PROGRESS
+  - **Is recurring issue?**: Y
+  - **Should Test frontend/backend/both after fix?**: backend
+
+- **Issue 2: O Cálculo de competência para notas fiscais está incorreto (P0)**
+  - **Attempted fixes**: Nenhum nesta sessão. Este problema foi herdado.
+  - **Next debug checklist**:
+    1.  Adicionar logs detalhados no endpoint  para rastrear os valores de , ,  e o  final que está sendo salvo no banco de dados para a nota fiscal específica.
+    2.  Investigar por que a lógica existente de usar  para notas de entrada não está funcionando (pode ser um documento duplicado ou uma condição de borda não tratada).
+  - **Status**: NOT STARTED
+  - **Is recurring issue?**: Y
+  - **Should Test frontend/backend/both after fix?**: backend
+
+- **Issue 3: Validação da correção na Classificação Inteligente (P1 - User Verification Pending)**
+  - **Attempted fixes**:
+    1.  **UI:** Corrigida a  de renderização de produtos e implementada uma cópia profunda do objeto ao editar para evitar mutações de estado inesperadas no React.
+    2.  **IA:** Implementada uma pré-classificação no backend que força o respeito às palavras-chave cadastradas, com prioridade sobre a IA. O prompt da IA foi aprimorado para expandir semanticamente as palavras-chave (ex: carne -> picanha, frango).
+  - **Next debug checklist**: O usuário precisa testar e confirmar se os problemas de persistência manual e de classificação incorreta pela IA foram resolvidos.
+  - **Status**: USER VERIFICATION PENDING
+  - **Is recurring issue?**: Y
+  - **Should Test frontend/backend/both after fix?**: both
+
+- **Issue 4: O Dashboard de Saídas não atualiza os valores corretamente (P1 - User Verification Pending)**
+  - **Attempted fixes**: Nenhuma nesta sessão. A correção do fork anterior aguarda validação.
+  - **Status**: USER VERIFICATION PENDING
+  - **Is recurring issue?**: Y
+  - **Should Test frontend/backend/both after fix?**: frontend
+
+**In progress Task List**:
+- **Task 1: FASE 3 - Wizard de Configuração e Dashboard de Inconsistências (P1)**
+  - **Where to resume**:
+    -   Backend: Desenvolver a lógica no endpoint  em  para encontrar produtos não classificados, CFOPs divergentes, etc.
+    -   Frontend: Construir a UI nas páginas  e . O wizard deve ser acionado para empresas recém-cadastradas ou que não tenham a configuração inicial completa.
+  - **What will be achieved with this?**: Melhorar a experiência de onboarding de novas empresas e fornecer uma ferramenta proativa para identificar problemas fiscais.
+  - **Status**: IN PROGRESS
+  - **Should Test frontend/backend/both after fix?**: both
+
+**Upcoming and Future Tasks**
+- **Upcoming Tasks:**
+  - **(P0) FASE 1 - Finalizar Sistema de Permissões:** Integrar o sistema recém-criado em todos os endpoints, reativando a segurança da aplicação.
+  - **(P1) FASE 2 - Refatorar :** Dividir o arquivo monolítico em uma arquitetura de , , e  para melhorar a manutenibilidade.
+  - **(P2) FASE 4 - Histórico de Alterações (Audit Log):** Implementar o registro de ações importantes dos usuários.
+  - **(P2) FASE 5 - Geração de SPED:** Criar a funcionalidade para gerar o arquivo SPED Fiscal (sem a etapa de transmissão).
+  - **(P2) FASE 6 - Apuração Automática Mensal:** Desenvolver um processo para gerar relatórios consolidados de impostos ao final do mês.
+  - **(P2) FASE 7 - Suporte a Multi-estabelecimento:** Adaptar o sistema para gerenciar grupos empresariais e filiais.
+- **Future Tasks:**
+  - Implementar Testes Automatizados.
+  - Criar uma versão PWA (Progressive Web App) para acesso mobile.
+  - Desenvolver um sistema de licenças de uso e planos de monetização.
+
+**Completed work in this session**
+- **Feature (FASE 1 - Sistema de Permissões):**
+  - Backend: Criados modelos (, ) e endpoints (, ) para gerenciar permissões granulares por usuário.
+  - Frontend: Criada a página  com interface para um super-admin visualizar e editar as permissões de todos os usuários. Adicionado link no menu lateral.
+- **Bug Fix & Feature (Classificação Inteligente):**
+  - Corrigido o bug de persistência na edição manual ao navegar (sem busca) através da correção da  do React e cópia profunda do estado.
+  - Melhorada a IA para que as palavras-chave cadastradas tenham prioridade absoluta e sejam expandidas semanticamente.
+- **Bug Fix (Cálculo PIS/COFINS):**
+  - Corrigida a lógica do cálculo hipotético no comparativo de regimes para excluir corretamente produtos monofásicos, alíquota zero, etc.
+  - Alinhado o cálculo de PIS/COFINS no módulo RET com a lógica mais precisa do módulo de apuração.
+- **UI/UX (Dashboard e PIS/COFINS):**
+  - Adicionada a exibição do valor de  no card de ICMS do Dashboard.
+  - Separados os valores de PIS e COFINS nos cards de débito e crédito na tela de comparativo.
+  - Ocultadas as linhas de débito de serviço para empresas que não possuem essa atividade.
+
+**Earlier issues found/mentioned but not fixed**
+- O cálculo de competência fiscal (Issue 2) permanece sem correção.
+- A vulnerabilidade de segurança (Issue 1) teve sua solução iniciada (criação do sistema de permissões), mas a integração final ainda está pendente.
+
+**Known issue recurrence from previous fork**
+- **Issue recurrence in previous fork**:  desativada.
+- **Recurrence count**: 5+
+- **Status**: IN PROGRESS (A base para a solução foi construída, mas a correção final ainda não foi aplicada).
+
+**Code Architecture**
+key
+
+**Key Technical Concepts**
+- **Granular Role-Based Access Control (RBAC)**: Foi projetado e implementado um sistema de permissões no backend ( models) e frontend ( UI) que permite ao super-admin definir acessos específicos para cada usuário, por módulo.
+- **State Management (React)**: Foi identificado e corrigido um bug sutil de renderização relacionado ao uso de s não-únicas e à mutação de estado compartilhado.
+- **IA Prompt Engineering & Hybrid Logic**: A classificação de produtos foi aprimorada com uma abordagem híbrida: uma pré-classificação baseada em regras (palavras-chave) é executada antes de passar os itens restantes para um LLM com um prompt aprimorado (expansão semântica).
+- **Lógica Fiscal Complexa**: Foram realizadas correções profundas nos cálculos de PIS/COFINS, considerando regimes tributários, CSTs, CFOPs, NCMs monofásicos e de alíquota zero.
+
+**key DB schema**
+- ****: O schema desta coleção foi estendido para incluir um campo , que armazena as permissões customizadas de um usuário, sobrepondo-se às permissões padrão de sua .
+
+**All files of reference**
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+
+**Areas that need refactoring**:
+-  continua sendo a prioridade máxima para refatoração. O usuário aprovou que esta seja a **FASE 2** do plano de desenvolvimento.
+
+**key api endpoints**
+- **Criados:**
+  - : Retorna todas as permissões disponíveis no sistema.
+  - : Retorna as permissões de um usuário específico.
+  - : Atualiza as permissões de um usuário.
+  - : Endpoint placeholder para o futuro dashboard de inconsistências.
+- **Modificados:**
+  - : Adicionada lógica de pré-classificação por palavra-chave e expansão semântica no prompt da IA.
+  - : Adicionado cálculo e retorno de  e refinado o cálculo hipotético de PIS/COFINS.
+  - : Atualizado para usar a mesma lógica de cálculo de PIS/COFINS do endpoint de apuração, corrigindo divergências.
+
+**Critical Info for New Agent**
+- **PLANO DE AÇÃO APROVADO:** O usuário aprovou um plano de desenvolvimento detalhado em fases. A FASE 1 (Sistema de Permissões) está quase concluída. A próxima tarefa de alta prioridade é **finalizar a FASE 1**, integrando o novo sistema de permissões em todos os endpoints para reativar a segurança, e então prosseguir para as próximas fases (FASE 2 - Refatoração, FASE 3 - Wizard, etc.).
+- **SEGURANÇA (P0):** A vulnerabilidade  continua sendo o problema mais crítico. A solução está em andamento, mas não está finalizada. A prioridade máxima é usar o sistema de permissões recém-criado para proteger todos os endpoints.
+- **VALIDAÇÃO PENDENTE:** Diversas correções (Classificação por IA, Dashboard de Saídas) foram implementadas e aguardam o teste e feedback do usuário. Esteja preparado para fazer ajustes.
+
+**documents and test reports created in this job**
+- Nenhum documento formal foi criado.
+
+**Last 10 User Messages and any pending HUMAN messages**
+1.  **Usuário (agora):** Pediu para ocultar débitos de serviço para empresas que não têm essa atividade. (Status: Concluído)
+2.  **Usuário (agora):** Solicitou a separação de PIS e COFINS nos cards de comparativo e relatou divergência de valores entre a aba PIS/COFINS e o módulo RET. (Status: Concluído)
+3.  **Usuário (1h ago):** Solicitou sugestões de melhoria para o sistema. (Status: Concluído, plano gerado e aprovado)
+4.  **Usuário (1h ago):** Aprovou o plano de 12 pontos e pediu para começar. (Status: Concluído)
+5.  **Usuário (1h ago):** Confirmou o plano de ação proposto pelo agente para as próximas fases. (Status: Concluído)
+6.  **Usuário (2h ago):** Pediu para iniciar a FASE 3 (Wizard e Dashboard de Inconsistências). (Status: Em Progresso)
+7.  **Usuário (3h ago):** Relatou que a IA de classificação não reconhecia palavras-chave cadastradas. (Status: Concluído, pendente de verificação)
+8.  **Usuário (3h ago):** Perguntou se a IA entenderia frutas semanticamente. (Status: Concluído, IA aprimorada)
+9.  **Usuário (3h ago):** Pediu para aprimorar a IA para expansão semântica. (Status: Concluído)
+10. **Usuário (5h ago):** Relatou que no dashboard principal, a dedução de benefício fiscal de ICMS não estava aparecendo. (Status: Concluído, pendente de verificação)
+
+**Project Health Check:**
+-   **Broken**:
+    -   O controle de acesso de toda a aplicação () permanece tecnicamente desativado, embora a base para sua substituição (sistema de permissões) tenha sido construída. A aplicação continua vulnerável até que o novo sistema seja aplicado a todos os endpoints.
+-   **Mocked**: N/A
+
+**3rd Party Integrations**
+-   **Emergent LLM Key**: Utilizada para a funcionalidade de IA na classificação de produtos.
+-   **openpyxl**: Geração de arquivos Excel ().
+-   **reportlab**: Geração de arquivos PDF.
+-   **python-docx**: Leitura de arquivos Word ().
+-   **pdfminer.six / pdfplumber**: Leitura de arquivos PDF.
+
+**Testing status**
+-   **Testing agent used after significant changes**: NO
+-   **Troubleshoot agent used after agent stuck in loop**: NO
+-   **Test files created**: N/A
+-   **Known regressions**: O controle de acesso permanece desativado.
+
+**Credentials to test flow:**
+-   **Email (Super Admin)**: 
+-   **Senha (Super Admin)**: 
+-   **Email (Admin)**: 
+-   **Senha (Admin)**: 
+
+**What agent forgot to execute**
+- O agente construiu o sistema de permissões, mas ainda não o integrou aos endpoints da API para efetivamente reativar o controle de acesso e resolver a vulnerabilidade de segurança. Esta é a próxima etapa crucial da FASE 1.</analysis>
