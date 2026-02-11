@@ -151,6 +151,7 @@ const Layout = ({ user, onLogout, children }) => {
     nav.push({ name: 'RET', href: '/ret', icon: Zap, testId: 'nav-ret' });
     
     // === EXPORTAÇÕES (sempre no final) ===
+    nav.push({ name: 'SPED Fiscal', href: '/sped', icon: FileOutput, testId: 'nav-sped' });
     nav.push({ name: 'Relatórios', href: '/reports', icon: BarChart3, testId: 'nav-reports' });
     nav.push({ name: 'Exportação', href: '/export', icon: Download, testId: 'nav-export' });
     
