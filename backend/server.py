@@ -24646,16 +24646,19 @@ async def exportar_documentos_categoria(
         elements.append(Spacer(1, 20))
         
         # Tabela
-        headers = ['Número', 'Série', 'Data', 'Emitente/Dest.', 'CNPJ', 'Valor Total', 'ICMS']
+        headers = ['Número', 'Série', 'Data', 'Emitente/Dest.', 'CNPJ', 'Valor Total', 'BC ICMS', 'ICMS']
         data = [headers]
         
         total_valor = 0
+        total_bc_icms = 0
         total_icms = 0
         
         for doc in documentos:
             valor = float(doc.get('valor_total', 0) or 0)
+            bc_icms = float(doc.get('bc_icms_total', 0) or doc.get('total_bc_icms', 0) or 0)
             icms = float(doc.get('icms_total', 0) or 0)
             total_valor += valor
+            total_bc_icms += bc_icms
             total_icms += icms
             
             if operacao == 'entrada':
@@ -24678,16 +24681,17 @@ async def exportar_documentos_categoria(
                 str(doc.get('numero_nfe', '')),
                 str(doc.get('serie', '')),
                 str(data_emissao or '-'),
-                str(nome)[:30] if nome else '-',
+                str(nome)[:25] if nome else '-',
                 str(cnpj),
                 f"R$ {valor:,.2f}",
+                f"R$ {bc_icms:,.2f}",
                 f"R$ {icms:,.2f}"
             ])
         
         # Total
-        data.append(['TOTAL', '', '', '', '', f"R$ {total_valor:,.2f}", f"R$ {total_icms:,.2f}"])
+        data.append(['TOTAL', '', '', '', '', f"R$ {total_valor:,.2f}", f"R$ {total_bc_icms:,.2f}", f"R$ {total_icms:,.2f}"])
         
-        table = Table(data, colWidths=[60, 40, 70, 150, 100, 80, 80])
+        table = Table(data, colWidths=[50, 35, 60, 130, 90, 70, 70, 70])
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#C8A951')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
