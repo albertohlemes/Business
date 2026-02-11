@@ -10957,22 +10957,31 @@ async def get_viloes_oportunidades(
             # Calcular margem para análise
             margem_valor = ((saida['valor'] - entrada['valor']) / entrada['valor'] * 100) if entrada['valor'] > 0 else 0
             
-            # Gerar motivo detalhado
-            motivos = []
+            # Gerar explicação concisa (sem repetir valores que já aparecem no grid)
+            impostos_impacto = []
             if impacto_icms > 50:
-                motivos.append(f"ICMS: débito R$ {icms_debito:,.2f} > crédito R$ {icms_credito:,.2f} (diferença: R$ {impacto_icms:,.2f})")
+                impostos_impacto.append("ICMS")
             if impacto_pis > 50:
-                motivos.append(f"PIS: débito R$ {pis_debito:,.2f} > crédito R$ {pis_credito:,.2f} (diferença: R$ {impacto_pis:,.2f})")
+                impostos_impacto.append("PIS")
             if impacto_cofins > 50:
-                motivos.append(f"COFINS: débito R$ {cofins_debito:,.2f} > crédito R$ {cofins_credito:,.2f} (diferença: R$ {impacto_cofins:,.2f})")
+                impostos_impacto.append("COFINS")
+            
+            if len(impostos_impacto) == 3:
+                motivo = "Os débitos de ICMS, PIS e COFINS superam os créditos, gerando impacto negativo na apuração."
+            elif len(impostos_impacto) == 2:
+                motivo = f"Os débitos de {' e '.join(impostos_impacto)} superam os créditos, gerando impacto negativo."
+            elif len(impostos_impacto) == 1:
+                motivo = f"O débito de {impostos_impacto[0]} supera significativamente o crédito."
+            else:
+                motivo = "O somatório dos débitos tributários supera os créditos."
             
             # Análise de precificação
             if margem_valor < 10:
-                analise_preco = "⚠️ MARGEM MUITO BAIXA - Pode estar vendendo com prejuízo considerando os impostos"
+                analise_preco = "⚠️ MARGEM MUITO BAIXA - Risco de prejuízo considerando a carga tributária"
             elif margem_valor < 20:
-                analise_preco = "⚠️ MARGEM APERTADA - Revisar precificação considerando carga tributária"
+                analise_preco = "⚠️ MARGEM APERTADA - Revisar precificação"
             else:
-                analise_preco = "Margem aparentemente adequada, mas imposto corrói o lucro"
+                analise_preco = "Margem aparentemente adequada, porém os impostos corroem parte do lucro"
             
             viloes.append({
                 'tipo': 'IMPACTO_NEGATIVO',
@@ -10989,9 +10998,9 @@ async def get_viloes_oportunidades(
                 'qtd_saida': saida['qtd'],
                 'produtos_entrada': sorted(entrada['produtos'], key=lambda x: x.get('descricao', ''))[:10],
                 'produtos_saida': sorted(saida['produtos'], key=lambda x: x.get('descricao', ''))[:10],
-                'motivo_classificacao': " | ".join(motivos) if motivos else f"Débito de impostos maior que crédito em R$ {impacto_total:,.2f}",
+                'motivo_classificacao': motivo,
                 'analise_preco': analise_preco,
-                'explicacao': f"Débito maior que crédito: ICMS {impacto_icms:+.2f} | PIS {impacto_pis:+.2f} | COFINS {impacto_cofins:+.2f}"
+                'explicacao': motivo
             })
         
         # Oportunidade: crédito maior que débito
