@@ -26763,6 +26763,17 @@ async def reabrir_competencia_mensal(
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Fechamento não encontrado")
     
+    # Registrar no audit log
+    await log_audit(
+        action=AuditAction.COMPETENCIA_REABRIR,
+        user_id=current_user.id,
+        user_email=current_user.email,
+        company_id=company_id,
+        company_name=company.get('razao_social'),
+        details={"competencia": competencia},
+        success=True
+    )
+    
     return {
         "success": True,
         "competencia": competencia,
