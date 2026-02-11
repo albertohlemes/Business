@@ -16065,6 +16065,13 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
                 }
             stats["from_rules"] += 1
     
+    # ===== SALVAR TODAS AS CLASSIFICAÇÕES EM BATCH (uma única operação no banco) =====
+    if classifications_to_save:
+        try:
+            await save_classifications_batch(company_id, classifications_to_save)
+        except Exception as e:
+            logger.warning(f"CLASSIFY: Erro ao salvar classificações em batch: {e}")
+    
     return results, stats
 
 async def classify_products_batch_llm(products: List[Dict[str, Any]], company_data: Dict[str, Any], batch_size: int = 20, produtos_vendidos: List[str] = None) -> Dict[str, Any]:
