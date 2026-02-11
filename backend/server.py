@@ -6922,8 +6922,8 @@ async def get_document(
     if not document:
         raise HTTPException(status_code=404, detail="Documento não encontrado")
     
-    # super_admin, admin e master têm acesso total
-    if current_user.role not in [UserRole.ADMIN, 'super_admin', 'master']:
+    # Usuários com acesso total não precisam de verificação adicional
+    if not UserRole.has_full_access(current_user.role):
         company = await db.companies.find_one({"id": document['company_id']}, {"_id": 0})
         if not company or company['cnpj'] not in current_user.company_ids:
             raise HTTPException(status_code=403, detail="Acesso negado")
