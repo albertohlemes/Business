@@ -94,6 +94,10 @@ const Documents = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Estados de paginação
+  const [pagination, setPagination] = useState({ total: 0, skip: 0, limit: 100, hasMore: false });
+  const [loadingMore, setLoadingMore] = useState(false);
+  
   // Upload local (para quando não usa streaming)
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, percent: 0 });
