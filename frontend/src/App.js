@@ -9,6 +9,8 @@ import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
 import UsersPage from './pages/UsersPage';
 import UserPermissions from './pages/UserPermissions';
+import WizardEmpresa from './pages/WizardEmpresa';
+import DashboardInconsistencias from './pages/DashboardInconsistencias';
 import Documents from './pages/Documents';
 import ClassificacaoInteligente from './pages/ClassificacaoInteligente';
 import ExportMenu from './pages/ExportMenu';
