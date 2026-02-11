@@ -151,6 +151,27 @@ NCMS_ALIQUOTA_ZERO = {
     '25010020': 'Sal de Cozinha',
 }
 
+# NCMs que são TRIBUTADOS NORMALMENTE (não são alíquota zero nem monofásicos)
+# Estes produtos devem ter PIS/COFINS com alíquotas cheias
+# CST Entrada: 50 (com crédito) ou 98 (se CFOP não gera crédito)
+# CST Saída: 01 (tributado) ou 49 (se CFOP não gera débito)
+NCMS_TRIBUTADOS_NORMALMENTE = {
+    # Bolos
+    '19059020': {'descricao': 'Bolos e similares'},
+    '19052090': {'descricao': 'Bolos tipo panetone'},
+    '19059090': {'descricao': 'Outros produtos de padaria e confeitaria'},
+    # Panetones
+    '19052010': {'descricao': 'Panetone'},
+    '19052090': {'descricao': 'Panetone e similares'},
+    # Xarope de groselha
+    '21069010': {'descricao': 'Xarope de groselha e outros'},
+    '21069090': {'descricao': 'Preparações alimentícias diversas'},
+    # Outros produtos de confeitaria frequentemente classificados incorretamente
+    '17049090': {'descricao': 'Produtos de confeitaria'},
+    '19053100': {'descricao': 'Biscoitos e bolachas (doces)'},
+    '19053200': {'descricao': 'Waffles e wafers'},
+}
+
 # NCMs Monofásicos - Tributação concentrada (Tabela 4.3.10)
 # IMPORTANTE: Bebidas ALCOÓLICAS (2204-2208) NÃO são monofásicas - são tributadas normalmente!
 # Somente bebidas NÃO alcoólicas (2201-2203) são monofásicas
