@@ -15598,7 +15598,7 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
                 stats["from_sales_inference"] += 1
                 
                 # Salvar no cache para acelerar futuras classificações
-                await save_classification_cache(company_id, descricao, "revenda", cfop, f"Inferido de vendas (NCM {match_level})")
+                await save_classification_to_cache(company_id, {"descricao": descricao}, "revenda", cfop, f"Inferido de vendas (NCM {match_level})")
                 continue
         
         # 3. Verificar match por palavras-chave dos produtos vendidos
@@ -15617,7 +15617,7 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
             }
             stats["from_sales_inference"] += 1
             
-            await save_classification_cache(company_id, descricao, "revenda", cfop, f"Inferido de vendas (palavras-chave)")
+            await save_classification_to_cache(company_id, {"descricao": descricao}, "revenda", cfop, f"Inferido de vendas (palavras-chave)")
             continue
         
         # 4. Verificar regras diretas (keywords cadastradas pelo usuário)
