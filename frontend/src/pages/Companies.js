@@ -354,6 +354,13 @@ const Companies = ({ user, onLogout }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validar campo obrigatório
+    if (!formData.codigo_empresa || !formData.codigo_empresa.trim()) {
+      alert('O campo Código/ID da Empresa é obrigatório!');
+      return;
+    }
+    
     try {
       const token = localStorage.getItem('token');
       
