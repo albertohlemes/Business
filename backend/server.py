@@ -746,6 +746,8 @@ class CompanyUpdate(BaseModel):
     # Presunção para serviços
     percentual_presuncao_servicos_irpj: Optional[float] = None
     percentual_presuncao_servicos_csll: Optional[float] = None
+    # Logo da empresa (base64 data URL)
+    logo_url: Optional[str] = None
 
 
 # ============================================================
