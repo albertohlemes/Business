@@ -14029,17 +14029,25 @@ async def exportar_e_validar_sped(
     company_id: str,
     competencia: str,
     excluir_creditos_despesa_st: bool = False,
+    aplicar_beneficio_fiscal: bool = False,
     current_user: User = Depends(get_current_user)
 ):
     """
     Exporta o SPED Fiscal e automaticamente valida confrontando o arquivo gerado
     com os dados do sistema.
+    
+    Parâmetros:
+    - excluir_creditos_despesa_st: Se True, exclui créditos de ICMS de CFOPs de despesa e ST
+    - aplicar_beneficio_fiscal: Se True, aplica regras de benefício fiscal para créditos de ICMS
     """
     company_doc = await db.companies.find_one({"id": company_id}, {"_id": 0})
     if not company_doc:
         raise HTTPException(status_code=404, detail="Empresa não encontrada")
     
     company = Company(**company_doc)
+    
+    # Se não foi explicitamente passado, usar o valor do cadastro da empresa
+    usar_beneficio_fiscal = aplicar_beneficio_fiscal or company_doc.get('beneficio_fiscal_icms', False)
     
     # Buscar documentos da competência - EXCLUIR notas canceladas e desconsideradas
     query = {
@@ -14057,7 +14065,7 @@ async def exportar_e_validar_sped(
     
     # Gerar o SPED
     periodo = competencia.replace('/', '')
-    sped_content = generate_sped_fiscal(company, documents, competencia, excluir_creditos_despesa_st)
+    sped_content = generate_sped_fiscal(company, documents, competencia, excluir_creditos_despesa_st, usar_beneficio_fiscal)
     
     # ===== VALIDAR O SPED GERADO =====
     # Parse do arquivo SPED para extrair totais
