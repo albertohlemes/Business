@@ -1423,7 +1423,7 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                                       
                                       return (
                                         <tr 
-                                          key={idx} 
+                                          key={productKey} 
                                           className={`hover:bg-white/5 group ${isSelected ? 'bg-[#C8A951]/10' : ''}`}
                                         >
                                           <td className="px-2 py-3">
