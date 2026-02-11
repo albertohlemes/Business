@@ -26,12 +26,33 @@ const UsersPage = ({ user, onLogout }) => {
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
 
+  // Lista de atividades/permissões disponíveis
+  const atividadesDisponiveis = [
+    { key: 'dashboard', label: 'Dashboard', desc: 'Visualizar painel geral' },
+    { key: 'documentos', label: 'Documentos', desc: 'Upload e gestão de XMLs' },
+    { key: 'classificacao', label: 'Classificação Inteligente', desc: 'Classificar produtos via IA' },
+    { key: 'apuracao', label: 'Apuração de Movimento', desc: 'Visualizar apuração' },
+    { key: 'pis_cofins', label: 'PIS/COFINS', desc: 'Apuração de PIS/COFINS' },
+    { key: 'icms', label: 'ICMS', desc: 'Apuração de ICMS' },
+    { key: 'icms_st', label: 'ICMS ST', desc: 'Substituição Tributária' },
+    { key: 'ipi', label: 'IPI', desc: 'Apuração de IPI' },
+    { key: 'iss', label: 'ISS', desc: 'Apuração de ISS' },
+    { key: 'difal', label: 'DIFAL', desc: 'Diferencial de Alíquota' },
+    { key: 'impostos_retidos', label: 'Impostos Retidos', desc: 'IR, CSLL, PIS/COFINS retidos' },
+    { key: 'indicadores', label: 'Indicadores', desc: 'KPIs e métricas fiscais' },
+    { key: 'evolucao', label: 'Evolução Fiscal', desc: 'Análise horizontal' },
+    { key: 'viloes', label: 'Vilões e Oportunidades', desc: 'NCMs com maior carga' },
+    { key: 'relatorios', label: 'Relatórios', desc: 'Exportar relatórios' },
+    { key: 'exportacao', label: 'Exportação', desc: 'Exportar dados fiscais' },
+  ];
+
   const emptyFormData = {
     email: '',
     password: '',
     name: '',
     role: 'operacional',
-    company_ids: []
+    company_ids: [],
+    atividades: atividadesDisponiveis.map(a => a.key) // Todas ativadas por padrão
   };
   const [formData, setFormData] = useState(emptyFormData);
 
