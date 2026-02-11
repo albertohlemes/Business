@@ -438,6 +438,41 @@ const ApuracaoICMS = ({ user, onLogout }) => {
               </label>
             </div>
             
+            {/* Flag de Benefício Fiscal */}
+            <div className="mt-4">
+              <label className={`flex items-start gap-3 p-4 rounded-lg cursor-pointer transition-all ${
+                beneficioFiscal 
+                  ? 'bg-yellow-500/20 border-2 border-yellow-500' 
+                  : 'bg-[#141414] border-2 border-[#2A2A2A] hover:border-yellow-500/50'
+              }`}>
+                <input
+                  type="checkbox"
+                  checked={beneficioFiscal}
+                  onChange={(e) => setBeneficioFiscal(e.target.checked)}
+                  className="w-5 h-5 mt-0.5 rounded border-2 border-[#666] bg-[#0C0C0C] text-yellow-500 focus:ring-yellow-500 accent-yellow-500 cursor-pointer"
+                />
+                <div className="flex-1">
+                  <span className={`text-sm font-medium block ${beneficioFiscal ? 'text-yellow-400' : 'text-white'}`}>
+                    ⭐ Benefício Fiscal ICMS
+                  </span>
+                  <span className="text-xs text-[#A1A1AA] block mt-1">
+                    Empresa com benefício fiscal de ICMS na saída (alíquota reduzida). Desconsiderar créditos dos produtos configurados no cadastro da empresa.
+                  </span>
+                  {beneficioFiscal && selectedCompany?.tipo_beneficio_fiscal && (
+                    <span className="text-xs text-yellow-400 block mt-2">
+                      Tipo: {selectedCompany.tipo_beneficio_fiscal} | 
+                      Produtos sem crédito: {selectedCompany.produtos_sem_credito_icms?.join(', ') || 'Todos'}
+                    </span>
+                  )}
+                  {beneficioFiscal && !selectedCompany?.tipo_beneficio_fiscal && (
+                    <span className="text-xs text-yellow-500 block mt-2">
+                      ⚠️ Configure os produtos sem crédito no cadastro da empresa
+                    </span>
+                  )}
+                </div>
+              </label>
+            </div>
+            
             <p className="text-xs text-[#666] mt-3">
               ⚡ Clique em "Aplicar e Recalcular" para atualizar a apuração, Dashboard e RET automaticamente.
             </p>
