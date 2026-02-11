@@ -17821,6 +17821,452 @@ async def apurar_icms(
 
 
 # ============================================================
+# BENEFÍCIO FISCAL ICMS - DETALHAMENTO
+# ============================================================
+
+@api_router.get("/beneficio-fiscal-detalhes/{company_id}")
+async def get_beneficio_fiscal_detalhes(
+    company_id: str,
+    competencia: str = Query(..., description="Competência no formato MM/YYYY"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna o detalhamento dos créditos de ICMS desconsiderados pelo benefício fiscal.
+    Agrupa os dados por produto e por NCM.
+    """
+    # Buscar empresa
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not company.get('beneficio_fiscal_icms', False):
+        return {
+            "total_produtos": 0,
+            "valor_total": 0,
+            "valor_icms_desconsiderado": 0,
+            "por_produto": [],
+            "por_ncm": []
+        }
+    
+    # Buscar documentos de entrada da competência
+    docs = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo_operacao": {"$in": ["entrada", "Entrada"]}
+    }, {"_id": 0, "xml_content": 0}).to_list(50000)
+    
+    # Estruturas para acumular dados
+    por_produto = {}  # Chave: descrição do produto
+    por_ncm = {}  # Chave: NCM
+    
+    total_valor = 0
+    total_icms = 0
+    total_produtos = 0
+    
+    # Descrições de NCM comuns
+    ncm_descricoes = {
+        "02": "Carnes e miudezas",
+        "0201": "Carnes bovina, frescas ou refrigeradas",
+        "0202": "Carnes bovina, congeladas",
+        "0203": "Carnes suína, frescas, refrigeradas ou congeladas",
+        "0204": "Carnes ovina/caprina",
+        "0207": "Carnes de aves",
+        "03": "Peixes e crustáceos",
+        "04": "Leite e laticínios, ovos, mel",
+        "0401": "Leite e creme de leite",
+        "0402": "Leite em pó",
+        "0403": "Iogurte e leite fermentado",
+        "0405": "Manteiga",
+        "0406": "Queijos e requeijão",
+        "07": "Produtos hortícolas",
+        "08": "Frutas",
+        "10": "Cereais",
+        "11": "Produtos da indústria de moagem",
+        "15": "Gorduras e óleos",
+        "16": "Preparações de carne e peixes",
+        "17": "Açúcares e confeitaria",
+        "18": "Cacau e suas preparações",
+        "19": "Preparações à base de cereais",
+        "20": "Preparações de produtos hortícolas",
+        "21": "Preparações alimentícias diversas",
+        "22": "Bebidas, líquidos alcoólicos e vinagres",
+        "2201": "Águas minerais e gaseificadas",
+        "2202": "Bebidas não alcoólicas (refrigerantes, sucos)",
+        "2203": "Cervejas de malte",
+        "2204": "Vinhos de uvas frescas",
+        "2205": "Vermutes",
+        "2206": "Outras bebidas fermentadas",
+        "2207": "Álcool etílico",
+        "2208": "Bebidas destiladas",
+        "23": "Resíduos e desperdícios da indústria alimentar",
+    }
+    
+    def get_ncm_descricao(ncm: str) -> str:
+        """Retorna descrição do NCM baseada em prefixos conhecidos"""
+        ncm_str = str(ncm or '').strip()
+        # Tentar match exato primeiro
+        if ncm_str in ncm_descricoes:
+            return ncm_descricoes[ncm_str]
+        # Tentar prefixos (do maior para o menor)
+        for i in range(len(ncm_str), 1, -1):
+            prefix = ncm_str[:i]
+            if prefix in ncm_descricoes:
+                return ncm_descricoes[prefix]
+        return "Produto"
+    
+    # Processar documentos
+    for doc in docs:
+        itens = doc.get('itens', [])
+        if not itens:
+            continue
+        
+        for item in itens:
+            ncm = str(item.get('ncm', '') or '').strip()
+            descricao = str(item.get('descricao', '') or item.get('produto', '') or '').strip()
+            valor_produto = float(item.get('valor_produto', 0) or item.get('valor_total', 0) or 0)
+            bc_icms = float(item.get('bc_icms', 0) or 0)
+            valor_icms = float(item.get('valor_icms', 0) or 0)
+            
+            # Verificar se o produto está sujeito ao benefício fiscal
+            if not produto_sem_credito_icms_beneficio(ncm, descricao, company):
+                continue
+            
+            # Acumular totais
+            total_valor += valor_produto
+            total_icms += valor_icms
+            total_produtos += 1
+            
+            # Agregar por produto (descrição)
+            desc_key = descricao[:100] if descricao else "Produto sem descrição"
+            if desc_key not in por_produto:
+                por_produto[desc_key] = {
+                    "descricao": desc_key,
+                    "ncm": ncm,
+                    "valor_total": 0,
+                    "valor_icms": 0,
+                    "qtd_notas": 0,
+                    "notas": set()
+                }
+            por_produto[desc_key]["valor_total"] += valor_produto
+            por_produto[desc_key]["valor_icms"] += valor_icms
+            por_produto[desc_key]["notas"].add(doc.get('numero', ''))
+            por_produto[desc_key]["qtd_notas"] = len(por_produto[desc_key]["notas"])
+            
+            # Agregar por NCM
+            ncm_key = ncm[:8] if ncm else "SEM_NCM"
+            if ncm_key not in por_ncm:
+                por_ncm[ncm_key] = {
+                    "ncm": ncm_key,
+                    "descricao_ncm": get_ncm_descricao(ncm_key),
+                    "valor_total": 0,
+                    "valor_icms": 0,
+                    "qtd_produtos": 0,
+                    "produtos": set()
+                }
+            por_ncm[ncm_key]["valor_total"] += valor_produto
+            por_ncm[ncm_key]["valor_icms"] += valor_icms
+            por_ncm[ncm_key]["produtos"].add(desc_key[:50])
+            por_ncm[ncm_key]["qtd_produtos"] = len(por_ncm[ncm_key]["produtos"])
+    
+    # Converter para listas e ordenar por valor de ICMS desconsiderado
+    lista_produtos = []
+    for p in por_produto.values():
+        lista_produtos.append({
+            "descricao": p["descricao"],
+            "ncm": p["ncm"],
+            "valor_total": round(p["valor_total"], 2),
+            "valor_icms": round(p["valor_icms"], 2),
+            "qtd_notas": p["qtd_notas"]
+        })
+    lista_produtos.sort(key=lambda x: x["valor_icms"], reverse=True)
+    
+    lista_ncm = []
+    for n in por_ncm.values():
+        lista_ncm.append({
+            "ncm": n["ncm"],
+            "descricao_ncm": n["descricao_ncm"],
+            "valor_total": round(n["valor_total"], 2),
+            "valor_icms": round(n["valor_icms"], 2),
+            "qtd_produtos": n["qtd_produtos"]
+        })
+    lista_ncm.sort(key=lambda x: x["valor_icms"], reverse=True)
+    
+    return {
+        "total_produtos": total_produtos,
+        "valor_total": round(total_valor, 2),
+        "valor_icms_desconsiderado": round(total_icms, 2),
+        "por_produto": lista_produtos,
+        "por_ncm": lista_ncm,
+        "configuracao": {
+            "tipo_beneficio": company.get('tipo_beneficio_fiscal', ''),
+            "produtos_sem_credito": company.get('produtos_sem_credito_icms', [])
+        }
+    }
+
+
+@api_router.get("/beneficio-fiscal-detalhes/{company_id}/exportar")
+async def exportar_beneficio_fiscal_detalhes(
+    company_id: str,
+    competencia: str = Query(..., description="Competência no formato MM/YYYY"),
+    formato: str = Query(..., description="Formato de exportação: 'excel' ou 'pdf'"),
+    agrupamento: str = Query("produto", description="Agrupamento: 'produto' ou 'ncm'"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Exporta o detalhamento do benefício fiscal para Excel ou PDF.
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    
+    # Buscar dados
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    # Reutilizar a lógica do endpoint de detalhes
+    dados = await get_beneficio_fiscal_detalhes(company_id, competencia, current_user)
+    
+    if formato == 'excel':
+        wb = Workbook()
+        
+        # Estilo cabeçalho
+        header_fill = PatternFill(start_color="C8A951", end_color="C8A951", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF")
+        total_fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+        total_font = Font(bold=True)
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # Aba por Produto
+        ws_produto = wb.active
+        ws_produto.title = "Por Produto"
+        
+        # Cabeçalho
+        ws_produto['A1'] = f"BENEFÍCIO FISCAL ICMS - {company.get('razao_social', '')}"
+        ws_produto['A1'].font = Font(bold=True, size=14)
+        ws_produto['A2'] = f"Competência: {competencia} | CNPJ: {company.get('cnpj', '')}"
+        ws_produto['A3'] = f"Tipo de Benefício: {company.get('tipo_beneficio_fiscal', 'Geral')}"
+        
+        # Resumo
+        ws_produto['A5'] = "RESUMO"
+        ws_produto['A5'].font = Font(bold=True)
+        ws_produto['A6'] = f"Total de Produtos: {dados['total_produtos']}"
+        ws_produto['B6'] = f"Valor Total: R$ {dados['valor_total']:,.2f}"
+        ws_produto['C6'] = f"ICMS Desconsiderado: R$ {dados['valor_icms_desconsiderado']:,.2f}"
+        
+        # Tabela de produtos
+        row = 8
+        headers = ['Produto', 'NCM', 'Qtd Notas', 'Valor Total', 'ICMS Desconsiderado']
+        for col, h in enumerate(headers, 1):
+            cell = ws_produto.cell(row=row, column=col, value=h)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal='center')
+        
+        for item in dados['por_produto']:
+            row += 1
+            ws_produto.cell(row=row, column=1, value=item['descricao']).border = thin_border
+            ws_produto.cell(row=row, column=2, value=item['ncm']).border = thin_border
+            ws_produto.cell(row=row, column=3, value=item['qtd_notas']).border = thin_border
+            ws_produto.cell(row=row, column=4, value=item['valor_total']).border = thin_border
+            ws_produto.cell(row=row, column=4).number_format = '#,##0.00'
+            ws_produto.cell(row=row, column=5, value=item['valor_icms']).border = thin_border
+            ws_produto.cell(row=row, column=5).number_format = '#,##0.00'
+        
+        # Total
+        row += 1
+        ws_produto.cell(row=row, column=1, value="TOTAL").font = total_font
+        ws_produto.cell(row=row, column=1).fill = total_fill
+        ws_produto.cell(row=row, column=4, value=dados['valor_total']).font = total_font
+        ws_produto.cell(row=row, column=4).fill = total_fill
+        ws_produto.cell(row=row, column=4).number_format = '#,##0.00'
+        ws_produto.cell(row=row, column=5, value=dados['valor_icms_desconsiderado']).font = total_font
+        ws_produto.cell(row=row, column=5).fill = total_fill
+        ws_produto.cell(row=row, column=5).number_format = '#,##0.00'
+        
+        # Ajustar largura das colunas
+        ws_produto.column_dimensions['A'].width = 50
+        ws_produto.column_dimensions['B'].width = 15
+        ws_produto.column_dimensions['C'].width = 12
+        ws_produto.column_dimensions['D'].width = 15
+        ws_produto.column_dimensions['E'].width = 20
+        
+        # Aba por NCM
+        ws_ncm = wb.create_sheet("Por NCM")
+        
+        # Cabeçalho
+        ws_ncm['A1'] = f"BENEFÍCIO FISCAL ICMS - {company.get('razao_social', '')}"
+        ws_ncm['A1'].font = Font(bold=True, size=14)
+        ws_ncm['A2'] = f"Competência: {competencia} | CNPJ: {company.get('cnpj', '')}"
+        
+        # Tabela de NCMs
+        row = 5
+        headers = ['NCM', 'Descrição', 'Qtd Produtos', 'Valor Total', 'ICMS Desconsiderado']
+        for col, h in enumerate(headers, 1):
+            cell = ws_ncm.cell(row=row, column=col, value=h)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal='center')
+        
+        for item in dados['por_ncm']:
+            row += 1
+            ws_ncm.cell(row=row, column=1, value=item['ncm']).border = thin_border
+            ws_ncm.cell(row=row, column=2, value=item['descricao_ncm']).border = thin_border
+            ws_ncm.cell(row=row, column=3, value=item['qtd_produtos']).border = thin_border
+            ws_ncm.cell(row=row, column=4, value=item['valor_total']).border = thin_border
+            ws_ncm.cell(row=row, column=4).number_format = '#,##0.00'
+            ws_ncm.cell(row=row, column=5, value=item['valor_icms']).border = thin_border
+            ws_ncm.cell(row=row, column=5).number_format = '#,##0.00'
+        
+        # Total
+        row += 1
+        ws_ncm.cell(row=row, column=1, value="TOTAL").font = total_font
+        ws_ncm.cell(row=row, column=1).fill = total_fill
+        ws_ncm.cell(row=row, column=4, value=dados['valor_total']).font = total_font
+        ws_ncm.cell(row=row, column=4).fill = total_fill
+        ws_ncm.cell(row=row, column=4).number_format = '#,##0.00'
+        ws_ncm.cell(row=row, column=5, value=dados['valor_icms_desconsiderado']).font = total_font
+        ws_ncm.cell(row=row, column=5).fill = total_fill
+        ws_ncm.cell(row=row, column=5).number_format = '#,##0.00'
+        
+        # Ajustar largura das colunas
+        ws_ncm.column_dimensions['A'].width = 15
+        ws_ncm.column_dimensions['B'].width = 40
+        ws_ncm.column_dimensions['C'].width = 15
+        ws_ncm.column_dimensions['D'].width = 15
+        ws_ncm.column_dimensions['E'].width = 20
+        
+        # Salvar em buffer
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        filename = f"beneficio_fiscal_{competencia.replace('/', '_')}.xlsx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
+    elif formato == 'pdf':
+        output = BytesIO()
+        doc = SimpleDocTemplate(output, pagesize=landscape(A4), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=14, spaceAfter=10)
+        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=10, textColor=colors.Color(0.4, 0.4, 0.4))
+        
+        elements = []
+        
+        # Cabeçalho
+        elements.append(Paragraph(f"BENEFÍCIO FISCAL ICMS - {company.get('razao_social', '')}", title_style))
+        elements.append(Paragraph(f"Competência: {competencia} | CNPJ: {company.get('cnpj', '')} | Tipo: {company.get('tipo_beneficio_fiscal', 'Geral')}", subtitle_style))
+        elements.append(Spacer(1, 20))
+        
+        # Resumo
+        resumo_data = [
+            ['Total de Produtos', 'Valor Total', 'ICMS Desconsiderado'],
+            [str(dados['total_produtos']), f"R$ {dados['valor_total']:,.2f}", f"R$ {dados['valor_icms_desconsiderado']:,.2f}"]
+        ]
+        resumo_table = Table(resumo_data, colWidths=[6*cm, 6*cm, 6*cm])
+        resumo_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.78, 0.66, 0.32)),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ]))
+        elements.append(resumo_table)
+        elements.append(Spacer(1, 20))
+        
+        if agrupamento == 'produto':
+            elements.append(Paragraph("Detalhamento por Produto", styles['Heading2']))
+            elements.append(Spacer(1, 10))
+            
+            data = [['Produto', 'NCM', 'Notas', 'Valor Total', 'ICMS Desconsiderado']]
+            for item in dados['por_produto'][:100]:  # Limitar a 100 para não estourar o PDF
+                data.append([
+                    Paragraph(item['descricao'][:50], styles['Normal']) if len(item['descricao']) > 50 else item['descricao'],
+                    item['ncm'],
+                    str(item['qtd_notas']),
+                    f"R$ {item['valor_total']:,.2f}",
+                    f"R$ {item['valor_icms']:,.2f}"
+                ])
+            
+            if len(dados['por_produto']) > 100:
+                data.append(['...', f"+ {len(dados['por_produto']) - 100}", '', '', ''])
+            
+            table = Table(data, colWidths=[8*cm, 3*cm, 2*cm, 4*cm, 5*cm])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.78, 0.66, 0.32)),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (2, 0), (4, -1), 'RIGHT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.Color(0.95, 0.95, 0.95)]),
+            ]))
+            elements.append(table)
+        
+        else:  # ncm
+            elements.append(Paragraph("Detalhamento por NCM", styles['Heading2']))
+            elements.append(Spacer(1, 10))
+            
+            data = [['NCM', 'Descrição', 'Qtd Produtos', 'Valor Total', 'ICMS Desconsiderado']]
+            for item in dados['por_ncm']:
+                data.append([
+                    item['ncm'],
+                    item['descricao_ncm'],
+                    str(item['qtd_produtos']),
+                    f"R$ {item['valor_total']:,.2f}",
+                    f"R$ {item['valor_icms']:,.2f}"
+                ])
+            
+            table = Table(data, colWidths=[3*cm, 8*cm, 3*cm, 4*cm, 5*cm])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.78, 0.66, 0.32)),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (2, 0), (4, -1), 'RIGHT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.Color(0.95, 0.95, 0.95)]),
+            ]))
+            elements.append(table)
+        
+        doc.build(elements)
+        output.seek(0)
+        
+        filename = f"beneficio_fiscal_{agrupamento}_{competencia.replace('/', '_')}.pdf"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
+    else:
+        raise HTTPException(status_code=400, detail="Formato inválido. Use 'excel' ou 'pdf'")
+
+
+# ============================================================
 # APURAÇÃO DE ISS
 # ============================================================
 
