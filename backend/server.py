@@ -6174,7 +6174,7 @@ async def upload_xml_with_progress(
     all_results["rejeitadas_cnpj"].extend(rejeitadas_cnpj)
     all_results["relatorio_conversoes"].extend(conversion_report)
     all_results["alertas_cfop"].extend(alertas_cfop)
-    all_results["notas_desconsideradas_devolucao"].extend(notas_devolucao_fornecedor)
+    all_results["notas_desconsideradas_devolucao"].extend(notas_desconsideradas_processadas)
     
     progress["all_results"] = all_results
     
