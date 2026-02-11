@@ -267,6 +267,188 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* ============================================
+   PAGE TRANSITIONS
+   ============================================ */
+
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+}
+
+/* Success pulse effect */
+@keyframes successPulse {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.animate-success-pulse {
+  animation: successPulse 0.6s ease-out;
+}
+
+/* Error shake effect */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Bounce in effect */
+@keyframes bounceIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.4s ease-out;
+}
+
+/* Progress bar animation */
+@keyframes progressPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-progress-pulse {
+  animation: progressPulse 1s ease-in-out infinite;
+}
+
+/* Ripple effect on click */
+@keyframes ripple {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1);
+  pointer-events: none;
+}
+
+.btn-ripple:active::after {
+  animation: ripple 0.6s ease-out;
+}
+
+/* Highlight animation for new items */
+@keyframes highlight {
+  0% { background-color: rgba(200, 169, 81, 0.3); }
+  100% { background-color: transparent; }
+}
+
+.animate-highlight {
+  animation: highlight 1.5s ease-out;
+}
+
+/* Count up animation helper */
+.count-up {
+  display: inline-block;
+  transition: all 0.3s ease-out;
+}
+
+/* Smooth collapse/expand */
+.collapse-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.collapse-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.collapse-content.expanded {
+  opacity: 1;
+}
+
+/* Toast entrance animation */
+@keyframes toastSlideIn {
+  from {
+    transform: translateX(100%) translateY(0);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+}
+
+.toast-enter {
+  animation: toastSlideIn 0.3s ease-out forwards;
+}
+
+/* Skeleton loading with better gradient */
+.skeleton-loading {
+  background: linear-gradient(
+    90deg,
+    #1A1A1A 0%,
+    #2A2A2A 20%,
+    #3A3A3A 40%,
+    #2A2A2A 60%,
+    #1A1A1A 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Better focus states for form elements */
+.input-focus-gold:focus {
+  border-color: #C8A951;
+  box-shadow: 0 0 0 3px rgba(200, 169, 81, 0.15);
+}
+
+/* Status indicator dots */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.active {
+  background-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+.status-dot.inactive {
+  background-color: #6b7280;
+}
+
+.status-dot.warning {
+  background-color: #f59e0b;
+  animation: subtlePulse 1.5s ease-in-out infinite;
+}
+
+.status-dot.error {
+  background-color: #ef4444;
+  animation: subtlePulse 1s ease-in-out infinite;
+}
+
+/* ============================================
    UTILITÁRIOS
    ============================================ */
 
