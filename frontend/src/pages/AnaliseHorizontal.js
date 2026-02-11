@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
+import axios from 'axios';
 import { 
   TrendingUp, TrendingDown, DollarSign, RefreshCw, 
   BarChart3, LineChart, Save, Edit2, Sparkles,
   ChevronDown, ChevronUp, Calendar, AlertCircle,
-  ArrowUpRight, ArrowDownRight, Minus
+  ArrowUpRight, ArrowDownRight, Minus, Upload, FileSpreadsheet, FileText
 } from 'lucide-react';
 import {
   LineChart as RechartsLine,
@@ -34,12 +35,68 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
   const [analiseIA, setAnaliseIA] = useState(null);
   const [loadingIA, setLoadingIA] = useState(false);
   const [showFormularioAnterior, setShowFormularioAnterior] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadResult, setUploadResult] = useState(null);
+  const fileInputRef = useRef(null);
   
   const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   
   const anoAtual = selectedCompetencia ? parseInt(selectedCompetencia.split('/')[1]) : new Date().getFullYear();
   const anoAnterior = anoAtual - 1;
   const [anoDigitacao, setAnoDigitacao] = useState(anoAnterior);
+  
+  // Função para importar arquivo (Excel, Word ou PDF)
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    setUploadingFile(true);
+    setUploadResult(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post(
+        `${API_URL}/api/analise-horizontal/importar-arquivo/${selectedCompany.id}?ano=${anoDigitacao}`,
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      if (response.data.success) {
+        // Aplicar dados extraídos aos campos manuais
+        const dadosExtraidos = response.data.dados_por_mes || {};
+        setDadosManuais(prev => ({
+          ...prev,
+          ...dadosExtraidos
+        }));
+        
+        setUploadResult({
+          success: true,
+          message: `Dados importados com sucesso! ${Object.keys(dadosExtraidos).length} meses encontrados.`,
+          observacoes: response.data.observacoes
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao importar arquivo:', error);
+      setUploadResult({
+        success: false,
+        message: error.response?.data?.detail || 'Erro ao processar arquivo'
+      });
+    } finally {
+      setUploadingFile(false);
+      // Limpar o input para permitir reenviar o mesmo arquivo
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
   
   // Função para verificar se a competência permite edição manual
   // Apenas períodos anteriores ao mês atual podem ser editados manualmente
