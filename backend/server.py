@@ -15913,7 +15913,14 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
             }
             stats["from_sales_inference"] += 1
             
-            await save_classification_to_cache(company_id, {"descricao": descricao}, "revenda", cfop, f"Inferido de vendas (palavras-chave)")
+            # Acumular para salvar em batch no final
+            classifications_to_save.append({
+                "descricao": descricao,
+                "ncm": product.get('ncm', ''),
+                "categoria": "revenda",
+                "cfop": cfop,
+                "justificativa": f"Inferido de vendas (palavras-chave)"
+            })
             continue
         
         # 4. Verificar regras diretas (keywords cadastradas pelo usuário)
