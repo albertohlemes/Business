@@ -825,33 +825,76 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                           <table className="w-full text-sm">
                             <thead className="bg-[#1A1A1A] sticky top-0">
                               <tr>
-                                <th className="px-4 py-3 text-left text-[#A1A1AA] font-medium">NCM</th>
-                                <th className="px-4 py-3 text-left text-[#A1A1AA] font-medium">Descrição</th>
-                                <th className="px-4 py-3 text-center text-[#A1A1AA] font-medium">Qtd Produtos</th>
-                                <th className="px-4 py-3 text-right text-[#A1A1AA] font-medium">Valor Total</th>
-                                <th className="px-4 py-3 text-right text-[#A1A1AA] font-medium">ICMS Desconsiderado</th>
+                                <th className="px-3 py-3 text-left text-[#A1A1AA] font-medium w-8"></th>
+                                <th className="px-3 py-3 text-left text-[#A1A1AA] font-medium">NCM</th>
+                                <th className="px-3 py-3 text-left text-[#A1A1AA] font-medium">Descrição</th>
+                                <th className="px-3 py-3 text-center text-[#A1A1AA] font-medium">Produtos</th>
+                                <th className="px-3 py-3 text-right text-[#A1A1AA] font-medium">Valor</th>
+                                <th className="px-3 py-3 text-right text-[#A1A1AA] font-medium">BC ICMS</th>
+                                <th className="px-3 py-3 text-right text-[#A1A1AA] font-medium">ICMS</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-[#2A2A2A]">
                               {beneficioDetalhes.por_ncm.map((item, idx) => (
-                                <tr key={idx} className="hover:bg-white/5">
-                                  <td className="px-4 py-3">
-                                    <span className="font-mono text-[#C8A951] text-lg">{item.ncm}</span>
-                                  </td>
-                                  <td className="px-4 py-3 text-white">{item.descricao_ncm}</td>
-                                  <td className="px-4 py-3 text-center text-[#A1A1AA]">{item.qtd_produtos}</td>
-                                  <td className="px-4 py-3 text-right text-white">{formatCurrency(item.valor_total)}</td>
-                                  <td className="px-4 py-3 text-right">
-                                    <span className="text-red-400 font-semibold">{formatCurrency(item.valor_icms)}</span>
-                                  </td>
-                                </tr>
+                                <React.Fragment key={idx}>
+                                  <tr 
+                                    className="hover:bg-white/5 cursor-pointer"
+                                    onClick={() => toggleNcmExpansion(item.ncm)}
+                                  >
+                                    <td className="px-3 py-3 text-center">
+                                      <ChevronDown 
+                                        className={`w-4 h-4 text-[#666] transition-transform ${expandedNcms[item.ncm] ? 'rotate-180' : ''}`}
+                                      />
+                                    </td>
+                                    <td className="px-3 py-3">
+                                      <span className="font-mono text-[#C8A951] text-lg">{item.ncm}</span>
+                                    </td>
+                                    <td className="px-3 py-3 text-white">{item.descricao_ncm}</td>
+                                    <td className="px-3 py-3 text-center text-[#A1A1AA]">{item.qtd_produtos}</td>
+                                    <td className="px-3 py-3 text-right text-white">{formatCurrency(item.valor_total)}</td>
+                                    <td className="px-3 py-3 text-right text-[#A1A1AA]">{formatCurrency(item.bc_icms)}</td>
+                                    <td className="px-3 py-3 text-right">
+                                      <span className="text-red-400 font-semibold">{formatCurrency(item.valor_icms)}</span>
+                                    </td>
+                                  </tr>
+                                  {/* Produtos dentro do NCM (expansível) */}
+                                  {expandedNcms[item.ncm] && item.produtos && item.produtos.length > 0 && (
+                                    <tr className="bg-[#0A0A0A]">
+                                      <td colSpan="7" className="p-0">
+                                        <table className="w-full text-xs">
+                                          <thead className="bg-[#111]">
+                                            <tr>
+                                              <th className="px-6 py-2 text-left text-[#666] font-normal">Produto</th>
+                                              <th className="px-3 py-2 text-center text-[#666] font-normal">CFOP</th>
+                                              <th className="px-3 py-2 text-right text-[#666] font-normal">Valor</th>
+                                              <th className="px-3 py-2 text-right text-[#666] font-normal">BC ICMS</th>
+                                              <th className="px-3 py-2 text-right text-[#666] font-normal">ICMS</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {item.produtos.map((prod, pidx) => (
+                                              <tr key={pidx} className="border-t border-[#222]">
+                                                <td className="px-6 py-2 text-[#888]">{prod.descricao}</td>
+                                                <td className="px-3 py-2 text-center text-blue-400">{prod.cfop}</td>
+                                                <td className="px-3 py-2 text-right text-[#888]">{formatCurrency(prod.valor_total)}</td>
+                                                <td className="px-3 py-2 text-right text-[#888]">{formatCurrency(prod.bc_icms)}</td>
+                                                <td className="px-3 py-2 text-right text-red-400">{formatCurrency(prod.valor_icms)}</td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </React.Fragment>
                               ))}
                             </tbody>
                             <tfoot className="bg-[#1A1A1A] border-t border-yellow-500/30">
                               <tr className="font-semibold">
-                                <td colSpan="3" className="px-4 py-3 text-yellow-400">TOTAL</td>
-                                <td className="px-4 py-3 text-right text-white">{formatCurrency(beneficioDetalhes.valor_total)}</td>
-                                <td className="px-4 py-3 text-right text-red-400">{formatCurrency(beneficioDetalhes.valor_icms_desconsiderado)}</td>
+                                <td colSpan="4" className="px-3 py-3 text-yellow-400">TOTAL</td>
+                                <td className="px-3 py-3 text-right text-white">{formatCurrency(beneficioDetalhes.valor_total)}</td>
+                                <td className="px-3 py-3 text-right text-[#A1A1AA]">{formatCurrency(beneficioDetalhes.bc_icms_total)}</td>
+                                <td className="px-3 py-3 text-right text-red-400">{formatCurrency(beneficioDetalhes.valor_icms_desconsiderado)}</td>
                               </tr>
                             </tfoot>
                           </table>
