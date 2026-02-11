@@ -52,9 +52,9 @@ const Layout = ({ user, onLogout, children }) => {
   // Determinar quais apurações mostrar baseado nos flags da empresa
   const getVisibleNavigation = () => {
     // === CADASTROS E NAVEGAÇÃO PRINCIPAL ===
+    // Nota: "Empresas" foi removido do menu lateral - disponível apenas no header
     const nav = [
       { name: 'Dashboard', href: '/', icon: Home, testId: 'nav-dashboard' },
-      { name: 'Empresas', href: '/companies', icon: Building2, testId: 'nav-companies' },
       { name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' },
       { name: 'Classificação Inteligente', href: '/classificacao-inteligente', icon: Brain, testId: 'nav-classificacao-inteligente' },
     ];
