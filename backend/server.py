@@ -263,6 +263,11 @@ class CompanyCreate(BaseModel):
     # Flags de desconsiderar ICMS
     desconsiderar_icms_despesas: bool = False
     desconsiderar_icms_st: bool = False
+    # === BENEFÍCIO FISCAL ICMS ===
+    beneficio_fiscal_icms: bool = False
+    tipo_beneficio_fiscal: str = ""
+    produtos_sem_credito_icms: List[str] = []
+    produtos_sem_credito_descricao: str = ""
     # Presunção geral
     percentual_presuncao_irpj: float = 8.0
     percentual_presuncao_csll: float = 12.0
