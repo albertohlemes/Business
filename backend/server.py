@@ -15679,6 +15679,16 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
     products_for_ai = []
     company_uf = company_data.get('uf', 'SP')
     
+    # ===== PRÉ-CARREGAR CACHE DE CLASSIFICAÇÕES (uma única query) =====
+    try:
+        rules_cache = await db.learned_rules.find({
+            "company_id": company_id
+        }, {"_id": 0}).to_list(1000)
+        logger.info(f"CLASSIFY: Cache de regras carregado - {len(rules_cache)} regras")
+    except Exception as e:
+        logger.warning(f"CLASSIFY: Erro ao carregar cache de regras: {e}")
+        rules_cache = []
+    
     # ===== ANÁLISE AVANÇADA DE PRODUTOS VENDIDOS (COM CACHE) =====
     produtos_vendidos_list = []
     ncms_vendidos = set()
@@ -15733,8 +15743,8 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
                                           '1403', '1405', '1408', '1409', '1410', '1411', '1412', '1413', '1414', '1415',
                                           '2403', '2404', '2405', '2408', '2409', '2410', '2411', '2412', '2413', '2414', '2415']
         
-        # 1. Verificar cache primeiro
-        cached = await get_cached_classification(company_id, descricao)
+        # 1. Verificar cache primeiro (usando cache em memória, sem query)
+        cached = get_cached_classification_from_memory(rules_cache, descricao)
         if cached:
             # Se é ST pelo CFOP original, ajustar o CFOP sugerido
             if is_st_by_cfop and cached.get('cfop', '').endswith(('102', '101', '551', '556')):
