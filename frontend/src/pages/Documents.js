@@ -1752,9 +1752,240 @@ const Documents = ({ user, onLogout }) => {
                   </>
                 )}
               </button>
+              
+              {/* Botão Verificar Notas Ausentes */}
+              <button
+                data-testid="btn-notas-ausentes"
+                onClick={handleOpenNotasAusentes}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg hover:bg-yellow-500/20 transition-all"
+              >
+                <AlertTriangle className="w-4 h-4" />
+                Verificar Notas Ausentes
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Modal de Notas Ausentes */}
+        {showNotasAusentes && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Alerta de Notas Fiscais Ausentes</h2>
+                    <p className="text-sm text-[#A1A1AA]">
+                      Verificação de sequência numérica - {selectedCompetencia || 'Todas as competências'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowNotasAusentes(false)}
+                  className="p-2 text-[#A1A1AA] hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Conteúdo */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {notasAusentesLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 text-yellow-500 animate-spin mb-4" />
+                    <p className="text-[#A1A1AA]">Analisando sequência numérica de todos os modelos...</p>
+                  </div>
+                ) : notasAusentesData ? (
+                  <div className="space-y-6">
+                    {/* Resumo Geral */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-[#0C0C0C] rounded-lg p-4 border border-[#2A2A2A]">
+                        <p className="text-[#A1A1AA] text-sm">Total Emitidas</p>
+                        <p className="text-2xl font-bold text-white">{notasAusentesData.total_notas?.toLocaleString('pt-BR') || 0}</p>
+                      </div>
+                      <div className={`rounded-lg p-4 border ${notasAusentesData.total_ausentes > 0 ? 'bg-red-900/20 border-red-500' : 'bg-green-900/20 border-green-500'}`}>
+                        <p className={`text-sm ${notasAusentesData.total_ausentes > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                          Total Ausentes
+                        </p>
+                        <p className={`text-2xl font-bold ${notasAusentesData.total_ausentes > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                          {notasAusentesData.total_ausentes?.toLocaleString('pt-BR') || 0}
+                        </p>
+                      </div>
+                      <div className="bg-[#0C0C0C] rounded-lg p-4 border border-[#2A2A2A]">
+                        <p className="text-[#A1A1AA] text-sm">Tipo Atividade</p>
+                        <p className="text-lg font-semibold text-white capitalize">{notasAusentesData.tipo_atividade || 'N/A'}</p>
+                      </div>
+                      <div className="bg-[#0C0C0C] rounded-lg p-4 border border-[#2A2A2A]">
+                        <p className="text-[#A1A1AA] text-sm">Status</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {notasAusentesData.total_ausentes === 0 ? (
+                            <>
+                              <CheckCircle className="text-green-500 w-5 h-5" />
+                              <span className="text-green-500 font-semibold">OK</span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="text-red-500 w-5 h-5" />
+                              <span className="text-red-500 font-semibold">Gaps Detectados</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botões de Exportação */}
+                    {notasAusentesData.total_ausentes > 0 && (
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => exportarNotasAusentes('excel')}
+                          disabled={notasAusentesExporting}
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          <FileSpreadsheet className="w-4 h-4" />
+                          Exportar Excel
+                        </button>
+                        <button
+                          onClick={() => exportarNotasAusentes('pdf')}
+                          disabled={notasAusentesExporting}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          <FileDown className="w-4 h-4" />
+                          Exportar PDF
+                        </button>
+                        {notasAusentesExporting && (
+                          <span className="flex items-center text-[#A1A1AA]">
+                            <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                            Gerando arquivo...
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Resumo por Modelo */}
+                    <div className="bg-[#0C0C0C] rounded-lg border border-[#2A2A2A] overflow-hidden">
+                      <div className="px-4 py-3 border-b border-[#2A2A2A]">
+                        <h3 className="font-semibold text-white">Análise por Modelo de Documento</h3>
+                      </div>
+                      <div className="divide-y divide-[#2A2A2A]">
+                        {notasAusentesData.modelos_analisados?.map((modelo, idx) => (
+                          <div key={idx} className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <FileText className="w-5 h-5 text-[#C8A951]" />
+                                <span className="font-medium text-white">{modelo.modelo_nome}</span>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <span className="text-[#A1A1AA] text-sm">
+                                  {modelo.total_notas} emitidas
+                                </span>
+                                {modelo.total_ausentes > 0 ? (
+                                  <span className="bg-red-900/50 text-red-400 px-3 py-1 rounded text-sm font-medium">
+                                    {modelo.total_ausentes} ausentes
+                                  </span>
+                                ) : modelo.total_notas > 0 ? (
+                                  <span className="bg-green-900/50 text-green-400 px-3 py-1 rounded text-sm font-medium">
+                                    OK
+                                  </span>
+                                ) : (
+                                  <span className="bg-gray-800 text-gray-400 px-3 py-1 rounded text-sm">
+                                    Sem dados
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Sequências do modelo */}
+                            {modelo.sequencias && modelo.sequencias.length > 0 && (
+                              <div className="ml-8 space-y-2">
+                                {modelo.sequencias.map((seq, seqIdx) => (
+                                  <div key={seqIdx} className="flex items-center gap-4 text-sm text-[#A1A1AA]">
+                                    <span className="font-mono bg-[#1A1A1A] px-2 py-1 rounded">Série {seq.serie}</span>
+                                    <span>Nº {seq.primeiro_numero?.toLocaleString('pt-BR')} a {seq.ultimo_numero?.toLocaleString('pt-BR')}</span>
+                                    <span className="text-white">{seq.total_notas} de {seq.total_esperado} esperadas</span>
+                                    {seq.total_esperado - seq.total_notas > 0 && (
+                                      <span className="text-red-400">
+                                        ({(seq.total_esperado - seq.total_notas).toLocaleString('pt-BR')} faltando)
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Primeiras notas ausentes do modelo */}
+                            {modelo.notas_ausentes && modelo.notas_ausentes.length > 0 && (
+                              <div className="mt-3 ml-8">
+                                <p className="text-sm text-[#A1A1AA] mb-2">Primeiros números ausentes:</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {modelo.notas_ausentes.slice(0, 20).map((nota, notaIdx) => (
+                                    <span 
+                                      key={notaIdx} 
+                                      className="bg-red-900/30 text-red-400 px-2 py-1 rounded text-sm font-mono"
+                                    >
+                                      {nota.numero?.toLocaleString('pt-BR')}
+                                    </span>
+                                  ))}
+                                  {modelo.notas_ausentes.length > 20 && (
+                                    <span className="text-[#A1A1AA] text-sm">
+                                      +{(modelo.notas_ausentes.length - 20).toLocaleString('pt-BR')} mais...
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Mensagem de sucesso */}
+                    {notasAusentesData.total_ausentes === 0 && notasAusentesData.total_notas > 0 && (
+                      <div className="bg-green-900/20 border border-green-500 rounded-lg p-6 text-center">
+                        <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-green-500 mb-2">Sequência Numérica OK!</h3>
+                        <p className="text-[#A1A1AA]">
+                          Não foram encontradas quebras na sequência das {notasAusentesData.total_notas?.toLocaleString('pt-BR')} notas fiscais de saída analisadas.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                    <p className="text-[#A1A1AA]">Erro ao carregar dados. Tente novamente.</p>
+                    <button
+                      onClick={fetchNotasAusentes}
+                      className="mt-4 px-4 py-2 bg-[#C8A951] hover:bg-[#B09240] text-black font-medium rounded-lg transition-colors"
+                    >
+                      Tentar Novamente
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end gap-3 p-4 border-t border-[#2A2A2A]">
+                <button
+                  onClick={fetchNotasAusentes}
+                  disabled={notasAusentesLoading}
+                  className="px-4 py-2 text-[#A1A1AA] hover:text-white transition-colors flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${notasAusentesLoading ? 'animate-spin' : ''}`} />
+                  Atualizar
+                </button>
+                <button
+                  onClick={() => setShowNotasAusentes(false)}
+                  className="px-6 py-2 bg-[#2A2A2A] hover:bg-[#333] text-white rounded-lg transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal de Histórico de Importações - Tela inicial */}
         {showHistorico && (
