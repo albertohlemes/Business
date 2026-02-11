@@ -1380,6 +1380,7 @@ const PisCofins = ({ user, onLogout }) => {
               <thead className="bg-[#141414] sticky top-0 z-10">
                 <tr>
                   <SortableHeader field="ncm" label="NCM" />
+                  <th className="px-3 py-2 text-left text-[#666] text-xs font-medium">Descrição</th>
                   <SortableHeader field="cfop" label="CFOP" />
                   <SortableHeader field="cst" label="CST" />
                   <SortableHeader field="classificacao" label="Classificação" />
@@ -1395,6 +1396,7 @@ const PisCofins = ({ user, onLogout }) => {
                 {saidasOrdenadas.map((item, idx) => (
                   <tr key={idx} className="hover:bg-white/5">
                     <td className="px-3 py-2 font-mono text-[#A1A1AA]">{item.ncm || '-'}</td>
+                    <td className="px-3 py-2 text-[#C8A951] text-xs">{getNcmDescricao(item.ncm)}</td>
                     <td className="px-3 py-2"><span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs">{item.cfop}</span></td>
                     <td className="px-3 py-2"><span className="px-2 py-0.5 bg-[#2A2A2A] text-white rounded text-xs font-mono">{item.cst}</span></td>
                     <td className="px-3 py-2 text-[#A1A1AA] text-xs">{item.classificacao}</td>
@@ -1409,7 +1411,7 @@ const PisCofins = ({ user, onLogout }) => {
               </tbody>
               <tfoot className="bg-[#1A1A1A] border-t border-red-500/30">
                 <tr className="font-semibold">
-                  <td colSpan="4" className="px-3 py-3 text-red-400">SUBTOTAL SAÍDAS</td>
+                  <td colSpan="5" className="px-3 py-3 text-red-400">SUBTOTAL SAÍDAS</td>
                   <td className="px-3 py-3 text-right text-white">{saidas?.subtotais?.quantidade}</td>
                   <td className="px-3 py-3 text-right text-white">{formatCurrency(saidas?.subtotais?.valor_base)}</td>
                   <td className="px-3 py-3"></td>
