@@ -102,12 +102,106 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
     if (!memoriaSearch) return true;
     const termo = memoriaSearch.toLowerCase();
     return (
-      (rule.descricao_produto || rule.padrao || '').toLowerCase().includes(termo) ||
+      (rule.produto_descricao || rule.descricao_produto || rule.padrao || '').toLowerCase().includes(termo) ||
       (rule.ncm || '').includes(termo) ||
       (rule.categoria || rule.categoria_correta || '').toLowerCase().includes(termo) ||
-      (rule.cfop || '').includes(termo)
+      (rule.cfop || rule.cfop_correto || '').includes(termo)
     );
   });
+  
+  // Estados para seleção em lote de regras
+  const [selectedRules, setSelectedRules] = useState(new Set());
+  const [batchDeleting, setBatchDeleting] = useState(false);
+  const [batchUpdating, setBatchUpdating] = useState(false);
+  const [batchCategory, setBatchCategory] = useState('');
+  
+  // Toggle seleção de regra
+  const toggleRuleSelection = (ruleId) => {
+    setSelectedRules(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(ruleId)) {
+        newSet.delete(ruleId);
+      } else {
+        newSet.add(ruleId);
+      }
+      return newSet;
+    });
+  };
+  
+  // Selecionar todas as regras filtradas
+  const selectAllRules = () => {
+    if (selectedRules.size === memoriaFiltrada.length) {
+      setSelectedRules(new Set());
+    } else {
+      setSelectedRules(new Set(memoriaFiltrada.map(r => r.id)));
+    }
+  };
+  
+  // Excluir regras em lote
+  const deleteBatchRules = async () => {
+    if (selectedRules.size === 0) return;
+    
+    setBatchDeleting(true);
+    try {
+      const token = localStorage.getItem('token');
+      let deleted = 0;
+      
+      for (const ruleId of selectedRules) {
+        try {
+          await axios.delete(
+            `${API}/ai/learned-rules/${ruleId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          deleted++;
+        } catch (err) {
+          console.error(`Erro ao excluir regra ${ruleId}:`, err);
+        }
+      }
+      
+      toast.success(`${deleted} regra(s) excluída(s) com sucesso`);
+      setSelectedRules(new Set());
+      fetchMemoriaIA();
+    } catch (err) {
+      console.error('Erro ao excluir regras em lote:', err);
+      toast.error('Erro ao excluir regras');
+    } finally {
+      setBatchDeleting(false);
+    }
+  };
+  
+  // Alterar categoria em lote
+  const updateBatchCategory = async (newCategory) => {
+    if (selectedRules.size === 0 || !newCategory) return;
+    
+    setBatchUpdating(true);
+    try {
+      const token = localStorage.getItem('token');
+      let updated = 0;
+      
+      for (const ruleId of selectedRules) {
+        try {
+          await axios.put(
+            `${API}/ai/learned-rules/${ruleId}?categoria=${newCategory}`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          updated++;
+        } catch (err) {
+          console.error(`Erro ao atualizar regra ${ruleId}:`, err);
+        }
+      }
+      
+      toast.success(`${updated} regra(s) atualizada(s) para ${newCategory.toUpperCase()}`);
+      setSelectedRules(new Set());
+      setBatchCategory('');
+      fetchMemoriaIA();
+    } catch (err) {
+      console.error('Erro ao atualizar regras em lote:', err);
+      toast.error('Erro ao atualizar regras');
+    } finally {
+      setBatchUpdating(false);
+    }
+  };
 
   // Carregar dados
   useEffect(() => {
