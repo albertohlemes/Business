@@ -2500,6 +2500,32 @@ const Documents = ({ user, onLogout }) => {
                 <Trash2 className="w-5 h-5" />
                 Apagar
               </button>
+              
+              {/* Botões de Exportação */}
+              <button
+                data-testid="btn-export-excel"
+                onClick={() => handleExportCategoria('excel')}
+                disabled={exportingCategoria || documents.length === 0}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600/20 text-green-400 border border-green-500/20 rounded-lg font-medium hover:bg-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <FileSpreadsheet className="w-5 h-5" />
+                Excel
+              </button>
+              <button
+                data-testid="btn-export-pdf"
+                onClick={() => handleExportCategoria('pdf')}
+                disabled={exportingCategoria || documents.length === 0}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600/20 text-red-400 border border-red-500/20 rounded-lg font-medium hover:bg-red-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <FileDown className="w-5 h-5" />
+                PDF
+              </button>
+              {exportingCategoria && (
+                <span className="flex items-center text-[#A1A1AA]">
+                  <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                  Exportando...
+                </span>
+              )}
             </div>
           </div>
 
