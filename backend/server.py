@@ -15430,10 +15430,14 @@ async def save_classification_to_cache(company_id: str, product: Dict, categoria
         }
         await db.learned_rules.insert_one(rule)
 
-async def classify_products_with_cache(products: List[Dict], company_id: str, company_data: Dict, emitente_uf: str = '') -> tuple:
+async def classify_products_with_cache(products: List[Dict], company_id: str, company_data: Dict, emitente_uf: str = '', sales_cache: Dict = None) -> tuple:
     """
     Classifica produtos usando cache primeiro, depois IA para os não-cacheados.
     Inclui análise de produtos vendidos para melhorar a classificação.
+    
+    Args:
+        sales_cache: Cache opcional com dados de vendas pré-carregados para evitar múltiplas queries
+    
     Retorna: (resultados_classificados, stats)
     """
     results = {}
@@ -15448,49 +15452,48 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
     products_for_ai = []
     company_uf = company_data.get('uf', 'SP')
     
-    # ===== ANÁLISE AVANÇADA DE PRODUTOS VENDIDOS =====
+    # ===== ANÁLISE AVANÇADA DE PRODUTOS VENDIDOS (COM CACHE) =====
     produtos_vendidos_list = []
-    ncms_vendidos = set()  # NCMs dos produtos que a empresa vende
-    palavras_produtos_vendidos = set()  # Palavras-chave dos produtos vendidos
+    ncms_vendidos = set()
+    palavras_produtos_vendidos = set()
     
-    try:
-        # Buscar produtos vendidos (saídas) com mais detalhes
-        saidas_cursor = db.xml_documents.find({
-            "company_id": company_id,
-            "tipo": "saida",
-            **get_filtro_notas_ativas()
-        }, {"produtos.descricao": 1, "produtos.ncm": 1, "_id": 0}).limit(200)
-        
-        saidas = await saidas_cursor.to_list(length=200)
-        produtos_vendidos = set()
-        
-        for doc in saidas:
-            for prod in doc.get('produtos', []):
-                desc = prod.get('descricao', '')
-                ncm = prod.get('ncm', '')
-                
-                # Coletar NCMs vendidos (importante para match)
-                if ncm and len(ncm) >= 4:
-                    ncms_vendidos.add(ncm[:4])  # Primeiros 4 dígitos do NCM (categoria)
-                    ncms_vendidos.add(ncm[:6])  # Primeiros 6 dígitos (subcategoria)
-                
-                if desc and len(desc) > 5:
-                    # Coletar palavras-chave significativas
-                    palavras = [p.upper() for p in desc.split() if len(p) > 3 and p.upper() not in ['PARA', 'COM', 'SEM', 'UNID', 'PEÇA', 'PECA', 'CADA', 'CAIXA']]
-                    for palavra in palavras[:3]:
-                        palavras_produtos_vendidos.add(palavra)
+    # Usar cache se disponível (evita múltiplas queries durante upload em lote)
+    if sales_cache and sales_cache.get('company_id') == company_id:
+        ncms_vendidos = sales_cache.get('ncms_vendidos', set())
+        palavras_produtos_vendidos = sales_cache.get('palavras_produtos_vendidos', set())
+        produtos_vendidos_list = sales_cache.get('produtos_vendidos_list', [])
+    else:
+        # Buscar dados de vendas (apenas se não houver cache)
+        try:
+            saidas_cursor = db.xml_documents.find({
+                "company_id": company_id,
+                "tipo": "saida",
+                **get_filtro_notas_ativas()
+            }, {"produtos.descricao": 1, "produtos.ncm": 1, "_id": 0}).limit(200)
+            
+            saidas = await saidas_cursor.to_list(length=200)
+            produtos_vendidos = set()
+            
+            for doc in saidas:
+                for prod in doc.get('produtos', []):
+                    desc = prod.get('descricao', '')
+                    ncm = prod.get('ncm', '')
                     
-                    # Descrição resumida para lista
-                    if palavras:
-                        produtos_vendidos.add(' '.join(palavras[:2]))
-        
-        produtos_vendidos_list = list(produtos_vendidos)[:50]
-        
-        logger.info(f"Análise de vendas: {len(ncms_vendidos)} NCMs vendidos, {len(palavras_produtos_vendidos)} palavras-chave")
-        
-    except Exception as e:
-        logger.warning(f"Erro ao buscar produtos vendidos: {e}")
-        produtos_vendidos_list = []
+                    if ncm and len(ncm) >= 4:
+                        ncms_vendidos.add(ncm[:4])
+                        ncms_vendidos.add(ncm[:6])
+                    
+                    if desc and len(desc) > 5:
+                        palavras = [p.upper() for p in desc.split() if len(p) > 3 and p.upper() not in ['PARA', 'COM', 'SEM', 'UNID', 'PEÇA', 'PECA', 'CADA', 'CAIXA']]
+                        for palavra in palavras[:3]:
+                            palavras_produtos_vendidos.add(palavra)
+                        if palavras:
+                            produtos_vendidos.add(' '.join(palavras[:2]))
+            
+            produtos_vendidos_list = list(produtos_vendidos)[:50]
+            
+        except Exception as e:
+            logger.warning(f"Erro ao buscar produtos vendidos: {e}")
     
     for idx, product in enumerate(products):
         product['_temp_id'] = str(idx)
