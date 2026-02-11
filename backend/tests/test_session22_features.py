@@ -369,8 +369,9 @@ class TestDashboard:
         assert response.status_code == 200
         data = response.json()
         
-        # Verificar estrutura básica
-        assert "faturamento_bruto" in data or "total_saidas" in data
+        # Verificar estrutura básica do dashboard
+        assert "competencia" in data
+        assert "debitos" in data or "creditos" in data
         print(f"✅ Dashboard carregado com sucesso")
     
     def test_inconsistencias(self, client, super_admin_token, company_id):
@@ -385,9 +386,10 @@ class TestDashboard:
         assert response.status_code == 200
         data = response.json()
         
-        assert "total_alertas" in data
-        assert "alertas" in data
-        print(f"✅ Inconsistências: {data['total_alertas']} alerta(s)")
+        # Verificar estrutura do endpoint de inconsistências
+        assert "categorias" in data
+        assert "resumo" in data
+        print(f"✅ Inconsistências carregadas: {data['resumo'].get('total', 0)} alerta(s)")
 
 
 class TestSPED:
