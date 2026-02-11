@@ -122,8 +122,11 @@ export const UploadProvider = ({ children }) => {
       };
 
       eventSource.onerror = () => {
-        console.error('Erro na conexão SSE');
-        // Não fechar imediatamente, pode ser reconexão
+        console.error('Erro na conexão SSE, iniciando polling de fallback...');
+        // Iniciar polling de fallback quando SSE falha
+        if (!pollingIntervalRef.current) {
+          startPollingFallback(upload_id, token);
+        }
       };
 
       // 3. Enviar arquivos em lotes
