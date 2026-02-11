@@ -12539,20 +12539,59 @@ Se o comando não for claro, retorne {{"alteracoes": [], "erro": "mensagem expli
                 {"$set": {"produtos": produtos}}
             )
         
-        # Salvar nova regra se fornecida
+        # Salvar nova regra se fornecida - formato compatível com learned_rules
         if resultado.get('nova_regra') and resultado['nova_regra'].get('padrao'):
             nova_regra = resultado['nova_regra']
-            regra_doc = {
-                "id": str(uuid.uuid4()),
+            padrao = nova_regra.get('padrao', '')
+            categoria = nova_regra.get('categoria', '')
+            cfop_sugerido = obter_cfop_por_categoria(categoria, '1102')
+            
+            # Verificar se já existe
+            regra_existente = await db.learned_rules.find_one({
                 "company_id": company_id,
-                "padrao": nova_regra.get('padrao', ''),
-                "categoria": nova_regra.get('categoria', ''),
-                "descricao": nova_regra.get('descricao', comando),
-                "criado_em": datetime.now(timezone.utc).isoformat(),
-                "criado_por": current_user.id,
-                "comando_original": comando
-            }
-            await db.learned_rules.insert_one(regra_doc)
+                "produto_descricao": padrao
+            })
+            
+            if not regra_existente:
+                regra_doc = {
+                    "id": str(uuid.uuid4()),
+                    "company_id": company_id,
+                    "produto_descricao": padrao,
+                    "padrao": padrao,
+                    "categoria_correta": categoria,
+                    "cfop_correto": cfop_sugerido,
+                    "motivo": nova_regra.get('descricao', comando),
+                    "aprendido_de": "ia_command",
+                    "created_by": current_user.email,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "comando_original": comando
+                }
+                await db.learned_rules.insert_one(regra_doc)
+        
+        # NOVO: Salvar também cada produto alterado como regra para aprendizado
+        for alt in alteracoes_aplicadas:
+            descricao_produto = alt.get('produto', '')
+            categoria = alt.get('categoria_nova', '')
+            cfop_sugerido = obter_cfop_por_categoria(categoria, '1102')
+            
+            # Verificar se já existe
+            regra_existente = await db.learned_rules.find_one({
+                "company_id": company_id,
+                "produto_descricao": descricao_produto
+            })
+            
+            if not regra_existente:
+                await db.learned_rules.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "company_id": company_id,
+                    "produto_descricao": descricao_produto,
+                    "categoria_correta": categoria,
+                    "cfop_correto": cfop_sugerido,
+                    "motivo": alt.get('motivo', comando),
+                    "aprendido_de": "ia_command_produto",
+                    "created_by": current_user.email,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
         
         return {
             "success": True,
