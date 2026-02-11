@@ -977,14 +977,25 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
             
             <div className="mt-4 flex items-center justify-between">
               <p className="text-xs text-amber-300/70">
-                * Os valores digitados são aplicados automaticamente ao gráfico
+                * Os valores digitados são salvos no servidor e usados no RET
               </p>
               <button
-                onClick={() => {
-                  // Salvar os dados manuais no localStorage para persistência
-                  const key = `evolucao_manual_${selectedCompany?.id}`;
-                  localStorage.setItem(key, JSON.stringify(dadosManuais));
-                  alert('Dados salvos com sucesso!');
+                onClick={async () => {
+                  try {
+                    const token = localStorage.getItem('token');
+                    await axios.post(
+                      `${API_URL}/api/analise-horizontal/salvar-dados-manuais/${selectedCompany?.id}`,
+                      { dados: dadosManuais },
+                      { headers: { 'Authorization': `Bearer ${token}` } }
+                    );
+                    // Também salvar no localStorage para backup
+                    const key = `evolucao_manual_${selectedCompany?.id}`;
+                    localStorage.setItem(key, JSON.stringify(dadosManuais));
+                    alert('Dados salvos com sucesso!');
+                  } catch (error) {
+                    console.error('Erro ao salvar:', error);
+                    alert('Erro ao salvar dados: ' + (error.response?.data?.detail || error.message));
+                  }
                 }}
                 className="px-4 py-2 bg-amber-600 hover:bg-amber-700 rounded-lg text-white flex items-center gap-2 transition-colors"
               >
