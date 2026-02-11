@@ -4931,10 +4931,12 @@ async def upload_xml_batch(
                 total_stats["from_cache"] += stats.get("from_cache", 0)
                 total_stats["from_rules"] += stats.get("from_rules", 0)
                 total_stats["from_ai"] += stats.get("from_ai", 0)
+                total_stats["from_sales_inference"] = total_stats.get("from_sales_inference", 0) + stats.get("from_sales_inference", 0)
                 total_stats["total"] += stats.get("total", 0)
                 
                 # Log de performance
-                print(f"📊 Classificação: {stats['from_cache']} do cache, {stats['from_rules']} de regras, {stats['from_ai']} da IA")
+                sales_inf = stats.get('from_sales_inference', 0)
+                print(f"📊 Classificação: {stats['from_cache']} cache, {stats['from_rules']} regras, {sales_inf} aprendizado, {stats['from_ai']} IA")
                 
                 # Aplicar classificações
                 for idx, product in enumerate(produtos_para_ia):
