@@ -31,6 +31,13 @@ const ApuracaoICMS = ({ user, onLogout }) => {
   const [loadingBeneficioDetalhes, setLoadingBeneficioDetalhes] = useState(false);
   const [exportingBeneficio, setExportingBeneficio] = useState(false);
   
+  // Modal de detalhamento de Desconsiderados (ST/Despesas)
+  const [showDesconsideradosModal, setShowDesconsideradosModal] = useState(false);
+  const [desconsideradosTab, setDesconsideradosTab] = useState('produto');
+  const [desconsideradosDetalhes, setDesconsideradosDetalhes] = useState(null);
+  const [loadingDesconsideradosDetalhes, setLoadingDesconsideradosDetalhes] = useState(false);
+  const [desconsideradosTipo, setDesconsideradosTipo] = useState('todos'); // 'st', 'despesas', 'todos'
+  
   // Flags de desconsiderar ICMS - estado local
   const [desconsiderarDespesas, setDesconsiderarDespesas] = useState(false);
   const [desconsiderarST, setDesconsiderarST] = useState(false);
