@@ -8122,11 +8122,14 @@ async def get_dashboard_stats(
         total_presumido = pis_presumido + cofins_presumido
         
         # Cálculo hipotético para Lucro Real (com créditos) - APENAS sobre base tributada
-        debito_pis_real = total_base_pis_cofins * aliq_pis_real
-        debito_cofins_real = total_base_pis_cofins * aliq_cofins_real
+        # Cálculo hipotético para Lucro Real (com créditos) - USANDO BASES CORRETAS
+        # Base de débito: considera CSTs 04, 06, 49 que não geram débito
+        base_para_debito = base_debito_pis_cofins_real if base_debito_pis_cofins_real > 0 else total_base_pis_cofins
+        debito_pis_real = base_para_debito * aliq_pis_real
+        debito_cofins_real = base_para_debito * aliq_cofins_real
         
         # Créditos hipotéticos - USAR BASE CALCULADA com classificação (NCM, CST, CFOP, categoria)
-        # Se temos a base específica, usar ela; senão, fallback para entradas totais
+        # Considera CSTs 70, 73, 98 que não geram crédito
         base_para_credito = base_credito_pis_cofins_real if base_credito_pis_cofins_real > 0 else total_entradas
         credito_pis_real = base_para_credito * aliq_pis_real
         credito_cofins_real = base_para_credito * aliq_cofins_real
@@ -8141,6 +8144,7 @@ async def get_dashboard_stats(
         analise_comparativa = {
             "regime_atual": "lucro_presumido",
             "base_calculo": round(total_base_pis_cofins, 2),
+            "base_debito_hipotetico": round(base_para_debito, 2),
             "base_credito_calculada": round(base_credito_pis_cofins_real, 2),
             "aliquota_zero_excluida": round(total_aliquota_zero, 2),
             "lucro_presumido": {
@@ -8160,6 +8164,7 @@ async def get_dashboard_stats(
                 "total": round(total_real, 2),
                 "aliq_pis": "1.65%",
                 "aliq_cofins": "7.6%",
+                "base_debito": round(base_para_debito, 2),
                 "base_credito": round(base_para_credito, 2)
             },
             "diferenca": round(diferenca, 2),
