@@ -5,7 +5,7 @@ import {
   Brain, ChevronDown, Calculator, AlertTriangle, Calendar, 
   DollarSign, Sparkles, Building2, Users, LayoutGrid, LayoutList,
   Briefcase, Factory, Zap, Star, ArrowLeftRight, Package, LineChart, TrendingUp,
-  Shield
+  Shield, Bell
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import CoffeeProgress from './CoffeeProgress';
