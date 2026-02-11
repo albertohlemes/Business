@@ -10859,20 +10859,43 @@ async def get_viloes_oportunidades(
         
         # Vilão: impacto negativo alto
         if impacto_total > 100:
+            # Calcular margem para análise
+            margem_valor = ((saida['valor'] - entrada['valor']) / entrada['valor'] * 100) if entrada['valor'] > 0 else 0
+            
+            # Gerar motivo detalhado
+            motivos = []
+            if impacto_icms > 50:
+                motivos.append(f"ICMS: débito R$ {icms_debito:,.2f} > crédito R$ {icms_credito:,.2f} (diferença: R$ {impacto_icms:,.2f})")
+            if impacto_pis > 50:
+                motivos.append(f"PIS: débito R$ {pis_debito:,.2f} > crédito R$ {pis_credito:,.2f} (diferença: R$ {impacto_pis:,.2f})")
+            if impacto_cofins > 50:
+                motivos.append(f"COFINS: débito R$ {cofins_debito:,.2f} > crédito R$ {cofins_credito:,.2f} (diferença: R$ {impacto_cofins:,.2f})")
+            
+            # Análise de precificação
+            if margem_valor < 10:
+                analise_preco = "⚠️ MARGEM MUITO BAIXA - Pode estar vendendo com prejuízo considerando os impostos"
+            elif margem_valor < 20:
+                analise_preco = "⚠️ MARGEM APERTADA - Revisar precificação considerando carga tributária"
+            else:
+                analise_preco = "Margem aparentemente adequada, mas imposto corrói o lucro"
+            
             viloes.append({
                 'tipo': 'IMPACTO_NEGATIVO',
                 'ncm': ncm,
                 'descricao': dados['descricao'],
                 'entrada_valor': round(entrada['valor'], 2),
                 'saida_valor': round(saida['valor'], 2),
+                'margem_percentual': round(margem_valor, 2),
                 'icms': {'credito': round(icms_credito, 2), 'debito': round(icms_debito, 2), 'impacto': round(impacto_icms, 2)},
                 'pis': {'credito': round(pis_credito, 2), 'debito': round(pis_debito, 2), 'impacto': round(impacto_pis, 2)},
                 'cofins': {'credito': round(cofins_credito, 2), 'debito': round(cofins_debito, 2), 'impacto': round(impacto_cofins, 2)},
                 'impacto_total': round(impacto_total, 2),
                 'qtd_entrada': entrada['qtd'],
                 'qtd_saida': saida['qtd'],
-                'produtos_entrada': entrada['produtos'][:5],
-                'produtos_saida': saida['produtos'][:5],
+                'produtos_entrada': sorted(entrada['produtos'], key=lambda x: x.get('descricao', ''))[:10],
+                'produtos_saida': sorted(saida['produtos'], key=lambda x: x.get('descricao', ''))[:10],
+                'motivo_classificacao': " | ".join(motivos) if motivos else f"Débito de impostos maior que crédito em R$ {impacto_total:,.2f}",
+                'analise_preco': analise_preco,
                 'explicacao': f"Débito maior que crédito: ICMS {impacto_icms:+.2f} | PIS {impacto_pis:+.2f} | COFINS {impacto_cofins:+.2f}"
             })
         
