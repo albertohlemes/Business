@@ -16005,10 +16005,15 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
                     "justificativa": justificativa
                 }
                 
-                # Salvar no cache para próximas vezes
-                await save_classification_to_cache(
-                    company_id, product, categoria, cfop, justificativa
-                )
+                # Acumular para salvar em batch no final
+                classifications_to_save.append({
+                    "descricao": product.get('descricao', ''),
+                    "codigo": product.get('codigo', ''),
+                    "ncm": product.get('ncm', ''),
+                    "categoria": categoria,
+                    "cfop": cfop,
+                    "justificativa": justificativa
+                })
                 
                 stats["from_ai"] += 1
             else:
