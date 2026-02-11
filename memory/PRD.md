@@ -104,15 +104,19 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 **Categoria "Devolução" na Classificação:**
 - ✅ CFOPs de devolução de ENTRADA expandidos: 1201-1210, 2201-2210, 1411, 2411, etc.
-- ✅ CFOPs de devolução de SAÍDA adicionados: 5201-5210, 6201-6210, 5411, 6411, etc.
+- ✅ CFOPs de devolução de SAÍDA adicionados: 5201-5210, 6201-6210, 5411, 6411, 3201, 7201, etc.
 - ✅ Função `obter_categoria_por_cfop` retorna 'devolucao' para todos os CFOPs de devolução
-- ✅ Frontend já tinha suporte para label "Devolução"
+- ✅ **PRÉ-PROCESSAMENTO DE DEVOLUÇÕES**: Produtos com CFOP de devolução são classificados ANTES da IA
+- ✅ Isso evita que produtos com CFOP 1202, 2202, etc. fiquem como "pendente"
 
 **Importação de Notas Canceladas:**
 - ✅ Parser de NF-e detecta cStat 101/151 (nota cancelada)
 - ✅ Parser de NFC-e atualizado com mesma lógica de cancelamento
 - ✅ Valores da nota e produtos zerados automaticamente quando cancelada
 - ✅ Campo `status: 'cancelada'` adicionado ao documento
+
+**Timeout de Upload:**
+- ✅ Aumentado para 5 minutos (300 segundos) para suportar volumes grandes (4000+ arquivos)
 
 ### 2026-02-11 (Sessão 16 - Correção CST Bebidas Alcoólicas e Timeout Upload)
 
