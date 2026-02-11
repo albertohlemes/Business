@@ -26,6 +26,7 @@ const ApuracaoICMS = ({ user, onLogout }) => {
   // Flags de desconsiderar ICMS - estado local
   const [desconsiderarDespesas, setDesconsiderarDespesas] = useState(false);
   const [desconsiderarST, setDesconsiderarST] = useState(false);
+  const [beneficioFiscal, setBeneficioFiscal] = useState(false);
   const [savingFlags, setSavingFlags] = useState(false);
 
   // Sincronizar flags com a empresa selecionada
@@ -33,6 +34,7 @@ const ApuracaoICMS = ({ user, onLogout }) => {
     if (selectedCompany) {
       setDesconsiderarDespesas(selectedCompany.desconsiderar_icms_despesas || false);
       setDesconsiderarST(selectedCompany.desconsiderar_icms_st || false);
+      setBeneficioFiscal(selectedCompany.beneficio_fiscal_icms || false);
     }
   }, [selectedCompany]);
 
@@ -44,7 +46,8 @@ const ApuracaoICMS = ({ user, onLogout }) => {
       const token = localStorage.getItem('token');
       await axios.put(`${API}/companies/${selectedCompany.id}`, {
         desconsiderar_icms_despesas: desconsiderarDespesas,
-        desconsiderar_icms_st: desconsiderarST
+        desconsiderar_icms_st: desconsiderarST,
+        beneficio_fiscal_icms: beneficioFiscal
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -63,7 +66,8 @@ const ApuracaoICMS = ({ user, onLogout }) => {
   const hasUnsavedChanges = () => {
     return (
       desconsiderarDespesas !== (selectedCompany?.desconsiderar_icms_despesas || false) ||
-      desconsiderarST !== (selectedCompany?.desconsiderar_icms_st || false)
+      desconsiderarST !== (selectedCompany?.desconsiderar_icms_st || false) ||
+      beneficioFiscal !== (selectedCompany?.beneficio_fiscal_icms || false)
     );
   };
 
