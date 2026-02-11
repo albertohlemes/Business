@@ -6082,6 +6082,7 @@ async def list_documents(
     competencia: Optional[str] = None,
     tipo_operacao: Optional[str] = None,
     modelo: Optional[str] = None,
+    status: Optional[str] = None,  # 'ativa', 'cancelada' ou None para todas
     current_user: User = Depends(get_current_user)
 ):
     query = {}
@@ -6096,8 +6097,14 @@ async def list_documents(
     if competencia:
         query['competencia'] = competencia
     
-    # EXCLUIR notas canceladas e desconsideradas da listagem
-    query.update(get_filtro_notas_ativas())
+    # Filtrar por status (ativa/cancelada)
+    if status == 'cancelada':
+        # Apenas notas canceladas
+        query['cancelada'] = True
+    elif status == 'ativa':
+        # Apenas notas ativas (não canceladas e não desconsideradas)
+        query.update(get_filtro_notas_ativas())
+    # Se status for None, retorna todas (sem filtro)
     
     documents = await db.xml_documents.find(query, {"_id": 0, "xml_content": 0}).to_list(10000)
     
