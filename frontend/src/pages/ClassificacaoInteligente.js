@@ -1551,25 +1551,36 @@ const ClassificacaoInteligente = ({ user, onLogout }) => {
                 <div className="space-y-2">
                   <label className="text-sm text-[#A1A1AA] block">Nova classificação:</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {['revenda', 'insumo', 'despesa', 'ativo_imobilizado', 'combustivel', 'servico'].map(cat => {
-                      const config = categoriasConfig[cat] || { label: cat, icon: '📦' };
-                      const isSelected = editingProduct.novaCategoria === cat;
+                    {[
+                      { key: 'revenda', cfop: 'X102' },
+                      { key: 'insumo', cfop: 'X101' },
+                      { key: 'despesa', cfop: 'X556' },
+                      { key: 'ativo_imobilizado', cfop: 'X551' },
+                      { key: 'combustivel', cfop: 'X653' },
+                      { key: 'servico', cfop: 'X933' }
+                    ].map(cat => {
+                      const config = categoriasConfig[cat.key] || { label: cat.key, icon: '📦' };
+                      const isSelected = editingProduct.novaCategoria === cat.key;
                       return (
                         <button
-                          key={cat}
-                          onClick={() => setEditingProduct(prev => ({ ...prev, novaCategoria: cat }))}
-                          className={`flex items-center gap-2 p-3 rounded-lg border transition-colors ${
+                          key={cat.key}
+                          onClick={() => setEditingProduct(prev => ({ ...prev, novaCategoria: cat.key }))}
+                          className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
                             isSelected 
                               ? 'border-[#C8A951] bg-[#C8A951]/10 text-[#C8A951]' 
                               : 'border-[#2A2A2A] hover:border-[#3A3A3A] text-[#A1A1AA] hover:text-white'
                           }`}
                         >
-                          <span>{config.icon}</span>
-                          <span className="text-sm font-medium">{config.label}</span>
+                          <span className="flex items-center gap-2">
+                            <span>{config.icon}</span>
+                            <span className="text-sm font-medium">{config.label}</span>
+                          </span>
+                          <span className="text-xs font-mono opacity-60">CFOP {cat.cfop}</span>
                         </button>
                       );
                     })}
                   </div>
+                  <p className="text-xs text-[#666] mt-1">* X = prefixo do CFOP original (1=estadual, 2=interestadual)</p>
                 </div>
               </div>
               
