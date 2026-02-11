@@ -5218,7 +5218,7 @@ async def upload_xml_batch(
             
             xml_doc = XMLDocument(
                 company_id=company_id,
-                competencia=competencia,
+                competencia=competencia_documento,  # Usar competência calculada pela data de saída (entradas) ou emissão (saídas)
                 tipo=tipo,
                 modelo=modelo,
                 xml_content=xml_str,
