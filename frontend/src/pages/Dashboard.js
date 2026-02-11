@@ -527,6 +527,12 @@ const Dashboard = ({ user, onLogout }) => {
                               <span className="font-medium text-orange-400">{formatCurrency(stats.creditos.icms_despesa_desconsiderado)}</span>
                             </div>
                           )}
+                          {stats.creditos.icms_beneficio_desconsiderado > 0 && (
+                            <div className="flex justify-between text-xs bg-purple-500/10 -mx-2 px-2 py-1 rounded">
+                              <span className="text-purple-400">Benefício Fiscal (dedução):</span>
+                              <span className="font-medium text-purple-400">{formatCurrency(stats.creditos.icms_beneficio_desconsiderado)}</span>
+                            </div>
+                          )}
                           <div className="flex justify-between text-sm">
                             <span className="text-red-400">Débito:</span>
                             <span className="font-medium text-red-400">{formatCurrency(stats.debitos.icms)}</span>
