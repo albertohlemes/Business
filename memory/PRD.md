@@ -1175,9 +1175,9 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - [x] ~~Melhorar IA de classificação com análise de saídas~~ ✅
 - [x] ~~FASE 3 - Wizard de Configuração de Empresa~~ ✅
 - [x] ~~FASE 3 - Dashboard de Inconsistências (Central de Alertas)~~ ✅
+- [x] ~~Logo nos relatórios PDF exportados~~ ✅ (Sessão 23)
 - [ ] Importação de CT-e para transportadoras
 - [ ] Ordenação nas páginas restantes (ISS, DIFAL, SimplesNacionalDashboard)
-- [ ] Logo nos relatórios exportados
 - [ ] Upload de Certificado Digital (.pfx)
 
 ### P3 - Baixa Prioridade
