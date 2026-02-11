@@ -416,6 +416,7 @@ class XMLDocument(BaseModel):
     numero_nfe: str
     serie: str = ""
     data_emissao: str
+    data_saida_entrada: str = ""  # dhSaiEnt - Data de saída/entrada (usado para competência de entradas)
     # Dados do emitente
     emitente_cnpj: str
     emitente_nome: str
