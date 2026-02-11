@@ -5984,13 +5984,8 @@ async def upload_xml_with_progress(
                 except Exception:
                     pass
             
-            existing_doc = await db.xml_documents.find_one({
-                "company_id": company_id,
-                "competencia": competencia,
-                "chave_nfe": chave_nfe
-            }, {"_id": 0})
-            
-            if existing_doc:
+            # Verificar duplicados usando cache em memória (sem query ao banco)
+            if chave_nfe in existing_docs_cache:
                 duplicadas.append({
                     "filename": file.filename,
                     "chave": chave_nfe,
