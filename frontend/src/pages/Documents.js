@@ -224,6 +224,7 @@ const Documents = ({ user, onLogout }) => {
   // Estado para modal de resultado de upload
   const [uploadResult, setUploadResult] = useState(null);
   const [showUploadResult, setShowUploadResult] = useState(false);
+  const resultDisplayedRef = useRef(false); // Flag para evitar múltiplas atualizações do resultado
 
   // Limpar EventSource ao desmontar
   useEffect(() => {
