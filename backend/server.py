@@ -4976,7 +4976,7 @@ async def upload_xml_batch(
             # VERIFICAR DUPLICAÇÃO - usar a competência calculada
             existing_doc = await db.xml_documents.find_one({
                 "company_id": company_id,
-                "competencia": competencia,
+                "competencia": competencia_documento,
                 "chave_nfe": chave_nfe
             }, {"_id": 0})
             
