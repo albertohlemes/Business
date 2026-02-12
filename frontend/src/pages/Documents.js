@@ -549,21 +549,16 @@ const Documents = ({ user, onLogout }) => {
     setTimeout(() => setUploading(false), 500);
   };
 
-  // Upload com streaming (para muitos XMLs) - Redireciona para página de importação
+  // Upload com streaming (para muitos XMLs) - usa o context global de upload
   const handleStreamingUpload = async (files, tipoConfig, token) => {
-    // Converter FileList para Array para poder passar via state
-    const filesArray = Array.from(files);
-    
-    // Redirecionar para página de importação dedicada
-    navigate('/importacao', {
-      state: {
-        files: filesArray,
-        companyId: ctxCompany.id,
-        companyName: ctxCompany.razao_social || ctxCompany.nome_fantasia,
-        competencia: selectedCompetencia,
-        tipo: operacao
-      }
-    });
+    // Usar o upload global com progresso
+    try {
+      await startUpload(files, ctxCompany.id, selectedCompetencia, operacao);
+      // O progresso será mostrado pelo GlobalUploadProgress
+    } catch (err) {
+      console.error('Erro no upload:', err);
+      toast.error(err.message || 'Erro ao iniciar upload');
+    }
   };
 
   // Ordenação
