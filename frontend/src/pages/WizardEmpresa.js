@@ -852,6 +852,19 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
         );
         
       case 2:
+        // Detectar se é transportadora pelo CNAE
+        const isTransportadoraByCnae = () => {
+          const cnaePrincipal = formData.cnae_principal || '';
+          const cnaesTransporte = ['49', '50', '51', '52', '53']; // Transporte terrestre, aquático, aéreo, armazenagem, correio
+          return cnaesTransporte.some(c => cnaePrincipal.startsWith(c));
+        };
+        
+        // Auto-set transportadora baseado no CNAE (apenas na primeira vez)
+        if (isTransportadoraByCnae() && formData.is_transportadora === false && !formData._transportadora_checked) {
+          handleChange('is_transportadora', true);
+          handleChange('_transportadora_checked', true);
+        }
+        
         return (
           <div className="space-y-6">
             <p className="text-[#A1A1AA] mb-4">
@@ -937,7 +950,7 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
               </label>
             )}
             
-            {/* Checkbox: Atividade de Locação - SÓ PARA SERVIÇOS */}
+            {/* Checkbox: Atividade de Locação - SÓ PARA SERVIÇOS ou MISTA */}
             {['servicos', 'mista'].includes(formData.tipo_atividade) && (
               <label className="flex items-center gap-3 cursor-pointer bg-[#141414] p-4 rounded-lg border border-yellow-500/30">
                 <input
@@ -953,7 +966,7 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
               </label>
             )}
             
-            {/* Checkbox: Transportadora */}
+            {/* Checkbox: Transportadora - com auto-detecção por CNAE */}
             <label className="flex items-center gap-3 cursor-pointer bg-[#141414] p-4 rounded-lg border border-[#2A2A2A]">
               <input
                 type="checkbox"
@@ -961,10 +974,15 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                 onChange={(e) => handleChange('is_transportadora', e.target.checked)}
                 className="w-5 h-5 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951] focus:ring-[#C8A951]"
               />
-              <div>
-                <span className="text-white font-medium">É Transportadora</span>
-                <p className="text-xs text-[#666]">Ativar para empresas que prestam serviço de transporte</p>
+              <div className="flex-1">
+                <span className="text-white font-medium">Transportadora</span>
+                <p className="text-xs text-[#666]">Empresa que presta serviço de transporte de cargas ou passageiros</p>
               </div>
+              {isTransportadoraByCnae() && (
+                <span className="text-xs text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
+                  Detectado pelo CNAE
+                </span>
+              )}
             </label>
             
             {/* Tipo de Transporte (se for transportadora) */}
@@ -981,22 +999,6 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                   <option value="misto">Misto</option>
                 </select>
               </div>
-            )}
-            
-            {/* Checkbox: Aplicação em Serviços */}
-            {['comercio', 'mista'].includes(formData.tipo_atividade) && (
-              <label className="flex items-center gap-3 cursor-pointer bg-[#141414] p-4 rounded-lg border border-[#2A2A2A]">
-                <input
-                  type="checkbox"
-                  checked={formData.aplicacao_em_servicos}
-                  onChange={(e) => handleChange('aplicacao_em_servicos', e.target.checked)}
-                  className="w-5 h-5 rounded border-[#2A2A2A] bg-[#0C0C0C] text-[#C8A951] focus:ring-[#C8A951]"
-                />
-                <div>
-                  <span className="text-white font-medium">Compra materiais para aplicação em serviços</span>
-                  <p className="text-xs text-[#666]">Ex: Peças para manutenção, materiais de construção aplicados em obras</p>
-                </div>
-              </label>
             )}
           </div>
         );
