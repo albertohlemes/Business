@@ -113,6 +113,21 @@ const ApuracaoICMS = ({ user, onLogout }) => {
     }
     return items;
   }, [beneficioDetalhes?.por_ncm, beneficioNcmSort]);
+
+  // Totais do benefício fiscal filtrados (apenas produtos com ICMS > 0)
+  const beneficioFiscalTotais = useMemo(() => {
+    if (!beneficioDetalhes?.por_produto) {
+      return { qtd_itens: 0, valor_icms: 0 };
+    }
+    const produtosFiltrados = beneficioDetalhes.por_produto.filter(item => {
+      const valorIcms = parseFloat(item.valor_icms) || 0;
+      return valorIcms > 0;
+    });
+    return {
+      qtd_itens: produtosFiltrados.length,
+      valor_icms: produtosFiltrados.reduce((acc, p) => acc + (parseFloat(p.valor_icms) || 0), 0)
+    };
+  }, [beneficioDetalhes?.por_produto]);
   
   // Handler para alternar ordenação de produtos
   const handleProdutoSort = (column) => {
