@@ -733,14 +733,20 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                   </span>
                 </div>
               )}
-              {beneficioFiscalTotais.valor_icms > 0 && (
+              {dados.desconsiderados?.beneficio_fiscal?.valor_icms > 0 && (
                 <div className="bg-yellow-500/10 rounded-lg p-3 border border-yellow-500/20">
                   <span className="text-xs text-yellow-400 block mb-1">⭐ Benefício Fiscal (Zerado)</span>
                   <span className="text-lg font-bold text-yellow-400 line-through">
-                    {formatCurrency(beneficioFiscalTotais.valor_icms)}
+                    {formatCurrency(beneficioFiscalTotais.valor_icms > 0 
+                      ? beneficioFiscalTotais.valor_icms 
+                      : dados.desconsiderados.beneficio_fiscal.valor_icms
+                    )}
                   </span>
                   <span className="text-xs text-[#A1A1AA] block mt-1">
-                    {beneficioFiscalTotais.qtd_itens} produtos afetados
+                    {beneficioFiscalTotais.qtd_itens > 0 
+                      ? beneficioFiscalTotais.qtd_itens 
+                      : dados.desconsiderados.beneficio_fiscal.qtd_itens
+                    } produtos afetados
                   </span>
                 </div>
               )}
