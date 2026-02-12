@@ -671,6 +671,89 @@ const Dashboard = ({ user, onLogout }) => {
           </>
         ) : null}
       </div>
+
+      {/* Modal de Benefício Fiscal - Lista de Produtos Desconsiderados */}
+      {showBeneficioModal && stats?.creditos?.produtos_beneficio_excluidos && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#141414] rounded-xl border border-[#2A2A2A] w-full max-w-2xl max-h-[80vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                  <Gift className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Benefício Fiscal - ICMS</h3>
+                  <p className="text-sm text-[#A1A1AA]">
+                    Produtos sem aproveitamento de crédito ({stats.creditos.total_produtos_beneficio_excluidos} itens)
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowBeneficioModal(false)}
+                className="p-2 hover:bg-[#2A2A2A] rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-[#666]" />
+              </button>
+            </div>
+
+            {/* Resumo */}
+            <div className="p-4 bg-purple-500/10 border-b border-[#2A2A2A]">
+              <div className="flex items-center justify-between">
+                <span className="text-purple-300">Total ICMS não aproveitado:</span>
+                <span className="text-2xl font-bold text-purple-400">
+                  {formatCurrency(stats.creditos.icms_beneficio_desconsiderado)}
+                </span>
+              </div>
+              <p className="text-xs text-purple-300/70 mt-1">
+                Estes produtos tiveram o crédito de ICMS desconsiderado conforme configuração do benefício fiscal da empresa.
+              </p>
+            </div>
+
+            {/* Lista de Produtos */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <table className="w-full">
+                <thead className="sticky top-0 bg-[#141414]">
+                  <tr className="text-left text-xs text-[#666] border-b border-[#2A2A2A]">
+                    <th className="pb-2 font-medium">Produto</th>
+                    <th className="pb-2 font-medium text-center">NCM</th>
+                    <th className="pb-2 font-medium text-right">ICMS Desconsiderado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.creditos.produtos_beneficio_excluidos.map((produto, idx) => (
+                    <tr key={idx} className="border-b border-[#1A1A1A] hover:bg-[#1A1A1A]">
+                      <td className="py-2 text-sm text-white">{produto.descricao}</td>
+                      <td className="py-2 text-sm text-[#A1A1AA] text-center font-mono">{produto.ncm || '-'}</td>
+                      <td className="py-2 text-sm text-purple-400 text-right font-medium">
+                        {formatCurrency(produto.valor_icms)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              
+              {stats.creditos.total_produtos_beneficio_excluidos > 50 && (
+                <div className="mt-4 p-3 bg-[#1A1A1A] rounded-lg text-center">
+                  <p className="text-sm text-[#666]">
+                    Mostrando os primeiros 50 de {stats.creditos.total_produtos_beneficio_excluidos} produtos.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-[#2A2A2A] flex justify-end">
+              <button
+                onClick={() => setShowBeneficioModal(false)}
+                className="px-4 py-2 bg-[#C8A951] hover:bg-[#D4B962] text-black font-medium rounded-lg transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
