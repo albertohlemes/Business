@@ -7574,7 +7574,8 @@ async def upload_xml_with_progress(
             "rejeitados_competencia": len(rejeitadas_competencia),
             "erros": len(errors),
             "alertas_cfop": len(alertas_cfop),
-            "desconsideradas_devolucao": len(notas_devolucao_fornecedor)
+            "desconsideradas_devolucao": len(notas_devolucao_fornecedor),
+            "notas_canceladas": len(notas_canceladas)
         }
     }
     
@@ -7582,7 +7583,8 @@ async def upload_xml_with_progress(
     all_results = progress.get("all_results", {
         "success": [], "errors": [], "duplicadas": [], 
         "rejeitadas_cnpj": [], "relatorio_conversoes": [],
-        "alertas_cfop": [], "notas_desconsideradas_devolucao": []
+        "alertas_cfop": [], "notas_desconsideradas_devolucao": [],
+        "notas_canceladas": []
     })
     
     all_results["success"].extend(results)
