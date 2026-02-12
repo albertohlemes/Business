@@ -188,9 +188,12 @@ def gerar_historico_para_salvar(
     Gera o histórico de faturamento para salvar na empresa,
     mesclando dados do PGDAS com histórico existente.
     
-    IMPORTANTE: O faturamento do período de apuração (PA) do PGDAS NÃO deve
-    entrar no histórico como parte do RBT12 para a mesma competência.
-    O RBT12 deve ser dos 12 meses ANTERIORES ao PA.
+    IMPORTANTE: O PGDAS traz:
+    - "Receitas Brutas Anteriores": 12 meses ANTERIORES ao PA (ex: para PA 12/2025, traz 12/2024 a 11/2025)
+    - "receita_pa": Faturamento do próprio mês de apuração (ex: 12/2025)
+    
+    AMBOS devem ser salvos no histórico para que competências FUTURAS possam calcular o RBT12.
+    Exemplo: O RBT12 de 01/2026 será a soma de 01/2025 a 12/2025.
     
     Cada entrada tem:
     - valor: float
@@ -201,27 +204,40 @@ def gerar_historico_para_salvar(
     Args:
         dados_pgdas: Dados extraídos do PGDAS
         historico_existente: Histórico já salvo na empresa
-        periodo_apuracao: Período de apuração do PGDAS (MM/YYYY) - usado para não excluir incorretamente
+        periodo_apuracao: Período de apuração do PGDAS (MM/YYYY) - usado para identificar origem
         
     Returns:
-        Dict com histórico atualizado
+        Dict com histórico atualizado (incluindo o mês do PA)
     """
     historico = historico_existente.copy() if historico_existente else {}
     data_importacao = datetime.now().isoformat()
     
-    # Obter período de apuração
+    # Obter período de apuração (ex: "12/2025")
     pa = periodo_apuracao or dados_pgdas.get("periodo_apuracao")
     
-    # O faturamento mensal do PGDAS inclui tanto os 12 meses anteriores
-    # quanto o mês do próprio período de apuração.
-    # TODOS devem ser salvos no histórico para que competências futuras possam calcular o RBT12.
+    # 1. Salvar os 12 meses anteriores (vêm no faturamento_mensal)
     for mes, valor in dados_pgdas.get("faturamento_mensal", {}).items():
         historico[mes] = {
             "valor": valor,
             "origem": "pgdas",
             "data_importacao": data_importacao,
             "bloqueado": True,
-            "periodo_apuracao_origem": pa  # Indica de qual PGDAS veio o dado
+            "periodo_apuracao_origem": pa
+        }
+    
+    # 2. IMPORTANTE: Salvar também o faturamento do próprio mês do PA (receita_pa)
+    # O PGDAS NÃO inclui o mês do PA na grade de "Receitas Brutas Anteriores",
+    # mas traz no campo "Receita Bruta do PA (RPA)".
+    # Este valor precisa ser salvo para que competências FUTURAS calculem o RBT12 correto.
+    receita_pa = dados_pgdas.get("receita_pa", 0)
+    if pa and receita_pa > 0:
+        historico[pa] = {
+            "valor": receita_pa,
+            "origem": "pgdas",
+            "data_importacao": data_importacao,
+            "bloqueado": True,
+            "periodo_apuracao_origem": pa,
+            "tipo": "receita_pa"  # Identifica que é a receita do próprio mês de apuração
         }
     
     return historico
