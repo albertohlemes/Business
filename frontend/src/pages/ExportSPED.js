@@ -103,8 +103,18 @@ const ExportSPED = ({ user, onLogout }) => {
       // Converter competência MM/AAAA para formato do backend
       const periodoFormatado = competencia.replace('/', '');
       
+      // Construir query params com opções
+      const params = new URLSearchParams({
+        competencia: competencia,
+        periodo: periodoFormatado,
+        zerar_icms_st: opcoes.zerarIcmsSt,
+        incluir_despesas: opcoes.incluirDespesas,
+        simples_nacional: opcoes.simplesNacional,
+        beneficio_fiscal: opcoes.beneficioFiscal,
+      });
+      
       const response = await axios.get(
-        `${API}/sped/export/${selectedCompany}?competencia=${competencia}&periodo=${periodoFormatado}`,
+        `${API}/sped/export/${selectedCompany}?${params.toString()}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
