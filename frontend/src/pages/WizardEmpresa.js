@@ -38,6 +38,7 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingCNPJ, setLoadingCNPJ] = useState(false);
   
   // Dados do formulário
   const [formData, setFormData] = useState({
@@ -49,6 +50,11 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
     endereco: '',
     cidade: '',
     uf: '',
+    cep: '',
+    cnae_principal: '',
+    cnae_principal_descricao: '',
+    cnaes: [],
+    codigo_empresa: '',
     
     // Atividade
     tipo_atividade: '',
@@ -70,6 +76,92 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
     percentual_reducao_icms: 0,
     tipo_beneficio: '',
   });
+
+  // Formatar CNPJ
+  const formatCNPJ = (value) => {
+    const numbers = value.replace(/\D/g, '');
+    return numbers
+      .replace(/^(\d{2})(\d)/, '$1.$2')
+      .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/\.(\d{3})(\d)/, '.$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+      .slice(0, 18);
+  };
+
+  // Buscar dados na Receita Federal
+  const buscarCNPJ = async () => {
+    const cnpjLimpo = formData.cnpj.replace(/\D/g, '');
+    
+    if (!cnpjLimpo || cnpjLimpo.length !== 14) {
+      toast.error('Digite um CNPJ válido com 14 dígitos');
+      return;
+    }
+
+    setLoadingCNPJ(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/api/cnpj/${cnpjLimpo}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = response.data;
+      
+      // Determinar tipo de atividade com base no CNAE
+      let tipoAtividade = 'comercio';
+      const cnaePrincipal = data.cnae_principal || '';
+      if (cnaePrincipal.startsWith('10') || cnaePrincipal.startsWith('11') || 
+          cnaePrincipal.startsWith('12') || cnaePrincipal.startsWith('13') ||
+          cnaePrincipal.startsWith('20') || cnaePrincipal.startsWith('21') ||
+          cnaePrincipal.startsWith('22') || cnaePrincipal.startsWith('23') ||
+          cnaePrincipal.startsWith('24') || cnaePrincipal.startsWith('25') ||
+          cnaePrincipal.startsWith('26') || cnaePrincipal.startsWith('27') ||
+          cnaePrincipal.startsWith('28') || cnaePrincipal.startsWith('29') ||
+          cnaePrincipal.startsWith('30') || cnaePrincipal.startsWith('31') ||
+          cnaePrincipal.startsWith('32') || cnaePrincipal.startsWith('33')) {
+        tipoAtividade = 'industria';
+      } else if (cnaePrincipal.startsWith('45') || cnaePrincipal.startsWith('46') || 
+                 cnaePrincipal.startsWith('47')) {
+        tipoAtividade = 'comercio';
+      } else if (cnaePrincipal.startsWith('49') || cnaePrincipal.startsWith('50') ||
+                 cnaePrincipal.startsWith('51') || cnaePrincipal.startsWith('52') ||
+                 cnaePrincipal.startsWith('53') || cnaePrincipal.startsWith('55') ||
+                 cnaePrincipal.startsWith('56') || cnaePrincipal.startsWith('58') ||
+                 cnaePrincipal.startsWith('59') || cnaePrincipal.startsWith('60') ||
+                 cnaePrincipal.startsWith('61') || cnaePrincipal.startsWith('62') ||
+                 cnaePrincipal.startsWith('63') || cnaePrincipal.startsWith('64') ||
+                 cnaePrincipal.startsWith('65') || cnaePrincipal.startsWith('66') ||
+                 cnaePrincipal.startsWith('68') || cnaePrincipal.startsWith('69') ||
+                 cnaePrincipal.startsWith('70') || cnaePrincipal.startsWith('71') ||
+                 cnaePrincipal.startsWith('72') || cnaePrincipal.startsWith('73') ||
+                 cnaePrincipal.startsWith('74') || cnaePrincipal.startsWith('75') ||
+                 cnaePrincipal.startsWith('77') || cnaePrincipal.startsWith('78') ||
+                 cnaePrincipal.startsWith('79') || cnaePrincipal.startsWith('80') ||
+                 cnaePrincipal.startsWith('81') || cnaePrincipal.startsWith('82')) {
+        tipoAtividade = 'servicos';
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        razao_social: data.razao_social || '',
+        nome_fantasia: data.nome_fantasia || '',
+        cep: data.cep || '',
+        endereco: data.logradouro || '',
+        cidade: data.municipio || '',
+        uf: data.uf || 'SP',
+        cnae_principal: data.cnae_principal || '',
+        cnae_principal_descricao: data.cnae_principal_descricao || '',
+        cnaes: data.cnaes_secundarios || [],
+        tipo_atividade: tipoAtividade,
+      }));
+      
+      const qtdCnaes = data.cnaes_secundarios?.length || 0;
+      toast.success(`Dados carregados da Receita Federal! ${qtdCnaes > 0 ? `${qtdCnaes} CNAEs secundários importados.` : ''}`);
+    } catch (err) {
+      console.error('Erro ao buscar CNPJ:', err);
+      toast.error(err.response?.data?.detail || 'Erro ao consultar CNPJ na Receita Federal');
+    } finally {
+      setLoadingCNPJ(false);
+    }
+  };
 
   // Estado para palavras-chave temporárias
   const [newKeyword, setNewKeyword] = useState({
