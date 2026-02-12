@@ -23203,6 +23203,31 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     aliquota_info = calcular_aliquota_efetiva(rbt12, anexo_principal)
     faixa_info = obter_faixa_por_rbt12(rbt12)
     
+    # Buscar ISS retido na fonte para descontar do DAS (Simples Nacional)
+    # O ISS retido pelo tomador não deve entrar no cálculo do DAS
+    iss_retido_total = 0
+    nfse_prestados = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia_atual,
+        "$or": [
+            {"modelo": {"$in": ["nfse", "nfse_prestado", "nfse_prestada", "nfs-e"]}},
+            {"tipo_operacao": "prestado"}
+        ],
+        **get_filtro_notas_ativas()
+    }, {"_id": 0}).to_list(10000)
+    
+    for nfse in nfse_prestados:
+        # Verificar ISS retido no documento
+        if nfse.get('iss_retido_flag', False) or nfse.get('iss_retido') == True:
+            iss_retido_total += float(nfse.get('valor_iss', 0) or 0)
+        elif isinstance(nfse.get('iss_retido'), (int, float)) and nfse.get('iss_retido') > 0:
+            iss_retido_total += float(nfse.get('iss_retido', 0))
+        
+        # Verificar também nos serviços
+        for servico in nfse.get('servicos', []):
+            if servico.get('iss_retido') == True or servico.get('iss_retido') == '1':
+                iss_retido_total += float(servico.get('valor_iss', 0) or 0)
+    
     # Calcular DAS do mês atual
     das_mes = calcular_das_periodo(
         faturamento_periodo=faturamento_mes_atual,
