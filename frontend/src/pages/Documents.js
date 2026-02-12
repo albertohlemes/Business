@@ -825,11 +825,11 @@ const Documents = ({ user, onLogout }) => {
   };
 
   // Upload com streaming (para muitos XMLs) - usa o context global de upload
-  const handleStreamingUpload = async (files, tipoConfig, token) => {
+  const handleStreamingUpload = async (files, tipoConfig, token, skipAi = false) => {
     // Usar o upload global com progresso
     try {
       const empresaNome = ctxCompany?.razao_social || ctxCompany?.nome_fantasia || 'Empresa';
-      await startUpload(files, ctxCompany.id, selectedCompetencia, empresaNome, operacao);
+      await startUpload(files, ctxCompany.id, selectedCompetencia, empresaNome, operacao, null, skipAi);
       // O progresso será mostrado pelo GlobalUploadProgress
     } catch (err) {
       console.error('Erro no upload:', err);
