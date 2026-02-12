@@ -488,10 +488,12 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
         // Benefícios
         beneficio_fiscal_icms: company.beneficio_fiscal_icms || false,
         tipo_beneficio_fiscal: company.tipo_beneficio_fiscal || '',
+        tipo_estabelecimento_beneficio: company.tipo_estabelecimento_beneficio || '',
         percentual_reducao_icms: company.percentual_reducao_icms || 0,
         produtos_sem_credito_icms: company.produtos_sem_credito_icms || [],
         produtos_sem_credito_descricao: company.produtos_sem_credito_descricao || '',
         credito_presumido_icms_percent: company.credito_presumido_icms_percent || 20.0,
+        palavras_exclusao_personalizadas: company.palavras_exclusao_personalizadas || [],
         
         // Saldo Credor
         possui_saldo_credor: company.possui_saldo_credor || false,
