@@ -665,8 +665,17 @@ const ApuracaoICMS = ({ user, onLogout }) => {
               </label>
             </div>
             
+            {hasUnsavedChanges() && (
+              <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <p className="text-sm text-amber-400 flex items-center gap-2">
+                  <span className="text-lg">⚡</span>
+                  <span>Você tem alterações não salvas. Clique em <strong>"Aplicar e Recalcular"</strong> para salvar no servidor e atualizar os cálculos.</span>
+                </p>
+              </div>
+            )}
+            
             <p className="text-xs text-[#666] mt-3">
-              ⚡ Clique em "Aplicar e Recalcular" para atualizar a apuração, Dashboard e RET automaticamente.
+              ℹ️ As opções marcadas serão lembradas ao navegar entre telas. Clique em "Aplicar e Recalcular" para salvar permanentemente.
             </p>
           </div>
         )}
