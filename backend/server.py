@@ -18151,9 +18151,9 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
             elif categoria == 'insumo':
                 cfop = (cfop_prefix + '401') if is_st else (cfop_prefix + '101')
             elif categoria == 'despesa':
-                cfop = cfop_prefix + '407'  # Uso e consumo não tem versão ST específica
+                cfop = (cfop_prefix + '407') if is_st else (cfop_prefix + '556')  # Uso e consumo
             elif categoria == 'ativo_imobilizado':
-                cfop = cfop_prefix + '406'  # Ativo imobilizado
+                cfop = (cfop_prefix + '406') if is_st else (cfop_prefix + '551')  # Ativo imobilizado
             elif categoria == 'combustivel':
                 cfop = cfop_prefix + '653'
             else:
@@ -18192,11 +18192,11 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
                 elif categoria == 'insumo':
                     cfop = (cfop_prefix + '401') if is_st else (cfop_prefix + '101')
                 elif categoria == 'despesa':
-                    cfop = cfop_prefix + '407'  # Uso e consumo - sempre 407
+                    cfop = (cfop_prefix + '407') if is_st else (cfop_prefix + '556')  # Uso e consumo
                 elif categoria == 'combustivel':
                     cfop = cfop_prefix + '653'
                 elif categoria == 'ativo_imobilizado':
-                    cfop = cfop_prefix + '406'  # Ativo imobilizado - sempre 406
+                    cfop = (cfop_prefix + '406') if is_st else (cfop_prefix + '551')  # Ativo imobilizado
                 else:
                     cfop = cfop_prefix + '102'
                 
