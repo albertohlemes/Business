@@ -27859,14 +27859,17 @@ IMPORTANTE:
 - Deixe vazio [] categorias não aplicáveis ao negócio
 """
 
-        response = await chat(
+        # Criar instância do LlmChat
+        llm = LlmChat(
             api_key=os.environ.get('EMERGENT_API_KEY'),
-            model="claude-sonnet",
-            messages=[UserMessage(content=prompt)]
+            session_id=f"wizard-palavras-{uuid.uuid4().hex[:8]}",
+            system_message="Você é um contador fiscal brasileiro especialista em classificação de produtos."
         )
         
+        response = await llm.send_message(UserMessage(text=prompt))
+        
         # Extrair JSON da resposta
-        response_text = response.content.strip()
+        response_text = response.strip()
         
         # Remover possíveis marcadores de código
         if response_text.startswith('```'):
