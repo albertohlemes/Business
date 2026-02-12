@@ -737,9 +737,14 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
                       </p>
                     </div>
                     <div className="bg-[#C8A951]/10 rounded p-3 border border-[#C8A951]/30">
-                      <p className="text-xs text-[#C8A951]">Alíquota Efetiva</p>
+                      <p className="text-xs text-[#C8A951]">
+                        {data.iss_retido?.valor > 0 ? 'Alíquota Líquida (s/ ISS)' : 'Alíquota Efetiva'}
+                      </p>
                       <p className="text-lg font-bold text-[#C8A951]">
-                        {formatPercent(data.enquadramento?.aliquota_efetiva)}
+                        {data.iss_retido?.valor > 0 
+                          ? formatPercent(data.enquadramento?.aliquota_sem_iss)
+                          : formatPercent(data.enquadramento?.aliquota_efetiva)
+                        }
                       </p>
                     </div>
                   </div>
