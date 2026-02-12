@@ -1848,36 +1848,65 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
               </div>
               
               <div className="bg-[#141414] rounded-lg p-4">
-                <h3 className="text-[#C8A951] font-medium mb-3">Palavras-chave</h3>
+                <h3 className="text-[#C8A951] font-medium mb-3">Palavras-chave para Classificação</h3>
                 <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="text-[#666]">Revenda: </span>
-                    <span className="text-green-400">{formData.produtos_comercializados.join(', ') || 'Nenhuma'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[#666]">Insumos: </span>
-                    <span className="text-blue-400">{formData.insumos_producao.join(', ') || 'Nenhuma'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[#666]">Despesas: </span>
-                    <span className="text-orange-400">{formData.produtos_despesa.join(', ') || 'Nenhuma'}</span>
-                  </div>
+                  {formData.produtos_comercializados?.length > 0 && (
+                    <div>
+                      <span className="text-[#666]">Revenda: </span>
+                      <span className="text-green-400">{formData.produtos_comercializados.join(', ')}</span>
+                    </div>
+                  )}
+                  {formData.produtos_aplicacao_servico?.length > 0 && (
+                    <div>
+                      <span className="text-[#666]">Aplicação em Serviços: </span>
+                      <span className="text-purple-400">{formData.produtos_aplicacao_servico.join(', ')}</span>
+                    </div>
+                  )}
+                  {formData.insumos_producao?.length > 0 && (
+                    <div>
+                      <span className="text-[#666]">Insumos: </span>
+                      <span className="text-blue-400">{formData.insumos_producao.join(', ')}</span>
+                    </div>
+                  )}
+                  {formData.produtos_despesa?.length > 0 && (
+                    <div>
+                      <span className="text-[#666]">Despesas: </span>
+                      <span className="text-orange-400">{formData.produtos_despesa.join(', ')}</span>
+                    </div>
+                  )}
+                  {formData.produtos_ativo_imobilizado?.length > 0 && (
+                    <div>
+                      <span className="text-[#666]">Ativo Imobilizado: </span>
+                      <span className="text-cyan-400">{formData.produtos_ativo_imobilizado.join(', ')}</span>
+                    </div>
+                  )}
+                  {formData.produtos_combustivel?.length > 0 && (
+                    <div>
+                      <span className="text-[#666]">Combustível: </span>
+                      <span className="text-red-400">{formData.produtos_combustivel.join(', ')}</span>
+                    </div>
+                  )}
+                  {(!formData.produtos_comercializados?.length && !formData.insumos_producao?.length && 
+                    !formData.produtos_despesa?.length && !formData.produtos_aplicacao_servico?.length &&
+                    !formData.produtos_ativo_imobilizado?.length && !formData.produtos_combustivel?.length) && (
+                    <span className="text-[#666]">Nenhuma palavra-chave cadastrada</span>
+                  )}
                 </div>
               </div>
               
-              {formData.beneficio_fiscal_icms && (
+              {/* Produtos sem crédito */}
+              {formData.produtos_sem_credito_icms?.length > 0 && (
                 <div className="bg-[#141414] rounded-lg p-4">
-                  <h3 className="text-[#C8A951] font-medium mb-3">Benefício Fiscal</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <span className="text-[#666]">Tipo:</span>
-                    <span className="text-white capitalize">
-                      {TIPOS_BENEFICIO_FISCAL.find(t => t.value === formData.tipo_beneficio_fiscal)?.label || '-'}
-                    </span>
-                    <span className="text-[#666]">Percentual:</span>
-                    <span className="text-white">
-                      {formData.tipo_beneficio_fiscal === 'credito_presumido' 
-                        ? `${formData.credito_presumido_icms_percent}% (crédito presumido)`
-                        : `${formData.percentual_reducao_icms}% (redução)`}
+                  <h3 className="text-[#C8A951] font-medium mb-3">Produtos/NCMs sem Crédito</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.produtos_sem_credito_icms.map((item, idx) => (
+                      <span key={idx} className="px-2 py-1 bg-orange-500/10 text-orange-400 rounded text-xs">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
                     </span>
                     <span className="text-[#666]">Estabelecimento:</span>
                     <span className="text-white">
