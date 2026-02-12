@@ -251,6 +251,85 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
     combustivel: '',
     sem_credito: '',
   });
+  
+  // Estado para IA de classificação
+  const [descricaoAtividade, setDescricaoAtividade] = useState('');
+  const [loadingIA, setLoadingIA] = useState(false);
+  
+  // Função para gerar palavras-chave via IA
+  const gerarPalavrasChaveIA = async () => {
+    if (!descricaoAtividade.trim()) {
+      toast.error('Descreva as atividades da empresa primeiro');
+      return;
+    }
+    
+    setLoadingIA(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API}/api/classificacao/gerar-palavras-chave`, {
+        descricao: descricaoAtividade,
+        tipo_atividade: formData.tipo_atividade,
+        cnae_principal: formData.cnae_principal,
+        cnae_descricao: formData.cnae_principal_descricao,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const sugestoes = response.data;
+      
+      // Preencher automaticamente as categorias
+      if (sugestoes.produtos_comercializados?.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          produtos_comercializados: [...new Set([...prev.produtos_comercializados, ...sugestoes.produtos_comercializados])]
+        }));
+      }
+      if (sugestoes.insumos_producao?.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          insumos_producao: [...new Set([...prev.insumos_producao, ...sugestoes.insumos_producao])]
+        }));
+      }
+      if (sugestoes.produtos_despesa?.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          produtos_despesa: [...new Set([...prev.produtos_despesa, ...sugestoes.produtos_despesa])]
+        }));
+      }
+      if (sugestoes.produtos_aplicacao_servico?.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          produtos_aplicacao_servico: [...new Set([...prev.produtos_aplicacao_servico, ...sugestoes.produtos_aplicacao_servico])]
+        }));
+      }
+      if (sugestoes.ativo_imobilizado?.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          ativo_imobilizado: [...new Set([...prev.ativo_imobilizado, ...sugestoes.ativo_imobilizado])]
+        }));
+      }
+      if (sugestoes.combustivel?.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          combustivel: [...new Set([...prev.combustivel, ...sugestoes.combustivel])]
+        }));
+      }
+      
+      const totalSugestoes = (sugestoes.produtos_comercializados?.length || 0) +
+                             (sugestoes.insumos_producao?.length || 0) +
+                             (sugestoes.produtos_despesa?.length || 0) +
+                             (sugestoes.produtos_aplicacao_servico?.length || 0) +
+                             (sugestoes.ativo_imobilizado?.length || 0) +
+                             (sugestoes.combustivel?.length || 0);
+      
+      toast.success(`${totalSugestoes} palavras-chave sugeridas pela IA!`);
+    } catch (err) {
+      console.error('Erro ao gerar palavras-chave:', err);
+      toast.error('Erro ao consultar IA. Tente novamente.');
+    } finally {
+      setLoadingIA(false);
+    }
+  };
 
   // Carregar dados da empresa se for edição
   useEffect(() => {
