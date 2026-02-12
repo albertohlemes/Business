@@ -3223,18 +3223,28 @@ def generate_sped_fiscal(
         # Agrupar por CFOP + CST
         cfop_cst_grupos = {}
         for prod in doc.produtos:
-            cfop = prod.get('cfop', '') or ''
+            cfop = str(prod.get('cfop', '') or '')
             cst = prod.get('cst', '000') or '000'
             chave = f"{cfop}_{cst}"
+            
+            # Verificar se este CFOP deve ter crédito zerado
+            cfop_sem_credito = excluir_creditos_despesa_st and cfop in CFOPS_SEM_CREDITO_SPED and doc.tipo == 'entrada'
+            
             if chave not in cfop_cst_grupos:
                 cfop_cst_grupos[chave] = {
                     'cfop': cfop, 'cst': cst,
                     'vl_opr': 0, 'vl_bc_icms': 0, 'vl_icms': 0,
-                    'vl_bc_icms_st': 0, 'vl_icms_st': 0, 'vl_red_bc': 0, 'vl_ipi': 0
+                    'vl_bc_icms_st': 0, 'vl_icms_st': 0, 'vl_red_bc': 0, 'vl_ipi': 0,
+                    'cfop_sem_credito': cfop_sem_credito
                 }
             cfop_cst_grupos[chave]['vl_opr'] += float(prod.get('valor_total', 0) or 0)
-            cfop_cst_grupos[chave]['vl_bc_icms'] += float(prod.get('bc_icms', 0) or 0)
-            cfop_cst_grupos[chave]['vl_icms'] += float(prod.get('v_icms', 0) or 0)
+            # Se CFOP sem crédito, zerar BC e ICMS
+            if cfop_sem_credito:
+                cfop_cst_grupos[chave]['vl_bc_icms'] = 0
+                cfop_cst_grupos[chave]['vl_icms'] = 0
+            else:
+                cfop_cst_grupos[chave]['vl_bc_icms'] += float(prod.get('bc_icms', 0) or 0)
+                cfop_cst_grupos[chave]['vl_icms'] += float(prod.get('v_icms', 0) or 0)
         
         for grupo in cfop_cst_grupos.values():
             # |REG|CST_ICMS|CFOP|ALIQ_ICMS|VL_OPR|VL_BC_ICMS|VL_ICMS|VL_BC_ICMS_ST|VL_ICMS_ST|VL_RED_BC|VL_IPI|COD_OBS|
