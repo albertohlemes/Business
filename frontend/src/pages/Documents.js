@@ -67,6 +67,7 @@ const Documents = ({ user, onLogout }) => {
   } = useAppContext();
   const { startUpload, isUploading: globalUploading, progress: globalProgress, currentFile, uploadResults: globalResults, uploadError: globalError, clearResults } = useUpload();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const highlightDocId = searchParams.get('highlight');
   const urlOperacao = searchParams.get('operacao'); // 'entrada' ou 'saida'
   const urlTipo = searchParams.get('tipo'); // 'nfe', 'nfce', 'cte', 'servicos_tomados', etc.
