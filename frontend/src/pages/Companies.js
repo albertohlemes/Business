@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import CoffeeProgress from '../components/CoffeeProgress';
 import { 
   Building2, Plus, Search, RefreshCw, Trash2, Edit, X, Settings, 
   Users, ChevronDown, ChevronRight, Filter, Upload, FileSpreadsheet, Download, CheckCircle, AlertCircle, Shield, Eye, EyeOff,
-  ArrowUp, ArrowDown, ArrowUpDown, Truck, Sparkles, Loader2, Star
+  ArrowUp, ArrowDown, ArrowUpDown, Truck, Sparkles, Loader2, Star, Wand2
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL + '/api';
 
 const Companies = ({ user, onLogout }) => {
+  const navigate = useNavigate();
   const { refreshCompanies } = useAppContext();
   const [companies, setCompanies] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
