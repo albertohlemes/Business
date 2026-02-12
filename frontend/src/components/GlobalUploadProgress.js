@@ -290,21 +290,47 @@ const GlobalUploadProgress = () => {
               </div>
               <div className="w-full h-3 bg-[#1E1E1E] rounded-full overflow-hidden border border-[#2A2A2A]">
                 <div 
-                  className="h-full bg-gradient-to-r from-[#C8A951] to-[#D4B962] rounded-full transition-all duration-300 ease-out"
+                  className="h-full bg-gradient-to-r from-[#C8A951] to-[#D4B962] rounded-full transition-all duration-300 ease-out relative overflow-hidden"
                   style={{ width: `${progress.percent}%` }}
-                />
+                >
+                  {/* Efeito de brilho animado */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                </div>
               </div>
             </div>
             
-            {/* Status atual */}
+            {/* Status atual com ícone animado */}
             <div className="flex items-center gap-2 text-sm text-[#A1A1AA]">
-              <FileText className="w-4 h-4" />
-              <span className="truncate">{currentFile}</span>
+              <FileText className="w-4 h-4 animate-pulse" />
+              <span className="truncate flex-1">{currentFile}</span>
+              <span className="text-xs text-emerald-400 animate-pulse">●</span>
             </div>
             
-            <p className="text-xs text-[#666] mt-2">
-              {progress.current} de {progress.total} arquivos processados
-            </p>
+            {/* Contador de arquivos com progresso visual */}
+            <div className="flex items-center justify-between mt-2 text-xs">
+              <span className="text-[#666]">
+                <span className="text-white font-medium">{progress.current.toLocaleString('pt-BR')}</span> de <span className="text-white font-medium">{progress.total.toLocaleString('pt-BR')}</span> arquivos
+              </span>
+              {progress.total > 100 && (
+                <span className="text-[#C8A951]">
+                  ~{Math.ceil((progress.total - progress.current) / 10)} segundos restantes
+                </span>
+              )}
+            </div>
+            
+            {/* Indicador de processamento ativo */}
+            {progress.total > 50 && (
+              <div className="mt-2 p-2 bg-[#141414] rounded-lg border border-[#2A2A2A]">
+                <div className="flex items-center gap-2 text-xs text-[#A1A1AA]">
+                  <div className="flex gap-1">
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}} />
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}} />
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}} />
+                  </div>
+                  <span>Processando em background. Você pode navegar em outras páginas.</span>
+                </div>
+              </div>
+            )}
 
             {/* Botão cancelar */}
             <button
