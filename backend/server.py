@@ -709,8 +709,10 @@ class CompanyUpdate(BaseModel):
     # === BENEFÍCIO FISCAL ICMS ===
     beneficio_fiscal_icms: Optional[bool] = None
     tipo_beneficio_fiscal: Optional[str] = None
+    tipo_estabelecimento_beneficio: Optional[str] = None
     produtos_sem_credito_icms: Optional[List[str]] = None
     produtos_sem_credito_descricao: Optional[str] = None
+    palavras_exclusao_personalizadas: Optional[List[str]] = None
     # Presunção geral
     percentual_presuncao_irpj: Optional[float] = None
     percentual_presuncao_csll: Optional[float] = None
