@@ -161,6 +161,10 @@ const Documents = ({ user, onLogout }) => {
   const [notasAusentesData, setNotasAusentesData] = useState(null);
   const [notasAusentesExporting, setNotasAusentesExporting] = useState(false);
 
+  // Drag and Drop
+  const [isDragging, setIsDragging] = useState(false);
+  const dropZoneRef = useRef(null);
+
   // Carregar documentos quando selecionar tipo ou mudar filtro
   useEffect(() => {
     if (ctxCompany && operacao && tipoDoc) {
