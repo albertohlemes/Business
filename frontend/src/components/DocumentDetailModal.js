@@ -106,6 +106,7 @@ const DocumentDetailModal = ({ document, onClose }) => {
     valor_produtos: document.total_produtos || document.valor_produtos || 0,  // vProd total da capa
     icms_total: document.icms_total || 0,
     total_icms_st: document.total_icms_st || 0,
+    total_fcp_st: document.total_fcp_st || 0,  // FCP-ST (Fundo de Combate à Pobreza sobre ST)
     total_ipi: document.total_ipi || 0,
     total_frete: document.total_frete || 0,
     total_seguro: document.total_seguro || 0,
@@ -114,12 +115,13 @@ const DocumentDetailModal = ({ document, onClose }) => {
   };
 
   // Calcular valor total esperado usando a fórmula da NF-e:
-  // vNF = vProd - vDesc + vFrete + vSeg + vOutro + vIPI + vICMSST
+  // vNF = vProd - vDesc + vFrete + vSeg + vOutro + vIPI + vICMSST + vFCPST
   // Usando os valores da CAPA para calcular o esperado
   const valorTotalEsperado = 
     (valorCapaNF.valor_produtos || totaisProdutos.valor_produto) +  // vProd
     (valorCapaNF.total_ipi || 0) +          // IPI
     (valorCapaNF.total_icms_st || 0) +      // ICMS-ST
+    (valorCapaNF.total_fcp_st || 0) +       // FCP-ST
     (valorCapaNF.total_frete || 0) +        // Frete
     (valorCapaNF.total_seguro || 0) +       // Seguro
     (valorCapaNF.total_outras_despesas || 0) - // Outras desp
