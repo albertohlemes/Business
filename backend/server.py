@@ -8816,6 +8816,10 @@ async def get_dashboard_stats(
             if beneficio_fiscal_ativo:
                 is_beneficio_fiscal = produto_sem_credito_icms_beneficio(ncm, descricao, company)
             
+            # Verificar se produto é ISENTO pelo CST ICMS (não deve entrar na lista de benefício)
+            # CST 40 = Isenta, 41 = Não tributada, 50 = Suspensão, 51 = Diferimento
+            cst_icms_isento = cst_icms in ['40', '41', '50', '51', '040', '041', '050', '051']
+            
             if is_st or is_1910_com_st:
                 if desconsiderar_icms_st:
                     credito_icms_st_desconsiderado += v_icms
@@ -8826,6 +8830,10 @@ async def get_dashboard_stats(
                     credito_icms_despesa_desconsiderado += v_icms
                 else:
                     credito_icms += v_icms  # Inclui no crédito se flag desativada
+            elif cst_icms_isento:
+                # Produto isento pelo CST - não gera crédito, mas NÃO é pelo benefício fiscal
+                # Não adicionar à lista de benefício fiscal
+                pass
             elif is_beneficio_fiscal:
                 # Produto afetado pelo benefício fiscal - desconsiderar crédito
                 # Só adicionar à lista se realmente tinha ICMS a creditar (> 0)
