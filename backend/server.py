@@ -5858,13 +5858,18 @@ async def upload_xml_batch(
             data_emissao = parsed_data.get('data_emissao', '')
             data_saida_entrada = parsed_data.get('data_saida_entrada', '')
             
+            # Detectar se é realmente uma NF de saída (emissão própria)
+            # Mesmo que esteja sendo importada na aba de "entrada"
+            is_emissao_propria = cnpj_emitente == cnpj_empresa
+            is_realmente_saida = is_emissao_propria or tipo_operacao == 'saida'
+            
             # Determinar qual data usar para a competência
-            if tipo_operacao == 'entrada' and data_saida_entrada:
-                # Para entradas, priorizar data de saída (quando o fornecedor despachou)
+            if tipo_operacao == 'entrada' and data_saida_entrada and not is_realmente_saida:
+                # Para entradas (compras), priorizar data de saída (quando o fornecedor despachou)
                 data_para_competencia = data_saida_entrada
                 tipo_data = "saída"
             else:
-                # Para saídas ou quando não tem data de saída, usar emissão
+                # Para saídas (vendas) ou quando não tem data de saída, usar emissão
                 data_para_competencia = data_emissao
                 tipo_data = "emissão"
             
