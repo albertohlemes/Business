@@ -27799,7 +27799,8 @@ async def gerar_palavras_chave_ia(
     Gera sugestões de palavras-chave para classificação de produtos usando IA.
     A IA analisa a descrição e preenche automaticamente os campos de classificação.
     """
-    from emergentintegrations.llm.chat import chat, UserMessage
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import uuid
     
     try:
         # Construir prompt detalhado para análise inteligente
