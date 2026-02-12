@@ -1117,6 +1117,45 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
       case 4:
         return (
           <div className="space-y-6">
+            {/* Seção IA - Gerar Palavras-Chave Automaticamente */}
+            <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-xl p-5 border border-purple-500/30">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-purple-500/20 rounded-lg">
+                  <Sparkles className="w-6 h-6 text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold">Classificação Inteligente com IA</h3>
+                  <p className="text-sm text-[#A1A1AA]">Descreva as atividades da empresa e a IA irá sugerir palavras-chave</p>
+                </div>
+              </div>
+              
+              <textarea
+                value={descricaoAtividade}
+                onChange={(e) => setDescricaoAtividade(e.target.value)}
+                className="w-full px-4 py-3 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-purple-500 focus:outline-none resize-none"
+                rows={4}
+                placeholder="Ex: Empresa de comércio de materiais de construção. Vendemos cimento, areia, tijolos, telhas, tintas, ferramentas, materiais elétricos e hidráulicos. Também fornecemos para construtoras e empreiteiros..."
+              />
+              
+              <button
+                onClick={gerarPalavrasChaveIA}
+                disabled={loadingIA || !descricaoAtividade.trim()}
+                className="mt-3 w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg font-semibold hover:from-purple-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {loadingIA ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    Analisando com IA...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    Gerar Palavras-Chave Automaticamente
+                  </>
+                )}
+              </button>
+            </div>
+            
             <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
               <div className="flex items-start gap-2">
                 <Info className="w-5 h-5 text-blue-400 mt-0.5" />
