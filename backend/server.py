@@ -24376,9 +24376,9 @@ async def ret_simples_nacional(
         except:
             pass
     
-    # Buscar RBT12 do PGDAS ou calcular
-    pgdas_rbt12 = company.get('pgdas_rbt12', 0)
+    # Buscar RBT12 calculado dinamicamente para a competência específica
     historico = company.get('historico_faturamento', {})
+    competencia_ref = f"{mes_ref:02d}/{ano_ref}"
     
     # Calcular faturamento dos últimos 12 meses
     competencias_12m = []
@@ -24390,8 +24390,11 @@ async def ret_simples_nacional(
             a -= 1
         competencias_12m.append(f"{m:02d}/{a}")
     
-    # Buscar faturamento do sistema se não tiver PGDAS
-    if pgdas_rbt12 <= 0:
+    # Calcular RBT12 a partir do histórico PGDAS (dinâmico por competência)
+    rbt12 = calcular_rbt12_do_historico(historico, competencia_ref) if historico else 0
+    
+    # Se não tiver histórico PGDAS, buscar do sistema
+    if rbt12 <= 0:
         pipeline = [
             {"$match": {
                 "company_id": company_id,
