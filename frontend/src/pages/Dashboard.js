@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useAppContext } from '../context/AppContext';
+import { useUpload } from '../context/UploadContext';
 import { 
   Building2, FileText, CheckCircle, AlertTriangle, TrendingUp, 
   ArrowDownCircle, ArrowUpCircle, Receipt, FileCheck, 
@@ -14,6 +15,7 @@ const API = `${BACKEND_URL}/api`;
 
 const Dashboard = ({ user, onLogout }) => {
   const { selectedCompany, selectedCompetencia, openSelector } = useAppContext();
+  const { documentsVersion } = useUpload();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showBeneficioModal, setShowBeneficioModal] = useState(false);
@@ -22,7 +24,7 @@ const Dashboard = ({ user, onLogout }) => {
     if (selectedCompany && selectedCompetencia) {
       fetchStats();
     }
-  }, [selectedCompany, selectedCompetencia]);
+  }, [selectedCompany, selectedCompetencia, documentsVersion]);  // Adiciona documentsVersion
 
   const fetchStats = async () => {
     if (!selectedCompany) return;
