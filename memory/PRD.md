@@ -112,6 +112,34 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ## Changelog
 
+### 2026-02-12 (Sessão 26 - Automação de Tipo de Atividade e SINTEGRA)
+
+**Funcionalidades Implementadas:**
+
+- ✅ **Sugestão automática de Tipo de Atividade baseado em TODOS os CNAEs:**
+  - Analisa CNAE principal + secundários
+  - Detecta se é Indústria (10-33), Comércio (45-47), Serviços (49-96)
+  - Se tem CNAEs de categorias diferentes → sugere MISTA
+  - Auto-detecta Transportadora (CNAEs 49-53)
+  - Toast mostra tipo sugerido após consulta
+
+- ✅ **Consulta automática ao SINTEGRA:**
+  - Após buscar CNPJ, consulta Inscrição Estadual
+  - Se não encontrar ou for serviços → marca como ISENTO
+  - Novo campo `ie_isento` nos modelos Pydantic
+  - Endpoint `GET /api/sintegra/{cnpj}/{uf}` criado
+
+- ✅ **Campo Inscrição Estadual aprimorado:**
+  - Checkbox "Isento / Não Contribuinte"
+  - Quando marcado, mostra "ISENTO" e desabilita campo
+  - Loading indicator durante consulta SINTEGRA
+
+**Arquivos Modificados:**
+- `/app/frontend/src/pages/WizardEmpresa.js` - Lógica de sugestão e consulta SINTEGRA
+- `/app/backend/server.py` - Endpoint SINTEGRA + campo ie_isento nos modelos
+
+---
+
 ### 2026-02-12 (Sessão 25 - Refatoração Completa do Wizard + Testes 100%)
 
 **Funcionalidades Implementadas/Corrigidas:**
