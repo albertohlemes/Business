@@ -22944,7 +22944,6 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
     
     # Buscar histórico do PGDAS (se disponível)
     historico_pgdas = company.get("historico_faturamento", {})
-    pgdas_rbt12 = company.get("pgdas_rbt12", 0)
     
     # Buscar faturamento por competência (últimos 12 meses) do sistema
     filtro_base = {
