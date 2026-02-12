@@ -7266,7 +7266,11 @@ async def upload_xml_with_progress(
                         # FALLBACK: Classificação padrão como REVENDA
                         cfop_original = product.get('cfop', '')
                         cst = product.get('cst', '')
-                        is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+                        # IMPORTANTE: Verificar ST tanto pelo CST quanto pelo CFOP original
+                        cfops_st_originais = ['5403', '5405', '5408', '5409', '5410', '5411', '5412', '5413', '5414', '5415',
+                                              '6403', '6404', '6405', '6408', '6409', '6410', '6411', '6412', '6413', '6414', '6415']
+                        is_st_by_cfop = cfop_original in cfops_st_originais
+                        is_st = is_st_by_cfop or cst in ['10', '30', '60', '70', '201', '202', '203', '500']
                         cfop_prefix = '2' if (emitente_uf and emitente_uf != uf_empresa) else '1'
                         cfop_novo = (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
                         
