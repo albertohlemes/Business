@@ -556,6 +556,20 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                   placeholder="Número da IE"
                 />
               </div>
+              
+              {/* Inscrição Municipal */}
+              <div>
+                <label className="block text-sm font-medium text-[#A1A1AA] mb-1">
+                  Inscrição Municipal
+                </label>
+                <input
+                  type="text"
+                  value={formData.inscricao_municipal}
+                  onChange={(e) => handleChange('inscricao_municipal', e.target.value)}
+                  className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                  placeholder="Número da IM"
+                />
+              </div>
 
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-[#A1A1AA] mb-1">
@@ -583,6 +597,22 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                 />
               </div>
               
+              {/* CEP */}
+              <div>
+                <label className="block text-sm font-medium text-[#A1A1AA] mb-1">
+                  CEP
+                </label>
+                <input
+                  type="text"
+                  value={formData.cep}
+                  onChange={(e) => handleChange('cep', e.target.value)}
+                  className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                  placeholder="00000-000"
+                  maxLength={9}
+                />
+              </div>
+              
+              {/* UF */}
               <div>
                 <label className="block text-sm font-medium text-[#A1A1AA] mb-1">
                   UF
@@ -597,6 +627,7 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                 />
               </div>
               
+              {/* Cidade */}
               <div>
                 <label className="block text-sm font-medium text-[#A1A1AA] mb-1">
                   Cidade
@@ -607,6 +638,20 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                   onChange={(e) => handleChange('cidade', e.target.value)}
                   className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
                   placeholder="Nome da cidade"
+                />
+              </div>
+              
+              {/* Endereço */}
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-[#A1A1AA] mb-1">
+                  Endereço
+                </label>
+                <input
+                  type="text"
+                  value={formData.endereco}
+                  onChange={(e) => handleChange('endereco', e.target.value)}
+                  className="w-full px-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
+                  placeholder="Rua, número, bairro"
                 />
               </div>
             </div>
