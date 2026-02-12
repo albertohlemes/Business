@@ -17804,9 +17804,13 @@ Seja específico e use os valores reais fornecidos."""
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro na análise: {str(e)}")
 
-def get_cfop_from_category(categoria: str, cst: str, company_uf: str, cfop_original: str, emitente_uf: str = '') -> str:
-    """Helper para converter categoria (IA) em CFOP"""
-    is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+def get_cfop_from_category(categoria: str, cst: str, company_uf: str, cfop_original: str, emitente_uf: str = '', cfop_original_emissor: str = '') -> str:
+    """Helper para converter categoria (IA) em CFOP - Respeita ST"""
+    # Verificar ST tanto pelo CST quanto pelo CFOP original do emissor
+    cfops_st_originais = ['5403', '5405', '5408', '5409', '5410', '5411', '5412', '5413', '5414', '5415',
+                         '6403', '6404', '6405', '6408', '6409', '6410', '6411', '6412', '6413', '6414', '6415']
+    is_st_by_cfop = cfop_original_emissor in cfops_st_originais or cfop_original in ['1403', '1406', '1407', '2403', '2406', '2407']
+    is_st = is_st_by_cfop or cst in ['10', '30', '60', '70', '201', '202', '203', '500']
     
     # Prefixo Inteligente
     if emitente_uf and emitente_uf != company_uf:
@@ -17817,13 +17821,13 @@ def get_cfop_from_category(categoria: str, cst: str, company_uf: str, cfop_origi
     if categoria == 'combustivel':
         return cfop_prefix + '653'
     elif categoria == 'ativo_imobilizado':
-        return cfop_prefix + '406'  # Ativo imobilizado sempre 406
+        return (cfop_prefix + '406') if is_st else (cfop_prefix + '551')  # Ativo imobilizado
     elif categoria == 'revenda':
         return (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
     elif categoria == 'insumo':
         return (cfop_prefix + '401') if is_st else (cfop_prefix + '101')
     elif categoria == 'despesa':
-        return cfop_prefix + '407'  # Uso e consumo sempre 407
+        return (cfop_prefix + '407') if is_st else (cfop_prefix + '556')  # Uso e consumo
     return None
 
 def apply_classification(product, result, cfop_original, file_conversions):
