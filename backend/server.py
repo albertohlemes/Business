@@ -23483,6 +23483,8 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
             "faixa": faixa_info,
             "aliquota_nominal": aliquota_info["aliquota_nominal"],
             "aliquota_efetiva": aliquota_info["aliquota_efetiva"],
+            "aliquota_sem_iss": aliquota_info.get("aliquota_sem_iss", aliquota_info["aliquota_efetiva"]),
+            "percentual_iss_reparticao": aliquota_info.get("percentual_iss", 0),
             "parcela_deducao": aliquota_info["parcela_deducao"],
             "controla_fator_r": controla_fator_r
         },
@@ -23495,9 +23497,7 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
         
         # Totais de impostos
         "impostos_mes": {
-            "das_bruto": round(das_valor_bruto, 2),
-            "iss_retido": round(iss_retido_total, 2),
-            "das": round(das_valor, 2),  # DAS líquido (já descontado ISS retido)
+            "das": round(das_valor, 2),
             "difal": round(total_difal_mes, 2),
             "total": round(total_impostos_mes, 2),
             "percentual_sobre_vendas": percentual_impostos_sobre_vendas
@@ -23506,8 +23506,10 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
         # Informação sobre ISS Retido (para exibição)
         "iss_retido": {
             "valor": round(iss_retido_total, 2),
+            "faturamento_com_iss_retido": round(faturamento_iss_retido, 2),
+            "faturamento_sem_iss_retido": round(faturamento_iss_normal, 2),
             "qtd_notas": len([n for n in nfse_prestados if n.get('iss_retido_flag', False) or (isinstance(n.get('iss_retido'), (int, float)) and n.get('iss_retido') > 0) or any(s.get('iss_retido') == True for s in n.get('servicos', []))]),
-            "orientacao": "ISS retido na fonte pelos tomadores de serviço. Este valor é descontado do DAS pois já foi retido." if iss_retido_total > 0 else ""
+            "orientacao": f"Para NFS-e com ISS retido (R$ {faturamento_iss_retido:,.2f}), o DAS é calculado usando alíquota {aliquota_info.get('aliquota_sem_iss', 0):.2f}% (sem ISS). Para as demais (R$ {faturamento_iss_normal:,.2f}), usa-se {aliquota_info['aliquota_efetiva']:.2f}%." if faturamento_iss_retido > 0 else ""
         },
         
         # Fator R (se aplicável e controla_fator_r ativo)
