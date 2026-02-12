@@ -26667,13 +26667,76 @@ async def get_analise_horizontal(
                     dados_dict[comp]["impostos_pagar"] = round(impostos_pagar, 2)
                     dados_dict[comp]["credito_acumulado"] = round(credito_acumulado, 2)
         
+        # Para empresas do Simples Nacional, enriquecer com dados do PGDAS
+        historico_faturamento = {}
+        historico_das = {}
+        
+        if regime_tributario == 'simples_nacional':
+            historico_fat_sn = company.get('historico_faturamento_sn', {})
+            historico_das_empresa = company.get('historico_das', {})
+            
+            # Processar histórico de faturamento do PGDAS
+            for mes_ano, dados_pgdas in historico_fat_sn.items():
+                if isinstance(dados_pgdas, dict):
+                    # Normalizar competência para formato MM/YYYY
+                    if '-' in mes_ano:
+                        partes = mes_ano.split('-')
+                        if len(partes) == 2:
+                            ano_hist = partes[0]
+                            mes_hist = partes[1].zfill(2)
+                            comp_normalizada = f"{mes_hist}/{ano_hist}"
+                        else:
+                            continue
+                    else:
+                        comp_normalizada = mes_ano
+                    
+                    faturamento = dados_pgdas.get('receita_pa', 0) or dados_pgdas.get('faturamento', 0) or 0
+                    rbt12 = dados_pgdas.get('rbt12', 0) or 0
+                    
+                    historico_faturamento[comp_normalizada] = {
+                        'faturamento': faturamento,
+                        'rbt12': rbt12,
+                        'fonte': 'pgdas'
+                    }
+            
+            # Processar histórico de DAS
+            for mes_ano, dados_das_hist in historico_das_empresa.items():
+                if isinstance(dados_das_hist, dict):
+                    # Normalizar competência
+                    if '-' in mes_ano:
+                        partes = mes_ano.split('-')
+                        if len(partes) == 2:
+                            ano_hist = partes[0]
+                            mes_hist = partes[1].zfill(2)
+                            comp_normalizada = f"{mes_hist}/{ano_hist}"
+                        else:
+                            continue
+                    else:
+                        comp_normalizada = mes_ano
+                    
+                    historico_das[comp_normalizada] = {
+                        'das': dados_das_hist.get('valor_das', 0) or 0,
+                        'aliquota_efetiva': dados_das_hist.get('aliquota_efetiva', 0) or 0,
+                        'fonte': 'pgdas'
+                    }
+                    
+                    # Atualizar os dados mensais com o DAS do PGDAS se disponível
+                    if comp_normalizada in dados_mensal:
+                        dados_mensal[comp_normalizada]['das'] = dados_das_hist.get('valor_das', 0) or 0
+                        dados_mensal[comp_normalizada]['impostos_pagar'] = dados_das_hist.get('valor_das', 0) or 0
+                    if comp_normalizada in dados_mensal_anterior:
+                        dados_mensal_anterior[comp_normalizada]['das'] = dados_das_hist.get('valor_das', 0) or 0
+                        dados_mensal_anterior[comp_normalizada]['impostos_pagar'] = dados_das_hist.get('valor_das', 0) or 0
+        
         return {
             "company_id": company_id,
             "ano_atual": ano_atual,
             "ano_anterior": ano_anterior,
             "regime_tributario": regime_tributario,
             "mensal": dados_mensal,
-            "mensal_ano_anterior": dados_mensal_anterior
+            "mensal_ano_anterior": dados_mensal_anterior,
+            "historico_faturamento_pgdas": historico_faturamento,
+            "historico_das_pgdas": historico_das
         }
         
     except HTTPException:
