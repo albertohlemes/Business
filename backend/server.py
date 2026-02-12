@@ -16663,9 +16663,14 @@ async def reclassify_product_manual(
     cfop_original = str(produto.get('cfop', ''))
     cfop_prefix = cfop_original[0] if cfop_original else '1'
     
-    # Verificar se é ST
+    # Verificar se é ST - tanto pelo CST quanto pelo CFOP original do emissor
     cst = str(produto.get('cst', ''))
-    is_st = cst in ['10', '30', '60', '70', '201', '202', '203', '500']
+    cfop_original_emissor = str(produto.get('cfop_original_emissor', ''))
+    cfops_st_originais = ['5403', '5405', '5408', '5409', '5410', '5411', '5412', '5413', '5414', '5415',
+                         '6403', '6404', '6405', '6408', '6409', '6410', '6411', '6412', '6413', '6414', '6415',
+                         '1403', '1406', '1407', '2403', '2406', '2407']
+    is_st_by_cfop = cfop_original in cfops_st_originais or cfop_original_emissor in cfops_st_originais
+    is_st = is_st_by_cfop or cst in ['10', '30', '60', '70', '201', '202', '203', '500']
     
     # Mapear categoria para CFOP
     if categoria == 'revenda':
@@ -16673,9 +16678,9 @@ async def reclassify_product_manual(
     elif categoria == 'insumo':
         novo_cfop = (cfop_prefix + '401') if is_st else (cfop_prefix + '101')
     elif categoria == 'despesa':
-        novo_cfop = cfop_prefix + '407'  # Uso e consumo sempre 407
+        novo_cfop = (cfop_prefix + '407') if is_st else (cfop_prefix + '556')  # Uso e consumo
     elif categoria == 'ativo_imobilizado':
-        novo_cfop = cfop_prefix + '406'  # Ativo imobilizado sempre 406
+        novo_cfop = (cfop_prefix + '406') if is_st else (cfop_prefix + '551')  # Ativo imobilizado
     elif categoria == 'combustivel':
         novo_cfop = cfop_prefix + '653'
     else:
