@@ -1907,11 +1907,6 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                   </div>
                 </div>
               )}
-                    </span>
-                    <span className="text-[#666]">Estabelecimento:</span>
-                    <span className="text-white">
-                      {TIPOS_ESTABELECIMENTO_BENEFICIO.find(e => e.value === formData.tipo_estabelecimento_beneficio)?.label || '-'}
-                    </span>
             </div>
           </div>
         );
