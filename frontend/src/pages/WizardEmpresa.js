@@ -1160,12 +1160,12 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm text-[#A1A1AA] mb-1">
-                        Presunção Comércio/Indústria (%)
+                        Presunção Comércio/Indústria (% IRPJ)
                       </label>
                       <input
                         type="number"
-                        value={formData.percentual_presuncao_comercio || 8}
-                        onChange={(e) => handleChange('percentual_presuncao_comercio', parseFloat(e.target.value) || 8)}
+                        value={formData.percentual_presuncao_irpj || 8}
+                        onChange={(e) => handleChange('percentual_presuncao_irpj', parseFloat(e.target.value) || 8)}
                         className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
                         placeholder="8%"
                         min="1"
@@ -1175,12 +1175,12 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                     </div>
                     <div>
                       <label className="block text-sm text-[#A1A1AA] mb-1">
-                        Presunção Serviços (%)
+                        Presunção Serviços (% IRPJ)
                       </label>
                       <input
                         type="number"
-                        value={formData.percentual_presuncao_servicos || 32}
-                        onChange={(e) => handleChange('percentual_presuncao_servicos', parseFloat(e.target.value) || 32)}
+                        value={formData.percentual_presuncao_servicos_irpj || 32}
+                        onChange={(e) => handleChange('percentual_presuncao_servicos_irpj', parseFloat(e.target.value) || 32)}
                         className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
                         placeholder="32%"
                         min="1"
@@ -1192,12 +1192,12 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                 ) : (
                   <div>
                     <label className="block text-sm text-[#A1A1AA] mb-1">
-                      Percentual de Presunção (%)
+                      Percentual de Presunção IRPJ (%)
                     </label>
                     <input
                       type="number"
-                      value={formData.percentual_presuncao || (formData.tipo_atividade === 'servicos' ? 32 : 8)}
-                      onChange={(e) => handleChange('percentual_presuncao', parseFloat(e.target.value) || 8)}
+                      value={formData.percentual_presuncao_irpj || (formData.tipo_atividade === 'servicos' ? 32 : 8)}
+                      onChange={(e) => handleChange('percentual_presuncao_irpj', parseFloat(e.target.value) || 8)}
                       className="w-full px-4 py-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg text-white focus:border-[#C8A951] focus:outline-none"
                       placeholder={formData.tipo_atividade === 'servicos' ? '32%' : '8%'}
                       min="1"
