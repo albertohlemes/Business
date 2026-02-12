@@ -790,6 +790,36 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **Nova estatística:** `from_sales_inference` conta quantos produtos foram classificados por aprendizado
 - ✅ **Arquivo modificado:** `/app/backend/server.py` (função `classify_products_with_cache`)
 
+### 2026-02-12 (Sessão - Importação ZIP e Melhorias de Feedback)
+
+**Nova Funcionalidade - Importação de ZIP:**
+- ✅ **Upload de arquivos ZIP** contendo múltiplos XMLs
+- ✅ **Extração no browser** usando JSZip - não sobrecarrega o servidor
+- ✅ **Drag-and-Drop** - Arrastar e soltar arquivos na área de upload
+- ✅ **Visual de Drop Zone** - Área clara mostrando ícones de XML e ZIP
+- ✅ **Arquivos modificados:** 
+  - `/app/frontend/src/pages/Documents.js` (nova UI de drag-drop, função handleZipUpload)
+  - `/app/frontend/package.json` (adicionado jszip@3.10.1)
+
+**Melhoria no Feedback de Upload:**
+- ✅ **Barra de progresso animada** com efeito shimmer
+- ✅ **Estimativa de tempo restante** para uploads grandes
+- ✅ **Indicador de processamento em background** (bolinhas animadas)
+- ✅ **Contadores formatados** com separador de milhar (pt-BR)
+- ✅ **Arquivo modificado:** `/app/frontend/src/components/GlobalUploadProgress.js`
+
+**Integração PGDAS ↔ Evolução Fiscal:**
+- ✅ **Endpoint /api/analise-horizontal** agora busca dados de `historico_das_calculado` e `historico_faturamento`
+- ✅ **Valores do DAS do PGDAS** populam automaticamente a coluna "Impostos" na tabela
+- ✅ **Suporte a múltiplos formatos de dados** (das_calculado, valor_das, receita_pa, faturamento)
+- ✅ **Arquivo modificado:** `/app/backend/server.py` (endpoint analise-horizontal)
+
+**Melhoria na Formatação de Números:**
+- ✅ **Classe `tabular-nums`** adicionada para alinhamento consistente
+- ✅ **Classe `font-mono`** nos inputs de edição
+- ✅ **Inputs com largura w-28** para valores maiores
+- ✅ **Arquivo modificado:** `/app/frontend/src/pages/AnaliseHorizontal.js`
+
 **Arquivo Removido:**
 - ✅ `/app/frontend/src/pages/UploadXML.js` - Arquivo obsoleto já havia sido removido anteriormente
 
