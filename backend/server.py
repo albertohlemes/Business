@@ -18067,15 +18067,31 @@ async def classify_products_with_cache(products: List[Dict], company_id: str, co
         # 1. Verificar cache primeiro (usando cache em memória, sem query)
         cached = get_cached_classification_from_memory(rules_cache, descricao)
         if cached:
-            # Se é ST pelo CFOP original, ajustar o CFOP sugerido
-            if is_st_by_cfop and cached.get('cfop', '').endswith(('102', '101')):
-                cfop_prefix = cached['cfop'][0]
-                categoria = cached.get('categoria', 'revenda')
-                if categoria == 'revenda':
+            # Ajustar CFOP baseado no ST do CFOP original
+            cfop_prefix = cached['cfop'][0] if cached.get('cfop') else '1'
+            categoria = cached.get('categoria', 'revenda').lower()
+            
+            if is_st_by_cfop:
+                # Produto COM ST - usar CFOPs 4xx
+                if categoria == 'revenda' and not cached.get('cfop', '').endswith('403'):
                     cached['cfop'] = cfop_prefix + '403'
-                elif categoria == 'insumo':
+                elif categoria == 'insumo' and not cached.get('cfop', '').endswith('401'):
                     cached['cfop'] = cfop_prefix + '401'
-                # Despesa (407) e Ativo (406) não mudam com ST
+                elif categoria == 'despesa' and not cached.get('cfop', '').endswith('407'):
+                    cached['cfop'] = cfop_prefix + '407'
+                elif categoria == 'ativo_imobilizado' and not cached.get('cfop', '').endswith('406'):
+                    cached['cfop'] = cfop_prefix + '406'
+            else:
+                # Produto SEM ST - usar CFOPs normais
+                if categoria == 'revenda' and cached.get('cfop', '').endswith(('403', '401', '406', '407')):
+                    cached['cfop'] = cfop_prefix + '102'
+                elif categoria == 'insumo' and cached.get('cfop', '').endswith(('402', '403', '406', '407')):
+                    cached['cfop'] = cfop_prefix + '101'
+                elif categoria == 'despesa' and cached.get('cfop', '').endswith(('406', '407')):
+                    cached['cfop'] = cfop_prefix + '556'
+                elif categoria == 'ativo_imobilizado' and cached.get('cfop', '').endswith('406'):
+                    cached['cfop'] = cfop_prefix + '551'
+            
             results[str(idx)] = cached
             stats["from_cache"] += 1
             continue
