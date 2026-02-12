@@ -6661,6 +6661,7 @@ async def upload_xml_with_progress(
     rejeitadas_competencia = []
     alertas_cfop = []
     notas_devolucao_fornecedor = []  # Lista para notas desconsideradas por devolução
+    notas_canceladas = []  # Lista para notas canceladas
     
     total_stats = {"from_cache": 0, "from_rules": 0, "from_ai": 0, "total": 0}
     
