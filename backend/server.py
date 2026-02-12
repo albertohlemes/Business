@@ -27885,7 +27885,9 @@ IMPORTANTE:
         return sugestoes
         
     except Exception as e:
+        import traceback
         print(f"Erro ao gerar palavras-chave: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
         # Retornar sugestões padrão baseadas no tipo de atividade
         sugestoes_padrao = {
             "produtos_comercializados": [],
