@@ -7151,7 +7151,54 @@ async def upload_xml_with_progress(
     except Exception as e:
         logger.warning(f"UPLOAD-STREAM: Erro ao carregar cache de cancelamentos: {e}")
     
-    for file_idx, file in enumerate(files):
+    # ===== OTIMIZAÇÃO: PRÉ-LEITURA PARALELA DOS ARQUIVOS =====
+    # Ler todos os arquivos em paralelo para evitar I/O sequencial
+    import time
+    start_time = time.time()
+    
+    async def read_file_async(f, idx):
+        """Lê um arquivo de forma assíncrona"""
+        try:
+            content = await f.read()
+            return {"idx": idx, "filename": f.filename, "content": content, "error": None}
+        except Exception as e:
+            return {"idx": idx, "filename": f.filename, "content": None, "error": str(e)}
+    
+    # Ler todos os arquivos em paralelo (lotes de 50 para não sobrecarregar)
+    file_contents = []
+    PARALLEL_READ_SIZE = 50
+    
+    for batch_start in range(0, len(files), PARALLEL_READ_SIZE):
+        batch_end = min(batch_start + PARALLEL_READ_SIZE, len(files))
+        batch_files = files[batch_start:batch_end]
+        
+        # Atualizar progresso
+        progress["current_step"] = f"Lendo arquivos {batch_start + 1}-{batch_end} de {len(files)}..."
+        upload_progress_store[upload_id] = progress
+        
+        # Ler lote em paralelo
+        batch_tasks = [read_file_async(f, batch_start + i) for i, f in enumerate(batch_files)]
+        batch_results = await asyncio.gather(*batch_tasks)
+        file_contents.extend(batch_results)
+    
+    read_time = time.time() - start_time
+    logger.info(f"UPLOAD-STREAM: Pré-leitura de {len(files)} arquivos concluída em {read_time:.2f}s")
+    
+    # Agora processar os conteúdos já lidos
+    for file_data in file_contents:
+        file_idx = file_data["idx"]
+        filename = file_data["filename"]
+        content = file_data["content"]
+        
+        # Criar objeto fake de file para manter compatibilidade
+        class FakeFile:
+            def __init__(self, fn, ct):
+                self.filename = fn
+                self._content = ct
+            async def read(self):
+                return self._content
+        
+        file = FakeFile(filename, content)
         # Atualizar progresso: lendo arquivo
         # Calcular progresso baseado no total da sessão, não apenas do lote atual
         session_processed = progress.get("processed_in_session", 0)
