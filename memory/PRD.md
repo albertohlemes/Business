@@ -859,6 +859,35 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 | 4.000 XMLs | ~20-40 min | ~2-4 min |
 | 10.000 XMLs | ~1-2 horas | ~5-10 min |
 
+### 2026-02-12 (Sessão - Processamento em Background com Celery/Redis)
+
+**Infraestrutura de Background Jobs:**
+- ✅ **Redis** instalado e configurado como broker de mensagens
+- ✅ **Celery** configurado com 4 workers paralelos
+- ✅ **Fila dedicada** `xml_processing` para tarefas de importação
+- ✅ **Arquivos criados:**
+  - `/app/backend/celery_config.py` - Configuração do Celery
+  - `/app/backend/celery_tasks.py` - Tarefas de processamento
+  - `/app/backend/start_celery.sh` - Script de inicialização
+
+**Novos Endpoints:**
+- ✅ `POST /api/xml/upload-background` - Envia XMLs para processamento em background
+- ✅ `GET /api/xml/job-status/{job_id}` - Retorna status de um job
+- ✅ `GET /api/xml/jobs` - Lista jobs do usuário
+
+**Comportamento no Frontend:**
+- ✅ Para uploads com **500+ arquivos**, automaticamente usa modo background
+- ✅ Modal de preview mostra aviso quando modo background será usado
+- ✅ Botão muda de cor (roxo) para indicar modo background
+- ✅ Jobs salvos no localStorage para monitoramento posterior
+- ✅ Usuário pode fechar a página - processamento continua no servidor
+
+**Vantagens do Modo Background:**
+- Upload instantâneo (apenas envia arquivos)
+- Processamento distribuído em 4 workers
+- Tolerante a falhas (retry automático)
+- Resultados persistidos por 24 horas
+
 **Integração PGDAS ↔ Evolução Fiscal:**
 - ✅ **Endpoint /api/analise-horizontal** agora busca dados de `historico_das_calculado` e `historico_faturamento`
 - ✅ **Valores do DAS do PGDAS** populam automaticamente a coluna "Impostos" na tabela
