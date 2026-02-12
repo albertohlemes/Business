@@ -7210,6 +7210,7 @@ async def upload_xml_with_progress(
                         duplicate_reason = f"Nº {num} Série {serie} já existe para este emitente"
             
             if is_duplicate:
+                logger.info(f"UPLOAD-STREAM: DUPLICADA detectada - NF {parsed_data['numero_nfe']} - {duplicate_reason}")
                 duplicadas.append({
                     "filename": file.filename,
                     "chave": chave_nfe,
