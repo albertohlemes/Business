@@ -362,16 +362,18 @@ def validate_xml_type(xml_content: str, expected_type: str, expected_operacao: s
         # CT-e
         elif 'cte' in root.tag.lower() or 'CTe' in root.tag:
             detected_type = '57'
-            # CT-e recebido é entrada, emitido é saída
+            # CT-e: não rejeitar automaticamente pelo CFOP
+            # Deixar o usuário definir se é entrada ou saída
             cfop_elem = root.find('.//{*}CFOP')
             if cfop_elem is not None:
                 cfop = cfop_elem.text
                 if cfop and cfop[0] in ['1', '2', '3']:
                     detected_operacao = 'entrada'
                 elif cfop and cfop[0] in ['5', '6', '7']:
-                    detected_operacao = 'saida'
+                    # CFOP de saída em CT-e recebido = entrada para quem recebe
+                    detected_operacao = None  # Deixar usuário decidir
             else:
-                detected_operacao = 'entrada'
+                detected_operacao = None
         
         # NFS-e (vários formatos)
         elif 'nfse' in root.tag.lower() or 'rps' in root.tag.lower() or 'servico' in root.tag.lower():
