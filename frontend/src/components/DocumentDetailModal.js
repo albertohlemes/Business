@@ -368,22 +368,27 @@ const DocumentDetailModal = ({ document, onClose }) => {
               </div>
             </div>
 
-            {/* LINHA 3: DIFERENÇAS (Capa - Produtos) */}
+            {/* LINHA 3: VALIDAÇÃO DA FÓRMULA NF-e */}
             <div className={`rounded-lg p-3 ${diferencaValorTotal >= 0.10 ? 'bg-red-500/10 border border-red-500/30' : 'bg-emerald-500/10 border border-emerald-500/30'}`}>
-              <div className="flex items-center gap-2 mb-3">
-                {diferencaValorTotal >= 0.10 ? (
-                  <>
-                    <AlertTriangle className="w-4 h-4 text-red-400" />
-                    <span className="text-xs font-semibold text-red-400 uppercase tracking-wide">Diferença Identificada (Fórmula NF-e)</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Validação OK - Valores Corretos</span>
-                  </>
-                )}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  {diferencaValorTotal >= 0.10 ? (
+                    <>
+                      <AlertTriangle className="w-4 h-4 text-red-400" />
+                      <span className="text-xs font-semibold text-red-400 uppercase tracking-wide">Diferença Identificada</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Validação OK - Valores Corretos</span>
+                    </>
+                  )}
+                </div>
+                <span className="text-[10px] text-[#666] font-mono">
+                  vNF = vProd + IPI + ST + FCP-ST + Frete + Seg + Outras - Desc
+                </span>
               </div>
-              <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+              <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">Valor NF</p>
                   <p className={`text-sm font-bold ${diferencaValorTotal >= 0.10 ? 'text-red-400' : 'text-emerald-400'}`}>
@@ -397,7 +402,7 @@ const DocumentDetailModal = ({ document, onClose }) => {
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] text-[#666] uppercase">vProd (capa)</p>
+                  <p className="text-[10px] text-[#666] uppercase">vProd</p>
                   <p className="text-sm font-bold text-white">
                     {formatCurrency(valorCapaNF.valor_produtos || totaisProdutos.valor_produto)}
                   </p>
@@ -406,6 +411,12 @@ const DocumentDetailModal = ({ document, onClose }) => {
                   <p className="text-[10px] text-[#666] uppercase">ICMS-ST</p>
                   <p className="text-sm font-bold text-white">
                     {formatCurrency(valorCapaNF.total_icms_st)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">FCP-ST</p>
+                  <p className="text-sm font-bold text-yellow-400">
+                    {formatCurrency(valorCapaNF.total_fcp_st)}
                   </p>
                 </div>
                 <div className="text-center">
@@ -424,6 +435,12 @@ const DocumentDetailModal = ({ document, onClose }) => {
                   <p className="text-[10px] text-[#666] uppercase">Desconto</p>
                   <p className="text-sm font-bold text-white">
                     {formatCurrency(valorCapaNF.total_desconto)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] text-[#666] uppercase">Frete+Seg</p>
+                  <p className="text-sm font-bold text-white">
+                    {formatCurrency((valorCapaNF.total_frete || 0) + (valorCapaNF.total_seguro || 0))}
                   </p>
                 </div>
                 <div className="text-center">
