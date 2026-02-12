@@ -1040,7 +1040,7 @@ const ApuracaoICMS = ({ user, onLogout }) => {
                     )}
 
                     {/* Tabela por NCM */}
-                    {beneficioTab === 'ncm' && beneficioDetalhes.por_ncm && (
+                    {beneficioTab === 'ncm' && sortedBeneficioNcms.length > 0 && (
                       <div className="bg-[#0C0C0C] rounded-lg border border-[#2A2A2A] overflow-hidden">
                         <div className="max-h-[400px] overflow-auto">
                           <table className="w-full text-sm">
