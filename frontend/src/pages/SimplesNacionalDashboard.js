@@ -125,7 +125,7 @@ const SimplesNacionalDashboard = ({ user, onLogout }) => {
 
   useEffect(() => {
     fetchDashboard();
-  }, [fetchDashboard, selectedCompetencia]);
+  }, [fetchDashboard, selectedCompetencia, documentsVersion]);  // Adiciona documentsVersion para reagir a exclusões
 
   // Função para upload do PGDAS
   const handlePgdasUpload = async (event) => {
