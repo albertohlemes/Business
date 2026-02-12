@@ -43,9 +43,23 @@ def extrair_dados_pgdas(texto_pdf: str) -> Dict:
             resultado["cnpj"] = re.sub(r'[^\d]', '', cnpj_match.group(1))
         
         # Extrair Período de Apuração (PA)
-        pa_match = re.search(r'Per[íi]odo de Apura[çc][ãa]o[:\s]*(\d{2}/\d{4})', texto_pdf)
+        # Formato pode ser "12/2025" ou "01/12/2025 a 31/12/2025"
+        pa_match = re.search(r'Per[íi]odo de Apura[çc][ãa]o[:\s]*\d{2}/(\d{2}/\d{4})', texto_pdf)
         if pa_match:
             resultado["periodo_apuracao"] = pa_match.group(1)
+        else:
+            # Tentar formato direto MM/YYYY
+            pa_match = re.search(r'Per[íi]odo de Apura[çc][ãa]o[:\s]*(\d{2}/\d{4})', texto_pdf)
+            if pa_match:
+                resultado["periodo_apuracao"] = pa_match.group(1)
+            else:
+                # Última tentativa: extrair do número da declaração (CNPJ+AAMM+SEQ)
+                # Ex: 34326112202512001 -> 2025/12
+                decl_match = re.search(r'Declaração[:\s]*(\d{14})(\d{4})(\d{2})\d{3}', texto_pdf)
+                if decl_match:
+                    ano = decl_match.group(2)
+                    mes = decl_match.group(3)
+                    resultado["periodo_apuracao"] = f"{mes}/{ano}"
         
         # Extrair RBT12
         rbt12_match = re.search(r'RBT12[):\s]*[\s\S]*?(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})', texto_pdf)
