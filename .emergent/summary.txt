@@ -1,155 +1,93 @@
 <analysis>**original_problem_statement:**
-O objetivo principal é continuar a correção de bugs e a implementação de funcionalidades para uma aplicação de gestão fiscal. O usuário inicialmente aprovou um plano de desenvolvimento focado em novas funcionalidades (Fases 1-7), que foram concluídas. Subsequentemente, o foco mudou para uma nova lista de prioridades: Testes Automatizados, Melhorias de UX, Correção de Bugs, Integrações e Relatórios.
+O objetivo principal é corrigir uma série de regressões e implementar novas automações no Wizard de Cadastro de Empresa (), garantindo que ele substitua completamente e com superioridade a funcionalidade do antigo modal de edição.
 
-Ao longo da sessão, o usuário direcionou o trabalho para uma série de melhorias de UI/UX e de funcionalidades específicas, incluindo:
-1.  Correção de testes automatizados que estavam falhando.
-2.  Investigação de um bug no cálculo de competência.
-3.  Implementação de relatórios em PDF com o logo da empresa.
-4.  Resolução de um bug de usabilidade onde um modal impedia o acesso ao Wizard de Cadastro de Empresa.
-5.  Correção de problemas de cores e layout nas telas de Permissões e SPED Fiscal.
-6.  Reorganização completa do menu de navegação em categorias lógicas.
-7.  Restauração de opções de configuração (checkboxes) na tela do SPED.
-8.  Alinhamento de botões na tela de Documentos.
-9.  Migração de **todas** as funcionalidades do antigo modal de edição de empresa para o Wizard, incluindo a busca de CNPJ na Receita Federal.
-10. Adição de novas automações e inteligência ao Wizard, como sugestão de Anexos do Simples, perfis comerciais dinâmicos e sugestão de palavras-chave com IA.
+O usuário reportou, através de uma imagem, vários problemas no Wizard atual:
+1.  **Lucro Presumido para Atividade Mista**: Não está mostrando os dois campos de percentual de presunção (um para comércio, um para serviços).
+2.  **Flags de ICMS no Cadastro**: Os campos Desconsiderar ICMS ST e Desconsiderar ICMS Despesas precisam ser removidos do cadastro, pois são configurações de AÇÕES, não da empresa.
+3.  **Automação da IA**: A funcionalidade de IA para gerar palavras-chave deve preencher automaticamente os campos de classificação (Revenda, Insumo, Despesa), e não apenas fazer sugestões.
+4.  **Benefícios Fiscais Simplificados**: Para Restaurante, o campo de exclusão de crédito deve ser preenchido com TODOS. Para Casa de Carnes, deve preencher automaticamente com produtos de carne.
+
+Adicionalmente, o usuário solicitou duas novas automações:
+1.  Sugerir o Tipo de Atividade (Indústria, Comércio, Serviço, Mista) com base em todos os CNAEs da empresa.
+2.  Consultar a Inscrição Estadual (IE) no site do SINTEGRA. Se não encontrada, marcar a empresa como Isenta.
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-A aplicação de gestão fiscal (React + FastAPI + MongoDB) está funcional e com todas as 7 fases principais de desenvolvimento concluídas. Nesta sessão, foram realizadas as seguintes implementações e correções:
--   Os testes automatizados de backend (============================= test session starts ==============================
-platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
-rootdir: /app
-plugins: anyio-4.12.1
-collected 429 items / 1 error
-
-==================================== ERRORS ====================================
-__________________ ERROR collecting test_ai_classification.py __________________
-import file mismatch:
-imported module 'test_ai_classification' has this __file__ attribute:
-  /app/backend/tests/test_ai_classification.py
-which is not the same as the test file we want to collect:
-  /app/test_ai_classification.py
-HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules
-=============================== warnings summary ===============================
-../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
-  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
-    import multipart
-
-../root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
-  /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
-    from crypt import crypt as _crypt
-
-backend/server.py:27822
-  /app/backend/server.py:27822: DeprecationWarning: 
-          on_event is deprecated, use lifespan event handlers instead.
-  
-          Read more about it in the
-          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-          
-    @app.on_event("shutdown")
-
-../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
-  /root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
-          on_event is deprecated, use lifespan event handlers instead.
-  
-          Read more about it in the
-          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-          
-    return self.router.on_event(event_type)
-
--- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=========================== short test summary info ============================
-ERROR test_ai_classification.py
-!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-========================= 4 warnings, 1 error in 4.04s =========================) foram corrigidos e estão todos passando.
--   A funcionalidade de gerar relatórios em PDF foi aprimorada para incluir o logo da empresa, que agora é salvo no cadastro da mesma.
--   O menu de navegação foi completamente reorganizado em categorias lógicas (Visão Geral, Ações, Impostos, Análises, Exportações, Administração) para melhorar a usabilidade.
--   As telas de Permissões e SPED Fiscal tiveram seus problemas de cores e layout corrigidos para se adequarem ao tema escuro da aplicação.
--   O **Wizard de Cadastro de Empresa** foi massivamente expandido para substituir completamente o antigo modal, incluindo:
-    -   Todos os mais de 40 campos de configuração que existiam no modal.
-    -   Funcionalidade de consulta de CNPJ na Receita Federal para preenchimento automático.
-    -   Novas automações, como a sugestão de Anexos do Simples com base nos CNAEs, exibição de campos contextuais (ex: Atividade de Locação para serviços), e a ordem correta dos perfis comerciais.
-    -   Uma nova funcionalidade de **IA para sugerir palavras-chave** para classificação de produtos, baseada na descrição da atividade da empresa, com um novo endpoint () no backend.
+A aplicação possui um Wizard de cadastro de empresas () que foi extensivamente modificado para incorporar novas automações. O agente implementou com sucesso a sugestão de tipo de atividade baseada nos CNAEs e a consulta automática da Inscrição Estadual no SINTEGRA, com a respectiva flag . A interface para Benefícios Fiscais foi refatorada para usar ícones e preencher automaticamente listas de exclusão de produtos. O agente estava no meio da correção das regressões apontadas pelo usuário.
 
 **Last working item**:
--   **Last item agent was working**: Implementando as automações finais no Wizard de Cadastro de Empresa, conforme solicitado pelo usuário. A última adição foi a funcionalidade de **Inteligência Artificial para sugerir palavras-chave** de classificação (Etapa 4 do Wizard). Isso incluiu a criação do endpoint  no backend e a respectiva interface no frontend.
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: Y (Via screenshots que confirmam que a UI das novas funcionalidades foi renderizada corretamente).
--   **Which testing method agent to use?**: frontend testing agent. O agente deve realizar um teste E2E completo do Wizard de Cadastro de Empresa, cobrindo todas as 6 etapas, a consulta de CNPJ, as automações condicionais e, principalmente, a nova funcionalidade de geração de palavras-chave por IA.
+-   **Last item agent was working**: Corrigindo as regressões no Wizard de Empresa, conforme a imagem enviada pelo usuário. O agente já havia:
+    1.  Removido as flags de Desconsiderar ICMS da Etapa 3 do Wizard.
+    2.  Simplificado a lista de exclusão para o tipo Restaurante para conter apenas a palavra TODOS.
+    3.  Ajustado o prompt de IA no backend para melhorar a geração de palavras-chave.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N (Apenas verificou se o build passava, sem testes visuais ou funcionais das últimas alterações).
+-   **Which testing method agent to use?**: . É necessário um teste E2E completo do Wizard, validando especificamente:
+    1.  Ao selecionar Mista e Lucro Presumido, os DOIS campos de percentual de presunção devem aparecer.
+    2.  A funcionalidade de IA deve ser acionada e os campos de palavras-chave (Revenda, Insumo, Despesa, etc.) devem ser preenchidos automaticamente.
+    3.  Ao selecionar Restaurante na etapa de benefícios, o campo de exclusão deve ser preenchido com TODOS.
+    4.  Ao selecionar Casa de Carnes, o campo deve ser preenchido com as palavras-chave de carnes.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Verificação do Wizard de Empresa (P0)**
--   **Issue 2: Verificação da correção na Classificação Inteligente (P1)**
--   **Issue 3: Verificação da correção no Dashboard de Saídas (P1)**
--   **Issue 4: Cálculo incorreto da competência para notas fiscais (P2)**
+-   **Issue 1: Regressões e ajustes no Wizard de Empresa (P0)**
+-   **Issue 2: Cálculo incorreto da competência para notas fiscais (P1)**
+-   **Issue 3: Verificação da correção no Dashboard de Saídas (P1)** - Pendente de verificação de usuário de uma sessão antiga.
+-   **Issue 4: Verificação da correção na Classificação Inteligente (P1)** - Pendente de verificação de usuário de uma sessão antiga.
 
 **Issues Detail**:
--   **Issue 1: Verificação do Wizard de Empresa (P0)**
-    -   **Attempted fixes**: O agente implementou uma reformulação massiva do Wizard, adicionando mais de 40 campos, consulta de CNPJ e automações com IA. A UI foi verificada por screenshots.
+-   **Issue 1: Regressões e ajustes no Wizard de Empresa (P0)**
+    -   **Attempted fixes**: O agente removeu as flags de ICMS, ajustou a lista de exclusão para restaurantes e modificou o prompt de IA no backend.
     -   **Next debug checklist**:
-        1.  Aguardar a confirmação do usuário sobre as últimas implementações no Wizard.
-        2.  Se o usuário reportar problemas, usar o  para um teste E2E do fluxo de criação/edição de empresa via Wizard.
-        3.  Testar o endpoint  com  para garantir que a lógica do backend está funcionando como esperado, pois só a UI foi verificada.
-    -   **Why fix this issue and what will be achieved with the fix?**: Garante que a principal porta de entrada de dados do sistema (cadastro de empresa) está robusta, completa e atende às expectativas do usuário.
-    -   **Status**: USER VERIFICATION PENDING
-    -   **Is recurring issue?**: Y (O usuário solicitou múltiplas iterações nesta funcionalidade).
-    -   **Should Test frontend/backend/both after fix?**: both
-
--   **Issue 2: Verificação da correção na Classificação Inteligente (P1)**
-    -   **Attempted fixes**: Correções realizadas em uma sessão anterior.
-    -   **Next debug checklist**: O agente deve ativamente solicitar ao usuário que teste a funcionalidade e confirme se o problema original foi resolvido.
-    -   **Status**: USER VERIFICATION PENDING
+        1.  **Backend ()**: Modificar o endpoint  para que retorne um JSON estruturado, separando as palavras-chave por categoria (ex: ).
+        2.  **Frontend ()**:
+            -   Corrigir a lógica de renderização condicional na Etapa 3 () para garantir que os dois campos de percentual de presunção apareçam quando  e .
+            -   Atualizar a função  para processar o JSON estruturado do backend e usar  para popular todos os campos de palavras-chave de uma só vez.
+            -   Garantir que a lógica na Etapa 5 () preencha o campo de texto corretamente com TODOS para restaurantes e a lista de carnes para açougues.
+    -   **Why fix this issue and what will be achieved with the fix?**: Para restaurar a funcionalidade principal do cadastro de empresas, que é a porta de entrada do sistema, e resolver a frustração do usuário.
+    -   **Status**: IN PROGRESS
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: both
 
--   **Issue 3: Verificação da correção no Dashboard de Saídas (P1)**
-    -   **Attempted fixes**: Correções realizadas em uma sessão anterior.
-    -   **Next debug checklist**: O agente deve ativamente solicitar ao usuário que verifique se os valores no dashboard agora atualizam corretamente.
-    -   **Status**: USER VERIFICATION PENDING
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: frontend
-
--   **Issue 4: Cálculo incorreto da competência para notas fiscais (P2)**
-    -   **Attempted fixes**: O agente investigou a lógica no  e tentou reproduzir o problema, mas não encontrou documentos de entrada na base de dados.
-    -   **Next debug checklist**: O problema está bloqueado pela falta de dados. O próximo agente deve primeiro verificar se há dados de teste disponíveis. Se não, deve informar ao usuário que precisa de exemplos de NFs de entrada (XMLs ou dados no DB) para depurar o cálculo da .
-    -   **Status**: BLOCKED
+-   **Issue 2: Cálculo incorreto da competência para notas fiscais (P1)**
+    -   **Attempted fixes**: O agente analisou o XML e a lógica do , concluindo que o backend está calculando a competência *corretamente* (usando a data de saída para notas de entrada).
+    -   **Next debug checklist**:
+        1.  Comunicar de forma clara a descoberta ao usuário. Ex: Verifiquei a nota fiscal enviada e a lógica do sistema. A competência está sendo calculada como Fevereiro, pois essa é a data de saída do produto, o que é o procedimento correto para notas de entrada. O problema ocorre em alguma tela específica?.
+        2.  Aguardar o feedback do usuário. Se o problema persistir, solicitar uma screenshot da tela onde a competência incorreta é exibida.
+    -   **Why fix this issue and what will be achieved with the fix?**: Para fechar um bug antigo e garantir a precisão dos dados para o usuário.
+    -   **Status**: USER VERIFICATION PENDING (O agente precisa comunicar sua análise).
     -   **Is recurring issue?**: Y
     -   **Should Test frontend/backend/both after fix?**: backend
 
 **In progress Task List**:
-Nenhuma. O último item de trabalho (automações do Wizard) está pendente de verificação do usuário.
+Nenhuma tarefa além da resolução do .
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P1) Task B - Integração de CT-e:** Integrar o parser  existente no fluxo de upload de documentos e desenvolver a UI para gerenciar Conhecimentos de Transporte.
+    -   **(P0) Refatoração do :** CRÍTICO. Mover endpoints e lógica de negócio para uma estrutura de  e .
+    -   **(P0) Refatoração do :** CRÍTICO. Quebrar o componente gigante em subcomponentes por etapa.
+    -   **(P1) Integração de CT-e:** Desenvolver o fluxo para upload e gerenciamento de Conhecimentos de Transporte.
 -   **Future Tasks:**
-    -   **(P0) Refatoração do :** A necessidade é crítica. O arquivo continua crescendo (agora com um endpoint de IA). O próximo agente deve priorizar mover a lógica dos endpoints para a estrutura de  e  de forma incremental.
-    -   **(P1) Task A - Melhorias de UX:** Continuar implementando melhorias de UX (estados de loading, animações, etc.) em outras partes da aplicação que não foram tocadas.
-    -   **(P2) Testes de Frontend:** Implementar testes automatizados para o frontend com uma framework como Cypress ou Playwright.
-    -   **(P2) PWA (Progressive Web App):** Desenvolver uma versão PWA da aplicação.
-    -   **(P2) Sistema de Licenciamento:** Criar um sistema de planos e licenças de uso.
+    -   **(P1) Melhorias de UX:** Adicionar estados de loading, animações e outras melhorias na aplicação.
+    -   **(P2) Testes de Frontend:** Implementar testes automatizados (Cypress/Playwright).
+    -   **(P2) PWA (Progressive Web App):** Desenvolver a versão PWA.
+    -   **(P2) Sistema de Licenciamento:** Criar um sistema de planos e licenças.
 
 **Completed work in this session**
--   **Testes Automatizados:** Corrigidos 2 testes que estavam falhando em . Todos os 17 testes de backend agora passam.
--   **Relatórios Avançados (PDF com Logo):** Adicionado o campo  aos modelos Pydantic da empresa, atualizado o endpoint de upload para salvar o logo e modificado o endpoint de exportação () para gerar PDFs com o logo da empresa.
--   **Melhorias de UX/UI:**
-    -   O menu principal foi completamente reorganizado em , agrupando itens por categorias lógicas e eliminando links duplicados.
-    -   Corrigidos problemas de cores e contraste nas páginas  e  para alinhá-las ao tema escuro.
-    -   A página  foi envolvida pelo componente , corrigindo a ausência do menu de navegação.
-    -   O layout dos botões na página  foi ajustado para melhor alinhamento.
--   **Wizard de Cadastro de Empresa ():**
-    -   Resolvido o bug que impedia o acesso ao Wizard, adicionando um botão Wizard Completo no modal de edição ().
-    -   O botão Nova Empresa agora redireciona diretamente para o Wizard.
-    -   Implementada a funcionalidade de **consulta de CNPJ** na Receita Federal.
-    -   **Migrados mais de 40 campos** do modal antigo para o Wizard, tornando-o a ferramenta primária e completa para cadastro/edição.
-    -   Adicionadas automações e inteligência: sugestão de Anexos do Simples, exibição condicional de campos (Atividade de Locação), perfis comerciais corrigidos, e um novo gerador de **palavras-chave por IA**.
--   **Backend ():**
-    -   Criado novo endpoint  para dar suporte à funcionalidade de IA do Wizard.
+-   **Automação de Cadastro (Wizard):**
+    -   Implementada a sugestão automática de **Tipo de Atividade** (Comércio, Serviço, Mista) baseada na análise dos CNAEs.
+    -   Implementada a consulta automática da **Inscrição Estadual no SINTEGRA** durante a busca de CNPJ. O sistema agora preenche a IE ou marca a empresa como isenta ().
+-   **Refatoração do Wizard (Múltiplas Rodadas):**
+    -   Adicionadas as categorias **Ativo Imobilizado** e **Combustível** na etapa de Classificação.
+    -   Ajustada a Etapa 5 (**Benefícios Fiscais**) para reintroduzir a seleção por ícones (Restaurante, Açougue, etc.) com preenchimento automático de palavras-chave para exclusão.
+    -   Ajustados os nomes de campos entre frontend e backend para consistência (, ).
+-   **Correções (Iniciadas):**
+    -   Removidas as flags Desconsiderar ICMS ST e Desconsiderar ICMS Despesas do Wizard.
+    -   Ajustado o prompt de IA e a lista de exclusão para restaurantes na Etapa de Benefícios.
 
 **Earlier issues found/mentioned but not fixed**
--   As três issues pendentes listadas acima (Verificação do Wizard, Verificação da Classificação, Verificação do Dashboard de Saídas, Cálculo de competência) permanecem abertas. O agente focou nas novas demandas do usuário.
+-   As issues  e  estão pendentes de uma validação final do usuário, originadas em sessões anteriores.
 
 **Known issue recurrence from previous fork**
 -   Nenhuma.
@@ -158,75 +96,64 @@ Nenhuma. O último item de trabalho (automações do Wizard) está pendente de v
 
 
 **Key Technical Concepts**
--   **UI/UX Iterativa:** Rápida iteração sobre a UI com base no feedback direto do usuário, modificando layout, cores e fluxos de navegação.
--   **Componente Monolítico:** O  tornou-se um grande componente que gerencia um fluxo de várias etapas com estado complexo e lógica condicional.
--   **Integração de IA:** Adição de um novo endpoint no backend () que utiliza a biblioteca  para chamar um LLM e gerar sugestões de palavras-chave.
--   **Refatoração de Frontend:** Reorganização da estrutura de navegação () e correção de inconsistências visuais em múltiplas páginas.
--   **Manipulação de Modelo de Dados:** Extensão dos modelos Pydantic (, , ) no backend para acomodar dezenas de novos campos de configuração da empresa.
+-   **Web Scraping no Backend**: Criação de um endpoint em FastAPI que usa bibliotecas Python (não especificadas, mas provavelmente  e  ou similar) para consultar um site externo (SINTEGRA).
+-   **Lógica de Negócio no Frontend**: Implementação de regras complexas de negócio (ex: determinar se a atividade é Mista com base em uma lista de CNAEs) diretamente no componente React.
+-   **AI Prompt Engineering**: Refinamento do prompt enviado a um LLM para obter uma resposta mais estruturada e útil para a automação de tarefas.
 
 **key DB schema**
--   ****: Modelo Pydantic expandido para incluir dezenas de novos campos opcionais, refletindo todas as configurações do Wizard, como , , , , , , etc.
+-   ****: Os modelos Pydantic (, , ) foram estendidos para incluir o campo .
 
 **All files of reference**
 -   
 -   
 -   
--   
--   
--   
--   
--   
 
 **Areas that need refactoring**:
--   ****: Este arquivo agora é extremamente grande e complexo. Ele deve ser quebrado em subcomponentes, possivelmente um para cada etapa do wizard (, , etc.), para melhorar a manutenibilidade.
--   ****: A necessidade de refatoração é agora mais crítica do que nunca. Novas lógicas de negócio (geração de PDF, IA) foram adicionadas diretamente a este arquivo, em vez de serem modularizadas em  e .
+-   ** (CRÍTICO)**: O arquivo continua a ser um monólito. A adição de mais endpoints de utilidade () reforça a necessidade urgente de dividi-lo em  e .
+-   ** (CRÍTICO)**: O componente é excessivamente grande e complexo, dificultando a manutenção. Deve ser quebrado em subcomponentes para cada etapa do wizard.
 
 **key api endpoints**
--   ****: Modificado para salvar a  no documento da empresa no MongoDB.
--   ****: Modificado para aceitar o parâmetro  e buscar o logo da empresa para incluí-lo no relatório gerado.
--   ** (NOVO)**: Recebe uma descrição da atividade da empresa e retorna uma lista de palavras-chave sugeridas por IA para classificação de produtos.
+-   ** (NOVO)**: Endpoint de backend que recebe um CNPJ e um estado (UF) e tenta obter a Inscrição Estadual do site do SINTEGRA.
 
 **Critical Info for New Agent**
--   **Foco no Wizard**: O usuário está extremamente focado no . Sua primeira ação deve ser verificar com o usuário se as últimas alterações (especialmente a IA de palavras-chave) estão satisfatórias. Esteja preparado para mais iterações nesta funcionalidade.
--   **Validações Pendentes**: Existem duas correções de bugs de sessões anteriores (Classificação Inteligente e Dashboard de Saídas) que nunca foram validadas pelo usuário. Você deve solicitar essa validação.
--   **Refatoração Urgente**: Embora o usuário não tenha solicitado, o  e o  estão em um estado que prejudicará o desenvolvimento futuro. Proponha ao usuário um plano para refatorar esses arquivos de forma incremental. Você pode começar movendo o novo endpoint  para um novo arquivo em .
--   **Não se esqueça dos bugs**: O bug do cálculo de competência (Issue 4) está bloqueado, mas não resolvido. Mantenha-o no radar e questione o usuário sobre dados de teste.
+-   **Foco Total no Wizard**: A prioridade absoluta é finalizar as correções no Wizard de Empresa, conforme apontado pelo usuário. Certifique-se de que todos os pontos da imagem fornecida por ele sejam resolvidos.
+-   **Corrigir a IA**: O fluxo de IA para preenchimento de palavras-chave está quebrado. Você precisa primeiro ajustar o backend () para que o endpoint  retorne um JSON estruturado com categorias (revenda, insumo, etc.). Depois, ajuste o frontend () para processar essa resposta e preencher os vários campos de texto de uma vez.
+-   **Comunicar sobre o Bug da Competência**: O bug da competência foi investigado e a lógica do backend parece correta. Comunique isso claramente ao usuário e peça mais detalhes (uma screenshot) se ele insistir no erro. Não deixe o ticket em aberto sem um feedback.
+-   **Proponha a Refatoração**: Assim que as correções urgentes estiverem prontas e validadas, proponha ao usuário um plano para refatorar  e . Esta é uma dívida técnica crítica que está dificultando o desenvolvimento.
 
 **documents and test reports created in this job**
--    (Atualizado com o progresso das tarefas e um novo backlog).
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Usuário**: O Wizard está ótimo, mas faltam automações: sugerir anexos do Simples, corrigir perfis comerciais, mostrar atividade de locação e, o mais importante, uma IA para gerar palavras-chave detalhadas.
-2.  **Agente**: Implementou todas as automações solicitadas, incluindo a IA e um novo endpoint. Verificou com screenshots. (PENDENTE DE VALIDAÇÃO)
-3.  **Usuário**: O Wizard está ótimo, mas faltam TODOS os campos do modal antigo. Pediu um comparativo e a implementação de todos os campos faltantes.
-4.  **Agente**: Criou um comparativo, identificou mais de 20 campos faltantes e os adicionou ao Wizard, distribuindo-os pelas etapas existentes. Verificou com screenshots. (CONCLUÍDO)
-5.  **Usuário**: O botão de Nova Empresa está levando ao modal antigo em vez do novo Wizard.
-6.  **Agente**: Corrigiu o fluxo para que o botão Nova Empresa direcione para o Wizard. Também aninhou Permissões sob Usuários no menu. (CONCLUÍDO)
-7.  **Usuário**: O menu SPED está sem as marcações (checkboxes) de antes. Os botões na tela de documentos estão desalinhados.
-8.  **Agente**: Restaurou os checkboxes na página SPED e corrigiu o alinhamento dos botões na página Documentos. (CONCLUÍDO)
-9.  **Usuário**: O menu está com duplicidade de SPED e a organização está aleatória. Pediu para agrupar por categorias lógicas (Análise, Ação, etc.).
-10. **Agente**: Reorganizou todo o menu lateral com separadores e categorias lógicas, removendo o link duplicado. (CONCLUÍDO)
+1.  **Usuário**: VEJA O TANTO DE COISA QUE TEMOS QUE ARRUMAR... - reporta as regressões no Wizard via imagem. **(EM ANDAMENTO)**
+2.  **Usuário**: COM BASE NOS CNAES... SUGERIR SE É INDUSTRIA... PUXAR A INSCRICAO ESTADUAL... - solicita automação de tipo de atividade e consulta ao SINTEGRA. **(CONCLUÍDO)**
+3.  **Usuário**: AGORA ME GARANTA QUE TODAS AS AUTOMACOES... ESTEJA FUNCIONANDO... - pede verificação geral e a restauração dos ícones de benefício fiscal. **(EM ANDAMENTO)**
+4.  **Usuário**: (Mensagem longa detalhando uma refatoração massiva do Wizard) - solicita adição de categorias, remoção/renomeação de campos, etc. **(CONCLUÍDO)**
+5.  **Usuário**: ISSO ESTA FUNCIONANDO CORRETAMENTE? Expansão Semântica... - pergunta sobre a funcionalidade de expansão semântica. **(CONCLUÍDO)**
+6.  **Usuário**: E SOBRE A CLASSIFICACAO INTELIGENTE? TUDO OK? - pergunta sobre o estado da classificação inteligente. **(CONCLUÍDO)**
+7.  **Usuário**: VOU TE MSNDAR DE NOVO - envia o XML para análise do bug da competência. **(PENDENTE DE FEEDBACK DO AGENTE PARA O USUÁRIO)**
+8.  **Usuário**: SEGUE COM O WIZARD TRAZENDO TODAS AS AUTOMACOES... - solicita a restauração da lógica de benefícios fiscais. **(CONCLUÍDO)**
 
 **Project Health Check:**
--   **Broken**: Nada está completamente quebrado, mas o bug do cálculo de competência () está sem solução.
--   **Blocked**: O  está bloqueado por falta de dados de teste.
+-   **Broken**: O Wizard de Cadastro de Empresas tem várias regressões funcionais que impedem o fluxo correto do usuário.
+-   **Blocked**: Nenhum item está estritamente bloqueado, mas a dívida técnica em  e  torna qualquer nova alteração arriscada e lenta.
 
 **3rd Party Integrations**
--   **Emergent LLM Key**: Utilizada para a nova funcionalidade de IA () e para a classificação inteligente de produtos.
--   **API Externa (não especificada)**: Para consulta de CNPJ na Receita Federal.
+-   **Emergent LLM Key**: Utilizada na funcionalidade de IA para geração de palavras-chave.
+-   **Web Scraping**:
+    -   Consulta à API da Receita Federal para dados de CNPJ.
+    -   Consulta ao site do SINTEGRA para dados de Inscrição Estadual.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
--   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: N/A (Arquivo existente  foi corrigido).
--   **Known regressions**: Nenhuma conhecida.
+-   **Testing agent used after significant changes**: YES, mas o relatório gerado () é de antes das últimas alterações e do reporte de regressões. Uma nova rodada de testes é necessária.
+-   **Test files created**: N/A
+-   **Known regressions**: Sim, as listadas no , reportadas pelo usuário.
 
 **Credentials to test flow:**
 -   **Super Admin**:  / 
--   **Admin**:  / 
--   **Operacional**:  / 
 
 **What agent forgot to execute**
--   O agente não pediu ao usuário para validar as correções pendentes da sessão anterior (Classificação Inteligente e Dashboard de Saídas).
--   O agente não testou o novo endpoint de backend () de forma isolada (ex: com ), confiando apenas na verificação da UI via screenshot.
--   O agente continuou a adicionar lógica de negócio complexa () e a criar um componente de frontend monolítico () sem propor ou executar a refatoração, apesar de ser um ponto crítico levantado em múltiplos handoffs.</analysis>
+-   O agente não resolveu todos os pontos da imagem de regressão do usuário (ex: o bug do Lucro Presumido para Mista).
+-   O agente não validou o formato da resposta do endpoint de IA, que provavelmente não corresponde ao que o frontend precisa para preencher os campos automaticamente.
+-   O agente não comunicou ao usuário suas descobertas sobre o bug da competência, deixando o usuário sem uma resposta.</analysis>
