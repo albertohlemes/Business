@@ -260,6 +260,10 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
   const validateStep = () => {
     switch (currentStep) {
       case 1:
+        if (!formData.codigo_empresa?.trim()) {
+          toast.error('Código da Empresa é obrigatório');
+          return false;
+        }
         if (!formData.razao_social) {
           toast.error('Razão Social é obrigatória');
           return false;
