@@ -7886,7 +7886,10 @@ async def upload_xml_with_progress(
                 })
             
             # Atualizar progresso: classificando
-            if produtos_para_classificar and tipo == 'entrada':
+            # Verificar se deve pular classificação IA (modo rápido)
+            skip_ai = progress.get("skip_ai", False)
+            
+            if produtos_para_classificar and tipo == 'entrada' and not skip_ai:
                 progress["current_step"] = f"Classificando produtos de {file.filename}..."
                 
                 classifications, stats = await classify_products_with_cache(
