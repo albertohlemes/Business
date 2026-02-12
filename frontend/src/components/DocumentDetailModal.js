@@ -364,7 +364,7 @@ const DocumentDetailModal = ({ document, onClose }) => {
                 {diferencaValorTotal >= 0.10 ? (
                   <>
                     <AlertTriangle className="w-4 h-4 text-red-400" />
-                    <span className="text-xs font-semibold text-red-400 uppercase tracking-wide">Diferenças Identificadas (Valores)</span>
+                    <span className="text-xs font-semibold text-red-400 uppercase tracking-wide">Diferença Identificada (Fórmula NF-e)</span>
                   </>
                 ) : (
                   <>
@@ -381,39 +381,39 @@ const DocumentDetailModal = ({ document, onClose }) => {
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] text-[#666] uppercase">Calc. Prod.</p>
+                  <p className="text-[10px] text-[#666] uppercase">Calc. Fórmula</p>
                   <p className="text-sm font-bold text-white">
-                    {formatCurrency(valorTotalCalculadoProdutos)}
+                    {formatCurrency(valorTotalEsperado)}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] text-[#666] uppercase">vProd</p>
+                  <p className="text-[10px] text-[#666] uppercase">vProd (capa)</p>
                   <p className="text-sm font-bold text-white">
-                    {formatCurrency(totaisProdutos.valor_produto)}
+                    {formatCurrency(valorCapaNF.valor_produtos || totaisProdutos.valor_produto)}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">ICMS-ST</p>
                   <p className="text-sm font-bold text-white">
-                    {formatCurrency(totaisProdutos.v_icms_st)}
+                    {formatCurrency(valorCapaNF.total_icms_st)}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">IPI</p>
                   <p className="text-sm font-bold text-white">
-                    {formatCurrency(totaisProdutos.v_ipi)}
+                    {formatCurrency(valorCapaNF.total_ipi)}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] text-[#666] uppercase">Frete</p>
+                  <p className="text-[10px] text-[#666] uppercase">Outras</p>
                   <p className="text-sm font-bold text-white">
-                    {formatCurrency(totaisProdutos.v_frete)}
+                    {formatCurrency(valorCapaNF.total_outras_despesas)}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] text-[#666] uppercase">Desconto</p>
                   <p className="text-sm font-bold text-white">
-                    {formatCurrency(totaisProdutos.v_desconto)}
+                    {formatCurrency(valorCapaNF.total_desconto)}
                   </p>
                 </div>
                 <div className="text-center">
