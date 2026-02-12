@@ -29714,6 +29714,286 @@ async def download_batch_script():
         raise HTTPException(status_code=404, detail="Script não encontrado")
 
 
+# ============================================================
+# REFORMA TRIBUTÁRIA - IVA DUAL (CBS + IBS)
+# ============================================================
+
+from services.reforma_tributaria import (
+    ConfiguracaoReformaTributaria,
+    classificar_entrada,
+    classificar_saida,
+    calcular_apuracao,
+    CST_ENTRADA,
+    CST_SAIDA,
+    NCM_CESTA_BASICA,
+    NCM_IMPOSTO_SELETIVO,
+    NCM_REDUCAO_60,
+    NCM_REDUCAO_30
+)
+from decimal import Decimal
+
+
+class ConfigReformaTributariaModel(BaseModel):
+    """Configuração das alíquotas da Reforma Tributária"""
+    aliquota_cbs: float = 8.80
+    aliquota_ibs: float = 17.70
+
+
+@api_router.get("/reforma-tributaria/config/{company_id}")
+async def get_config_reforma_tributaria(
+    company_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Obtém a configuração da Reforma Tributária para uma empresa"""
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar configuração específica ou usar padrão
+    config = await db.reforma_tributaria_config.find_one(
+        {"company_id": company_id},
+        {"_id": 0}
+    )
+    
+    if not config:
+        config = {
+            "company_id": company_id,
+            "aliquota_cbs": 8.80,
+            "aliquota_ibs": 17.70,
+            "aliquota_total": 26.50
+        }
+    
+    return config
+
+
+@api_router.post("/reforma-tributaria/config/{company_id}")
+async def save_config_reforma_tributaria(
+    company_id: str,
+    config: ConfigReformaTributariaModel,
+    current_user: User = Depends(get_current_user)
+):
+    """Salva a configuração da Reforma Tributária para uma empresa"""
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    config_data = {
+        "company_id": company_id,
+        "aliquota_cbs": config.aliquota_cbs,
+        "aliquota_ibs": config.aliquota_ibs,
+        "aliquota_total": config.aliquota_cbs + config.aliquota_ibs,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_by": current_user.id
+    }
+    
+    await db.reforma_tributaria_config.update_one(
+        {"company_id": company_id},
+        {"$set": config_data},
+        upsert=True
+    )
+    
+    return config_data
+
+
+@api_router.get("/reforma-tributaria/apuracao/{company_id}")
+async def get_apuracao_reforma_tributaria(
+    company_id: str,
+    competencia: str = Query(..., description="Competência no formato MM/YYYY"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Calcula a apuração da Reforma Tributária (IVA Dual) para uma empresa/competência.
+    Retorna créditos, débitos e saldo a pagar.
+    """
+    company = await db.companies.find_one({"id": company_id}, {"_id": 0})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    if not await check_company_access(company, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Buscar configuração
+    config_doc = await db.reforma_tributaria_config.find_one(
+        {"company_id": company_id},
+        {"_id": 0}
+    )
+    
+    config = ConfiguracaoReformaTributaria(
+        aliquota_cbs=Decimal(str(config_doc.get('aliquota_cbs', 8.80))) if config_doc else Decimal('8.80'),
+        aliquota_ibs=Decimal(str(config_doc.get('aliquota_ibs', 17.70))) if config_doc else Decimal('17.70')
+    )
+    
+    # Buscar documentos de entrada
+    docs_entrada = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "entrada",
+        "desconsiderada_devolucao": {"$ne": True}
+    }).to_list(length=100000)
+    
+    # Buscar documentos de saída
+    docs_saida = await db.xml_documents.find({
+        "company_id": company_id,
+        "competencia": competencia,
+        "tipo": "saida",
+        "desconsiderada_devolucao": {"$ne": True}
+    }).to_list(length=100000)
+    
+    # Classificar entradas
+    creditos = []
+    detalhes_entradas = []
+    
+    for doc in docs_entrada:
+        produtos = doc.get('produtos', [])
+        for prod in produtos:
+            cfop = prod.get('cfop', '') or prod.get('cfop_original_emissor', '')
+            ncm = prod.get('ncm', '')
+            valor = Decimal(str(prod.get('valor_total', 0) or 0))
+            
+            if valor > 0:
+                resultado = classificar_entrada(cfop, ncm, valor, config)
+                creditos.append(resultado)
+                
+                detalhes_entradas.append({
+                    'numero_nfe': doc.get('numero_nfe', ''),
+                    'emitente': doc.get('emitente_nome', '')[:30],
+                    'produto': prod.get('descricao', '')[:40],
+                    'ncm': ncm,
+                    'cfop': cfop,
+                    'valor_produto': float(valor),
+                    'cst': resultado.cst_cbs_ibs,
+                    'valor_cbs': float(resultado.valor_cbs),
+                    'valor_ibs': float(resultado.valor_ibs),
+                    'valor_total': float(resultado.valor_total)
+                })
+    
+    # Classificar saídas
+    debitos = []
+    detalhes_saidas = []
+    
+    for doc in docs_saida:
+        produtos = doc.get('produtos', [])
+        for prod in produtos:
+            cfop = prod.get('cfop', '') or prod.get('cfop_original_emissor', '')
+            ncm = prod.get('ncm', '')
+            valor = Decimal(str(prod.get('valor_total', 0) or 0))
+            
+            if valor > 0:
+                resultado = classificar_saida(cfop, ncm, valor, config)
+                debitos.append(resultado)
+                
+                detalhes_saidas.append({
+                    'numero_nfe': doc.get('numero_nfe', ''),
+                    'destinatario': doc.get('destinatario_nome', '')[:30] if doc.get('destinatario_nome') else '',
+                    'produto': prod.get('descricao', '')[:40],
+                    'ncm': ncm,
+                    'cfop': cfop,
+                    'valor_produto': float(valor),
+                    'cst': resultado.cst_cbs_ibs,
+                    'valor_cbs': float(resultado.valor_cbs),
+                    'valor_ibs': float(resultado.valor_ibs),
+                    'valor_is': float(resultado.valor_is),
+                    'valor_total': float(resultado.valor_total),
+                    'motivo': resultado.motivo_reducao
+                })
+    
+    # Calcular apuração
+    apuracao = calcular_apuracao(creditos, debitos)
+    
+    # Calcular comparativo com regime atual (estimativa)
+    # Usando dados do SPED se disponível
+    regime_atual = {
+        'pis_cofins': 0,
+        'icms': 0,
+        'total': 0
+    }
+    
+    sped = await db.sped_files.find_one({
+        "company_id": company_id,
+        "competencia": competencia
+    }, {"_id": 0, "resumo": 1})
+    
+    if sped and sped.get('resumo'):
+        resumo = sped['resumo']
+        regime_atual['pis_cofins'] = (
+            resumo.get('pis_a_recolher', 0) + 
+            resumo.get('cofins_a_recolher', 0)
+        )
+        regime_atual['icms'] = resumo.get('icms_a_recolher', 0)
+        regime_atual['total'] = regime_atual['pis_cofins'] + regime_atual['icms']
+    
+    # Estatísticas por CST
+    stats_cst_entrada = {}
+    for c in creditos:
+        if c.cst_cbs_ibs not in stats_cst_entrada:
+            stats_cst_entrada[c.cst_cbs_ibs] = {'quantidade': 0, 'valor': 0, 'descricao': c.descricao_cst}
+        stats_cst_entrada[c.cst_cbs_ibs]['quantidade'] += 1
+        stats_cst_entrada[c.cst_cbs_ibs]['valor'] += float(c.valor_total)
+    
+    stats_cst_saida = {}
+    for d in debitos:
+        if d.cst_cbs_ibs not in stats_cst_saida:
+            stats_cst_saida[d.cst_cbs_ibs] = {'quantidade': 0, 'valor': 0, 'descricao': d.descricao_cst}
+        stats_cst_saida[d.cst_cbs_ibs]['quantidade'] += 1
+        stats_cst_saida[d.cst_cbs_ibs]['valor'] += float(d.valor_total)
+    
+    return {
+        'company_id': company_id,
+        'competencia': competencia,
+        'config': {
+            'aliquota_cbs': float(config.aliquota_cbs),
+            'aliquota_ibs': float(config.aliquota_ibs),
+            'aliquota_total': float(config.aliquota_total)
+        },
+        'apuracao': apuracao,
+        'comparativo_regime_atual': regime_atual,
+        'diferenca': {
+            'valor': float(apuracao['saldo']['total']) - regime_atual['total'],
+            'percentual': (
+                ((float(apuracao['saldo']['total']) - regime_atual['total']) / regime_atual['total'] * 100)
+                if regime_atual['total'] > 0 else 0
+            )
+        },
+        'estatisticas': {
+            'entradas': {
+                'documentos': len(docs_entrada),
+                'produtos': len(creditos),
+                'por_cst': stats_cst_entrada
+            },
+            'saidas': {
+                'documentos': len(docs_saida),
+                'produtos': len(debitos),
+                'por_cst': stats_cst_saida
+            }
+        },
+        'detalhes': {
+            'entradas': detalhes_entradas[:100],  # Limitar para performance
+            'saidas': detalhes_saidas[:100]
+        }
+    }
+
+
+@api_router.get("/reforma-tributaria/tabelas")
+async def get_tabelas_reforma_tributaria(
+    current_user: User = Depends(get_current_user)
+):
+    """Retorna as tabelas de domínio da Reforma Tributária"""
+    return {
+        'cst_entrada': CST_ENTRADA,
+        'cst_saida': CST_SAIDA,
+        'ncm_cesta_basica': NCM_CESTA_BASICA,
+        'ncm_imposto_seletivo': {k: {'descricao': v['descricao'], 'aliquota': float(v['aliquota_is'] * 100)} for k, v in NCM_IMPOSTO_SELETIVO.items()},
+        'ncm_reducao_60': NCM_REDUCAO_60,
+        'ncm_reducao_30': NCM_REDUCAO_30
+    }
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Business Contabilidade - Sistema de Fechamento Fiscal"}
