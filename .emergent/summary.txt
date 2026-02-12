@@ -1,80 +1,58 @@
 <analysis>**original_problem_statement:**
-O objetivo é corrigir uma série de bugs e implementar melhorias de UX em uma aplicação de fechamento fiscal. A sessão começou com a depuração de uma divergência de valores em NF-e, que foi resolvida melhorando a clareza da UI. Subsequentemente, o usuário reportou e o agente trabalhou nos seguintes pontos:
-1.  **Persistência de Estado no ICMS**: As opções de checkbox na tela de apuração de ICMS não persistiam ao navegar. O agente implementou o uso de  para manter o estado.
-2.  **UI do Benefício Fiscal**: O card de benefício fiscal não aparecia ou mostrava contagens de produtos inconsistentes. O agente corrigiu a lógica de exibição e filtrou a lista de produtos para mostrar apenas aqueles com ICMS > 0.
-3.  **Cálculo de Débito de ICMS**: O usuário reportou uma grande discrepância no valor do débito de ICMS (~Rk vs ~Rk esperado). O agente verificou que os cálculos do backend estavam corretos com base nos dados do banco, indicando uma possível divergência nos dados do ambiente do usuário ou um mal-entendido.
-4.  **Geração do Arquivo SPED Fiscal**: Um CFOP de entrada aparecia com crédito no arquivo SPED mesmo quando a opção para desconsiderá-lo estava ativa. O agente corrigiu a função  para zerar o ICMS no registro  e não apenas no totalizador .
-5.  **Discrepância na Importação de Documentos**: O sistema reportava 14 importados com sucesso mas apenas 2 documentos novos apareciam. O agente identificou que o sistema contava incorretamente as notas duplicadas como importadas. Além disso, a listagem de documentos não filtrava corretamente por modelo (NF-e vs NFC-e).
-6.  **UI do Relatório de Importação**: O usuário pediu para voltar a um layout de relatório mais detalhado, mostrando notas canceladas e uma visualização melhor das devoluções. O agente modificou o backend para retornar esses dados e atualizou o modal de importação no frontend.
-7.  **Bug do Simples Nacional (Trabalho Atual)**: O usuário reportou dois problemas críticos:
-    *   O dashboard do Simples Nacional não apura faturamento nem imposto, mesmo com notas de serviço importadas.
-    *   Ao importar um PDF do PGDAS, o faturamento do mês da competência está sendo colocado no campo de faturamento atual em vez de na grade do histórico de 12 meses, o que corrompe o cálculo do RBT12 para a competência seguinte.
+O objetivo desta sessão era corrigir uma série de bugs críticos no módulo do Simples Nacional, além de outros problemas de importação e UI reportados pelo usuário.
+
+As principais requisições do usuário foram:
+1.  **Bug no Dashboard do Simples Nacional**: O dashboard não estava apurando faturamento nem imposto, mesmo com notas de serviço (NFS-e) importadas.
+2.  **Bug na Importação do PGDAS**: Ao importar um PDF do PGDAS para recompor o histórico de faturamento, o faturamento do mês da competência (ex: 12/2025) não estava sendo incluído no histórico para o cálculo do RBT12 da competência seguinte (01/2026), corrompendo o cálculo do imposto.
+3.  **Erro na Importação de Notas**: Ocorriam erros durante a importação de notas, como  e  para NFS-e sem dados do tomador.
+4.  **Melhorias na UI do Relatório de Upload**:
+    *   Exibir devoluções de fornecedor lado a lado com a nota fiscal de origem.
+    *   Contadores de erros, notas canceladas e rejeitadas por CNPJ não apareciam ou estavam zerados.
+    *   O modal de progresso não permanecia aberto em caso de erro.
+5.  **Cálculo de Retenções em NFS-e**: A apuração de retenções em serviços prestados e tomados estava incorreta. O usuário solicitou um relatório detalhado para as guias de recolhimento (DARF 1708, 5952, ISS por município, INSS).
+6.  **Cálculo do DAS com ISS Retido**: Para empresas do Simples Nacional, o valor do ISS retido na fonte em serviços prestados não estava sendo deduzido do cálculo do DAS, gerando um valor de imposto a pagar maior que o devido.
+7.  **Sincronização de UI**: Ao excluir uma nota de serviço, o Dashboard do Simples Nacional não atualizava os valores.
+8.  **Precisão do Cálculo do DAS**: Havia uma diferença significativa entre o valor do DAS calculado pelo sistema e o valor do portal do Simples Nacional, exigindo uma revisão nos critérios de arredondamento.
+9.  **Atualização de Dados Históricos**: O usuário solicitou que, ao importar um PGDAS, o sistema calculasse e salvasse o valor do DAS para todos os meses do histórico, para fins de comparação no menu Evolução Fiscal.
 
 **User's preferred language**: Português (pt-BR). O próximo agente DEVE responder em português.
 
 **what currently exists?**
-A aplicação é um sistema de fechamento fiscal com frontend em React e backend em FastAPI ( e serviços auxiliares). O agente anterior trabalhou em múltiplos bugs complexos e interligados. Foram realizadas correções na UI do modal de detalhes de documentos, na lógica de validação da barra de progresso, na persistência de estado da página de apuração de ICMS, na geração do arquivo SPED fiscal e no modal de resultados de importação. O último item em andamento era a correção de dois bugs no módulo do Simples Nacional, especificamente na importação de dados do PGDAS e na exibição de dados no dashboard correspondente.
+A aplicação é um sistema de fechamento fiscal (React + FastAPI + MongoDB). Nesta sessão, o agente realizou uma extensa refatoração e correção de bugs, principalmente no backend. A lógica de importação de PGDAS e o cálculo de RBT12 foram corrigidos para garantir a correta composição do histórico de faturamento. Foram implementadas melhorias no parser de NFS-e para tratar corretamente as retenções de impostos. Um novo endpoint e uma nova seção na UI foram criados para gerar um relatório de guias de recolhimento de impostos retidos. A lógica de cálculo do DAS para empresas do Simples Nacional foi ajustada para deduzir o valor do ISS retido na fonte. Finalmente, foi implementado um mecanismo de atualização de estado global para que os dashboards sejam atualizados automaticamente após a exclusão de documentos.
 
 **Last working item**:
-*   **Last item agent was working**: Corrigir a lógica de importação do PGDAS e a falta de dados no dashboard do Simples Nacional. O agente analisou o arquivo , extraiu os dados e identificou que a função  em  estava tratando incorretamente o faturamento da competência atual como parte do histórico para o cálculo do RBT12, em vez de separá-lo.
-*   **Status**: IN PROGRESS
-*   **Agent Testing Done**: N
-*   **Which testing method agent to use?**: backend testing agent. Criar um teste de integração para o endpoint . O teste deve fazer o upload de um PDF PGDAS, e então verificar no banco de dados se os campos  e  na coleção  foram atualizados corretamente, garantindo que o faturamento do mês do PGDAS não seja incluído indevidamente no histórico da mesma competência.
+*   **Last item agent was working**: Implementar a lógica correta de cálculo do DAS para serviços prestados por empresas do Simples Nacional com retenção de ISS. A regra determina que a alíquota efetiva do Simples Nacional deve ser aplicada sobre a receita, mas sem a parcela do ISS, uma vez que este já foi retido pelo tomador do serviço. O agente implementou esta lógica no backend.
+*   **Status**: USER VERIFICATION PENDING
+*   **Agent Testing Done**: Y (O agente executou um script de teste em Python para validar o novo cálculo, comparando o resultado com e sem a retenção de ISS e confirmando que a dedução estava correta).
+*   **Which testing method agent to use?**: Manual testing by user. O agente deve pedir ao usuário para verificar o Dashboard do Simples Nacional para uma empresa com NFS-e de serviços prestados que tenham retenção de ISS, e confirmar se o valor do DAS calculado (líquido) está correto.
 *   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-*   **Issue 1: Lógica de importação do PGDAS está incorreta (P0)**
-*   **Issue 2: Dashboard do Simples Nacional não apura faturamento/imposto (P0)**
-*   **Issue 3: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
-*   **Issue 4: Discrepância de valores entre Dashboard e SPED (P2)**
-*   **Issue 5: Botão de Login fica travado em Processando... (P2)**
+*   **Issue 1: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
+*   **Issue 2: Discrepância de valores entre Dashboard e SPED (P2)**
+*   **Issue 3: Botão de Login fica travado em Processando... (P2)**
 
 **Issues Detail**:
-*   **Issue 1: Lógica de importação do PGDAS está incorreta (P0)**
-    *   **Attempted fixes**: Nenhuma correção foi implementada ainda. O agente identificou a causa raiz.
-    *   **Next debug checklist**:
-        1.  Modificar a função  em .
-        2.  A lógica deve separar o faturamento do mês da competência do PGDAS (ex: 12/2025) dos 12 meses anteriores.
-        3.  O faturamento da competência deve ser salvo em um campo como  na empresa.
-        4.  O  deve ser atualizado para refletir a nova janela de 12 meses para a *próxima* competência (ex: para 01/2026, o RBT12 usará o faturamento de 01/2025 a 12/2025).
-    *   **Why fix this issue and what will be achieved with the fix?**: O cálculo correto do RBT12 é fundamental para determinar a alíquota correta do Simples Nacional. Um erro aqui invalida todo o cálculo de imposto.
-    *   **Status**: IN PROGRESS
-    *   **Is recurring issue?**: N
-    *   **Should Test frontend/backend/both after fix?**: backend
-
-*   **Issue 2: Dashboard do Simples Nacional não apura faturamento/imposto (P0)**
-    *   **Attempted fixes**: Nenhuma. O agente focou no problema do PGDAS primeiro.
-    *   **Next debug checklist**:
-        1.  Após corrigir a importação do PGDAS, verificar o endpoint que alimenta o dashboard do Simples Nacional.
-        2.  Analisar a lógica de cálculo de faturamento e imposto nesse endpoint em .
-        3.  Verificar se ele está lendo corretamente as notas de serviço importadas e os dados do histórico de faturamento () da empresa.
-    *   **Why fix this issue and what will be achieved with the fix?**: O dashboard é a principal ferramenta de visualização para o usuário do Simples Nacional. Sem ele, a funcionalidade é inútil.
-    *   **Status**: NOT STARTED
-    *   **Is recurring issue?**: N
-    *   **Should Test frontend/backend/both after fix?**: both
-
-*   **Issue 3: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
-    *   **Attempted fixes**: Nenhum nesta sessão. Este é um bug herdado do handoff anterior.
-    *   **Next debug checklist**: Conforme handoff: Revisar as funções de upload em , verificar qual data ( vs ) está sendo usada para definir a competência para notas de entrada vs. saída.
-    *   **Why fix this issue and what will be achieved with the fix?**: A alocação correta de documentos por competência é fundamental para o fechamento fiscal.
+*   **Issue 1: NF de fevereiro continua aparecendo nas entradas de janeiro (P1)**
+    *   **Attempted fixes**: Nenhuma nesta sessão. É um problema recorrente.
+    *   **Next debug checklist**: Revisar os endpoints de upload em  para verificar qual campo de data ( vs ) está sendo usado para determinar a competência fiscal dos documentos de entrada e saída. A lógica parece ser inconsistente ou falha.
+    *   **Why fix this issue and what will be achieved with the fix?**: A correta alocação de documentos por competência é essencial para a apuração fiscal precisa.
     *   **Status**: NOT STARTED
     *   **Is recurring issue?**: Y
     *   **Should Test frontend/backend/both after fix?**: backend
 
-*   **Issue 4: Discrepância de valores entre Dashboard e SPED (P2)**
-    *   **Attempted fixes**: Nenhuma. O agente notou a discrepância ao final da investigação do SPED, mas não aprofundou.
-    *   **Next debug checklist**:
-        1.  Comparar o valor total de débitos e créditos do registro E110 do SPED com a soma dos valores dos registros C190.
-        2.  Investigar se há outros registros (ex: C100/C170) ou ajustes que não estão sendo considerados em um dos dois locais.
-    *   **Why fix this issue and what will be achieved with the fix?**: Garante consistência entre os diferentes relatórios e visualizações do sistema.
+*   **Issue 2: Discrepância de valores entre Dashboard e SPED (P2)**
+    *   **Attempted fixes**: Nenhuma.
+    *   **Next debug checklist**: Comparar o valor total de débitos e créditos do registro  do SPED com a soma dos valores dos registros analíticos (, etc.). Investigar se há ajustes ou outros registros que não estão sendo considerados em um dos cálculos.
+    *   **Why fix this issue and what will be achieved with the fix?**: Garante consistência e confiança nos dados apresentados em diferentes partes do sistema.
     *   **Status**: NOT STARTED
     *   **Is recurring issue?**: N
     *   **Should Test frontend/backend/both after fix?**: backend
 
-*   **Issue 5: Botão de Login fica travado em Processando... (P2)**
-    *   **Attempted fixes**: Nenhum. Bug herdado do handoff.
-    *   **Next debug checklist**: Conforme handoff: Analisar  no frontend e garantir que o estado  seja desativado no bloco  da chamada à API.
-    *   **Why fix this issue and what will be achieved with the fix?**: Impede o acesso dos usuários à aplicação.
+*   **Issue 3: Botão de Login fica travado em Processando... (P2)**
+    *   **Attempted fixes**: Nenhuma.
+    *   **Next debug checklist**: Analisar a função  no componente de login do frontend. Garantir que o estado  seja desativado (set to ) no bloco  da chamada da API, para que o botão seja liberado mesmo em caso de erro na requisição.
+    *   **Why fix this issue and what will be achieved with the fix?**: É um bug crítico que impede o acesso do usuário à aplicação.
     *   **Status**: NOT STARTED
     *   **Is recurring issue?**: N
     *   **Should Test frontend/backend/both after fix?**: frontend
@@ -84,38 +62,46 @@ A aplicação é um sistema de fechamento fiscal com frontend em React e backend
 
 **Upcoming and Future Tasks**
 *   **Upcoming Tasks:**
-    *   **(P0) Refatoração do :** Mover endpoints e lógica de negócio para uma estrutura de  e .
-    *   **(P0) Refatoração do :** Quebrar o componente em subcomponentes por etapa.
+    *   **(P0) Refatoração do :** Mover endpoints e lógica de negócio para uma estrutura de  e  para melhorar a manutenibilidade e reduzir bugs.
+    *   **(P0) Refatoração do :** Quebrar o componente em subcomponentes menores por etapa.
 *   **Future Tasks:**
     *   **(P1) Integração de CT-e:** Desenvolver o fluxo para upload e gerenciamento de Conhecimentos de Transporte.
-    *   **(P2) Testes de Frontend:** Implementar testes automatizados (Cypress/Playwright).
+    *   **(P2) Testes de Frontend:** Implementar testes automatizados com Cypress ou Playwright.
 
 **Completed work in this session**
-*   **Correção da Divergência de Valor (UI)**: O modal  foi atualizado para exibir explicitamente o valor do FCP-ST, resolvendo a confusão do usuário.
-*   **Correção da Validação da Barra de Progresso**: A função  em  foi corrigida para incluir o FCP-ST no cálculo.
-*   **Melhoria na Tela de Apuração ICMS**: Implementada persistência de estado para os checkboxes usando  e melhorada a UI do card de benefício fiscal para refletir o estado local e filtrar produtos com ICMS zerado em .
-*   **Correção na Geração do SPED Fiscal**: A função  em  foi corrigida para zerar o ICMS nos registros analíticos  para CFOPs desconsiderados, e não apenas no totalizador .
-*   **Correção na Listagem de Documentos**: O endpoint  em  foi corrigido para filtrar corretamente por modelo de documento (NF-e/NFC-e).
-*   **Melhoria no Relatório de Importação**: O backend () e o frontend () foram atualizados para separar e exibir notas canceladas e para melhorar a visualização de devoluções de fornecedores.
+*   **Correção na Importação de PGDAS**: Ajustada a função  em  para incluir o faturamento do mês da competência () no histórico, corrigindo o cálculo do RBT12 para os meses seguintes. A regex de extração do período de apuração também foi melhorada.
+*   **Correção no Cálculo do DAS (Simples Nacional)**:
+    *   A alíquota efetiva agora é calculada com 4 casas decimais de precisão para bater com o portal da Receita, corrigido em .
+    *   Implementada a lógica para deduzir a parcela do ISS do cálculo do DAS quando a NFS-e de serviço tem ISS retido na fonte.
+*   **Atualização do Histórico Fiscal**: Ao importar um PGDAS, o sistema agora calcula e salva o valor do DAS para cada mês do histórico, populando dados para a tela de Evolução Fiscal.
+*   **Correção de Erros de Importação**:
+    *   Corrigido  ao inicializar a estrutura  no endpoint de upload em .
+    *   Corrigido  no parser de NFS-e (), tratando casos em que o XML não contém dados do tomador ou de contato.
+*   **Relatório de Guias de Retenção**:
+    *   Criado o endpoint  em  para agrupar as retenções (IR, PCC, ISS, INSS) por tipo de guia.
+    *   Adicionada uma nova aba Guias de Recolhimento na página  para exibir este relatório.
+*   **Reatividade da UI**:
+    *   O  foi modificado para rastrear alterações nos documentos.
+    *   As páginas  e  agora usam este contexto para recarregar seus dados automaticamente quando um documento é excluído, sem precisar de um refresh manual.
+*   **UI do Relatório de Upload**: O componente  foi atualizado para exibir corretamente os contadores de notas rejeitadas por CNPJ e canceladas, e para mostrar as devoluções lado a lado com as notas originais.
 
 **Earlier issues found/mentioned but not fixed**
-*   Os problemas de **cálculo de competência** e do **botão de login travado**, ambos mencionados no handoff inicial, não foram abordados nesta sessão.
+*   Os mesmos listados em .
 
 **Known issue recurrence from previous fork**
-*   **Cálculo de Competência**: A lógica de qual data usar ( vs ) foi corrigida várias vezes, mas o problema continua sendo reportado.
-*   **Divergência de Valores**: O problema foi resolvido nesta sessão através de melhorias na UI para evitar confusão do usuário, mas a causa raiz (lógica de validação diferente em locais diferentes) é um padrão recorrente.
+*   **Cálculo de Competência**: A alocação de notas fiscais para o mês correto () continua sendo um bug recorrente e não foi abordado nesta sessão.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
 *   **Backend**: FastAPI, Pydantic, MongoDB.
-*   **Frontend**: React, React Hooks, Axios, TailwindCSS.
-*   **Lógica de Negócio**: Regras fiscais para NF-e (FCP-ST), apuração de ICMS, geração de SPED fiscal e cálculo do Simples Nacional (PGDAS, RBT12).
+*   **Frontend**: React, React Hooks, Context API, Axios, TailwindCSS.
+*   **Lógica de Negócio**: Regras fiscais do Brasil, incluindo Simples Nacional (PGDAS, RBT12, cálculo de DAS, repartição de tributos por anexo), retenções na fonte (IRRF, PCC, ISS, INSS) e estrutura de documentos fiscais (NF-e, NFS-e).
 
 **key DB schema**
-*   ****: Contém todos os documentos fiscais (NF-e, NFC-e, etc). Campos relevantes: ,  ('nfe', 'nfce'), , .
-*   ****: Armazena dados das empresas. Campos relevantes a serem adicionados/corrigidos: , .
+*   ****: O modelo foi enriquecido para NFS-e, incluindo:  (boolean), , , , , , .
+*   ****: Adicionado o campo  (dict) para armazenar os valores de DAS calculados para meses anteriores, visando análises de evolução fiscal. O campo  teve sua lógica de população corrigida.
 
 **All files of reference**
 *   
@@ -125,59 +111,59 @@ A aplicação é um sistema de fechamento fiscal com frontend em React e backend
 *   
 *   
 *   
+*   
+*   
+*   
 
 **Areas that need refactoring**:
-*   ** (CRÍTICO)**: O arquivo monolítico continua sendo a fonte de bugs recorrentes e duplicação de lógica (ex: lógica de upload presente em dois endpoints). A refatoração é urgente.
+*   ** (CRÍTICO)**: O arquivo monolítico com mais de 25.000 linhas é uma fonte constante de bugs e dificulta a manutenção. A refatoração para uma arquitetura baseada em  e  é urgente e foi listada como tarefa futura.
+*   ****: O componente cresceu consideravelmente com a adição da nova aba Guias de Recolhimento e agora ultrapassa 900 linhas. Ele deve ser dividido em subcomponentes para melhorar a legibilidade.
 
 **key api endpoints**
-*   : Endpoint de importação de documentos com lógica de duplicados e contagem de resultados.
-*   : Endpoint de listagem de documentos que foi corrigido para filtrar por modelo.
-*   : Endpoint que gera o arquivo SPED, corrigido para zerar ICMS no C190.
-*   : Endpoint para importação de PGDAS com a lógica a ser corrigida.
+*   : Endpoint central para o dashboard. Teve a lógica de cálculo de RBT12 e DAS (com dedução de ISS) completamente reformulada.
+*   : Endpoint de importação de PGDAS. Agora também calcula e salva o DAS para cada mês do histórico importado.
+*    (NOVO): Gera o relatório de guias de recolhimento de impostos retidos como tomador de serviço.
+*   : Endpoint de importação de XML. Teve múltiplos bugs de  e  corrigidos.
 
 **Critical Info for New Agent**
-*   **Prioridade Máxima**: Corrigir os dois bugs do Simples Nacional. Comece pelo da importação do PGDAS, pois ele provavelmente alimenta o dashboard. A causa raiz já foi encontrada em  na função . A função precisa ser reescrita para separar o faturamento do mês da competência do PGDAS do histórico de 12 meses usado para o cálculo do RBT12.
-*   **Segundo Passo**: Após corrigir a importação, investigue por que o dashboard do Simples Nacional não exibe os dados. Verifique o endpoint correspondente em  e o componente frontend para garantir que os dados corretos (das notas de serviço e do histórico PGDAS) estão sendo consultados e renderizados.
-*   **Bugs Recorrentes**: Esteja ciente dos bugs recorrentes de cálculo de competência e da complexidade do , que pode esconder lógicas duplicadas ou inconsistentes.
+*   A prioridade máxima é obter a validação do usuário sobre a última correção: o cálculo do DAS com a dedução do ISS retido.
+*   O módulo do Simples Nacional é extremamente complexo e sensível. Esteja preparado para depurar regras fiscais detalhadas e possíveis novos casos de borda que o usuário possa encontrar.
+*   A refatoração do  é uma tarefa de alta prioridade que deve ser proposta ao usuário. Muitos bugs desta sessão são sintomas da complexidade e falta de modularidade deste arquivo.
+*   A comunicação entre componentes frontend agora utiliza um estado global ( no ) para reatividade. Siga este padrão para futuras implementações que exijam atualização de estado entre páginas/componentes não relacionados.
+*   Esteja ciente do bug recorrente de alocação de competência (NF de fevereiro em janeiro). Ele não foi tratado e provavelmente será reportado novamente.
 
 **documents and test reports created in this job**
-*   
-*   
-*   Vários arquivos XML de NF-e para depuração da importação.
+*    (foi atualizado com as novas funcionalidades e correções).
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Usuário**: Reporta o problema com o Simples Nacional (dashboard vazio e importação PGDAS incorreta). (PENDENTE)
-2.  **Usuário**: Informa que a importação de 14 notas só mostra 2, e pergunta se estão indo para outra competência. (RESOLVIDO PARCIALMENTE - Bug de contagem e listagem, mas a causa raiz da detecção de duplicatas ainda é frágil)
-3.  **Usuário**: Reclama da inconsistência na exibição de notas canceladas e pede para reverter a UI do modal de importação para um layout mais detalhado. (CONCLUÍDO)
-4.  **Usuário**: Reporta que um CFOP continua com crédito no SPED e há diferença de valores entre o dashboard e o SPED. (CONCLUÍDO - crédito no SPED / PENDENTE - diferença de valores)
-5.  **Usuário**: Esclarece que o problema do débito de ICMS de 9k vs 4k é na empresa 6023 para 01/2026. (CONCLUÍDO - Agente verificou que o cálculo do sistema de R.3k está correto com base nos dados do DB)
-6.  **Usuário**: Reporta a grande discrepância no débito de ICMS no dashboard principal (9k vs 4k). (CONCLUÍDO - Investigado)
-7.  **Usuário**: Confirma que a correção do filtro de produtos (só com ICMS > 0) funcionou, mas a contagem total no card e na listagem está divergente. (CONCLUÍDO)
-8.  **Usuário**: Informa que o card de benefício fiscal apareceu, mas está trazendo produtos com ICMS zerado. (CONCLUÍDO)
-9.  **Usuário**: Pede duas correções na tela de ICMS: persistir os checkboxes e reativar o card de benefício fiscal. (CONCLUÍDO)
-10. **Usuário**: Confirma que a correção do valor da NF-e funcionou, mas a barra de progresso ainda acusa 1 divergência. (CONCLUÍDO)
+1.  **Usuário**: Informa que ao excluir uma nota de serviço, o dashboard do Simples Nacional não está atualizando (zerando a informação). (CONCLUÍDO)
+2.  **Usuário**: Pede para confirmar se o dashboard principal também foi arrumado. (CONCLUÍDO - agente aplicou a mesma lógica de atualização).
+3.  **Usuário**: Dá permissão para finalizar a sessão. (IGNORADO - usuário enviou nova requisição em seguida).
+4.  **Usuário**: Reitera que para NFS-e com retenção de ISS, o sistema não está desconsiderando a parcela do ISS no cálculo do DAS. (PENDENTE DE VERIFICAÇÃO - Foi o último item implementado).
+5.  **Usuário**: Informa que o cálculo do DAS para a empresa BEARGROUP no mês 01/2026 está com uma diferença grande em relação ao portal do Simples e pede para rever o arredondamento. (CONCLUÍDO).
+6.  **Usuário**: Pede para que a importação do PGDAS também atualize os dados em períodos anteriores para o menu Evolução Fiscal. (CONCLUÍDO).
+7.  **Usuário**: Reporta um erro no Dashboard do Simples (). Pergunta se a reimportação do PGDAS sobrepõe os dados ou se é preciso deletar antes. (CONCLUÍDO - erro corrigido e dúvida respondida).
+8.  **Usuário**: Reporta um erro ao importar uma NFS-e de prestador. (CONCLUÍDO -  corrigido).
+9.  **Usuário**: Reporta que a importação de PGDAS para compor os 12 meses ainda não está incluindo dezembro. (CONCLUÍDO - regex de extração do período foi corrigida).
+10. **Usuário**: Pede para criar um relatório para guias de retenção de serviços tomados (IR, PCC, ISS, INSS). (CONCLUÍDO).
 
 **Project Health Check:**
 *   **Broken**:
-    *   Cálculo e persistência de dados do Simples Nacional a partir do PGDAS.
-    *   Exibição de dados no dashboard do Simples Nacional.
-    *   A lógica de detecção de duplicatas na importação ainda é frágil e a contagem de resultados é enganosa.
-    *   Cálculo de competência de documentos.
+    *   A lógica de atribuição de competência para documentos fiscais (ex: nota de fevereiro aparecendo em janeiro) é um bug antigo, recorrente e ainda não resolvido.
+*   **Mocked**:
+    *   Nenhum.
 
 **3rd Party Integrations**
-*   **Emergent LLM Key**: Utilizada para a geração de palavras-chave e classificação por IA.
-*   **Web Scraping**: APIs da Receita Federal e SINTEGRA para consulta de dados de empresas.
-*   **PyMuPDF/PDFMiner**: Usado para extrair texto de PDFs do PGDAS.
+*   **PyMuPDF**: Usado intensivamente para extrair texto de arquivos PDF do PGDAS.
 
 **Testing status**
 *   **Testing agent used after significant changes**: NO
 *   **Troubleshoot agent used after agent stuck in loop**: NO
 *   **Test files created**: []
-*   **Known regressions**: O cálculo de competência é uma regressão conhecida.
+*   **Known regressions**: O cálculo de competência dos documentos é uma regressão conhecida de forks anteriores e permanece sem solução.
 
 **Credentials to test flow:**
 *   **Super Admin**:  / 
 
 **What agent forgot to execute**
-*   O agente esteve focado em resolver os problemas reportados pelo usuário e não abordou proativamente os itens de Upcoming Tasks como a refatoração do , que é a causa raiz de muitos bugs recorrentes.
-*   As issues do handoff original sobre o bug de competência e o botão de login travado não foram tratadas.</analysis>
+*   O agente não abordou as tarefas pendentes de alta prioridade do handoff anterior, como o bug da competência, a discrepância com o SPED e o botão de login travado, pois o foco foi totalmente direcionado às novas e urgentes demandas do usuário sobre o módulo do Simples Nacional.</analysis>

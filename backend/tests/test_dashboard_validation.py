@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://simplesapp.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://taxmodulefix.preview.emergentagent.com')
 
 # Test company ID (ANZEN)
 ANZEN_COMPANY_ID = "e04975c4-b209-483f-b9bf-4e429a52fa74"
