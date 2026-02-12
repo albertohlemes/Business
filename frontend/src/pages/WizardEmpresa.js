@@ -178,8 +178,8 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
     produtos_aplicacao_servico: [],
     insumos_producao: [],
     produtos_despesa: [],
-    produtos_ativo_imobilizado: [],
-    produtos_combustivel: [],
+    ativo_imobilizado: [],
+    combustivel: [],
     classificacao_inteligente: '',
     
     // === PRESUNÇÃO - LUCRO PRESUMIDO ===
