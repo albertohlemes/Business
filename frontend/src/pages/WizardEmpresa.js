@@ -536,16 +536,16 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
       insumos: 'insumos_producao',
       despesa: 'produtos_despesa',
       servico: 'produtos_aplicacao_servico',
-      imobilizado: 'ativo_imobilizado',
-      combustivel: 'combustivel',
+      ativo_imobilizado: 'produtos_ativo_imobilizado',
+      combustivel: 'produtos_combustivel',
       sem_credito: 'produtos_sem_credito_icms',
     };
     
     const field = fieldMap[category];
-    if (field && !formData[field].includes(keyword)) {
+    if (field && !formData[field]?.includes(keyword)) {
       setFormData(prev => ({
         ...prev,
-        [field]: [...prev[field], keyword]
+        [field]: [...(prev[field] || []), keyword]
       }));
     }
     
@@ -558,8 +558,8 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
       insumos: 'insumos_producao',
       despesa: 'produtos_despesa',
       servico: 'produtos_aplicacao_servico',
-      imobilizado: 'ativo_imobilizado',
-      combustivel: 'combustivel',
+      ativo_imobilizado: 'produtos_ativo_imobilizado',
+      combustivel: 'produtos_combustivel',
       sem_credito: 'produtos_sem_credito_icms',
     };
     
@@ -567,7 +567,7 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
     if (field) {
       setFormData(prev => ({
         ...prev,
-        [field]: prev[field].filter(k => k !== keyword)
+        [field]: (prev[field] || []).filter(k => k !== keyword)
       }));
     }
   };
