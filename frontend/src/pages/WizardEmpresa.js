@@ -260,39 +260,72 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
       });
       const data = response.data;
       
-      // Determinar tipo de atividade com base no CNAE
-      let tipoAtividade = 'comercio';
+      // Função para classificar CNAE
+      const classificarCnae = (cnae) => {
+        if (!cnae) return null;
+        const prefixo = cnae.substring(0, 2);
+        
+        // Indústria (Seção C - 10 a 33)
+        const industriaPrefixos = ['10', '11', '12', '13', '14', '15', '16', '17', '18', '19', 
+                                    '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', 
+                                    '30', '31', '32', '33'];
+        if (industriaPrefixos.includes(prefixo)) return 'industria';
+        
+        // Comércio (Seção G - 45 a 47)
+        const comercioPrefixos = ['45', '46', '47'];
+        if (comercioPrefixos.includes(prefixo)) return 'comercio';
+        
+        // Serviços (várias seções)
+        const servicosPrefixos = ['49', '50', '51', '52', '53', '55', '56', '58', '59', '60',
+                                   '61', '62', '63', '64', '65', '66', '68', '69', '70', '71',
+                                   '72', '73', '74', '75', '77', '78', '79', '80', '81', '82',
+                                   '84', '85', '86', '87', '88', '90', '91', '92', '93', '94', '95', '96'];
+        if (servicosPrefixos.includes(prefixo)) return 'servicos';
+        
+        // Agropecuária (Seção A - 01 a 03)
+        const agroPrefixos = ['01', '02', '03'];
+        if (agroPrefixos.includes(prefixo)) return 'comercio'; // Tratamos como comércio para simplificar
+        
+        return null;
+      };
+      
+      // Analisar TODOS os CNAEs para determinar o tipo de atividade
       const cnaePrincipal = data.cnae_principal || '';
-      if (cnaePrincipal.startsWith('10') || cnaePrincipal.startsWith('11') || 
-          cnaePrincipal.startsWith('12') || cnaePrincipal.startsWith('13') ||
-          cnaePrincipal.startsWith('20') || cnaePrincipal.startsWith('21') ||
-          cnaePrincipal.startsWith('22') || cnaePrincipal.startsWith('23') ||
-          cnaePrincipal.startsWith('24') || cnaePrincipal.startsWith('25') ||
-          cnaePrincipal.startsWith('26') || cnaePrincipal.startsWith('27') ||
-          cnaePrincipal.startsWith('28') || cnaePrincipal.startsWith('29') ||
-          cnaePrincipal.startsWith('30') || cnaePrincipal.startsWith('31') ||
-          cnaePrincipal.startsWith('32') || cnaePrincipal.startsWith('33')) {
+      const cnaesSecundarios = data.cnaes_secundarios || [];
+      const todosOsCnaes = [cnaePrincipal, ...cnaesSecundarios].filter(Boolean);
+      
+      // Mapear cada CNAE para seu tipo
+      const tipos = todosOsCnaes.map(cnae => {
+        const codigo = typeof cnae === 'object' ? cnae.codigo : cnae;
+        return classificarCnae(codigo);
+      }).filter(Boolean);
+      
+      // Determinar tipo de atividade
+      let tipoAtividade = 'comercio';
+      const temIndustria = tipos.includes('industria');
+      const temComercio = tipos.includes('comercio');
+      const temServicos = tipos.includes('servicos');
+      
+      if ((temIndustria && temServicos) || (temComercio && temServicos) || (temIndustria && temComercio && temServicos)) {
+        tipoAtividade = 'mista';
+      } else if (temIndustria && !temServicos && !temComercio) {
         tipoAtividade = 'industria';
-      } else if (cnaePrincipal.startsWith('45') || cnaePrincipal.startsWith('46') || 
-                 cnaePrincipal.startsWith('47')) {
-        tipoAtividade = 'comercio';
-      } else if (cnaePrincipal.startsWith('49') || cnaePrincipal.startsWith('50') ||
-                 cnaePrincipal.startsWith('51') || cnaePrincipal.startsWith('52') ||
-                 cnaePrincipal.startsWith('53') || cnaePrincipal.startsWith('55') ||
-                 cnaePrincipal.startsWith('56') || cnaePrincipal.startsWith('58') ||
-                 cnaePrincipal.startsWith('59') || cnaePrincipal.startsWith('60') ||
-                 cnaePrincipal.startsWith('61') || cnaePrincipal.startsWith('62') ||
-                 cnaePrincipal.startsWith('63') || cnaePrincipal.startsWith('64') ||
-                 cnaePrincipal.startsWith('65') || cnaePrincipal.startsWith('66') ||
-                 cnaePrincipal.startsWith('68') || cnaePrincipal.startsWith('69') ||
-                 cnaePrincipal.startsWith('70') || cnaePrincipal.startsWith('71') ||
-                 cnaePrincipal.startsWith('72') || cnaePrincipal.startsWith('73') ||
-                 cnaePrincipal.startsWith('74') || cnaePrincipal.startsWith('75') ||
-                 cnaePrincipal.startsWith('77') || cnaePrincipal.startsWith('78') ||
-                 cnaePrincipal.startsWith('79') || cnaePrincipal.startsWith('80') ||
-                 cnaePrincipal.startsWith('81') || cnaePrincipal.startsWith('82')) {
+      } else if (temServicos && !temIndustria && !temComercio) {
         tipoAtividade = 'servicos';
+      } else if (temComercio && !temIndustria && !temServicos) {
+        tipoAtividade = 'comercio';
+      } else if (temIndustria && temComercio) {
+        tipoAtividade = 'industria'; // Indústria que também comercializa
+      } else {
+        // Usar classificação do CNAE principal
+        tipoAtividade = classificarCnae(cnaePrincipal) || 'comercio';
       }
+      
+      // Verificar se é transportadora pelo CNAE
+      const isTransportadora = todosOsCnaes.some(cnae => {
+        const codigo = typeof cnae === 'object' ? cnae.codigo : cnae;
+        return codigo && ['49', '50', '51', '52', '53'].some(p => codigo.startsWith(p));
+      });
       
       setFormData(prev => ({
         ...prev,
@@ -307,15 +340,28 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
         cnaes: data.cnaes_secundarios || [],
         tipo_atividade: tipoAtividade,
         atividade_principal: data.cnae_principal_descricao || '',
+        is_transportadora: isTransportadora,
+        _transportadora_checked: true,
       }));
       
       // Sugerir anexos automaticamente
-      const todosOsCnaes = [data.cnae_principal, ...(data.cnaes_secundarios || [])].filter(Boolean);
       const anexos = sugerirAnexosPorCnaes(todosOsCnaes);
       setAnexosSugeridos(anexos);
       
+      // Mostrar mensagem de sucesso com tipo sugerido
+      const tipoNome = {
+        'comercio': 'Comércio',
+        'industria': 'Indústria',
+        'servicos': 'Serviços',
+        'mista': 'Mista (Comércio + Serviços)'
+      };
       const qtdCnaes = data.cnaes_secundarios?.length || 0;
-      toast.success(`Dados carregados da Receita Federal! ${qtdCnaes > 0 ? `${qtdCnaes} CNAEs secundários importados.` : ''} Anexos sugeridos: ${anexos.join(', ') || 'Nenhum'}`);
+      toast.success(`Dados carregados! Tipo sugerido: ${tipoNome[tipoAtividade]}${isTransportadora ? ' (Transportadora)' : ''}. ${qtdCnaes > 0 ? `${qtdCnaes} CNAEs secundários.` : ''}`);
+      
+      // Consultar SINTEGRA para Inscrição Estadual
+      if (data.uf) {
+        consultarSintegra(cnpjLimpo, data.uf);
+      }
     } catch (err) {
       console.error('Erro ao buscar CNPJ:', err);
       toast.error(err.response?.data?.detail || 'Erro ao consultar CNPJ na Receita Federal');
