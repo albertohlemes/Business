@@ -178,9 +178,14 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
     produtos_aplicacao_servico: [],
     insumos_producao: [],
     produtos_despesa: [],
-    ativo_imobilizado: [],
-    combustivel: [],
+    produtos_ativo_imobilizado: [],
+    produtos_combustivel: [],
     classificacao_inteligente: '',
+    
+    // === PRESUNÇÃO - LUCRO PRESUMIDO ===
+    percentual_presuncao: 8,
+    percentual_presuncao_comercio: 8,
+    percentual_presuncao_servicos: 32,
     
     // === BENEFÍCIOS FISCAIS ===
     beneficio_fiscal_icms: false,
