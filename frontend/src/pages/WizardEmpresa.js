@@ -2199,6 +2199,27 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
             </button>
           )}
           
+          {/* Botão Salvar - aparece em TODAS as etapas quando em modo de edição */}
+          {companyId && currentStep < STEPS.length && (
+            <button
+              onClick={saveCompany}
+              disabled={saving}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
+            >
+              {saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Salvar
+                </>
+              )}
+            </button>
+          )}
+          
           {currentStep < STEPS.length ? (
             <button
               onClick={nextStep}
@@ -2221,7 +2242,7 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  Finalizar
+                  {companyId ? 'Salvar Alterações' : 'Finalizar'}
                 </>
               )}
             </button>
