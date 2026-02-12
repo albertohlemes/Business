@@ -27797,39 +27797,65 @@ async def gerar_palavras_chave_ia(
 ):
     """
     Gera sugestões de palavras-chave para classificação de produtos usando IA.
+    A IA analisa a descrição e preenche automaticamente os campos de classificação.
     """
     from emergentintegrations.llm.chat import chat, UserMessage
     
     try:
-        # Construir prompt detalhado
-        prompt = f"""Você é um especialista fiscal brasileiro. Com base na descrição da empresa abaixo, gere palavras-chave para classificação fiscal de produtos.
+        # Construir prompt detalhado para análise inteligente
+        prompt = f"""Você é um contador fiscal brasileiro especialista em classificação de produtos para fins de ICMS, PIS/COFINS.
 
-DESCRIÇÃO DA EMPRESA:
-{request.descricao}
+DESCRIÇÃO DA ATIVIDADE DA EMPRESA:
+"{request.descricao}"
 
 TIPO DE ATIVIDADE: {request.tipo_atividade}
-{f"CNAE PRINCIPAL: {request.cnae_principal} - {request.cnae_descricao}" if request.cnae_principal else ""}
+{f"CNAE: {request.cnae_principal} - {request.cnae_descricao}" if request.cnae_principal else ""}
 
-Gere palavras-chave ESPECÍFICAS e DETALHADAS para cada categoria abaixo. Use termos que aparecem em descrições de notas fiscais.
+TAREFA: Analise a descrição e gere palavras-chave ESPECÍFICAS para classificar os produtos de entrada desta empresa.
 
-Retorne APENAS um JSON válido no seguinte formato (sem markdown, sem explicações):
+REGRAS DE CLASSIFICAÇÃO:
+1. **produtos_comercializados** (REVENDA): Produtos que a empresa compra PARA REVENDER ao cliente final
+   - Ex: Se é loja de roupas → "camisa", "calca", "vestido", "sapato"
+   - Ex: Se é mercado → "refrigerante", "biscoito", "cerveja"
+
+2. **insumos_producao** (INSUMO): Matérias-primas que são TRANSFORMADAS no processo produtivo
+   - Ex: Se é restaurante → "carne", "frango", "arroz", "feijao", "oleo", "tempero", "legume", "verdura"
+   - Ex: Se é padaria → "farinha", "fermento", "acucar", "ovos", "leite"
+   - Ex: Se é indústria → matérias-primas específicas do setor
+
+3. **produtos_aplicacao_servico** (SERVIÇO): Materiais aplicados diretamente na prestação de serviço
+   - Ex: Se é oficina mecânica → "peca", "oleo motor", "filtro", "pastilha freio"
+   - Ex: Se é salão de beleza → "tinta cabelo", "shampoo profissional", "creme"
+
+4. **produtos_despesa** (DESPESA): Materiais de uso e consumo que NÃO integram o produto/serviço final
+   - SEMPRE incluir: "material escritorio", "material limpeza", "copa cozinha", "manutencao"
+
+5. **ativo_imobilizado**: Bens duráveis para uso permanente
+   - SEMPRE incluir: "computador", "impressora", "moveis", "equipamento"
+
+6. **combustivel**: Combustíveis para veículos da empresa
+   - SEMPRE incluir: "gasolina", "diesel", "etanol"
+
+EXEMPLO - RESTAURANTE DE MASSAS E VINHOS:
+- insumos_producao: ["massa", "farinha", "molho tomate", "queijo", "carne", "frango", "azeite", "tempero", "ervas", "legumes"]
+- produtos_comercializados: ["vinho", "cerveja", "refrigerante", "agua mineral"] (se vende para o cliente levar)
+- produtos_despesa: ["material limpeza", "guardanapo", "embalagem delivery", "material escritorio"]
+
+Retorne APENAS o JSON abaixo (sem markdown, sem explicações):
 {{
-  "produtos_comercializados": ["palavra1", "palavra2", ...],
-  "insumos_producao": ["palavra1", "palavra2", ...],
-  "produtos_despesa": ["material escritorio", "material limpeza", "combustivel", ...],
-  "produtos_aplicacao_servico": ["palavra1", "palavra2", ...],
-  "ativo_imobilizado": ["computador", "impressora", "moveis", "veiculos", ...],
-  "combustivel": ["gasolina", "diesel", "etanol", "gnv", ...]
+  "produtos_comercializados": [...],
+  "insumos_producao": [...],
+  "produtos_despesa": [...],
+  "produtos_aplicacao_servico": [...],
+  "ativo_imobilizado": [...],
+  "combustivel": [...]
 }}
 
-REGRAS:
-- Para COMÉRCIO: foque em "produtos_comercializados" (produtos que a empresa compra para revender)
-- Para INDÚSTRIA: foque em "insumos_producao" (matérias-primas) e "produtos_comercializados" (produtos finais)
-- Para SERVIÇOS: foque em "produtos_aplicacao_servico" (materiais usados na prestação do serviço)
-- Para TODOS: inclua "produtos_despesa" (material de escritório, limpeza, copa, manutenção)
-- Inclua pelo menos 10 palavras por categoria relevante
-- Use termos em português, em minúsculas
-- Seja MUITO específico (ex: em vez de "alimento", use "arroz", "feijao", "oleo de soja")
+IMPORTANTE: 
+- Use palavras em PORTUGUÊS, MINÚSCULAS
+- Seja ESPECÍFICO (ex: "picanha" em vez de "carne")
+- Coloque pelo menos 5-10 palavras por categoria RELEVANTE
+- Deixe vazio [] categorias não aplicáveis ao negócio
 """
 
         response = await chat(
