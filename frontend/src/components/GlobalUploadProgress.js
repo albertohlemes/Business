@@ -319,43 +319,50 @@ const GlobalUploadProgress = () => {
         {/* Resultado do upload */}
         {uploadResults && !isUploading && (
           <div>
-            {/* Linha 1: Importados, Duplicados, Erros */}
+            {/* Linha 1: Importados, Duplicados, Rejeit. CNPJ */}
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2">
                 <p className="text-xl font-bold text-green-400">
                   {uploadResults.resumo?.importados || uploadResults.success?.length || 0}
                 </p>
-                <p className="text-xs text-green-300">Importados</p>
+                <p className="text-[10px] text-green-300">Importados</p>
               </div>
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
                 <p className="text-xl font-bold text-amber-400">
                   {uploadResults.resumo?.duplicados || uploadResults.duplicadas?.length || 0}
                 </p>
-                <p className="text-xs text-amber-300">Duplicados</p>
+                <p className="text-[10px] text-amber-300">Duplicados</p>
               </div>
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2">
-                <p className="text-xl font-bold text-red-400">
-                  {uploadResults.resumo?.erros || uploadResults.errors?.length || 0}
+              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-2">
+                <p className="text-xl font-bold text-orange-400">
+                  {uploadResults.resumo?.rejeitados_cnpj || uploadResults.rejeitadas_cnpj?.length || 0}
                 </p>
-                <p className="text-xs text-red-300">Erros</p>
+                <p className="text-[10px] text-orange-300">Rejeit. CNPJ</p>
               </div>
             </div>
             
-            {/* Linha 2: Canceladas e Devoluções (se houver) */}
-            {((uploadResults.resumo?.notas_canceladas || uploadResults.notas_canceladas?.length || 0) > 0 || 
+            {/* Linha 2: Erros, Canceladas, Devoluções (se houver algum) */}
+            {((uploadResults.resumo?.erros || uploadResults.errors?.length || 0) > 0 ||
+              (uploadResults.resumo?.notas_canceladas || uploadResults.notas_canceladas?.length || 0) > 0 || 
               (uploadResults.resumo?.desconsideradas_devolucao || uploadResults.notas_desconsideradas_devolucao?.length || 0) > 0) && (
-              <div className="grid grid-cols-2 gap-2 text-center mt-2">
+              <div className="grid grid-cols-3 gap-2 text-center mt-2">
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2">
+                  <p className="text-lg font-bold text-red-400">
+                    {uploadResults.resumo?.erros || uploadResults.errors?.length || 0}
+                  </p>
+                  <p className="text-[10px] text-red-300">Erros</p>
+                </div>
                 <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-2">
                   <p className="text-lg font-bold text-gray-400">
                     {uploadResults.resumo?.notas_canceladas || uploadResults.notas_canceladas?.length || 0}
                   </p>
-                  <p className="text-xs text-gray-300">Canceladas</p>
+                  <p className="text-[10px] text-gray-300">Canceladas</p>
                 </div>
                 <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-2">
                   <p className="text-lg font-bold text-purple-400">
                     {uploadResults.resumo?.desconsideradas_devolucao || uploadResults.notas_desconsideradas_devolucao?.length || 0}
                   </p>
-                  <p className="text-xs text-purple-300">Devoluções</p>
+                  <p className="text-[10px] text-purple-300">Devoluções</p>
                 </div>
               </div>
             )}
