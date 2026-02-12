@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUpload } from '../context/UploadContext';
-import { X, ChevronUp, ChevronDown, CheckCircle2, AlertCircle, FileText, Upload, Coffee } from 'lucide-react';
+import { X, ChevronUp, ChevronDown, CheckCircle2, AlertCircle, FileText, Upload, Coffee, XCircle } from 'lucide-react';
 import CoffeeProgress from './CoffeeProgress';
 
 // Mini xícara de café animada para o progresso minimizado
