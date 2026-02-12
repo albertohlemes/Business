@@ -55,9 +55,9 @@ const TIPOS_ESTABELECIMENTO_BENEFICIO = [
     value: 'casa_carnes', 
     label: 'Casa de Carnes / Açougue', 
     icon: '🥩',
-    description: 'Exclui apenas CARNES, BACON e EMBUTIDOS (cesta básica) - demais produtos geram crédito',
-    sugestao_exclusao: 'CARNES',
-    palavras_excluir: ['carne', 'bovina', 'suina', 'frango', 'peixe', 'linguica', 'bacon', 'presunto', 'salsicha', 'mortadela', 'frios', 'embutidos']
+    description: 'Exclui apenas CARNES FRESCAS (cesta básica) - bacon, embutidos e frios NÃO entram na exclusão',
+    sugestao_exclusao: 'CARNES FRESCAS',
+    palavras_excluir: ['carne', 'bovina', 'suina', 'frango', 'peixe', 'picanha', 'alcatra', 'costela', 'file', 'corte', 'ave']
   },
   { 
     value: 'padaria', 
