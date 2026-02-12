@@ -15,9 +15,12 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 
 ### 2. Importação de Documentos
 - Upload de XMLs (NF-e, NFC-e, CT-e, NFS-e)
+- **Upload de arquivos ZIP** ✅ (extrai e importa múltiplos XMLs automaticamente) - Fev/2026
+- **Drag-and-Drop** ✅ (arrastar e soltar arquivos na área de upload) - Fev/2026
 - Importação via IA (PDFs, imagens)
 - Integração com SIEG (BLOQUEADO - chave inválida)
 - **Barra de progresso flutuante global** ✅ (visível em todas as telas)
+- **Feedback melhorado para uploads grandes** ✅ (animação, estimativa de tempo, indicador de processamento) - Fev/2026
 - **Botão X para fechar barra de progresso** ✅
 - **Timeout automático de 120 segundos** ✅ (notifica erro se travada)
 - Validação automática de CFOP por operação
