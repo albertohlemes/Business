@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import CoffeeProgress from './CoffeeProgress';
+import BackgroundJobsIndicator from './BackgroundJobsIndicator';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
