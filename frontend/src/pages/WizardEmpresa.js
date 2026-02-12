@@ -815,20 +815,36 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
               </div>
             </div>
             
-            {/* CNAE se disponível */}
+            {/* CNAE se disponível - MOSTRANDO TODOS */}
             {formData.cnae_principal && (
               <div className="bg-[#141414] rounded-lg p-4 border border-[#2A2A2A]">
                 <label className="block text-sm font-medium text-[#C8A951] mb-2">
-                  CNAE Principal (Importado da Receita)
+                  CNAE Principal
                 </label>
                 <p className="text-white font-mono">{formData.cnae_principal}</p>
                 {formData.cnae_principal_descricao && (
                   <p className="text-sm text-[#A1A1AA] mt-1">{formData.cnae_principal_descricao}</p>
                 )}
+                
+                {/* Lista todos os CNAEs secundários */}
                 {formData.cnaes?.length > 0 && (
-                  <p className="text-xs text-[#666] mt-2">
-                    + {formData.cnaes.length} CNAE(s) secundário(s) importado(s)
-                  </p>
+                  <div className="mt-4 pt-3 border-t border-[#2A2A2A]">
+                    <label className="block text-sm font-medium text-[#A1A1AA] mb-2">
+                      CNAEs Secundários ({formData.cnaes.length})
+                    </label>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {formData.cnaes.map((cnae, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-sm">
+                          <span className="text-white font-mono bg-[#0C0C0C] px-2 py-1 rounded">
+                            {typeof cnae === 'object' ? cnae.codigo : cnae}
+                          </span>
+                          {typeof cnae === 'object' && cnae.descricao && (
+                            <span className="text-[#666] truncate">{cnae.descricao}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
