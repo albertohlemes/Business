@@ -318,23 +318,46 @@ def validate_xml_type(xml_content: str, expected_type: str, expected_operacao: s
                 if 'nfe' in str(ns.get('nfe', '')).lower():
                     detected_type = '55'  # Assumir NF-e
             
-            # Detectar operação pelo CFOP
+            # Detectar operação pelo CFOP E pela posição da empresa (emitente ou destinatário)
             cfop_elem = root.find('.//{*}CFOP')
+            emit_cnpj_elem = root.find('.//{*}emit/{*}CNPJ')
+            dest_cnpj_elem = root.find('.//{*}dest/{*}CNPJ')
+            
+            emit_cnpj = emit_cnpj_elem.text if emit_cnpj_elem is not None else ''
+            dest_cnpj = dest_cnpj_elem.text if dest_cnpj_elem is not None else ''
+            
             if cfop_elem is not None:
                 cfop = cfop_elem.text
-                if cfop and cfop[0] in ['1', '2', '3']:
+                cfop_indica_entrada = cfop and cfop[0] in ['1', '2', '3']
+                cfop_indica_saida = cfop and cfop[0] in ['5', '6', '7']
+                
+                # IMPORTANTE: O CFOP do XML é do ponto de vista do EMITENTE
+                # Se a empresa importando é o DESTINATÁRIO:
+                #   - CFOP 5xxx/6xxx do emitente = ENTRADA para o destinatário
+                #   - CFOP 1xxx/2xxx do emitente (devolução) = deve manter como entrada
+                # Se a empresa importando é o EMITENTE:
+                #   - CFOP 5xxx/6xxx = SAÍDA
+                #   - CFOP 1xxx/2xxx = ENTRADA (compra)
+                
+                # Para determinar corretamente, precisamos saber qual empresa está importando
+                # Por ora, assumimos que XMLs recebidos de terceiros são ENTRADA
+                # e o sistema principal corrigirá se necessário
+                
+                # Se o CFOP indica saída (5xxx, 6xxx) em um XML recebido,
+                # provavelmente é uma nota de compra (entrada para quem recebe)
+                if cfop_indica_saida:
+                    # Não rejeitar automaticamente - deixar o usuário decidir
+                    # O CFOP será convertido durante o processamento
+                    detected_operacao = None  # Não detectar, confiar no tipo selecionado
+                elif cfop_indica_entrada:
                     detected_operacao = 'entrada'
-                elif cfop and cfop[0] in ['5', '6', '7']:
-                    detected_operacao = 'saida'
             
             # Se não encontrou CFOP, verificar se é emissão própria ou de terceiros
             if not detected_operacao:
                 # Documentos recebidos de terceiros são entrada
                 # Documentos emitidos são saída
-                emit_cnpj = root.find('.//{*}emit/{*}CNPJ')
-                dest_cnpj = root.find('.//{*}dest/{*}CNPJ')
                 # Por padrão, assumir pela estrutura
-                detected_operacao = 'entrada'  # Documentos XML geralmente são recebidos
+                detected_operacao = None  # Deixar o usuário decidir
         
         # CT-e
         elif 'cte' in root.tag.lower() or 'CTe' in root.tag:
