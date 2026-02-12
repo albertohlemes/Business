@@ -226,7 +226,8 @@ export const UploadProvider = ({ children }) => {
 
       // 3. Enviar arquivos em lotes (apenas se temos arquivos - não no caso de ZIP já processado)
       if (files && files.length > 0) {
-        const BATCH_SIZE = 50;
+        // Lotes menores para evitar timeout (30 arquivos por lote)
+        const BATCH_SIZE = 30;
         for (let i = 0; i < files.length; i += BATCH_SIZE) {
           const batch = files.slice(i, i + BATCH_SIZE);
           const formData = new FormData();
