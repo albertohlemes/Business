@@ -38,6 +38,7 @@ import FechamentoMensal from './pages/FechamentoMensal';
 import AuditLog from './pages/AuditLog';
 import GruposEmpresariais from './pages/GruposEmpresariais';
 import ImportacaoPage from './pages/ImportacaoPage';
+import BatchImport from './pages/BatchImport';
 import './App.css';
 
 function App() {
