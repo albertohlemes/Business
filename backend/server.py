@@ -22978,10 +22978,14 @@ async def get_simples_nacional_dashboard(request: SimplesNacionalDashboardReques
                 "origem": "pgdas"
             }
     
-    # Calcular RBT12 (últimos 12 meses) - usar PGDAS se disponível
-    if pgdas_rbt12 > 0:
-        rbt12 = pgdas_rbt12
-    else:
+    # Calcular RBT12 (últimos 12 meses) - SEMPRE calcular a partir do histórico
+    # para a competência específica, não usar o pgdas_rbt12 que é fixo do momento da importação.
+    # O RBT12 para cada competência deve ser a soma dos 12 meses ANTERIORES àquela competência.
+    competencia_ref = f"{mes_ref:02d}/{ano_ref}"
+    rbt12 = calcular_rbt12_do_historico(historico_pgdas, competencia_ref)
+    
+    # Se não há histórico do PGDAS, calcular a partir dos documentos do sistema
+    if rbt12 <= 0:
         rbt12 = sum(faturamento_por_mes.get(c, {}).get("faturamento", 0) for c in competencias_12m)
     
     # Calcular faturamento do ano corrente
