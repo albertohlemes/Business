@@ -66,6 +66,11 @@ const Layout = ({ user, onLogout, children }) => {
     nav.push({ name: 'Documentos', href: '/documents', icon: FileText, testId: 'nav-documents' });
     nav.push({ name: 'Central de Alertas', href: '/alertas', icon: Bell, testId: 'nav-alertas' });
     
+    // Admin: Importação em Lote
+    if (user?.role === 'admin') {
+      nav.push({ name: 'Importação em Lote', href: '/batch-import', icon: Download, testId: 'nav-batch-import' });
+    }
+    
     // Se não tem empresa selecionada, mostra menu completo padrão
     if (!selectedCompany) {
       // 📝 AÇÕES
