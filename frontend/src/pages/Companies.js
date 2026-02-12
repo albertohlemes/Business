@@ -779,14 +779,18 @@ const Companies = ({ user, onLogout }) => {
                 <div 
                   key={company.id}
                   data-testid={`company-row-${company.id}`}
-                  className="hover:bg-white/5 transition-colors"
+                  onClick={() => handleEdit(company)}
+                  className="hover:bg-white/5 transition-colors cursor-pointer"
                 >
                   {/* Main Row */}
                   <div className="grid grid-cols-12 gap-4 px-4 py-3 items-center">
                     {/* Código */}
                     <div className="col-span-12 md:col-span-1 flex items-center gap-2">
                       <button 
-                        onClick={() => setExpandedCompany(expandedCompany === company.id ? null : company.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedCompany(expandedCompany === company.id ? null : company.id);
+                        }}
                         className="p-1 text-[#A1A1AA] hover:text-white md:hidden"
                       >
                         {expandedCompany === company.id ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
