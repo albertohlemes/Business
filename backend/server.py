@@ -17720,13 +17720,13 @@ def get_cfop_from_category(categoria: str, cst: str, company_uf: str, cfop_origi
     if categoria == 'combustivel':
         return cfop_prefix + '653'
     elif categoria == 'ativo_imobilizado':
-        return (cfop_prefix + '406') if is_st else (cfop_prefix + '551')
+        return cfop_prefix + '406'  # Ativo imobilizado sempre 406
     elif categoria == 'revenda':
         return (cfop_prefix + '403') if is_st else (cfop_prefix + '102')
     elif categoria == 'insumo':
         return (cfop_prefix + '401') if is_st else (cfop_prefix + '101')
     elif categoria == 'despesa':
-        return (cfop_prefix + '407') if is_st else (cfop_prefix + '556')
+        return cfop_prefix + '407'  # Uso e consumo sempre 407
     return None
 
 def apply_classification(product, result, cfop_original, file_conversions):
