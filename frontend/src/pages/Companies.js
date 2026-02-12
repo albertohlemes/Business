@@ -199,25 +199,9 @@ const Companies = ({ user, onLogout }) => {
   };
 
   const handleEdit = (company) => {
-    setEditingCompany(company);
-    setFormData({
-      ...emptyFormData,
-      ...company,
-      codigo_empresa: company.codigo_empresa || '',
-      cnae_principal: company.cnae_principal || '',
-      cnae_principal_descricao: company.cnae_principal_descricao || '',
-      cnaes: company.cnaes || [],
-      produtos_comercializados: company.produtos_comercializados || [],
-      produtos_aplicacao_servico: company.produtos_aplicacao_servico || [],
-      insumos_producao: company.insumos_producao || [],
-      produtos_despesa: company.produtos_despesa || [],
-      ativo_imobilizado: company.ativo_imobilizado || [],
-      combustivel: company.combustivel || [],
-      anexos_simples: company.anexos_simples || [],
-      anexos_confirmados: company.anexos_confirmados || false,
-      controla_fator_r: company.controla_fator_r || false,
-      folha_pagamento_12m: company.folha_pagamento_12m || 0,
-      tipos_servico: company.tipos_servico || [],
+    // Navegar diretamente para o Wizard de edição
+    navigate(`/wizard-empresa/${company.id}`);
+  };
       // Flags de contribuinte
       equiparado_industria: company.equiparado_industria || false,
       apura_icms: company.apura_icms || false,
