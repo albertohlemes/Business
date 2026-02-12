@@ -7199,8 +7199,23 @@ async def upload_xml_with_progress(
                 return self._content
         
         file = FakeFile(filename, content)
-        # Atualizar progresso: lendo arquivo
-        # Calcular progresso baseado no total da sessão, não apenas do lote atual
+        
+        # Verificar se houve erro na leitura
+        if file_data["error"]:
+            errors.append({
+                "filename": filename,
+                "error": f"Erro ao ler arquivo: {file_data['error']}"
+            })
+            continue
+        
+        if not content:
+            errors.append({
+                "filename": filename,
+                "error": "Arquivo vazio ou não pôde ser lido"
+            })
+            continue
+        
+        # Atualizar progresso
         session_processed = progress.get("processed_in_session", 0)
         current_progress = session_processed + file_idx
         total_session = progress.get("total_files", total_files)
@@ -7218,30 +7233,14 @@ async def upload_xml_with_progress(
         # Garantir que o progress_store seja atualizado imediatamente
         upload_progress_store[upload_id] = progress
         
-        # Atualizar MongoDB a cada 10 arquivos ou no primeiro para garantir que o SSE/polling veja o progresso
-        if file_idx == 0 or file_idx - last_db_update >= 10:
-            logger.info(f"UPLOAD-STREAM: Progresso {current_progress}/{total_session} ({progress['progress_percent']}%)")
+        # Atualizar MongoDB a cada 50 arquivos (reduzido para melhor performance)
+        if file_idx == 0 or file_idx - last_db_update >= 50:
             await save_upload_session(upload_id, progress)
             last_db_update = file_idx
         
         try:
-            # Tentar ler o arquivo com tratamento de erro
-            try:
-                content = await file.read()
-                if not content:
-                    errors.append({
-                        "filename": file.filename,
-                        "error": "Arquivo vazio ou não pôde ser lido"
-                    })
-                    continue
-                xml_str = content.decode('utf-8')
-            except Exception as read_error:
-                logger.error(f"Erro ao ler arquivo {file.filename}: {str(read_error)}")
-                errors.append({
-                    "filename": file.filename,
-                    "error": f"Erro ao ler arquivo: {str(read_error)}"
-                })
-                continue
+            # Content já foi lido na fase de pré-leitura
+            xml_str = content.decode('utf-8')
             
             # Atualizar progresso: validando
             progress["current_step"] = f"Validando {file.filename}..."
