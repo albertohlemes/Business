@@ -202,52 +202,10 @@ const Companies = ({ user, onLogout }) => {
     // Navegar diretamente para o Wizard de edição
     navigate(`/wizard-empresa/${company.id}`);
   };
-      // Flags de contribuinte
-      equiparado_industria: company.equiparado_industria || false,
-      apura_icms: company.apura_icms || false,
-      apura_icms_st: company.apura_icms_st || false,
-      // Flags de desconsiderar ICMS
-      desconsiderar_icms_despesas: company.desconsiderar_icms_despesas || false,
-      desconsiderar_icms_st: company.desconsiderar_icms_st || false,
-      // === BENEFÍCIO FISCAL ICMS ===
-      beneficio_fiscal_icms: company.beneficio_fiscal_icms || false,
-      tipo_beneficio_fiscal: company.tipo_beneficio_fiscal || '',
-      produtos_sem_credito_icms: company.produtos_sem_credito_icms || [],
-      produtos_sem_credito_descricao: company.produtos_sem_credito_descricao || '',
-      // Classificação inteligente
-      classificacao_inteligente: company.classificacao_inteligente || '',
-      // Presunção por atividade
-      percentual_presuncao_irpj_comercio: company.percentual_presuncao_irpj_comercio ?? 8.0,
-      percentual_presuncao_csll_comercio: company.percentual_presuncao_csll_comercio ?? 12.0,
-      percentual_presuncao_irpj_servico: company.percentual_presuncao_irpj_servico ?? 32.0,
-      percentual_presuncao_csll_servico: company.percentual_presuncao_csll_servico ?? 32.0,
-      percentual_presuncao_irpj_industria: company.percentual_presuncao_irpj_industria ?? 8.0,
-      percentual_presuncao_csll_industria: company.percentual_presuncao_csll_industria ?? 12.0,
-      responsavel_ids: company.responsavel_ids || [],
-      // Certificado Digital
-      certificado_digital_arquivo: company.certificado_digital_arquivo || '',
-      certificado_digital_senha: company.certificado_digital_senha || '',
-      certificado_digital_validade: company.certificado_digital_validade || '',
-      // Aplicação em Serviços
-      aplicacao_em_servicos: company.aplicacao_em_servicos || false,
-      // Saldo Credor
-      possui_saldo_credor: company.possui_saldo_credor || false,
-      saldo_credor_icms: company.saldo_credor_icms || 0,
-      saldo_credor_pis: company.saldo_credor_pis || 0,
-      saldo_credor_cofins: company.saldo_credor_cofins || 0,
-      competencia_saldo_inicial: company.competencia_saldo_inicial || '',
-      // Transportadora
-      is_transportadora: company.is_transportadora || false,
-      tipo_transporte: company.tipo_transporte || 'carga',
-      credito_presumido_icms_percent: company.credito_presumido_icms_percent ?? 20.0
-    });
-    setShowForm(true);
-  };
 
   const handleNewCompany = () => {
-    setEditingCompany(null);
-    setFormData(emptyFormData);
-    setShowForm(true);
+    // Navegar para o Wizard de nova empresa
+    navigate('/wizard-empresa');
   };
 
   const handleCancelForm = () => {
