@@ -319,6 +319,7 @@ const GlobalUploadProgress = () => {
         {/* Resultado do upload */}
         {uploadResults && !isUploading && (
           <div>
+            {/* Linha 1: Importados, Duplicados, Erros */}
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2">
                 <p className="text-xl font-bold text-green-400">
@@ -340,11 +341,22 @@ const GlobalUploadProgress = () => {
               </div>
             </div>
             
-            {uploadResults.resumo?.desconsideradas_devolucao > 0 && (
-              <div className="mt-2 bg-[#141414] border border-[#2A2A2A] rounded-lg p-2 text-center">
-                <p className="text-sm font-medium text-[#A1A1AA]">
-                  {uploadResults.resumo.desconsideradas_devolucao} devoluções de fornecedor
-                </p>
+            {/* Linha 2: Canceladas e Devoluções (se houver) */}
+            {((uploadResults.resumo?.notas_canceladas || uploadResults.notas_canceladas?.length || 0) > 0 || 
+              (uploadResults.resumo?.desconsideradas_devolucao || uploadResults.notas_desconsideradas_devolucao?.length || 0) > 0) && (
+              <div className="grid grid-cols-2 gap-2 text-center mt-2">
+                <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-2">
+                  <p className="text-lg font-bold text-gray-400">
+                    {uploadResults.resumo?.notas_canceladas || uploadResults.notas_canceladas?.length || 0}
+                  </p>
+                  <p className="text-xs text-gray-300">Canceladas</p>
+                </div>
+                <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-2">
+                  <p className="text-lg font-bold text-purple-400">
+                    {uploadResults.resumo?.desconsideradas_devolucao || uploadResults.notas_desconsideradas_devolucao?.length || 0}
+                  </p>
+                  <p className="text-xs text-purple-300">Devoluções</p>
+                </div>
               </div>
             )}
 
