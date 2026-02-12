@@ -7040,6 +7040,27 @@ async def upload_xml_with_progress(
     
     logger.info(f"UPLOAD-STREAM: Processando {total_files} arquivos para upload_id={upload_id}")
     
+    # ===== OTIMIZAÇÃO: Buffer para bulk insert =====
+    BULK_INSERT_SIZE = 200  # Inserir em lotes de 200 documentos
+    docs_to_insert = []  # Buffer de documentos para bulk insert
+    
+    async def flush_bulk_insert():
+        """Insere todos os documentos pendentes no buffer"""
+        nonlocal docs_to_insert
+        if docs_to_insert:
+            try:
+                await db.xml_documents.insert_many(docs_to_insert, ordered=False)
+                logger.info(f"UPLOAD-STREAM: Bulk insert de {len(docs_to_insert)} documentos")
+            except Exception as e:
+                # Em caso de erro, tentar inserir um por um para não perder todos
+                logger.warning(f"UPLOAD-STREAM: Erro no bulk insert, tentando individual: {e}")
+                for doc in docs_to_insert:
+                    try:
+                        await db.xml_documents.insert_one(doc)
+                    except Exception as e2:
+                        logger.error(f"UPLOAD-STREAM: Erro ao inserir documento individual: {e2}")
+            docs_to_insert = []
+    
     # ===== PRÉ-CARREGAR CACHE DE DOCUMENTOS EXISTENTES (evita N queries de duplicados) =====
     existing_docs_cache = set()  # Cache por chave_nfe
     existing_docs_by_num_serie = set()  # Cache por numero + serie + cnpj_emitente (para docs sem chave)
