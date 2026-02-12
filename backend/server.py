@@ -8584,6 +8584,10 @@ async def get_dashboard_stats(
     # Tipo de atividade da empresa para filtrar documentos relevantes
     tipo_atividade = company.get('tipo_atividade', 'comercio')
     
+    # Helper para obter o tipo correto (compatibilidade com 'tipo' e 'tipo_operacao')
+    def get_tipo(doc):
+        return doc.get('tipo') or doc.get('tipo_operacao') or ''
+    
     # Contadores por tipo e modelo de documento
     # Modelos válidos para NF-e: 'nfe', 'NFe', 'NF-e', '55' (código do modelo), ou campo vazio/None (default para nfe)
     MODELOS_NFE = ['nfe', 'NFe', 'NF-e', '55', '', None]
@@ -8592,10 +8596,10 @@ async def get_dashboard_stats(
     MODELOS_NFCE = ['nfce', 'nfc-e', 'NFCE', 'NFC-e', '65']
     
     # ENTRADAS
-    nfe_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', 'nfe') in MODELOS_NFE]
+    nfe_entrada = [d for d in documents if get_tipo(d) == 'entrada' and d.get('modelo', 'nfe') in MODELOS_NFE]
     logger.info(f"DASHBOARD: NFe Entrada = {len(nfe_entrada)} docs")
-    cte_entrada = [d for d in documents if d.get('tipo') == 'entrada' and (d.get('modelo', '') or '').lower() in [m.lower() for m in MODELOS_CTE]]
-    nfse_tomados = [d for d in documents if d.get('tipo') == 'entrada' and (d.get('modelo', '') or '').lower() in [m.lower() for m in MODELOS_NFSE]]
+    cte_entrada = [d for d in documents if get_tipo(d) == 'entrada' and (d.get('modelo', '') or '').lower() in [m.lower() for m in MODELOS_CTE]]
+    nfse_tomados = [d for d in documents if get_tipo(d) == 'entrada' and (d.get('modelo', '') or '').lower() in [m.lower() for m in MODELOS_NFSE]]
     
     # Outros documentos de entrada (energia, internet, faturas, etc.)
     modelos_conhecidos_entrada = MODELOS_NFE + MODELOS_CTE + MODELOS_NFSE + MODELOS_NFCE
