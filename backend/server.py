@@ -7194,20 +7194,26 @@ async def upload_xml_with_progress(
             is_duplicate = False
             duplicate_reason = ""
             
+            # Log para debug
+            logger.info(f"UPLOAD-STREAM: Verificando duplicado NF {parsed_data.get('numero_nfe')} - Chave: {chave_nfe[:20] if chave_nfe else 'VAZIO'}...")
+            
             if chave_nfe and chave_nfe in existing_docs_cache:
                 is_duplicate = True
                 duplicate_reason = f"Chave já existe: {chave_nfe}"
+                logger.info(f"UPLOAD-STREAM: NF {parsed_data.get('numero_nfe')} - DUPLICADA por chave")
             else:
                 # Verificação alternativa por numero + serie + cnpj_emitente
                 num = str(parsed_data.get('numero_nfe') or "")
                 serie = str(parsed_data.get('serie') or "1")
-                cnpj_emitente = str(parsed_data.get('emitente_cnpj') or "")
+                cnpj_emitente_dup = str(parsed_data.get('emitente_cnpj') or "")
                 
-                if num and cnpj_emitente:
-                    alt_key = f"{num}|{serie}|{cnpj_emitente}"
+                if num and cnpj_emitente_dup:
+                    alt_key = f"{num}|{serie}|{cnpj_emitente_dup}"
+                    logger.info(f"UPLOAD-STREAM: NF {num} - Alt key: {alt_key}, No cache: {alt_key in existing_docs_by_num_serie}")
                     if alt_key in existing_docs_by_num_serie:
                         is_duplicate = True
                         duplicate_reason = f"Nº {num} Série {serie} já existe para este emitente"
+                        logger.info(f"UPLOAD-STREAM: NF {num} - DUPLICADA por num+serie+cnpj")
             
             if is_duplicate:
                 logger.info(f"UPLOAD-STREAM: DUPLICADA detectada - NF {parsed_data['numero_nfe']} - {duplicate_reason}")
