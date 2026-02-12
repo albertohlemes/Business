@@ -710,23 +710,23 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                   const editavelAnterior = isPeriodoEditavel(competenciaAnterior);
                   
                   return (
-                  <tr key={idx} className="hover:bg-white/5">
-                    <td className="px-4 py-3 font-medium text-white">{row.mes}/{anoAtual}</td>
+                  <tr key={idx} className="hover:bg-white/5 transition-colors">
+                    <td className="px-4 py-3 font-medium text-white whitespace-nowrap">{row.mes}/{anoAtual}</td>
                     
                     {/* Compras */}
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right font-mono">
                       {editando === `${row.competencia}-compras` && editavelAtual ? (
                         <input
                           type="number"
                           defaultValue={row.compras}
-                          className="w-24 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white"
+                          className="w-28 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white font-mono"
                           onBlur={(e) => salvarValorManual(row.competencia, 'compras', e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && salvarValorManual(row.competencia, 'compras', e.target.value)}
                           autoFocus
                         />
                       ) : (
                         <span 
-                          className={editavelAtual ? "cursor-pointer text-blue-400 hover:underline" : "text-blue-400"}
+                          className={editavelAtual ? "cursor-pointer text-blue-400 hover:underline tabular-nums" : "text-blue-400 tabular-nums"}
                           onClick={() => editavelAtual && setEditando(`${row.competencia}-compras`)}
                           title={editavelAtual ? "Clique para editar" : "Período atual/futuro - não editável manualmente"}
                         >
@@ -736,19 +736,19 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                     </td>
                     
                     {/* Vendas */}
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right font-mono">
                       {editando === `${row.competencia}-vendas` && editavelAtual ? (
                         <input
                           type="number"
                           defaultValue={row.vendas}
-                          className="w-24 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white"
+                          className="w-28 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white font-mono"
                           onBlur={(e) => salvarValorManual(row.competencia, 'vendas', e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && salvarValorManual(row.competencia, 'vendas', e.target.value)}
                           autoFocus
                         />
                       ) : (
                         <span 
-                          className={editavelAtual ? "cursor-pointer text-emerald-400 hover:underline" : "text-emerald-400"}
+                          className={editavelAtual ? "cursor-pointer text-emerald-400 hover:underline tabular-nums" : "text-emerald-400 tabular-nums"}
                           onClick={() => editavelAtual && setEditando(`${row.competencia}-vendas`)}
                           title={editavelAtual ? "Clique para editar" : "Período atual/futuro - não editável manualmente"}
                         >
@@ -758,19 +758,19 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                     </td>
                     
                     {/* Impostos */}
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right font-mono">
                       {editando === `${row.competencia}-impostos` && editavelAtual ? (
                         <input
                           type="number"
                           defaultValue={row.impostos}
-                          className="w-24 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white"
+                          className="w-28 bg-[#0C0C0C] border border-[#2A2A2A] rounded px-2 py-1 text-right text-white font-mono"
                           onBlur={(e) => salvarValorManual(row.competencia, 'impostos_pagar', e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && salvarValorManual(row.competencia, 'impostos_pagar', e.target.value)}
                           autoFocus
                         />
                       ) : (
                         <span 
-                          className={`${editavelAtual ? "cursor-pointer hover:underline" : ""} ${row.impostos >= 0 ? 'text-red-400' : 'text-amber-400'}`}
+                          className={`tabular-nums ${editavelAtual ? "cursor-pointer hover:underline" : ""} ${row.impostos >= 0 ? 'text-red-400' : 'text-amber-400'}`}
                           onClick={() => editavelAtual && setEditando(`${row.competencia}-impostos`)}
                           title={editavelAtual ? "Clique para editar" : "Período atual/futuro - não editável manualmente"}
                         >
@@ -783,10 +783,10 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                     {/* Variação vs Mês Anterior - mostra evolução compras/vendas/impostos vs mês anterior */}
                     <td className="px-4 py-3 text-center">
                       <div className="flex flex-col gap-1">
-                        <span className={`text-xs font-medium ${row.var_vendas_mes > 0 ? 'text-emerald-400' : row.var_vendas_mes < 0 ? 'text-red-400' : 'text-[#666]'}`} title="Vendas vs mês anterior">
+                        <span className={`text-xs font-medium tabular-nums ${row.var_vendas_mes > 0 ? 'text-emerald-400' : row.var_vendas_mes < 0 ? 'text-red-400' : 'text-[#666]'}`} title="Vendas vs mês anterior">
                           V: {row.var_vendas_mes > 0 ? '+' : ''}{(row.var_vendas_mes || 0).toFixed(1)}%
                         </span>
-                        <span className={`text-xs font-medium ${row.var_impostos_mes < 0 ? 'text-emerald-400' : row.var_impostos_mes > 0 ? 'text-red-400' : 'text-[#666]'}`} title="Impostos vs mês anterior">
+                        <span className={`text-xs font-medium tabular-nums ${row.var_impostos_mes < 0 ? 'text-emerald-400' : row.var_impostos_mes > 0 ? 'text-red-400' : 'text-[#666]'}`} title="Impostos vs mês anterior">
                           I: {row.var_impostos_mes > 0 ? '+' : ''}{(row.var_impostos_mes || 0).toFixed(1)}%
                         </span>
                       </div>
@@ -795,10 +795,10 @@ const AnaliseHorizontal = ({ user, onLogout }) => {
                     {/* Variação vs Mesmo Mês Ano Anterior */}
                     <td className="px-4 py-3 text-center">
                       <div className="flex flex-col gap-1">
-                        <span className={`text-xs font-medium ${row.var_vendas > 0 ? 'text-emerald-400' : row.var_vendas < 0 ? 'text-red-400' : 'text-[#666]'}`} title="Vendas vs ano anterior">
+                        <span className={`text-xs font-medium tabular-nums ${row.var_vendas > 0 ? 'text-emerald-400' : row.var_vendas < 0 ? 'text-red-400' : 'text-[#666]'}`} title="Vendas vs ano anterior">
                           V: {row.var_vendas > 0 ? '+' : ''}{row.var_vendas.toFixed(1)}%
                         </span>
-                        <span className={`text-xs font-medium ${row.var_impostos < 0 ? 'text-emerald-400' : row.var_impostos > 0 ? 'text-red-400' : 'text-[#666]'}`} title="Impostos vs ano anterior">
+                        <span className={`text-xs font-medium tabular-nums ${row.var_impostos < 0 ? 'text-emerald-400' : row.var_impostos > 0 ? 'text-red-400' : 'text-[#666]'}`} title="Impostos vs ano anterior">
                           I: {row.var_impostos > 0 ? '+' : ''}{row.var_impostos.toFixed(1)}%
                         </span>
                       </div>
