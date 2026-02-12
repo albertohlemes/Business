@@ -16434,7 +16434,9 @@ async def update_learned_rule(
             elif categoria_lower == 'insumo':
                 novo_cfop = cfop_prefix + '101'  # Compra para industrialização
             elif categoria_lower == 'despesa':
-                novo_cfop = cfop_prefix + '556'  # Compra para uso/consumo
+                novo_cfop = cfop_prefix + '407'  # Compra para uso/consumo
+            elif categoria_lower == 'ativo_imobilizado':
+                novo_cfop = cfop_prefix + '406'  # Compra de ativo imobilizado
             elif categoria_lower == 'combustivel':
                 novo_cfop = cfop_prefix + '653'  # Compra de combustível
             elif categoria_lower in ['servico_aplicacao', 'servico']:
