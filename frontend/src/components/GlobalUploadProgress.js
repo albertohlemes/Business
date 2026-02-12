@@ -393,6 +393,27 @@ const GlobalUploadProgress = () => {
               </div>
             )}
 
+            {/* Métricas de Performance (se disponível) */}
+            {uploadResults.performance?.tempo_total_segundos && (
+              <div className="mt-2 p-2 bg-[#0C0C0C] border border-[#2A2A2A] rounded-lg">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#666]">Tempo:</span>
+                  <span className="text-emerald-400 font-medium">
+                    {uploadResults.performance.tempo_total_segundos < 60 
+                      ? `${uploadResults.performance.tempo_total_segundos}s`
+                      : `${Math.floor(uploadResults.performance.tempo_total_segundos / 60)}m ${Math.round(uploadResults.performance.tempo_total_segundos % 60)}s`
+                    }
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs mt-1">
+                  <span className="text-[#666]">Velocidade:</span>
+                  <span className="text-[#C8A951] font-medium">
+                    {uploadResults.performance.arquivos_por_segundo} XMLs/seg
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Botões de ação */}
             <div className="mt-3 flex gap-2">
               <button
