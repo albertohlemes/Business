@@ -22617,7 +22617,7 @@ async def inteligencia_tributaria(
                 qtd_meses_dados = 1
         
         # Proporcionalização (apenas para exibição, não afeta cálculo da alíquota)
-        if qtd_meses_dados < 12 and qtd_meses_dados > 0 and pgdas_rbt12 == 0:
+        if qtd_meses_dados < 12 and qtd_meses_dados > 0:
             rbt12_proporcionalizado = (rbt12 / qtd_meses_dados) * 12
         else:
             rbt12_proporcionalizado = rbt12
