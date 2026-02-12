@@ -2374,7 +2374,9 @@ def parse_xml_lista_nfse(xml_content: str) -> List[Dict[str, Any]]:
                     parsed = _parse_single_nfse(inf_nfse)
                     resultados.append(parsed)
             except Exception as e:
+                import traceback
                 print(f"Erro ao processar NFS-e individual: {e}")
+                print(f"Traceback: {traceback.format_exc()}")
                 continue
         
         return resultados
