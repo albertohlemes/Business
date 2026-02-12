@@ -247,6 +247,9 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
     insumos: '',
     despesa: '',
     servico: '',
+    imobilizado: '',
+    combustivel: '',
+    sem_credito: '',
   });
 
   // Carregar dados da empresa se for edição
