@@ -185,6 +185,8 @@ const Layout = ({ user, onLogout, children }) => {
     // ═══════════════════════════════════════════════════════════
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       nav.push({ type: 'separator', label: 'Administração' });
+      nav.push({ name: 'Usuários', href: '/users', icon: Users, testId: 'nav-users' });
+      nav.push({ name: 'Permissões', href: '/permissoes', icon: Shield, testId: 'nav-permissoes', indent: true });
       nav.push({ name: 'Grupos Empresariais', href: '/grupos-empresariais', icon: Building2, testId: 'nav-grupos-empresariais' });
       nav.push({ name: 'Histórico de Alterações', href: '/audit-log', icon: History, testId: 'nav-audit-log' });
     }
