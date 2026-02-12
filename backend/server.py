@@ -8603,23 +8603,24 @@ async def get_dashboard_stats(
     
     # Outros documentos de entrada (energia, internet, faturas, etc.)
     modelos_conhecidos_entrada = MODELOS_NFE + MODELOS_CTE + MODELOS_NFSE + MODELOS_NFCE
-    outros_entrada = [d for d in documents if d.get('tipo') == 'entrada' and d.get('modelo', '') not in modelos_conhecidos_entrada and (d.get('modelo', '') or '').lower() not in [m.lower() for m in modelos_conhecidos_entrada]]
+    outros_entrada = [d for d in documents if get_tipo(d) == 'entrada' and d.get('modelo', '') not in modelos_conhecidos_entrada and (d.get('modelo', '') or '').lower() not in [m.lower() for m in modelos_conhecidos_entrada]]
     
     # SAÍDAS - filtrar por atividade
     # Modelos válidos para NF-e: 'nfe', 'NFe', 'NF-e', '55' (código do modelo), ou campo vazio/None (default para nfe)
     MODELOS_NFE = ['nfe', 'NFe', 'NF-e', '55', '', None]
-    nfe_saida = [d for d in documents if d.get('tipo') == 'saida' and d.get('modelo', 'nfe') in MODELOS_NFE]
+    nfe_saida = [d for d in documents if get_tipo(d) == 'saida' and d.get('modelo', 'nfe') in MODELOS_NFE]
+    logger.info(f"DASHBOARD: NFe Saída = {len(nfe_saida)} docs")
     
-    # NFC-e: modelo 65
-    nfce = [d for d in documents if d.get('modelo', '').lower() in ['nfce', 'nfc-e', '65']]
+    # NFC-e: modelo 65 (tanto entrada quanto saída, mas geralmente é saída)
+    nfce = [d for d in documents if (d.get('modelo', '') or '').lower() in ['nfce', 'nfc-e', '65']]
     
     # CT-e: modelo 57
-    cte_saida = [d for d in documents if d.get('tipo') == 'saida' and d.get('modelo', '').lower() in ['cte', 'ct-e', '57']]
+    cte_saida = [d for d in documents if get_tipo(d) == 'saida' and (d.get('modelo', '') or '').lower() in ['cte', 'ct-e', '57']]
     
     # NFS-e prestados (serviços próprios) - só mostrar se empresa presta serviços
     nfse_prestados = []
     if tipo_atividade in ['servicos', 'mista']:
-        nfse_prestados = [d for d in documents if d.get('tipo') == 'saida' and d.get('modelo', '').lower() in ['nfse', 'nfs-e']]
+        nfse_prestados = [d for d in documents if get_tipo(d) == 'saida' and (d.get('modelo', '') or '').lower() in ['nfse', 'nfs-e']]
     
     # Compatibilidade com código anterior
     nfse = nfse_prestados
