@@ -564,17 +564,47 @@ const GlobalUploadProgress = () => {
             {/* Devoluções do Fornecedor */}
             {uploadResults.notas_desconsideradas_devolucao && uploadResults.notas_desconsideradas_devolucao.length > 0 && (
               <div className="mb-6">
-                <h3 className="font-bold text-[#A1A1AA] mb-3 flex items-center gap-2">
+                <h3 className="font-bold text-purple-400 mb-3 flex items-center gap-2">
                   <FileText className="w-5 h-5" />
                   Devoluções do Fornecedor ({uploadResults.notas_desconsideradas_devolucao.length})
                 </h3>
-                <div className="bg-[#141414] border border-[#2A2A2A] rounded-lg p-3 max-h-40 overflow-y-auto">
-                  {uploadResults.notas_desconsideradas_devolucao.map((dev, idx) => (
-                    <div key={idx} className="text-sm text-[#A1A1AA] py-2 border-b border-[#2A2A2A] last:border-0">
-                      <span className="font-medium text-white">NF {dev.numero_nfe || idx + 1}</span>
-                      <span className="text-[#666] ml-2">- {dev.emitente || ''}</span>
+                <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 max-h-60 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-purple-300 border-b border-purple-500/30">
+                        <th className="text-left py-2">NF Devolução</th>
+                        <th className="text-left py-2">Emitente</th>
+                        <th className="text-right py-2">Valor</th>
+                        <th className="text-left py-2 pl-4">NF Original Ref.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {uploadResults.notas_desconsideradas_devolucao.slice(0, 30).map((dev, idx) => (
+                        <tr key={idx} className="text-purple-200 border-b border-purple-500/20 last:border-0 hover:bg-purple-500/5">
+                          <td className="py-2">
+                            <span className="font-bold">{dev.numero_nfe || '-'}</span>
+                            {dev.cfop && <span className="text-purple-400 ml-1 text-[10px]">({dev.cfop})</span>}
+                          </td>
+                          <td className="py-2 truncate max-w-[120px]" title={dev.emitente}>{dev.emitente || '-'}</td>
+                          <td className="py-2 text-right font-medium">R$ {(dev.valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                          <td className="py-2 pl-4">
+                            {dev.nf_referenciada ? (
+                              <span className="bg-purple-600/30 px-2 py-0.5 rounded text-purple-200 font-medium">
+                                NF {dev.nf_referenciada}
+                              </span>
+                            ) : (
+                              <span className="text-purple-400/50">Não identificada</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {uploadResults.notas_desconsideradas_devolucao.length > 30 && (
+                    <div className="text-center text-purple-300 py-2 border-t border-purple-500/30 mt-2">
+                      ... e mais {uploadResults.notas_desconsideradas_devolucao.length - 30} devoluções
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             )}
