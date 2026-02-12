@@ -1664,6 +1664,8 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
             v_bc_cofins = 0  # Base de cálculo da COFINS
             
             # Extrair ICMS próprio e ST
+            v_cred_icms_sn = 0  # Crédito de ICMS do Simples Nacional
+            p_cred_sn = 0       # Percentual de crédito do Simples Nacional
             for key in icms:
                 if isinstance(icms[key], dict):
                     v_icms = float(icms[key].get('vICMS', 0) or 0)
@@ -1672,6 +1674,16 @@ def parse_xml_nfe(xml_content: str) -> Dict[str, Any]:
                     # ICMS-ST
                     v_icms_st = float(icms[key].get('vICMSST', 0) or 0)
                     v_bc_st = float(icms[key].get('vBCST', 0) or 0)
+                    
+                    # Crédito de ICMS do Simples Nacional (ICMSSN101, ICMSSN201, ICMSSN202, ICMSSN900)
+                    # Esses campos vêm em notas de fornecedores do Simples Nacional
+                    if key.startswith('ICMSSN'):
+                        p_cred_sn = float(icms[key].get('pCredSN', 0) or 0)
+                        v_cred_icms_sn = float(icms[key].get('vCredICMSSN', 0) or 0)
+                        # Se tem crédito de ICMS SN, usar como v_icms para fins de crédito
+                        if v_cred_icms_sn > 0:
+                            v_icms = v_cred_icms_sn  # Usar o crédito como valor de ICMS
+                            p_icms = p_cred_sn      # Usar o percentual de crédito como alíquota
                     break
             
             # Extrair IPI
