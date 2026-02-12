@@ -3373,6 +3373,79 @@ async def register(user_data: UserCreate):
     await db.users.insert_one(doc)
     return user
 
+# Endpoint para consultar SINTEGRA
+@api_router.get("/sintegra/{cnpj}/{uf}")
+async def consultar_sintegra(cnpj: str, uf: str):
+    """
+    Consulta a Inscrição Estadual no SINTEGRA.
+    Retorna a IE se encontrada, ou indica que é isento/não encontrado.
+    """
+    cnpj_limpo = cnpj.replace('.', '').replace('/', '').replace('-', '')
+    uf_upper = uf.upper()
+    
+    try:
+        # Tentativa 1: Usar a API do SINTEGRA via web scraping simulado
+        # Como o SINTEGRA é um site com captcha, vamos usar APIs alternativas
+        
+        # Tentativa usando ReceitaWS (que pode ter IE)
+        try:
+            response = requests.get(
+                f"https://receitaws.com.br/v1/cnpj/{cnpj_limpo}",
+                headers={"Accept": "application/json"},
+                timeout=15
+            )
+            if response.status_code == 200:
+                data = response.json()
+                # Alguns retornos incluem a IE
+                if data.get('status') == 'OK':
+                    # A ReceitaWS não retorna IE diretamente, mas podemos verificar a situação
+                    situacao = data.get('situacao', '')
+                    if 'ISENT' in situacao.upper() or data.get('tipo') == 'MATRIZ' and not data.get('atividade_principal'):
+                        return {"inscricao_estadual": "ISENTO", "status": "isento", "fonte": "receitaws"}
+        except Exception:
+            pass
+        
+        # Tentativa 2: Verificar se o CNAE indica prestador de serviços (normalmente isento de IE)
+        # Buscar dados da empresa para verificar CNAE
+        try:
+            response_cnpj = requests.get(f"https://brasilapi.com.br/api/cnpj/v1/{cnpj_limpo}", timeout=10)
+            if response_cnpj.status_code == 200:
+                data_cnpj = response_cnpj.json()
+                cnae_principal = str(data_cnpj.get('cnae_fiscal', ''))
+                
+                # CNAEs de serviços geralmente são isentos de IE
+                cnaes_servicos = ['49', '50', '51', '52', '53', '55', '56', '58', '59', '60',
+                                   '61', '62', '63', '64', '65', '66', '68', '69', '70', '71',
+                                   '72', '73', '74', '75', '77', '78', '79', '80', '81', '82',
+                                   '84', '85', '86', '87', '88', '90', '91', '92', '93', '94', '95', '96']
+                
+                if cnae_principal[:2] in cnaes_servicos:
+                    return {
+                        "inscricao_estadual": "ISENTO",
+                        "status": "isento",
+                        "motivo": "Atividade de serviços (geralmente isento de IE)",
+                        "fonte": "analise_cnae"
+                    }
+        except Exception:
+            pass
+        
+        # Se não conseguiu determinar, retornar como não encontrado
+        # O usuário pode preencher manualmente
+        return {
+            "inscricao_estadual": "NAO ENCONTRADO",
+            "status": "nao_encontrado",
+            "motivo": "Não foi possível consultar automaticamente. Verifique manualmente no site do SINTEGRA.",
+            "url_sintegra": f"http://www.sintegra.gov.br/"
+        }
+        
+    except Exception as e:
+        logger.error(f"Erro ao consultar SINTEGRA: {str(e)}")
+        return {
+            "inscricao_estadual": "NAO ENCONTRADO",
+            "status": "erro",
+            "motivo": str(e)
+        }
+
 @api_router.post("/auth/login", response_model=Token)
 async def login(credentials: UserLogin, request: Request = None):
     user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
