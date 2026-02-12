@@ -1188,22 +1188,42 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                         }
                         // Auto-preencher impostos baseado no regime e atividade
                         const atividade = formData.tipo_atividade;
+                        
+                        // Limpar todos primeiro
+                        handleChange('apura_icms', false);
+                        handleChange('apura_icms_st', false);
+                        handleChange('apura_ipi', false);
+                        handleChange('apura_pis_cofins', false);
+                        handleChange('apura_iss', false);
+                        
                         if (regime.value === 'simples_nacional') {
-                          handleChange('apura_icms', false);
-                          handleChange('apura_pis_cofins', false);
-                          handleChange('apura_iss', false);
-                          if (['comercio', 'industria', 'mista'].includes(atividade)) {
+                          // Simples Nacional - apenas ST para indústria
+                          if (atividade === 'industria') {
                             handleChange('apura_icms_st', true);
                           }
                         } else if (regime.value === 'lucro_presumido' || regime.value === 'lucro_real') {
-                          if (['comercio', 'industria', 'mista'].includes(atividade)) {
+                          // Indústria: TODOS
+                          if (atividade === 'industria') {
                             handleChange('apura_icms', true);
                             handleChange('apura_icms_st', true);
+                            handleChange('apura_ipi', true);
                             handleChange('apura_pis_cofins', true);
                           }
-                          if (['servicos', 'mista'].includes(atividade)) {
-                            handleChange('apura_iss', true);
+                          // Comércio: ICMS e PIS/COFINS (sem IPI e sem ICMS ST)
+                          else if (atividade === 'comercio') {
+                            handleChange('apura_icms', true);
                             handleChange('apura_pis_cofins', true);
+                          }
+                          // Serviço: Só PIS/COFINS e ISS
+                          else if (atividade === 'servicos') {
+                            handleChange('apura_pis_cofins', true);
+                            handleChange('apura_iss', true);
+                          }
+                          // Mista: ICMS + PIS/COFINS + ISS
+                          else if (atividade === 'mista') {
+                            handleChange('apura_icms', true);
+                            handleChange('apura_pis_cofins', true);
+                            handleChange('apura_iss', true);
                           }
                         }
                       }}
