@@ -6727,11 +6727,16 @@ async def upload_xml_with_progress(
     existing_docs_by_num_serie = set()  # Cache por numero + serie + cnpj_emitente (para docs sem chave)
     try:
         logger.info(f"UPLOAD-STREAM: Carregando cache para company_id={company_id}, competencia={competencia}")
-        existing_cursor = db.xml_documents.find({
+        
+        # Usar to_list() para garantir que todos os documentos são carregados
+        existing_docs = await db.xml_documents.find({
             "company_id": company_id,
             "competencia": competencia
-        }, {"chave_nfe": 1, "numero_nfe": 1, "serie": 1, "emitente_cnpj": 1, "_id": 0})
-        async for doc in existing_cursor:
+        }, {"chave_nfe": 1, "numero_nfe": 1, "serie": 1, "emitente_cnpj": 1, "_id": 0}).to_list(length=None)
+        
+        logger.info(f"UPLOAD-STREAM: Total de documentos encontrados: {len(existing_docs)}")
+        
+        for doc in existing_docs:
             if doc.get("chave_nfe"):
                 existing_docs_cache.add(doc["chave_nfe"])
             # Criar chave alternativa: numero + serie + cnpj_emitente
@@ -6741,6 +6746,7 @@ async def upload_xml_with_progress(
             if num and cnpj:
                 alt_key = f"{num}|{serie}|{cnpj}"
                 existing_docs_by_num_serie.add(alt_key)
+        
         logger.info(f"UPLOAD-STREAM: Cache de documentos existentes carregado - {len(existing_docs_cache)} por chave, {len(existing_docs_by_num_serie)} por num+serie")
         # Log algumas chaves para debug
         sample_keys = list(existing_docs_by_num_serie)[:5]
