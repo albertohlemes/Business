@@ -7854,9 +7854,18 @@ async def list_documents(
     if competencia:
         query['competencia'] = competencia
     
-    # Filtrar por modelo do documento
+    # Filtrar por modelo do documento (converter código numérico para texto se necessário)
     if modelo:
-        query['modelo'] = modelo
+        modelo_map = {
+            '55': 'nfe',
+            '65': 'nfce', 
+            '57': 'cte',
+            'nfe': 'nfe',
+            'nfce': 'nfce',
+            'cte': 'cte'
+        }
+        modelo_db = modelo_map.get(modelo, modelo)
+        query['modelo'] = modelo_db
     
     # Filtrar por tipo de operação diretamente na query
     if tipo_operacao:
