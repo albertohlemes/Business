@@ -5853,23 +5853,27 @@ async def upload_xml_batch(
                     nfe_ref_devolucao = ""
             
             # CALCULAR COMPETÊNCIA DO DOCUMENTO
-            # Para ENTRADAS: usar data_saida_entrada (dhSaiEnt) se disponível, senão data_emissao
-            # Para SAÍDAS: usar data_emissao
+            # Para ENTRADAS (compras): usar data_saida_entrada (dhSaiEnt) quando disponível
+            #   - dhSaiEnt representa quando o fornecedor DESPACHOU a mercadoria
+            #   - É a data correta para competência de entradas
+            # Para SAÍDAS (vendas da própria empresa): usar data_emissao (dhEmi)
             data_emissao = parsed_data.get('data_emissao', '')
             data_saida_entrada = parsed_data.get('data_saida_entrada', '')
             
-            # Detectar se é realmente uma NF de saída (emissão própria)
-            # Mesmo que esteja sendo importada na aba de "entrada"
+            # Detectar se é NF de emissão própria (vendas da empresa)
             is_emissao_propria = cnpj_emitente == cnpj_empresa
-            is_realmente_saida = is_emissao_propria or tipo_operacao == 'saida'
             
             # Determinar qual data usar para a competência
-            if tipo_operacao == 'entrada' and data_saida_entrada and not is_realmente_saida:
-                # Para entradas (compras), priorizar data de saída (quando o fornecedor despachou)
+            if tipo_operacao == 'saida' or is_emissao_propria:
+                # Para SAÍDAS ou emissão própria, usar data de emissão
+                data_para_competencia = data_emissao
+                tipo_data = "emissão"
+            elif tipo_operacao == 'entrada' and data_saida_entrada:
+                # Para ENTRADAS, priorizar data de saída (quando o fornecedor despachou)
                 data_para_competencia = data_saida_entrada
                 tipo_data = "saída"
             else:
-                # Para saídas (vendas) ou quando não tem data de saída, usar emissão
+                # Fallback: usar data de emissão
                 data_para_competencia = data_emissao
                 tipo_data = "emissão"
             
