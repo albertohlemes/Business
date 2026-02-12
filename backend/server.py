@@ -8824,6 +8824,12 @@ async def get_dashboard_stats(
             elif is_beneficio_fiscal:
                 # Produto afetado pelo benefício fiscal - desconsiderar crédito
                 credito_icms_beneficio_desconsiderado += v_icms
+                produtos_beneficio_excluidos.append({
+                    'descricao': descricao[:50],
+                    'ncm': ncm,
+                    'valor_icms': v_icms
+                })
+                logger.debug(f"BENEFICIO: Produto excluído - {descricao[:30]} - ICMS: {v_icms}")
             else:
                 credito_icms += v_icms
             
