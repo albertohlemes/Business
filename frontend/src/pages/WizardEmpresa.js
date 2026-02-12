@@ -1168,6 +1168,26 @@ const WizardEmpresa = ({ companyId, onComplete, onCancel }) => {
                           const anexos = sugerirAnexosPorCnaes(formData.cnaes);
                           handleChange('anexos_simples', anexos);
                         }
+                        // Auto-preencher impostos baseado no regime e atividade
+                        const atividade = formData.tipo_atividade;
+                        if (regime.value === 'simples_nacional') {
+                          handleChange('apura_icms', false);
+                          handleChange('apura_pis_cofins', false);
+                          handleChange('apura_iss', false);
+                          if (['comercio', 'industria', 'mista'].includes(atividade)) {
+                            handleChange('apura_icms_st', true);
+                          }
+                        } else if (regime.value === 'lucro_presumido' || regime.value === 'lucro_real') {
+                          if (['comercio', 'industria', 'mista'].includes(atividade)) {
+                            handleChange('apura_icms', true);
+                            handleChange('apura_icms_st', true);
+                            handleChange('apura_pis_cofins', true);
+                          }
+                          if (['servicos', 'mista'].includes(atividade)) {
+                            handleChange('apura_iss', true);
+                            handleChange('apura_pis_cofins', true);
+                          }
+                        }
                       }}
                       className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
                         isSelected
