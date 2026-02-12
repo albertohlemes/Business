@@ -833,7 +833,31 @@ Sistema completo de contabilidade fiscal brasileira para empresas de diferentes 
 - ✅ **Estimativa de tempo restante** para uploads grandes
 - ✅ **Indicador de processamento em background** (bolinhas animadas)
 - ✅ **Contadores formatados** com separador de milhar (pt-BR)
+- ✅ **Métricas de performance** exibidas no resultado (tempo total, XMLs/segundo)
 - ✅ **Arquivo modificado:** `/app/frontend/src/components/GlobalUploadProgress.js`
+
+### 2026-02-12 (Sessão - Otimização de Performance para Importação em Massa)
+
+**Otimizações de Backend para Volumes 1.000-10.000+ XMLs:**
+- ✅ **Pré-leitura paralela** - Arquivos são lidos em paralelo (lotes de 50) antes do processamento
+- ✅ **Bulk Insert MongoDB** - Documentos são inseridos em lotes de 200 (em vez de 1 por 1)
+- ✅ **Índices otimizados** - Criados índices compostos para queries de duplicados e competência
+- ✅ **Cache de validações** - CNPJs, CFOPs e eventos de cancelamento pré-carregados
+- ✅ **Métricas de tempo** - Log de tempo total e arquivos/segundo no resultado
+- ✅ **Arquivo modificado:** `/app/backend/server.py` (função `upload_xml_with_progress`)
+
+**Índices MongoDB criados:**
+- `company_chave_idx` - (company_id, chave_nfe)
+- `company_competencia_idx` - (company_id, competencia)
+- `company_tipo_comp_idx` - (company_id, tipo, competencia)
+- `chave_nfe_idx` - (chave_nfe) sparse
+
+**Ganho estimado de performance:**
+| Volume | Antes | Depois |
+|--------|-------|--------|
+| 1.000 XMLs | ~5-10 min | ~30-60 seg |
+| 4.000 XMLs | ~20-40 min | ~2-4 min |
+| 10.000 XMLs | ~1-2 horas | ~5-10 min |
 
 **Integração PGDAS ↔ Evolução Fiscal:**
 - ✅ **Endpoint /api/analise-horizontal** agora busca dados de `historico_das_calculado` e `historico_faturamento`
