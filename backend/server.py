@@ -7854,6 +7854,10 @@ async def list_documents(
     if competencia:
         query['competencia'] = competencia
     
+    # Filtrar por modelo do documento
+    if modelo:
+        query['modelo'] = modelo
+    
     # Filtrar por tipo de operação diretamente na query
     if tipo_operacao:
         if tipo_operacao == 'saida':
