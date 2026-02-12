@@ -185,39 +185,42 @@ const UserPermissions = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 text-[#C8A951] animate-spin" />
-      </div>
+      <Layout user={currentUser} onLogout={() => {}}>
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="w-8 h-8 text-[#C8A951] animate-spin" />
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="p-6 space-y-6" data-testid="user-permissions-page">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-[#C8A951]/10 rounded-xl">
-            <Shield className="w-8 h-8 text-[#C8A951]" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">Permissões de Usuários</h1>
-            <p className="text-[#A1A1AA]">Gerencie o que cada usuário pode fazer no sistema</p>
+    <Layout user={currentUser} onLogout={() => {}}>
+      <div className="p-6 space-y-6" data-testid="user-permissions-page">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-[#C8A951]/10 rounded-xl">
+              <Shield className="w-8 h-8 text-[#C8A951]" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Permissões de Usuários</h1>
+              <p className="text-[#A1A1AA]">Gerencie o que cada usuário pode fazer no sistema</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        {/* Lista de Usuários */}
-        <div className="col-span-4 bg-[#1E1E1E] rounded-xl border border-[#2A2A2A] overflow-hidden">
-          <div className="p-4 border-b border-[#2A2A2A]">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666]" />
-              <input
-                type="text"
-                placeholder="Buscar usuário..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white placeholder-[#666] focus:border-[#C8A951] focus:outline-none"
+        <div className="grid grid-cols-12 gap-6">
+          {/* Lista de Usuários */}
+          <div className="col-span-4 bg-[#1E1E1E] rounded-xl border border-[#2A2A2A] overflow-hidden">
+            <div className="p-4 border-b border-[#2A2A2A]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666]" />
+                <input
+                  type="text"
+                  placeholder="Buscar usuário..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-[#141414] border border-[#2A2A2A] rounded-lg text-white placeholder-[#666] focus:border-[#C8A951] focus:outline-none"
                 data-testid="search-users"
               />
             </div>
